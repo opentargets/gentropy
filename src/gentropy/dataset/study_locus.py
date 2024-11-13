@@ -148,7 +148,7 @@ class FinemappingMethod(Enum):
         SUSIE_INF (str): SuSiE-inf method implemented in `gentropy`
     """
 
-    PICS = "pics"
+    PICS = "PICS"
     SUSIE = "SuSie"
     SUSIE_INF = "SuSiE-inf"
 
