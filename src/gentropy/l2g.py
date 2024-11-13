@@ -158,7 +158,7 @@ class LocusToGeneStep:
             session, credible_set_path, recursiveFileLookup=True
         )
         self.feature_matrix = L2GFeatureMatrix(
-            _df=session.load_data(feature_matrix_path), features_list=self.features_list
+            _df=session.load_data(feature_matrix_path),
         )
         self.variant_index = (
             VariantIndex.from_parquet(session, variant_index_path)
