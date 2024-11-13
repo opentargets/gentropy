@@ -95,16 +95,18 @@ def common_neighbourhood_vep_feature_logic(
         study_loci_to_annotate,
         feature_name=local_feature_name,
         variant_index=variant_index,
-    ).join(
-        # Bring gene classification
-        gene_index.df.select("geneId", "biotype"),
-        "geneId",
-        "inner",
     )
     # Compute average score in the vicinity (feature will be the same for any gene associated with a studyLocus)
     # (non protein coding genes in the vicinity are excluded see #3552)
-    regional_max_per_study_locus = local_metric.groupBy("studyLocusId").agg(
-        f.max(local_feature_name).alias("regional_max")
+    regional_max_per_study_locus = (
+        local_metric.join(
+            # Bring gene classification
+            gene_index.df.filter(f.col("biotype") == "protein_coding").select("geneId"),
+            "geneId",
+            "inner",
+        )
+        .groupBy("studyLocusId")
+        .agg(f.max(local_feature_name).alias("regional_max"))
     )
     return (
         local_metric.join(regional_max_per_study_locus, "studyLocusId", "left")
@@ -116,7 +118,7 @@ def common_neighbourhood_vep_feature_logic(
                 / f.coalesce(f.col("regional_max"), f.lit(0.0)),
             ).otherwise(f.lit(0.0)),
         )
-        .drop("regional_max", local_feature_name, "biotype")
+        .drop("regional_max", local_feature_name)
     )
 
 
