@@ -115,8 +115,7 @@ def common_neighbourhood_vep_feature_logic(
             f.when(f.col("regional_max") == 0.0, f.lit(1.0))
             .when(
                 f.col("regional_max").isNotNull(),
-                f.col(local_feature_name)
-                / f.coalesce(f.col("regional_max"), f.lit(0.0)),
+                f.col(local_feature_name) / f.col("regional_max"),
             )
             .otherwise(f.lit(0.0)),
         )
