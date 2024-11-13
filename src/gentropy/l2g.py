@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+import logging
+from typing import Any
 
 import pyspark.sql.functions as f
 from sklearn.ensemble import GradientBoostingClassifier
 from wandb import login as wandb_login
 
+from gentropy.common.schemas import compare_struct_schemas
 from gentropy.common.session import Session
 from gentropy.common.spark_helpers import calculate_harmonic_sum
 from gentropy.common.utils import access_gcp_secret
@@ -22,9 +24,6 @@ from gentropy.dataset.variant_index import VariantIndex
 from gentropy.method.l2g.feature_factory import L2GFeatureInputLoader
 from gentropy.method.l2g.model import LocusToGeneModel
 from gentropy.method.l2g.trainer import LocusToGeneTrainer
-
-if TYPE_CHECKING:
-    from pyspark.sql import DataFrame
 
 
 class LocusToGeneFeatureMatrixStep:
@@ -112,8 +111,6 @@ class LocusToGeneStep:
         variant_index_path: str | None = None,
         gene_interactions_path: str | None = None,
         predictions_path: str | None = None,
-        limit_gold_standard_to_protein_coding: bool = False,
-        gene_index_path: str | None = None,
         l2g_threshold: float | None,
         hf_hub_repo_id: str | None,
         hf_model_commit_message: str | None = "chore: update model",
@@ -134,8 +131,6 @@ class LocusToGeneStep:
             variant_index_path (str | None): Path to the variant index
             gene_interactions_path (str | None): Path to the gene interactions dataset
             predictions_path (str | None): Path to the L2G predictions output dataset
-            limit_gold_standard_to_protein_coding (bool): Indication if the gold standard should be filtered by protein coding genes. Useful only during `train` mode. Defaults to False.
-            gene_index_path (str | None): Path to the gene index dataset. Required when running in `limit_gold_standard_to_protein_coding`.
             l2g_threshold (float | None): An optional threshold for the L2G score to filter predictions. A threshold of 0.05 is recommended.
             hf_hub_repo_id (str | None): Hugging Face Hub repository ID. If provided, the model will be uploaded to Hugging Face.
             hf_model_commit_message (str | None): Commit message when we upload the model to the Hugging Face Hub
@@ -159,10 +154,9 @@ class LocusToGeneStep:
         self.download_from_hub = download_from_hub
         self.hf_model_commit_message = hf_model_commit_message
         self.l2g_threshold = l2g_threshold or 0.0
-        self.gene_index_path = gene_index_path
-        self.limit_gold_standard_to_protein_coding = (
-            limit_gold_standard_to_protein_coding
-        )
+        self.gold_standard_curation_path = gold_standard_curation_path
+        self.gene_interactions_path = gene_interactions_path
+        self.variant_index_path = variant_index_path
 
         # Load common inputs
         self.credible_set = StudyLocus.from_parquet(
@@ -171,27 +165,92 @@ class LocusToGeneStep:
         self.feature_matrix = L2GFeatureMatrix(
             _df=session.load_data(feature_matrix_path), features_list=self.features_list
         )
-        self.variant_index = (
-            VariantIndex.from_parquet(session, variant_index_path)
-            if variant_index_path
-            else None
-        )
 
         if run_mode == "predict":
             self.run_predict()
         elif run_mode == "train":
-            self.gs_curation = (
-                self.session.spark.read.json(gold_standard_curation_path)
-                if gold_standard_curation_path
-                else None
-            )
+            gold_standard = self.prepare_gold_standard()
+            self.run_train(gold_standard)
 
-            self.interactions = (
-                self.session.spark.read.parquet(gene_interactions_path)
-                if gene_interactions_path
-                else None
-            )
-            self.run_train()
+    def prepare_gold_standard(self) -> L2GGoldStandard:
+        """Prepare the gold standard for training.
+
+        Returns:
+            L2GGoldStandard: training dataset.
+
+        Raises:
+            ValueError: When gold standard path, is not provided, or when
+                parsing OTG gold standard but missing interactions and variant index paths.
+            TypeError: When gold standard is not OTG gold standard nor L2GGoldStandard.
+
+        """
+        if self.gold_standard_curation_path is None:
+            raise ValueError("Gold Standard is required for model training.")
+        # Read the gold standard.
+        spark = self.session.spark
+        gold_standard = spark.read.json(self.gold_standard_curation_path)
+        schema_issues = compare_struct_schemas(
+            gold_standard.schema, L2GGoldStandard.get_schema()
+        )
+        # Parse the gold standard depending on the input schema
+        match schema_issues:
+            case {}:
+                # Schema is the same as L2GGoldStandard - load the GS
+                logging.info("Successfully parsed gold standard.")
+                return L2GGoldStandard(
+                    _df=gold_standard,
+                    _schema=L2GGoldStandard.get_schema(),
+                )
+            case {
+                "unexpected_columns": [
+                    "geneId",
+                    "goldStandardSet",
+                    "studyId",
+                    "studyLocusId",
+                    "variantId",
+                ]
+            }:
+                # There are schema mismatches, this would mean that we have
+                logging.warning("Detected OTG Gold Standard. Attempting to parse it.")
+                otg_curation = gold_standard
+                if self.gene_interactions_path is None:
+                    raise ValueError("Interactions are required for parsing curation.")
+                if self.variant_index_path is None:
+                    raise ValueError("Variant Index are required for parsing curation.")
+
+                interactions = spark.read.parquet(self.gene_interactions_path)
+                variant_index = VariantIndex.from_parquet(
+                    self.session, self.variant_index_path
+                )
+                study_locus_overlap = StudyLocus(
+                    _df=self.credible_set.df.join(
+                        otg_curation.select(
+                            f.concat_ws(
+                                "_",
+                                f.col("sentinel_variant.locus_GRCh38.chromosome"),
+                                f.col("sentinel_variant.locus_GRCh38.position"),
+                                f.col("sentinel_variant.alleles.reference"),
+                                f.col("sentinel_variant.alleles.alternative"),
+                            ).alias("variantId"),
+                            f.col("association_info.otg_id").alias("studyId"),
+                        ),
+                        on=[
+                            "studyId",
+                            "variantId",
+                        ],
+                        how="inner",
+                    ),
+                    _schema=StudyLocus.get_schema(),
+                ).find_overlaps()
+
+                return L2GGoldStandard.from_otg_curation(
+                    gold_standard_curation=otg_curation,
+                    variant_index=variant_index,
+                    study_locus_overlap=study_locus_overlap,
+                    interactions=interactions,
+                )
+            case _:
+                raise TypeError("Incorrect gold standard dataset provided.")
 
     def run_predict(self) -> None:
         """Run the prediction step.
@@ -217,124 +276,64 @@ class LocusToGeneStep:
         ).parquet(self.predictions_path)
         self.session.logger.info("L2G predictions saved successfully.")
 
-    def run_train(self) -> None:
-        """Run the training step."""
-        if (
-            self.gs_curation
-            and self.interactions
-            and self.wandb_run_name
-            and self.model_path
-        ):
-            wandb_key = access_gcp_secret("wandb-key", "open-targets-genetics-dev")
+    def run_train(self, gold_standard: L2GGoldStandard) -> None:
+        """Run the training step.
 
-            # Instantiate classifier and train model
-            l2g_model = LocusToGeneModel(
-                model=GradientBoostingClassifier(random_state=42),
-                hyperparameters=self.hyperparameters,
-            )
-
-            wandb_login(key=wandb_key)
-            trained_model = LocusToGeneTrainer(
-                model=l2g_model,
-                feature_matrix=self._annotate_gold_standards_w_feature_matrix(),
-            ).train(self.wandb_run_name)
-            if trained_model.training_data and trained_model.model and self.model_path:
-                trained_model.save(self.model_path)
-                if self.hf_hub_repo_id and self.hf_model_commit_message:
-                    hf_hub_token = access_gcp_secret(
-                        "hfhub-key", "open-targets-genetics-dev"
-                    )
-                    trained_model.export_to_hugging_face_hub(
-                        # we upload the model in the filesystem
-                        self.model_path.split("/")[-1],
-                        hf_hub_token,
-                        data=trained_model.training_data._df.drop(
-                            "goldStandardSet", "geneId"
-                        ).toPandas(),
-                        repo_id=self.hf_hub_repo_id,
-                        commit_message=self.hf_model_commit_message,
-                    )
-
-    def _limit_gold_standard_to_protein_coding(self) -> DataFrame:
-        """Limit gold standard to protein coding set.
-
-        Returns:
-            DataFrame: Protein coding section of gold standard.
-
-        Raises:
-            ValueError: When gold standard or gene_index are not provided.
+        Args:
+            gold_standard (L2GGoldStandard): training set.
         """
-        if not self.gene_index_path:
-            raise ValueError(
-                "Running training with gold standard limited to protein coding genes requires specifying `gene_index_path`."
-            )
-        if self.gs_curation is None:
-            raise ValueError("Running training requires gold standard.")
+        # Initialize access to weights and biases
+        wandb_key = access_gcp_secret("wandb-key", "open-targets-genetics-dev")
+        wandb_login(key=wandb_key)
 
-        gene_index = GeneIndex.from_parquet(
-            session=self.session, path=self.gene_index_path
+        # Instantiate classifier and train model
+        l2g_model = LocusToGeneModel(
+            model=GradientBoostingClassifier(random_state=42),
+            hyperparameters=self.hyperparameters,
         )
 
-        protein_coding_gene_index = f.broadcast(
-            gene_index.protein_coding().df.select("geneId")
-        ).alias("r")
+        # Calculate the gold standard features
+        feature_matrix = self._annotate_gold_standards_w_feature_matrix(gold_standard)
 
-        gold_standard = self.gs_curation.alias("l").join(
-            protein_coding_gene_index,
-            on=[f.col("l.gold_standard_info.geneId") == f.col("r.geneId")],
-            how="inner",
-        )
-        return gold_standard
+        # Run the training
+        trained_model = LocusToGeneTrainer(
+            model=l2g_model, feature_matrix=feature_matrix
+        ).train(self.wandb_run_name)
 
-    def _annotate_gold_standards_w_feature_matrix(self) -> L2GFeatureMatrix:
+        # Export the model
+        if trained_model.training_data and trained_model.model and self.model_path:
+            trained_model.save(self.model_path)
+            if self.hf_hub_repo_id and self.hf_model_commit_message:
+                hf_hub_token = access_gcp_secret(
+                    "hfhub-key", "open-targets-genetics-dev"
+                )
+                trained_model.export_to_hugging_face_hub(
+                    # we upload the model in the filesystem
+                    self.model_path.split("/")[-1],
+                    hf_hub_token,
+                    data=trained_model.training_data._df.drop(
+                        "goldStandardSet", "geneId"
+                    ).toPandas(),
+                    repo_id=self.hf_hub_repo_id,
+                    commit_message=self.hf_model_commit_message,
+                )
+
+    def _annotate_gold_standards_w_feature_matrix(
+        self, gold_standard: L2GGoldStandard
+    ) -> L2GFeatureMatrix:
         """Generate the feature matrix of annotated gold standards.
+
+        Args:
+            gold_standard (L2GGoldStandard): training set.
 
         Returns:
             L2GFeatureMatrix: Feature matrix with gold standards annotated with features.
-
-        Raises:
-            ValueError: Not all training dependencies are defined
         """
-        if self.limit_gold_standard_to_protein_coding:
-            self.gs_curation = self._limit_gold_standard_to_protein_coding()
-
-        if self.gs_curation and self.interactions and self.variant_index:
-            study_locus_overlap = StudyLocus(
-                _df=self.credible_set.df.join(
-                    self.gs_curation.select(
-                        f.concat_ws(
-                            "_",
-                            f.col("sentinel_variant.locus_GRCh38.chromosome"),
-                            f.col("sentinel_variant.locus_GRCh38.position"),
-                            f.col("sentinel_variant.alleles.reference"),
-                            f.col("sentinel_variant.alleles.alternative"),
-                        ).alias("variantId"),
-                        f.col("association_info.otg_id").alias("studyId"),
-                    ),
-                    on=[
-                        "studyId",
-                        "variantId",
-                    ],
-                    how="inner",
-                ),
-                _schema=StudyLocus.get_schema(),
-            ).find_overlaps()
-
-            gold_standards = L2GGoldStandard.from_otg_curation(
-                gold_standard_curation=self.gs_curation,
-                variant_index=self.variant_index,
-                study_locus_overlap=study_locus_overlap,
-                interactions=self.interactions,
-            )
-
-            return (
-                gold_standards.build_feature_matrix(
-                    self.feature_matrix, self.credible_set
-                )
-                .select_features(self.features_list)
-                .persist()
-            )
-        raise ValueError("Dependencies for train mode not set.")
+        return (
+            gold_standard.build_feature_matrix(self.feature_matrix, self.credible_set)
+            .select_features(self.features_list)
+            .persist()
+        )
 
 
 class LocusToGeneEvidenceStep:
