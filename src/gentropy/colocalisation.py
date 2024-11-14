@@ -62,7 +62,7 @@ class ColocalisationStep:
             )
 
         # Transform
-        overlaps = credible_set.find_overlaps().persist()
+        overlaps = credible_set.find_overlaps()
 
         # Make a partial caller to ensure that colocalisation_method_params are added to the call only when dict is not empty
         coloc = colocalisation_class.colocalise

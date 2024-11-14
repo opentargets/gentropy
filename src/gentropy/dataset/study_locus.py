@@ -542,7 +542,6 @@ class StudyLocus(Dataset):
                 f.col("left.chromosome").alias("chromosome"),
             )
             .distinct()
-            .repartition("chromosome")
         )
 
     @staticmethod
