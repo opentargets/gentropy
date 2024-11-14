@@ -62,7 +62,8 @@ class ColocalisationStep:
             )
         if colocalisation_method == ECaviar.METHOD_NAME.lower():
             credible_set = credible_set.filter(
-                col("finemappingMethod") == FinemappingMethod.PICS.value
+                (col("finemappingMethod") == FinemappingMethod.PICS.value)
+                | (col("studyType") != "gwas")
             )
 
         # Transform
