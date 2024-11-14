@@ -5,7 +5,6 @@ from __future__ import annotations
 from functools import partial
 from typing import Any, Type
 
-from pyspark import StorageLevel
 from pyspark.sql.functions import col
 
 from gentropy.common.session import Session
@@ -64,8 +63,10 @@ class ColocalisationStep:
             )
 
         # Transform
-        overlaps = credible_set.find_overlaps().df.persist(StorageLevel.MEMORY_AND_DISK)
-        overlap = StudyLocusOverlap(overlaps, StudyLocusOverlap.get_schema())
+        overlaps = credible_set.find_overlaps()
+        overlaps.df.write.parquet(f"{coloc_path}/overlaps", mode="overwrite")
+        overlap = StudyLocusOverlap.from_parquet(session, f"{coloc_path}/overlaps")
+
         # Make a partial caller to ensure that colocalisation_method_params are added to the call only when dict is not empty
         coloc = colocalisation_class.colocalise
         if colocalisation_method_params:
