@@ -195,8 +195,10 @@ class LocusToGeneStep:
         )
         # Parse the gold standard depending on the input schema
         match schema_issues:
-            case {}:
+            case {**extra} if not extra:
                 # Schema is the same as L2GGoldStandard - load the GS
+                # NOTE: match to empty dict will be non-selective
+                # see https://stackoverflow.com/questions/75389166/how-to-match-an-empty-dictionary
                 logging.info("Successfully parsed gold standard.")
                 return L2GGoldStandard(
                     _df=gold_standard,
