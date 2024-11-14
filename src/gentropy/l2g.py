@@ -169,8 +169,8 @@ class LocusToGeneStep:
         if run_mode == "predict":
             self.run_predict()
         elif run_mode == "train":
-            gold_standard = self.prepare_gold_standard()
-            self.run_train(gold_standard)
+            self.gold_standard = self.prepare_gold_standard()
+            self.run_train()
 
     def prepare_gold_standard(self) -> L2GGoldStandard:
         """Prepare the gold standard for training.
@@ -186,9 +186,10 @@ class LocusToGeneStep:
         """
         if self.gold_standard_curation_path is None:
             raise ValueError("Gold Standard is required for model training.")
-        # Read the gold standard.
-        spark = self.session.spark
-        gold_standard = spark.read.json(self.gold_standard_curation_path)
+        # Read the gold standard either from json or parquet, default to parquet if can not infer the format from extension.
+        ext = self.gold_standard_curation_path.split(".")[-1]
+        ext = "parquet" if ext not in ["parquet", "json"] else ext
+        gold_standard = self.session.load_data(self.gold_standard_curation_path, ext)
         schema_issues = compare_struct_schemas(
             gold_standard.schema, L2GGoldStandard.get_schema()
         )
@@ -218,14 +219,16 @@ class LocusToGeneStep:
                 ],
             }:
                 # There are schema mismatches, this would mean that we have
-                logging.warning("Detected OTG Gold Standard. Attempting to parse it.")
+                logging.info("Detected OTG Gold Standard. Attempting to parse it.")
                 otg_curation = gold_standard
                 if self.gene_interactions_path is None:
                     raise ValueError("Interactions are required for parsing curation.")
                 if self.variant_index_path is None:
                     raise ValueError("Variant Index are required for parsing curation.")
 
-                interactions = spark.read.parquet(self.gene_interactions_path)
+                interactions = self.session.load_data(
+                    self.gene_interactions_path, "parquet"
+                )
                 variant_index = VariantIndex.from_parquet(
                     self.session, self.variant_index_path
                 )
@@ -283,12 +286,8 @@ class LocusToGeneStep:
         ).parquet(self.predictions_path)
         self.session.logger.info("L2G predictions saved successfully.")
 
-    def run_train(self, gold_standard: L2GGoldStandard) -> None:
-        """Run the training step.
-
-        Args:
-            gold_standard (L2GGoldStandard): training set.
-        """
+    def run_train(self) -> None:
+        """Run the training step."""
         # Initialize access to weights and biases
         wandb_key = access_gcp_secret("wandb-key", "open-targets-genetics-dev")
         wandb_login(key=wandb_key)
@@ -300,7 +299,7 @@ class LocusToGeneStep:
         )
 
         # Calculate the gold standard features
-        feature_matrix = self._annotate_gold_standards_w_feature_matrix(gold_standard)
+        feature_matrix = self._annotate_gold_standards_w_feature_matrix()
 
         # Run the training
         trained_model = LocusToGeneTrainer(
@@ -325,19 +324,16 @@ class LocusToGeneStep:
                     commit_message=self.hf_model_commit_message,
                 )
 
-    def _annotate_gold_standards_w_feature_matrix(
-        self, gold_standard: L2GGoldStandard
-    ) -> L2GFeatureMatrix:
+    def _annotate_gold_standards_w_feature_matrix(self) -> L2GFeatureMatrix:
         """Generate the feature matrix of annotated gold standards.
-
-        Args:
-            gold_standard (L2GGoldStandard): training set.
 
         Returns:
             L2GFeatureMatrix: Feature matrix with gold standards annotated with features.
         """
         return (
-            gold_standard.build_feature_matrix(self.feature_matrix, self.credible_set)
+            self.gold_standard.build_feature_matrix(
+                self.feature_matrix, self.credible_set
+            )
             .select_features(self.features_list)
             .persist()
         )

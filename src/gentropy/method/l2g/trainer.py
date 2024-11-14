@@ -97,6 +97,7 @@ class LocusToGeneTrainer:
 
         Raises:
             ValueError: Train data not set, cannot get SHAP values.
+            Exception: (ExplanationError) When the additivity check fails.
         """
         if self.x_train is not None and self.x_test is not None:
             training_data = pd.concat([self.x_train, self.x_test], ignore_index=True)
@@ -105,7 +106,14 @@ class LocusToGeneTrainer:
                 data=training_data,
                 feature_perturbation="interventional",
             )
-            return explainer(training_data, check_additivity=False)
+            try:
+                return explainer(training_data)
+            except Exception as e:
+                if "Additivity check failed in TreeExplainer" in repr(e):
+                    return explainer(training_data, check_additivity=False)
+                else:
+                    raise
+
         raise ValueError("Train data not set.")
 
     def log_plot_image_to_wandb(

@@ -153,33 +153,6 @@ class Dataset(ABC):
             raise ValueError(f"Parquet file is empty: {path}")
         return cls(_df=df, _schema=schema, **class_params)
 
-    @classmethod
-    def from_json(
-        cls: type[Self],
-        session: Session,
-        path: str | list[str],
-        **kwargs: bool | float | int | str | None,
-    ) -> Self:
-        """Read json into a Dataset with a given schema.
-
-        Args:
-            session (Session): Spark session
-            path (str | list[str]): Path to the json dataset
-            **kwargs (bool | float | int | str | None): Additional arguments to pass to spark.read.json
-
-        Returns:
-            Self: Dataset with the parquet file contents
-
-        Raises:
-            ValueError: Parquet file is empty
-        """
-        schema = cls.get_schema()
-        class_params, spark_params = cls._process_class_params(kwargs)
-        df = session.load_data(path, format="json", schema=schema, **spark_params)
-        if df.isEmpty():
-            raise ValueError(f"JSON file is empty: {path}")
-        return cls(_df=df, _schema=schema, **class_params)
-
     def filter(self: Self, condition: Column) -> Self:
         """Creates a new instance of a Dataset with the DataFrame filtered by the condition.
 
