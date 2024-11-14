@@ -287,7 +287,7 @@
     {
       "metadata": {},
       "name": "variantDescription",
-      "nullable": false,
+      "nullable": true,
       "type": "string"
     }
   ],
