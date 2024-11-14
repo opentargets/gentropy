@@ -9,7 +9,7 @@ from pyspark.sql.functions import col
 
 from gentropy.common.session import Session
 from gentropy.dataset.study_locus import FinemappingMethod, StudyLocus
-from gentropy.method.colocalisation import Coloc, ColocalisationMethodInterface, ECaviar
+from gentropy.method.colocalisation import Coloc, ColocalisationMethodInterface
 
 
 class ColocalisationStep:
@@ -59,11 +59,6 @@ class ColocalisationStep:
                 col("finemappingMethod").isin(
                     FinemappingMethod.SUSIE.value, FinemappingMethod.SUSIE_INF.value
                 )
-            )
-        if colocalisation_method == ECaviar.METHOD_NAME.lower():
-            credible_set = credible_set.filter(
-                (col("finemappingMethod") == FinemappingMethod.PICS.value)
-                | (col("studyType") != "gwas")
             )
 
         # Transform
