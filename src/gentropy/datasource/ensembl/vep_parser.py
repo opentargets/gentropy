@@ -927,7 +927,7 @@ class VariantEffectPredictorParser:
             # " 123 basepair away from CCDC8"
             f.concat(
                 f.lit(" "),
-                transcript.getField("distanceFromFootprint"),
+                f.format_number(transcript.getField("distanceFromFootprint")),
                 f.lit(" basepair away from "),
                 gene_label,
             )
@@ -1043,7 +1043,7 @@ class VariantEffectPredictorParser:
                 f.lit(" The closest protein-coding gene is "),
                 gene_label,
                 f.lit(" ("),
-                transcript.getField("distanceFromFootprint"),
+                f.format_number(transcript.getField("distanceFromFootprint")),
                 f.lit(" basepair away)."),
             ),
         ).otherwise(f.lit(""))
