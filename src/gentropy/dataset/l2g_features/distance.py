@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 import pyspark.sql.functions as f
+from pyspark.sql import Window
 
 from gentropy.common.spark_helpers import convert_from_wide_to_long
 from gentropy.dataset.gene_index import GeneIndex
@@ -87,7 +88,7 @@ def common_neighbourhood_distance_feature_logic(
     gene_index: GeneIndex,
     genomic_window: int = 500_000,
 ) -> DataFrame:
-    """Calculate the distance feature that correlates any variant in a credible set with any gene nearby the locus. The distance is weighted by the posterior probability of the variant to factor in its contribution to the trait.
+    """Calculate the distance feature that correlates any variant in a credible set with any protein coding gene nearby the locus. The distance is weighted by the posterior probability of the variant to factor in its contribution to the trait.
 
     Args:
         study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
@@ -109,18 +110,17 @@ def common_neighbourhood_distance_feature_logic(
         variant_index=variant_index,
         genomic_window=genomic_window,
     )
-    regional_max_per_study_locus = (
-        # Take into account only protein coding
+    return (
+        # Then compute mean distance in the vicinity (feature will be the same for any gene associated with a studyLocus)
         local_metric.join(
             gene_index.df.filter(f.col("biotype") == "protein_coding").select("geneId"),
             "geneId",
+            "inner",
         )
-        .groupBy("studyLocusId")
-        .agg(f.max(f.col(local_feature_name)).alias("regional_max"))
-    )
-    return (
-        # Then compute mean distance in the vicinity (feature will be the same for any gene associated with a studyLocus)
-        local_metric.join(regional_max_per_study_locus, "studyLocusId", "left")
+        .withColumn(
+            "regional_max",
+            f.max(local_feature_name).over(Window.partitionBy("studyLocusId")),
+        )
         .withColumn(
             feature_name,
             f.when(
@@ -135,7 +135,7 @@ def common_neighbourhood_distance_feature_logic(
             .when(f.col(feature_name) > 1, f.lit(1.0))
             .otherwise(f.col(feature_name)),
         )
-        .drop("regional_max", local_feature_name, "biotype")
+        .drop("regional_max", local_feature_name)
     )
 
 

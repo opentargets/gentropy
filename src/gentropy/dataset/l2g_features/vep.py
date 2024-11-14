@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 import pyspark.sql.functions as f
+from pyspark.sql import Window
 
 from gentropy.common.spark_helpers import convert_from_wide_to_long
 from gentropy.dataset.gene_index import GeneIndex
@@ -79,7 +80,7 @@ def common_neighbourhood_vep_feature_logic(
     gene_index: GeneIndex,
     feature_name: str,
 ) -> DataFrame:
-    """Extracts variant severity score computed from VEP for any gene, based on what is the mean score for protein coding genes that are nearby the locus.
+    """Extracts variant severity score computed from VEP for any gene, based on what is the max score for protein coding genes that are nearby the locus.
 
     Args:
         study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
@@ -96,20 +97,19 @@ def common_neighbourhood_vep_feature_logic(
         feature_name=local_feature_name,
         variant_index=variant_index,
     )
-    # Compute average score in the vicinity (feature will be the same for any gene associated with a studyLocus)
-    # (non protein coding genes in the vicinity are excluded see #3552)
-    regional_max_per_study_locus = (
-        local_metric.join(
-            # Bring gene classification
+    return (
+        local_metric
+        # Compute average score in the vicinity (feature will be the same for any gene associated with a studyLocus)
+        # (non protein coding genes in the vicinity are excluded see #3552)
+        .join(
             gene_index.df.filter(f.col("biotype") == "protein_coding").select("geneId"),
             "geneId",
             "inner",
         )
-        .groupBy("studyLocusId")
-        .agg(f.max(local_feature_name).alias("regional_max"))
-    )
-    return (
-        local_metric.join(regional_max_per_study_locus, "studyLocusId", "left")
+        .withColumn(
+            "regional_max",
+            f.max(local_feature_name).over(Window.partitionBy("studyLocusId")),
+        )
         .withColumn(
             feature_name,
             f.when(

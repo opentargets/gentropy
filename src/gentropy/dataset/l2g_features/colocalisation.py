@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 import pyspark.sql.functions as f
+from pyspark.sql import Window
 
 from gentropy.common.spark_helpers import convert_from_wide_to_long
 from gentropy.dataset.colocalisation import Colocalisation
@@ -168,19 +169,18 @@ def common_neighbourhood_colocalisation_feature_logic(
             study_locus,
         )
     )
-    # Compute average score in the vicinity (feature will be the same for any gene associated with a studyLocus)
-    # (non protein coding genes in the vicinity are excluded see #3552)
-    regional_max_per_study_locus = (
+    return (
         extended_local_max.join(
+            # Compute average score in the vicinity (feature will be the same for any gene associated with a studyLocus)
+            # (non protein coding genes in the vicinity are excluded see #3552)
             gene_index.df.filter(f.col("biotype") == "protein_coding").select("geneId"),
             "geneId",
             "inner",
         )
-        .groupBy("studyLocusId")
-        .agg(f.max(local_feature_name).alias("regional_max"))
-    )
-    return (
-        local_max.join(regional_max_per_study_locus, "studyLocusId", "left")
+        .withColumn(
+            "regional_max",
+            f.max(local_feature_name).over(Window.partitionBy("studyLocusId")),
+        )
         .withColumn(
             feature_name,
             f.when(
