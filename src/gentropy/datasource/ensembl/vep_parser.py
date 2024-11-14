@@ -440,10 +440,11 @@ class VariantEffectPredictorParser:
                 f.lit(None).cast(t.StringType()).alias("assessmentFlag")
                 if assessment_flag_column_name is None
                 else most_severe_transcript.getField(assessment_flag_column_name)
-                .cast(t.FloatType())
+                .cast(t.StringType())
                 .alias("assessmentFlag"),
                 # Adding target id if present:
                 most_severe_transcript.getItem("gene_id").alias("targetId"),
+                #
             ),
         )
 
@@ -1009,11 +1010,17 @@ class VariantEffectPredictorParser:
         Returns:
             Column: Biotype information.
         """
-        return f.concat(
-            f.lit(", a "),
+        biotype = f.when(
+            transcript.getField("biotype").contains("gene"),
             f.regexp_replace(transcript.getField("biotype"), "_", " "),
-            f.lit(" gene."),
+        ).otherwise(
+            f.concat(
+                f.regexp_replace(transcript.getField("biotype"), "_", " "),
+                f.lit(" gene."),
+            )
         )
+
+        return f.concat(f.lit(", a "), biotype)
 
     @staticmethod
     def _parse_protein_coding_transcript(transcript: Column) -> Column:
