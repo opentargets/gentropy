@@ -202,13 +202,20 @@ class LocusToGeneStep:
                     _schema=L2GGoldStandard.get_schema(),
                 )
             case {
-                "unexpected_columns": [
-                    "geneId",
-                    "goldStandardSet",
-                    "studyId",
+                "missing_mandatory_columns": [
                     "studyLocusId",
                     "variantId",
-                ]
+                    "studyId",
+                    "geneId",
+                    "goldStandardSet",
+                ],
+                "unexpected_columns": [
+                    "association_info",
+                    "gold_standard_info",
+                    "metadata",
+                    "sentinel_variant",
+                    "trait_info",
+                ],
             }:
                 # There are schema mismatches, this would mean that we have
                 logging.warning("Detected OTG Gold Standard. Attempting to parse it.")
