@@ -444,7 +444,6 @@ class VariantEffectPredictorParser:
                 .alias("assessmentFlag"),
                 # Adding target id if present:
                 most_severe_transcript.getItem("gene_id").alias("targetId"),
-                #
             ),
         )
 
