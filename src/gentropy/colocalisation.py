@@ -9,7 +9,6 @@ from pyspark.sql.functions import col
 
 from gentropy.common.session import Session
 from gentropy.dataset.study_locus import FinemappingMethod, StudyLocus
-from gentropy.dataset.study_locus_overlap import StudyLocusOverlap
 from gentropy.method.colocalisation import Coloc, ColocalisationMethodInterface
 
 
@@ -64,14 +63,12 @@ class ColocalisationStep:
 
         # Transform
         overlaps = credible_set.find_overlaps()
-        overlaps.df.write.parquet(f"{coloc_path}/overlaps", mode="overwrite")
-        overlap = StudyLocusOverlap.from_parquet(session, f"{coloc_path}/overlaps")
 
         # Make a partial caller to ensure that colocalisation_method_params are added to the call only when dict is not empty
         coloc = colocalisation_class.colocalise
         if colocalisation_method_params:
             coloc = partial(coloc, **colocalisation_method_params)
-        colocalisation_results = coloc(overlap)
+        colocalisation_results = coloc(overlaps)
         # Load
         colocalisation_results.df.write.mode(session.write_mode).parquet(
             f"{coloc_path}/{colocalisation_method.lower()}"

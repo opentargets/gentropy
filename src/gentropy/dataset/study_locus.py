@@ -542,6 +542,7 @@ class StudyLocus(Dataset):
                 f.col("left.chromosome").alias("chromosome"),
             )
             .distinct()
+            .persist()
         )
 
     @staticmethod
