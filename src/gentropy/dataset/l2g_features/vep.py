@@ -112,12 +112,11 @@ def common_neighbourhood_vep_feature_logic(
         local_metric.join(regional_max_per_study_locus, "studyLocusId", "left")
         .withColumn(
             feature_name,
-            f.when(f.col("regional_max") == 0.0, f.lit(1.0))
-            .when(
-                f.col("regional_max").isNotNull(),
-                f.col(local_feature_name) / f.col("regional_max"),
-            )
-            .otherwise(f.lit(0.0)),
+            f.when(
+                (f.col("regional_max").isNotNull()) & (f.col("regional_max") != 0.0),
+                f.col(local_feature_name)
+                / f.coalesce(f.col("regional_max"), f.lit(0.0)),
+            ).otherwise(f.lit(0.0)),
         )
         .drop("regional_max", local_feature_name)
     )
