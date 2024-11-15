@@ -41,6 +41,18 @@ class VariantEffectPredictorParser:
     # Schema for the allele frequency column:
     ALLELE_FREQUENCY_SCHEMA = VariantIndex.get_schema()["alleleFrequencies"].dataType
 
+    # Consequence to sequence ontology map:
+    SEQUENCE_ONTOLOGY_MAP = {
+        item["label"]: item["id"]
+        for item in VariantIndexConfig.consequence_to_pathogenicity_score
+    }
+
+    # Sequence ontology to score map:
+    LABEL_TO_SCORE_MAP = {
+        item["label"]: item["score"]
+        for item in VariantIndexConfig.consequence_to_pathogenicity_score
+    }
+
     @staticmethod
     def get_schema() -> t.StructType:
         """Return the schema of the VEP output.
@@ -328,6 +340,17 @@ class VariantEffectPredictorParser:
             lambda transcript: transcript.getItem(score_field_name).isNotNull(),
         )[0]
 
+    @classmethod
+    @enforce_schema(IN_SILICO_PREDICTOR_SCHEMA)
+    def _get_vep_prediction(cls, most_severe_consequence: Column) -> Column:
+        return f.struct(
+            f.lit("VEP").alias("method"),
+            most_severe_consequence.alias("assessment"),
+            map_column_by_dictionary(
+                most_severe_consequence, cls.LABEL_TO_SCORE_MAP
+            ).alias("score"),
+        )
+
     @staticmethod
     @enforce_schema(IN_SILICO_PREDICTOR_SCHEMA)
     def _get_max_alpha_missense(transcripts: Column) -> Column:
@@ -587,16 +610,6 @@ class VariantEffectPredictorParser:
         Returns:
            DataFrame: processed data in the right shape.
         """
-        # Consequence to sequence ontology map:
-        sequence_ontology_map = {
-            item["label"]: item["id"]
-            for item in VariantIndexConfig.consequence_to_pathogenicity_score
-        }
-        # Sequence ontology to score map:
-        label_to_score_map = {
-            item["label"]: item["score"]
-            for item in VariantIndexConfig.consequence_to_pathogenicity_score
-        }
         # Processing VEP output:
         return (
             vep_output
@@ -659,6 +672,8 @@ class VariantEffectPredictorParser:
                             cls._get_max_alpha_missense(
                                 f.col("transcript_consequences")
                             ),
+                            # Extract VEP prediction:
+                            cls._get_vep_prediction(f.col("most_severe_consequence")),
                         ),
                         lambda predictor: predictor.isNotNull(),
                     ),
@@ -671,12 +686,14 @@ class VariantEffectPredictorParser:
                             method_name="phred scaled CADD",
                             score_column_name="cadd_phred",
                         ),
+                        # Extract VEP prediction:
+                        cls._get_vep_prediction(f.col("most_severe_consequence")),
                     )
                 )
                 .alias("inSilicoPredictors"),
                 # Convert consequence to SO:
                 map_column_by_dictionary(
-                    f.col("most_severe_consequence"), sequence_ontology_map
+                    f.col("most_severe_consequence"), cls.SEQUENCE_ONTOLOGY_MAP
                 ).alias("mostSevereConsequenceId"),
                 # Propagate most severe consequence:
                 "most_severe_consequence",
@@ -701,7 +718,7 @@ class VariantEffectPredictorParser:
                             f.transform(
                                 transcript.consequence_terms,
                                 lambda y: map_column_by_dictionary(
-                                    y, sequence_ontology_map
+                                    y, cls.SEQUENCE_ONTOLOGY_MAP
                                 ),
                             ).alias("variantFunctionalConsequenceIds"),
                             # Convert consequence terms to consequence score:
@@ -709,7 +726,7 @@ class VariantEffectPredictorParser:
                                 f.transform(
                                     transcript.consequence_terms,
                                     lambda term: map_column_by_dictionary(
-                                        term, label_to_score_map
+                                        term, cls.LABEL_TO_SCORE_MAP
                                     ),
                                 )
                             )

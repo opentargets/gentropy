@@ -303,8 +303,11 @@ class VariantIndex(Dataset):
 class InSilicoPredictorNormaliser:
     """Class to normalise in silico predictor assessments.
 
-    Essentially based on the raw scores, it normalises the scores to a range between 0 and 1, and appends the normalised
+    Essentially based on the raw scores, it normalises the scores to a range between -1 and 1, and appends the normalised
     value to the in silico predictor struct.
+
+    The higher negative values indicate increasingly confident prediction to be a benign variant,
+    while the higher positive values indicate increasingly deleterious predicted effect.
 
     The point of these operations to make the scores comparable across different in silico predictors.
     """
@@ -363,6 +366,7 @@ class InSilicoPredictorNormaliser:
             .when(method == "phred scaled CADD", cls._normalise_cadd(score))
             .when(method == "SpliceAI", cls._normalise_splice_ai(score))
             .when(method == "Pangolin", cls._normalise_pangolin(score))
+            .when(method == "VEP", score)
         )
 
     @staticmethod
@@ -397,10 +401,10 @@ class InSilicoPredictorNormaliser:
         """Normalise CADD scores.
 
         Logic: CADD scores are divided into four ranges and scaled accordingly:
-         - 0-10 -> 0-0.025 (low impact)
-         - 10-20 -> 0.025-0.5 (weak impact)
-         - 20-30 -> 0.5-0.75 (moderate impact)
-         - 30-81 -> 0.75-1 (high impact)
+         - 0-10 -> -1-0 (likely benign ~2M)
+         - 10-20 -> 0-0.5 (potentially deleterious ~300k)
+         - 20-30 -> 0.5-0.75 (likely deleterious ~350k)
+         - 30-81 -> 0.75-1 (highly likely deleterious ~86k)
 
         Args:
             score (Column): CADD score.
@@ -409,15 +413,9 @@ class InSilicoPredictorNormaliser:
             Column: Normalised CADD score.
         """
         return (
-            f.when(score <= 10, cls._rescaleColumnValue(score, 0, 10, 0, 0.25))
-            .when(
-                (score > 10) & (score <= 20),
-                cls._rescaleColumnValue(score, 10, 20, 0.25, 0.5),
-            )
-            .when(
-                (score > 20) & (score <= 30),
-                cls._rescaleColumnValue(score, 20, 30, 0.5, 0.75),
-            )
+            f.when(score <= 10, cls._rescaleColumnValue(score, 0, 10, -1.0, 0.0))
+            .when(score <= 20, cls._rescaleColumnValue(score, 10, 20, 0.0, 0.5))
+            .when(score <= 30, cls._rescaleColumnValue(score, 20, 30, 0.5, 0.75))
             .when(score > 30, cls._rescaleColumnValue(score, 30, 81, 0.75, 1))
         )
 
@@ -429,8 +427,8 @@ class InSilicoPredictorNormaliser:
         """Normalise LOFTEE scores.
 
         Logic: LOFTEE scores are divided into two categories:
-         - HC (high confidence): 1.0
-         - LC (low confidence): 0.85
+         - HC (high confidence): 1.0 (~120k)
+         - LC (low confidence): 0.85 (~18k)
         The normalised score is calculated based on the category the score falls into.
 
         Args:
@@ -468,22 +466,22 @@ class InSilicoPredictorNormaliser:
             f.when(
                 (1 - f.round(score.cast(t.DoubleType()), 2) >= 0.95)
                 & (assessment == "deleterious"),
-                cls._rescaleColumnValue(1 - score, 0.95, 1, 0.75, 1),
+                cls._rescaleColumnValue(1 - score, 0.95, 1, 0.5, 1),
             )
             .when(
                 (1 - f.round(score.cast(t.DoubleType()), 2) >= 0.95)
                 & (assessment == "deleterious_low_confidence"),
-                cls._rescaleColumnValue(1 - score, 0.95, 1, 0.5, 0.75),
+                cls._rescaleColumnValue(1 - score, 0.95, 1, 0, 0.5),
             )
             .when(
                 (1 - f.round(score.cast(t.DoubleType()), 2) <= 0.95)
                 & (assessment == "tolerated_low_confidence"),
-                cls._rescaleColumnValue(1 - score, 0, 0.95, 0.25, 0.5),
+                cls._rescaleColumnValue(1 - score, 0, 0.95, -0.5, 0.0),
             )
             .when(
                 (1 - f.round(score.cast(t.DoubleType()), 2) <= 0.95)
                 & (assessment == "tolerated"),
-                cls._rescaleColumnValue(1 - score, 0, 0.95, 0, 0.25),
+                cls._rescaleColumnValue(1 - score, 0, 0.95, -1, -0.5),
             )
         )
 
@@ -496,9 +494,9 @@ class InSilicoPredictorNormaliser:
         """Normalise PolyPhen scores.
 
         Logic: PolyPhen scores are divided into three categories:
-         - benign: 0-0.446: 0-0.25
-         - possibly_damaging: 0.446-0.908: 0.25-0.75
-         - probably_damaging: 0.908-1: 0.75-1
+         - benign: 0-0.446: -1--0.25
+         - possibly_damaging: 0.446-0.908: -0.25-0.25
+         - probably_damaging: 0.908-1: 0.25-1
          - if assessment is unknown: None
 
         Args:
@@ -510,15 +508,12 @@ class InSilicoPredictorNormaliser:
         """
         return (
             f.when(assessment == "unknown", f.lit(None).cast(t.DoubleType()))
-            .when(
-                score <= 0.446,
-                cls._rescaleColumnValue(score, 0, 0.446, 0, 0.25),
-            )
+            .when(score <= 0.446, cls._rescaleColumnValue(score, 0, 0.446, -1.0, -0.25))
             .when(
                 score <= 0.908,
-                cls._rescaleColumnValue(score, 0.446, 0.908, 0.25, 0.75),
+                cls._rescaleColumnValue(score, 0.446, 0.908, -0.25, 0.25),
             )
-            .when(score > 0.908, cls._rescaleColumnValue(score, 0.908, 1, 0.75, 1))
+            .when(score > 0.908, cls._rescaleColumnValue(score, 0.908, 1.0, 0.25, 1.0))
         )
 
     @classmethod
@@ -529,9 +524,9 @@ class InSilicoPredictorNormaliser:
         """Normalise AlphaMissense scores.
 
         Logic: AlphaMissense scores are divided into three categories:
-         - 0-0.06: 0-0.5
-         - 0.06-0.77: 0.25-0.75
-         - 0.77-1: 0.75-1
+         - 0-0.06: -1.0--0.25
+         - 0.06-0.77: -0.25-0.25
+         - 0.77-1: 0.25-1
 
         Args:
             score (Column): AlphaMissense score.
@@ -540,12 +535,9 @@ class InSilicoPredictorNormaliser:
             Column: Normalised AlphaMissense score.
         """
         return (
-            f.when(score < 0.06, cls._rescaleColumnValue(score, 0, 0.06, 0, 0.5))
-            .when(
-                (score >= 0.06) & (score < 0.77),
-                cls._rescaleColumnValue(score, 0.06, 0.77, 0.25, 0.75),
-            )
-            .when(score >= 0.77, cls._rescaleColumnValue(score, 0.77, 1, 0.75, 1))
+            f.when(score < 0.06, cls._rescaleColumnValue(score, 0, 0.06, -1.0, -0.25))
+            .when(score < 0.77, cls._rescaleColumnValue(score, 0.06, 0.77, -0.25, 0.25))
+            .when(score >= 0.77, cls._rescaleColumnValue(score, 0.77, 1, 0.25, 1))
         )
 
     @classmethod
@@ -556,9 +548,9 @@ class InSilicoPredictorNormaliser:
         """Normalise SpliceAI scores.
 
         Logic: SpliceAI scores are divided into three categories:
-         - 0-0.2: 0-0.25
-         - 0.2-0.5: 0.5-0.75
-         - 0.5-1: 0.75-1
+         - 0-0.2: -1.0--0.25
+         - 0.2-0.5: -0.25-0.25
+         - 0.5-1: 0.25-1
 
         Args:
             score (Column): SpliceAI score.
@@ -567,12 +559,9 @@ class InSilicoPredictorNormaliser:
             Column: Normalised SpliceAI score.
         """
         return (
-            f.when(score <= 0.2, cls._rescaleColumnValue(score, 0, 0.2, 0.25, 0.5))
-            .when(
-                score <= 0.5,
-                cls._rescaleColumnValue(score, 0.2, 0.5, 0.5, 0.75),
-            )
-            .when(score > 0.5, cls._rescaleColumnValue(score, 0.5, 1, 0.75, 1))
+            f.when(score <= 0.2, cls._rescaleColumnValue(score, 0, 0.2, -1, -0.25))
+            .when(score <= 0.5, cls._rescaleColumnValue(score, 0.2, 0.5, -0.25, 0.25))
+            .when(score > 0.5, cls._rescaleColumnValue(score, 0.5, 1, 0.25, 1))
         )
 
     @classmethod
@@ -593,8 +582,8 @@ class InSilicoPredictorNormaliser:
             Column: Normalised Pangolin score.
         """
         return f.when(
-            f.abs(score) > 0.14, cls._rescaleColumnValue(f.abs(score), 0.14, 1, 0.75, 1)
+            f.abs(score) > 0.14, cls._rescaleColumnValue(f.abs(score), 0.14, 1, 0.0, 1)
         ).when(
             f.abs(score) <= 0.14,
-            cls._rescaleColumnValue(f.abs(score), 0, 0.14, 0.25, 0.75),
+            cls._rescaleColumnValue(f.abs(score), 0, 0.14, -1, 0.0),
         )
