@@ -67,6 +67,12 @@
               "name": "targetId",
               "nullable": true,
               "type": "string"
+            },
+            {
+              "metadata": {},
+              "name": "scaledScore",
+              "nullable": true,
+              "type": "double"
             }
           ],
           "type": "struct"

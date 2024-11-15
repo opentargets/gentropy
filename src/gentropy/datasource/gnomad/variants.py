@@ -10,7 +10,7 @@ import pyspark.sql.types as t
 
 from gentropy.common.types import VariantPopulation
 from gentropy.config import GnomadVariantConfig, VariantIndexConfig
-from gentropy.dataset.variant_index import VariantIndex
+from gentropy.dataset.variant_index import InSilicoPredictorNormaliser, VariantIndex
 
 if TYPE_CHECKING:
     pass
@@ -91,7 +91,7 @@ class GnomADVariants:
                     inSilicoPredictors=hl.array(
                         [
                             hl.struct(
-                                method=hl.str("spliceai"),
+                                method=hl.str("SpliceAI"),
                                 assessment=hl.missing(hl.tstr),
                                 score=hl.expr.functions.float32(
                                     ht.in_silico_predictors.spliceai_ds_max
@@ -100,7 +100,7 @@ class GnomADVariants:
                                 targetId=hl.missing(hl.tstr),
                             ),
                             hl.struct(
-                                method=hl.str("pangolin"),
+                                method=hl.str("Pangolin"),
                                 assessment=hl.missing(hl.tstr),
                                 score=hl.expr.functions.float32(
                                     ht.in_silico_predictors.pangolin_largest_ds
@@ -130,7 +130,6 @@ class GnomADVariants:
                 .key_by("chromosome", "position")
                 .drop("locus", "alleles")
                 .select_globals()
-                .to_spark(flatten=False)
                 .withColumns(
                     {
                         # Once The parsing is done, we have to drop objects with no score from inSilicoPredictors:
@@ -148,6 +147,13 @@ class GnomADVariants:
                         # We are not capturing the most severe consequence from GnomAD, but this column needed for the schema:
                         "mostSevereConsequenceId": f.lit(None).cast(t.StringType()),
                     }
+                )
+                # Normalising in silico predictor assessments:
+                .withColumn(
+                    "inSilicoPredictors",
+                    InSilicoPredictorNormaliser.normalise_in_silico_predictors(
+                        f.col("inSilicoPredictors")
+                    ),
                 )
             ),
             _schema=VariantIndex.get_schema(),

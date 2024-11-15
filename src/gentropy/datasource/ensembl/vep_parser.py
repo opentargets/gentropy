@@ -16,7 +16,7 @@ from gentropy.common.spark_helpers import (
     order_array_of_structs_by_field,
     order_array_of_structs_by_two_fields,
 )
-from gentropy.dataset.variant_index import VariantIndex
+from gentropy.dataset.variant_index import InSilicoPredictorNormaliser, VariantIndex
 
 if TYPE_CHECKING:
     from pyspark.sql import Column, DataFrame
@@ -328,8 +328,8 @@ class VariantEffectPredictorParser:
             lambda transcript: transcript.getItem(score_field_name).isNotNull(),
         )[0]
 
-    @enforce_schema(IN_SILICO_PREDICTOR_SCHEMA)
     @staticmethod
+    @enforce_schema(IN_SILICO_PREDICTOR_SCHEMA)
     def _get_max_alpha_missense(transcripts: Column) -> Column:
         """Return the most severe alpha missense prediction from all transcripts.
 
@@ -354,37 +354,42 @@ class VariantEffectPredictorParser:
         ...    .select(VariantEffectPredictorParser._get_max_alpha_missense(f.col('transcripts')).alias('am'))
         ...    .show(truncate=False)
         ... )
-        +----------------------------------------------------+
-        |am                                                  |
-        +----------------------------------------------------+
-        |{max alpha missense, assessment 1, 0.4, null, gene1}|
-        |{max alpha missense, null, null, null, gene1}       |
-        +----------------------------------------------------+
+        +-----------------------------------------------------+
+        |am                                                   |
+        +-----------------------------------------------------+
+        |{AlphaMissense, assessment 1, 0.4, null, gene1, null}|
+        |{AlphaMissense, null, null, null, gene1, null}       |
+        +-----------------------------------------------------+
         <BLANKLINE>
         """
-        return f.transform(
-            # Extract transcripts with alpha missense values:
-            f.filter(
-                transcripts,
-                lambda transcript: transcript.getItem("alphamissense").isNotNull(),
-            ),
-            # Extract alpha missense values:
-            lambda transcript: f.struct(
-                transcript.getItem("alphamissense")
-                .getItem("am_pathogenicity")
-                .cast(t.FloatType())
-                .alias("score"),
-                transcript.getItem("alphamissense")
-                .getItem("am_class")
-                .alias("assessment"),
-                f.lit("max alpha missense").alias("method"),
-                transcript.getItem("gene_id").alias("targetId"),
-            ),
+        # Extracting transcript with alpha missense values:
+        transcript = f.filter(
+            transcripts,
+            lambda transcript: transcript.getItem("alphamissense").isNotNull(),
         )[0]
 
+        return f.when(
+            transcript.isNotNull(),
+            f.struct(
+                # Adding method:
+                f.lit("AlphaMissense").alias("method"),
+                # Extracting assessment:
+                transcript.alphamissense.am_class.alias("assessment"),
+                # Extracting score:
+                transcript.alphamissense.am_pathogenicity.cast(t.FloatType()).alias(
+                    "score"
+                ),
+                # Adding assessment flag:
+                f.lit(None).cast(t.StringType()).alias("assessmentFlag"),
+                # Extracting target id:
+                transcript.gene_id.alias("targetId"),
+            ),
+        )
+
+    @classmethod
     @enforce_schema(IN_SILICO_PREDICTOR_SCHEMA)
-    @staticmethod
     def _vep_in_silico_prediction_extractor(
+        cls: type[VariantEffectPredictorParser],
         transcript_column_name: str,
         method_name: str,
         score_column_name: str | None = None,
@@ -403,7 +408,7 @@ class VariantEffectPredictorParser:
         Returns:
             Column: In silico predictor.
         """
-        # Get highest score:
+        # Get transcript with the highest score:
         most_severe_transcript: Column = (
             # Getting the most severe transcript:
             VariantEffectPredictorParser._get_most_severe_transcript(
@@ -419,31 +424,44 @@ class VariantEffectPredictorParser:
             )
         )
 
+        # Get assessment:
+        assessment = (
+            f.lit(None).cast(t.StringType()).alias("assessment")
+            if assessment_column_name is None
+            else most_severe_transcript.getField(assessment_column_name).alias(
+                "assessment"
+            )
+        )
+
+        # Get score:
+        score = (
+            f.lit(None).cast(t.FloatType()).alias("score")
+            if score_column_name is None
+            else most_severe_transcript.getField(score_column_name)
+            .cast(t.FloatType())
+            .alias("score")
+        )
+
+        # Get assessment flag:
+        assessment_flag = (
+            f.lit(None).cast(t.StringType()).alias("assessmentFlag")
+            if assessment_flag_column_name is None
+            else most_severe_transcript.getField(assessment_flag_column_name)
+            .cast(t.StringType())
+            .alias("assessmentFlag")
+        )
+
+        # Extract gene id:
+        gene_id = most_severe_transcript.getItem("gene_id").alias("targetId")
+
         return f.when(
             most_severe_transcript.isNotNull(),
             f.struct(
-                # Adding method name:
-                f.lit(method_name).cast(t.StringType()).alias("method"),
-                # Adding assessment:
-                f.lit(None).cast(t.StringType()).alias("assessment")
-                if assessment_column_name is None
-                else most_severe_transcript.getField(assessment_column_name).alias(
-                    "assessment"
-                ),
-                # Adding score:
-                f.lit(None).cast(t.FloatType()).alias("score")
-                if score_column_name is None
-                else most_severe_transcript.getField(score_column_name)
-                .cast(t.FloatType())
-                .alias("score"),
-                # Adding assessment flag:
-                f.lit(None).cast(t.StringType()).alias("assessmentFlag")
-                if assessment_flag_column_name is None
-                else most_severe_transcript.getField(assessment_flag_column_name)
-                .cast(t.StringType())
-                .alias("assessmentFlag"),
-                # Adding target id if present:
-                most_severe_transcript.getItem("gene_id").alias("targetId"),
+                f.lit(method_name).alias("method"),
+                assessment,
+                score,
+                assessment_flag,
+                gene_id,
             ),
         )
 
@@ -618,20 +636,20 @@ class VariantEffectPredictorParser:
                             # Extract polyphen scores:
                             cls._vep_in_silico_prediction_extractor(
                                 transcript_column_name="transcript_consequences",
-                                method_name="polyphen",
+                                method_name="PolyPhen",
                                 score_column_name="polyphen_score",
                                 assessment_column_name="polyphen_prediction",
                             ),
                             # Extract sift scores:
                             cls._vep_in_silico_prediction_extractor(
                                 transcript_column_name="transcript_consequences",
-                                method_name="sift",
+                                method_name="SIFT",
                                 score_column_name="sift_score",
                                 assessment_column_name="sift_prediction",
                             ),
                             # Extract loftee scores:
                             cls._vep_in_silico_prediction_extractor(
-                                method_name="loftee",
+                                method_name="LOFTEE",
                                 transcript_column_name="transcript_consequences",
                                 score_column_name="lof",
                                 assessment_column_name="lof",
@@ -833,6 +851,13 @@ class VariantEffectPredictorParser:
                     order_array_of_structs_by_field(
                         "proteinCodingTranscripts", "transcriptIndex"
                     )[f.size("proteinCodingTranscripts") - 1],
+                ),
+            )
+            # Normalising in silico predictor assessments:
+            .withColumn(
+                "inSilicoPredictors",
+                InSilicoPredictorNormaliser.normalise_in_silico_predictors(
+                    f.col("inSilicoPredictors")
                 ),
             )
             # Dropping intermediate xref columns:
