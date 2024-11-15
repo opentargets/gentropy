@@ -309,7 +309,7 @@ class LocusToGeneEvidenceStep:
             locus_to_gene_predictions_path (str): Path to the L2G predictions dataset
             credible_set_path (str): Path to the credible set dataset
             study_index_path (str): Path to the study index dataset
-            evidence_output_path (str): Path to the L2G evidence output dataset
+            evidence_output_path (str): Path to the L2G evidence output dataset. The output format is ndjson gzipped.
             locus_to_gene_threshold (float, optional): Threshold to consider a gene as a target. Defaults to 0.05.
         """
         # Reading the predictions
