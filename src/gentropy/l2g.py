@@ -163,7 +163,7 @@ class LocusToGeneStep:
             session, credible_set_path, recursiveFileLookup=True
         )
         self.feature_matrix = L2GFeatureMatrix(
-            _df=session.load_data(feature_matrix_path), features_list=self.features_list
+            _df=session.load_data(feature_matrix_path),
         )
 
         if run_mode == "predict":
