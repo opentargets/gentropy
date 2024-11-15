@@ -337,7 +337,7 @@ class InSilicoPredictorNormaliser:
                 # Normalising the score
                 cls.resolve_predictor_methods(
                     predictor.score, predictor.method, predictor.assessment
-                ).alias("scaledScore"),
+                ).alias("normalisedScore"),
             ),
         )
 
