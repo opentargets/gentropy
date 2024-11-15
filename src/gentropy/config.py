@@ -263,7 +263,7 @@ class LocusToGeneConfig(StepConfig):
             "geneCount500kb",
             "proteinGeneCount500kb",
             "credibleSetConfidence",
-            "isProteinCoding",
+            # "isProteinCoding",
         ]
     )
     hyperparameters: dict[str, Any] = field(
