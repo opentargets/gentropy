@@ -127,7 +127,7 @@ class TestVEPParser:
                     t.StructField("score", t.FloatType(), True),
                     t.StructField("assessmentFlag", t.StringType(), True),
                     t.StructField("targetId", t.StringType(), True),
-                    t.StructField("normalisedScore", t.StringType(), True),
+                    t.StructField("normalisedScore", t.DoubleType(), True),
                 ]
             )
         )
