@@ -41,6 +41,7 @@ class StudyLocusValidationStep:
             StudyLocus.from_parquet(session, list(study_locus_path))
             # Add flag for MHC region
             .qc_MHC_region()
+            .validate_chromosome_label()  # Flagging credible sets with unsupported chromosomes
             .validate_study(study_index)  # Flagging studies not in study index
             .annotate_study_type(study_index)  # Add study type to study locus
             .qc_redundant_top_hits_from_PICS()  # Flagging top hits from studies with PICS summary statistics

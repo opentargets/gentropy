@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 import pyspark.sql.functions as f
+from pyspark.sql import Window
 
 from gentropy.common.spark_helpers import convert_from_wide_to_long
 from gentropy.dataset.gene_index import GeneIndex
@@ -79,7 +80,7 @@ def common_neighbourhood_vep_feature_logic(
     gene_index: GeneIndex,
     feature_name: str,
 ) -> DataFrame:
-    """Extracts variant severity score computed from VEP for any gene, based on what is the mean score for protein coding genes that are nearby the locus.
+    """Extracts variant severity score computed from VEP for any gene, based on what is the max score for protein coding genes that are nearby the locus.
 
     Args:
         study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
@@ -95,26 +96,29 @@ def common_neighbourhood_vep_feature_logic(
         study_loci_to_annotate,
         feature_name=local_feature_name,
         variant_index=variant_index,
-    ).join(
-        # Bring gene classification
-        gene_index.df.select("geneId", "biotype"),
-        "geneId",
-        "inner",
-    )
-    # Compute average score in the vicinity (feature will be the same for any gene associated with a studyLocus)
-    # (non protein coding genes in the vicinity are excluded see #3552)
-    regional_mean_per_study_locus = (
-        local_metric.filter(f.col("biotype") == "protein_coding")
-        .groupBy("studyLocusId")
-        .agg(f.mean(local_feature_name).alias("regional_mean"))
     )
     return (
-        local_metric.join(regional_mean_per_study_locus, "studyLocusId", "left")
+        local_metric
+        # Compute average score in the vicinity (feature will be the same for any gene associated with a studyLocus)
+        # (non protein coding genes in the vicinity are excluded see #3552)
+        .join(
+            gene_index.df.filter(f.col("biotype") == "protein_coding").select("geneId"),
+            "geneId",
+            "inner",
+        )
+        .withColumn(
+            "regional_max",
+            f.max(local_feature_name).over(Window.partitionBy("studyLocusId")),
+        )
         .withColumn(
             feature_name,
-            f.col(local_feature_name) - f.coalesce(f.col("regional_mean"), f.lit(0.0)),
+            f.when(
+                (f.col("regional_max").isNotNull()) & (f.col("regional_max") != 0.0),
+                f.col(local_feature_name)
+                / f.coalesce(f.col("regional_max"), f.lit(0.0)),
+            ).otherwise(f.lit(0.0)),
         )
-        .drop("regional_mean", local_feature_name, "biotype")
+        .drop("regional_max", local_feature_name)
     )
 
 

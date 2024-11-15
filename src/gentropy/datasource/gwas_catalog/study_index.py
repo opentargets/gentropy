@@ -655,11 +655,7 @@ class StudyIndexGWASCatalog(StudyIndex):
         """
         self.df = self.df.withColumn(
             "qualityControls",
-            StudyIndex.update_quality_flag(
-                f.col("qualityControls"),
-                ~f.col("hasSumstats"),
-                StudyQualityCheck.SUMSTATS_NOT_AVAILABLE,
-            ),
+            f.array(f.lit(StudyQualityCheck.SUMSTATS_NOT_AVAILABLE.value))
         )
         return self
 
