@@ -275,7 +275,8 @@ def mock_variant_index(spark: SparkSession) -> VariantIndex:
                         "assessment", cast(rand() as string),
                         "score", rand(),
                         "assessmentFlag", cast(rand() as string),
-                        "targetId", cast(rand() as string)
+                        "targetId", cast(rand() as string),
+                        "normalizedScore", cast(rand() as float)
                     )
                 )
             """,
