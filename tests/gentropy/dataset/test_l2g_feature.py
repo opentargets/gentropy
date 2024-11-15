@@ -346,21 +346,21 @@ class TestCommonColocalisationFeatureLogic:
             gene_index=sample_gene_index,
             variant_index=sample_variant_index,
         ).withColumn(feature_name, f.round(f.col(feature_name), 3))
-        # expected average is (0.81 + 0)/2 = 0.405
+        # expected max is 0.81
         expected_df = spark.createDataFrame(
             [
                 {
                     "studyLocusId": "1",
                     "geneId": "gene1",
-                    "eQtlColocH4MaximumNeighbourhood": 0.405,  # 0.81 - 0.405
+                    "eQtlColocH4MaximumNeighbourhood": 1.0,  # 0.81 / 0.81
                 },
                 {
                     "studyLocusId": "1",
-                    "geneId": "gene2",
-                    "eQtlColocH4MaximumNeighbourhood": 0.495,  # 0.9 - 0.405
+                    "geneId": "gene3",
+                    "eQtlColocH4MaximumNeighbourhood": 0.0,  # 0.0 (no coloc with gene3) /0.81
                 },
             ],
-        ).select("studyLocusId", "geneId", "eQtlColocH4MaximumNeighbourhood")
+        ).select("geneId", "studyLocusId", "eQtlColocH4MaximumNeighbourhood")
         assert (
             observed_df.collect() == expected_df.collect()
         ), "The expected and observed dataframes do not match."
