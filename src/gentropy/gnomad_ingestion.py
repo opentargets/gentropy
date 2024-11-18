@@ -114,6 +114,8 @@ class GnomadVariantIndexStep:
             # Convert data to variant index:
             .as_variant_index()
             # Write file:
-            .df.write.mode(session.write_mode)
+            .df.repartitionByRange("chromosome", "position")
+            .sortWithinPartitions("chromosome", "position")
+            .write.mode(session.write_mode)
             .parquet(variant_annotation_path)
         )
