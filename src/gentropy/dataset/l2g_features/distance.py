@@ -8,6 +8,7 @@ import pyspark.sql.functions as f
 from pyspark.sql import Window
 
 from gentropy.common.spark_helpers import convert_from_wide_to_long
+from gentropy.dataset.gene_index import GeneIndex
 from gentropy.dataset.l2g_features.l2g_feature import L2GFeature
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
 from gentropy.dataset.study_locus import StudyLocus
@@ -55,7 +56,7 @@ def common_distance_feature_logic(
         agg_expr = f.sum(f.col("distance_score"))
     elif "Sentinel" in feature_name:
         df = study_loci_to_annotate.df.select("studyLocusId", "variantId")
-        # For minimum distances we calculate the unweighted distance between the sentinel (lead) and the gene. This
+        # For minimum distances we calculate the unweighted distance between the sentinel (lead) and the gene.
         distance_score_expr = f.lit(genomic_window) - f.col(distance_type) + f.lit(1)
         agg_expr = f.first(f.col("distance_score"))
     return (
@@ -84,15 +85,17 @@ def common_neighbourhood_distance_feature_logic(
     variant_index: VariantIndex,
     feature_name: str,
     distance_type: str,
+    gene_index: GeneIndex,
     genomic_window: int = 500_000,
 ) -> DataFrame:
-    """Calculate the distance feature that correlates any variant in a credible set with any gene nearby the locus. The distance is weighted by the posterior probability of the variant to factor in its contribution to the trait.
+    """Calculate the distance feature that correlates any variant in a credible set with any protein coding gene nearby the locus. The distance is weighted by the posterior probability of the variant to factor in its contribution to the trait.
 
     Args:
         study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
         variant_index (VariantIndex): The dataset containing distance to gene information
         feature_name (str): The name of the feature
         distance_type (str): The type of distance to gene
+        gene_index (GeneIndex): The dataset containing gene information
         genomic_window (int): The maximum window size to consider
 
     Returns:
@@ -109,16 +112,30 @@ def common_neighbourhood_distance_feature_logic(
     )
     return (
         # Then compute mean distance in the vicinity (feature will be the same for any gene associated with a studyLocus)
-        local_metric.withColumn(
-            "regional_metric",
-            f.mean(f.col(local_feature_name)).over(Window.partitionBy("studyLocusId")),
+        local_metric.join(
+            gene_index.df.filter(f.col("biotype") == "protein_coding").select("geneId"),
+            "geneId",
+            "inner",
+        )
+        .withColumn(
+            "regional_max",
+            f.max(local_feature_name).over(Window.partitionBy("studyLocusId")),
         )
         .withColumn(
             feature_name,
-            (f.col(local_feature_name) - f.col("regional_metric"))
-            / f.log10(f.lit(genomic_window + 1)),
+            f.when(
+                (f.col("regional_max").isNotNull()) & (f.col("regional_max") != 0.0),
+                f.col(local_feature_name)
+                / f.coalesce(f.col("regional_max"), f.lit(0.0)),
+            ).otherwise(f.lit(0.0)),
         )
-        .drop("regional_metric", local_feature_name)
+        .withColumn(
+            feature_name,
+            f.when(f.col(feature_name) < 0, f.lit(0.0))
+            .when(f.col(feature_name) > 1, f.lit(1.0))
+            .otherwise(f.col(feature_name)),
+        )
+        .drop("regional_max", local_feature_name)
     )
 
 
@@ -168,7 +185,7 @@ class DistanceTssMeanFeature(L2GFeature):
 class DistanceTssMeanNeighbourhoodFeature(L2GFeature):
     """Minimum mean distance to TSS for all genes in the vicinity of a studyLocus."""
 
-    feature_dependency_type = VariantIndex
+    feature_dependency_type = [VariantIndex, GeneIndex]
     feature_name = "distanceTssMeanNeighbourhood"
 
     @classmethod
@@ -244,7 +261,7 @@ class DistanceSentinelTssFeature(L2GFeature):
 class DistanceSentinelTssNeighbourhoodFeature(L2GFeature):
     """Distance between the sentinel variant and a gene TSS as a relation of the distnace with all the genes in the vicinity of a studyLocus. This is not weighted by the causal probability."""
 
-    feature_dependency_type = VariantIndex
+    feature_dependency_type = [VariantIndex, GeneIndex]
     feature_name = "distanceSentinelTssNeighbourhood"
 
     @classmethod
@@ -325,7 +342,7 @@ class DistanceFootprintMeanFeature(L2GFeature):
 class DistanceFootprintMeanNeighbourhoodFeature(L2GFeature):
     """Minimum mean distance to footprint for all genes in the vicinity of a studyLocus."""
 
-    feature_dependency_type = VariantIndex
+    feature_dependency_type = [VariantIndex, GeneIndex]
     feature_name = "distanceFootprintMeanNeighbourhood"
 
     @classmethod
@@ -401,7 +418,7 @@ class DistanceSentinelFootprintFeature(L2GFeature):
 class DistanceSentinelFootprintNeighbourhoodFeature(L2GFeature):
     """Distance between the sentinel variant and a gene footprint as a relation of the distnace with all the genes in the vicinity of a studyLocus. This is not weighted by the causal probability."""
 
-    feature_dependency_type = VariantIndex
+    feature_dependency_type = [VariantIndex, GeneIndex]
     feature_name = "distanceSentinelFootprintNeighbourhood"
 
     @classmethod
