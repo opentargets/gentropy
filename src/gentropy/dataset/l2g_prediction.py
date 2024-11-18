@@ -78,6 +78,7 @@ class L2GPrediction(Dataset):
                     credible_set.df.filter(f.col("studyType") == "gwas")
                     .select("studyLocusId")
                     .join(feature_matrix._df, "studyLocusId")
+                    .filter(f.col("isProteinCoding") == 1)
                 )
             )
             .fill_na()
