@@ -42,13 +42,11 @@ class LocusToGeneModel:
             self.model.set_params(**self.hyperparameters_dict)
 
     @classmethod
-    def load_from_disk(
-        cls: Type[LocusToGeneModel], path: str | Path
-    ) -> LocusToGeneModel:
+    def load_from_disk(cls: Type[LocusToGeneModel], path: str) -> LocusToGeneModel:
         """Load a fitted model from disk.
 
         Args:
-            path (str | Path): Path to the model
+            path (str): Path to the model
 
         Returns:
             LocusToGeneModel: L2G model loaded from disk
@@ -56,7 +54,20 @@ class LocusToGeneModel:
         Raises:
             ValueError: If the model has not been fitted yet
         """
-        loaded_model = sio.load(path, trusted=sio.get_untrusted_types(file=path))
+        if path.startswith("gs://"):
+            path = path.removeprefix("gs://")
+            bucket_name = path.split("/")[0]
+            blob_name = "/".join(path.split("/")[1:])
+            from google.cloud import storage
+
+            client = storage.Client()
+            bucket = storage.Bucket(client=client, name=bucket_name)
+            blob = storage.Blob(name=blob_name, bucket=bucket)
+            data = blob.download_as_string(client=client)
+            loaded_model = sio.loads(data, trusted=sio.get_untrusted_types(data=data))
+        else:
+            loaded_model = sio.load(path, trusted=sio.get_untrusted_types(file=path))
+
         if not loaded_model._is_fitted():
             raise ValueError("Model has not been fitted yet.")
         return cls(model=loaded_model)
@@ -80,7 +91,7 @@ class LocusToGeneModel:
         """
         local_path = Path(model_id)
         hub_utils.download(repo_id=model_id, dst=local_path, token=hf_token)
-        return cls.load_from_disk(Path(local_path) / model_name)
+        return cls.load_from_disk(str(Path(local_path) / model_name))
 
     @property
     def hyperparameters_dict(self) -> dict[str, Any]:

@@ -346,21 +346,21 @@ class TestCommonColocalisationFeatureLogic:
             gene_index=sample_gene_index,
             variant_index=sample_variant_index,
         ).withColumn(feature_name, f.round(f.col(feature_name), 3))
-        # expected average is (0.81 + 0)/2 = 0.405
+        # expected max is 0.81
         expected_df = spark.createDataFrame(
             [
                 {
                     "studyLocusId": "1",
                     "geneId": "gene1",
-                    "eQtlColocH4MaximumNeighbourhood": 0.405,  # 0.81 - 0.405
+                    "eQtlColocH4MaximumNeighbourhood": 1.0,  # 0.81 / 0.81
                 },
                 {
                     "studyLocusId": "1",
-                    "geneId": "gene2",
-                    "eQtlColocH4MaximumNeighbourhood": 0.495,  # 0.9 - 0.405
+                    "geneId": "gene3",
+                    "eQtlColocH4MaximumNeighbourhood": 0.0,  # 0.0 (no coloc with gene3) /0.81
                 },
             ],
-        ).select("studyLocusId", "geneId", "eQtlColocH4MaximumNeighbourhood")
+        ).select("geneId", "studyLocusId", "eQtlColocH4MaximumNeighbourhood")
         assert (
             observed_df.collect() == expected_df.collect()
         ), "The expected and observed dataframes do not match."
@@ -561,6 +561,7 @@ class TestCommonDistanceFeatureLogic:
             common_neighbourhood_distance_feature_logic(
                 self.sample_study_locus,
                 variant_index=self.sample_variant_index,
+                gene_index=self.sample_gene_index,
                 feature_name=feature_name,
                 distance_type=self.distance_type,
                 genomic_window=10,
@@ -568,9 +569,12 @@ class TestCommonDistanceFeatureLogic:
             .withColumn(feature_name, f.round(f.col(feature_name), 2))
             .orderBy(f.col(feature_name).asc())
         )
-        expected_df = spark.createDataFrame(
-            (["1", "gene1", -0.44], ["1", "gene2", 0.44]),
-            ["studyLocusId", "geneId", feature_name],
+        expected_df = spark.createDataFrame(  # regional max is 0.91 from gene2
+            (
+                ["gene1", "1", 0.0],  # (10-10)/0.91
+                ["gene2", "1", 1.0],
+            ),  # 0.91/0.91
+            ["geneId", "studyLocusId", feature_name],
         ).orderBy(feature_name)
         assert (
             observed_df.collect() == expected_df.collect()
@@ -648,6 +652,32 @@ class TestCommonDistanceFeatureLogic:
                 sample_variant_index_schema,
             ),
             _schema=VariantIndex.get_schema(),
+        )
+        self.sample_gene_index = GeneIndex(
+            _df=spark.createDataFrame(
+                [
+                    {
+                        "geneId": "gene1",
+                        "chromosome": "1",
+                        "tss": 950000,
+                        "biotype": "protein_coding",
+                    },
+                    {
+                        "geneId": "gene2",
+                        "chromosome": "1",
+                        "tss": 1050000,
+                        "biotype": "protein_coding",
+                    },
+                    {
+                        "geneId": "gene3",
+                        "chromosome": "1",
+                        "tss": 1010000,
+                        "biotype": "non_coding",
+                    },
+                ],
+                GeneIndex.get_schema(),
+            ),
+            _schema=GeneIndex.get_schema(),
         )
 
 
@@ -727,55 +757,13 @@ class TestCommonVepFeatureLogic:
             observed_df.collect() == expected_df.collect()
         ), f"Expected and observed dataframes are not equal for feature {feature_name}."
 
-    def test_common_neighbourhood_vep_feature_logic_no_protein_coding(
-        self: TestCommonVepFeatureLogic,
-        spark: SparkSession,
-        sample_gene_index: GeneIndex,
-        sample_variant_index: VariantIndex,
-    ) -> None:
-        """Test the logic of the function that extracts the maximum severity score for a gene given the average of the maximum scores for all protein coding genes in the vicinity.
-
-        Because the genes in the vicinity are all non coding, the neighbourhood features should equal the local ones.
-        """
-        feature_name = "vepMaximumNeighbourhood"
-        non_protein_coding_gene_index = GeneIndex(
-            _df=sample_gene_index.df.filter(f.col("geneId") != "gene3"),
-            _schema=GeneIndex.get_schema(),
-        )
-        observed_df = (
-            common_neighbourhood_vep_feature_logic(
-                self.sample_study_locus,
-                variant_index=sample_variant_index,
-                gene_index=non_protein_coding_gene_index,
-                feature_name=feature_name,
-            )
-            .withColumn(feature_name, f.round(f.col(feature_name), 2))
-            .orderBy(f.col(feature_name).asc())
-            .select("studyLocusId", "geneId", feature_name)
-        )
-        expected_df = (
-            spark.createDataFrame(
-                # regional mean is 0.66
-                (
-                    ["1", "gene1", 0.0],
-                    ["1", "gene2", 0.34],
-                ),  # (0.66-0.66) and (1.0-0.66)
-                ["studyLocusId", "geneId", feature_name],
-            )
-            .orderBy(feature_name)
-            .select("studyLocusId", "geneId", feature_name)
-        )
-        assert (
-            observed_df.collect() == expected_df.collect()
-        ), "Output doesn't meet the expectation."
-
         def test_common_neighbourhood_vep_feature_logic(
             self: TestCommonVepFeatureLogic,
             spark: SparkSession,
             sample_gene_index: GeneIndex,
             sample_variant_index: VariantIndex,
         ) -> None:
-            """Test the logic of the function that extracts the maximum severity score for a gene given the average of the maximum scores for all protein coding genes in the vicinity."""
+            """Test the logic of the function that extracts the maximum severity score for a gene given the maximum of the maximum scores for all protein coding genes in the vicinity."""
             feature_name = "vepMaximumNeighbourhood"
             observed_df = (
                 common_neighbourhood_vep_feature_logic(
@@ -789,12 +777,11 @@ class TestCommonVepFeatureLogic:
             )
             expected_df = (
                 spark.createDataFrame(
-                    # regional mean is 0.66/2 = 0.33
+                    # regional max is 0.66
                     (
-                        ["1", "gene3", -0.33],
-                        ["1", "gene1", 0.33],
-                        ["1", "gene2", 0.67],
-                    ),  # (0 - 0.33) and (0.66-0.33) and (1.0 -0.33)
+                        ["1", "gene1", 1.0],  # 0.66/0.66
+                        ["1", "gene3", 0.0],  # 0/0.66
+                    ),
                     ["studyLocusId", "geneId", feature_name],
                 )
                 .orderBy(feature_name)
