@@ -130,6 +130,7 @@ class GnomADVariants:
                 .key_by("chromosome", "position")
                 .drop("locus", "alleles")
                 .select_globals()
+                .to_spark()
                 .withColumns(
                     {
                         # Once The parsing is done, we have to drop objects with no score from inSilicoPredictors:
