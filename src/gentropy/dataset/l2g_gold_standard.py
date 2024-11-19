@@ -132,6 +132,7 @@ class L2GGoldStandard(Dataset):
                 on=["studyId", "variantId", "geneId"],
                 how="inner",
             )
+            .filter(f.col("isProteinCoding") == 1)
             .drop("studyId", "variantId")
             .distinct(),
             with_gold_standard=True,

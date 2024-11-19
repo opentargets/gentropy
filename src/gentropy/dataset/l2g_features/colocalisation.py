@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 import pyspark.sql.functions as f
+from pyspark.sql import Window
 
 from gentropy.common.spark_helpers import convert_from_wide_to_long
 from gentropy.dataset.colocalisation import Colocalisation
@@ -168,23 +169,27 @@ def common_neighbourhood_colocalisation_feature_logic(
             study_locus,
         )
     )
-    # Compute average score in the vicinity (feature will be the same for any gene associated with a studyLocus)
-    # (non protein coding genes in the vicinity are excluded see #3552)
-    regional_mean_per_study_locus = (
-        extended_local_max.join(
-            gene_index.df.select("geneId", "biotype"), "geneId", "left"
-        )
-        .filter(f.col("biotype") == "protein_coding")
-        .groupBy("studyLocusId")
-        .agg(f.mean(local_feature_name).alias("regional_mean"))
-    )
     return (
-        local_max.join(regional_mean_per_study_locus, "studyLocusId", "left")
+        extended_local_max.join(
+            # Compute average score in the vicinity (feature will be the same for any gene associated with a studyLocus)
+            # (non protein coding genes in the vicinity are excluded see #3552)
+            gene_index.df.filter(f.col("biotype") == "protein_coding").select("geneId"),
+            "geneId",
+            "inner",
+        )
+        .withColumn(
+            "regional_max",
+            f.max(local_feature_name).over(Window.partitionBy("studyLocusId")),
+        )
         .withColumn(
             feature_name,
-            f.col(local_feature_name) - f.coalesce(f.col("regional_mean"), f.lit(0.0)),
+            f.when(
+                (f.col("regional_max").isNotNull()) & (f.col("regional_max") != 0.0),
+                f.col(local_feature_name)
+                / f.coalesce(f.col("regional_max"), f.lit(0.0)),
+            ).otherwise(f.lit(0.0)),
         )
-        .drop("regional_mean", local_feature_name)
+        .drop("regional_max", local_feature_name)
     )
 
 
