@@ -363,9 +363,10 @@ class InSilicoPredictorNormaliser:
             .when(method == "SIFT", cls._normalise_sift(score, assessment))
             .when(method == "PolyPhen", cls._normalise_polyphen(assessment, score))
             .when(method == "AlphaMissense", cls._normalise_alpha_missense(score))
-            .when(method == "phred scaled CADD", cls._normalise_cadd(score))
-            .when(method == "SpliceAI", cls._normalise_splice_ai(score))
+            .when(method == "CADD", cls._normalise_cadd(score))
             .when(method == "Pangolin", cls._normalise_pangolin(score))
+            # The following predictors are not normalised:
+            .when(method == "SpliceAI", score)
             .when(method == "VEP", score)
         )
 
@@ -541,30 +542,6 @@ class InSilicoPredictorNormaliser:
         )
 
     @classmethod
-    def _normalise_splice_ai(
-        cls: type[InSilicoPredictorNormaliser],
-        score: Column,
-    ) -> Column:
-        """Normalise SpliceAI scores.
-
-        Logic: SpliceAI scores are divided into three categories:
-         - 0-0.2: -1.0--0.25
-         - 0.2-0.5: -0.25-0.25
-         - 0.5-1: 0.25-1
-
-        Args:
-            score (Column): SpliceAI score.
-
-        Returns:
-            Column: Normalised SpliceAI score.
-        """
-        return (
-            f.when(score <= 0.2, cls._rescaleColumnValue(score, 0, 0.2, -1, -0.25))
-            .when(score <= 0.5, cls._rescaleColumnValue(score, 0.2, 0.5, -0.25, 0.25))
-            .when(score > 0.5, cls._rescaleColumnValue(score, 0.5, 1, 0.25, 1))
-        )
-
-    @classmethod
     def _normalise_pangolin(
         cls: type[InSilicoPredictorNormaliser],
         score: Column,
@@ -582,8 +559,8 @@ class InSilicoPredictorNormaliser:
             Column: Normalised Pangolin score.
         """
         return f.when(
-            f.abs(score) > 0.14, cls._rescaleColumnValue(f.abs(score), 0.14, 1, 0.0, 1)
+            f.abs(score) > 0.14, cls._rescaleColumnValue(f.abs(score), 0.14, 1, 0.5, 1)
         ).when(
             f.abs(score) <= 0.14,
-            cls._rescaleColumnValue(f.abs(score), 0, 0.14, -1, 0.0),
+            cls._rescaleColumnValue(f.abs(score), 0, 0.14, 0.0, 0.5),
         )

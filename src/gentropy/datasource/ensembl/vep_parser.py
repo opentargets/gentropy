@@ -643,7 +643,7 @@ class VariantEffectPredictorParser:
                             # Extract CADD scores:
                             cls._vep_in_silico_prediction_extractor(
                                 transcript_column_name="transcript_consequences",
-                                method_name="phred scaled CADD",
+                                method_name="CADD",
                                 score_column_name="cadd_phred",
                             ),
                             # Extract polyphen scores:
@@ -683,7 +683,7 @@ class VariantEffectPredictorParser:
                     f.array(
                         cls._vep_in_silico_prediction_extractor(
                             transcript_column_name="intergenic_consequences",
-                            method_name="phred scaled CADD",
+                            method_name="CADD",
                             score_column_name="cadd_phred",
                         ),
                         # Extract VEP prediction:
@@ -997,7 +997,7 @@ class VariantEffectPredictorParser:
 
     @staticmethod
     def _process_lof(transcript: Column) -> Column:
-        """Process loss of function annotation from loftee prediction.
+        """Process loss of function annotation from LOFTEE prediction.
 
         Args:
             transcript (Column): Transcript.
