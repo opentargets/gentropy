@@ -591,7 +591,7 @@ class StudyLocus(Dataset):
                 "tagVariantId",
                 "rightStudyType",
             ],
-            how="inner",
+            how="outer",
         ).select(
             "leftStudyLocusId",
             "rightStudyLocusId",
