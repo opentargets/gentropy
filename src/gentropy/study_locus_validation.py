@@ -48,10 +48,10 @@ class StudyLocusValidationStep:
             .qc_explained_by_SuSiE()  # Flagging credible sets in regions explained by SuSiE
             # Flagging credible sets with PIP > 1 or PIP < 0.99
             .qc_abnormal_pips(
-                sum_pips_lower_threshold=0.95, sum_pips_upper_threshold=1.0001
+                sum_pips_lower_threshold=0.99, sum_pips_upper_threshold=1.0001
             )
             # Annotates credible intervals and filter to only keep 99% credible sets
-            .filter_credible_set(credible_interval=CredibleInterval.IS95)
+            .filter_credible_set(credible_interval=CredibleInterval.IS99)
             # Annotate credible set confidence:
             .assign_confidence()
         ).persist()  # we will need this for 2 types of outputs
