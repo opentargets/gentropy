@@ -476,6 +476,11 @@ class VariantIndexConfig(StepConfig):
             "label": "splice_polypyrimidine_tract_variant",
             "score": 0.33,
         },
+        {
+            "id": "SO_0001626",
+            "label": "incomplete_terminal_codon_variant",
+            "score": 0.33,
+        },
         {"id": "SO_0001819", "label": "synonymous_variant", "score": 0.33},
         {
             "id": "SO_0002170",
@@ -499,6 +504,7 @@ class VariantIndexConfig(StepConfig):
             "score": 0.0,
         },
         {"id": "SO_0001620", "label": "mature_miRNA_variant", "score": 0.0},
+        {"id": "SO_0001060", "label": "intergenic_variant", "score": 0.0},
     ]
 
     _target_: str = "gentropy.variant_index.VariantIndexStep"

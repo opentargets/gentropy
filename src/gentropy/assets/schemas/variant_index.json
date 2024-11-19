@@ -67,6 +67,12 @@
               "name": "targetId",
               "nullable": true,
               "type": "string"
+            },
+            {
+              "metadata": {},
+              "name": "normalisedScore",
+              "nullable": true,
+              "type": "double"
             }
           ],
           "type": "struct"
@@ -194,6 +200,18 @@
             },
             {
               "metadata": {},
+              "name": "approvedSymbol",
+              "nullable": true,
+              "type": "string"
+            },
+            {
+              "metadata": {},
+              "name": "biotype",
+              "nullable": true,
+              "type": "string"
+            },
+            {
+              "metadata": {},
               "name": "transcriptId",
               "nullable": true,
               "type": "string"
@@ -271,6 +289,12 @@
         },
         "type": "array"
       }
+    },
+    {
+      "metadata": {},
+      "name": "variantDescription",
+      "nullable": true,
+      "type": "string"
     }
   ],
   "type": "struct"

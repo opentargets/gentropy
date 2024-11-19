@@ -848,6 +848,7 @@ def get_struct_field_schema(schema: t.StructType, name: str) -> t.DataType:
         raise ValueError("Provided name %s is not present in the schema.", name)
     return matching_fields[0].dataType
 
+
 def calculate_harmonic_sum(input_array: Column) -> Column:
     """Calculate the harmonic sum of an array.
 
@@ -876,9 +877,11 @@ def calculate_harmonic_sum(input_array: Column) -> Column:
     return f.aggregate(
         f.arrays_zip(
             f.sort_array(input_array, False).alias("score"),
-            f.sequence(f.lit(1), f.size(input_array)).alias("pos")
+            f.sequence(f.lit(1), f.size(input_array)).alias("pos"),
         ),
         f.lit(0.0),
         lambda acc, x: acc
-        + x["score"]/f.pow(x["pos"], 2)/f.lit(sum(1 / ((i + 1)**2) for i in range(1000)))
+        + x["score"]
+        / f.pow(x["pos"], 2)
+        / f.lit(sum(1 / ((i + 1) ** 2) for i in range(1000))),
     )
