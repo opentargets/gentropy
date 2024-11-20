@@ -60,6 +60,8 @@ def test__finemap_udf() -> None:
             "posteriorProbability": 0.9288304011311763,
         },
     ]
+
+    assert result is not None, "The result of _finemap should not be None"
     for idx, tag in enumerate(result):
         # assert both dictionaries have the same content regardless of its order
         assert tag == expected[idx]
