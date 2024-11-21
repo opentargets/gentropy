@@ -105,7 +105,7 @@ class FinnGenFinemapping:
         [
             StructField("trait", StringType(), True),
             StructField("region", StringType(), True),
-            StructField("cs_number", StringType(), True),
+            StructField("cs", StringType(), True),
             StructField("cs_log10bf", DoubleType(), True),
             StructField("cs_avg_r2", DoubleType(), True),
             StructField("cs_min_r2", DoubleType(), True),
@@ -184,7 +184,7 @@ class FinnGenFinemapping:
     summary_hail_schema: hl.tstruct = hl.tstruct(
         trait=hl.tstr,
         region=hl.tstr,
-        cs_number=hl.tstr,
+        cs=hl.tstr,
         cs_log10bf=hl.tfloat64,
         cs_avg_r2=hl.tfloat64,
         cs_min_r2=hl.tfloat64,
@@ -245,7 +245,7 @@ class FinnGenFinemapping:
         The finngen_susie_finemapping_cs_summary_files are files that Contains credible set summaries from SuSiE fine-mapping for all genome-wide significant regions with following schema:
             - trait: phenotype
             - region: region for which the fine-mapping was run.
-            - cs_number: running number for independent credible sets in a region, assigned to 95% PIP
+            - cs: running number for independent credible sets in a region, assigned to 95% PIP
             - cs_log10bf: Log10 bayes factor of comparing the solution of this model (cs independent credible sets) to cs -1 credible sets
             - cs_avg_r2: Average correlation R2 between variants in the credible set
             - cs_min_r2: minimum r2 between variants in the credible set
@@ -437,7 +437,7 @@ class FinnGenFinemapping:
             cs_summary_df.select(
                 f.col("region"),
                 f.col("trait"),
-                f.col("cs_number").cast("integer").alias("credibleSetIndex"),
+                f.col("cs").cast("integer").alias("credibleSetIndex"),
                 f.col("cs_log10bf").cast("double").alias("credibleSetlog10BF"),
                 f.col("cs_avg_r2").cast("double").alias("purityMeanR2"),
                 f.col("cs_min_r2").cast("double").alias("purityMinR2"),
