@@ -245,7 +245,7 @@ class FinnGenFinemapping:
         The finngen_susie_finemapping_cs_summary_files are files that Contains credible set summaries from SuSiE fine-mapping for all genome-wide significant regions with following schema:
             - trait: phenotype
             - region: region for which the fine-mapping was run.
-            - cs_number: running number for independent credible sets in a region, assigned to 99% PIP
+            - cs_number: running number for independent credible sets in a region, assigned to 95% PIP
             - cs_log10bf: Log10 bayes factor of comparing the solution of this model (cs independent credible sets) to cs -1 credible sets
             - cs_avg_r2: Average correlation R2 between variants in the credible set
             - cs_min_r2: minimum r2 between variants in the credible set
@@ -298,7 +298,7 @@ class FinnGenFinemapping:
             # Drop rows which don't have proper position.
             snps_df.filter(f.col("position").cast(t.IntegerType()).isNotNull())
             # Drop non credible set SNPs:
-            .filter(f.col("cs_99").cast(t.IntegerType()) > 0)
+            .filter(f.col("cs").cast(t.IntegerType()) > 0)
             .select(
                 # Add study idenfitier.
                 f.concat_ws("_", f.lit(finngen_release_prefix), f.col("trait"))
@@ -307,7 +307,7 @@ class FinnGenFinemapping:
                 f.col("region"),
                 # Add variant information.
                 f.regexp_replace(f.col("v"), ":", "_").alias("variantId"),
-                f.col("cs_99").cast("integer").alias("credibleSetIndex"),
+                f.col("cs").cast("integer").alias("credibleSetIndex"),
                 f.regexp_replace(f.col("chromosome"), "^chr", "")
                 .cast(t.StringType())
                 .alias("chromosome"),
