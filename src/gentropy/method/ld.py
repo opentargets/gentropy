@@ -35,19 +35,13 @@ class LDAnnotator:
         major_population_size = ordered_populations["relativeSampleSize"][0]
         major_populations = f.filter(
             ordered_populations,
-            lambda x: x["relativeSampleSize"] == major_population_size
+            lambda x: x["relativeSampleSize"] == major_population_size,
         )
         # Check if nfe (Non-Finnish European) is one of the major populations
-        has_nfe = f.filter(
-            major_populations,
-            lambda x: x["ldPopulation"] == "nfe"
-        )
+        has_nfe = f.filter(major_populations, lambda x: x["ldPopulation"] == "nfe")
         return f.when(
-            (f.size(major_populations) > 1) & (f.size(has_nfe) == 1),
-            f.lit("nfe")
-        ).otherwise(
-            ordered_populations["ldPopulation"][0]
-        )
+            (f.size(major_populations) > 1) & (f.size(has_nfe) == 1), f.lit("nfe")
+        ).otherwise(ordered_populations["ldPopulation"][0])
 
     @staticmethod
     def _calculate_r2_major(ld_set: Column, major_population: Column) -> Column:
@@ -65,19 +59,18 @@ class LDAnnotator:
             lambda x: f.struct(
                 x["tagVariantId"].alias("tagVariantId"),
                 f.filter(
-                    x["rValues"],
-                    lambda y: y["population"] == major_population
-                ).alias("rValues")
-            )
+                    x["rValues"], lambda y: y["population"] == major_population
+                ).alias("rValues"),
+            ),
         )
         return f.transform(
             ld_set_with_major_pop,
             lambda x: f.struct(
                 x["tagVariantId"].alias("tagVariantId"),
-                f.coalesce(
-                    f.pow(x["rValues"]["r"][0], 2), f.lit(0.0)
-                ).alias("r2Overall")
-            )
+                f.coalesce(f.pow(x["rValues"]["r"][0], 2), f.lit(0.0)).alias(
+                    "r2Overall"
+                ),
+            ),
         )
 
     @staticmethod
@@ -160,8 +153,8 @@ class LDAnnotator:
                     studies.df.select(
                         "studyId",
                         order_array_of_structs_by_field(
-                        "ldPopulationStructure", "relativeSampleSize"
-                        ).alias("ldPopulationStructure")
+                            "ldPopulationStructure", "relativeSampleSize"
+                        ).alias("ldPopulationStructure"),
                     ),
                     on="studyId",
                     how="left",
@@ -177,10 +170,8 @@ class LDAnnotator:
                     "majorPopulation",
                     f.when(
                         f.col("ldPopulationStructure").isNotNull(),
-                        cls._get_major_population(
-                            f.col("ldPopulationStructure")
-                        )
-                    )
+                        cls._get_major_population(f.col("ldPopulationStructure")),
+                    ),
                 )
                 # Calculate R2 using R of the major population
                 .withColumn(
@@ -189,8 +180,8 @@ class LDAnnotator:
                         f.col("ldPopulationStructure").isNotNull(),
                         cls._calculate_r2_major(
                             f.col("ldSet"), f.col("majorPopulation")
-                        )
-                    )
+                        ),
+                    ),
                 )
                 .drop("ldPopulationStructure", "majorPopulation")
                 # Filter the LD set by the R2 threshold and set to null if no LD information passes the threshold
@@ -208,6 +199,20 @@ class LDAnnotator:
                 .withColumn(
                     "ldSet",
                     cls._rescue_lead_variant(f.col("ldSet"), f.col("variantId")),
+                )
+                # Ensure that the lead varaitn is always with r2==1
+                .withColumn(
+                    "ldSet",
+                    f.expr(
+                        """
+                        transform(ldSet, x ->
+                            IF(x.tagVariantId == variantId,
+                                named_struct('tagVariantId', x.tagVariantId, 'r2Overall', 1.0),
+                                x
+                            )
+                        )
+                        """
+                    ),
                 )
             ),
             _schema=StudyLocus.get_schema(),

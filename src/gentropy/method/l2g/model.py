@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Type
 
+import pandas as pd
 import skops.io as sio
 from pandas import DataFrame as pd_dataframe
 from pandas import to_numeric as pd_to_numeric
@@ -40,13 +42,11 @@ class LocusToGeneModel:
             self.model.set_params(**self.hyperparameters_dict)
 
     @classmethod
-    def load_from_disk(
-        cls: Type[LocusToGeneModel], path: str | Path
-    ) -> LocusToGeneModel:
+    def load_from_disk(cls: Type[LocusToGeneModel], path: str) -> LocusToGeneModel:
         """Load a fitted model from disk.
 
         Args:
-            path (str | Path): Path to the model
+            path (str): Path to the model
 
         Returns:
             LocusToGeneModel: L2G model loaded from disk
@@ -54,7 +54,20 @@ class LocusToGeneModel:
         Raises:
             ValueError: If the model has not been fitted yet
         """
-        loaded_model = sio.load(path, trusted=sio.get_untrusted_types(file=path))
+        if path.startswith("gs://"):
+            path = path.removeprefix("gs://")
+            bucket_name = path.split("/")[0]
+            blob_name = "/".join(path.split("/")[1:])
+            from google.cloud import storage
+
+            client = storage.Client()
+            bucket = storage.Bucket(client=client, name=bucket_name)
+            blob = storage.Blob(name=blob_name, bucket=bucket)
+            data = blob.download_as_string(client=client)
+            loaded_model = sio.loads(data, trusted=sio.get_untrusted_types(data=data))
+        else:
+            loaded_model = sio.load(path, trusted=sio.get_untrusted_types(file=path))
+
         if not loaded_model._is_fitted():
             raise ValueError("Model has not been fitted yet.")
         return cls(model=loaded_model)
@@ -78,7 +91,7 @@ class LocusToGeneModel:
         """
         local_path = Path(model_id)
         hub_utils.download(repo_id=model_id, dst=local_path, token=hf_token)
-        return cls.load_from_disk(Path(local_path) / model_name)
+        return cls.load_from_disk(str(Path(local_path) / model_name))
 
     @property
     def hyperparameters_dict(self) -> dict[str, Any]:
@@ -147,6 +160,23 @@ class LocusToGeneModel:
             copy_to_gcs(local_path, path)
         else:
             sio.dump(self.model, path)
+
+    @staticmethod
+    def load_feature_matrix_from_wandb(wandb_run_name: str) -> pd.DataFrame:
+        """Loads dataset of feature matrix used during a wandb run.
+
+        Args:
+            wandb_run_name (str): Name of the wandb run to load the feature matrix from
+
+        Returns:
+            pd.DataFrame: Feature matrix used during the wandb run
+        """
+        with open(wandb_run_name) as f:
+            raw_data = json.load(f)
+
+        data = raw_data["data"]
+        columns = raw_data["columns"]
+        return pd.DataFrame(data, columns=columns)
 
     def _create_hugging_face_model_card(
         self: LocusToGeneModel,

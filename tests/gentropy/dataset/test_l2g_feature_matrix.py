@@ -4,10 +4,19 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+import pyspark.sql.functions as f
 import pytest
-from pyspark.sql.types import ArrayType, DoubleType, StringType, StructField, StructType
+from pyspark.sql.types import (
+    ArrayType,
+    DoubleType,
+    IntegerType,
+    StringType,
+    StructField,
+    StructType,
+)
 
 from gentropy.dataset.colocalisation import Colocalisation
+from gentropy.dataset.gene_index import GeneIndex
 from gentropy.dataset.intervals import Intervals
 from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
@@ -29,12 +38,12 @@ class TestFromFeaturesList:
         self: TestFromFeaturesList,
     ) -> None:
         """Test building feature matrix for a SL with the eQtlColocH4Maximum feature."""
-        features_list = ["eQtlColocH4Maximum", "pchicMean"]
+        features_list = ["eQtlColocH4Maximum", "geneCount500kb"]
         loader = L2GFeatureInputLoader(
             colocalisation=self.sample_colocalisation,
             study_index=self.sample_study_index,
             study_locus=self.sample_study_locus,
-            intervals=self.sample_intervals,
+            gene_index=self.sample_gene_index,
         )
         fm = L2GFeatureMatrix.from_features_list(
             self.sample_study_locus, features_list, loader
@@ -80,6 +89,8 @@ class TestFromFeaturesList:
                         "1",
                         "var1",
                         "gwas1",
+                        "X",
+                        2,
                         [
                             {"variantId": "var1", "posteriorProbability": 0.8},
                             {"variantId": "var12", "posteriorProbability": 0.2},
@@ -89,6 +100,8 @@ class TestFromFeaturesList:
                         "2",
                         "var2",
                         "eqtl1",
+                        "X",
+                        10,
                         [
                             {"variantId": "var2", "posteriorProbability": 1.0},
                         ],
@@ -99,6 +112,8 @@ class TestFromFeaturesList:
                         StructField("studyLocusId", StringType(), True),
                         StructField("variantId", StringType(), True),
                         StructField("studyId", StringType(), True),
+                        StructField("chromosome", StringType(), True),
+                        StructField("position", IntegerType(), True),
                         StructField(
                             "locus",
                             ArrayType(
@@ -145,6 +160,77 @@ class TestFromFeaturesList:
             ),
             _schema=Colocalisation.get_schema(),
         )
+        self.sample_gene_index = GeneIndex(
+            _df=spark.createDataFrame(
+                [
+                    ("g1", "X", "protein_coding", 200),
+                    ("g2", "X", "protein_coding", 300),
+                ],
+                [
+                    "geneId",
+                    "chromosome",
+                    "biotype",
+                    "tss",
+                ],
+            ),
+            _schema=GeneIndex.get_schema(),
+        )
+
+
+def test_fill_na(spark: SparkSession) -> None:
+    """Tests L2GFeatureMatrix.fill_na, particularly the imputation logic."""
+    sample_fm = L2GFeatureMatrix(
+        _df=spark.createDataFrame(
+            [
+                {
+                    "studyLocusId": "1",
+                    "geneId": "gene1",
+                    "proteinGeneCount500kb": 3.0,
+                    "geneCount500kb": 8.0,
+                    "isProteinCoding": 1.0,
+                    "anotherFeature": None,
+                },
+                {
+                    "studyLocusId": "1",
+                    "geneId": "gene2",
+                    "proteinGeneCount500kb": 4.0,
+                    "geneCount500kb": 10.0,
+                    "isProteinCoding": 1.0,
+                    "anotherFeature": None,
+                },
+                {
+                    "studyLocusId": "1",
+                    "geneId": "gene3",
+                    "proteinGeneCount500kb": None,
+                    "geneCount500kb": None,
+                    "isProteinCoding": None,
+                    "anotherFeature": None,
+                },
+            ],
+            schema="studyLocusId STRING, geneId STRING, proteinGeneCount500kb DOUBLE, geneCount500kb DOUBLE, isProteinCoding DOUBLE, anotherFeature DOUBLE",
+        ),
+    )
+    observed_df = sample_fm.fill_na()._df.filter(f.col("geneId") == "gene3")
+    expected_df_missing_row = spark.createDataFrame(
+        [
+            {
+                "studyLocusId": "1",
+                "geneId": "gene3",
+                "proteinGeneCount500kb": 3.5,
+                "geneCount500kb": 9.0,
+                "isProteinCoding": 0.0,
+                "anotherFeature": 0.0,
+            },
+        ],
+    ).select(
+        "studyLocusId",
+        "geneId",
+        "proteinGeneCount500kb",
+        "geneCount500kb",
+        "isProteinCoding",
+        "anotherFeature",
+    )
+    assert observed_df.collect() == expected_df_missing_row.collect()
         self.sample_intervals = Intervals(
             _df=spark.createDataFrame(
                 [

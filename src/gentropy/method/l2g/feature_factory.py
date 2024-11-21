@@ -1,3 +1,4 @@
+# isort: skip_file
 """Factory that computes features based on an input list."""
 
 from __future__ import annotations  # noqa: I001
@@ -37,6 +38,12 @@ from gentropy.dataset.l2g_features.intervals import (
     PchicMeanNeighbourhoodFeature,
 )
 from gentropy.dataset.l2g_features.l2g_feature import L2GFeature
+from gentropy.dataset.l2g_features.other import (
+    CredibleSetConfidenceFeature,
+    GeneCountFeature,
+    ProteinGeneCountFeature,
+    ProteinCodingFeature,
+)
 from gentropy.dataset.l2g_features.vep import (
     VepMaximumFeature,
     VepMaximumNeighbourhoodFeature,
@@ -127,6 +134,10 @@ class FeatureFactory:
         "vepMeanNeighbourhood": VepMeanNeighbourhoodFeature,
         "vepMaximum": VepMaximumFeature,
         "vepMaximumNeighbourhood": VepMaximumNeighbourhoodFeature,
+        "geneCount500kb": GeneCountFeature,
+        "proteinGeneCount500kb": ProteinGeneCountFeature,
+        "isProteinCoding": ProteinCodingFeature,
+        "credibleSetConfidence": CredibleSetConfidenceFeature,
         "pchicMean": PchicMeanFeature,
         "pchicMeanNeighbourhood": PchicMeanNeighbourhoodFeature,
         "enhTssMean": EnhTssMeanFeature,

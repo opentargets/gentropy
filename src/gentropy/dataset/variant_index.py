@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 import pyspark.sql.functions as f
@@ -25,6 +25,8 @@ if TYPE_CHECKING:
 class VariantIndex(Dataset):
     """Dataset for representing variants and methods applied on them."""
 
+    id_threshold: int = field(default=300)
+
     def __post_init__(self: VariantIndex) -> None:
         """Forcing the presence of empty arrays even if the schema allows missing values.
 
@@ -45,7 +47,16 @@ class VariantIndex(Dataset):
         }
 
         # Not returning, but changing the data:
-        self.df = self.df.withColumns(array_columns)
+        self.df = self.df.withColumns(array_columns).withColumn(
+            # Hashing long variant identifiers:
+            "variantId",
+            self.hash_long_variant_ids(
+                f.col("variantId"),
+                f.col("chromosome"),
+                f.col("position"),
+                self.id_threshold,
+            ),
+        )
 
     @classmethod
     def get_schema(cls: type[VariantIndex]) -> StructType:
@@ -58,7 +69,7 @@ class VariantIndex(Dataset):
 
     @staticmethod
     def hash_long_variant_ids(
-        variant_id: Column, chromosome: Column, position: Column, threshold: int = 100
+        variant_id: Column, chromosome: Column, position: Column, threshold: int
     ) -> Column:
         """Hash long variant identifiers.
 
@@ -98,7 +109,7 @@ class VariantIndex(Dataset):
             )
             # If chromosome and position are given, but alleles are too long, create hash:
             .when(
-                f.length(variant_id) > threshold,
+                f.length(variant_id) >= threshold,
                 f.concat_ws(
                     "_",
                     f.lit("OTVAR"),
@@ -132,20 +143,20 @@ class VariantIndex(Dataset):
         select_expressions = []
 
         # Collect columns by iterating over the variant index schema:
-        for field in VariantIndex.get_schema():
-            column = field.name
+        for schema_field in VariantIndex.get_schema():
+            column = schema_field.name
 
             # If an annotation column can be found in both datasets:
             if (column in self.df.columns) and (column in annotation_source.df.columns):
                 # Arrays are merged:
-                if isinstance(field.dataType, t.ArrayType):
+                if isinstance(schema_field.dataType, t.ArrayType):
                     fields_order = None
-                    if isinstance(field.dataType.elementType, t.StructType):
+                    if isinstance(schema_field.dataType.elementType, t.StructType):
                         # Extract the schema of the array to get the order of the fields:
                         array_schema = [
-                            field
-                            for field in VariantIndex.get_schema().fields
-                            if field.name == column
+                            schema_field
+                            for schema_field in VariantIndex.get_schema().fields
+                            if schema_field.name == column
                         ][0].dataType
                         fields_order = get_nested_struct_schema(
                             array_schema
@@ -286,4 +297,270 @@ class VariantIndex(Dataset):
                 f.col("tc.lofteePrediction"),
                 "isHighQualityPlof",
             )
+        )
+
+
+class InSilicoPredictorNormaliser:
+    """Class to normalise in silico predictor assessments.
+
+    Essentially based on the raw scores, it normalises the scores to a range between -1 and 1, and appends the normalised
+    value to the in silico predictor struct.
+
+    The higher negative values indicate increasingly confident prediction to be a benign variant,
+    while the higher positive values indicate increasingly deleterious predicted effect.
+
+    The point of these operations to make the scores comparable across different in silico predictors.
+    """
+
+    @classmethod
+    def normalise_in_silico_predictors(
+        cls: type[InSilicoPredictorNormaliser],
+        in_silico_predictors: Column,
+    ) -> Column:
+        """Normalise in silico predictors. Appends a normalised score to the in silico predictor struct.
+
+        Args:
+            in_silico_predictors (Column): Column containing in silico predictors (list of structs).
+
+        Returns:
+            Column: Normalised in silico predictors.
+        """
+        return f.transform(
+            in_silico_predictors,
+            lambda predictor: f.struct(
+                # Extracing all existing columns:
+                predictor.method.alias("method"),
+                predictor.assessment.alias("assessment"),
+                predictor.score.alias("score"),
+                predictor.assessmentFlag.alias("assessmentFlag"),
+                predictor.targetId.alias("targetId"),
+                # Normalising the score
+                cls.resolve_predictor_methods(
+                    predictor.score, predictor.method, predictor.assessment
+                ).alias("normalisedScore"),
+            ),
+        )
+
+    @classmethod
+    def resolve_predictor_methods(
+        cls: type[InSilicoPredictorNormaliser],
+        score: Column,
+        method: Column,
+        assessment: Column,
+    ) -> Column:
+        """It takes a score, a method, and an assessment, and returns a normalized score for the in silico predictor.
+
+        Args:
+            score (Column): The raw score from the in silico predictor.
+            method (Column): The method used to generate the score.
+            assessment (Column): The assessment of the score.
+
+        Returns:
+            Column: Normalised score for the in silico predictor.
+        """
+        return (
+            f.when(method == "LOFTEE", cls._normalise_loftee(assessment))
+            .when(method == "SIFT", cls._normalise_sift(score, assessment))
+            .when(method == "PolyPhen", cls._normalise_polyphen(assessment, score))
+            .when(method == "AlphaMissense", cls._normalise_alpha_missense(score))
+            .when(method == "CADD", cls._normalise_cadd(score))
+            .when(method == "Pangolin", cls._normalise_pangolin(score))
+            # The following predictors are not normalised:
+            .when(method == "SpliceAI", score)
+            .when(method == "VEP", score)
+        )
+
+    @staticmethod
+    def _rescaleColumnValue(
+        column: Column,
+        min_value: float,
+        max_value: float,
+        minimum: float = 0.0,
+        maximum: float = 1.0,
+    ) -> Column:
+        """Rescale a column to a new range. Similar to MinMaxScaler in pyspark ML.
+
+        Args:
+            column (Column): Column to rescale.
+            min_value (float): Minimum value of the column.
+            max_value (float): Maximum value of the column.
+            minimum (float, optional): Minimum value of the new range. Defaults to 0.0.
+            maximum (float, optional): Maximum value of the new range. Defaults to 1.0.
+
+        Returns:
+            Column: Rescaled column.
+        """
+        return (column - min_value) / (max_value - min_value) * (
+            maximum - minimum
+        ) + minimum
+
+    @classmethod
+    def _normalise_cadd(
+        cls: type[InSilicoPredictorNormaliser],
+        score: Column,
+    ) -> Column:
+        """Normalise CADD scores.
+
+        Logic: CADD scores are divided into four ranges and scaled accordingly:
+         - 0-10 -> -1-0 (likely benign ~2M)
+         - 10-20 -> 0-0.5 (potentially deleterious ~300k)
+         - 20-30 -> 0.5-0.75 (likely deleterious ~350k)
+         - 30-81 -> 0.75-1 (highly likely deleterious ~86k)
+
+        Args:
+            score (Column): CADD score.
+
+        Returns:
+            Column: Normalised CADD score.
+        """
+        return (
+            f.when(score <= 10, cls._rescaleColumnValue(score, 0, 10, -1.0, 0.0))
+            .when(score <= 20, cls._rescaleColumnValue(score, 10, 20, 0.0, 0.5))
+            .when(score <= 30, cls._rescaleColumnValue(score, 20, 30, 0.5, 0.75))
+            .when(score > 30, cls._rescaleColumnValue(score, 30, 81, 0.75, 1))
+        )
+
+    @classmethod
+    def _normalise_loftee(
+        cls: type[InSilicoPredictorNormaliser],
+        assessment: Column,
+    ) -> Column:
+        """Normalise LOFTEE scores.
+
+        Logic: LOFTEE scores are divided into two categories:
+         - HC (high confidence): 1.0 (~120k)
+         - LC (low confidence): 0.85 (~18k)
+        The normalised score is calculated based on the category the score falls into.
+
+        Args:
+            assessment (Column): LOFTEE assessment.
+
+        Returns:
+            Column: Normalised LOFTEE score.
+        """
+        return f.when(assessment == "HC", f.lit(1)).when(
+            assessment == "LC", f.lit(0.85)
+        )
+
+    @classmethod
+    def _normalise_sift(
+        cls: type[InSilicoPredictorNormaliser],
+        score: Column,
+        assessment: Column,
+    ) -> Column:
+        """Normalise SIFT scores.
+
+        Logic: SIFT scores are divided into four categories:
+         - deleterious and score >= 0.95: 0.75-1
+         - deleterious_low_confidence and score >= 0.95: 0.5-0.75
+         - tolerated_low_confidence and score <= 0.95: 0.25-0.5
+         - tolerated and score <= 0.95: 0-0.25
+
+        Args:
+            score (Column): SIFT score.
+            assessment (Column): SIFT assessment.
+
+        Returns:
+            Column: Normalised SIFT score.
+        """
+        return (
+            f.when(
+                (1 - f.round(score.cast(t.DoubleType()), 2) >= 0.95)
+                & (assessment == "deleterious"),
+                cls._rescaleColumnValue(1 - score, 0.95, 1, 0.5, 1),
+            )
+            .when(
+                (1 - f.round(score.cast(t.DoubleType()), 2) >= 0.95)
+                & (assessment == "deleterious_low_confidence"),
+                cls._rescaleColumnValue(1 - score, 0.95, 1, 0, 0.5),
+            )
+            .when(
+                (1 - f.round(score.cast(t.DoubleType()), 2) <= 0.95)
+                & (assessment == "tolerated_low_confidence"),
+                cls._rescaleColumnValue(1 - score, 0, 0.95, -0.5, 0.0),
+            )
+            .when(
+                (1 - f.round(score.cast(t.DoubleType()), 2) <= 0.95)
+                & (assessment == "tolerated"),
+                cls._rescaleColumnValue(1 - score, 0, 0.95, -1, -0.5),
+            )
+        )
+
+    @classmethod
+    def _normalise_polyphen(
+        cls: type[InSilicoPredictorNormaliser],
+        assessment: Column,
+        score: Column,
+    ) -> Column:
+        """Normalise PolyPhen scores.
+
+        Logic: PolyPhen scores are divided into three categories:
+         - benign: 0-0.446: -1--0.25
+         - possibly_damaging: 0.446-0.908: -0.25-0.25
+         - probably_damaging: 0.908-1: 0.25-1
+         - if assessment is unknown: None
+
+        Args:
+            assessment (Column): PolyPhen assessment.
+            score (Column): PolyPhen score.
+
+        Returns:
+            Column: Normalised PolyPhen score.
+        """
+        return (
+            f.when(assessment == "unknown", f.lit(None).cast(t.DoubleType()))
+            .when(score <= 0.446, cls._rescaleColumnValue(score, 0, 0.446, -1.0, -0.25))
+            .when(
+                score <= 0.908,
+                cls._rescaleColumnValue(score, 0.446, 0.908, -0.25, 0.25),
+            )
+            .when(score > 0.908, cls._rescaleColumnValue(score, 0.908, 1.0, 0.25, 1.0))
+        )
+
+    @classmethod
+    def _normalise_alpha_missense(
+        cls: type[InSilicoPredictorNormaliser],
+        score: Column,
+    ) -> Column:
+        """Normalise AlphaMissense scores.
+
+        Logic: AlphaMissense scores are divided into three categories:
+         - 0-0.06: -1.0--0.25
+         - 0.06-0.77: -0.25-0.25
+         - 0.77-1: 0.25-1
+
+        Args:
+            score (Column): AlphaMissense score.
+
+        Returns:
+            Column: Normalised AlphaMissense score.
+        """
+        return (
+            f.when(score < 0.06, cls._rescaleColumnValue(score, 0, 0.06, -1.0, -0.25))
+            .when(score < 0.77, cls._rescaleColumnValue(score, 0.06, 0.77, -0.25, 0.25))
+            .when(score >= 0.77, cls._rescaleColumnValue(score, 0.77, 1, 0.25, 1))
+        )
+
+    @classmethod
+    def _normalise_pangolin(
+        cls: type[InSilicoPredictorNormaliser],
+        score: Column,
+    ) -> Column:
+        """Normalise Pangolin scores.
+
+        Logic: Pangolin scores are divided into two categories:
+            - 0-0.14: 0-0.25
+            - 0.14-1: 0.75-1
+
+        Args:
+            score (Column): Pangolin score.
+
+        Returns:
+            Column: Normalised Pangolin score.
+        """
+        return f.when(
+            f.abs(score) > 0.14, cls._rescaleColumnValue(f.abs(score), 0.14, 1, 0.5, 1)
+        ).when(
+            f.abs(score) <= 0.14,
+            cls._rescaleColumnValue(f.abs(score), 0, 0.14, 0.0, 0.5),
         )

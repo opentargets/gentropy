@@ -13,7 +13,7 @@ from pyspark.sql.types import DoubleType, StringType, StructField, StructType
 
 from gentropy.common.spark_helpers import get_top_ranked_in_window
 from gentropy.common.utils import parse_pvalue
-from gentropy.dataset.study_locus import StudyLocus
+from gentropy.dataset.study_locus import FinemappingMethod, StudyLocus
 
 
 @dataclass
@@ -105,8 +105,10 @@ class FinnGenFinemapping:
         [
             StructField("trait", StringType(), True),
             StructField("region", StringType(), True),
-            StructField("cs", StringType(), True),
+            StructField("cs_number", StringType(), True),
             StructField("cs_log10bf", DoubleType(), True),
+            StructField("cs_avg_r2", DoubleType(), True),
+            StructField("cs_min_r2", DoubleType(), True),
         ]
     )
 
@@ -182,8 +184,10 @@ class FinnGenFinemapping:
     summary_hail_schema: hl.tstruct = hl.tstruct(
         trait=hl.tstr,
         region=hl.tstr,
-        cs=hl.tstr,
+        cs_number=hl.tstr,
         cs_log10bf=hl.tfloat64,
+        cs_avg_r2=hl.tfloat64,
+        cs_min_r2=hl.tfloat64,
     )
 
     @staticmethod
@@ -211,7 +215,7 @@ class FinnGenFinemapping:
     ) -> StudyLocus:
         """Process the SuSIE finemapping output for FinnGen studies.
 
-        The finngen_susue_finemapping_snp_files are files that contain variant summaries with credible set information with following shema:
+        The finngen_susie_finemapping_snp_files are files that contain variant summaries with credible set information with following shema:
             - trait: phenotype
             - region: region for which the fine-mapping was run.
             - v, rsid: variant ids
@@ -241,7 +245,7 @@ class FinnGenFinemapping:
         The finngen_susie_finemapping_cs_summary_files are files that Contains credible set summaries from SuSiE fine-mapping for all genome-wide significant regions with following schema:
             - trait: phenotype
             - region: region for which the fine-mapping was run.
-            - cs: running number for independent credible sets in a region
+            - cs_number: running number for independent credible sets in a region, assigned to 99% PIP
             - cs_log10bf: Log10 bayes factor of comparing the solution of this model (cs independent credible sets) to cs -1 credible sets
             - cs_avg_r2: Average correlation R2 between variants in the credible set
             - cs_min_r2: minimum r2 between variants in the credible set
@@ -294,7 +298,7 @@ class FinnGenFinemapping:
             # Drop rows which don't have proper position.
             snps_df.filter(f.col("position").cast(t.IntegerType()).isNotNull())
             # Drop non credible set SNPs:
-            .filter(f.col("cs").cast(t.IntegerType()) > 0)
+            .filter(f.col("cs_99").cast(t.IntegerType()) > 0)
             .select(
                 # Add study idenfitier.
                 f.concat_ws("_", f.lit(finngen_release_prefix), f.col("trait"))
@@ -303,7 +307,7 @@ class FinnGenFinemapping:
                 f.col("region"),
                 # Add variant information.
                 f.regexp_replace(f.col("v"), ":", "_").alias("variantId"),
-                f.col("cs").cast("integer").alias("credibleSetIndex"),
+                f.col("cs_99").cast("integer").alias("credibleSetIndex"),
                 f.regexp_replace(f.col("chromosome"), "^chr", "")
                 .cast(t.StringType())
                 .alias("chromosome"),
@@ -312,17 +316,20 @@ class FinnGenFinemapping:
                 f.col("allele2").cast(t.StringType()).alias("alt"),
                 # Parse p-value into mantissa and exponent.
                 *parse_pvalue(f.col("p")),
-                # Add beta, standard error, and allele frequency information.
-                f.col("beta").cast("double"),
+                # Add standard error, and allele frequency information.
                 f.col("se").cast("double").alias("standardError"),
                 f.col("maf").cast("float").alias("effectAlleleFrequencyFromSource"),
-                f.lit("SuSie").cast("string").alias("finemappingMethod"),
+                f.lit(FinemappingMethod.SUSIE.value).alias("finemappingMethod"),
                 *[
                     f.col(f"alpha{i}").cast(t.DoubleType()).alias(f"alpha_{i}")
                     for i in range(1, 11)
                 ],
                 *[
                     f.col(f"lbf_variable{i}").cast(t.DoubleType()).alias(f"lbf_{i}")
+                    for i in range(1, 11)
+                ],
+                *[
+                    f.col(f"mean{i}").cast(t.DoubleType()).alias(f"beta_{i}")
                     for i in range(1, 11)
                 ],
             )
@@ -376,6 +383,31 @@ class FinnGenFinemapping:
                 "lbf_9",
                 "lbf_10",
             )
+            .withColumn(
+                "beta",
+                f.when(f.col("credibleSetIndex") == 1, f.col("beta_1"))
+                .when(f.col("credibleSetIndex") == 2, f.col("beta_2"))
+                .when(f.col("credibleSetIndex") == 3, f.col("beta_3"))
+                .when(f.col("credibleSetIndex") == 4, f.col("beta_4"))
+                .when(f.col("credibleSetIndex") == 5, f.col("beta_5"))
+                .when(f.col("credibleSetIndex") == 6, f.col("beta_6"))
+                .when(f.col("credibleSetIndex") == 7, f.col("beta_7"))
+                .when(f.col("credibleSetIndex") == 8, f.col("beta_8"))
+                .when(f.col("credibleSetIndex") == 9, f.col("beta_9"))
+                .when(f.col("credibleSetIndex") == 10, f.col("beta_10")),
+            )
+            .drop(
+                "beta_1",
+                "beta_2",
+                "beta_3",
+                "beta_4",
+                "beta_5",
+                "beta_6",
+                "beta_7",
+                "beta_8",
+                "beta_9",
+                "beta_10",
+            )
         )
 
         bgzip_compressed_cs_summaries = cls._infer_block_gzip_compression(
@@ -405,8 +437,10 @@ class FinnGenFinemapping:
             cs_summary_df.select(
                 f.col("region"),
                 f.col("trait"),
-                f.col("cs").cast("integer").alias("credibleSetIndex"),
+                f.col("cs_number").cast("integer").alias("credibleSetIndex"),
                 f.col("cs_log10bf").cast("double").alias("credibleSetlog10BF"),
+                f.col("cs_avg_r2").cast("double").alias("purityMeanR2"),
+                f.col("cs_min_r2").cast("double").alias("purityMinR2"),
             )
             .filter(
                 (f.col("credibleSetlog10BF") > credset_lbf_threshold)
@@ -443,6 +477,8 @@ class FinnGenFinemapping:
             "credibleSetIndex",
             "finemappingMethod",
             "credibleSetlog10BF",
+            "purityMeanR2",
+            "purityMinR2",
         )
 
         processed_finngen_finemapping_df = (
@@ -474,6 +510,14 @@ class FinnGenFinemapping:
                 toploci_df,
                 on=["studyId", "region", "credibleSetIndex"],
                 how="inner",
+            )
+            .withColumns(
+                {
+                    "locusStart": f.split(f.split("region", ":")[1], "-")[0].cast(
+                        "int"
+                    ),
+                    "locusEnd": f.split(f.split("region", ":")[1], "-")[1].cast("int"),
+                }
             )
         ).withColumn(
             "studyLocusId",

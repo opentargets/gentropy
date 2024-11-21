@@ -6,12 +6,7 @@ import numpy as np
 import pyspark.sql.functions as f
 import pytest
 from pyspark.sql import SparkSession
-from pyspark.sql.types import (
-    DoubleType,
-    IntegerType,
-    StructField,
-    StructType,
-)
+from pyspark.sql.types import DoubleType, IntegerType, StructField, StructType
 
 from gentropy.dataset.dataset import Dataset
 from gentropy.dataset.study_index import StudyIndex
@@ -79,3 +74,16 @@ def test_dataset_drop_infinity_values() -> None:
     assert ds.drop_infinity_values().df.count() == 7
     # otherwise drop all columns
     assert ds.drop_infinity_values("field").df.count() == 1
+
+
+def test__process_class_params(spark: SparkSession) -> None:
+    """Test splitting of parameters between class and spark parameters."""
+    params = {
+        "_df": spark.createDataFrame([(1,)], schema=MockDataset.get_schema()),
+        "recursiveFileLookup": True,
+    }
+    class_params, spark_params = Dataset._process_class_params(params)
+    assert "_df" in class_params, "Class params should contain _df"
+    assert (
+        "recursiveFileLookup" in spark_params
+    ), "Spark params should contain recursiveFileLookup"

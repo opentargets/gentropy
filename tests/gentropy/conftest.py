@@ -275,7 +275,8 @@ def mock_variant_index(spark: SparkSession) -> VariantIndex:
                         "assessment", cast(rand() as string),
                         "score", rand(),
                         "assessmentFlag", cast(rand() as string),
-                        "targetId", cast(rand() as string)
+                        "targetId", cast(rand() as string),
+                        "normalizedScore", cast(rand() as float)
                     )
                 )
             """,
@@ -308,7 +309,9 @@ def mock_variant_index(spark: SparkSession) -> VariantIndex:
                         "polyphenPrediction", rand(),
                         "consequenceScore", cast(rand() as float),
                         "transcriptIndex", cast(rand() as integer),
-                        "transcriptId", cast(rand() as string)
+                        "transcriptId", cast(rand() as string),
+                        "biotype", cast(rand() as string),
+                        "approvedSymbol", cast(rand() as string)
                     )
                 )
             """,

@@ -6,11 +6,13 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Type
 
 import pyspark.sql.functions as f
+from pyspark.sql import DataFrame
 
 from gentropy.common.schemas import parse_spark_schema
 from gentropy.common.session import Session
 from gentropy.dataset.dataset import Dataset
 from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
+from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import StudyLocus
 from gentropy.method.l2g.model import LocusToGeneModel
 
@@ -76,6 +78,7 @@ class L2GPrediction(Dataset):
                     credible_set.df.filter(f.col("studyType") == "gwas")
                     .select("studyLocusId")
                     .join(feature_matrix._df, "studyLocusId")
+                    .filter(f.col("isProteinCoding") == 1)
                 )
             )
             .fill_na()
@@ -83,3 +86,95 @@ class L2GPrediction(Dataset):
         )
 
         return l2g_model.predict(fm, session)
+
+    def to_disease_target_evidence(
+        self: L2GPrediction,
+        study_locus: StudyLocus,
+        study_index: StudyIndex,
+        l2g_threshold: float = 0.05,
+    ) -> DataFrame:
+        """Convert locus to gene predictions to disease target evidence.
+
+        Args:
+            study_locus (StudyLocus): Study locus dataset
+            study_index (StudyIndex): Study index dataset
+            l2g_threshold (float): Threshold to consider a gene as a target. Defaults to 0.05.
+
+        Returns:
+            DataFrame: Disease target evidence
+        """
+        datasource_id = "gwas_credible_sets"
+        datatype_id = "genetic_association"
+
+        return (
+            self.df.filter(f.col("score") >= l2g_threshold)
+            .join(
+                study_locus.df.select("studyLocusId", "studyId"),
+                on="studyLocusId",
+                how="inner",
+            )
+            .join(
+                study_index.df.select("studyId", "diseaseIds"),
+                on="studyId",
+                how="inner",
+            )
+            .select(
+                f.lit(datatype_id).alias("datatypeId"),
+                f.lit(datasource_id).alias("datasourceId"),
+                f.col("geneId").alias("targetFromSourceId"),
+                f.explode(f.col("diseaseIds")).alias("diseaseFromSourceMappedId"),
+                f.col("score").alias("resourceScore"),
+                "studyLocusId",
+            )
+        )
+
+    def add_locus_to_gene_features(
+        self: L2GPrediction, feature_matrix: L2GFeatureMatrix
+    ) -> L2GPrediction:
+        """Add features to the L2G predictions.
+
+        Args:
+            feature_matrix (L2GFeatureMatrix): Feature matrix dataset
+
+        Returns:
+            L2GPrediction: L2G predictions with additional features
+        """
+        # Testing if `locusToGeneFeatures` column already exists:
+        if "locusToGeneFeatures" in self.df.columns:
+            self.df = self.df.drop("locusToGeneFeatures")
+
+        # Columns identifying a studyLocus/gene pair
+        prediction_id_columns = ["studyLocusId", "geneId"]
+
+        # L2G matrix columns to build the map:
+        columns_to_map = [
+            column
+            for column in feature_matrix._df.columns
+            if column not in prediction_id_columns
+        ]
+
+        # Aggregating all features into a single map column:
+        aggregated_features = (
+            feature_matrix._df.withColumn(
+                "locusToGeneFeatures",
+                f.create_map(
+                    *sum(
+                        [
+                            (f.lit(colname), f.col(colname))
+                            for colname in columns_to_map
+                        ],
+                        (),
+                    )
+                ),
+            )
+            # from the freshly created map, we filter out the null values
+            .withColumn(
+                "locusToGeneFeatures",
+                f.expr("map_filter(locusToGeneFeatures, (k, v) -> v is not null)"),
+            )
+            .drop(*columns_to_map)
+        )
+        return L2GPrediction(
+            _df=self.df.join(aggregated_features, on=prediction_id_columns, how="left"),
+            _schema=self.get_schema(),
+        )

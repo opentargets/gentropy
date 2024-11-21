@@ -132,10 +132,11 @@ class L2GGoldStandard(Dataset):
                 on=["studyId", "variantId", "geneId"],
                 how="inner",
             )
+            .filter(f.col("isProteinCoding") == 1)
             .drop("studyId", "variantId")
             .distinct(),
             with_gold_standard=True,
-        )
+        ).fill_na()
 
     def filter_unique_associations(
         self: L2GGoldStandard,
