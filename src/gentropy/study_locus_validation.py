@@ -59,7 +59,7 @@ class StudyLocusValidationStep:
         # Valid study locus partitioned to simplify the finding of overlaps
         study_locus_with_qc.valid_rows(invalid_qc_reasons).df.repartitionByRange(
             "chromosome", "position"
-        ).sortWithinPartitions(3200, "chromosome", "position").write.mode(
+        ).sortWithinPartitions("chromosome", "position").write.mode(
             session.write_mode
         ).parquet(valid_study_locus_path)
 
