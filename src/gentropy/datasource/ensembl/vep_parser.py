@@ -16,7 +16,7 @@ from gentropy.common.spark_helpers import (
     order_array_of_structs_by_field,
     order_array_of_structs_by_two_fields,
 )
-from gentropy.dataset.variant_index import VariantIndex
+from gentropy.dataset.variant_index import InSilicoPredictorNormaliser, VariantIndex
 
 if TYPE_CHECKING:
     from pyspark.sql import Column, DataFrame
@@ -40,6 +40,18 @@ class VariantEffectPredictorParser:
 
     # Schema for the allele frequency column:
     ALLELE_FREQUENCY_SCHEMA = VariantIndex.get_schema()["alleleFrequencies"].dataType
+
+    # Consequence to sequence ontology map:
+    SEQUENCE_ONTOLOGY_MAP = {
+        item["label"]: item["id"]
+        for item in VariantIndexConfig.consequence_to_pathogenicity_score
+    }
+
+    # Sequence ontology to score map:
+    LABEL_TO_SCORE_MAP = {
+        item["label"]: item["score"]
+        for item in VariantIndexConfig.consequence_to_pathogenicity_score
+    }
 
     @staticmethod
     def get_schema() -> t.StructType:
@@ -328,8 +340,19 @@ class VariantEffectPredictorParser:
             lambda transcript: transcript.getItem(score_field_name).isNotNull(),
         )[0]
 
+    @classmethod
     @enforce_schema(IN_SILICO_PREDICTOR_SCHEMA)
+    def _get_vep_prediction(cls, most_severe_consequence: Column) -> Column:
+        return f.struct(
+            f.lit("VEP").alias("method"),
+            most_severe_consequence.alias("assessment"),
+            map_column_by_dictionary(
+                most_severe_consequence, cls.LABEL_TO_SCORE_MAP
+            ).alias("score"),
+        )
+
     @staticmethod
+    @enforce_schema(IN_SILICO_PREDICTOR_SCHEMA)
     def _get_max_alpha_missense(transcripts: Column) -> Column:
         """Return the most severe alpha missense prediction from all transcripts.
 
@@ -354,37 +377,42 @@ class VariantEffectPredictorParser:
         ...    .select(VariantEffectPredictorParser._get_max_alpha_missense(f.col('transcripts')).alias('am'))
         ...    .show(truncate=False)
         ... )
-        +----------------------------------------------------+
-        |am                                                  |
-        +----------------------------------------------------+
-        |{max alpha missense, assessment 1, 0.4, null, gene1}|
-        |{max alpha missense, null, null, null, gene1}       |
-        +----------------------------------------------------+
+        +-----------------------------------------------------+
+        |am                                                   |
+        +-----------------------------------------------------+
+        |{AlphaMissense, assessment 1, 0.4, null, gene1, null}|
+        |{AlphaMissense, null, null, null, gene1, null}       |
+        +-----------------------------------------------------+
         <BLANKLINE>
         """
-        return f.transform(
-            # Extract transcripts with alpha missense values:
-            f.filter(
-                transcripts,
-                lambda transcript: transcript.getItem("alphamissense").isNotNull(),
-            ),
-            # Extract alpha missense values:
-            lambda transcript: f.struct(
-                transcript.getItem("alphamissense")
-                .getItem("am_pathogenicity")
-                .cast(t.FloatType())
-                .alias("score"),
-                transcript.getItem("alphamissense")
-                .getItem("am_class")
-                .alias("assessment"),
-                f.lit("max alpha missense").alias("method"),
-                transcript.getItem("gene_id").alias("targetId"),
-            ),
+        # Extracting transcript with alpha missense values:
+        transcript = f.filter(
+            transcripts,
+            lambda transcript: transcript.getItem("alphamissense").isNotNull(),
         )[0]
 
+        return f.when(
+            transcript.isNotNull(),
+            f.struct(
+                # Adding method:
+                f.lit("AlphaMissense").alias("method"),
+                # Extracting assessment:
+                transcript.alphamissense.am_class.alias("assessment"),
+                # Extracting score:
+                transcript.alphamissense.am_pathogenicity.cast(t.FloatType()).alias(
+                    "score"
+                ),
+                # Adding assessment flag:
+                f.lit(None).cast(t.StringType()).alias("assessmentFlag"),
+                # Extracting target id:
+                transcript.gene_id.alias("targetId"),
+            ),
+        )
+
+    @classmethod
     @enforce_schema(IN_SILICO_PREDICTOR_SCHEMA)
-    @staticmethod
     def _vep_in_silico_prediction_extractor(
+        cls: type[VariantEffectPredictorParser],
         transcript_column_name: str,
         method_name: str,
         score_column_name: str | None = None,
@@ -403,7 +431,7 @@ class VariantEffectPredictorParser:
         Returns:
             Column: In silico predictor.
         """
-        # Get highest score:
+        # Get transcript with the highest score:
         most_severe_transcript: Column = (
             # Getting the most severe transcript:
             VariantEffectPredictorParser._get_most_severe_transcript(
@@ -419,31 +447,44 @@ class VariantEffectPredictorParser:
             )
         )
 
+        # Get assessment:
+        assessment = (
+            f.lit(None).cast(t.StringType()).alias("assessment")
+            if assessment_column_name is None
+            else most_severe_transcript.getField(assessment_column_name).alias(
+                "assessment"
+            )
+        )
+
+        # Get score:
+        score = (
+            f.lit(None).cast(t.FloatType()).alias("score")
+            if score_column_name is None
+            else most_severe_transcript.getField(score_column_name)
+            .cast(t.FloatType())
+            .alias("score")
+        )
+
+        # Get assessment flag:
+        assessment_flag = (
+            f.lit(None).cast(t.StringType()).alias("assessmentFlag")
+            if assessment_flag_column_name is None
+            else most_severe_transcript.getField(assessment_flag_column_name)
+            .cast(t.StringType())
+            .alias("assessmentFlag")
+        )
+
+        # Extract gene id:
+        gene_id = most_severe_transcript.getItem("gene_id").alias("targetId")
+
         return f.when(
             most_severe_transcript.isNotNull(),
             f.struct(
-                # Adding method name:
-                f.lit(method_name).cast(t.StringType()).alias("method"),
-                # Adding assessment:
-                f.lit(None).cast(t.StringType()).alias("assessment")
-                if assessment_column_name is None
-                else most_severe_transcript.getField(assessment_column_name).alias(
-                    "assessment"
-                ),
-                # Adding score:
-                f.lit(None).cast(t.FloatType()).alias("score")
-                if score_column_name is None
-                else most_severe_transcript.getField(score_column_name)
-                .cast(t.FloatType())
-                .alias("score"),
-                # Adding assessment flag:
-                f.lit(None).cast(t.StringType()).alias("assessmentFlag")
-                if assessment_flag_column_name is None
-                else most_severe_transcript.getField(assessment_flag_column_name)
-                .cast(t.FloatType())
-                .alias("assessmentFlag"),
-                # Adding target id if present:
-                most_severe_transcript.getItem("gene_id").alias("targetId"),
+                f.lit(method_name).alias("method"),
+                assessment,
+                score,
+                assessment_flag,
+                gene_id,
             ),
         )
 
@@ -569,16 +610,6 @@ class VariantEffectPredictorParser:
         Returns:
            DataFrame: processed data in the right shape.
         """
-        # Consequence to sequence ontology map:
-        sequence_ontology_map = {
-            item["label"]: item["id"]
-            for item in VariantIndexConfig.consequence_to_pathogenicity_score
-        }
-        # Sequence ontology to score map:
-        label_to_score_map = {
-            item["label"]: item["score"]
-            for item in VariantIndexConfig.consequence_to_pathogenicity_score
-        }
         # Processing VEP output:
         return (
             vep_output
@@ -612,26 +643,26 @@ class VariantEffectPredictorParser:
                             # Extract CADD scores:
                             cls._vep_in_silico_prediction_extractor(
                                 transcript_column_name="transcript_consequences",
-                                method_name="phred scaled CADD",
+                                method_name="CADD",
                                 score_column_name="cadd_phred",
                             ),
                             # Extract polyphen scores:
                             cls._vep_in_silico_prediction_extractor(
                                 transcript_column_name="transcript_consequences",
-                                method_name="polyphen",
+                                method_name="PolyPhen",
                                 score_column_name="polyphen_score",
                                 assessment_column_name="polyphen_prediction",
                             ),
                             # Extract sift scores:
                             cls._vep_in_silico_prediction_extractor(
                                 transcript_column_name="transcript_consequences",
-                                method_name="sift",
+                                method_name="SIFT",
                                 score_column_name="sift_score",
                                 assessment_column_name="sift_prediction",
                             ),
                             # Extract loftee scores:
                             cls._vep_in_silico_prediction_extractor(
-                                method_name="loftee",
+                                method_name="LOFTEE",
                                 transcript_column_name="transcript_consequences",
                                 score_column_name="lof",
                                 assessment_column_name="lof",
@@ -641,6 +672,8 @@ class VariantEffectPredictorParser:
                             cls._get_max_alpha_missense(
                                 f.col("transcript_consequences")
                             ),
+                            # Extract VEP prediction:
+                            cls._get_vep_prediction(f.col("most_severe_consequence")),
                         ),
                         lambda predictor: predictor.isNotNull(),
                     ),
@@ -650,16 +683,20 @@ class VariantEffectPredictorParser:
                     f.array(
                         cls._vep_in_silico_prediction_extractor(
                             transcript_column_name="intergenic_consequences",
-                            method_name="phred scaled CADD",
+                            method_name="CADD",
                             score_column_name="cadd_phred",
                         ),
+                        # Extract VEP prediction:
+                        cls._get_vep_prediction(f.col("most_severe_consequence")),
                     )
                 )
                 .alias("inSilicoPredictors"),
                 # Convert consequence to SO:
                 map_column_by_dictionary(
-                    f.col("most_severe_consequence"), sequence_ontology_map
+                    f.col("most_severe_consequence"), cls.SEQUENCE_ONTOLOGY_MAP
                 ).alias("mostSevereConsequenceId"),
+                # Propagate most severe consequence:
+                "most_severe_consequence",
                 # Extract HGVS identifier:
                 f.when(
                     f.size("transcript_consequences") > 0,
@@ -681,7 +718,7 @@ class VariantEffectPredictorParser:
                             f.transform(
                                 transcript.consequence_terms,
                                 lambda y: map_column_by_dictionary(
-                                    y, sequence_ontology_map
+                                    y, cls.SEQUENCE_ONTOLOGY_MAP
                                 ),
                             ).alias("variantFunctionalConsequenceIds"),
                             # Convert consequence terms to consequence score:
@@ -689,7 +726,7 @@ class VariantEffectPredictorParser:
                                 f.transform(
                                     transcript.consequence_terms,
                                     lambda term: map_column_by_dictionary(
-                                        term, label_to_score_map
+                                        term, cls.LABEL_TO_SCORE_MAP
                                     ),
                                 )
                             )
@@ -732,6 +769,8 @@ class VariantEffectPredictorParser:
                                 "polyphenPrediction"
                             ),
                             transcript.transcript_id.alias("transcriptId"),
+                            transcript.biotype.alias("biotype"),
+                            transcript.gene_symbol.alias("approvedSymbol"),
                         ),
                     ),
                 ).alias("transcriptConsequences"),
@@ -806,8 +845,278 @@ class VariantEffectPredictorParser:
                     hash_threshold,
                 ),
             )
+            # Generating a temporary column with only protein coding transcripts:
+            .withColumn(
+                "proteinCodingTranscripts",
+                f.filter(
+                    f.col("transcriptConsequences"),
+                    lambda x: x.getItem("biotype") == "protein_coding",
+                ),
+            )
+            # Generate variant descrioption:
+            .withColumn(
+                "variantDescription",
+                cls._compose_variant_description(
+                    # Passing the most severe consequence:
+                    f.col("most_severe_consequence"),
+                    # The first transcript:
+                    f.filter(
+                        f.col("transcriptConsequences"),
+                        lambda vep: vep.transcriptIndex == 1,
+                    ).getItem(0),
+                    # The first protein coding transcript:
+                    order_array_of_structs_by_field(
+                        "proteinCodingTranscripts", "transcriptIndex"
+                    )[f.size("proteinCodingTranscripts") - 1],
+                ),
+            )
+            # Normalising in silico predictor assessments:
+            .withColumn(
+                "inSilicoPredictors",
+                InSilicoPredictorNormaliser.normalise_in_silico_predictors(
+                    f.col("inSilicoPredictors")
+                ),
+            )
             # Dropping intermediate xref columns:
-            .drop(*["ensembl_xrefs", "omim_xrefs", "clinvar_xrefs", "protvar_xrefs"])
+            .drop(
+                *[
+                    "ensembl_xrefs",
+                    "omim_xrefs",
+                    "clinvar_xrefs",
+                    "protvar_xrefs",
+                    "most_severe_consequence",
+                    "proteinCodingTranscripts",
+                ]
+            )
             # Drooping rows with null position:
             .filter(f.col("position").isNotNull())
         )
+
+    @classmethod
+    def _compose_variant_description(
+        cls: type[VariantEffectPredictorParser],
+        most_severe_consequence: Column,
+        first_transcript: Column,
+        first_protein_coding: Column,
+    ) -> Column:
+        """Compose variant description based on the most severe consequence.
+
+        Args:
+            most_severe_consequence (Column): Most severe consequence
+            first_transcript (Column): First transcript
+            first_protein_coding (Column): First protein coding transcript
+
+        Returns:
+            Column: Variant description
+        """
+        return (
+            # When there's no transcript whatsoever:
+            f.when(
+                first_transcript.isNull(),
+                f.lit("Intergenic variant no gene in window"),
+            )
+            # When the biotype of the first gene is protein coding:
+            .when(
+                first_transcript.getItem("biotype") == "protein_coding",
+                cls._process_protein_coding_transcript(
+                    first_transcript, most_severe_consequence
+                ),
+            )
+            # When the first gene is not protein coding, we also pass the first protein coding gene:
+            .otherwise(
+                cls._process_non_protein_coding_transcript(
+                    most_severe_consequence, first_transcript, first_protein_coding
+                )
+            )
+        )
+
+    @staticmethod
+    def _process_consequence_term(consequence_term: Column) -> Column:
+        """Cleaning up consequence term: capitalizing and replacing underscores.
+
+        Args:
+            consequence_term (Column): Consequence term.
+
+        Returns:
+            Column: Cleaned up consequence term.
+        """
+        last = f.when(consequence_term.contains("variant"), f.lit("")).otherwise(
+            " variant"
+        )
+        return f.concat(f.regexp_replace(f.initcap(consequence_term), "_", " "), last)
+
+    @staticmethod
+    def _process_overlap(transcript: Column) -> Column:
+        """Process overlap with gene: if the variant overlaps with the gene, return the gene name or distance.
+
+        Args:
+            transcript (Column): Transcript.
+
+        Returns:
+            Column: string column with overlap description.
+        """
+        gene_label = f.when(
+            transcript.getField("approvedSymbol").isNotNull(),
+            transcript.getField("approvedSymbol"),
+        ).otherwise(transcript.getField("targetId"))
+
+        return f.when(
+            transcript.getField("distanceFromFootprint") == 0,
+            # "overlapping with CCDC8"
+            f.concat(f.lit(" overlapping with "), gene_label),
+        ).otherwise(
+            # " 123 basepair away from CCDC8"
+            f.concat(
+                f.lit(" "),
+                f.format_number(transcript.getField("distanceFromFootprint"), 0),
+                f.lit(" basepair away from "),
+                gene_label,
+            )
+        )
+
+    @staticmethod
+    def _process_aa_change(transcript: Column) -> Column:
+        """Extract amino acid change information from transcript when available.
+
+        Args:
+            transcript (Column): Transcript.
+
+        Returns:
+            Column: Amino acid change information.
+        """
+        return f.when(
+            transcript.getField("aminoAcidChange").isNotNull(),
+            f.concat(
+                f.lit(", causing amio-acid change: "),
+                transcript.getField("aminoAcidChange"),
+                f.lit(" with "),
+                f.lower(transcript.getField("impact")),
+                f.lit(" impact."),
+            ),
+        ).otherwise(f.lit("."))
+
+    @staticmethod
+    def _process_lof(transcript: Column) -> Column:
+        """Process loss of function annotation from LOFTEE prediction.
+
+        Args:
+            transcript (Column): Transcript.
+
+        Returns:
+            Column: Loss of function annotation.
+        """
+        return f.when(
+            transcript.getField("lofteePrediction").isNotNull()
+            & (transcript.getField("lofteePrediction") == "HC"),
+            f.lit(" A high-confidence loss-of-function variant by loftee."),
+        ).otherwise(f.lit(""))
+
+    @classmethod
+    def _process_protein_coding_transcript(
+        cls: type[VariantEffectPredictorParser],
+        transcript: Column,
+        most_severe_consequence: Column,
+    ) -> Column:
+        """Extract information from the first, protein coding transcript.
+
+        Args:
+            transcript (Column): Transcript.
+            most_severe_consequence (Column): Most severe consequence.
+
+        Returns:
+            Column: Variant description.
+        """
+        # Process consequence term:
+        consequence_text = cls._process_consequence_term(most_severe_consequence)
+
+        # Does it overlap with the gene:
+        overlap = cls._process_overlap(transcript)
+
+        # Does it cause amino acid change:
+        amino_acid_change = cls._process_aa_change(transcript)
+
+        # Processing lof annotation:
+        lof_assessment = cls._process_lof(transcript)
+
+        # Concat all together:
+        return f.concat(consequence_text, overlap, amino_acid_change, lof_assessment)
+
+    @staticmethod
+    def _adding_biotype(transcript: Column) -> Column:
+        """Adding biotype information to the variant description.
+
+        Args:
+            transcript (Column): Transcript.
+
+        Returns:
+            Column: Biotype information.
+        """
+        biotype = f.when(
+            transcript.getField("biotype").contains("gene"),
+            f.regexp_replace(transcript.getField("biotype"), "_", " "),
+        ).otherwise(
+            f.concat(
+                f.regexp_replace(transcript.getField("biotype"), "_", " "),
+                f.lit(" gene."),
+            )
+        )
+
+        return f.concat(f.lit(", a "), biotype)
+
+    @staticmethod
+    def _parse_protein_coding_transcript(transcript: Column) -> Column:
+        """Parse the closest, not first protein coding transcript: extract gene symbol and distance.
+
+        Args:
+            transcript (Column): Transcript.
+
+        Returns:
+            Column: Protein coding transcript information.
+        """
+        gene_label = f.when(
+            transcript.getField("approvedSymbol").isNotNull(),
+            transcript.getField("approvedSymbol"),
+        ).otherwise(transcript.getField("targetId"))
+
+        return f.when(
+            transcript.isNotNull(),
+            f.concat(
+                f.lit(" The closest protein-coding gene is "),
+                gene_label,
+                f.lit(" ("),
+                f.format_number(transcript.getField("distanceFromFootprint"), 0),
+                f.lit(" basepair away)."),
+            ),
+        ).otherwise(f.lit(""))
+
+    @classmethod
+    def _process_non_protein_coding_transcript(
+        cls: type[VariantEffectPredictorParser],
+        most_severe_consequence: Column,
+        first_transcript: Column,
+        first_protein_coding: Column,
+    ) -> Column:
+        """Extract information from the first, non-protein coding transcript.
+
+        Args:
+            most_severe_consequence (Column): Most severe consequence.
+            first_transcript (Column): First transcript.
+            first_protein_coding (Column): First protein coding transcript.
+
+        Returns:
+            Column: Variant description.
+        """
+        # Process consequence term:
+        consequence_text = cls._process_consequence_term(most_severe_consequence)
+
+        # Does it overlap with the gene:
+        overlap = cls._process_overlap(first_transcript)
+
+        # Adding biotype:
+        biotype = cls._adding_biotype(first_transcript)
+
+        # Adding protein coding gene:
+        protein_transcript = cls._parse_protein_coding_transcript(first_protein_coding)
+
+        # Concat all together:
+        return f.concat(consequence_text, overlap, biotype, protein_transcript)

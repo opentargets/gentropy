@@ -224,11 +224,6 @@ class PICS:
             )
         )
 
-        # Flagging expression for loci that do not qualify for PICS:
-        non_picsable_expr = (
-            f.size(f.filter(f.col("ldSet"), lambda x: x.r2Overall >= 0.5)) == 0
-        )
-
         # Registering the UDF to be used in the pipeline:
         finemap_udf = f.udf(
             lambda ld_set, neglog_p: cls._finemap(ld_set, neglog_p, k),
@@ -269,15 +264,6 @@ class PICS:
                             )
                             .withField("beta", f.lit(None).cast(t.DoubleType()))
                         ),
-                    ),
-                )
-                # Flagging loci that do not qualify for PICS:
-                .withColumn(
-                    "qualityControls",
-                    StudyLocus.update_quality_flag(
-                        f.col("qualityControls"),
-                        non_picsable_expr,
-                        StudyLocusQualityCheck.NOT_QUALIFYING_LD_BLOCK,
                     ),
                 )
                 # Flagging all PICS loci with OUT_OF_SAMPLE_LD flag:
