@@ -113,7 +113,7 @@ class StudyLocusQualityCheck(Enum):
     EXPLAINED_BY_SUSIE = "Study locus in region explained by a SuSiE credible set"
     OUT_OF_SAMPLE_LD = "Study locus finemapped without in-sample LD reference"
     ABNORMAL_PIPS = (
-        "Study locus with a sum of PIPs that not in the expected range [0.99,1]"
+        "Study locus with a sum of PIPs that not in the expected range [0.95,1]"
     )
     INVALID_CHROMOSOME = "Chromosome not in 1:22, X, Y, XY or MT"
     TOP_HIT_AND_SUMMARY_STATS = (
