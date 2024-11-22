@@ -36,7 +36,7 @@ class L2GFeatureMatrix:
             with_gold_standard (bool): Whether to include the gold standard set in the feature matrix.
         """
         self.with_gold_standard = with_gold_standard
-        self.fixed_cols = ["studyLocusId", "geneId"]
+        self.fixed_cols = ["studyLocusId", "geneId", "traitFromSourceMappedId"]
         if self.with_gold_standard:
             self.fixed_cols.append("goldStandardSet")
 
