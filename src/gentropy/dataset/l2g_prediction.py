@@ -157,7 +157,7 @@ class L2GPrediction(Dataset):
             )
             .withColumn(
                 "locusToGeneFeatures",
-                f.expr("map_filter(locusToGeneFeatures, (k, v) -> v is not null)"),
+                f.expr("map_filter(locusToGeneFeatures, (k, v) -> v != 0)"),
             )
             .drop(*features_list)
         )
