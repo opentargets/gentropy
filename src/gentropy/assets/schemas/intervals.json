@@ -27,7 +27,7 @@
     {
       "metadata": {},
       "name": "geneId",
-      "nullable": false,
+      "nullable": true,
       "type": "string"
     },
     {
