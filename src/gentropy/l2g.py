@@ -283,9 +283,9 @@ class LocusToGeneStep:
         )
         predictions.filter(
             f.col("score") >= self.l2g_threshold
-        ).add_locus_to_gene_features(self.feature_matrix).df.write.mode(
-            self.session.write_mode
-        ).parquet(self.predictions_path)
+        ).add_locus_to_gene_features(
+            self.feature_matrix, self.features_list
+        ).df.write.mode(self.session.write_mode).parquet(self.predictions_path)
         self.session.logger.info("L2G predictions saved successfully.")
 
     def run_train(self) -> None:
