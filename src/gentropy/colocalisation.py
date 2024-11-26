@@ -70,9 +70,9 @@ class ColocalisationStep:
             coloc = partial(coloc, **colocalisation_method_params)
         colocalisation_results = coloc(overlaps)
         # Load
-        colocalisation_results.df.write.mode(session.write_mode).parquet(
-            f"{coloc_path}/{colocalisation_method.lower()}"
-        )
+        colocalisation_results.df.coalesce(session.output_partitions).write.mode(
+            session.write_mode
+        ).parquet(f"{coloc_path}/{colocalisation_method.lower()}")
 
     @classmethod
     def _get_colocalisation_class(

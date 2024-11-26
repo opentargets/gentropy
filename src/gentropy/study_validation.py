@@ -71,10 +71,10 @@ class StudyValidationStep:
             )  # Flagging QTL studies with invalid biosamples
         ).persist()  # we will need this for 2 types of outputs
 
-        study_index_with_qc.valid_rows(invalid_qc_reasons, invalid=True).df.write.mode(
-            session.write_mode
-        ).parquet(invalid_study_index_path)
+        study_index_with_qc.valid_rows(invalid_qc_reasons, invalid=True).df.coalesce(
+            session.output_partitions
+        ).write.mode(session.write_mode).parquet(invalid_study_index_path)
 
-        study_index_with_qc.valid_rows(invalid_qc_reasons).df.write.mode(
-            session.write_mode
-        ).parquet(valid_study_index_path)
+        study_index_with_qc.valid_rows(invalid_qc_reasons).df.coalesce(
+            session.output_partitions
+        ).write.mode(session.write_mode).parquet(valid_study_index_path)
