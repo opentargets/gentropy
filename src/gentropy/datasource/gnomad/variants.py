@@ -84,7 +84,9 @@ class GnomADVariants:
                     ).map(
                         lambda p: hl.struct(
                             populationName=p,
-                            alleleFrequency=ht.freq[ht.globals.freq_index_dict[p]].AF,
+                            alleleFrequency=ht.joint.freq[
+                                ht.joint_globals.freq_index_dict[p]
+                            ].AF,
                         )
                     ),
                     # Extract in silico predictors:

@@ -387,7 +387,7 @@ class GnomadVariantConfig(StepConfig):
         }
     )
     variant_annotation_path: str = MISSING
-    gnomad_genomes_path: str = "gs://gcp-public-data--gnomad/release/4.0/ht/genomes/gnomad.genomes.v4.0.sites.ht/"
+    gnomad_genomes_path: str = "gs://gcp-public-data--gnomad/release/4.1/ht/genomes/gnomad.genomes.v4.1.sites.ht/"
     gnomad_variant_populations: list[str] = field(
         default_factory=lambda: [
             "afr",  # African-American
