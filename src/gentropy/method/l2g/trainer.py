@@ -8,16 +8,21 @@ from functools import partial
 from typing import TYPE_CHECKING, Any
 
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 import shap
 from sklearn.metrics import (
     accuracy_score,
+    average_precision_score,
     f1_score,
     precision_score,
     recall_score,
     roc_auc_score,
 )
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import GroupKFold, GroupShuffleSplit
+
+from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
+from gentropy.method.l2g.model import LocusToGeneModel
 from wandb.data_types import Image, Table
 from wandb.errors.term import termlog as wandb_termlog
 from wandb.sdk.wandb_init import init as wandb_init
@@ -25,12 +30,10 @@ from wandb.sdk.wandb_sweep import sweep as wandb_sweep
 from wandb.sklearn import plot_classifier
 from wandb.wandb_agent import agent as wandb_agent
 
-from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
-from gentropy.method.l2g.model import LocusToGeneModel
-
 if TYPE_CHECKING:
     from matplotlib.axes._axes import Axes
     from shap._explanation import Explanation
+
     from wandb.sdk.wandb_run import Run
 
 
@@ -44,10 +47,10 @@ class LocusToGeneTrainer:
     # Initialise vars
     features_list: list[str] | None = None
     label_col: str = "goldStandardSet"
-    x_train: pd.DataFrame | None = None
-    y_train: pd.Series | None = None
-    x_test: pd.DataFrame | None = None
-    y_test: pd.Series | None = None
+    x_train: np.ndarray | None = None
+    y_train: np.ndarray | None = None
+    x_test: np.ndarray | None = None
+    y_test: np.ndarray | None = None
     run: Run | None = None
     wandb_l2g_project_name: str = "gentropy-locus-to-gene"
 
@@ -72,9 +75,9 @@ class LocusToGeneTrainer:
         """
         if self.x_train is not None and self.y_train is not None:
             assert (
-                not self.x_train.empty and not self.y_train.empty
+                self.x_train.size != 0 and self.y_train.size != 0
             ), "Train data not set, nothing to fit."
-            fitted_model = self.model.model.fit(X=self.x_train.values, y=self.y_train)
+            fitted_model = self.model.model.fit(X=self.x_train, y=self.y_train)
             self.model = LocusToGeneModel(
                 model=fitted_model,
                 hyperparameters=fitted_model.get_params(),
@@ -100,7 +103,10 @@ class LocusToGeneTrainer:
             Exception: (ExplanationError) When the additivity check fails.
         """
         if self.x_train is not None and self.x_test is not None:
-            training_data = pd.concat([self.x_train, self.x_test], ignore_index=True)
+            training_data = pd.DataFrame(
+                np.vstack((self.x_train, self.x_test)),
+                columns=self.features_list,
+            )
             explainer = shap.TreeExplainer(
                 model.model,
                 data=training_data,
@@ -162,11 +168,11 @@ class LocusToGeneTrainer:
             and self.features_list is not None
         ):
             assert (
-                not self.x_train.empty and not self.y_train.empty
+                self.x_train.size != 0 and self.y_train.size != 0
             ), "Train data not set, nothing to evaluate."
             fitted_classifier = self.model.model
-            y_predicted = fitted_classifier.predict(self.x_test.values)
-            y_probas = fitted_classifier.predict_proba(self.x_test.values)
+            y_predicted = fitted_classifier.predict(self.x_test)
+            y_probas = fitted_classifier.predict_proba(self.x_test)
             self.run = wandb_init(
                 project=self.wandb_l2g_project_name,
                 name=wandb_run_name,
@@ -175,8 +181,8 @@ class LocusToGeneTrainer:
             # Track classification plots
             plot_classifier(
                 self.model.model,
-                self.x_train.values,
-                self.x_test.values,
+                self.x_train,
+                self.x_test,
                 self.y_train,
                 self.y_test,
                 y_predicted,
@@ -225,13 +231,13 @@ class LocusToGeneTrainer:
             self.log_plot_image_to_wandb(
                 "Feature Contribution",
                 shap.plots.bar(
-                    explanation, max_display=len(self.x_train.columns), show=False
+                    explanation, max_display=len(self.features_list), show=False
                 ),
             )
             self.log_plot_image_to_wandb(
                 "Beeswarm Plot",
                 shap.plots.beeswarm(
-                    explanation, max_display=len(self.x_train.columns), show=False
+                    explanation, max_display=len(self.features_list), show=False
                 ),
             )
             # Plot correlation between feature values and their importance
@@ -251,37 +257,86 @@ class LocusToGeneTrainer:
     def train(
         self: LocusToGeneTrainer,
         wandb_run_name: str,
+        cross_validate: bool = True,
+        n_splits: int = 5,
     ) -> LocusToGeneModel:
         """Train the Locus to Gene model.
 
+        If cross_validation is set to True, we implement the following strategy:
+            1. Create held-out test set
+            2. Perform cross-validation on training set
+            3. Train final model on full training set
+            4. Evaluate once on test set
+
         Args:
             wandb_run_name (str): Name of the W&B run. Unless this is provided, the model will not be logged to W&B.
+            cross_validate (bool): Whether to run cross-validation. Defaults to True.
+            n_splits(int): Number of folds the data is splitted in. The model is trained and evaluated `k - 1` times. Defaults to 5.
 
         Returns:
             LocusToGeneModel: Fitted model
         """
-        data_df = self.feature_matrix._df.drop("geneId", "studyLocusId").toPandas()
+        data_df = self.feature_matrix._df.toPandas()
+        # enforce that data_df is a Pandas DataFrame
 
         # Encode labels in `goldStandardSet` to a numeric value
         data_df[self.label_col] = data_df[self.label_col].map(self.model.label_encoder)
 
-        # Ensure all columns are numeric and split
-        data_df = data_df.apply(pd.to_numeric)
-        X = data_df[self.features_list].copy()
-        y = data_df[self.label_col].copy()
-        self.x_train, self.x_test, self.y_train, self.y_test = train_test_split(
-            X, y, test_size=0.2, random_state=42
-        )
+        X = data_df[self.features_list].apply(pd.to_numeric).values
+        y = data_df[self.label_col].apply(pd.to_numeric).values
+        gene_trait_groups = (
+            data_df["traitFromSourceMappedId"].astype(str)
+            + "_"
+            + data_df["geneId"].astype(str)
+        )  # Group identifier has to be a single string
 
-        # Train
-        model = self.fit()
+        # Create hold-out test set separating EFO/Gene pairs between train/test
+        train_test_split = GroupShuffleSplit(n_splits=1, test_size=0.2, random_state=42)
+        for train_idx, test_idx in train_test_split.split(X, y, gene_trait_groups):
+            self.x_train, self.x_test = X[train_idx], X[test_idx]
+            self.y_train, self.y_test = y[train_idx], y[test_idx]
+            groups_train = gene_trait_groups[train_idx]
 
-        # Evaluate
+        # Cross-validation
+        if cross_validate:
+            cv_scores = []
+            gkf = GroupKFold(n_splits=n_splits)
+            for _fold, (train_idx, val_idx) in enumerate(
+                gkf.split(self.x_train, self.y_train, groups_train)
+            ):
+                assert (
+                    self.x_train is not None and self.y_train is not None
+                ), "Data not correctly split, please try again."
+                X_fold_train, X_fold_val = (
+                    self.x_train[train_idx],
+                    self.x_train[val_idx],
+                )
+                y_fold_train, y_fold_val = (
+                    self.y_train[train_idx],
+                    self.y_train[val_idx],
+                )
+
+                cross_validator_classifier = self.model.model
+                cross_validator_classifier.fit(X_fold_train, y_fold_train)
+                y_pred_proba = self.model.model.predict_proba(X_fold_val)[:, 1]
+                avg_precision = average_precision_score(y_fold_val, y_pred_proba)
+                cv_scores.append(avg_precision)
+
+                # print(f"Fold {fold + 1}: Average Precision = {avg_precision:.3f}")
+
+            # print(
+            #     f"\nCross-validation Average Precision: {np.mean(cv_scores):.3f} (+/- {np.std(cv_scores) * 2:.3f})"
+            # )
+
+        # Train final model on full training set
+        self.fit()
+
+        # Evaluate once on hold out test set
         self.log_to_wandb(
             wandb_run_name=wandb_run_name,
         )
 
-        return model
+        return self.model
 
     def hyperparameter_tuning(
         self: LocusToGeneTrainer, wandb_run_name: str, parameter_grid: dict[str, Any]
