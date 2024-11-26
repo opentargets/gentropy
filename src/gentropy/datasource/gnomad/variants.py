@@ -89,29 +89,29 @@ class GnomADVariants:
                             ].AF,
                         )
                     ),
-                    # Extract in silico predictors:
-                    inSilicoPredictors=hl.array(
-                        [
-                            hl.struct(
-                                method=hl.str("SpliceAI"),
-                                assessment=hl.missing(hl.tstr),
-                                score=hl.expr.functions.float32(
-                                    ht.in_silico_predictors.spliceai_ds_max
-                                ),
-                                assessmentFlag=hl.missing(hl.tstr),
-                                targetId=hl.missing(hl.tstr),
-                            ),
-                            hl.struct(
-                                method=hl.str("Pangolin"),
-                                assessment=hl.missing(hl.tstr),
-                                score=hl.expr.functions.float32(
-                                    ht.in_silico_predictors.pangolin_largest_ds
-                                ),
-                                assessmentFlag=hl.missing(hl.tstr),
-                                targetId=hl.missing(hl.tstr),
-                            ),
-                        ]
-                    ),
+                    # # Extract in silico predictors:
+                    # inSilicoPredictors=hl.array(
+                    #     [
+                    #         hl.struct(
+                    #             method=hl.str("SpliceAI"),
+                    #             assessment=hl.missing(hl.tstr),
+                    #             score=hl.expr.functions.float32(
+                    #                 ht.in_silico_predictors.spliceai_ds_max
+                    #             ),
+                    #             assessmentFlag=hl.missing(hl.tstr),
+                    #             targetId=hl.missing(hl.tstr),
+                    #         ),
+                    #         hl.struct(
+                    #             method=hl.str("Pangolin"),
+                    #             assessment=hl.missing(hl.tstr),
+                    #             score=hl.expr.functions.float32(
+                    #                 ht.in_silico_predictors.pangolin_largest_ds
+                    #             ),
+                    #             assessmentFlag=hl.missing(hl.tstr),
+                    #             targetId=hl.missing(hl.tstr),
+                    #         ),
+                    #     ]
+                    # ),
                     # Extract cross references to GnomAD:
                     dbXrefs=hl.array(
                         [
