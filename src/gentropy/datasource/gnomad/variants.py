@@ -10,7 +10,7 @@ import pyspark.sql.types as t
 
 from gentropy.common.types import VariantPopulation
 from gentropy.config import GnomadVariantConfig, VariantIndexConfig
-from gentropy.dataset.variant_index import InSilicoPredictorNormaliser, VariantIndex
+from gentropy.dataset.variant_index import VariantIndex
 
 if TYPE_CHECKING:
     pass
@@ -89,29 +89,6 @@ class GnomADVariants:
                             ].AF,
                         )
                     ),
-                    # # Extract in silico predictors:
-                    # inSilicoPredictors=hl.array(
-                    #     [
-                    #         hl.struct(
-                    #             method=hl.str("SpliceAI"),
-                    #             assessment=hl.missing(hl.tstr),
-                    #             score=hl.expr.functions.float32(
-                    #                 ht.in_silico_predictors.spliceai_ds_max
-                    #             ),
-                    #             assessmentFlag=hl.missing(hl.tstr),
-                    #             targetId=hl.missing(hl.tstr),
-                    #         ),
-                    #         hl.struct(
-                    #             method=hl.str("Pangolin"),
-                    #             assessment=hl.missing(hl.tstr),
-                    #             score=hl.expr.functions.float32(
-                    #                 ht.in_silico_predictors.pangolin_largest_ds
-                    #             ),
-                    #             assessmentFlag=hl.missing(hl.tstr),
-                    #             targetId=hl.missing(hl.tstr),
-                    #         ),
-                    #     ]
-                    # ),
                     # Extract cross references to GnomAD:
                     dbXrefs=hl.array(
                         [
@@ -135,11 +112,6 @@ class GnomADVariants:
                 .to_spark(flatten=False)
                 .withColumns(
                     {
-                        # Once The parsing is done, we have to drop objects with no score from inSilicoPredictors:
-                        "inSilicoPredictors": f.filter(
-                            f.col("inSilicoPredictors"),
-                            lambda predictor: predictor["score"].isNotNull(),
-                        ),
                         # Generate a variantId that is hashed for long variant ids:
                         "variantId": VariantIndex.hash_long_variant_ids(
                             f.col("variantId"),
@@ -150,13 +122,6 @@ class GnomADVariants:
                         # We are not capturing the most severe consequence from GnomAD, but this column needed for the schema:
                         "mostSevereConsequenceId": f.lit(None).cast(t.StringType()),
                     }
-                )
-                # Normalising in silico predictor assessments:
-                .withColumn(
-                    "inSilicoPredictors",
-                    InSilicoPredictorNormaliser.normalise_in_silico_predictors(
-                        f.col("inSilicoPredictors")
-                    ),
                 )
             ),
             _schema=VariantIndex.get_schema(),
