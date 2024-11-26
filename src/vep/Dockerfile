@@ -1,4 +1,4 @@
-FROM ensemblorg/ensembl-vep:release_113.0
+FROM ensemblorg/ensembl-vep:release_113.3
 
 USER root
 
