@@ -56,7 +56,9 @@ class VariantIndexStep:
             variant_index = variant_index.add_annotation(annotations)
 
         (
-            variant_index.df.repartitionByRange("chromosome", "position")
+            variant_index.df.repartitionByRange(
+                session.output_partitions, "chromosome", "position"
+            )
             .sortWithinPartitions("chromosome", "position")
             .write.mode(session.write_mode)
             .parquet(variant_index_path)

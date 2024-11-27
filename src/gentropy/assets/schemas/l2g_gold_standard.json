@@ -26,6 +26,12 @@
       "metadata": {}
     },
     {
+      "name": "traitFromSourceMappedId",
+      "type": "string",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
       "name": "goldStandardSet",
       "type": "string",
       "nullable": false,
