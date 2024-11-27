@@ -89,7 +89,9 @@ class LocusToGeneFeatureMatrixStep:
         fm = credible_set.filter(f.col("studyType") == "gwas").build_feature_matrix(
             features_list, features_input_loader
         )
-        fm._df.write.mode(session.write_mode).parquet(feature_matrix_path)
+        fm._df.coalesce(session.output_partitions).write.mode(
+            session.write_mode
+        ).parquet(feature_matrix_path)
 
 
 class LocusToGeneStep:
@@ -283,9 +285,9 @@ class LocusToGeneStep:
         )
         predictions.filter(
             f.col("score") >= self.l2g_threshold
-        ).add_locus_to_gene_features(self.feature_matrix).df.write.mode(
-            self.session.write_mode
-        ).parquet(self.predictions_path)
+        ).add_locus_to_gene_features(self.feature_matrix).df.coalesce(
+            self.session.output_partitions
+        ).write.mode(self.session.write_mode).parquet(self.predictions_path)
         self.session.logger.info("L2G predictions saved successfully.")
 
     def run_train(self) -> None:
@@ -378,6 +380,7 @@ class LocusToGeneEvidenceStep:
             locus_to_gene_prediction.to_disease_target_evidence(
                 credible_sets, study_index, locus_to_gene_threshold
             )
+            .coalesce(session.output_partitions)
             .write.mode(session.write_mode)
             .option("compression", "gzip")
             .json(evidence_output_path)
