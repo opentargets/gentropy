@@ -428,7 +428,7 @@ class InSilicoPredictorNormaliser:
     ) -> Column:
         """Normalise GERP scores.
 
-        # Score interpration from here:
+        # Score interpretation from here:
         # https://pmc.ncbi.nlm.nih.gov/articles/PMC7286533/
         # https://genome.ucsc.edu/cgi-bin/hgTrackUi?db=hg19&g=allHg19RS_BW
 
