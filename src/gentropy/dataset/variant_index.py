@@ -368,6 +368,7 @@ class InSilicoPredictorNormaliser:
             # The following predictors are not normalised:
             .when(method == "SpliceAI", score)
             .when(method == "VEP", score)
+            .when(method == "GERP", cls._normalise_gerp(score))
         )
 
     @staticmethod
@@ -418,6 +419,38 @@ class InSilicoPredictorNormaliser:
             .when(score <= 20, cls._rescaleColumnValue(score, 10, 20, 0.0, 0.5))
             .when(score <= 30, cls._rescaleColumnValue(score, 20, 30, 0.5, 0.75))
             .when(score > 30, cls._rescaleColumnValue(score, 30, 81, 0.75, 1))
+        )
+
+    @classmethod
+    def _normalise_gerp(
+        cls: type[InSilicoPredictorNormaliser],
+        score: Column,
+    ) -> Column:
+        """Normalise GERP scores.
+
+        # Score interpration from here:
+        # https://pmc.ncbi.nlm.nih.gov/articles/PMC7286533/
+        # https://genome.ucsc.edu/cgi-bin/hgTrackUi?db=hg19&g=allHg19RS_BW
+
+        Logic: GERP scores are divided into three categories:
+         - >6 : 1.0 - GERP scores are not bounded, so any value above 6 is considered as 1.0
+         - 2-6: 0.5-1 - Highly conserved regions are scaled between 0.5 and 1
+         - 0-2: 0-0.5 - Moderately conserved regions are scaled between 0 and 0.5
+         - -3-0: -1-0.0 - Negative conservation indicates benign sequence alteration, so scaled between -1 and 0
+         - < -3: -1.0 - As the score goes below -3, it is considered as -1.0
+
+        Args:
+            score (Column): GERP score.
+
+        Returns:
+            Column: Normalised GERP score.
+        """
+        return (
+            f.when(score > 6, f.lit(1.0))
+            .when(score >= 2, cls._rescaleColumnValue(score, 2, 6, 0.5, 1))
+            .when(score >= 0, cls._rescaleColumnValue(score, 0, 2, 0, 0.5))
+            .when(score >= -3, cls._rescaleColumnValue(score, -3, 0, -1, 0))
+            .when(score < -3, f.lit(-1.0))
         )
 
     @classmethod
