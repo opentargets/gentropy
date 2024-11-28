@@ -4,10 +4,10 @@ APP_NAME ?= $$(cat pyproject.toml | grep -m 1 "name" | cut -d" " -f3 | sed  's/"
 PACKAGE_VERSION ?= $$(poetry version --short)
 # NOTE: git rev-parse will always return the HEAD if it sits in the tag,
 # this way we can distinguish the tag vs branch name
-ifeq ($(shell git rev-parse --abbrev-ref HEAD)),HEAD)
-	REF := $(shell git rev-parse --abbrev-ref HEAD)
-else
+ifeq ($(shell git rev-parse --abbrev-ref HEAD),HEAD)
 	REF := $(shell git describe --exact-match --tags)
+else
+	REF := $(shell git rev-parse --abbrev-ref HEAD)
 endif
 
 CLEAN_PACKAGE_VERSION := $(shell echo "$(PACKAGE_VERSION)" | tr -cd '[:alnum:]')
