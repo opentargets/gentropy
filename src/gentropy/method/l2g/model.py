@@ -27,7 +27,15 @@ class LocusToGeneModel:
     """Wrapper for the Locus to Gene classifier."""
 
     model: Any = GradientBoostingClassifier(random_state=42)
-    hyperparameters: dict[str, Any] | None = None
+    hyperparameters: dict[str, Any] = {
+        "n_estimators": 100,
+        "max_depth": 10,
+        "ccp_alpha": 0,
+        "learning_rate": 0.1,
+        "min_samples_leaf": 5,
+        "min_samples_split": 5,
+        "subsample": 1,
+    }
     training_data: L2GFeatureMatrix | None = None
     label_encoder: dict[str, int] = field(
         default_factory=lambda: {
@@ -38,8 +46,7 @@ class LocusToGeneModel:
 
     def __post_init__(self: LocusToGeneModel) -> None:
         """Post-initialisation to fit the estimator with the provided params."""
-        if self.hyperparameters:
-            self.model.set_params(**self.hyperparameters_dict)
+        self.model.set_params(**self.hyperparameters_dict)
 
     @classmethod
     def load_from_disk(cls: Type[LocusToGeneModel], path: str) -> LocusToGeneModel:
