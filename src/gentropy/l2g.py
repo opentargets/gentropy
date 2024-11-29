@@ -23,7 +23,7 @@ from gentropy.dataset.variant_index import VariantIndex
 from gentropy.method.l2g.feature_factory import L2GFeatureInputLoader
 from gentropy.method.l2g.model import LocusToGeneModel
 from gentropy.method.l2g.trainer import LocusToGeneTrainer
-from wandb.sdk.wandb.wandb_login import login as wandb_login
+from wandb.sdk.wandb_login import login as wandb_login
 
 
 class LocusToGeneFeatureMatrixStep:

@@ -27,15 +27,17 @@ class LocusToGeneModel:
     """Wrapper for the Locus to Gene classifier."""
 
     model: Any = GradientBoostingClassifier(random_state=42)
-    hyperparameters: dict[str, Any] = {
-        "n_estimators": 100,
-        "max_depth": 10,
-        "ccp_alpha": 0,
-        "learning_rate": 0.1,
-        "min_samples_leaf": 5,
-        "min_samples_split": 5,
-        "subsample": 1,
-    }
+    hyperparameters: dict[str, Any] = field(
+        default_factory=lambda: {
+            "n_estimators": 100,
+            "max_depth": 10,
+            "ccp_alpha": 0,
+            "learning_rate": 0.1,
+            "min_samples_leaf": 5,
+            "min_samples_split": 5,
+            "subsample": 1,
+        }
+    )
     training_data: L2GFeatureMatrix | None = None
     label_encoder: dict[str, int] = field(
         default_factory=lambda: {

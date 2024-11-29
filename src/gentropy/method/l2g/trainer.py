@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import shap
+from sklearn.base import clone
 from sklearn.metrics import (
     accuracy_score,
     average_precision_score,
@@ -51,6 +52,7 @@ class LocusToGeneTrainer:
     y_train: np.ndarray | None = None
     x_test: np.ndarray | None = None
     y_test: np.ndarray | None = None
+    groups_train: np.ndarray | None = None
     run: Run | None = None
     wandb_l2g_project_name: str = "gentropy-locus-to-gene"
 
@@ -161,104 +163,111 @@ class LocusToGeneTrainer:
             ValueError: If dependencies are not available.
         """
         if (
-            self.x_train is not None
-            and self.x_test is not None
-            and self.y_train is not None
-            and self.y_test is not None
-            and self.features_list is not None
+            self.x_train is None
+            or self.x_test is None
+            or self.y_train is None
+            or self.y_test is None
+            or self.features_list is None
         ):
-            assert (
-                self.x_train.size != 0 and self.y_train.size != 0
-            ), "Train data not set, nothing to evaluate."
-            fitted_classifier = self.model.model
-            y_predicted = fitted_classifier.predict(self.x_test)
-            y_probas = fitted_classifier.predict_proba(self.x_test)
-            self.run = wandb_init(
-                project=self.wandb_l2g_project_name,
-                name=wandb_run_name,
-                config=fitted_classifier.get_params(),
-            )
-            # Track classification plots
-            plot_classifier(
-                self.model.model,
-                self.x_train,
-                self.x_test,
-                self.y_train,
-                self.y_test,
-                y_predicted,
-                y_probas,
-                labels=list(self.model.label_encoder.values()),
-                model_name="L2G-classifier",
-                feature_names=self.features_list,
-                is_binary=True,
-            )
-            # Track evaluation metrics
-            self.run.log(
-                {
-                    "areaUnderROC": roc_auc_score(
-                        self.y_test, y_probas[:, 1], average="weighted"
-                    )
-                }
-            )
-            self.run.log({"accuracy": accuracy_score(self.y_test, y_predicted)})
-            self.run.log(
-                {
-                    "weightedPrecision": precision_score(
-                        self.y_test, y_predicted, average="weighted"
-                    )
-                }
-            )
-            self.run.log(
-                {
-                    "weightedRecall": recall_score(
-                        self.y_test, y_predicted, average="weighted"
-                    )
-                }
-            )
-            self.run.log({"f1": f1_score(self.y_test, y_predicted, average="weighted")})
-            # Track gold standards and their features
-            self.run.log(
-                {"featureMatrix": Table(dataframe=self.feature_matrix._df.toPandas())}
-            )
-            # Log feature missingness
-            self.run.log(
-                {
-                    "missingnessRates": self.feature_matrix.calculate_feature_missingness_rate()
-                }
-            )
-            # Plot marginal contribution of each feature
-            explanation = self._get_shap_explanation(self.model)
-            self.log_plot_image_to_wandb(
-                "Feature Contribution",
-                shap.plots.bar(
-                    explanation, max_display=len(self.features_list), show=False
-                ),
-            )
-            self.log_plot_image_to_wandb(
-                "Beeswarm Plot",
-                shap.plots.beeswarm(
-                    explanation, max_display=len(self.features_list), show=False
-                ),
-            )
-            # Plot correlation between feature values and their importance
-            for feature in self.features_list:
-                self.log_plot_image_to_wandb(
-                    f"Effect of {feature} on the predictions",
-                    shap.plots.scatter(
-                        explanation[:, feature],
-                        show=False,
-                    ),
-                )
-            wandb_termlog("Logged Shapley contributions.")
-            self.run.finish()
-        else:
             raise ValueError("Something went wrong, couldn't log to W&B.")
+        assert (
+            self.x_train.size != 0 and self.y_train.size != 0
+        ), "Train data not set, nothing to evaluate."
+        fitted_classifier = self.model.model
+        y_predicted = fitted_classifier.predict(self.x_test)
+        y_probas = fitted_classifier.predict_proba(self.x_test)
+        self.run = wandb_init(
+            project=self.wandb_l2g_project_name,
+            name=wandb_run_name,
+            config=fitted_classifier.get_params(),
+        )
+        # Track classification plots
+        plot_classifier(
+            self.model.model,
+            self.x_train,
+            self.x_test,
+            self.y_train,
+            self.y_test,
+            y_predicted,
+            y_probas,
+            labels=list(self.model.label_encoder.values()),
+            model_name="L2G-classifier",
+            feature_names=self.features_list,
+            is_binary=True,
+        )
+        # Track evaluation metrics
+        self.run.log(
+            {
+                "areaUnderROC": roc_auc_score(
+                    self.y_test, y_probas[:, 1], average="weighted"
+                )
+            }
+        )
+        self.run.log({"accuracy": accuracy_score(self.y_test, y_predicted)})
+        self.run.log(
+            {
+                "weightedPrecision": precision_score(
+                    self.y_test, y_predicted, average="weighted"
+                )
+            }
+        )
+        self.run.log(
+            {
+                "averagePrecision": average_precision_score(
+                    self.y_test, y_predicted, average="weighted"
+                )
+            }
+        )
+        self.run.log(
+            {
+                "weightedRecall": recall_score(
+                    self.y_test, y_predicted, average="weighted"
+                )
+            }
+        )
+        self.run.log({"f1": f1_score(self.y_test, y_predicted, average="weighted")})
+        # Track gold standards and their features
+        self.run.log(
+            {"featureMatrix": Table(dataframe=self.feature_matrix._df.toPandas())}
+        )
+        # Log feature missingness
+        self.run.log(
+            {
+                "missingnessRates": self.feature_matrix.calculate_feature_missingness_rate()
+            }
+        )
+        # Plot marginal contribution of each feature
+        explanation = self._get_shap_explanation(self.model)
+        self.log_plot_image_to_wandb(
+            "Feature Contribution",
+            shap.plots.bar(
+                explanation, max_display=len(self.features_list), show=False
+            ),
+        )
+        self.log_plot_image_to_wandb(
+            "Beeswarm Plot",
+            shap.plots.beeswarm(
+                explanation, max_display=len(self.features_list), show=False
+            ),
+        )
+        # Plot correlation between feature values and their importance
+        for feature in self.features_list:
+            self.log_plot_image_to_wandb(
+                f"Effect of {feature} on the predictions",
+                shap.plots.scatter(
+                    explanation[:, feature],
+                    show=False,
+                ),
+            )
+        wandb_termlog("Logged Shapley contributions.")
+        self.run.finish()
 
     def train(
         self: LocusToGeneTrainer,
         wandb_run_name: str,
         cross_validate: bool = True,
         n_splits: int = 5,
+        hyperparameter_grid: dict[str, Any] | None = None,
     ) -> LocusToGeneModel:
         """Train the Locus to Gene model.
 
@@ -272,6 +281,7 @@ class LocusToGeneTrainer:
             wandb_run_name (str): Name of the W&B run. Unless this is provided, the model will not be logged to W&B.
             cross_validate (bool): Whether to run cross-validation. Defaults to True.
             n_splits(int): Number of folds the data is splitted in. The model is trained and evaluated `k - 1` times. Defaults to 5.
+            hyperparameter_grid (dict[str, Any] | None): Hyperparameter grid to sweep over. Defaults to None.
 
         Returns:
             LocusToGeneModel: Fitted model
@@ -295,38 +305,15 @@ class LocusToGeneTrainer:
         for train_idx, test_idx in train_test_split.split(X, y, gene_trait_groups):
             self.x_train, self.x_test = X[train_idx], X[test_idx]
             self.y_train, self.y_test = y[train_idx], y[test_idx]
-            groups_train = gene_trait_groups[train_idx]
+            self.groups_train = gene_trait_groups[train_idx]
 
         # Cross-validation
         if cross_validate:
-            cv_scores = []
-            gkf = GroupKFold(n_splits=n_splits)
-            for _fold, (train_idx, val_idx) in enumerate(
-                gkf.split(self.x_train, self.y_train, groups_train)
-            ):
-                assert (
-                    self.x_train is not None and self.y_train is not None
-                ), "Data not correctly split, please try again."
-                X_fold_train, X_fold_val = (
-                    self.x_train[train_idx],
-                    self.x_train[val_idx],
-                )
-                y_fold_train, y_fold_val = (
-                    self.y_train[train_idx],
-                    self.y_train[val_idx],
-                )
-
-                cross_validator_classifier = self.model.model
-                cross_validator_classifier.fit(X_fold_train, y_fold_train)
-                y_pred_proba = self.model.model.predict_proba(X_fold_val)[:, 1]
-                avg_precision = average_precision_score(y_fold_val, y_pred_proba)
-                cv_scores.append(avg_precision)
-
-                # print(f"Fold {fold + 1}: Average Precision = {avg_precision:.3f}")
-
-            # print(
-            #     f"\nCross-validation Average Precision: {np.mean(cv_scores):.3f} (+/- {np.std(cv_scores) * 2:.3f})"
-            # )
+            self.cross_validate(
+                wandb_run_name=wandb_run_name,
+                parameter_grid=hyperparameter_grid,
+                n_splits=n_splits,
+            )
 
         # Train final model on full training set
         self.fit()
@@ -338,20 +325,97 @@ class LocusToGeneTrainer:
 
         return self.model
 
-    def hyperparameter_tuning(
-        self: LocusToGeneTrainer, wandb_run_name: str, parameter_grid: dict[str, Any]
+    def cross_validate(
+        self: LocusToGeneTrainer,
+        wandb_run_name: str,
+        parameter_grid: dict[str, Any] | None = None,
+        n_splits: int = 5,
     ) -> None:
-        """Perform hyperparameter tuning on the model with W&B Sweeps. Metrics for every combination of hyperparameters will be logged to W&B for comparison.
+        """Log results of cross validation and hyperparameter tuning with W&B Sweeps. Metrics for every combination of hyperparameters will be logged to W&B for comparison.
 
         Args:
             wandb_run_name (str): Name of the W&B run
-            parameter_grid (dict[str, Any]): Dictionary containing the hyperparameters to sweep over. The keys are the hyperparameter names, and the values are dictionaries containing the values to sweep over.
+            parameter_grid (dict[str, Any] | None): Dictionary containing the hyperparameters to sweep over. The keys are the hyperparameter names, and the values are dictionaries containing the values to sweep over.
+            n_splits (int): Number of folds the data is splitted in. The model is trained and evaluated `k - 1` times. Defaults to 5.
         """
+
+        def cross_validate_single_fold(
+            wandb_run_name: str,
+            cv_splits: list[tuple[np.ndarray, np.ndarray]],
+            fold_index: int,
+        ) -> dict[str, Any]:
+            """Perform cross-validation for a single fold.
+
+            Args:
+                wandb_run_name (str): Name of the W&B run
+                cv_splits (list[tuple[np.ndarray, np.ndarray]]): List of tuples, where each tuple contains the indices of the training and validation sets for a fold.
+                fold_index (int): Index of the fold being evaluated.
+
+            Returns:
+                dict[str, Any]: Dictionary containing the metrics for the fold
+
+            Raises:
+                ValueError: Training data must be set before cross-validation.
+            """
+            train_idx, val_idx = cv_splits[fold_index]
+
+            if (
+                self.x_train is None
+                or self.y_train is None
+                or self.groups_train is None
+            ):
+                raise ValueError("Training data must be set before cross-validation.")
+            x_fold_train, x_fold_val = self.x_train[train_idx], self.x_train[val_idx]
+            y_fold_train, y_fold_val = self.y_train[train_idx], self.y_train[val_idx]
+
+            fold_model = clone(self.model.model)
+            fold_model.fit(x_fold_train, y_fold_train)
+            y_pred_proba = fold_model.predict_proba(x_fold_val)[:, 1]
+            y_pred = (y_pred_proba >= 0.5).astype(int)
+
+            # Log simple metrics
+            run = wandb_init(
+                project=self.wandb_l2g_project_name,
+                name=wandb_run_name,
+                config=fold_model.get_params(),
+            )
+            to_log = {
+                "weightedPrecision": precision_score(y_fold_val, y_pred),
+                "averagePrecision": average_precision_score(y_fold_val, y_pred_proba),
+                "areaUnderROC": roc_auc_score(y_fold_val, y_pred_proba),
+                "accuracy": accuracy_score(y_fold_val, y_pred),
+                "weightedRecall": recall_score(y_fold_val, y_pred, average="weighted"),
+                "f1": f1_score(y_fold_val, y_pred, average="weighted"),
+            }
+            run.log(to_log)
+            wandb_termlog(f"Logged metrics for fold {fold_index + 1}.")
+            run.finish()
+            return to_log
+
+        # If no grid is provided, use default ones set in the model (format conversion is required)
+        parameter_grid = parameter_grid or {
+            param: {"values": [value]}
+            for param, value in self.model.hyperparameters.items()
+        }
         sweep_config = {
+            # "name": f"{wandb_run_name}-cross_validation",
             "method": "grid",
             "metric": {"name": "roc", "goal": "maximize"},
             "parameters": parameter_grid,
         }
         sweep_id = wandb_sweep(sweep_config, project=self.wandb_l2g_project_name)
 
-        wandb_agent(sweep_id, partial(self.train, wandb_run_name=wandb_run_name))
+        gkf = GroupKFold(n_splits=n_splits)
+
+        cv_splits = list(gkf.split(self.x_train, self.y_train, self.groups_train))
+
+        for fold_index in range(len(cv_splits)):
+            wandb_agent(
+                sweep_id,
+                partial(
+                    cross_validate_single_fold,
+                    cv_splits=cv_splits,
+                    wandb_run_name=wandb_run_name,
+                    fold_index=fold_index,
+                ),
+            )
