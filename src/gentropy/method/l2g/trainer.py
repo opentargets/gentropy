@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
-from functools import partial
 from typing import TYPE_CHECKING, Any
 
 import matplotlib.pyplot as plt
@@ -406,16 +405,15 @@ class LocusToGeneTrainer:
         sweep_id = wandb_sweep(sweep_config, project=self.wandb_l2g_project_name)
 
         gkf = GroupKFold(n_splits=n_splits)
-
         cv_splits = list(gkf.split(self.x_train, self.y_train, self.groups_train))
 
-        for fold_index in range(len(cv_splits)):
-            wandb_agent(
-                sweep_id,
-                partial(
-                    cross_validate_single_fold,
+        def run_all_folds() -> None:
+            """Run cross-validation for all folds. This is the function that is called by the W&B agent, to iterate over all the folds."""
+            for fold_index in range(len(cv_splits)):
+                cross_validate_single_fold(
+                    wandb_run_name=f"{wandb_run_name}-fold{fold_index+1}",
                     cv_splits=cv_splits,
-                    wandb_run_name=wandb_run_name,
                     fold_index=fold_index,
-                ),
-            )
+                )
+
+        wandb_agent(sweep_id, run_all_folds)
