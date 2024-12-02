@@ -1,4 +1,5 @@
 """Step to generate gene index dataset."""
+
 from __future__ import annotations
 
 from gentropy.common.session import Session
@@ -28,4 +29,6 @@ class GeneIndexStep:
         # Transform
         gene_index = OpenTargetsTarget.as_gene_index(platform_target)
         # Load
-        gene_index.df.write.mode(session.write_mode).parquet(gene_index_path)
+        gene_index.df.coalesce(session.output_partitions).write.mode(
+            session.write_mode
+        ).parquet(gene_index_path)
