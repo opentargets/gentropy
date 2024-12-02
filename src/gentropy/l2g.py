@@ -7,7 +7,6 @@ from typing import Any
 
 import pyspark.sql.functions as f
 from sklearn.ensemble import GradientBoostingClassifier
-from wandb import login as wandb_login
 
 from gentropy.common.schemas import compare_struct_schemas
 from gentropy.common.session import Session
@@ -24,6 +23,7 @@ from gentropy.dataset.variant_index import VariantIndex
 from gentropy.method.l2g.feature_factory import L2GFeatureInputLoader
 from gentropy.method.l2g.model import LocusToGeneModel
 from gentropy.method.l2g.trainer import LocusToGeneTrainer
+from wandb.sdk.wandb_login import login as wandb_login
 
 
 class LocusToGeneFeatureMatrixStep:
@@ -89,7 +89,9 @@ class LocusToGeneFeatureMatrixStep:
         fm = credible_set.filter(f.col("studyType") == "gwas").build_feature_matrix(
             features_list, features_input_loader
         )
-        fm._df.write.mode(session.write_mode).parquet(feature_matrix_path)
+        fm._df.coalesce(session.output_partitions).write.mode(
+            session.write_mode
+        ).parquet(feature_matrix_path)
 
 
 class LocusToGeneStep:
@@ -285,7 +287,9 @@ class LocusToGeneStep:
             f.col("score") >= self.l2g_threshold
         ).add_locus_to_gene_features(
             self.feature_matrix, self.features_list
-        ).df.write.mode(self.session.write_mode).parquet(self.predictions_path)
+        ).df.coalesce(self.session.output_partitions).write.mode(
+            self.session.write_mode
+        ).parquet(self.predictions_path)
         self.session.logger.info("L2G predictions saved successfully.")
 
     def run_train(self) -> None:
@@ -378,6 +382,7 @@ class LocusToGeneEvidenceStep:
             locus_to_gene_prediction.to_disease_target_evidence(
                 credible_sets, study_index, locus_to_gene_threshold
             )
+            .coalesce(session.output_partitions)
             .write.mode(session.write_mode)
             .option("compression", "gzip")
             .json(evidence_output_path)
