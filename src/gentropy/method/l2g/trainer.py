@@ -26,6 +26,7 @@ from gentropy.method.l2g.model import LocusToGeneModel
 from wandb.data_types import Image, Table
 from wandb.errors.term import termlog as wandb_termlog
 from wandb.sdk.wandb_init import init as wandb_init
+from wandb.sdk.wandb_setup import _setup
 from wandb.sdk.wandb_sweep import sweep as wandb_sweep
 from wandb.sklearn import plot_classifier
 from wandb.wandb_agent import agent as wandb_agent
@@ -35,6 +36,21 @@ if TYPE_CHECKING:
     from shap._explanation import Explanation
 
     from wandb.sdk.wandb_run import Run
+
+
+def reset_wandb_env() -> None:
+    """Reset Wandb environment variables except for project, entity and API key.
+
+    This is necessary to log multiple runs in the same sweep without overwriting. More context here: https://github.com/wandb/wandb/issues/5119
+    """
+    exclude = {
+        "WANDB_PROJECT",
+        "WANDB_ENTITY",
+        "WANDB_API_KEY",
+    }
+    for key in list(os.environ.keys()):
+        if key.startswith("WANDB_") and key not in exclude:
+            del os.environ[key]
 
 
 @dataclass
@@ -309,7 +325,7 @@ class LocusToGeneTrainer:
         # Cross-validation
         if cross_validate:
             self.cross_validate(
-                wandb_run_name=wandb_run_name,
+                wandb_run_name=f"{wandb_run_name}-cv",
                 parameter_grid=hyperparameter_grid,
                 n_splits=n_splits,
             )
@@ -319,7 +335,7 @@ class LocusToGeneTrainer:
 
         # Evaluate once on hold out test set
         self.log_to_wandb(
-            wandb_run_name=wandb_run_name,
+            wandb_run_name=f"{wandb_run_name}-holdout",
         )
 
         return self.model
@@ -339,23 +355,23 @@ class LocusToGeneTrainer:
         """
 
         def cross_validate_single_fold(
-            wandb_run_name: str,
-            cv_splits: list[tuple[np.ndarray, np.ndarray]],
             fold_index: int,
-        ) -> dict[str, Any]:
-            """Perform cross-validation for a single fold.
+            sweep_id: str,
+            sweep_run_name: str,
+            config: dict[str, Any],
+        ) -> None:
+            """Run cross-validation for a single fold.
 
             Args:
-                wandb_run_name (str): Name of the W&B run
-                cv_splits (list[tuple[np.ndarray, np.ndarray]]): List of tuples, where each tuple contains the indices of the training and validation sets for a fold.
-                fold_index (int): Index of the fold being evaluated.
-
-            Returns:
-                dict[str, Any]: Dictionary containing the metrics for the fold
+                fold_index (int): Index of the fold to run
+                sweep_id (str): ID of the sweep
+                sweep_run_name (str): Name of the sweep run
+                config (dict[str, Any]): Configuration from the sweep
 
             Raises:
-                ValueError: Training data must be set before cross-validation.
+                ValueError: If training data is not set
             """
+            reset_wandb_env()
             train_idx, val_idx = cv_splits[fold_index]
 
             if (
@@ -363,22 +379,36 @@ class LocusToGeneTrainer:
                 or self.y_train is None
                 or self.groups_train is None
             ):
-                raise ValueError("Training data must be set before cross-validation.")
-            x_fold_train, x_fold_val = self.x_train[train_idx], self.x_train[val_idx]
-            y_fold_train, y_fold_val = self.y_train[train_idx], self.y_train[val_idx]
+                raise ValueError("Training data not set")
+
+            # Initialize a new run for this fold
+            os.environ["WANDB_SWEEP_ID"] = sweep_id
+            run = wandb_init(
+                project=self.wandb_l2g_project_name,
+                name=sweep_run_name,
+                config=config,
+                group=sweep_run_name,
+                job_type="fold",
+                reinit=True,
+            )
+
+            x_fold_train, x_fold_val = (
+                self.x_train[train_idx],
+                self.x_train[val_idx],
+            )
+            y_fold_train, y_fold_val = (
+                self.y_train[train_idx],
+                self.y_train[val_idx],
+            )
 
             fold_model = clone(self.model.model)
+            fold_model.set_params(**config)
             fold_model.fit(x_fold_train, y_fold_train)
             y_pred_proba = fold_model.predict_proba(x_fold_val)[:, 1]
             y_pred = (y_pred_proba >= 0.5).astype(int)
 
-            # Log simple metrics
-            run = wandb_init(
-                project=self.wandb_l2g_project_name,
-                name=wandb_run_name,
-                config=fold_model.get_params(),
-            )
-            to_log = {
+            # Log metrics
+            metrics = {
                 "weightedPrecision": precision_score(y_fold_val, y_pred),
                 "averagePrecision": average_precision_score(y_fold_val, y_pred_proba),
                 "areaUnderROC": roc_auc_score(y_fold_val, y_pred_proba),
@@ -386,20 +416,20 @@ class LocusToGeneTrainer:
                 "weightedRecall": recall_score(y_fold_val, y_pred, average="weighted"),
                 "f1": f1_score(y_fold_val, y_pred, average="weighted"),
             }
-            run.log(to_log)
+
+            run.log(metrics)
             wandb_termlog(f"Logged metrics for fold {fold_index + 1}.")
             run.finish()
-            return to_log
 
-        # If no grid is provided, use default ones set in the model (format conversion is required)
+        # If no grid is provided, use default ones set in the model
         parameter_grid = parameter_grid or {
             param: {"values": [value]}
             for param, value in self.model.hyperparameters.items()
         }
         sweep_config = {
-            # "name": f"{wandb_run_name}-cross_validation",
             "method": "grid",
-            "metric": {"name": "roc", "goal": "maximize"},
+            "name": wandb_run_name,  # Add name to sweep config
+            "metric": {"name": "areaUnderROC", "goal": "maximize"},
             "parameters": parameter_grid,
         }
         sweep_id = wandb_sweep(sweep_config, project=self.wandb_l2g_project_name)
@@ -408,12 +438,30 @@ class LocusToGeneTrainer:
         cv_splits = list(gkf.split(self.x_train, self.y_train, self.groups_train))
 
         def run_all_folds() -> None:
-            """Run cross-validation for all folds. This is the function that is called by the W&B agent, to iterate over all the folds."""
+            """Run cross-validation for all folds within a sweep."""
+            # Initialize the sweep run and get metadata
+            sweep_run = wandb_init(name=wandb_run_name)
+            sweep_id = sweep_run.sweep_id or "unknown"
+            sweep_url = sweep_run.get_sweep_url()
+            project_url = sweep_run.get_project_url()
+            sweep_group_url = f"{project_url}/groups/{sweep_id}"
+            sweep_run.notes = sweep_group_url
+            sweep_run.save()
+            config = dict(sweep_run.config)
+
+            # Reset wandb setup to ensure clean state
+            _setup(_reset=True)
+
+            # Run all folds
             for fold_index in range(len(cv_splits)):
                 cross_validate_single_fold(
-                    wandb_run_name=f"{wandb_run_name}-fold{fold_index+1}",
-                    cv_splits=cv_splits,
                     fold_index=fold_index,
+                    sweep_id=sweep_id,
+                    sweep_run_name=f"{wandb_run_name}-fold{fold_index+1}",
+                    config=config,
                 )
+
+            wandb_termlog(f"Sweep URL: {sweep_url}")
+            wandb_termlog(f"Sweep Group URL: {sweep_group_url}")
 
         wandb_agent(sweep_id, run_all_folds)
