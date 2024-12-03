@@ -29,6 +29,8 @@ class L2GPrediction(Dataset):
     confidence of the prediction that a gene is causal to an association.
     """
 
+    model: LocusToGeneModel | None = None
+
     @classmethod
     def get_schema(cls: type[L2GPrediction]) -> StructType:
         """Provides the schema for the L2GPrediction dataset.
@@ -85,7 +87,9 @@ class L2GPrediction(Dataset):
             .select_features(features_list)
         )
 
-        return l2g_model.predict(fm, session)
+        predictions = l2g_model.predict(fm, session)
+        predictions.model = l2g_model  # Set the model attribute
+        return predictions
 
     def to_disease_target_evidence(
         self: L2GPrediction,
