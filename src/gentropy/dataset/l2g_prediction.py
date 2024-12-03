@@ -6,10 +6,12 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Type
 
 import pyspark.sql.functions as f
+import shap
 from pyspark.sql import DataFrame
 
 from gentropy.common.schemas import parse_spark_schema
 from gentropy.common.session import Session
+from gentropy.common.spark_helpers import convert_map_type_to_columns
 from gentropy.dataset.dataset import Dataset
 from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
 from gentropy.dataset.study_index import StudyIndex
@@ -17,6 +19,7 @@ from gentropy.dataset.study_locus import StudyLocus
 from gentropy.method.l2g.model import LocusToGeneModel
 
 if TYPE_CHECKING:
+    from numpy import ndarray as np_ndarray
     from pyspark.sql.types import StructType
 
 
@@ -131,6 +134,29 @@ class L2GPrediction(Dataset):
                 "studyLocusId",
             )
         )
+
+    def explain(self: L2GPrediction) -> np_ndarray:
+        """Extract Shapley values for the L2G predictions.
+
+        Returns:
+            np_ndarray: Shapley values
+
+        Raises:
+            ValueError: If the model is not set
+        """
+        if self.model is None:
+            raise ValueError("Model not set, explainer cannot be created")
+        explainer = shap.TreeExplainer(
+            self.model.model, feature_perturbation="tree_path_dependent"
+        )
+        features_matrix = (
+            self.df.select(
+                *convert_map_type_to_columns(self.df, f.col("locusToGeneFeatures"))
+            )
+            .toPandas()
+            .to_numpy()
+        )
+        return explainer.shap_values(features_matrix)
 
     def add_locus_to_gene_features(
         self: L2GPrediction, feature_matrix: L2GFeatureMatrix
