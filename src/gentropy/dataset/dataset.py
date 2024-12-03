@@ -32,7 +32,6 @@ class Dataset(ABC):
     """
 
     _df: DataFrame
-    _schema: StructType
 
     def __post_init__(self: Dataset) -> None:
         """Post init."""
@@ -64,7 +63,7 @@ class Dataset(ABC):
         Returns:
             StructType: Dataframe expected schema
         """
-        return self._schema
+        return self.get_schema()
 
     @classmethod
     def _process_class_params(
@@ -172,7 +171,7 @@ class Dataset(ABC):
         Raises:
             SchemaValidationError: If the DataFrame schema does not match the expected schema
         """
-        expected_schema = self._schema
+        expected_schema = self.schema
         observed_schema = self._df.schema
 
         # Unexpected fields in dataset
