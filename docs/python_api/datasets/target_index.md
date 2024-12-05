@@ -1,9 +1,9 @@
 ---
-title: Gene Index
+title: Target Index
 ---
 
-::: gentropy.dataset.gene_index.GeneIndex
+::: gentropy.dataset.target_index.TargetIndex
 
 ## Schema
 
---8<-- "assets/schemas/gene_index.md"
+--8<-- "assets/schemas/target_index.md"

@@ -1,5 +1,5 @@
 ---
-title: gene_index
+title: target_index
 ---
 
-::: gentropy.gene_index.GeneIndexStep
+::: gentropy.target_index.TargetIndexStep
