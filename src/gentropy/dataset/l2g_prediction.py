@@ -5,9 +5,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Type
 
+import pandas as pd
 import pyspark.sql.functions as f
 import shap
-from pyspark.sql import DataFrame, Window
+from pyspark.sql import DataFrame
+from pyspark.sql.functions import pandas_udf
 
 from gentropy.common.schemas import parse_spark_schema
 from gentropy.common.session import Session
@@ -146,52 +148,64 @@ class L2GPrediction(Dataset):
         """
         if self.model is None:
             raise ValueError("Model not set, explainer cannot be created")
+
+        # Create explainer once
         explainer = shap.TreeExplainer(
             self.model.model, feature_perturbation="tree_path_dependent"
         )
-        features_matrix = self.df.select(
-            *convert_map_type_to_columns(self.df, f.col("locusToGeneFeatures"))
-        ).toPandas()
-        shapley_values = explainer.shap_values(features_matrix.to_numpy())
 
-        # Create arrays of Shapley values for each feature
-        features_list = list(features_matrix.columns)
-        shapley_arrays = {
-            feature: [row[i] for row in shapley_values]
-            for i, feature in enumerate(features_list)
-        }
-        return L2GPrediction(
-            _df=(
-                self.df.withColumn(
-                    # Add row index to ensure correct mapping between the predictions and the shapley values
-                    "tmp_idx",
-                    f.row_number().over(
-                        Window.orderBy(f.monotonically_increasing_id())
-                    ),
-                )
-                .withColumn(
-                    "shapleyValues",
-                    f.create_map(
-                        *[
-                            item
-                            for feature in features_list
-                            for item in [
+        # Create UDF for Shapley calculation
+        @pandas_udf("array<float>")
+        def calculate_shapley_values(features_pd: pd.DataFrame) -> pd.Series:
+            """Calculate Shapley values for a batch of features.
+
+            Args:
+                features_pd (pd.DataFrame): Batch of features.
+
+            Returns:
+                pd.Series: Series of Shapley values for the batch.
+            """
+            feature_array = features_pd.to_numpy()
+            shapley_values = explainer.shap_values(feature_array)
+            return pd.Series([list(row) for row in shapley_values])
+
+        df_w_features = self.df.select(
+            "*", *convert_map_type_to_columns(self.df, f.col("locusToGeneFeatures"))
+        )
+        features_list = [
+            col for col in df_w_features.columns if col not in self.df.columns
+        ]
+        # Apply UDF and create map of feature names to Shapley values
+        result_df = (
+            df_w_features.withColumn(
+                "shapley_array",
+                calculate_shapley_values(
+                    f.array(*[f.col(feature) for feature in features_list])
+                ),
+            )
+            .withColumn(
+                "shapleyValues",
+                f.create_map(
+                    *sum(
+                        (
+                            (
                                 f.lit(feature),
-                                f.array(
-                                    [f.lit(float(x)) for x in shapley_arrays[feature]]
-                                )
-                                .getItem(
-                                    f.col("tmp_idx") - f.lit(1)
-                                )  # we substract one because row_number starts counting from 1
-                                .cast("float"),
-                            ]
-                        ]
-                    ),
-                )
-                .drop("tmp_idx")
-            ),
-            _schema=self.get_schema(),
+                                f.element_at("shapley_array", f.lit(pos + 1)),
+                            )
+                            for pos, feature in enumerate(features_list)
+                        ),
+                        (),
+                    )
+                ),
+            )
+            .drop("shapley_array")
+            .select(*[field.name for field in self.get_schema().fields])
+        )
+
+        return L2GPrediction(
+            _df=result_df,
             model=self.model,
+            _schema=self.get_schema(),
         )
 
     def add_locus_to_gene_features(
