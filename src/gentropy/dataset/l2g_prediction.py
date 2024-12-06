@@ -2,14 +2,14 @@
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Type
 
-import pandas as pd
 import pyspark.sql.functions as f
 import shap
 from pyspark.sql import DataFrame
-from pyspark.sql.functions import pandas_udf
+from pyspark.sql.types import StructType
 
 from gentropy.common.schemas import parse_spark_schema
 from gentropy.common.session import Session
@@ -137,11 +137,10 @@ class L2GPrediction(Dataset):
         )
 
     def explain(self: L2GPrediction) -> L2GPrediction:
-        """Extract Shapley values for the L2G predictions and add them as a map column.
+        """Extract Shapley values for the L2G predictions and add them as a map in an additional column.
 
         Returns:
-            L2GPrediction: L2GPrediction object with an additional column 'shapleyValues' containing
-            feature name to Shapley value mappings
+            L2GPrediction: L2GPrediction object with additional column containing feature name to Shapley value mappings
 
         Raises:
             ValueError: If the model is not set
@@ -149,62 +148,43 @@ class L2GPrediction(Dataset):
         if self.model is None:
             raise ValueError("Model not set, explainer cannot be created")
 
-        # Create explainer once
         explainer = shap.TreeExplainer(
             self.model.model, feature_perturbation="tree_path_dependent"
         )
-
-        # Create UDF for Shapley calculation
-        @pandas_udf("array<float>")
-        def calculate_shapley_values(features_pd: pd.DataFrame) -> pd.Series:
-            """Calculate Shapley values for a batch of features.
-
-            Args:
-                features_pd (pd.DataFrame): Batch of features.
-
-            Returns:
-                pd.Series: Series of Shapley values for the batch.
-            """
-            feature_array = features_pd.to_numpy()
-            shapley_values = explainer.shap_values(feature_array)
-            return pd.Series([list(row) for row in shapley_values])
-
         df_w_features = self.df.select(
             "*", *convert_map_type_to_columns(self.df, f.col("locusToGeneFeatures"))
-        )
+        ).drop("shapleyValues")
         features_list = [
-            col for col in df_w_features.columns if col not in self.df.columns
+            col for col in df_w_features.columns if col not in self.get_schema().names
         ]
-        # Apply UDF and create map of feature names to Shapley values
-        result_df = (
-            df_w_features.withColumn(
-                "shapley_array",
-                calculate_shapley_values(
-                    f.array(*[f.col(feature) for feature in features_list])
-                ),
+        pdf = df_w_features.select(features_list).toPandas()
+
+        # Calculate SHAP values
+        if pdf.shape[0] >= 10_000:
+            logging.warning(
+                "Calculating SHAP values for more than 10,000 rows. This may take a while..."
+            )
+        shap_values = explainer.shap_values(pdf.to_numpy())
+        for i, feature in enumerate(features_list):
+            pdf[f"shap_{feature}"] = [row[i] for row in shap_values]
+
+        spark_session = df_w_features.sparkSession
+        return L2GPrediction(
+            _df=df_w_features.join(
+                # Convert df with shapley values to Spark and join with original df
+                spark_session.createDataFrame(pdf.to_dict(orient="records")),
+                features_list,
             )
             .withColumn(
                 "shapleyValues",
                 f.create_map(
                     *sum(
-                        (
-                            (
-                                f.lit(feature),
-                                f.element_at("shapley_array", f.lit(pos + 1)),
-                            )
-                            for pos, feature in enumerate(features_list)
-                        ),
+                        ((f.lit(col), f.col(f"shap_{col}")) for col in features_list),
                         (),
                     )
                 ),
             )
-            .drop("shapley_array")
-            .select(*[field.name for field in self.get_schema().fields])
-        )
-
-        return L2GPrediction(
-            _df=result_df,
-            model=self.model,
+            .select(*self.get_schema().names),
             _schema=self.get_schema(),
         )
 
