@@ -190,12 +190,13 @@ class L2GPrediction(Dataset):
         )
 
     def add_locus_to_gene_features(
-        self: L2GPrediction, feature_matrix: L2GFeatureMatrix
+        self: L2GPrediction, feature_matrix: L2GFeatureMatrix, features_list: list[str]
     ) -> L2GPrediction:
-        """Add features to the L2G predictions.
+        """Add features used to extract the L2G predictions.
 
         Args:
             feature_matrix (L2GFeatureMatrix): Feature matrix dataset
+            features_list (list[str]): List of features used in the model
 
         Returns:
             L2GPrediction: L2G predictions with additional features
@@ -204,39 +205,27 @@ class L2GPrediction(Dataset):
         if "locusToGeneFeatures" in self.df.columns:
             self.df = self.df.drop("locusToGeneFeatures")
 
-        # Columns identifying a studyLocus/gene pair
-        prediction_id_columns = ["studyLocusId", "geneId"]
-
-        # L2G matrix columns to build the map:
-        columns_to_map = [
-            column
-            for column in feature_matrix._df.columns
-            if column not in prediction_id_columns
-        ]
-
         # Aggregating all features into a single map column:
         aggregated_features = (
             feature_matrix._df.withColumn(
                 "locusToGeneFeatures",
                 f.create_map(
                     *sum(
-                        [
-                            (f.lit(colname), f.col(colname))
-                            for colname in columns_to_map
-                        ],
+                        ((f.lit(feature), f.col(feature)) for feature in features_list),
                         (),
                     )
                 ),
             )
-            # from the freshly created map, we filter out the null values
             .withColumn(
                 "locusToGeneFeatures",
-                f.expr("map_filter(locusToGeneFeatures, (k, v) -> v is not null)"),
+                f.expr("map_filter(locusToGeneFeatures, (k, v) -> v != 0)"),
             )
-            .drop(*columns_to_map)
+            .drop(*features_list)
         )
         return L2GPrediction(
-            _df=self.df.join(aggregated_features, on=prediction_id_columns, how="left"),
+            _df=self.df.join(
+                aggregated_features, on=["studyLocusId", "geneId"], how="left"
+            ),
             _schema=self.get_schema(),
             model=self.model,
         )

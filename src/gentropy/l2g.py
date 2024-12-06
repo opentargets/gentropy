@@ -7,7 +7,7 @@ from typing import Any
 
 import pyspark.sql.functions as f
 from sklearn.ensemble import GradientBoostingClassifier
-from wandb import login as wandb_login
+from wandb.sdk.wandb_login import login as wandb_login
 
 from gentropy.common.schemas import compare_struct_schemas
 from gentropy.common.session import Session
@@ -285,9 +285,11 @@ class LocusToGeneStep:
         )
         predictions.filter(
             f.col("score") >= self.l2g_threshold
-        ).add_locus_to_gene_features(self.feature_matrix).explain().df.coalesce(
-            self.session.output_partitions
-        ).write.mode(self.session.write_mode).parquet(self.predictions_path)
+        ).add_locus_to_gene_features(
+            self.feature_matrix, self.features_list
+        ).explain().df.coalesce(self.session.output_partitions).write.mode(
+            self.session.write_mode
+        ).parquet(self.predictions_path)
         self.session.logger.info("L2G predictions saved successfully.")
 
     def run_train(self) -> None:
