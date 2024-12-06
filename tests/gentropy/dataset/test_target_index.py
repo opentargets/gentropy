@@ -4,29 +4,29 @@ from __future__ import annotations
 
 from pyspark.sql import DataFrame
 
-from gentropy.dataset.gene_index import GeneIndex
+from gentropy.dataset.target_index import TargetIndex
 
 
-def test_gene_index_creation(mock_gene_index: GeneIndex) -> None:
-    """Test gene index creation with mock gene index."""
-    assert isinstance(mock_gene_index, GeneIndex)
+def test_target_index_creation(mock_target_index: TargetIndex) -> None:
+    """Test target index creation with mock target index."""
+    assert isinstance(mock_target_index, TargetIndex)
 
 
-def test_gene_index_location_lut(mock_gene_index: GeneIndex) -> None:
-    """Test gene index location lut."""
-    assert isinstance(mock_gene_index.locations_lut(), DataFrame)
+def test_target_index_location_lut(mock_target_index: TargetIndex) -> None:
+    """Test target index location lut."""
+    assert isinstance(mock_target_index.locations_lut(), DataFrame)
 
 
-def test_gene_index_symbols_lut(mock_gene_index: GeneIndex) -> None:
-    """Test gene index symbols lut."""
-    assert isinstance(mock_gene_index.symbols_lut(), DataFrame)
+def test_target_index_symbols_lut(mock_target_index: TargetIndex) -> None:
+    """Test target index symbols lut."""
+    assert isinstance(mock_target_index.symbols_lut(), DataFrame)
 
 
-def test_gene_index_filter_by_biotypes(mock_gene_index: GeneIndex) -> None:
-    """Test gene index filter by biotypes."""
+def test_target_index_filter_by_biotypes(mock_target_index: TargetIndex) -> None:
+    """Test target index filter by biotypes."""
     assert isinstance(
-        mock_gene_index.filter_by_biotypes(
+        mock_target_index.filter_by_biotypes(
             biotypes=["protein_coding", "3prime_overlapping_ncRNA", "antisense"]
         ),
-        GeneIndex,
+        TargetIndex,
     )
