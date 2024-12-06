@@ -186,6 +186,7 @@ class L2GPrediction(Dataset):
             )
             .select(*self.get_schema().names),
             _schema=self.get_schema(),
+            model=self.model,
         )
 
     def add_locus_to_gene_features(
@@ -237,4 +238,5 @@ class L2GPrediction(Dataset):
         return L2GPrediction(
             _df=self.df.join(aggregated_features, on=prediction_id_columns, how="left"),
             _schema=self.get_schema(),
+            model=self.model,
         )
