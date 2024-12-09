@@ -174,7 +174,7 @@ class LocusToGeneTrainer:
             wandb_run_name (str): Name of the W&B run
 
         Raises:
-            ValueError: If dependencies are not available.
+            RuntimeError: If dependencies are not available.
         """
         if (
             self.x_train is None
@@ -183,7 +183,7 @@ class LocusToGeneTrainer:
             or self.y_test is None
             or self.features_list is None
         ):
-            raise ValueError("Something went wrong, couldn't log to W&B.")
+            raise RuntimeError("Train data not set, we cannot log to W&B.")
         assert (
             self.x_train.size != 0 and self.y_train.size != 0
         ), "Train data not set, nothing to evaluate."
