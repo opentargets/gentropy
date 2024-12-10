@@ -8,6 +8,582 @@
 
 
 
+## v2.0.0 (2024-12-10)
+### 💥 Breaking
+
+
+- \[**l2g!**\] implement new training strategy splitting between EFO/gene pairs and with cross validation (#938) [\@Irene López Santiago](mailto:45119610+ireneisdoomed@users.noreply.github.com)
+
+
+- \[**L2GFeatureMatrix!**\] streamline feature matrix management (#745) [\@Irene López Santiago](mailto:45119610+ireneisdoomed@users.noreply.github.com)
+
+
+-  drop airflow orchestration layer from gentropy (#758) [\@Szymon Szyszkowski](mailto:69353402+project-defiant@users.noreply.github.com)
+
+### ✨ Feature
+
+
+-  adding GERP conservation score to variant annotation (#933) [\@Daniel Suveges](mailto:daniel.suveges@protonmail.com)
+
+
+-  allow building package from tag (#930) [\@Szymon Szyszkowski](mailto:69353402+project-defiant@users.noreply.github.com)
+
+
+-  coalesce l2g fm and predictions (#934) [\@Szymon Szyszkowski](mailto:69353402+project-defiant@users.noreply.github.com)
+
+
+-  coalescing the datasets (#932) [\@Szymon Szyszkowski](mailto:69353402+project-defiant@users.noreply.github.com)
+
+
+- \[**gold_standard**\] add traitFromSourceMappedId to schema (#924) [\@Irene López Santiago](mailto:45119610+ireneisdoomed@users.noreply.github.com)
+
+
+-  changing studylocus validation to 95 percent credible sets (#921) [\@Daniel-Considine](mailto:113430683+Daniel-Considine@users.noreply.github.com)
+
+
+-  reverting to using finngen 95% credible sets (#922) [\@Daniel-Considine](mailto:113430683+Daniel-Considine@users.noreply.github.com)
+
+
+- \[**variant index**\] variant description to summarise variant consequences in transcripts (#914) [\@Daniel Suveges](mailto:daniel.suveges@protonmail.com)
+
+
+-  redefine neighbourhood features to represent similarity with best metric + other fixes (#913) [\@Irene López Santiago](mailto:45119610+ireneisdoomed@users.noreply.github.com)
+
+
+-  gzip evicence output to match existing format (#915) [\@Szymon Szyszkowski](mailto:69353402+project-defiant@users.noreply.github.com)
+
+
+- \[**gold_standard**\] arbitrary gold standards (#912) [\@Szymon Szyszkowski](mailto:69353402+project-defiant@users.noreply.github.com)
+
+
+-  changes to PICS credible sets (OUT_OF_SAMPLE_LD QC flag and capital PICS) (#910) [\@Vivien Ho](mailto:56025826+vivienho@users.noreply.github.com)
+
+
+-  extract pos and chromosome from variantid (#909) [\@Szymon Szyszkowski](mailto:69353402+project-defiant@users.noreply.github.com)
+
+
+-  improve partitioning of credible sets (#900) [\@David Ochoa](mailto:ochoa@ebi.ac.uk)
+
+
+- \[**feature_matrix**\] extract features for gwas associations only (#901) [\@Irene López Santiago](mailto:45119610+ireneisdoomed@users.noreply.github.com)
+
+
+-  adding l2g features to prediction table (#899) [\@Daniel Suveges](mailto:daniel.suveges@protonmail.com)
+
+
+- \[**feature_matrix**\] impute values for gene attribute cols (#895) [\@Irene López Santiago](mailto:45119610+ireneisdoomed@users.noreply.github.com)
+
+
+-  deconvolute studies upon ingestion of GWAS Catalog datasets  (#887) [\@Daniel Suveges](mailto:daniel.suveges@protonmail.com)
+
+
+-  add effect size direction to coloc output (#854) [\@Tobi Alegbe](mailto:alegbe@ebi.ac.uk)
+
+
+-  add step to generate association data (#888) [\@Vivien Ho](mailto:56025826+vivienho@users.noreply.github.com)
+
+
+- \[**trainer**\] log model explanation with shap (#886) [\@Irene López Santiago](mailto:45119610+ireneisdoomed@users.noreply.github.com)
+
+
+-  flag and filter credible sets (#879) [\@Tobi Alegbe](mailto:alegbe@ebi.ac.uk)
+
+
+-  flagging duplicated entries while keeping one of the duplicates (#876) [\@Daniel Suveges](mailto:daniel.suveges@protonmail.com)
+
+
+-  making credset qc have an option to coalsce and deduplicate credible sets without ld pruning (#877) [\@Daniel-Considine](mailto:113430683+Daniel-Considine@users.noreply.github.com)
+
+
+-  l2g feature to indicate if gene is protein-coding or not (#873) [\@xyg123](mailto:33658607+xyg123@users.noreply.github.com)
+
+
+- \[**l2g**\] normalise distance features (#878) [\@Irene López Santiago](mailto:45119610+ireneisdoomed@users.noreply.github.com)
+
+
+- \[**l2g_feature_matrix**\] add `credibleSetConfidence` to L2G (#875) [\@Irene López Santiago](mailto:45119610+ireneisdoomed@users.noreply.github.com)
+
+
+- \[**variant_index**\] hash variants at the time of instance creation (#874) [\@Irene López Santiago](mailto:45119610+ireneisdoomed@users.noreply.github.com)
+
+
+-  step to export disease/target evidence (#867) [\@Daniel Suveges](mailto:daniel.suveges@protonmail.com)
+
+
+-  change betas to posterior mean from susie for Finngen credible sets (#872) [\@Daniel-Considine](mailto:113430683+Daniel-Considine@users.noreply.github.com)
+
+
+-  add gene count features to l2g (#852) [\@xyg123](mailto:33658607+xyg123@users.noreply.github.com)
+
+
+-  adding desision tree to fine-mapper (#860) [\@Yakov](mailto:yt4@sanger.ac.uk)
+
+
+-  gwas catalog top-hit + study step (#808) [\@David Ochoa](mailto:ochoa@ebi.ac.uk)
+
+
+- \[**l2g**\] extend colocalisation neighbourhood metrics to missing genes in the vicinity (#851) [\@Irene López Santiago](mailto:45119610+ireneisdoomed@users.noreply.github.com)
+
+
+- \[**susie_finemapper**\] allow for extraction of the log file from manifest (#859) [\@Szymon Szyszkowski](mailto:69353402+project-defiant@users.noreply.github.com)
+
+
+- \[**l2g**\] limit colocalisation neighbourhood to protein coding genes (#847) [\@Irene López Santiago](mailto:45119610+ireneisdoomed@users.noreply.github.com)
+
+
+- \[**coloc**\] step refactoring (#845) [\@Szymon Szyszkowski](mailto:69353402+project-defiant@users.noreply.github.com)
+
+
+-  adding new LD interface (#759) [\@Yakov](mailto:yt4@sanger.ac.uk)
+
+
+-  enhance variant index partitioning (#834) [\@David Ochoa](mailto:ochoa@ebi.ac.uk)
+
+
+- \[**l2g**\] merge sQTL and tuQTL colocalisation features (#824) [\@Irene López Santiago](mailto:45119610+ireneisdoomed@users.noreply.github.com)
+
+
+-  decouple feature generation from L2G training step (#823) [\@Irene López Santiago](mailto:45119610+ireneisdoomed@users.noreply.github.com)
+
+
+-  change LD annotation for PICS fine-mapping to use major ancestry (#821) [\@Vivien Ho](mailto:56025826+vivienho@users.noreply.github.com)
+
+
+-  optimisation of qc step (#813) [\@Yakov](mailto:yt4@sanger.ac.uk)
+
+
+- \[**l2g**\] implement variant consequence features from VEP (#805) [\@Irene López Santiago](mailto:45119610+ireneisdoomed@users.noreply.github.com)
+
+
+-  fix biosample study validation (#810) [\@Tobi Alegbe](mailto:obba2@cam.ac.uk)
+
+
+-  add sumstat QC fields to schema (#809) [\@Yakov](mailto:yt4@sanger.ac.uk)
+
+
+-  adding filtering to susie finemapper (#796) [\@Yakov](mailto:yt4@sanger.ac.uk)
+
+
+- \[**validation**\] adding credible set confidence annotation at validation time (#801) [\@Daniel Suveges](mailto:daniel.suveges@protonmail.com)
+
+
+-  force reinstallation of the gentropy on the cluster (#804) [\@Szymon Szyszkowski](mailto:69353402+project-defiant@users.noreply.github.com)
+
+
+-  out sample LD qc reason (#798) [\@David Ochoa](mailto:ochoa@ebi.ac.uk)
+
+
+-  drop `v2g` and reimplement distance features (#771) [\@Irene López Santiago](mailto:45119610+ireneisdoomed@users.noreply.github.com)
+
+
+-  change `StudyLocusId` hashing method to md5 (and change `StudyLocusId` to string type) (#783) [\@Vivien Ho](mailto:56025826+vivienho@users.noreply.github.com)
+
+
+-  flag credible sets explained by SuSiE regions (#780) [\@David Ochoa](mailto:ochoa@ebi.ac.uk)
+
+
+-  99% credible set validation during `study_locus_validation` (#765) [\@David Ochoa](mailto:ochoa@ebi.ac.uk)
+
+
+-  add biosample index (#769) [\@Tobi Alegbe](mailto:obba2@cam.ac.uk)
+
+
+-  adding window based clumping to StudyLocus (#779) [\@Daniel Suveges](mailto:daniel.suveges@protonmail.com)
+
+
+-  add `studyType` to `StudyLocus` and `Colocalisation` (and `StudyLocusOverlap`) (#782) [\@Vivien Ho](mailto:56025826+vivienho@users.noreply.github.com)
+
+
+- \[**dataproc**\] ability to version gentropy for dataproc cluster (#774) [\@Szymon Szyszkowski](mailto:69353402+project-defiant@users.noreply.github.com)
+
+
+-  flag PICS top hits in studies with credset sumstats (#777) [\@David Ochoa](mailto:ochoa@ebi.ac.uk)
+
+
+-  flag all top-hits from GWAS catalog curation (#775) [\@David Ochoa](mailto:ochoa@ebi.ac.uk)
+
+
+-  flag MHC credible sets based on lead (#767) [\@David Ochoa](mailto:ochoa@ebi.ac.uk)
+
+
+- \[**validation**\] adding credible set variant validation (#757) [\@Daniel Suveges](mailto:daniel.suveges@protonmail.com)
+
+
+-  ingest FinnGen UKB meta-analysis data (#756) [\@Kirill Tsukanov](mailto:tskir@users.noreply.github.com)
+
+
+-  adding finemapping method to studylocusid hash (#744) [\@Daniel-Considine](mailto:113430683+Daniel-Considine@users.noreply.github.com)
+
+
+- \[**variant index**\] improved data structure (#710) [\@Daniel Suveges](mailto:daniel.suveges@protonmail.com)
+
+
+-  logic and airflow pipeline for validation (#730) [\@Daniel Suveges](mailto:daniel.suveges@protonmail.com)
+
+
+-  Finngen r11 ingestion (#733) [\@Szymon Szyszkowski](mailto:69353402+project-defiant@users.noreply.github.com)
+
+
+- \[**variant_index**\] changes for a successful run (#735) [\@Irene López Santiago](mailto:45119610+ireneisdoomed@users.noreply.github.com)
+
+
+-  notebook for locus breaker and susie finemapping benchmark (#717) [\@Daniel-Considine](mailto:113430683+Daniel-Considine@users.noreply.github.com)
+
+
+-  expose summary statistics qc and locus breaker steps to hydra cli (#716) [\@Szymon Szyszkowski](mailto:69353402+project-defiant@users.noreply.github.com)
+
+### 🐛 Fix
+
+
+- \[**l2g_predictions**\] annotate based on list of features + filter out missing annotation (#925) [\@Irene López Santiago](mailto:45119610+ireneisdoomed@users.noreply.github.com)
+
+
+-  swap the ref parse (#935) [\@Szymon Szyszkowski](mailto:69353402+project-defiant@users.noreply.github.com)
+
+
+-  r2 for lead variant is always 1 (#919) [\@Yakov](mailto:yt4@sanger.ac.uk)
+
+
+-  using the 99% PIP cs column,  (#904) [\@Daniel-Considine](mailto:113430683+Daniel-Considine@users.noreply.github.com)
+
+
+-  reclassify eqtl catalogue sc datasets (#894) [\@Tobi Alegbe](mailto:alegbe@ebi.ac.uk)
+
+
+-  do not impute `isProteinCoding` (#902) [\@Yakov](mailto:yt4@sanger.ac.uk)
+
+
+-  ensure the #CHROM is not quoted (#896) [\@Szymon Szyszkowski](mailto:69353402+project-defiant@users.noreply.github.com)
+
+
+- \[**`credibleSetConfidence`**\] inner join between study locus and variant index to avoid null genes (#890) [\@Irene López Santiago](mailto:45119610+ireneisdoomed@users.noreply.github.com)
+
+
+-  revert distinct for associations input file (#871) [\@Vivien Ho](mailto:56025826+vivienho@users.noreply.github.com)
+
+
+- \[**distance_features**\] correct mean distance equation and correct rows with negative values (#889) [\@Irene López Santiago](mailto:45119610+ireneisdoomed@users.noreply.github.com)
+
+
+-  fix in calculate_credible_set_log10bf (#868) [\@Yakov](mailto:yt4@sanger.ac.uk)
+
+
+-  logging of finemamper (#870) [\@Yakov](mailto:yt4@sanger.ac.uk)
+
+
+-  add scQTLs into coloc features (#833) [\@Yakov](mailto:yt4@sanger.ac.uk)
+
+
+-  biosample index add efo cell types (#853) [\@Tobi Alegbe](mailto:obba2@cam.ac.uk)
+
+
+-  adding beta for lead variant (#863) [\@Yakov](mailto:yt4@sanger.ac.uk)
+
+
+-  susie credible sets with unknown confidence (#862) [\@David Ochoa](mailto:ochoa@ebi.ac.uk)
+
+
+-  filter nan in CSs (#855) [\@Yakov](mailto:yt4@sanger.ac.uk)
+
+
+- \[**eqtl**\] deduplicating credible set loci (#849) [\@Daniel Suveges](mailto:daniel.suveges@protonmail.com)
+
+
+-  updating the susie_finemapper init (#846) [\@Daniel-Considine](mailto:113430683+Daniel-Considine@users.noreply.github.com)
+
+
+-  l2g fixes (#844) [\@David Ochoa](mailto:ochoa@ebi.ac.uk)
+
+
+-  fix ukbppp studindex (#839) [\@Yakov](mailto:yt4@sanger.ac.uk)
+
+
+- \[**l2g**\] remove custom session params + other fixes (#841) [\@Irene López Santiago](mailto:45119610+ireneisdoomed@users.noreply.github.com)
+
+
+- \[**trainer**\] drop `studyLocusId` from training sets (#837) [\@Irene López Santiago](mailto:45119610+ireneisdoomed@users.noreply.github.com)
+
+
+- \[**find_overlap**\] missing right study type in output (#828) [\@Daniel Suveges](mailto:daniel.suveges@protonmail.com)
+
+
+-  adding single point statistics to pics loci (#832) [\@Daniel Suveges](mailto:daniel.suveges@protonmail.com)
+
+
+-  write mode added to validation steps (#826) [\@David Ochoa](mailto:ochoa@ebi.ac.uk)
+
+
+-  empty inSilicoPredictors object in GnomAD variant index (#807) [\@Daniel Suveges](mailto:daniel.suveges@protonmail.com)
+
+
+-  mhc flag incorrect (#825) [\@David Ochoa](mailto:ochoa@ebi.ac.uk)
+
+
+-  biosample id duplication (#822) [\@Tobi Alegbe](mailto:obba2@cam.ac.uk)
+
+
+-  adding studId to FM log (#816) [\@Yakov](mailto:yt4@sanger.ac.uk)
+
+
+-  fix of type error in schema checking (#817) [\@Yakov](mailto:yt4@sanger.ac.uk)
+
+
+- \[**validation**\] add `qualityControls` column if missing in StudyLocus dataset when perfroming validation (#814) [\@Szymon Szyszkowski](mailto:69353402+project-defiant@users.noreply.github.com)
+
+
+-  align the schema of study_index for ukb ppp eur (#803) [\@Szymon Szyszkowski](mailto:69353402+project-defiant@users.noreply.github.com)
+
+
+-  adding data specific p-value filters (#788) [\@Yakov](mailto:yt4@sanger.ac.uk)
+
+
+- \[**schema**\] recursive validation of arbitrarily deep nested structure (#790) [\@Daniel Suveges](mailto:daniel.suveges@protonmail.com)
+
+
+-  fix bag in neglog_pvalue_to_mantissa_and_exponent (#795) [\@Yakov](mailto:yt4@sanger.ac.uk)
+
+
+- \[**safe_array_union**\] allow for sorting nested structs (#793) [\@Szymon Szyszkowski](mailto:69353402+project-defiant@users.noreply.github.com)
+
+
+-  remove study_index_path from coloc step (#791) [\@Szymon Szyszkowski](mailto:69353402+project-defiant@users.noreply.github.com)
+
+
+- \[**vep_parser**\] use nested schema for insilico predictors (#789) [\@Szymon Szyszkowski](mailto:69353402+project-defiant@users.noreply.github.com)
+
+
+-  clean unused study_locus step parameter (#786) [\@David Ochoa](mailto:ochoa@ebi.ac.uk)
+
+
+- \[**finngen_study_index**\] improved tests for finngen study index (#776) [\@Szymon Szyszkowski](mailto:69353402+project-defiant@users.noreply.github.com)
+
+
+-  remove n_eff check from qc_step (#785) [\@Yakov](mailto:yt4@sanger.ac.uk)
+
+
+-  small qc flag fixes (#784) [\@Yakov](mailto:yt4@sanger.ac.uk)
+
+
+- \[**ld clumping**\] a revised logic allows a more accurate clumping (#772) [\@Daniel Suveges](mailto:daniel.suveges@protonmail.com)
+
+
+- \[**effect harmonisation**\] addressing beta harmonisation bug  (#762) [\@Daniel Suveges](mailto:daniel.suveges@protonmail.com)
+
+
+-  add condition to eQTL study index and schema (#770) [\@Vivien Ho](mailto:56025826+vivienho@users.noreply.github.com)
+
+
+-  prevent multiple credible filters to override spark plan (#766) [\@David Ochoa](mailto:ochoa@ebi.ac.uk)
+
+
+-  multiple fixes after debugging and test runs (#760) [\@Kirill Tsukanov](mailto:tskir@users.noreply.github.com)
+
+
+-  removing old functions (#752) [\@Yakov](mailto:yt4@sanger.ac.uk)
+
+
+-  validation name mapping (#753) [\@Szymon Szyszkowski](mailto:69353402+project-defiant@users.noreply.github.com)
+
+
+- \[**finngen_r11**\] preserve all studyIds (#747) [\@Szymon Szyszkowski](mailto:69353402+project-defiant@users.noreply.github.com)
+
+
+-  remove finngen prefix from credible set (#746) [\@Szymon Szyszkowski](mailto:69353402+project-defiant@users.noreply.github.com)
+
+
+-  adding carma_tau parameter to susie_finemapper (#743) [\@Yakov](mailto:yt4@sanger.ac.uk)
+
+
+-  using h4 instead of log2(h4/h3) (#740) [\@Daniel-Considine](mailto:113430683+Daniel-Considine@users.noreply.github.com)
+
+
+-  revert recursiveFileLookup to False (#738) [\@Szymon Szyszkowski](mailto:69353402+project-defiant@users.noreply.github.com)
+
+
+-  update cluster creation command (#739) [\@Szymon Szyszkowski](mailto:69353402+project-defiant@users.noreply.github.com)
+
+
+-  updating config paths and fine-mapping methods (#725) [\@Daniel-Considine](mailto:113430683+Daniel-Considine@users.noreply.github.com)
+
+
+-  change config params to match new name (#721) [\@Szymon Szyszkowski](mailto:69353402+project-defiant@users.noreply.github.com)
+
+### 📖 Documentation
+
+
+-  fix broken refs (#768) [\@David Ochoa](mailto:ochoa@ebi.ac.uk)
+
+
+-  macos fix for some functions (#729) [\@Daniel-Considine](mailto:113430683+Daniel-Considine@users.noreply.github.com)
+
+### ♻️ Refactor
+
+
+-  finemapping method enum (#897) [\@David Ochoa](mailto:ochoa@ebi.ac.uk)
+
+
+- \[**convert to vcf**\] allow multiple input sources (#891) [\@Szymon Szyszkowski](mailto:69353402+project-defiant@users.noreply.github.com)
+
+
+- \[**vep_parser**\] store consequence to impact score as a project config (#811) [\@Irene López Santiago](mailto:45119610+ireneisdoomed@users.noreply.github.com)
+
+
+-  generalise the harmonisation pipeline (#755) [\@Kirill Tsukanov](mailto:tskir@users.noreply.github.com)
+
+
+-  generalise per-chromosome processing (#754) [\@Kirill Tsukanov](mailto:tskir@users.noreply.github.com)
+
+### ⚡️ Performance
+
+
+-  quickly build a Docker image for every branch (#773) [\@Kirill Tsukanov](mailto:tskir@users.noreply.github.com)
+
+### ✅ Test
+
+
+-  skip `fetch_coordinates_from_rsids` (#850) [\@Irene López Santiago](mailto:45119610+ireneisdoomed@users.noreply.github.com)
+
+### 🏗 Build
+
+
+- \[**deps-dev**\] bump ruff from 0.7.1 to 0.8.1 (#936) [\@dependabot[bot]](mailto:49699333+dependabot[bot]@users.noreply.github.com)
+
+
+- \[**deps-dev**\] bump ipython from 8.29.0 to 8.30.0 (#937) [\@dependabot[bot]](mailto:49699333+dependabot[bot]@users.noreply.github.com)
+
+
+- \[**deps-dev**\] bump pytest-cov from 5.0.0 to 6.0.0 (#893) [\@dependabot[bot]](mailto:49699333+dependabot[bot]@users.noreply.github.com)
+
+
+- \[**deps-dev**\] bump mypy from 1.12.1 to 1.13.0 (#884) [\@dependabot[bot]](mailto:49699333+dependabot[bot]@users.noreply.github.com)
+
+
+- \[**deps-dev**\] bump ipython from 8.28.0 to 8.29.0 (#883) [\@dependabot[bot]](mailto:49699333+dependabot[bot]@users.noreply.github.com)
+
+
+- \[**deps-dev**\] bump ruff from 0.6.1 to 0.7.0 (#864) [\@dependabot[bot]](mailto:49699333+dependabot[bot]@users.noreply.github.com)
+
+
+- \[**deps-dev**\] bump mypy from 1.11.0 to 1.12.1 (#865) [\@dependabot[bot]](mailto:49699333+dependabot[bot]@users.noreply.github.com)
+
+
+- \[**deps-dev**\] bump mkdocstrings-python from 1.11.1 to 1.12.1 (#842) [\@dependabot[bot]](mailto:49699333+dependabot[bot]@users.noreply.github.com)
+
+
+- \[**deps-dev**\] bump pyparsing from 3.1.2 to 3.2.0 (#836) [\@dependabot[bot]](mailto:49699333+dependabot[bot]@users.noreply.github.com)
+
+
+- \[**deps-dev**\] bump mkdocs-git-committers-plugin-2 from 2.3.0 to 2.4.1 (#818) [\@dependabot[bot]](mailto:49699333+dependabot[bot]@users.noreply.github.com)
+
+
+- \[**deps-dev**\] bump pymdown-extensions from 10.10.1 to 10.11.2 (#815) [\@dependabot[bot]](mailto:49699333+dependabot[bot]@users.noreply.github.com)
+
+
+- \[**deps-dev**\] bump pre-commit from 3.8.0 to 4.0.0 (#820) [\@dependabot[bot]](mailto:49699333+dependabot[bot]@users.noreply.github.com)
+
+
+- \[**deps-dev**\] bump ipython from 8.27.0 to 8.28.0 (#819) [\@dependabot[bot]](mailto:49699333+dependabot[bot]@users.noreply.github.com)
+
+
+-  updated precommits including adjustments to docstrings (#787) [\@David Ochoa](mailto:ochoa@ebi.ac.uk)
+
+
+- \[**deps-dev**\] bump pymdown-extensions from 10.9 to 10.10.1 (#781) [\@dependabot[bot]](mailto:49699333+dependabot[bot]@users.noreply.github.com)
+
+
+- \[**deps**\] bump wandb from 0.17.2 to 0.18.0 (#763) [\@dependabot[bot]](mailto:49699333+dependabot[bot]@users.noreply.github.com)
+
+
+- \[**deps-dev**\] bump mkdocstrings-python from 1.10.5 to 1.11.1 (#749) [\@dependabot[bot]](mailto:49699333+dependabot[bot]@users.noreply.github.com)
+
+
+- \[**deps-dev**\] bump deptry from 0.19.1 to 0.20.0 (#742) [\@dependabot[bot]](mailto:49699333+dependabot[bot]@users.noreply.github.com)
+
+
+- \[**deps-dev**\] bump ipython from 8.26.0 to 8.27.0 (#741) [\@dependabot[bot]](mailto:49699333+dependabot[bot]@users.noreply.github.com)
+
+
+- \[**deps-dev**\] bump pre-commit from 3.7.1 to 3.8.0 (#719) [\@dependabot[bot]](mailto:49699333+dependabot[bot]@users.noreply.github.com)
+
+
+- \[**deps-dev**\] bump lxml from 5.2.2 to 5.3.0 (#727) [\@dependabot[bot]](mailto:49699333+dependabot[bot]@users.noreply.github.com)
+
+
+- \[**deps-dev**\] bump deptry from 0.18.0 to 0.19.1 (#728) [\@dependabot[bot]](mailto:49699333+dependabot[bot]@users.noreply.github.com)
+
+
+- \[**deps-dev**\] bump ruff from 0.5.1 to 0.6.1 (#732) [\@dependabot[bot]](mailto:49699333+dependabot[bot]@users.noreply.github.com)
+
+
+- \[**deps-dev**\] bump deptry from 0.17.0 to 0.18.0 (#723) [\@dependabot[bot]](mailto:49699333+dependabot[bot]@users.noreply.github.com)
+
+
+- \[**deps-dev**\] bump pymdown-extensions from 10.8.1 to 10.9 (#720) [\@dependabot[bot]](mailto:49699333+dependabot[bot]@users.noreply.github.com)
+
+### 👷‍♂️ Ci
+
+
+-  configure java v8 (#840) [\@Irene López Santiago](mailto:45119610+ireneisdoomed@users.noreply.github.com)
+
+### 🚀 Chore
+
+
+- \[**vep**\] Ensembl version update (#931) [\@Daniel Suveges](mailto:daniel.suveges@protonmail.com)
+
+
+- \[**gnomad**\] updating GnomAD version to 4.1 from 4.0 + using joint frequencies (#929) [\@Daniel Suveges](mailto:daniel.suveges@protonmail.com)
+
+
+-  pre-commit autoupdate (#918) [\@pre-commit-ci[bot]](mailto:66853113+pre-commit-ci[bot]@users.noreply.github.com)
+
+
+-  pre-commit autoupdate (#898) [\@pre-commit-ci[bot]](mailto:66853113+pre-commit-ci[bot]@users.noreply.github.com)
+
+
+- \[**deps**\] bump codecov/codecov-action from 4 to 5 (#916) [\@dependabot[bot]](mailto:49699333+dependabot[bot]@users.noreply.github.com)
+
+
+-  validate chromosome (#906) [\@Daniel Suveges](mailto:daniel.suveges@protonmail.com)
+
+
+- \[**l2g**\] parametrise score threshold when writing predictions (#907) [\@Irene López Santiago](mailto:45119610+ireneisdoomed@users.noreply.github.com)
+
+
+-  add `hf_model_commit_message` to `LocusToGeneStep` (#905) [\@Irene López Santiago](mailto:45119610+ireneisdoomed@users.noreply.github.com)
+
+
+-  pre-commit autoupdate (#885) [\@pre-commit-ci[bot]](mailto:66853113+pre-commit-ci[bot]@users.noreply.github.com)
+
+
+-  add chromosome validation (#869) [\@Yakov](mailto:yt4@sanger.ac.uk)
+
+
+-  pre-commit autoupdate (#866) [\@pre-commit-ci[bot]](mailto:66853113+pre-commit-ci[bot]@users.noreply.github.com)
+
+
+- \[**coloc**\] changing the content of `numberColocalisingVariants` field (#857) [\@Daniel Suveges](mailto:daniel.suveges@protonmail.com)
+
+
+-  adding logging even when no CS in locus (#848) [\@Yakov](mailto:yt4@sanger.ac.uk)
+
+
+-  remove h4/h3 ratio (#829) [\@Yakov](mailto:yt4@sanger.ac.uk)
+
+
+-  adding priors to coloc step (#830) [\@Yakov](mailto:yt4@sanger.ac.uk)
+
+
+-  make the lb clumping ingest the partitionned data (#806) [\@Szymon Szyszkowski](mailto:69353402+project-defiant@users.noreply.github.com)
+
+
+-  drop redundant parameter (#802) [\@Szymon Szyszkowski](mailto:69353402+project-defiant@users.noreply.github.com)
+
+
+-  pre-commit autoupdate (#724) [\@pre-commit-ci[bot]](mailto:66853113+pre-commit-ci[bot]@users.noreply.github.com)
+
+
+-  pre-commit autoupdate (#715) [\@pre-commit-ci[bot]](mailto:66853113+pre-commit-ci[bot]@users.noreply.github.com)
+
 ## v1.7.0 (2024-07-22)
 ### ✨ Feature
 
