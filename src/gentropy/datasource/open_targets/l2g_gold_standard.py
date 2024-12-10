@@ -1,4 +1,5 @@
 """Parser for OTPlatform locus to gene gold standards curation."""
+
 from __future__ import annotations
 
 from typing import Type
@@ -8,7 +9,7 @@ from pyspark.sql import DataFrame
 
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
 from gentropy.dataset.study_locus import StudyLocus
-from gentropy.dataset.v2g import V2G
+from gentropy.dataset.variant_index import VariantIndex
 
 
 class OpenTargetsL2GGoldStandard:
@@ -51,7 +52,7 @@ class OpenTargetsL2GGoldStandard:
             )
             .withColumn(
                 "studyLocusId",
-                StudyLocus.assign_study_locus_id(f.col("studyId"), f.col("variantId")),
+                StudyLocus.assign_study_locus_id(["studyId", "variantId"]),
             )
             .groupBy("studyLocusId", "studyId", "variantId", "geneId")
             .agg(f.collect_set("source").alias("sources"))
@@ -59,7 +60,9 @@ class OpenTargetsL2GGoldStandard:
 
     @classmethod
     def expand_gold_standard_with_negatives(
-        cls: Type[OpenTargetsL2GGoldStandard], positive_set: DataFrame, v2g: V2G
+        cls: Type[OpenTargetsL2GGoldStandard],
+        positive_set: DataFrame,
+        variant_index: VariantIndex,
     ) -> DataFrame:
         """Create full set of positive and negative evidence of locus to gene associations.
 
@@ -67,7 +70,7 @@ class OpenTargetsL2GGoldStandard:
 
         Args:
             positive_set (DataFrame): Positive set from curation
-            v2g (V2G): Variant to gene dataset to bring distance between a variant and a gene's TSS
+            variant_index (VariantIndex): Variant index to get distance to gene
 
         Returns:
             DataFrame: Full set of positive and negative evidence of locus to gene associations
@@ -75,9 +78,13 @@ class OpenTargetsL2GGoldStandard:
         return (
             positive_set.withColumnRenamed("geneId", "curated_geneId")
             .join(
-                v2g.df.selectExpr(
-                    "variantId", "geneId as non_curated_geneId", "distance"
-                ).filter(f.col("distance") <= cls.LOCUS_TO_GENE_WINDOW),
+                variant_index.get_distance_to_gene()
+                .selectExpr(
+                    "variantId",
+                    "targetId as non_curated_geneId",
+                    "distanceFromTss",
+                )
+                .filter(f.col("distanceFromTss") <= cls.LOCUS_TO_GENE_WINDOW),
                 on="variantId",
                 how="left",
             )
@@ -85,7 +92,7 @@ class OpenTargetsL2GGoldStandard:
                 "goldStandardSet",
                 f.when(
                     (f.col("curated_geneId") == f.col("non_curated_geneId"))
-                    # to keep the positives that are outside the v2g dataset
+                    # to keep the positives that are not part of the variant index
                     | (f.col("non_curated_geneId").isNull()),
                     f.lit(L2GGoldStandard.GS_POSITIVE_LABEL),
                 ).otherwise(L2GGoldStandard.GS_NEGATIVE_LABEL),
@@ -97,27 +104,27 @@ class OpenTargetsL2GGoldStandard:
                     f.col("curated_geneId"),
                 ).otherwise(f.col("non_curated_geneId")),
             )
-            .drop("distance", "curated_geneId", "non_curated_geneId")
+            .drop("distanceFromTss", "curated_geneId", "non_curated_geneId")
         )
 
     @classmethod
     def as_l2g_gold_standard(
         cls: type[OpenTargetsL2GGoldStandard],
         gold_standard_curation: DataFrame,
-        v2g: V2G,
+        variant_index: VariantIndex,
     ) -> L2GGoldStandard:
         """Initialise L2GGoldStandard from source dataset.
 
         Args:
             gold_standard_curation (DataFrame): Gold standard curation dataframe, extracted from https://github.com/opentargets/genetics-gold-standards
-            v2g (V2G): Variant to gene dataset to bring distance between a variant and a gene's TSS
+            variant_index (VariantIndex): Dataset to bring distance between a variant and a gene's footprint
 
         Returns:
             L2GGoldStandard: L2G Gold Standard dataset. False negatives have not yet been removed.
         """
         return L2GGoldStandard(
             _df=cls.parse_positive_curation(gold_standard_curation).transform(
-                cls.expand_gold_standard_with_negatives, v2g
+                cls.expand_gold_standard_with_negatives, variant_index
             ),
             _schema=L2GGoldStandard.get_schema(),
         )

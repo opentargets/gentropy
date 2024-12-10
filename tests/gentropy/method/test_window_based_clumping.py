@@ -4,13 +4,14 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from gentropy.dataset.study_locus import StudyLocus
-from gentropy.method.window_based_clumping import WindowBasedClumping
 from pyspark.ml import functions as fml
 from pyspark.ml.linalg import VectorUDT
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as f
 from pyspark.sql.window import Window
+
+from gentropy.dataset.study_locus import StudyLocus
+from gentropy.method.window_based_clumping import WindowBasedClumping
 
 if TYPE_CHECKING:
     from gentropy.dataset.summary_statistics import SummaryStatistics

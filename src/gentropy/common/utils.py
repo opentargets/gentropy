@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import sys
 from math import floor, log10
-from typing import TYPE_CHECKING, Tuple
+from typing import TYPE_CHECKING
 
 import hail as hl
 import numpy as np
@@ -17,46 +17,6 @@ if TYPE_CHECKING:
     from hail.table import Table
     from numpy.typing import NDArray
     from pyspark.sql import Column
-
-
-def parse_region(region: str) -> Tuple[str, int, int]:
-    """Parse region string to chr:start-end.
-
-    Args:
-        region (str): Genomic region expected to follow chr##:#,###-#,### format or ##:####-#####.
-
-    Returns:
-        Tuple[str, int, int]: Chromosome, start position, end position
-
-    Raises:
-        ValueError: If the end and start positions cannot be casted to integer or not all three values value error is raised.
-
-    Examples:
-        >>> parse_region('chr6:28,510,120-33,480,577')
-        ('6', 28510120, 33480577)
-        >>> parse_region('6:28510120-33480577')
-        ('6', 28510120, 33480577)
-        >>> parse_region('6:28510120')
-        Traceback (most recent call last):
-            ...
-        ValueError: Genomic region should follow a ##:####-#### format.
-        >>> parse_region('6:28510120-foo')
-        Traceback (most recent call last):
-            ...
-        ValueError: Start and the end position of the region has to be integer.
-    """
-    region = region.replace(":", "-").replace(",", "")
-    try:
-        (chromosome, start_position, end_position) = region.split("-")
-    except ValueError as err:
-        raise ValueError("Genomic region should follow a ##:####-#### format.") from err
-
-    try:
-        return (chromosome.replace("chr", ""), int(start_position), int(end_position))
-    except ValueError as err:
-        raise ValueError(
-            "Start and the end position of the region has to be integer."
-        ) from err
 
 
 def calculate_confidence_interval(
@@ -355,3 +315,59 @@ def copy_to_gcs(source_path: str, destination_blob: str) -> None:
     bucket = client.bucket(bucket_name=urlparse(destination_blob).hostname)
     blob = bucket.blob(blob_name=urlparse(destination_blob).path.lstrip("/"))
     blob.upload_from_filename(source_path)
+
+
+def extract_chromosome(variant_id: Column) -> Column:
+    """Extract chromosome from variant ID.
+
+    This function extracts the chromosome from a variant ID. The variantId is expected to be in the format `chromosome_position_ref_alt`.
+    The function does not convert the GENCODE to Ensembl chromosome notation.
+    See https://genome.ucsc.edu/FAQ/FAQgenes.html#:~:text=maps%20only%20once.-,The%20differences,-Some%20of%20our
+
+    Args:
+        variant_id (Column): Variant ID
+
+    Returns:
+        Column: Chromosome
+
+    Examples:
+        >>> d = [("chr1_12345_A_T",),("15_KI270850v1_alt_48777_C_T",),]
+        >>> df = spark.createDataFrame(d).toDF("variantId")
+        >>> df.withColumn("chromosome", extract_chromosome(f.col("variantId"))).show(truncate=False)
+        +---------------------------+-----------------+
+        |variantId                  |chromosome       |
+        +---------------------------+-----------------+
+        |chr1_12345_A_T             |chr1             |
+        |15_KI270850v1_alt_48777_C_T|15_KI270850v1_alt|
+        +---------------------------+-----------------+
+        <BLANKLINE>
+
+    """
+    return f.regexp_extract(variant_id, r"^(.*)_\d+_.*$", 1)
+
+
+def extract_position(variant_id: Column) -> Column:
+    """Extract position from variant ID.
+
+    This function extracts the position from a variant ID. The variantId is expected to be in the format `chromosome_position_ref_alt`.
+
+    Args:
+        variant_id (Column): Variant ID
+
+    Returns:
+        Column: Position
+
+    Examples:
+        >>> d = [("chr1_12345_A_T",),("15_KI270850v1_alt_48777_C_T",),]
+        >>> df = spark.createDataFrame(d).toDF("variantId")
+        >>> df.withColumn("position", extract_position(f.col("variantId"))).show(truncate=False)
+        +---------------------------+--------+
+        |variantId                  |position|
+        +---------------------------+--------+
+        |chr1_12345_A_T             |12345   |
+        |15_KI270850v1_alt_48777_C_T|48777   |
+        +---------------------------+--------+
+        <BLANKLINE>
+
+    """
+    return f.regexp_extract(variant_id, r"^.*_(\d+)_.*$", 1)

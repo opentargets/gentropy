@@ -5,17 +5,24 @@ from __future__ import annotations
 from typing import Any
 
 import pytest
+from pandas.testing import assert_frame_equal
+from pyspark.sql import SparkSession
+from pyspark.sql.types import DoubleType, StringType, StructField, StructType
+
 from gentropy.dataset.colocalisation import Colocalisation
 from gentropy.dataset.study_locus_overlap import StudyLocusOverlap
 from gentropy.method.colocalisation import Coloc, ECaviar
-from pandas.testing import assert_frame_equal
-from pyspark.sql import SparkSession
-from pyspark.sql.types import DoubleType, LongType, StringType, StructField, StructType
 
 
 def test_coloc(mock_study_locus_overlap: StudyLocusOverlap) -> None:
     """Test coloc."""
     assert isinstance(Coloc.colocalise(mock_study_locus_overlap), Colocalisation)
+    assert isinstance(
+        Coloc.colocalise(
+            mock_study_locus_overlap, priorc1=1e-4, priorc2=1e-4, priorc12=1e-5
+        ),
+        Colocalisation,
+    )
 
 
 @pytest.mark.parametrize(
@@ -26,11 +33,17 @@ def test_coloc(mock_study_locus_overlap: StudyLocusOverlap) -> None:
             # observed overlap
             [
                 {
-                    "leftStudyLocusId": 1,
-                    "rightStudyLocusId": 2,
+                    "leftStudyLocusId": "1",
+                    "rightStudyLocusId": "2",
+                    "rightStudyType": "eqtl",
                     "chromosome": "1",
                     "tagVariantId": "snp",
-                    "statistics": {"left_logBF": 10.3, "right_logBF": 10.5},
+                    "statistics": {
+                        "left_logBF": 10.3,
+                        "right_logBF": 10.5,
+                        "left_beta": 0.1,
+                        "right_beta": 0.2,
+                    },
                 },
             ],
             # expected coloc
@@ -49,18 +62,30 @@ def test_coloc(mock_study_locus_overlap: StudyLocusOverlap) -> None:
             # observed overlap
             [
                 {
-                    "leftStudyLocusId": 1,
-                    "rightStudyLocusId": 2,
+                    "leftStudyLocusId": "1",
+                    "rightStudyLocusId": "2",
+                    "rightStudyType": "eqtl",
                     "chromosome": "1",
                     "tagVariantId": "snp1",
-                    "statistics": {"left_logBF": 10.3, "right_logBF": 10.5},
+                    "statistics": {
+                        "left_logBF": 10.3,
+                        "right_logBF": 10.5,
+                        "left_beta": 0.1,
+                        "right_beta": 0.2,
+                    },
                 },
                 {
-                    "leftStudyLocusId": 1,
-                    "rightStudyLocusId": 2,
+                    "leftStudyLocusId": "1",
+                    "rightStudyLocusId": "2",
+                    "rightStudyType": "eqtl",
                     "chromosome": "1",
                     "tagVariantId": "snp2",
-                    "statistics": {"left_logBF": 10.3, "right_logBF": 10.5},
+                    "statistics": {
+                        "left_logBF": 10.3,
+                        "right_logBF": 10.5,
+                        "left_beta": 0.3,
+                        "right_beta": 0.5,
+                    },
                 },
             ],
             # expected coloc
@@ -116,20 +141,26 @@ def test_coloc_no_logbf(
             spark.createDataFrame(
                 [
                     {
-                        "leftStudyLocusId": 1,
-                        "rightStudyLocusId": 2,
+                        "leftStudyLocusId": "1",
+                        "rightStudyLocusId": "2",
+                        "rightStudyType": "eqtl",
                         "chromosome": "1",
                         "tagVariantId": "snp",
                         "statistics": {
                             "left_logBF": None,
                             "right_logBF": None,
+                            "left_beta": 0.1,
+                            "right_beta": 0.2,
+                            "left_posteriorProbability": None,
+                            "right_posteriorProbability": None,
                         },  # irrelevant for COLOC
                     }
                 ],
                 schema=StructType(
                     [
-                        StructField("leftStudyLocusId", LongType(), False),
-                        StructField("rightStudyLocusId", LongType(), False),
+                        StructField("leftStudyLocusId", StringType(), False),
+                        StructField("rightStudyLocusId", StringType(), False),
+                        StructField("rightStudyType", StringType(), False),
                         StructField("chromosome", StringType(), False),
                         StructField("tagVariantId", StringType(), False),
                         StructField(
@@ -138,6 +169,14 @@ def test_coloc_no_logbf(
                                 [
                                     StructField("left_logBF", DoubleType(), True),
                                     StructField("right_logBF", DoubleType(), True),
+                                    StructField("left_beta", DoubleType(), False),
+                                    StructField("right_beta", DoubleType(), False),
+                                    StructField(
+                                        "left_posteriorProbability", DoubleType(), True
+                                    ),
+                                    StructField(
+                                        "right_posteriorProbability", DoubleType(), True
+                                    ),
                                 ]
                             ),
                         ),
@@ -154,6 +193,67 @@ def test_coloc_no_logbf(
     assert (
         observed_coloc_df.select("h4").collect()[0]["h4"] < maximum_expected_h4
     ), "COLOC should return a low h4 (traits are associated) when the input data has irrelevant logBF."
+
+
+def test_coloc_no_betas(spark: SparkSession) -> None:
+    """Test COLOC output when the input data has no betas."""
+    observed_overlap = StudyLocusOverlap(
+        (
+            spark.createDataFrame(
+                [
+                    {
+                        "leftStudyLocusId": "1",
+                        "rightStudyLocusId": "2",
+                        "rightStudyType": "eqtl",
+                        "chromosome": "1",
+                        "tagVariantId": "snp",
+                        "statistics": {
+                            "left_logBF": 10.5,
+                            "right_logBF": 10.3,
+                            "left_beta": None,
+                            "right_beta": None,
+                            "left_posteriorProbability": None,
+                            "right_posteriorProbability": None,
+                        },  # irrelevant for COLOC
+                    }
+                ],
+                schema=StructType(
+                    [
+                        StructField("leftStudyLocusId", StringType(), False),
+                        StructField("rightStudyLocusId", StringType(), False),
+                        StructField("rightStudyType", StringType(), False),
+                        StructField("chromosome", StringType(), False),
+                        StructField("tagVariantId", StringType(), False),
+                        StructField(
+                            "statistics",
+                            StructType(
+                                [
+                                    StructField("left_logBF", DoubleType(), False),
+                                    StructField("right_logBF", DoubleType(), False),
+                                    StructField("left_beta", DoubleType(), True),
+                                    StructField("right_beta", DoubleType(), True),
+                                    StructField(
+                                        "left_posteriorProbability", DoubleType(), True
+                                    ),
+                                    StructField(
+                                        "right_posteriorProbability", DoubleType(), True
+                                    ),
+                                ]
+                            ),
+                        ),
+                    ]
+                ),
+            )
+        ),
+        StudyLocusOverlap.get_schema(),
+    )
+    observed_coloc_df = Coloc.colocalise(observed_overlap).df
+    assert (
+        observed_coloc_df.select("betaRatioSignAverage").collect()[0][
+            "betaRatioSignAverage"
+        ]
+        is None
+    ), "No betas results in None type."
 
 
 def test_ecaviar(mock_study_locus_overlap: StudyLocusOverlap) -> None:

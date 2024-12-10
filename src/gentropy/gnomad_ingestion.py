@@ -105,6 +105,8 @@ class GnomadVariantIndexStep:
                 gnomad_genomes_path, variant_annotation_path
             )
 
+        session.logger.info("Gnomad variant annotation path:")
+        session.logger.info(variant_annotation_path)
         # Parse variant info from source.
         (
             GnomADVariants(
@@ -114,6 +116,8 @@ class GnomadVariantIndexStep:
             # Convert data to variant index:
             .as_variant_index()
             # Write file:
-            .df.write.mode(session.write_mode)
+            .df.repartitionByRange("chromosome", "position")
+            .sortWithinPartitions("chromosome", "position")
+            .write.mode(session.write_mode)
             .parquet(variant_annotation_path)
         )

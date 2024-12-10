@@ -22,6 +22,18 @@
           "fields": [
             {
               "metadata": {},
+              "name": "conservation",
+              "nullable": true,
+              "type": "double"
+            },
+            {
+              "metadata": {},
+              "name": "hgvsg",
+              "nullable": true,
+              "type": "string"
+            },
+            {
+              "metadata": {},
               "name": "cadd_phred",
               "nullable": true,
               "type": "double"
@@ -290,6 +302,12 @@
           "fields": [
             {
               "metadata": {},
+              "name": "conservation",
+              "nullable": true,
+              "type": "double"
+            },
+            {
+              "metadata": {},
               "name": "alphamissense",
               "nullable": true,
               "type": {
@@ -315,6 +333,54 @@
               "name": "amino_acids",
               "nullable": true,
               "type": "string"
+            },
+            {
+              "metadata": {},
+              "name": "hgvsg",
+              "nullable": true,
+              "type": "string"
+            },
+            {
+              "metadata": {},
+              "name": "hgvsc",
+              "nullable": true,
+              "type": "string"
+            },
+            {
+              "metadata": {},
+              "name": "hgvsp",
+              "nullable": true,
+              "type": "string"
+            },
+            {
+              "metadata": {},
+              "name": "gene_symbol",
+              "nullable": true,
+              "type": "string"
+            },
+            {
+              "metadata": {},
+              "name": "biotype",
+              "nullable": true,
+              "type": "string"
+            },
+            {
+              "metadata": {},
+              "name": "appris",
+              "nullable": true,
+              "type": "string"
+            },
+            {
+              "metadata": {},
+              "name": "mane_select",
+              "nullable": true,
+              "type": "string"
+            },
+            {
+              "metadata": {},
+              "name": "tssdistance",
+              "nullable": true,
+              "type": "long"
             },
             {
               "metadata": {},

@@ -1,10 +1,17 @@
 PROJECT_ID ?= open-targets-genetics-dev
 REGION ?= europe-west1
-APP_NAME ?= $$(cat pyproject.toml| grep -m 1 "name" | cut -d" " -f3 | sed  's/"//g')
-VERSION_NO ?= $$(poetry version --short)
-CLEAN_VERSION_NO := $(shell echo "$(VERSION_NO)" | tr -cd '[:alnum:]')
-BUCKET_NAME=gs://genetics_etl_python_playground/initialisation/${VERSION_NO}/
-BUCKET_COMPOSER_DAGS=gs://europe-west1-ot-workflows-fe147745-bucket/dags/
+APP_NAME ?= $$(cat pyproject.toml | grep -m 1 "name" | cut -d" " -f3 | sed  's/"//g')
+PACKAGE_VERSION ?= $$(poetry version --short)
+# NOTE: git rev-parse will always return the HEAD if it sits in the tag,
+# this way we can distinguish the tag vs branch name
+ifeq ($(shell git rev-parse --abbrev-ref HEAD),HEAD)
+	REF := $(shell git describe --exact-match --tags)
+else
+	REF := $(shell git rev-parse --abbrev-ref HEAD)
+endif
+
+CLEAN_PACKAGE_VERSION := $(shell echo "$(PACKAGE_VERSION)" | tr -cd '[:alnum:]')
+BUCKET_NAME=gs://genetics_etl_python_playground/initialisation/${APP_NAME}/${REF}
 
 .PHONY: $(shell sed -n -e '/^$$/ { n ; /^[^ .\#][^ ]*:/ { s/:.*$$// ; p ; } ; }' $(MAKEFILE_LIST))
 
@@ -38,34 +45,33 @@ build-documentation: ## Create local server with documentation
 create-dev-cluster: build ## Spin up a simple dataproc cluster with all dependencies for development purposes
 	@echo "Creating Dataproc Dev Cluster"
 	@gcloud config set project ${PROJECT_ID}
-	@gcloud dataproc clusters create "ot-genetics-dev-${CLEAN_VERSION_NO}" \
+	@gcloud dataproc clusters create "ot-genetics-dev-${CLEAN_PACKAGE_VERSION}-$(USER)" \
 		--image-version 2.1 \
 		--region ${REGION} \
 		--master-machine-type n1-standard-16 \
-		--initialization-actions=gs://genetics_etl_python_playground/initialisation/${VERSION_NO}/install_dependencies_on_cluster.sh \
-		--metadata="PACKAGE=gs://genetics_etl_python_playground/initialisation/${VERSION_NO}/gentropy-${VERSION_NO}-py3-none-any.whl,CONFIGTAR=gs://genetics_etl_python_playground/initialisation/${VERSION_NO}/config.tar.gz" \
-		--primary-worker-type n1-standard-8 \
+		--initialization-actions=$(BUCKET_NAME)/install_dependencies_on_cluster.sh \
+		--metadata="PACKAGE=$(BUCKET_NAME)/${APP_NAME}-${PACKAGE_VERSION}-py3-none-any.whl" \
+		--secondary-worker-type spot \
 		--worker-machine-type n1-standard-4 \
 		--worker-boot-disk-size 500 \
-		--autoscaling_policy=f"projects/${PROJECT_ID}/regions/${REGION}/autoscalingPolicies/eqtl-preprocess", \
+		--autoscaling-policy="projects/${PROJECT_ID}/regions/${REGION}/autoscalingPolicies/otg-etl" \
 		--optional-components=JUPYTER \
-		--enable-component-gateway
+		--enable-component-gateway \
+		--max-idle=60m
 
 make update-dev-cluster: build ## Reinstalls the package on the dev-cluster
 	@echo "Updating Dataproc Dev Cluster"
 	@gcloud config set project ${PROJECT_ID}
-	gcloud dataproc jobs submit pig --cluster="ot-genetics-dev-${CLEAN_VERSION_NO}" \
+	gcloud dataproc jobs submit pig --cluster="ot-genetics-dev-${CLEAN_PACKAGE_VERSION}" \
 		--region ${REGION} \
 		--jars=${BUCKET_NAME}/install_dependencies_on_cluster.sh \
 		-e='sh chmod 750 $${PWD}/install_dependencies_on_cluster.sh; sh $${PWD}/install_dependencies_on_cluster.sh'
 
 build: clean ## Build Python package with dependencies
 	@gcloud config set project ${PROJECT_ID}
-	@echo "Packaging Code and Dependencies for ${APP_NAME}-${VERSION_NO}"
+	@echo "Packaging Code and Dependencies for ${APP_NAME}-${PACKAGE_VERSION}"
 	@poetry build
-	@tar -czf dist/config.tar.gz config/
-	@echo "Uploading to Dataproc"
-	@gsutil cp src/gentropy/cli.py ${BUCKET_NAME}
-	@gsutil cp ./dist/${APP_NAME}-${VERSION_NO}-py3-none-any.whl ${BUCKET_NAME}
-	@gsutil cp ./dist/config.tar.gz ${BUCKET_NAME}
-	@gsutil cp ./utils/install_dependencies_on_cluster.sh ${BUCKET_NAME}
+	@echo "Uploading to ${BUCKET_NAME}"
+	@gsutil cp src/${APP_NAME}/cli.py ${BUCKET_NAME}/
+	@gsutil cp ./dist/${APP_NAME}-${PACKAGE_VERSION}-py3-none-any.whl ${BUCKET_NAME}/
+	@gsutil cp ./utils/install_dependencies_on_cluster.sh ${BUCKET_NAME}/

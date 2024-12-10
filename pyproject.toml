@@ -26,23 +26,25 @@ hydra-core = "^1.3.2"
 pyliftover = "^0.4"
 numpy = "^1.26.2"
 hail = "0.2.127"
-wandb = ">=0.16.2,<0.18.0"
+wandb = ">=0.16.2,<0.19.0"
 google = "^3.0.0"
 omegaconf = "^2.3.0"
 typing-extensions = "^4.9.0"
 scikit-learn = "^1.3.2"
-pandas = {extras = ["gcp", "parquet"], version = "^2.2.2"}
+pandas = { extras = ["gcp", "parquet"], version = "^2.2.2" }
 skops = ">=0.9,<0.11"
 google-cloud-secret-manager = "^2.20.0"
+shap = "^0.46.0"
+matplotlib = "3.7.3"
 
 [tool.poetry.dev-dependencies]
-pre-commit = "^3.7.0"
-mypy = "^1.11"
+pre-commit = "^4.0.0"
+mypy = "^1.13"
 pep8-naming = "^0.14.1"
 interrogate = "^1.7.0"
 isort = "^5.13.2"
 darglint = "^1.8.1"
-ruff = "^0.5.1"
+ruff = "^0.8.1"
 
 [tool.poetry.group.docs.dependencies]
 mkdocs = "^1.5.3"
@@ -59,7 +61,7 @@ pymdown-extensions = "^10.7"
 
 
 [tool.poetry.group.tests.dependencies]
-pytest-cov = ">=4.1,<6.0"
+pytest-cov = ">=4.1,<7.0"
 pytest-sugar = ">=0.9.5,<1.1.0"
 dbldatagen = ">=0.3.1,<0.5.0"
 pyparsing = "^3.1.1"
@@ -71,11 +73,9 @@ pytest-xdist = "^3.5.0"
 ipython = "^8.19.0"
 ipykernel = "^6.28.0"
 google-cloud-dataproc = "^5.8.0"
-apache-airflow = "^2.8.0"
-apache-airflow-providers-google = "^10.13.1"
 pydoclint = ">=0.3.8,<0.6.0"
 prettier = "^0.0.7"
-deptry = ">=0.12,<0.18"
+deptry = ">=0.12,<0.21"
 yamllint = "^1.33.0"
 
 [tool.semantic_release]
@@ -113,7 +113,7 @@ requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.deptry]
-extend_exclude = ["src/conftest.py", "src/airflow", "src/utils"]
+extend_exclude = ["src/conftest.py", "src/utils"]
 
 [tool.deptry.per_rule_ignores]
 DEP001 = ["gentropy"]
@@ -126,8 +126,9 @@ exclude = ["dist"]
 
 [tool.pytest.ini_options]
 addopts = "-n auto --doctest-modules --cov=src/ --cov-report=xml"
-pythonpath = [".", "./src/airflow/dags"]
-testpaths = ["tests/gentropy", "src/gentropy/"]
+pythonpath = ["."]
+testpaths = ["tests/gentropy", "src/gentropy"]
+markers = ["step_test"]
 
 # Semi-strict mode for mypy
 [tool.mypy]

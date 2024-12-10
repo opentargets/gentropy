@@ -1,11 +1,10 @@
 """Testing creating spark session docs."""
 
-from gentropy.common.session import Session
-
 from docs.src_snippets.howto.python_api.a_creating_spark_session import (
     custom_session,
     default_session,
 )
+from gentropy.common.session import Session
 
 
 def test_default_session() -> None:

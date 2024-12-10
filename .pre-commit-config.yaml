@@ -6,7 +6,7 @@ ci:
   skip: [poetry-lock]
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.5.2
+    rev: v0.7.4
     hooks:
       - id: ruff
         args:
@@ -15,7 +15,7 @@ repos:
         files: ^((gentropy|utils|tests)/.+)?[^/]+\.py$
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.6.0
+    rev: v5.0.0
     hooks:
       - id: trailing-whitespace
       - id: end-of-file-fixer
@@ -58,14 +58,14 @@ repos:
         exclude: "CHANGELOG.md"
 
   - repo: https://github.com/alessandrojcm/commitlint-pre-commit-hook
-    rev: v9.16.0
+    rev: v9.18.0
     hooks:
       - id: commitlint
         additional_dependencies: ["@commitlint/config-conventional@18.6.3"]
         stages: [commit-msg]
 
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: "v1.10.1"
+    rev: "v1.13.0"
     hooks:
       - id: mypy
         args:
@@ -98,7 +98,7 @@ repos:
       - id: beautysh
 
   - repo: https://github.com/jsh9/pydoclint
-    rev: 0.5.4
+    rev: 0.5.9
     hooks:
       - id: pydoclint
 

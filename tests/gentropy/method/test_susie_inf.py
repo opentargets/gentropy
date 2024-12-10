@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import numpy as np
 import pyspark.sql.functions as f
+
 from gentropy.common.session import Session
 from gentropy.dataset.study_locus import StudyLocus
 from gentropy.dataset.summary_statistics import SummaryStatistics
@@ -81,10 +82,12 @@ class TestSUSIE_inf:
             variant_index=gwas_df,
             cs_lbf_thr=2,
             ld_matrix=ld,
-            primary_signal_pval_threshold=1,
-            secondary_signal_pval_threshold=1,
+            lead_pval_threshold=1,
             purity_mean_r2_threshold=0,
             purity_min_r2_threshold=0,
             sum_pips=0.99,
+            ld_min_r2=1,
+            locusStart=1,
+            locusEnd=2,
         )
         assert isinstance(L1, StudyLocus), "L1 is not an instance of StudyLocus"

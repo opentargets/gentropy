@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 import pytest
+from pyspark.sql import DataFrame, SparkSession
+
 from gentropy.common.Liftover import LiftOverSpark
 from gentropy.dataset.gene_index import GeneIndex
 from gentropy.dataset.intervals import Intervals
 from gentropy.datasource.intervals.thurman import IntervalsThurman
-from pyspark.sql import DataFrame, SparkSession
 
 
 @pytest.fixture(scope="module")

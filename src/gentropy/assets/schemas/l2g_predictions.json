@@ -3,7 +3,7 @@
   "fields": [
     {
       "name": "studyLocusId",
-      "type": "long",
+      "type": "string",
       "nullable": false,
       "metadata": {}
     },
@@ -18,6 +18,17 @@
       "type": "double",
       "nullable": false,
       "metadata": {}
+    },
+    {
+      "metadata": {},
+      "name": "locusToGeneFeatures",
+      "nullable": true,
+      "type": {
+        "keyType": "string",
+        "type": "map",
+        "valueContainsNull": true,
+        "valueType": "float"
+      }
     }
   ]
 }

@@ -67,6 +67,12 @@
               "name": "targetId",
               "nullable": true,
               "type": "string"
+            },
+            {
+              "metadata": {},
+              "name": "normalisedScore",
+              "nullable": true,
+              "type": "double"
             }
           ],
           "type": "struct"
@@ -128,9 +134,27 @@
             },
             {
               "metadata": {},
-              "name": "distance",
+              "name": "distanceFromFootprint",
               "nullable": true,
               "type": "long"
+            },
+            {
+              "metadata": {},
+              "name": "distanceFromTss",
+              "nullable": true,
+              "type": "long"
+            },
+            {
+              "metadata": {},
+              "name": "appris",
+              "nullable": true,
+              "type": "string"
+            },
+            {
+              "metadata": {},
+              "name": "maneSelect",
+              "nullable": true,
+              "type": "string"
             },
             {
               "metadata": {},
@@ -164,6 +188,30 @@
             },
             {
               "metadata": {},
+              "name": "consequenceScore",
+              "nullable": true,
+              "type": "float"
+            },
+            {
+              "metadata": {},
+              "name": "transcriptIndex",
+              "nullable": true,
+              "type": "integer"
+            },
+            {
+              "metadata": {},
+              "name": "approvedSymbol",
+              "nullable": true,
+              "type": "string"
+            },
+            {
+              "metadata": {},
+              "name": "biotype",
+              "nullable": true,
+              "type": "string"
+            },
+            {
+              "metadata": {},
               "name": "transcriptId",
               "nullable": true,
               "type": "string"
@@ -183,6 +231,12 @@
         "elementType": "string",
         "type": "array"
       }
+    },
+    {
+      "metadata": {},
+      "name": "hgvsId",
+      "nullable": true,
+      "type": "string"
     },
     {
       "name": "alleleFrequencies",
@@ -235,6 +289,12 @@
         },
         "type": "array"
       }
+    },
+    {
+      "metadata": {},
+      "name": "variantDescription",
+      "nullable": true,
+      "type": "string"
     }
   ],
   "type": "struct"

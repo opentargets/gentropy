@@ -6,12 +6,13 @@ from typing import TYPE_CHECKING, Any
 
 import pyspark.sql.functions as f
 import pytest
+from pyspark.sql.types import ArrayType, DoubleType, StructField, StructType
+
 from gentropy.common.spark_helpers import (
     get_record_with_maximum_value,
     get_record_with_minimum_value,
     order_array_of_structs_by_field,
 )
-from pyspark.sql.types import ArrayType, DoubleType, StructField, StructType
 
 if TYPE_CHECKING:
     from pyspark.sql import DataFrame, SparkSession

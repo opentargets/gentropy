@@ -4,13 +4,19 @@
     {
       "name": "leftStudyLocusId",
       "nullable": false,
-      "type": "long",
+      "type": "string",
       "metadata": {}
     },
     {
       "name": "rightStudyLocusId",
       "nullable": false,
-      "type": "long",
+      "type": "string",
+      "metadata": {}
+    },
+    {
+      "name": "rightStudyType",
+      "nullable": false,
+      "type": "string",
       "metadata": {}
     },
     {
@@ -62,13 +68,13 @@
       "metadata": {}
     },
     {
-      "name": "log2h4h3",
+      "name": "clpp",
       "type": "double",
       "nullable": true,
       "metadata": {}
     },
     {
-      "name": "clpp",
+      "name": "betaRatioSignAverage",
       "type": "double",
       "nullable": true,
       "metadata": {}

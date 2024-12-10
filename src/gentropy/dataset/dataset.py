@@ -4,14 +4,16 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from enum import Enum
 from functools import reduce
 from typing import TYPE_CHECKING, Any
 
 import pyspark.sql.functions as f
 from pyspark.sql.types import DoubleType
+from pyspark.sql.window import Window
 from typing_extensions import Self
 
-from gentropy.common.schemas import flatten_schema
+from gentropy.common.schemas import SchemaValidationError, compare_struct_schemas
 
 if TYPE_CHECKING:
     from enum import Enum
@@ -65,14 +67,61 @@ class Dataset(ABC):
         return self._schema
 
     @classmethod
+    def _process_class_params(
+        cls, params: dict[str, Any]
+    ) -> tuple[dict[str, Any], dict[str, Any]]:
+        """Separate class initialization parameters from spark session parameters.
+
+        Args:
+            params (dict[str, Any]): Combined parameters dictionary
+
+        Returns:
+            tuple[dict[str, Any], dict[str, Any]]: (class_params, spark_params)
+        """
+        # Get all field names from the class (including parent classes)
+        class_field_names = {
+            field.name
+            for cls_ in cls.__mro__
+            if hasattr(cls_, "__dataclass_fields__")
+            for field in cls_.__dataclass_fields__.values()
+        }
+        # Separate parameters
+        class_params = {k: v for k, v in params.items() if k in class_field_names}
+        spark_params = {k: v for k, v in params.items() if k not in class_field_names}
+        return class_params, spark_params
+
+    @classmethod
     @abstractmethod
     def get_schema(cls: type[Self]) -> StructType:
         """Abstract method to get the schema. Must be implemented by child classes.
 
         Returns:
             StructType: Schema for the Dataset
+
+        Raises:
+                NotImplementedError: Must be implemented in the child classes
         """
-        pass
+        raise NotImplementedError("Must be implemented in the child classes")
+
+    @classmethod
+    def get_QC_column_name(cls: type[Self]) -> str | None:
+        """Abstract method to get the QC column name. Assumes None unless overriden by child classes.
+
+        Returns:
+            str | None: Column name
+        """
+        return None
+
+    @classmethod
+    def get_QC_mappings(cls: type[Self]) -> dict[str, str]:
+        """Method to get the mapping between QC flag and corresponding QC category value.
+
+        Returns empty dict unless overriden by child classes.
+
+        Returns:
+            dict[str, str]: Mapping between flag name and QC column category value.
+        """
+        return {}
 
     @classmethod
     def from_parquet(
@@ -95,10 +144,14 @@ class Dataset(ABC):
             ValueError: Parquet file is empty
         """
         schema = cls.get_schema()
-        df = session.load_data(path, format="parquet", schema=schema, **kwargs)
+
+        # Separate class params from spark params
+        class_params, spark_params = cls._process_class_params(kwargs)
+
+        df = session.load_data(path, format="parquet", schema=schema, **spark_params)
         if df.isEmpty():
             raise ValueError(f"Parquet file is empty: {path}")
-        return cls(_df=df, _schema=schema)
+        return cls(_df=df, _schema=schema, **class_params)
 
     def filter(self: Self, condition: Column) -> Self:
         """Creates a new instance of a Dataset with the DataFrame filtered by the condition.
@@ -117,58 +170,64 @@ class Dataset(ABC):
         """Validate DataFrame schema against expected class schema.
 
         Raises:
-            ValueError: DataFrame schema is not valid
+            SchemaValidationError: If the DataFrame schema does not match the expected schema
         """
         expected_schema = self._schema
-        expected_fields = flatten_schema(expected_schema)
         observed_schema = self._df.schema
-        observed_fields = flatten_schema(observed_schema)
 
         # Unexpected fields in dataset
-        if unexpected_field_names := [
-            x.name
-            for x in observed_fields
-            if x.name not in [y.name for y in expected_fields]
-        ]:
-            raise ValueError(
-                f"The {unexpected_field_names} fields are not included in DataFrame schema: {expected_fields}"
+        if discrepancies := compare_struct_schemas(observed_schema, expected_schema):
+            raise SchemaValidationError(
+                f"Schema validation failed for {type(self).__name__}", discrepancies
             )
 
-        # Required fields not in dataset
-        required_fields = [x.name for x in expected_schema if not x.nullable]
-        if missing_required_fields := [
-            req
-            for req in required_fields
-            if not any(field.name == req for field in observed_fields)
-        ]:
-            raise ValueError(
-                f"The {missing_required_fields} fields are required but missing: {required_fields}"
-            )
+    def valid_rows(self: Self, invalid_flags: list[str], invalid: bool = False) -> Self:
+        """Filters `Dataset` according to a list of quality control flags. Only `Dataset` classes with a QC column can be validated.
 
-        # Fields with duplicated names
-        if duplicated_fields := [
-            x for x in set(observed_fields) if observed_fields.count(x) > 1
-        ]:
-            raise ValueError(
-                f"The following fields are duplicated in DataFrame schema: {duplicated_fields}"
-            )
+        This method checks do following steps:
+        - Check if the Dataset contains a QC column.
+        - Check if the invalid_flags exist in the QC mappings flags.
+        - Filter the Dataset according to the invalid_flags and invalid parameters.
 
-        # Fields with different datatype
-        observed_field_types = {
-            field.name: type(field.dataType) for field in observed_fields
-        }
-        expected_field_types = {
-            field.name: type(field.dataType) for field in expected_fields
-        }
-        if fields_with_different_observed_datatype := [
-            name
-            for name, observed_type in observed_field_types.items()
-            if name in expected_field_types
-            and observed_type != expected_field_types[name]
-        ]:
+        Args:
+            invalid_flags (list[str]): List of quality control flags to be excluded.
+            invalid (bool): If True returns the invalid rows, instead of the valid. Defaults to False.
+
+        Returns:
+            Self: filtered dataset.
+
+        Raises:
+            ValueError: If the Dataset does not contain a QC column or if the invalid_flags elements do not exist in QC mappings flags.
+        """
+        # If the invalid flags are not valid quality checks (enum) for this Dataset we raise an error:
+        invalid_reasons = []
+        for flag in invalid_flags:
+            if flag not in self.get_QC_mappings():
+                raise ValueError(
+                    f"{flag} is not a valid QC flag for {type(self).__name__} ({self.get_QC_mappings()})."
+                )
+            reason = self.get_QC_mappings()[flag]
+            invalid_reasons.append(reason)
+
+        qc_column_name = self.get_QC_column_name()
+        # If Dataset (class) does not contain QC column we raise an error:
+        if not qc_column_name:
             raise ValueError(
-                f"The following fields present differences in their datatypes: {fields_with_different_observed_datatype}."
+                f"{type(self).__name__} objects do not contain a QC column to filter by."
             )
+        else:
+            column: str = qc_column_name
+            # If QC column (nullable) is not available in the dataframe we create an empty array:
+            qc = f.when(f.col(column).isNull(), f.array()).otherwise(f.col(column))
+
+        filterCondition = ~f.arrays_overlap(
+            f.array([f.lit(i) for i in invalid_reasons]), qc
+        )
+        # Returning the filtered dataset:
+        if invalid:
+            return self.filter(~filterCondition)
+        else:
+            return self.filter(filterCondition)
 
     def drop_infinity_values(self: Self, *cols: str) -> Self:
         """Drop infinity values from Double typed column.
@@ -260,3 +319,37 @@ class Dataset(ABC):
             flag_condition,
             f.array_union(qc, f.array(f.lit(flag_text.value))),
         ).otherwise(qc)
+
+    @staticmethod
+    def flag_duplicates(test_column: Column) -> Column:
+        """Return True for rows, where the value was already seen in column.
+
+        This implementation allows keeping the first occurrence of the value.
+
+        Args:
+            test_column (Column): Column to check for duplicates
+
+        Returns:
+            Column: Column with a boolean flag for duplicates
+        """
+        return (
+            f.row_number().over(Window.partitionBy(test_column).orderBy(f.rand())) > 1
+        )
+
+    @staticmethod
+    def generate_identifier(uniqueness_defining_columns: list[str]) -> Column:
+        """Hashes the provided columns to generate a unique identifier.
+
+        Args:
+            uniqueness_defining_columns (list[str]): list of columns defining uniqueness
+
+        Returns:
+            Column: column with a unique identifier
+        """
+        hashable_columns = [
+            f.when(f.col(column).cast("string").isNull(), f.lit("None")).otherwise(
+                f.col(column).cast("string")
+            )
+            for column in uniqueness_defining_columns
+        ]
+        return f.md5(f.concat(*hashable_columns))

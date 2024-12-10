@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import pytest
-from gentropy.dataset.gene_index import GeneIndex
-from gentropy.dataset.study_index import StudyIndex
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql import functions as f
+
+from gentropy.dataset.biosample_index import BiosampleIndex
+from gentropy.dataset.gene_index import GeneIndex
+from gentropy.dataset.study_index import StudyIndex
 
 
 def test_study_index_creation(mock_study_index: StudyIndex) -> None:
@@ -142,55 +144,80 @@ def test_aggregate_samples_by_ancestry__correctness(spark: SparkSession) -> None
     )
 
 
-class TestGeneValidation:
-    """A small test suite to ensure the gene validation works as intended."""
+class TestQTLValidation:
+    """A small test suite to ensure the QTL study validation works as intended."""
 
     GENE_DATA = [
         ("ENSG00000102021", "1"),
         ("ENSG000001020", "1"),
     ]
-
     GENE_COLUMNS = ["geneId", "chromosome"]
 
+    BIOSAMPLE_DATA = [("UBERON_00123", "lung"), ("CL_00321", "monocyte")]
+    BIOSAMPLE_COLUMNS = ["biosampleId", "biosampleName"]
+
     STUDY_DATA = [
-        ("s1", "eqtl", "p", "ENSG00000102021"),
+        ("s1", "eqtl", "p", "ENSG00000102021", "UBERON_00123"),
         # This is the only study to be flagged: QTL + Wrong gene
-        ("s2", "eqtl", "p", "cicaful"),
-        ("s3", "gwas", "p", None),
-        ("s4", "gwas", "p", "pocok"),
+        ("s2", "eqtl", "p", "cicaful", "UBERON_00123"),
+        # This is the only study to be flagged: QTL + Wrong biosample
+        ("s3", "sqtl", "p", "ENSG00000102021", "jibberish"),
+        ("s4", "gwas", "p", None, "anything"),
+        ("s5", "gwas", "p", "pocok", None),
     ]
-    STUDY_COLUMNS = ["studyId", "studyType", "projectId", "geneId"]
+    STUDY_COLUMNS = [
+        "studyId",
+        "studyType",
+        "projectId",
+        "geneId",
+        "biosampleFromSourceId",
+    ]
 
     @pytest.fixture(autouse=True)
-    def _setup(self: TestGeneValidation, spark: SparkSession) -> None:
+    def _setup(self: TestQTLValidation, spark: SparkSession) -> None:
         """Setup fixture."""
-        self.study_index = StudyIndex(
-            _df=spark.createDataFrame(self.STUDY_DATA, self.STUDY_COLUMNS).withColumn(
-                "qualityControls", f.array()
-            ),
-            _schema=StudyIndex.get_schema(),
-        )
 
-        self.study_index_no_gene = StudyIndex(
-            _df=spark.createDataFrame(self.STUDY_DATA, self.STUDY_COLUMNS)
-            .withColumn("qualityControls", f.array())
-            .drop("geneId"),
-            _schema=StudyIndex.get_schema(),
-        )
+        def create_study_index(drop_column: str) -> StudyIndex:
+            df = spark.createDataFrame(self.STUDY_DATA, self.STUDY_COLUMNS)
+            df = df.withColumn("qualityControls", f.array().cast("array<string>"))
+            if drop_column != "":
+                df = df.drop(drop_column)
+            return StudyIndex(_df=df, _schema=StudyIndex.get_schema())
+
+        self.study_index = create_study_index("")
+        self.study_index_no_gene = create_study_index("geneId")
+        self.study_index_no_biosample_id = create_study_index("biosampleFromSourceId")
 
         self.gene_index = GeneIndex(
             _df=spark.createDataFrame(self.GENE_DATA, self.GENE_COLUMNS),
             _schema=GeneIndex.get_schema(),
         )
+        self.biosample_index = BiosampleIndex(
+            _df=spark.createDataFrame(self.BIOSAMPLE_DATA, self.BIOSAMPLE_COLUMNS),
+            _schema=BiosampleIndex.get_schema(),
+        )
 
-    def test_gene_validation_type(self: TestGeneValidation) -> None:
-        """Testing if the validation runs and returns the expected type."""
+    def test_gene_validation_type(self: TestQTLValidation) -> None:
+        """Testing if the target validation runs and returns the expected type."""
         validated = self.study_index.validate_target(self.gene_index)
         assert isinstance(validated, StudyIndex)
 
-    def test_gene_validation_correctness(self: TestGeneValidation) -> None:
-        """Testing if the gene validation only flags the expected studies."""
-        validated = self.study_index.validate_target(self.gene_index).persist()
+    def test_biosample_validation_type(self: TestQTLValidation) -> None:
+        """Testing if the biosample validation runs and returns the expected type."""
+        validated = self.study_index.validate_biosample(self.biosample_index)
+        assert isinstance(validated, StudyIndex)
+
+    @pytest.mark.parametrize("test", ["gene", "biosample"])
+    def test_qtl_validation_correctness(self: TestQTLValidation, test: str) -> None:
+        """Testing if the QTL validation only flags the expected studies."""
+        if test == "gene":
+            validated = self.study_index.validate_target(self.gene_index).persist()
+            bad_study = "s2"
+        if test == "biosample":
+            validated = self.study_index.validate_biosample(
+                self.biosample_index
+            ).persist()
+            bad_study = "s3"
 
         # Make sure there's only one flagged:
         assert validated.df.filter(f.size("qualityControls") != 0).count() == 1
@@ -200,17 +227,84 @@ class TestGeneValidation:
             0
         ]["studyId"]
 
-        assert flagged_study == "s2"
+        assert flagged_study == bad_study
 
-    def test_gene_validation_no_gene_column(self: TestGeneValidation) -> None:
-        """Testing what happens if no geneId column is present."""
-        validated = self.study_index_no_gene.validate_target(self.gene_index)
+    def test_gene_validation_correctness(self: TestQTLValidation) -> None:
+        """Testing if the gene validation only flags the expected studies."""
+        self.test_qtl_validation_correctness("gene")
+
+    def test_biosample_validation_correctness(self: TestQTLValidation) -> None:
+        """Testing if the biosample validation only flags the expected studies."""
+        self.test_qtl_validation_correctness("biosample")
+
+    @pytest.mark.parametrize(
+        "drop,test",
+        [
+            ("gene", "gene"),
+            ("gene", "biosample"),
+            ("biosample", "biosample"),
+            ("biosample", "gene"),
+        ],
+    )
+    def test_qtl_validation_drop_relevant_column(
+        self: TestQTLValidation, drop: str, test: str
+    ) -> None:
+        """Testing what happens if an expected column is not present."""
+        if drop == "gene":
+            if test == "gene":
+                validated = self.study_index_no_gene.validate_target(self.gene_index)
+            if test == "biosample":
+                validated = self.study_index_no_gene.validate_biosample(
+                    self.biosample_index
+                )
+        if drop == "biosample":
+            if test == "gene":
+                validated = self.study_index_no_biosample_id.validate_target(
+                    self.gene_index
+                )
+            if test == "biosample":
+                validated = self.study_index_no_biosample_id.validate_biosample(
+                    self.biosample_index
+                )
 
         # Asserty type:
         assert isinstance(validated, StudyIndex)
 
         # Assert count:
         assert validated.df.count() == self.study_index.df.count()
+
+    def test_qtl_validation_no_gene_column(self: TestQTLValidation) -> None:
+        """Testing what happens if no gene column is present."""
+        self.test_qtl_validation_drop_relevant_column(test="gene", drop="gene")
+
+    def test_qtl_validation_no_biosample_from_source_column(
+        self: TestQTLValidation,
+    ) -> None:
+        """Testing what happens if no biosampleFromSourceId column is present."""
+        self.test_qtl_validation_drop_relevant_column(
+            test="biosample", drop="biosample"
+        )
+
+    def test_qtl_validation_existing_gene_column(self: TestQTLValidation) -> None:
+        """Testing what happens if no gene column is present."""
+        self.test_qtl_validation_drop_relevant_column(test="gene", drop="biosample")
+
+    def test_qtl_validation_existing_biosample_from_source_column(
+        self: TestQTLValidation,
+    ) -> None:
+        """Testing what happens if a biosampleFromSourceId column is present."""
+        self.test_qtl_validation_drop_relevant_column(test="biosample", drop="gene")
+
+    def test_qtl_validation_existing_biosample_column(self: TestQTLValidation) -> None:
+        """Testing what happens if a biosampleId column is present in study index as well as biosampleFromSourceId."""
+        # Append a biosample column filled with null to the self.study_index then validate:
+        validated = StudyIndex(
+            _df=self.study_index.df.withColumn(
+                "biosampleId", f.lit(None).cast("string")
+            ),
+            _schema=StudyIndex.get_schema(),
+        ).validate_biosample(self.biosample_index)
+        assert isinstance(validated, StudyIndex)
 
 
 class TestUniquenessValidation:
@@ -219,7 +313,7 @@ class TestUniquenessValidation:
     STUDY_DATA = [
         # This is the only study to be flagged:
         ("s1", "eqtl", "p"),
-        ("s1", "eqtl", "p"),
+        ("s1", "eqtl", "p"),  # Duplicate -> one should be flagged
         ("s3", "gwas", "p"),
         ("s4", "gwas", "p"),
     ]
@@ -230,7 +324,7 @@ class TestUniquenessValidation:
         """Setup fixture."""
         self.study_index = StudyIndex(
             _df=spark.createDataFrame(self.STUDY_DATA, self.STUDY_COLUMNS).withColumn(
-                "qualityControls", f.array()
+                "qualityControls", f.array().cast("array<string>")
             ),
             _schema=StudyIndex.get_schema(),
         )
@@ -243,8 +337,8 @@ class TestUniquenessValidation:
         """Testing if the function returns the right type."""
         validated = self.study_index.validate_unique_study_id().persist()
 
-        # We have more than one flagged studies:
-        assert validated.df.filter(f.size(f.col("qualityControls")) > 0).count() > 1
+        # We have only one flagged study:
+        assert validated.df.filter(f.size(f.col("qualityControls")) > 0).count() == 1
 
         # The flagged study identifiers are found more than once:
         flagged_ids = {
@@ -256,7 +350,7 @@ class TestUniquenessValidation:
         }
 
         for _, count in flagged_ids.items():
-            assert count > 1
+            assert count == 1
 
         # the right study is found:
         assert "s1" in flagged_ids
@@ -278,7 +372,7 @@ class TestStudyTypeValidation:
         """Setup fixture."""
         self.study_index = StudyIndex(
             _df=spark.createDataFrame(self.STUDY_DATA, self.STUDY_COLUMNS).withColumn(
-                "qualityControls", f.array()
+                "qualityControls", f.array().cast("array<string>")
             ),
             _schema=StudyIndex.get_schema(),
         )
@@ -345,10 +439,11 @@ class TestDiseaseValidation:
             spark.createDataFrame(self.STUDY_DATA, self.STUDY_COLUMNS)
             .groupBy("studyId", "studyType", "projectId")
             .agg(f.collect_set("efo").alias("traitFromSourceMappedIds"))
-            .withColumn("qualityControls", f.array())
-            .withColumn("backgroundTraitFromSourceMappedIds", f.array())
+            .withColumn("qualityControls", f.array().cast("array<string>"))
+            .withColumn(
+                "backgroundTraitFromSourceMappedIds", f.array().cast("array<string>")
+            )
         )
-        study_df.show()
         # Mock study index:
         self.study_index = StudyIndex(
             _df=study_df,

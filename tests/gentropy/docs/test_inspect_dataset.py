@@ -1,6 +1,5 @@
 """Testing inspecting dataset docs."""
 
-from gentropy.dataset.summary_statistics import SummaryStatistics
 from pyspark.sql.types import StructType
 
 from docs.src_snippets.howto.python_api.d_inspect_dataset import (
@@ -8,6 +7,7 @@ from docs.src_snippets.howto.python_api.d_inspect_dataset import (
     get_dataset_schema,
     interact_w_dataframe,
 )
+from gentropy.dataset.summary_statistics import SummaryStatistics
 
 
 def test_filter_dataset(mock_summary_statistics: SummaryStatistics) -> None:

@@ -1,4 +1,5 @@
 """Summary statistics qulity control methods."""
+
 from __future__ import annotations
 
 import numpy as np
@@ -68,13 +69,11 @@ class SummaryStatisticsQC:
     @staticmethod
     def sumstat_qc_pz_check(
         gwas_for_qc: SummaryStatistics,
-        limit: int = 10_000_000,
     ) -> DataFrame:
         """The PZ check for QC of GWAS summary statstics. It runs linear regression between reported p-values and p-values infered from z-scores.
 
         Args:
             gwas_for_qc (SummaryStatistics): The instance of the SummaryStatistics class.
-            limit (int): The limit for the number of variants to be used for the estimation.
 
         Returns:
             DataFrame: PySpark DataFrame with the results of the linear regression for each study.
@@ -85,17 +84,10 @@ class SummaryStatisticsQC:
             SummaryStatisticsQC._calculate_logpval, t.DoubleType()
         )
 
-        window = Window.partitionBy("studyId").orderBy("studyId")
-
-        gwas_df = (
-            gwas_df.withColumn("row_num", row_number().over(window))
-            .filter(f.col("row_num") <= limit)
-            .drop("row_num")
-        )
-
         qc_c = (
-            gwas_df.withColumn("zscore", f.col("beta") / f.col("standardError"))
-            .withColumn("new_logpval", calculate_logpval_udf(f.col("zscore") ** 2))
+            gwas_df.withColumn("Z2", (f.col("beta") / f.col("standardError")) ** 2)
+            .filter(f.col("Z2") <= 100)
+            .withColumn("new_logpval", calculate_logpval_udf(f.col("Z2")))
             .withColumn("log_mantissa", log10("pValueMantissa"))
             .withColumn(
                 "diffpval",
@@ -193,24 +185,16 @@ class SummaryStatisticsQC:
     @staticmethod
     def gc_lambda_check(
         gwas_for_qc: SummaryStatistics,
-        limit: int = 10_000_000,
     ) -> DataFrame:
         """The genomic control lambda check for QC of GWAS summary statstics.
 
         Args:
             gwas_for_qc (SummaryStatistics): The instance of the SummaryStatistics class.
-            limit (int): The limit for the number of variants to be used for the estimation.
 
         Returns:
             DataFrame: PySpark DataFrame with the genomic control lambda for each study.
         """
         gwas_df = gwas_for_qc._df
-        window = Window.partitionBy("studyId").orderBy("studyId")
-        gwas_df = (
-            gwas_df.withColumn("row_num", row_number().over(window))
-            .filter(f.col("row_num") <= limit)
-            .drop("row_num")
-        )
 
         qc_c = (
             gwas_df.select("studyId", "beta", "standardError")
@@ -225,13 +209,13 @@ class SummaryStatisticsQC:
 
     @staticmethod
     def number_of_snps(
-        gwas_for_qc: SummaryStatistics, pval_threhod: float = 5e-8
+        gwas_for_qc: SummaryStatistics, pval_threshold: float = 5e-8
     ) -> DataFrame:
         """The function caluates number of SNPs and number of SNPs with p-value less than 5e-8.
 
         Args:
             gwas_for_qc (SummaryStatistics): The instance of the SummaryStatistics class.
-            pval_threhod (float): The threshold for the p-value.
+            pval_threshold (float): The threshold for the p-value.
 
         Returns:
             DataFrame: PySpark DataFrame with the number of SNPs and number of SNPs with p-value less than threshold.
@@ -243,7 +227,7 @@ class SummaryStatisticsQC:
             f.sum(
                 (
                     f.log10(f.col("pValueMantissa")) + f.col("pValueExponent")
-                    <= np.log10(pval_threhod)
+                    <= np.log10(pval_threshold)
                 ).cast("int")
             ).alias("n_variants_sig"),
         )
@@ -253,31 +237,25 @@ class SummaryStatisticsQC:
     @staticmethod
     def get_quality_control_metrics(
         gwas: SummaryStatistics,
-        limit: int = 100_000_000,
-        min_count: int = 100_000,
-        n_total: int = 100_000,
+        pval_threshold: float = 1e-8,
     ) -> DataFrame:
         """The function calculates the quality control metrics for the summary statistics.
 
         Args:
             gwas (SummaryStatistics): The instance of the SummaryStatistics class.
-            limit (int): The limit for the number of variants to be used for the estimation.
-            min_count (int): The minimum number of variants to be used for the estimation.
-            n_total (int): The total sample size.
+            pval_threshold (float): The threshold for the p-value.
 
         Returns:
             DataFrame: PySpark DataFrame with the quality control metrics for the summary statistics.
         """
         qc1 = SummaryStatisticsQC.sumstat_qc_beta_check(gwas_for_qc=gwas)
-        qc2 = SummaryStatisticsQC.sumstat_qc_pz_check(gwas_for_qc=gwas, limit=limit)
-        qc3 = SummaryStatisticsQC.sumstat_n_eff_check(
-            gwas_for_qc=gwas, n_total=n_total, limit=limit, min_count=min_count
+        qc2 = SummaryStatisticsQC.sumstat_qc_pz_check(gwas_for_qc=gwas)
+        qc4 = SummaryStatisticsQC.gc_lambda_check(gwas_for_qc=gwas)
+        qc5 = SummaryStatisticsQC.number_of_snps(
+            gwas_for_qc=gwas, pval_threshold=pval_threshold
         )
-        qc4 = SummaryStatisticsQC.gc_lambda_check(gwas_for_qc=gwas, limit=limit)
-        qc5 = SummaryStatisticsQC.number_of_snps(gwas_for_qc=gwas)
         df = (
             qc1.join(qc2, on="studyId", how="outer")
-            .join(qc3, on="studyId", how="outer")
             .join(qc4, on="studyId", how="outer")
             .join(qc5, on="studyId", how="outer")
         )

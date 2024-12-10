@@ -3,7 +3,6 @@
 set -exo pipefail
 
 readonly PACKAGE=$(/usr/share/google/get_metadata_value attributes/PACKAGE || true)
-readonly CONFIGTAR=$(/usr/share/google/get_metadata_value attributes/CONFIGTAR || true)
 
 function err() {
     echo "[$(date +'%Y-%m-%dT%H:%M:%S%z')]: $*" >&2
@@ -61,11 +60,10 @@ function main() {
     echo "Uninstalling previous version if it exists"
     pip uninstall -y gentropy
     echo "Install package..."
-    run_with_retry pip install --upgrade ${PACKAGENAME}
+    # NOTE: ensure the gentropy is reinstalled each time without version cache
+    # see https://pip.pypa.io/en/stable/cli/pip_install/#cmdoption-force-reinstall
+    run_with_retry pip install --force-reinstall --ignore-installed ${PACKAGENAME}
 
-    echo "Downloading and uncompressing config..."
-    gsutil cp ${CONFIGTAR} . || err "Failed to download CONFIGTAR"
-    tar -xvf $(basename ${CONFIGTAR}) || err "Failed to extract CONFIGTAR"
 }
 
 main

@@ -4,7 +4,13 @@
       "metadata": {},
       "name": "studyLocusId",
       "nullable": false,
-      "type": "long"
+      "type": "string"
+    },
+    {
+      "metadata": {},
+      "name": "studyType",
+      "nullable": true,
+      "type": "string"
     },
     {
       "metadata": {},
@@ -235,6 +241,12 @@
         },
         "type": "array"
       }
+    },
+    {
+      "metadata": {},
+      "name": "confidence",
+      "nullable": true,
+      "type": "string"
     }
   ],
   "type": "struct"

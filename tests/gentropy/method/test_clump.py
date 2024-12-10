@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 import pyspark.sql.functions as f
 import pyspark.sql.types as t
 import pytest
+
 from gentropy.dataset.study_locus import StudyLocus
 from gentropy.method.clump import LDclumping
 
@@ -19,142 +20,77 @@ def test_clump(mock_study_locus: StudyLocus) -> None:
     assert isinstance(LDclumping.clump(mock_study_locus), StudyLocus)
 
 
-@pytest.mark.parametrize(
-    ("observed_data", "expected_data"),
-    [
+class TestIsLeadLinked:
+    """Testing the is_lead_linked method."""
+
+    DATA = [
+        # Linked to V2:
         (
-            [
-                (
-                    # Dependent locus - lead is correlated with a more significant variant
-                    1,
-                    "L1",
-                    "GCST005650_1",
-                    1.0,
-                    -17,
-                    [{"tagVariantId": "T1"}, {"tagVariantId": "L2"}],
-                    None,
-                ),
-                (
-                    # Dependent locus - lead shows a stronger association than the row above
-                    2,
-                    "L2",
-                    "GCST005650_1",
-                    4.0,
-                    -18,
-                    [
-                        {"tagVariantId": "T2"},
-                        {"tagVariantId": "T3"},
-                        {"tagVariantId": "L1"},
-                    ],
-                    None,
-                ),
-                (
-                    # Independent locus
-                    3,
-                    "L2",
-                    "GCST005650_1",
-                    4.0,
-                    -18,
-                    [
-                        {"tagVariantId": "L3"},
-                        {"tagVariantId": "T4"},
-                        {"tagVariantId": "L5"},
-                    ],
-                    None,
-                ),
-                (
-                    # Empty credible set
-                    4,
-                    "L3",
-                    "GCST005650_1",
-                    4.0,
-                    -18,
-                    [],
-                    None,
-                ),
-                (
-                    # Null credible set
-                    5,
-                    "L4",
-                    "GCST005650_1",
-                    4.0,
-                    -18,
-                    None,
-                    None,
-                ),
-            ],
-            [
-                (
-                    # Signal is linked to the next row
-                    1,
-                    "L1",
-                    "GCST005650_1",
-                    1.0,
-                    -17,
-                    [{"tagVariantId": "T1"}, {"tagVariantId": "L2"}],
-                    True,
-                ),
-                (
-                    # Signal is the most significant
-                    2,
-                    "L2",
-                    "GCST005650_1",
-                    4.0,
-                    -18,
-                    [
-                        {"tagVariantId": "T2"},
-                        {"tagVariantId": "T3"},
-                        {"tagVariantId": "L1"},
-                    ],
-                    False,
-                ),
-                (
-                    # Signal is not linked
-                    3,
-                    "L2",
-                    "GCST005650_1",
-                    4.0,
-                    -18,
-                    [
-                        {"tagVariantId": "L3"},
-                        {"tagVariantId": "T4"},
-                        {"tagVariantId": "L5"},
-                    ],
-                    False,
-                ),
-                (
-                    # Empty credible set - signal is not linked
-                    4,
-                    "L3",
-                    "GCST005650_1",
-                    4.0,
-                    -18,
-                    [],
-                    False,
-                ),
-                (
-                    # Null credible set - signal is not linked
-                    5,
-                    "L4",
-                    "GCST005650_1",
-                    4.0,
-                    -18,
-                    None,
-                    False,
-                ),
-            ],
-        )
-    ],
-)
-def test_is_lead_linked(
-    spark: SparkSession, observed_data: list[Any], expected_data: list[Any]
-) -> None:
-    """Test function that annotates whether a studyLocusId is linked to a more statistically significant studyLocusId."""
-    schema = t.StructType(
+            "s1",
+            1,
+            "c1",
+            "v3",
+            1.0,
+            -8,
+            [{"tagVariantId": "v3"}, {"tagVariantId": "v2"}, {"tagVariantId": "v4"}],
+            True,
+        ),
+        # True lead:
+        (
+            "s1",
+            2,
+            "c1",
+            "v1",
+            1.0,
+            -10,
+            [{"tagVariantId": "v1"}, {"tagVariantId": "v2"}, {"tagVariantId": "v3"}],
+            False,
+        ),
+        # Linked to V1:
+        (
+            "s1",
+            3,
+            "c1",
+            "v2",
+            1.0,
+            -9,
+            [{"tagVariantId": "v2"}, {"tagVariantId": "v1"}],
+            True,
+        ),
+        # Independent - No LD set:
+        ("s1", 4, "c1", "v10", 1.0, -10, [], False),
+        # Independent - No variantId:
+        ("s1", 5, "c1", None, 1.0, -10, [], False),
+        # An other independent variant on the same chromosome, but lead is not in ldSet:
+        (
+            "s1",
+            6,
+            "c1",
+            "v6",
+            1.0,
+            -8,
+            [{"tagVariantId": "v7"}, {"tagVariantId": "v8"}, {"tagVariantId": "v9"}],
+            False,
+        ),
+        # An other independent variant on a different chromosome, but lead is not in ldSet:
+        (
+            "s1",
+            7,
+            "c2",
+            "v10",
+            1.0,
+            -8,
+            [{"tagVariantId": "v2"}, {"tagVariantId": "v10"}],
+            False,
+        ),
+    ]
+
+    SCHEMA = t.StructType(
         [
-            t.StructField("studyLocusId", t.LongType(), True),
-            t.StructField("variantId", t.StringType(), True),
             t.StructField("studyId", t.StringType(), True),
+            t.StructField("studyLocusId", t.StringType(), True),
+            t.StructField("chromosome", t.StringType(), True),
+            t.StructField("variantId", t.StringType(), True),
             t.StructField("pValueMantissa", t.FloatType(), True),
             t.StructField("pValueExponent", t.IntegerType(), True),
             t.StructField(
@@ -168,28 +104,49 @@ def test_is_lead_linked(
                 ),
                 True,
             ),
-            t.StructField("is_lead_linked", t.BooleanType(), True),
+            t.StructField("expected_flag", t.BooleanType(), True),
         ]
     )
-    study_locus_df = spark.createDataFrame(
-        observed_data,
-        schema,
-    )
-    observed_df = (
-        study_locus_df.withColumn(
+
+    @pytest.fixture(autouse=True)
+    def _setup(self: TestIsLeadLinked, spark: SparkSession) -> None:
+        """Setup study the mock index for testing."""
+        # Store input data:
+        self.df = spark.createDataFrame(self.DATA, self.SCHEMA)
+
+    def test_is_lead_correctness(self: TestIsLeadLinked) -> None:
+        """Test the correctness of the is_lead_linked method."""
+        observed = self.df.withColumn(
             "is_lead_linked",
             LDclumping._is_lead_linked(
                 f.col("studyId"),
+                f.col("chromosome"),
                 f.col("variantId"),
                 f.col("pValueExponent"),
                 f.col("pValueMantissa"),
                 f.col("ldSet"),
             ),
-        )
-        .orderBy("studyLocusId")
-        .collect()
-    )
-    expected_df = (
-        spark.createDataFrame(expected_data, schema).orderBy("studyLocusId").collect()
-    )
-    assert observed_df == expected_df
+        ).collect()
+
+        for row in observed:
+            assert row["is_lead_linked"] == row["expected_flag"]
+
+    def test_flagging(self: TestIsLeadLinked) -> None:
+        """Test flagging of lead variants."""
+        # Create the study locus and clump:
+        sl_flagged = StudyLocus(
+            _df=self.df.drop("expected_flag").withColumn(
+                "qualityControls", f.array().cast("array<string>")
+            ),
+            _schema=StudyLocus.get_schema(),
+        ).clump()
+
+        # Assert that the clumped locus is a StudyLocus:
+        assert isinstance(sl_flagged, StudyLocus)
+
+        # Assert that the clumped locus has the correct columns:
+        for row in sl_flagged.df.join(self.df, on="studylocusId").collect():
+            if len(row["qualityControls"]) == 0:
+                assert not row["expected_flag"]
+            else:
+                assert row["expected_flag"]

@@ -5,10 +5,11 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import pytest
-from gentropy.dataset.variant_index import VariantIndex
-from gentropy.datasource.ensembl.vep_parser import VariantEffectPredictorParser
 from pyspark.sql import DataFrame
 from pyspark.sql import functions as f
+
+from gentropy.dataset.variant_index import VariantIndex
+from gentropy.datasource.ensembl.vep_parser import VariantEffectPredictorParser
 
 if TYPE_CHECKING:
     from pyspark.sql import SparkSession
@@ -103,20 +104,8 @@ class TestVEPParser:
             schema=VariantEffectPredictorParser.get_schema(),
         )
         self.processed_vep_output = VariantEffectPredictorParser.process_vep_output(
-            self.raw_vep_output
+            self.raw_vep_output, 200
         )
-
-    def test_extract_variant_index_from_vep(
-        self: TestVEPParser, spark: SparkSession
-    ) -> None:
-        """Test if the variant index can be extracted from the VEP output."""
-        variant_index = VariantEffectPredictorParser.extract_variant_index_from_vep(
-            spark, self.SAMPLE_VEP_DATA_PATH
-        )
-
-        assert isinstance(
-            variant_index, VariantIndex
-        ), "VariantIndex object not created."
 
     def test_process(self: TestVEPParser) -> None:
         """Test process method."""
@@ -143,3 +132,24 @@ class TestVEPParser:
         assert (
             self.raw_vep_output.count() == self.processed_vep_output.count()
         ), f"Incorrect number of variants in processed VEP output: expected {self.raw_vep_output.count()}, got {self.processed_vep_output.count()}."
+
+    def test_collection(self: TestVEPParser) -> None:
+        """Test if the collection of VEP variantIndex runs without failures."""
+        assert (
+            len(self.processed_vep_output.collect())
+            == self.processed_vep_output.count()
+        ), "Collection performed incorrectly."
+
+    def test_ensembl_transcripts_no_duplicates(self: TestVEPParser) -> None:
+        """Test if in single row all ensembl target ids (gene ids) do not have duplicates."""
+        targets = (
+            self.processed_vep_output.limit(1)
+            .select(f.explode("transcriptConsequences").alias("t"))
+            .select("t.targetId")
+            .collect()
+        )
+
+        asserted_targets = [t["targetId"] for t in targets]
+        assert len(asserted_targets) == len(
+            set(asserted_targets)
+        ), "Duplicate ensembl transcripts in a single row."

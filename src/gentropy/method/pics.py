@@ -8,7 +8,11 @@ import pyspark.sql.functions as f
 import pyspark.sql.types as t
 from scipy.stats import norm
 
-from gentropy.dataset.study_locus import StudyLocus, StudyLocusQualityCheck
+from gentropy.dataset.study_locus import (
+    FinemappingMethod,
+    StudyLocus,
+    StudyLocusQualityCheck,
+)
 
 if TYPE_CHECKING:
     from pyspark.sql import Row
@@ -16,6 +20,18 @@ if TYPE_CHECKING:
 
 class PICS:
     """Probabilistic Identification of Causal SNPs (PICS), an algorithm estimating the probability that an individual variant is causal considering the haplotype structure and observed pattern of association at the genetic locus."""
+
+    # The fields for the picsed locus + ldSet tagVariantId is renamed to variantId:
+    PICSED_LOCUS_SCHEMA = t.ArrayType(
+        t.StructType(
+            [
+                t.StructField("variantId", t.StringType(), True),
+                t.StructField("r2Overall", t.DoubleType(), True),
+                t.StructField("posteriorProbability", t.DoubleType(), True),
+                t.StructField("standardError", t.DoubleType(), True),
+            ]
+        )
+    )
 
     @staticmethod
     def _pics_relative_posterior_probability(
@@ -148,6 +164,10 @@ class PICS:
                 # If PICS cannot be calculated, we drop the variant from the credible set
                 continue
 
+            # Chaing chema:
+            if "tagVariantId" in tag_dict:
+                tag_dict["variantId"] = tag_dict.pop("tagVariantId")
+
             pics_snp_mu = PICS._pics_mu(lead_neglog_p, tag_dict["r2Overall"])
             pics_snp_std = PICS._pics_standard_deviation(
                 lead_neglog_p, tag_dict["r2Overall"], k
@@ -195,36 +215,21 @@ class PICS:
         Returns:
             StudyLocus: Study locus with PICS results
         """
-        # Register UDF by defining the structure of the output locus array of structs
-        # it also renames tagVariantId to variantId
+        # Finemapping method is an optional column:
+        finemapping_method_expression = (
+            f.lit(FinemappingMethod.PICS.value)
+            if "finemappingMethod" not in associations.df.columns
+            else f.coalesce(
+                f.col("finemappingMethod"), f.lit(FinemappingMethod.PICS.value)
+            )
+        )
 
-        picsed_ldset_schema = t.ArrayType(
-            t.StructType(
-                [
-                    t.StructField("tagVariantId", t.StringType(), True),
-                    t.StructField("r2Overall", t.DoubleType(), True),
-                    t.StructField("posteriorProbability", t.DoubleType(), True),
-                    t.StructField("standardError", t.DoubleType(), True),
-                ]
-            )
+        # Registering the UDF to be used in the pipeline:
+        finemap_udf = f.udf(
+            lambda ld_set, neglog_p: cls._finemap(ld_set, neglog_p, k),
+            cls.PICSED_LOCUS_SCHEMA,
         )
-        picsed_study_locus_schema = t.ArrayType(
-            t.StructType(
-                [
-                    t.StructField("variantId", t.StringType(), True),
-                    t.StructField("r2Overall", t.DoubleType(), True),
-                    t.StructField("posteriorProbability", t.DoubleType(), True),
-                    t.StructField("standardError", t.DoubleType(), True),
-                ]
-            )
-        )
-        _finemap_udf = f.udf(
-            lambda locus, neglog_p: PICS._finemap(locus, neglog_p, k),
-            picsed_ldset_schema,
-        )
-        non_picsable_expr = (
-            f.size(f.filter(f.col("ldSet"), lambda x: x.r2Overall >= 0.5)) == 0
-        )
+
         return StudyLocus(
             _df=(
                 associations.df
@@ -237,22 +242,48 @@ class PICS:
                     "locus",
                     f.when(
                         f.col("ldSet").isNotNull(),
-                        _finemap_udf(f.col("ldSet"), f.col("neglog_pvalue")).cast(
-                            picsed_study_locus_schema
+                        finemap_udf(f.col("ldSet"), f.col("neglog_pvalue")),
+                    ),
+                )
+                # Updating single point statistics in the locus object for the lead variant:
+                .withColumn(
+                    "locus",
+                    f.transform(
+                        f.col("locus"),
+                        lambda tag: f.when(
+                            f.col("variantId") == tag["variantId"],
+                            tag.withField("pValueMantissa", f.col("pValueMantissa"))
+                            .withField("pValueExponent", f.col("pValueExponent"))
+                            .withField("beta", f.col("beta")),
+                        ).otherwise(
+                            tag.withField(
+                                "pValueMantissa", f.lit(None).cast(t.FloatType())
+                            )
+                            .withField(
+                                "pValueExponent", f.lit(None).cast(t.IntegerType())
+                            )
+                            .withField("beta", f.lit(None).cast(t.DoubleType()))
                         ),
                     ),
                 )
+                # Flagging all PICS loci with OUT_OF_SAMPLE_LD flag:
                 .withColumn(
                     "qualityControls",
                     StudyLocus.update_quality_flag(
                         f.col("qualityControls"),
-                        non_picsable_expr,
-                        StudyLocusQualityCheck.NOT_QUALIFYING_LD_BLOCK,
+                        f.lit(True),
+                        StudyLocusQualityCheck.OUT_OF_SAMPLE_LD,
                     ),
                 )
                 .withColumn(
                     "finemappingMethod",
-                    f.coalesce(f.col("finemappingMethod"), f.lit("pics")),
+                    finemapping_method_expression,
+                )
+                .withColumn(
+                    "studyLocusId",
+                    StudyLocus.assign_study_locus_id(
+                        ["studyId", "variantId", "finemappingMethod"]
+                    ),
                 )
                 .drop("neglog_pvalue")
             ),

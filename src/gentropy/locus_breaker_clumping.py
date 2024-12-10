@@ -1,7 +1,8 @@
-"""Step to apply linkageg based clumping on study-locus dataset."""
+"""Step to apply linkage based clumping on study-locus dataset."""
 
 from __future__ import annotations
 
+from gentropy.common.genomic_region import GenomicRegion, KnownGenomicRegions
 from gentropy.common.session import Session
 from gentropy.dataset.summary_statistics import SummaryStatistics
 from gentropy.method.locus_breaker_clumping import LocusBreakerClumping
@@ -46,7 +47,8 @@ class LocusBreakerClumpingStep:
             remove_mhc (bool, optional): If true will use exclude_region() to remove the MHC region.
         """
         sum_stats = SummaryStatistics.from_parquet(
-            session, summary_statistics_input_path, recursiveFileLookup=True
+            session,
+            summary_statistics_input_path,
         )
         lbc = sum_stats.locus_breaker_clumping(
             lbc_baseline_pvalue,
@@ -63,7 +65,8 @@ class LocusBreakerClumpingStep:
         )
         if remove_mhc:
             clumped_result = clumped_result.exclude_region(
-                "chr6:25726063-33400556", exclude_overlap=True
+                GenomicRegion.from_known_genomic_region(KnownGenomicRegions.MHC),
+                exclude_overlap=True,
             )
 
         if collect_locus:

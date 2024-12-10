@@ -24,6 +24,7 @@ class Session:
         hail_home: str | None = None,
         start_hail: bool = False,
         extended_spark_conf: dict[str, str] | None = None,
+        output_partitions: int = 200,
     ) -> None:
         """Initialises spark session and logger.
 
@@ -34,6 +35,7 @@ class Session:
             hail_home (str | None): Path to Hail installation. Defaults to None.
             start_hail (bool): Whether to start Hail. Defaults to False.
             extended_spark_conf (dict[str, str] | None): Extended Spark configuration. Defaults to None.
+            output_partitions (int): Number of partitions for output datasets. Defaults to 200.
         """
         merged_conf = self._create_merged_config(
             start_hail, hail_home, extended_spark_conf
@@ -53,6 +55,7 @@ class Session:
         self.start_hail = start_hail
         if start_hail:
             hl.init(sc=self.spark.sparkContext, log="/dev/null")
+        self.output_partitions = output_partitions
 
     def _default_config(self: Session) -> SparkConf:
         """Default spark configuration.
@@ -134,11 +137,13 @@ class Session:
     ) -> DataFrame:
         """Generic function to read a file or folder into a Spark dataframe.
 
+        The `recursiveFileLookup` flag when set to True will skip all partition columns, but read files from all subdirectories.
+
         Args:
             path (str | list[str]): path to the dataset
             format (str): file format. Defaults to parquet.
             schema (StructType | str | None): Schema to use when reading the data.
-            **kwargs (bool | float | int | str | None): Additional arguments to pass to spark.read.load. `recursiveFileLookup` and `mergeSchema` are set to True by default.
+            **kwargs (bool | float | int | str | None): Additional arguments to pass to spark.read.load. `mergeSchema` is set to True, `recursiveFileLookup` is set to False by default.
 
         Returns:
             DataFrame: Dataframe
@@ -147,7 +152,7 @@ class Session:
         if schema is None:
             kwargs["inferSchema"] = kwargs.get("inferSchema", True)
         kwargs["mergeSchema"] = kwargs.get("mergeSchema", True)
-        kwargs["recursiveFileLookup"] = kwargs.get("recursiveFileLookup", True)
+        kwargs["recursiveFileLookup"] = kwargs.get("recursiveFileLookup", False)
         return self.spark.read.load(path, format=format, schema=schema, **kwargs)
 
 

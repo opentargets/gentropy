@@ -3,7 +3,7 @@
   "fields": [
     {
       "name": "studyLocusId",
-      "type": "long",
+      "type": "string",
       "nullable": false,
       "metadata": {}
     },
@@ -23,6 +23,12 @@
       "name": "geneId",
       "type": "string",
       "nullable": false,
+      "metadata": {}
+    },
+    {
+      "name": "traitFromSourceMappedId",
+      "type": "string",
+      "nullable": true,
       "metadata": {}
     },
     {

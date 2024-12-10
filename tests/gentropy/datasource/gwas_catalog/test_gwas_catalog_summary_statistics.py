@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 
 import pyspark.sql.functions as f
 import pytest
+
 from gentropy.dataset.summary_statistics import SummaryStatistics
 from gentropy.datasource.gwas_catalog.summary_statistics import (
     GWASCatalogSummaryStatistics,

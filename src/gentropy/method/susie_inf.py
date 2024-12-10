@@ -9,12 +9,13 @@ import numpy as np
 import pyspark.sql.functions as f
 import scipy.linalg
 import scipy.special
+from pyspark.sql.window import Window
 from scipy.optimize import minimize, minimize_scalar
 from scipy.special import logsumexp
 
 from gentropy.dataset.ld_index import LDIndex
 from gentropy.dataset.study_index import StudyIndex
-from gentropy.dataset.study_locus import StudyLocus
+from gentropy.dataset.study_locus import StudyLocus, StudyLocusQualityCheck
 
 
 @dataclass
@@ -23,6 +24,9 @@ class SUSIE_inf:
 
     Note: code copied from fine-mapping-inf package as a placeholder
     https://github.com/FinucaneLab/fine-mapping-inf
+
+    Raises:
+        RuntimeError: if missing LD or if unsupported variance estimation
     """
 
     @staticmethod
@@ -89,8 +93,7 @@ class SUSIE_inf:
                 lbf -- length-p array of log-Bayes-factors for each CS
 
         Raises:
-            RuntimeError: if missing LD
-            RuntimeError: if unsupported variance estimation method
+            RuntimeError: if missing LD or if unsupported variance estimation method
         """
         p = len(z)
         # Precompute V,D^2 in the SVD X=UDV', and V'X'y and y'y
@@ -428,6 +431,7 @@ class SUSIE_inf:
 
         Raises:
             RuntimeError: if missing inputs for purity filtering
+            ValueError: if either LD or V, Dsq are None
         """
         if (V is None or Dsq is None or n is None) and LD is None:
             raise RuntimeError("Missing inputs for purity filtering")
@@ -466,43 +470,61 @@ class SUSIE_inf:
     @staticmethod
     def credible_set_qc(
         cred_sets: StudyLocus,
-        study_index: StudyIndex,
-        ld_index: LDIndex,
         p_value_threshold: float = 1e-5,
         purity_min_r2: float = 0.01,
-        ld_min_r2: float = 0.8,
+        clump: bool = False,
+        ld_index: LDIndex | None = None,
+        study_index: StudyIndex | None = None,
+        ld_min_r2: float | None = 0.8,
     ) -> StudyLocus:
         """Filter credible sets by lead P-value and min-R2 purity, and performs LD clumping.
 
+        In case of duplicated loci, the filtering retains the loci wth the highest credibleSetlog10BF.
+
+
         Args:
             cred_sets (StudyLocus): StudyLocus object with credible sets to filter/clump
-            study_index (StudyIndex): StudyIndex object
-            ld_index (LDIndex): LDIndex object
             p_value_threshold (float): p-value threshold for filtering credible sets, default is 1e-5
             purity_min_r2 (float): min-R2 purity threshold for filtering credible sets, default is 0.01
-            ld_min_r2 (float): LD R2 threshold for clumping, default is 0.8
+            clump (bool): Whether to clump the credible sets by LD, default is False
+            ld_index (LDIndex | None): LDIndex object
+            study_index (StudyIndex | None): StudyIndex object
+            ld_min_r2 (float | None): LD R2 threshold for clumping, default is 0.8
 
         Returns:
             StudyLocus: Credible sets which pass filters and LD clumping.
         """
-        df = (
+        cred_sets.df = (
             cred_sets.df.withColumn(
                 "pValue", f.col("pValueMantissa") * f.pow(10, f.col("pValueExponent"))
             )
             .filter(f.col("pValue") <= p_value_threshold)
             .filter(f.col("purityMinR2") >= purity_min_r2)
             .drop("pValue")
+            .withColumn(
+                "rn",
+                f.row_number().over(
+                    Window.partitionBy("studyLocusId").orderBy(
+                        f.desc("credibleSetLog10BF")
+                    )
+                ),
+            )
+            .filter(f.col("rn") == 1)
+            .drop("rn")
         )
-        cred_sets.df = df
-        cred_sets = (
-            cred_sets.annotate_ld(study_index, ld_index, ld_min_r2)
-            .clump()
-            .filter(
-                ~f.array_contains(
-                    f.col("qualityControls"),
-                    "Explained by a more significant variant in high LD (clumped)",
+        if clump:
+            assert study_index, "Running in clump mode, which requires study_index."
+            assert ld_index, "Running in clump mode, which requires ld_index."
+            assert ld_min_r2, "Running in clump mode, which requires ld_min_r2 value."
+            cred_sets = (
+                cred_sets.annotate_ld(study_index, ld_index, ld_min_r2)
+                .clump()
+                .filter(
+                    ~f.array_contains(
+                        f.col("qualityControls"),
+                        StudyLocusQualityCheck.LD_CLUMPED.value,
+                    )
                 )
             )
-        )
 
         return cred_sets
