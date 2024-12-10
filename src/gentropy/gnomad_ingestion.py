@@ -105,6 +105,8 @@ class GnomadVariantIndexStep:
                 gnomad_genomes_path, variant_annotation_path
             )
 
+        session.logger.info("Gnomad variant annotation path:")
+        session.logger.info(variant_annotation_path)
         # Parse variant info from source.
         (
             GnomADVariants(

@@ -18,6 +18,7 @@ class SessionConfig:
     spark_uri: str = "local[*]"
     hail_home: str = os.path.dirname(hail_location)
     extended_spark_conf: dict[str, str] | None = field(default_factory=dict[str, str])
+    output_partitions: int = 200
     _target_: str = "gentropy.common.session.Session"
 
 
@@ -263,7 +264,6 @@ class LocusToGeneConfig(StepConfig):
             "geneCount500kb",
             "proteinGeneCount500kb",
             "credibleSetConfidence",
-            # "isProteinCoding",
             # intervals
             "pchicMean",
             "pchicMeanNeighbourhood",
@@ -276,19 +276,19 @@ class LocusToGeneConfig(StepConfig):
     hyperparameters: dict[str, Any] = field(
         default_factory=lambda: {
             "n_estimators": 100,
-            "max_depth": 5,
-            "loss": "log_loss",
+            "max_depth": 10,
+            "ccp_alpha": 0,
+            "learning_rate": 0.1,
+            "min_samples_leaf": 5,
+            "min_samples_split": 5,
+            "subsample": 1,
         }
     )
     wandb_run_name: str | None = None
     hf_hub_repo_id: str | None = "opentargets/locus_to_gene"
     hf_model_commit_message: str | None = "chore: update model"
     download_from_hub: bool = True
-    # interval_sources: dict[str, str] | None = {
-    #     "javierre": "gs://genetics_etl_python_playground/static_assets/javierre_2016_preprocessed",
-    #     "thurman": "gs://genetics_etl_python_playground/static_assets/thurman_2012/genomewideCorrs_above0.7_promoterPlusMinus500kb_withGeneNames_32celltypeCategories.bed8.gz",
-    #     "andersson": "gs://genetics_etl_python_playground/static_assets/andersson2014/enhancer_tss_associations.bed",
-    # }
+    cross_validate: bool = True
     _target_: str = "gentropy.l2g.LocusToGeneStep"
 
 
@@ -399,7 +399,9 @@ class GnomadVariantConfig(StepConfig):
         }
     )
     variant_annotation_path: str = MISSING
-    gnomad_genomes_path: str = "gs://gcp-public-data--gnomad/release/4.0/ht/genomes/gnomad.genomes.v4.0.sites.ht/"
+    gnomad_genomes_path: str = (
+        "gs://gcp-public-data--gnomad/release/4.1/ht/joint/gnomad.joint.v4.1.sites.ht/"
+    )
     gnomad_variant_populations: list[str] = field(
         default_factory=lambda: [
             "afr",  # African-American

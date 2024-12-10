@@ -24,6 +24,7 @@ class Session:
         hail_home: str | None = None,
         start_hail: bool = False,
         extended_spark_conf: dict[str, str] | None = None,
+        output_partitions: int = 200,
     ) -> None:
         """Initialises spark session and logger.
 
@@ -34,6 +35,7 @@ class Session:
             hail_home (str | None): Path to Hail installation. Defaults to None.
             start_hail (bool): Whether to start Hail. Defaults to False.
             extended_spark_conf (dict[str, str] | None): Extended Spark configuration. Defaults to None.
+            output_partitions (int): Number of partitions for output datasets. Defaults to 200.
         """
         merged_conf = self._create_merged_config(
             start_hail, hail_home, extended_spark_conf
@@ -53,6 +55,7 @@ class Session:
         self.start_hail = start_hail
         if start_hail:
             hl.init(sc=self.spark.sparkContext, log="/dev/null")
+        self.output_partitions = output_partitions
 
     def _default_config(self: Session) -> SparkConf:
         """Default spark configuration.

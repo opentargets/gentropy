@@ -668,6 +668,12 @@ class VariantEffectPredictorParser:
                                 assessment_column_name="lof",
                                 assessment_flag_column_name="lof_filter",
                             ),
+                            # Extract GERP conservation score:
+                            cls._vep_in_silico_prediction_extractor(
+                                method_name="GERP",
+                                transcript_column_name="transcript_consequences",
+                                score_column_name="conservation",
+                            ),
                             # Extract max alpha missense:
                             cls._get_max_alpha_missense(
                                 f.col("transcript_consequences")
@@ -685,6 +691,12 @@ class VariantEffectPredictorParser:
                             transcript_column_name="intergenic_consequences",
                             method_name="CADD",
                             score_column_name="cadd_phred",
+                        ),
+                        # Extract GERP conservation score:
+                        cls._vep_in_silico_prediction_extractor(
+                            method_name="GERP",
+                            transcript_column_name="intergenic_consequences",
+                            score_column_name="conservation",
                         ),
                         # Extract VEP prediction:
                         cls._get_vep_prediction(f.col("most_severe_consequence")),

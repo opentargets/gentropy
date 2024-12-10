@@ -22,6 +22,12 @@
           "fields": [
             {
               "metadata": {},
+              "name": "conservation",
+              "nullable": true,
+              "type": "double"
+            },
+            {
+              "metadata": {},
               "name": "hgvsg",
               "nullable": true,
               "type": "string"
@@ -294,6 +300,12 @@
         "containsNull": true,
         "elementType": {
           "fields": [
+            {
+              "metadata": {},
+              "name": "conservation",
+              "nullable": true,
+              "type": "double"
+            },
             {
               "metadata": {},
               "name": "alphamissense",

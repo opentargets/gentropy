@@ -46,24 +46,24 @@ class StudyLocusValidationStep:
             .annotate_study_type(study_index)  # Add study type to study locus
             .qc_redundant_top_hits_from_PICS()  # Flagging top hits from studies with PICS summary statistics
             .qc_explained_by_SuSiE()  # Flagging credible sets in regions explained by SuSiE
-            # Flagging credible sets with PIP > 1 or PIP < 0.99
+            # Annotates credible intervals and filter to only keep 95% credible sets
+            .filter_credible_set(credible_interval=CredibleInterval.IS95)
+            # Flagging credible sets with PIP > 1 or PIP < 0.95
             .qc_abnormal_pips(
-                sum_pips_lower_threshold=0.99, sum_pips_upper_threshold=1.0001
+                sum_pips_lower_threshold=0.95, sum_pips_upper_threshold=1.0001
             )
-            # Annotates credible intervals and filter to only keep 99% credible sets
-            .filter_credible_set(credible_interval=CredibleInterval.IS99)
             # Annotate credible set confidence:
             .assign_confidence()
         ).persist()  # we will need this for 2 types of outputs
 
         # Valid study locus partitioned to simplify the finding of overlaps
-        study_locus_with_qc.valid_rows(
-            invalid_qc_reasons, invalid=True
-        ).df.repartitionByRange("chromosome", "position").sortWithinPartitions(
-            "chromosome", "position"
-        ).write.mode(session.write_mode).parquet(invalid_study_locus_path)
-
-        # Infalid study locus
-        study_locus_with_qc.valid_rows(invalid_qc_reasons).df.write.mode(
+        study_locus_with_qc.valid_rows(invalid_qc_reasons).df.repartitionByRange(
+            session.output_partitions, "chromosome", "position"
+        ).sortWithinPartitions("chromosome", "position").write.mode(
             session.write_mode
         ).parquet(valid_study_locus_path)
+
+        # Invalid study locus
+        study_locus_with_qc.valid_rows(invalid_qc_reasons, invalid=True).df.coalesce(
+            session.output_partitions
+        ).write.mode(session.write_mode).parquet(invalid_study_locus_path)
