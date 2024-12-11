@@ -15,7 +15,7 @@ from gentropy.common.schemas import compare_struct_schemas
 from gentropy.common.session import Session
 from gentropy.common.spark_helpers import calculate_harmonic_sum
 from gentropy.common.utils import access_gcp_secret
-from gentropy.config import LocusToGeneConfig, LocusToGeneFeatureMatrixConfig
+from gentropy.config import LocusToGeneFeatureMatrixConfig
 from gentropy.dataset.colocalisation import Colocalisation
 from gentropy.dataset.gene_index import GeneIndex
 from gentropy.dataset.intervals import Intervals
