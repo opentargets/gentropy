@@ -26,6 +26,9 @@ from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import StudyLocus
 from gentropy.method.l2g.feature_factory import L2GFeatureInputLoader
 
+if TYPE_CHECKING:
+    from pyspark.sql import SparkSession
+
 
 def test_select_features_inheritance(
     spark: SparkSession, mock_l2g_feature_matrix: L2GFeatureMatrix
