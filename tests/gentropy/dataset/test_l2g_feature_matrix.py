@@ -5,7 +5,6 @@
 
 from __future__ import annotations
 
-
 import pyspark.sql.functions as f
 import pytest
 from pyspark.sql.types import (
@@ -25,8 +24,7 @@ from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import StudyLocus
 from gentropy.method.l2g.feature_factory import L2GFeatureInputLoader
 
-if TYPE_CHECKING:
-    from pyspark.sql import SparkSession
+from pyspark.sql import SparkSession
 
 
 def test_select_features_inheritance(
