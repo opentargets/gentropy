@@ -5,7 +5,6 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
 
 import pyspark.sql.functions as f
 import pytest
@@ -34,7 +33,6 @@ def test_select_features_inheritance(
     spark: SparkSession, mock_l2g_feature_matrix: L2GFeatureMatrix
 ) -> None:
     """Test L2GFeatureMatrix.select_features method inherits the instance attributes in the new instance."""
-
     new_instance = mock_l2g_feature_matrix.select_features(
         features_list=["distanceTssMean"]
     )
