@@ -260,10 +260,6 @@ class LocusToGeneConfig(StepConfig):
             "vepMaximumNeighbourhood",
             "vepMean",
             "vepMeanNeighbourhood",
-            # other
-            "geneCount500kb",
-            "proteinGeneCount500kb",
-            "credibleSetConfidence",
             # intervals
             "pchicMean",
             "pchicMeanNeighbourhood",
@@ -271,6 +267,10 @@ class LocusToGeneConfig(StepConfig):
             "enhTssMeanNeighbourhood",
             "dhsPmtrMean",
             "dhsPmtrMeanNeighbourhood",
+            # other
+            "geneCount500kb",
+            "proteinGeneCount500kb",
+            "credibleSetConfidence",
         ]
     )
     hyperparameters: dict[str, Any] = field(

@@ -52,10 +52,12 @@ def common_interval_feature_logic(
             ),
         )
         .join(
-            intervals.df.filter(f.col("datasourceId") == interval_source)
-            .withColumnRenamed("variantId", "variantInLocusId")
-            .withColumnRenamed("targetId", "geneId"),
-            on=["variantInLocusId", "geneId"],
+            intervals.df.filter(
+                f.col("datasourceId") == interval_source
+            ).withColumnRenamed("variantId", "variantInLocusId"),
+            # .withColumnRenamed("targetId", "geneId"),
+            # on=["variantInLocusId", "geneId"],
+            on="variantInLocusId",
             how="inner",
         )
         .withColumn(
@@ -101,7 +103,7 @@ def common_neighbourhood_interval_feature_logic(
             f.mean(local_feature_name).over(Window.partitionBy("studyLocusId")),
         )
         .withColumn(feature_name, f.col(local_feature_name) - f.col("regional_mean"))
-        .drop("regional_mean")
+        .drop("regional_mean", local_feature_name)
     )
 
 

@@ -60,6 +60,14 @@ from gentropy.dataset.l2g_features.vep import (
     common_neighbourhood_vep_feature_logic,
     common_vep_feature_logic,
 )
+from gentropy.dataset.l2g_features.intervals import (
+    PchicMeanFeature,
+    PchicMeanNeighbourhoodFeature,
+    EnhTssMeanFeature,
+    EnhTssMeanNeighbourhoodFeature,
+    common_interval_feature_logic,
+    common_neighbourhood_interval_feature_logic,
+)
 from gentropy.dataset.l2g_features.other import (
     common_genecount_feature_logic,
     is_protein_coding_feature_logic,
@@ -72,6 +80,7 @@ from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import StudyLocus
 from gentropy.dataset.variant_index import VariantIndex
 from gentropy.method.l2g.feature_factory import L2GFeatureInputLoader
+from gentropy.dataset.intervals import Intervals
 
 if TYPE_CHECKING:
     from pyspark.sql import SparkSession
@@ -104,6 +113,10 @@ if TYPE_CHECKING:
         VepMeanFeature,
         VepMaximumNeighbourhoodFeature,
         VepMeanNeighbourhoodFeature,
+        PchicMeanFeature,
+        PchicMeanNeighbourhoodFeature,
+        EnhTssMeanFeature,
+        EnhTssMeanNeighbourhoodFeature,
         GeneCountFeature,
         ProteinGeneCountFeature,
         CredibleSetConfidenceFeature,
@@ -117,6 +130,7 @@ def test_feature_factory_return_type(
     mock_study_index: StudyIndex,
     mock_variant_index: VariantIndex,
     mock_gene_index: GeneIndex,
+    mock_intervals: Intervals,
 ) -> None:
     """Test that every feature factory returns a L2GFeature dataset."""
     loader = L2GFeatureInputLoader(
@@ -125,6 +139,7 @@ def test_feature_factory_return_type(
         variant_index=mock_variant_index,
         study_locus=mock_study_locus,
         gene_index=mock_gene_index,
+        intervals=mock_intervals,
     )
     feature_dataset = feature_class.compute(
         study_loci_to_annotate=mock_study_locus,
@@ -678,6 +693,153 @@ class TestCommonDistanceFeatureLogic:
                 GeneIndex.get_schema(),
             ),
             _schema=GeneIndex.get_schema(),
+        )
+
+
+class TestCommonIntervalFeatureLogic:
+    """Test the CommonIntervalFeatureLogic methods."""
+
+    @pytest.mark.parametrize(
+        ("feature_name", "interval_source", "expected_data"),
+        [
+            (
+                "pchicMean",
+                "javierre2016",
+                [
+                    {
+                        "studyLocusId": "1",
+                        "geneId": "gene1",
+                        "pchicMean": 0.4,
+                    },
+                    {
+                        "studyLocusId": "1",
+                        "geneId": "gene2",
+                        "pchicMean": 0.6,
+                    },
+                ],
+            ),
+        ],
+    )
+    def test_common_interval_feature_logic(
+        self: TestCommonIntervalFeatureLogic,
+        spark: SparkSession,
+        feature_name: str,
+        interval_source: str,
+        expected_data: dict[str, Any],
+    ) -> None:
+        """Test the logic of the function that extracts features from intervals."""
+        observed_df = (
+            common_interval_feature_logic(
+                self.sample_study_locus,
+                intervals=self.sample_intervals,
+                feature_name=feature_name,
+                interval_source=interval_source,
+            )
+            .withColumn(feature_name, f.round(f.col(feature_name), 2))
+            .orderBy(feature_name)
+        )
+        expected_df = (
+            spark.createDataFrame(expected_data)
+            .select("studyLocusId", "geneId", feature_name)
+            .orderBy(feature_name)
+        )
+        assert (
+            observed_df.collect() == expected_df.collect()
+        ), f"Expected and observed dataframes are not equal for feature {feature_name}."
+
+    def test_common_neighbourhood_interval_feature_logic(
+        self: TestCommonIntervalFeatureLogic,
+        spark: SparkSession,
+    ) -> None:
+        """Test the logic of the function that computes neighbourhood interval scores."""
+        feature_name = "pchicMeanNeighbourhood"
+        observed_df = (
+            common_neighbourhood_interval_feature_logic(
+                self.sample_study_locus,
+                intervals=self.sample_intervals,
+                feature_name=feature_name,
+                interval_source="javierre2016",
+            )
+            .withColumn(feature_name, f.round(f.col(feature_name), 2))
+            .orderBy(f.col(feature_name).asc())
+        )
+        expected_df = (
+            spark.createDataFrame(
+                [
+                    {"studyLocusId": "1", "geneId": "gene1", feature_name: -0.1},
+                    {"studyLocusId": "1", "geneId": "gene2", feature_name: 0.1},
+                ]
+            )
+            .orderBy(feature_name)
+            .select("studyLocusId", "geneId", feature_name)
+        )
+        assert (
+            observed_df.collect() == expected_df.collect()
+        ), "Output doesn't meet the expectation."
+
+    @pytest.fixture(autouse=True)
+    def _setup(
+        self: TestCommonIntervalFeatureLogic,
+        spark: SparkSession,
+    ) -> None:
+        """Set up testing fixtures."""
+        self.sample_study_locus = StudyLocus(
+            _df=spark.createDataFrame(
+                [
+                    {
+                        "studyLocusId": "1",
+                        "variantId": "lead1",
+                        "studyId": "study1",
+                        "locus": [
+                            {
+                                "variantId": "lead1",
+                                "posteriorProbability": 0.5,
+                            },
+                            {
+                                "variantId": "tag1",
+                                "posteriorProbability": 0.5,
+                            },
+                        ],
+                        "chromosome": "1",
+                    },
+                ],
+                StudyLocus.get_schema(),
+            ),
+            _schema=StudyLocus.get_schema(),
+        )
+        self.sample_intervals = Intervals(
+            _df=spark.createDataFrame(
+                [
+                    {
+                        "chromosome": "1",
+                        "start": "1000000",
+                        "end": "1005000",
+                        "geneId": "gene1",
+                        "variantId": "lead1",
+                        "resourceScore": 0.8,
+                        "score": 0.95,
+                        "datasourceId": "javierre2016",
+                        "datatypeId": "pchic",  # Required field
+                        "pmid": "12345678",  # Example PubMed ID
+                        "biofeature": "enhancer",  # Descriptive feature
+                    },
+                    {
+                        "chromosome": "1",
+                        "start": "1000000",
+                        "end": "1005000",
+                        "geneId": "gene2",
+                        "variantId": "tag1",
+                        "resourceScore": 1.2,
+                        "score": 1.1,
+                        "datasourceId": "javierre2016",
+                        "datatypeId": "pchic",  # Required field
+                        "pmid": "87654321",  # Example PubMed ID
+                        "biofeature": "tss",  # Descriptive feature
+                    },
+                ],
+                Intervals.get_schema(),
+            ),
+            _schema=Intervals.get_schema(),
         )
 
 
