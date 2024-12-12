@@ -37,15 +37,6 @@ google-cloud-secret-manager = "^2.20.0, <2.22.0"
 shap = "^0.46.0, <0.47.0"
 matplotlib = "^3.7.3, <3.8.0"
 
-[tool.poetry.dev-dependencies]
-pre-commit = "^4.0.0, <4.1.0"
-mypy = "^1.13, <1.14"
-pep8-naming = "^0.14.1, <0.15.0"
-black = "^23.9.1, <24.0.0"
-interrogate = "^1.7.0, <1.8.0"
-isort = "^5.13.2, <5.14.0"
-darglint = "^1.8.1, <1.9.0"
-ruff = "^0.8.1, <0.9.0"
 
 [tool.poetry.group.docs.dependencies]
 mkdocs = "^1.5.3, <1.6.0"
@@ -78,6 +69,13 @@ pydoclint = ">=0.3.8,<0.6.0"
 prettier = "^0.0.7, <0.1.0"
 deptry = ">=0.12,<0.21"
 yamllint = "^1.33.0, <1.36.0"
+pre-commit = "^4.0.0, <4.1.0"
+mypy = "^1.13, <1.14"
+pep8-naming = "^0.14.1, <0.15.0"
+interrogate = "^1.7.0, <1.8.0"
+isort = "^5.13.2, <5.14.0"
+darglint = "^1.8.1, <1.9.0"
+ruff = "^0.8.1, <0.9.0"
 
 [tool.semantic_release]
 logging_use_named_masks = true
