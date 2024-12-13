@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 
 import pyspark.sql.functions as f
 import pyspark.sql.types as t
+from pyspark.sql.window import Window
 
 from gentropy.common.schemas import parse_spark_schema
 from gentropy.common.spark_helpers import (
@@ -14,6 +15,7 @@ from gentropy.common.spark_helpers import (
     rename_all_columns,
     safe_array_union,
 )
+from gentropy.dataset.amino_acid_variants import AminoAcidVariants
 from gentropy.dataset.dataset import Dataset
 
 if TYPE_CHECKING:
@@ -273,6 +275,60 @@ class VariantIndex(Dataset):
             raise ValueError(
                 f"max_distance must be less than 500_000. Got {max_distance}."
             )
+
+    def annotate_with_amino_acid_consequences(
+        self: VariantIndex, annotation: AminoAcidVariants
+    ) -> VariantIndex:
+        """Enriching in silico predictors with amino-acid derived predicted consequences.
+
+        Args:
+            annotation (AminoAcidVariants): amio-acid level variant consequences.
+
+        Returns:
+            VariantIndex: where amino-acid causing variants are enriched with extra annotation
+        """
+        w = Window.partitionBy("variantId").orderBy(f.size("inSilicoPredictors").desc())
+
+        return VariantIndex(
+            _df=self.df
+            # Extracting variant consequence on Uniprot and amino-acid changes from the transcripts:
+            .withColumns(
+                {
+                    "aminoAcidChange": f.filter(
+                        "transcriptConsequences",
+                        lambda vep: vep.aminoAcidChange.isNotNull(),
+                    )[0].aminoAcidChange,
+                    "uniprotAccession": f.explode(
+                        f.filter(
+                            "transcriptConsequences",
+                            lambda vep: vep.aminoAcidChange.isNotNull(),
+                        )[0].uniprotAccessions
+                    ),
+                }
+            )
+            # Joining with amino-acid predictions:
+            .join(
+                annotation.df.withColumnRenamed("inSilicoPredictors", "annotations"),
+                on=["uniprotAccession", "aminoAcidChange"],
+                how="left",
+            )
+            # Merge predictors:
+            .withColumn(
+                "inSilicoPredictors",
+                f.when(
+                    f.col("annotations").isNotNull(),
+                    f.array_union("inSilicoPredictors", "annotations"),
+                ).otherwise(f.col("inSilicoPredictors")),
+            )
+            # Dropping unused columns:
+            .drop("uniprotAccession", "aminoAcidChange", "annotations")
+            # Dropping potentially exploded variant rows:
+            .distinct()
+            .withColumn("rank", f.rank().over(w))
+            .filter(f.col("rank") == 1)
+            .drop("rank"),
+            _schema=self.get_schema(),
+        )
 
     def get_loftee(self: VariantIndex) -> DataFrame:
         """Returns a dataframe with a flag indicating whether a variant is predicted to cause loss of function in a gene. The source of this information is the LOFTEE algorithm (https://github.com/konradjk/loftee).
