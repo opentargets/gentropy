@@ -8,6 +8,7 @@ from pyspark.sql import types as t
 
 from gentropy.common.spark_helpers import enforce_schema
 from gentropy.dataset.amino_acid_variants import AminoAcidVariants
+from gentropy.dataset.variant_index import InSilicoPredictorNormaliser
 
 
 class OpenTargetsFoldX:
@@ -29,7 +30,7 @@ class OpenTargetsFoldX:
             Column: struct with the right shape of the in silico predictors.
         """
         return f.struct(
-            f.lit("foldX").alias("method"),
+            f.lit("FoldX").alias("method"),
             score_column.cast(t.FloatType()).alias("score"),
         )
 
@@ -66,6 +67,13 @@ class OpenTargetsFoldX:
                     f.collect_set(f.col("inSilicoPredictor")).alias(
                         "inSilicoPredictors"
                     )
+                )
+                # Normalise FoldX free energy changes:
+                .withColumn(
+                    "inSilicoPredictors",
+                    InSilicoPredictorNormaliser.normalise_in_silico_predictors(
+                        f.col("inSilicoPredictors")
+                    ),
                 )
             ),
             _schema=AminoAcidVariants.get_schema(),

@@ -324,7 +324,7 @@ class VariantIndex(Dataset):
             .drop("uniprotAccession", "aminoAcidChange", "annotations")
             # Dropping potentially exploded variant rows:
             .distinct()
-            .withColumn("rank", f.rank().over(w))
+            .withColumn("rank", f.row_number().over(w))
             .filter(f.col("rank") == 1)
             .drop("rank"),
             _schema=self.get_schema(),
@@ -425,6 +425,7 @@ class InSilicoPredictorNormaliser:
             .when(method == "SpliceAI", score)
             .when(method == "VEP", score)
             .when(method == "GERP", cls._normalise_gerp(score))
+            .when(method == "FoldX", cls._normalise_foldx(score))
         )
 
     @staticmethod
@@ -450,6 +451,37 @@ class InSilicoPredictorNormaliser:
         return (column - min_value) / (max_value - min_value) * (
             maximum - minimum
         ) + minimum
+
+    @classmethod
+    def _normalise_foldx(
+        cls: type[InSilicoPredictorNormaliser], score: Column
+    ) -> Column:
+        """Normalise FoldX ddG energies.
+
+        ΔΔG Range:
+        - 0 to ±0.5 kcal/mol: Usually considered negligible or within the noise of predictions. The mutation has minimal or no effect on stability.
+        - ±0.5 to ±1.5 kcal/mol: Moderate effect on stability. Such mutations might cause noticeable changes, depending on the context of the protein's function.
+        - > ±1.5 kcal/mol: Significant impact on stability. Positive values indicate structural disruption or destabilization, while negative values suggest substantial stabilization.
+
+        ΔΔG > +2.0 kcal/mol: Likely to cause a significant structural disruption, such as unfolding, local instability, or loss of functional conformation.
+
+        Args:
+            score (Column): column with ddG values
+
+        Returns:
+            Column: Normalised energies
+        """
+        return (
+            f.when(score >= 2, f.lit(1.0))
+            .when(score >= 1.5, cls._rescaleColumnValue(score, 1.5, 2.0, 0.75, 1.00))
+            .when(score >= 0.5, cls._rescaleColumnValue(score, 0.5, 1.5, 0.25, 0.75))
+            .when(score >= -0.5, cls._rescaleColumnValue(score, -0.5, 0.5, -0.25, 0.25))
+            .when(
+                score >= -1.5, cls._rescaleColumnValue(score, -1.5, -0.5, -0.75, -0.25)
+            )
+            .when(score >= -2, cls._rescaleColumnValue(score, -2, -1.5, -1, -0.75))
+            .when(score < -2, f.lit(-1))
+        )
 
     @classmethod
     def _normalise_cadd(
