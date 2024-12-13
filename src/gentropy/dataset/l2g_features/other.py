@@ -87,7 +87,7 @@ def is_protein_coding_feature_logic(
     *,
     variant_index: VariantIndex,
     feature_name: str,
-    genomic_window: int = 1_000_000,
+    genomic_window: int = 500_000,
 ) -> DataFrame:
     """Computes the feature to indicate if a gene is protein-coding or not.
 
@@ -96,12 +96,12 @@ def is_protein_coding_feature_logic(
             that will be used for annotation
         variant_index (VariantIndex): Dataset containing information related to all overlapping genes within a genomic window.
         feature_name (str): The name of the feature
-        genomic_window (int): The window size around the locus to consider. Defaults to its maximum value: 1Mb (500kb up and downstream the locus)
+        genomic_window (int): The window size around the locus to consider. Defaults to its maximum value: 500kb up and downstream the locus
 
     Returns:
         DataFrame: Feature dataset, with 1 if the gene is protein-coding, 0 if not.
     """
-    assert genomic_window <= 1_000_000, "Genomic window must be less than 1Mb."
+    assert genomic_window <= 500_000, "Genomic window must be less than 500kb."
     genes_in_window = (
         variant_index.df.withColumn(
             "transcriptConsequence", f.explode("transcriptConsequences")
@@ -114,7 +114,7 @@ def is_protein_coding_feature_logic(
                 "distanceFromFootprint"
             ),
         )
-        .filter(f.col("distanceFromFootprint") <= genomic_window // 2)
+        .filter(f.col("distanceFromFootprint") <= genomic_window)
     )
     if isinstance(study_loci_to_annotate, StudyLocus):
         variants_df = study_loci_to_annotate.df.select(
@@ -243,7 +243,7 @@ class ProteinCodingFeature(L2GFeature):
         Returns:
             ProteinCodingFeature: Feature dataset with 1 if the gene is protein-coding, 0 otherwise
         """
-        genomic_window = 1000000
+        genomic_window = 500_000
         protein_coding_df = is_protein_coding_feature_logic(
             study_loci_to_annotate=study_loci_to_annotate,
             feature_name=cls.feature_name,
