@@ -267,20 +267,24 @@ class LocusToGeneConfig(StepConfig):
             "geneCount500kb",
             "proteinGeneCount500kb",
             "credibleSetConfidence",
-            # "isProteinCoding",
         ]
     )
     hyperparameters: dict[str, Any] = field(
         default_factory=lambda: {
             "n_estimators": 100,
-            "max_depth": 5,
-            "loss": "log_loss",
+            "max_depth": 10,
+            "ccp_alpha": 0,
+            "learning_rate": 0.1,
+            "min_samples_leaf": 5,
+            "min_samples_split": 5,
+            "subsample": 1,
         }
     )
     wandb_run_name: str | None = None
     hf_hub_repo_id: str | None = "opentargets/locus_to_gene"
     hf_model_commit_message: str | None = "chore: update model"
     download_from_hub: bool = True
+    cross_validate: bool = True
     _target_: str = "gentropy.l2g.LocusToGeneStep"
 
 
