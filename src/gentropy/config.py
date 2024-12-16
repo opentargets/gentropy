@@ -113,6 +113,17 @@ class GWASCatalogSumstatsPreprocessConfig(StepConfig):
 
 
 @dataclass
+class FoldXVariantAnnotationConfig(StepConfig):
+    """Step to ingest FoldX amino acid variation data."""
+
+    foldx_dataset_path: str = MISSING
+    plddt_threshold: float = 0.7
+    annotation_path: str = MISSING
+
+    _target_: str = "gentropy.foldx_ingestion.FoldXIngestionStep"
+
+
+@dataclass
 class EqtlCatalogueConfig(StepConfig):
     """eQTL Catalogue step configuration."""
 
@@ -767,3 +778,4 @@ def register_config() -> None:
     )
     cs.store(group="step", name="finngen_ukb_meta_ingestion", node=FinngenUkbMetaConfig)
     cs.store(group="step", name="credible_set_qc", node=CredibleSetQCStepConfig)
+    cs.store(group="step", name="foldx_integration", node=FoldXVariantAnnotationConfig)
