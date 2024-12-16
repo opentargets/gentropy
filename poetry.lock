@@ -1610,20 +1610,21 @@ grpc = ["grpcio (>=1.38.0,<2.0dev)", "grpcio-status (>=1.38.0,<2.0.dev0)"]
 
 [[package]]
 name = "google-cloud-dataproc"
-version = "5.8.0"
+version = "5.15.1"
 description = "Google Cloud Dataproc API client library"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "google-cloud-dataproc-5.8.0.tar.gz", hash = "sha256:b03412dd63cb84dc0bb0844cd9e9a9eef40e1d0d719649659052cccf0d3e95d7"},
-    {file = "google_cloud_dataproc-5.8.0-py2.py3-none-any.whl", hash = "sha256:1b3dd086d8ee7d1055b93230338a93091e77aca167cf7e32edc0b92e8288667d"},
+    {file = "google_cloud_dataproc-5.15.1-py2.py3-none-any.whl", hash = "sha256:c89dde89d3d70bcc0aa37d0da8734f7ec27bfae46e05e6fe56cb6d340b880910"},
+    {file = "google_cloud_dataproc-5.15.1.tar.gz", hash = "sha256:ab7b3806a905c50dd64ceb5a854b1dcdc8ddcea092aaf7162083fdfd2e1943aa"},
 ]
 
 [package.dependencies]
-google-api-core = {version = ">=1.34.0,<2.0.dev0 || >=2.11.dev0,<3.0.0dev", extras = ["grpc"]}
+google-api-core = {version = ">=1.34.1,<2.0.dev0 || >=2.11.dev0,<3.0.0dev", extras = ["grpc"]}
+google-auth = ">=2.14.1,<2.24.0 || >2.24.0,<2.25.0 || >2.25.0,<3.0.0dev"
 grpc-google-iam-v1 = ">=0.12.4,<1.0.0dev"
 proto-plus = ">=1.22.3,<2.0.0dev"
-protobuf = ">=3.19.5,<3.20.0 || >3.20.0,<3.20.1 || >3.20.1,<4.21.0 || >4.21.0,<4.21.1 || >4.21.1,<4.21.2 || >4.21.2,<4.21.3 || >4.21.3,<4.21.4 || >4.21.4,<4.21.5 || >4.21.5,<5.0.0dev"
+protobuf = ">=3.20.2,<4.21.0 || >4.21.0,<4.21.1 || >4.21.1,<4.21.2 || >4.21.2,<4.21.3 || >4.21.3,<4.21.4 || >4.21.4,<4.21.5 || >4.21.5,<6.0.0dev"
 
 [[package]]
 name = "google-cloud-secret-manager"
