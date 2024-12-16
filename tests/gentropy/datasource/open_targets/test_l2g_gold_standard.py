@@ -169,7 +169,7 @@ def test_build_feature_matrix(
         colocalisation=mock_colocalisation,
         study_index=mock_study_index,
         study_locus=mock_study_locus,
-        gene_index=mock_variant_index,
+        variant_index=mock_variant_index,
     )
     fm = mock_study_locus.build_feature_matrix(features_list, loader)
     assert isinstance(

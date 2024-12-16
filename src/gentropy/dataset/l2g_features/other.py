@@ -238,7 +238,7 @@ class ProteinCodingFeature(L2GFeature):
 
         Args:
             study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
-            feature_dependency (dict[str, Any]): Dictionary containing dependencies, including gene index
+            feature_dependency (dict[str, Any]): Dictionary containing dependencies, including variant index
 
         Returns:
             ProteinCodingFeature: Feature dataset with 1 if the gene is protein-coding, 0 otherwise
