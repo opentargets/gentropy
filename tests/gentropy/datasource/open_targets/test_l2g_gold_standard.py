@@ -163,7 +163,7 @@ def test_build_feature_matrix(
     mock_study_index: StudyIndex,
     mock_variant_index: VariantIndex,
 ) -> None:
-    """Test building feature matrix with the eQtlColocH4Maximum feature."""
+    """Test building feature matrix with the eQtlColocH4Maximum and isProteinCoding features."""
     features_list = ["eQtlColocH4Maximum", "isProteinCoding"]
     loader = L2GFeatureInputLoader(
         colocalisation=mock_colocalisation,

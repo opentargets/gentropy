@@ -120,7 +120,7 @@ def is_protein_coding_feature_logic(
         variants_df = study_loci_to_annotate.df.select(
             f.explode_outer("locus.variantId").alias("variantId"),
             "studyLocusId",
-        )
+        ).filter(f.col("variantId").isNotNull())
     elif isinstance(study_loci_to_annotate, L2GGoldStandard):
         variants_df = study_loci_to_annotate.df.select("studyLocusId", "variantId")
     return (
