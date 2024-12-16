@@ -17,7 +17,8 @@ class SessionConfig:
     write_mode: str = "errorifexists"
     spark_uri: str = "local[*]"
     hail_home: str = os.path.dirname(hail_location)
-    extended_spark_conf: dict[str, str] | None = field(default_factory=dict[str, str])
+    extended_spark_conf: dict[str, str] | None = field(
+        default_factory=dict[str, str])
     output_partitions: int = 200
     _target_: str = "gentropy.common.session.Session"
 
@@ -39,7 +40,8 @@ class ColocalisationConfig(StepConfig):
     credible_set_path: str = MISSING
     coloc_path: str = MISSING
     colocalisation_method: str = MISSING
-    colocalisation_method_params: dict[str, Any] = field(default_factory=dict[str, Any])
+    colocalisation_method_params: dict[str, Any] = field(
+        default_factory=dict[str, Any])
     _target_: str = "gentropy.colocalisation.ColocalisationStep"
 
 
@@ -124,7 +126,8 @@ class EqtlCatalogueConfig(StepConfig):
     eqtl_catalogue_paths_imported: str = MISSING
     eqtl_catalogue_study_index_out: str = MISSING
     eqtl_catalogue_credible_sets_out: str = MISSING
-    mqtl_quantification_methods_blacklist: list[str] = field(default_factory=lambda: [])
+    mqtl_quantification_methods_blacklist: list[str] = field(
+        default_factory=lambda: [])
     eqtl_lead_pvalue_threshold: float = 1e-3
     _target_: str = "gentropy.eqtl_catalogue.EqtlCatalogueStep"
 
@@ -146,7 +149,8 @@ class FinngenStudiesConfig(StepConfig):
     )
     finngen_summary_stats_url_suffix: str = ".gz"
     efo_curation_mapping_url: str = "https://raw.githubusercontent.com/opentargets/curation/24.09.1/mappings/disease/manual_string.tsv"
-    sample_size: int = 453733  # https://www.finngen.fi/en/access_results#:~:text=Total%20sample%20size%3A%C2%A0453%2C733%C2%A0(254%2C618%C2%A0females%20and%C2%A0199%2C115%20males)
+    # https://www.finngen.fi/en/access_results#:~:text=Total%20sample%20size%3A%C2%A0453%2C733%C2%A0(254%2C618%C2%A0females%20and%C2%A0199%2C115%20males)
+    sample_size: int = 453733
     _target_: str = "gentropy.finngen_studies.FinnGenStudiesStep"
 
 
@@ -199,7 +203,6 @@ class LDIndexConfig(StepConfig):
             "nfe",  # Non-Finnish European
         ]
     )
-    use_version_from_input: bool = False
     _target_: str = "gentropy.gnomad_ingestion.LDIndexStep"
 
 
@@ -409,7 +412,6 @@ class GnomadVariantConfig(StepConfig):
             "remaining",  # Other
         ]
     )
-    use_version_from_input: bool = False
     _target_: str = "gentropy.gnomad_ingestion.GnomadVariantIndexStep"
 
 
@@ -432,7 +434,6 @@ class PanUKBBConfig(StepConfig):
             "EUR",  # European
         ]
     )
-    use_version_from_input: bool = False
     _target_: str = "gentropy.pan_ukb_ingestion.PanUKBBVariantIndexStep"
 
 
@@ -680,7 +681,8 @@ class Config:
     """Application configuration."""
 
     # this is unfortunately verbose due to @dataclass limitations
-    defaults: List[Any] = field(default_factory=lambda: ["_self_", {"step": MISSING}])
+    defaults: List[Any] = field(default_factory=lambda: [
+                                "_self_", {"step": MISSING}])
     step: StepConfig = MISSING
     datasets: dict[str, str] = field(default_factory=dict)
 
@@ -714,7 +716,8 @@ def register_config() -> None:
         name="gwas_catalog_top_hit_ingestion",
         node=GWASCatalogTopHitIngestionConfig,
     )
-    cs.store(group="step", name="ld_based_clumping", node=LDBasedClumpingConfig)
+    cs.store(group="step", name="ld_based_clumping",
+             node=LDBasedClumpingConfig)
     cs.store(group="step", name="ld_index", node=LDIndexConfig)
     cs.store(group="step", name="locus_to_gene", node=LocusToGeneConfig)
     cs.store(
@@ -732,7 +735,8 @@ def register_config() -> None:
 
     cs.store(group="step", name="pics", node=PICSConfig)
     cs.store(group="step", name="gnomad_variants", node=GnomadVariantConfig)
-    cs.store(group="step", name="ukb_ppp_eur_sumstat_preprocess", node=UkbPppEurConfig)
+    cs.store(group="step", name="ukb_ppp_eur_sumstat_preprocess",
+             node=UkbPppEurConfig)
     cs.store(group="step", name="variant_index", node=VariantIndexConfig)
     cs.store(group="step", name="variant_to_vcf", node=ConvertToVcfStepConfig)
     cs.store(
@@ -765,5 +769,7 @@ def register_config() -> None:
         name="locus_to_gene_associations",
         node=LocusToGeneAssociationsStepConfig,
     )
-    cs.store(group="step", name="finngen_ukb_meta_ingestion", node=FinngenUkbMetaConfig)
-    cs.store(group="step", name="credible_set_qc", node=CredibleSetQCStepConfig)
+    cs.store(group="step", name="finngen_ukb_meta_ingestion",
+             node=FinngenUkbMetaConfig)
+    cs.store(group="step", name="credible_set_qc",
+             node=CredibleSetQCStepConfig)
