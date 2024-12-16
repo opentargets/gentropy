@@ -298,7 +298,7 @@ class VariantIndex(Dataset):
                         "transcriptConsequences",
                         lambda vep: vep.aminoAcidChange.isNotNull(),
                     )[0].aminoAcidChange,
-                    "uniprotAccession": f.explode(
+                    "uniprotAccession": f.explode_outer(
                         f.filter(
                             "transcriptConsequences",
                             lambda vep: vep.aminoAcidChange.isNotNull(),
