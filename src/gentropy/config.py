@@ -524,6 +524,7 @@ class VariantIndexConfig(StepConfig):
         {"id": "SO_0001620", "label": "mature_miRNA_variant", "score": 0.0},
         {"id": "SO_0001060", "label": "intergenic_variant", "score": 0.0},
     ]
+    amino_acid_change_annotations: list[str] = MISSING
 
     _target_: str = "gentropy.variant_index.VariantIndexStep"
 
