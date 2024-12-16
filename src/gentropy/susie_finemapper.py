@@ -13,7 +13,9 @@ import scipy as sc
 from pyspark.sql import DataFrame, Row, Window
 from pyspark.sql.functions import desc, row_number
 from pyspark.sql.types import (
+    ArrayType,
     DoubleType,
+    FloatType,
     IntegerType,
     StringType,
     StructField,
@@ -273,7 +275,7 @@ class SusieFineMapperStep:
                     ),
                     "variantId",
                 )
-                .sort(f.desc("posteriorProbability"))
+                .sort(f.desc(f.col("posteriorProbability").cast("double")))
                 .withColumn(
                     "locus",
                     f.collect_list(
@@ -896,7 +898,63 @@ class SusieFineMapperStep:
             logging.warning("Analysis Flags check failed for this study")
             return None
 
-        schema = StudyLocus.get_schema()
+        schema = StructType(
+            [
+                StructField("studyLocusId", StringType(), True),
+                StructField("studyType", StringType(), True),
+                StructField("variantId", StringType(), True),
+                StructField("chromosome", StringType(), True),
+                StructField("position", IntegerType(), True),
+                StructField("region", StringType(), True),
+                StructField("studyId", StringType(), True),
+                StructField("beta", DoubleType(), True),
+                StructField("zScore", DoubleType(), True),
+                StructField("pValueMantissa", FloatType(), True),
+                StructField("pValueExponent", IntegerType(), True),
+                StructField("effectAlleleFrequencyFromSource", FloatType(), True),
+                StructField("standardError", DoubleType(), True),
+                StructField("subStudyDescription", StringType(), True),
+                StructField("qualityControls", ArrayType(StringType(), True), True),
+                StructField("finemappingMethod", StringType(), True),
+                StructField("credibleSetIndex", IntegerType(), True),
+                StructField("credibleSetlog10BF", DoubleType(), True),
+                StructField("purityMeanR2", DoubleType(), True),
+                StructField("purityMinR2", DoubleType(), True),
+                StructField("locusStart", IntegerType(), True),
+                StructField("locusEnd", IntegerType(), True),
+                StructField("sampleSize", IntegerType(), True),
+                StructField(
+                    "ldSet",
+                    ArrayType(
+                        StructType(
+                            [
+                                StructField("tagVariantId", StringType(), True),
+                                StructField("r2Overall", DoubleType(), True),
+                            ]
+                        ),
+                        True,
+                    ),
+                    True,
+                ),
+                StructField(
+                    "locus",
+                    ArrayType(
+                        StructType(
+                            [
+                                StructField("variantId", StringType(), True),
+                                StructField("beta", DoubleType(), True),
+                                StructField("pValueMantissa", FloatType(), True),
+                                StructField("pValueExponent", IntegerType(), True),
+                                StructField("standardError", DoubleType(), True),
+                            ]
+                        ),
+                        False,
+                    ),
+                    True,
+                ),
+                StructField("confidence", StringType(), True),
+            ]
+        )
         gwas_df = session.spark.createDataFrame([study_locus_row], schema=schema)
         exploded_df = gwas_df.select(f.explode("locus").alias("locus"))
 
