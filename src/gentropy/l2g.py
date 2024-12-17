@@ -138,8 +138,8 @@ class LocusToGeneStep:
             gold_standard_curation_path (str | None): Path to the gold standard curation file
             variant_index_path (str | None): Path to the variant index
             gene_interactions_path (str | None): Path to the gene interactions dataset
-            gene_index_path (str | None = None):  Path to the gene index
-            interval_path (str | None = None) : Path and source of interval input datasets
+            gene_index_path (str | None):  Path to the gene index
+            interval_path (str | None) : Path and source of interval input datasets
             predictions_path (str | None): Path to the L2G predictions output dataset
             l2g_threshold (float | None): An optional threshold for the L2G score to filter predictions. A threshold of 0.05 is recommended.
             hf_hub_repo_id (str | None): Hugging Face Hub repository ID. If provided, the model will be uploaded to Hugging Face.
