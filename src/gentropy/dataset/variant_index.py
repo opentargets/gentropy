@@ -471,16 +471,8 @@ class InSilicoPredictorNormaliser:
         Returns:
             Column: Normalised energies
         """
-        return (
-            f.when(score >= 2, f.lit(1.0))
-            .when(score >= 1.5, cls._rescaleColumnValue(score, 1.5, 2.0, 0.75, 1.00))
-            .when(score >= 0.5, cls._rescaleColumnValue(score, 0.5, 1.5, 0.25, 0.75))
-            .when(score >= -0.5, cls._rescaleColumnValue(score, -0.5, 0.5, -0.25, 0.25))
-            .when(
-                score >= -1.5, cls._rescaleColumnValue(score, -1.5, -0.5, -0.75, -0.25)
-            )
-            .when(score >= -2, cls._rescaleColumnValue(score, -2, -1.5, -1, -0.75))
-            .when(score < -2, f.lit(-1))
+        return f.when(f.abs(score) >= 5, f.lit(1.0)).otherwise(
+            cls._rescaleColumnValue(f.abs(score), 0.0, 5.0, 0.0, 1.00)
         )
 
     @classmethod
