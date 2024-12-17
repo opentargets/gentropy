@@ -76,8 +76,14 @@ def mock_colocalisation(spark: SparkSession) -> Colocalisation:
             randomSeedMethod="hash_fieldname",
         )
         .withSchema(coloc_schema)
-        .withColumnSpec("leftStudyLocusId", minValue=1, maxValue=400)
-        .withColumnSpec("rightStudyLocusId", minValue=1, maxValue=400)
+        .withColumnSpec(
+            "leftStudyLocusId",
+            expr="cast(id as string)",
+        )
+        .withColumnSpec(
+            "rightStudyLocusId",
+            expr="cast(id as string)",
+        )
         .withColumnSpec("h0", percentNulls=0.1)
         .withColumnSpec("h1", percentNulls=0.1)
         .withColumnSpec("h2", percentNulls=0.1)
@@ -105,7 +111,10 @@ def mock_study_index_data(spark: SparkSession) -> DataFrame:
             randomSeedMethod="hash_fieldname",
         )
         .withSchema(si_schema)
-        .withColumnSpec("studyId", minValue=1, maxValue=400)
+        .withColumnSpec(
+            "studyId",
+            expr="cast(id as string)",
+        )
         .withColumnSpec(
             "traitFromSourceMappedIds",
             expr="array(cast(rand() AS string))",
@@ -126,7 +135,10 @@ def mock_study_index_data(spark: SparkSession) -> DataFrame:
             expr='array(named_struct("sampleSize", cast(rand() as string), "ancestry", cast(rand() as string)))',
             percentNulls=0.1,
         )
-        .withColumnSpec("geneId", minValue=1, maxValue=400, percentNulls=0.1)
+        .withColumnSpec(
+            "geneId",
+            expr="cast(id as string)",
+        )
         .withColumnSpec("pubmedId", percentNulls=0.1)
         .withColumnSpec("publicationFirstAuthor", percentNulls=0.1)
         .withColumnSpec("publicationDate", percentNulls=0.1)
@@ -175,18 +187,15 @@ def mock_study_locus_overlap(spark: SparkSession) -> StudyLocusOverlap:
         .withSchema(overlap_schema)
         .withColumnSpec(
             "leftStudyLocusId",
-            minValue=1,
-            maxValue=400,
+            expr="cast(id as string)",
         )
         .withColumnSpec(
             "rightStudyLocusId",
-            minValue=1,
-            maxValue=400,
+            expr="cast(id as string)",
         )
         .withColumnSpec(
             "tagVariantId",
-            minValue=1,
-            maxValue=400,
+            expr="cast(id as string)",
         )
         .withColumnSpec(
             "rightStudyType", percentNulls=0.0, values=StudyIndex.VALID_TYPES
@@ -211,7 +220,10 @@ def mock_study_locus_data(spark: SparkSession) -> DataFrame:
             randomSeedMethod="hash_fieldname",
         )
         .withSchema(sl_schema)
-        .withColumnSpec("variantId", minValue=1, maxValue=400)
+        .withColumnSpec(
+            "variantId",
+            expr="cast(id as string)",
+        )
         .withColumnSpec("chromosome", percentNulls=0.1)
         .withColumnSpec("position", minValue=100, percentNulls=0.1)
         .withColumnSpec("beta", percentNulls=0.1)
@@ -288,7 +300,10 @@ def mock_variant_index(spark: SparkSession) -> VariantIndex:
             randomSeedMethod="hash_fieldname",
         )
         .withSchema(vi_schema)
-        .withColumnSpec("variantId", minValue=1, maxValue=400)
+        .withColumnSpec(
+            "variantId",
+            expr="cast(id as string)",
+        )
         .withColumnSpec("mostSevereConsequenceId", percentNulls=0.1)
         # Nested column handling workaround
         # https://github.com/databrickslabs/dbldatagen/issues/135
@@ -382,8 +397,14 @@ def mock_summary_statistics_data(spark: SparkSession) -> DataFrame:
             name="summaryStats",
         )
         .withSchema(ss_schema)
-        .withColumnSpec("studyId", minValue=1, maxValue=400)
-        .withColumnSpec("variantId", minValue=1, maxValue=400)
+        .withColumnSpec(
+            "studyId",
+            expr="cast(id as string)",
+        )
+        .withColumnSpec(
+            "variantId",
+            expr="cast(id as string)",
+        )
         # Allowing missingness in effect allele frequency and enforce upper limit:
         .withColumnSpec(
             "effectAlleleFrequencyFromSource", percentNulls=0.1, maxValue=1.0
@@ -418,7 +439,10 @@ def mock_ld_index(spark: SparkSession) -> LDIndex:
             randomSeedMethod="hash_fieldname",
         )
         .withSchema(ld_schema)
-        .withColumn("variantId", minValue=1, maxValue=400)
+        .withColumnSpec(
+            "variantId",
+            expr="cast(id as string)",
+        )
         .withColumnSpec(
             "ldSet",
             expr="array(named_struct('tagVariantId', cast(floor(rand() * 400) + 1 as string), 'rValues', array(named_struct('population', cast(rand() as string), 'r', cast(rand() as double)))))",
@@ -555,12 +579,15 @@ def mock_gene_index(spark: SparkSession) -> GeneIndex:
     data_spec = (
         dg.DataGenerator(
             spark,
-            rows=400,
+            rows=30,
             partitions=4,
             randomSeedMethod="hash_fieldname",
         )
         .withSchema(gi_schema)
-        .withColumnSpec("geneId", minValue=1, maxValue=400)
+        .withColumnSpec(
+            "geneId",
+            expr="cast(id as string)",
+        )
         .withColumnSpec("approvedSymbol", percentNulls=0.1)
         .withColumnSpec(
             "biotype", percentNulls=0.1, values=["protein_coding", "lncRNA"]
@@ -570,7 +597,7 @@ def mock_gene_index(spark: SparkSession) -> GeneIndex:
         .withColumnSpec("start", percentNulls=0.1)
         .withColumnSpec("end", percentNulls=0.1)
         .withColumnSpec("strand", percentNulls=0.1, values=[1, -1])
-    )
+    ).build()
 
     return GeneIndex(_df=data_spec.build(), _schema=gi_schema)
 
@@ -591,7 +618,10 @@ def mock_biosample_index(spark: SparkSession) -> BiosampleIndex:
             randomSeedMethod="hash_fieldname",
         )
         .withSchema(bi_schema)
-        .withColumnSpec("biosampleId", minValue=1, maxValue=400)
+        .withColumnSpec(
+            "biosampleId",
+            expr="cast(id as string)",
+        )
         .withColumnSpec("biosampleName", percentNulls=0.1)
         .withColumnSpec("description", percentNulls=0.1)
         .withColumnSpec("xrefs", expr=array_expression, percentNulls=0.1)
@@ -652,10 +682,22 @@ def mock_l2g_gold_standard(spark: SparkSession) -> L2GGoldStandard:
         )
         .withSchema(schema)
         .withColumnSpec("studyLocusId", minValue=1, maxValue=400)
-        .withColumnSpec("variantId", minValue=1, maxValue=400)
-        .withColumnSpec("studyId", minValue=1, maxValue=400)
-        .withColumnSpec("geneId", minValue=1, maxValue=400)
-        .withColumnSpec("traitFromSourceMappedId", minValue=1, maxValue=400)
+        .withColumnSpec(
+            "studyLocusId",
+            expr="cast(id as string)",
+        )
+        .withColumnSpec(
+            "variantId",
+            expr="cast(id as string)",
+        )
+        .withColumnSpec(
+            "geneId",
+            expr="cast(id as string)",
+        )
+        .withColumnSpec(
+            "traitFromSourceMappedId",
+            expr="cast(id as string)",
+        )
         .withColumnSpec(
             "goldStandardSet",
             values=[
@@ -677,8 +719,14 @@ def mock_l2g_predictions(spark: SparkSession) -> L2GPrediction:
             spark, rows=400, partitions=4, randomSeedMethod="hash_fieldname"
         )
         .withSchema(schema)
-        .withColumnSpec("studyId", minValue=1, maxValue=400)
-        .withColumnSpec("geneId", minValue=1, maxValue=400)
+        .withColumnSpec(
+            "studyId",
+            expr="cast(id as string)",
+        )
+        .withColumnSpec(
+            "geneId",
+            expr="cast(id as string)",
+        )
     )
 
     return L2GPrediction(_df=data_spec.build(), _schema=schema)
