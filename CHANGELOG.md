@@ -8,18 +8,68 @@
 
 
 
+## v2.0.1 (2024-12-17)
+### 🐛 Fix
+
+
+-  release process runs twice [\@Szymon Szyszkowski](mailto:69353402+project-defiant@users.noreply.github.com)
+
+
+-  release process no longer triggers on skipped release [\@project-defiant](mailto:szymonszyszkowski@gmail.com)
+
+### ♻️ Refactor
+
+
+-  drop version_engine (#940) [\@Szymon Szyszkowski](mailto:69353402+project-defiant@users.noreply.github.com)
+
+### 🏗 Build
+
+
+- \[**deps-dev**\] bump ipython from 8.29.0 to 8.30.0 [\@dependabot[bot]](mailto:49699333+dependabot[bot]@users.noreply.github.com)
+
+
+- \[**deps-dev**\] bump google-cloud-dataproc from 5.8.0 to 5.10.1 (#951) [\@dependabot[bot]](mailto:49699333+dependabot[bot]@users.noreply.github.com)
+
+
+- \[**deps-dev**\] bump lxml from 5.1.1 to 5.3.0 (#950) [\@dependabot[bot]](mailto:49699333+dependabot[bot]@users.noreply.github.com)
+
+
+- \[**deps-dev**\] bump pytest-xdist from 3.5.0 to 3.6.1 (#952) [\@dependabot[bot]](mailto:49699333+dependabot[bot]@users.noreply.github.com)
+
+
+- \[**deps-dev**\] bump ipykernel from 6.28.0 to 6.29.5 (#953) [\@dependabot[bot]](mailto:49699333+dependabot[bot]@users.noreply.github.com)
+
+
+-  define dependency version constraints + other fixes (#945) [\@Irene López Santiago](mailto:45119610+ireneisdoomed@users.noreply.github.com)
+
+### 🚀 Chore
+
+
+-  siplify the release CI conditions [\@project-defiant](mailto:szymonszyszkowski@gmail.com)
+
 ## v2.0.0 (2024-12-10)
 ### 💥 Breaking
 
 
 - \[**l2g!**\] implement new training strategy splitting between EFO/gene pairs and with cross validation (#938) [\@Irene López Santiago](mailto:45119610+ireneisdoomed@users.noreply.github.com)
 
+### 🐛 Fix
 
-- \[**L2GFeatureMatrix!**\] streamline feature matrix management (#745) [\@Irene López Santiago](mailto:45119610+ireneisdoomed@users.noreply.github.com)
+
+- \[**l2g_predictions**\] annotate based on list of features + filter out missing annotation (#925) [\@Irene López Santiago](mailto:45119610+ireneisdoomed@users.noreply.github.com)
 
 
--  drop airflow orchestration layer from gentropy (#758) [\@Szymon Szyszkowski](mailto:69353402+project-defiant@users.noreply.github.com)
+-  swap the ref parse (#935) [\@Szymon Szyszkowski](mailto:69353402+project-defiant@users.noreply.github.com)
 
+### 🏗 Build
+
+
+- \[**deps-dev**\] bump ruff from 0.7.1 to 0.8.1 (#936) [\@dependabot[bot]](mailto:49699333+dependabot[bot]@users.noreply.github.com)
+
+
+- \[**deps-dev**\] bump ipython from 8.29.0 to 8.30.0 (#937) [\@dependabot[bot]](mailto:49699333+dependabot[bot]@users.noreply.github.com)
+
+## v2.0.0-rc.3 (2024-11-27)
 ### ✨ Feature
 
 
@@ -36,6 +86,28 @@
 
 
 - \[**gold_standard**\] add traitFromSourceMappedId to schema (#924) [\@Irene López Santiago](mailto:45119610+ireneisdoomed@users.noreply.github.com)
+
+### 🚀 Chore
+
+
+- \[**vep**\] Ensembl version update (#931) [\@Daniel Suveges](mailto:daniel.suveges@protonmail.com)
+
+## v2.0.0-rc.2 (2024-11-26)
+### 🚀 Chore
+
+
+- \[**gnomad**\] updating GnomAD version to 4.1 from 4.0 + using joint frequencies (#929) [\@Daniel Suveges](mailto:daniel.suveges@protonmail.com)
+
+## v2.0.0-rc.1 (2024-11-22)
+### 💥 Breaking
+
+
+- \[**L2GFeatureMatrix!**\] streamline feature matrix management (#745) [\@Irene López Santiago](mailto:45119610+ireneisdoomed@users.noreply.github.com)
+
+
+-  drop airflow orchestration layer from gentropy (#758) [\@Szymon Szyszkowski](mailto:69353402+project-defiant@users.noreply.github.com)
+
+### ✨ Feature
 
 
 -  changing studylocus validation to 95 percent credible sets (#921) [\@Daniel-Considine](mailto:113430683+Daniel-Considine@users.noreply.github.com)
@@ -233,12 +305,6 @@
 -  expose summary statistics qc and locus breaker steps to hydra cli (#716) [\@Szymon Szyszkowski](mailto:69353402+project-defiant@users.noreply.github.com)
 
 ### 🐛 Fix
-
-
-- \[**l2g_predictions**\] annotate based on list of features + filter out missing annotation (#925) [\@Irene López Santiago](mailto:45119610+ireneisdoomed@users.noreply.github.com)
-
-
--  swap the ref parse (#935) [\@Szymon Szyszkowski](mailto:69353402+project-defiant@users.noreply.github.com)
 
 
 -  r2 for lead variant is always 1 (#919) [\@Yakov](mailto:yt4@sanger.ac.uk)
@@ -446,12 +512,6 @@
 ### 🏗 Build
 
 
-- \[**deps-dev**\] bump ruff from 0.7.1 to 0.8.1 (#936) [\@dependabot[bot]](mailto:49699333+dependabot[bot]@users.noreply.github.com)
-
-
-- \[**deps-dev**\] bump ipython from 8.29.0 to 8.30.0 (#937) [\@dependabot[bot]](mailto:49699333+dependabot[bot]@users.noreply.github.com)
-
-
 - \[**deps-dev**\] bump pytest-cov from 5.0.0 to 6.0.0 (#893) [\@dependabot[bot]](mailto:49699333+dependabot[bot]@users.noreply.github.com)
 
 
@@ -526,12 +586,6 @@
 -  configure java v8 (#840) [\@Irene López Santiago](mailto:45119610+ireneisdoomed@users.noreply.github.com)
 
 ### 🚀 Chore
-
-
-- \[**vep**\] Ensembl version update (#931) [\@Daniel Suveges](mailto:daniel.suveges@protonmail.com)
-
-
-- \[**gnomad**\] updating GnomAD version to 4.1 from 4.0 + using joint frequencies (#929) [\@Daniel Suveges](mailto:daniel.suveges@protonmail.com)
 
 
 -  pre-commit autoupdate (#918) [\@pre-commit-ci[bot]](mailto:66853113+pre-commit-ci[bot]@users.noreply.github.com)
