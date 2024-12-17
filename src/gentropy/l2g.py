@@ -9,7 +9,6 @@ import pyspark.sql.functions as f
 from sklearn.ensemble import GradientBoostingClassifier
 from wandb.sdk.wandb_login import login as wandb_login
 
-from gentropy.common.Liftover import LiftOverSpark
 from gentropy.common.schemas import compare_struct_schemas
 from gentropy.common.session import Session
 from gentropy.common.spark_helpers import calculate_harmonic_sum
