@@ -597,7 +597,7 @@ def mock_gene_index(spark: SparkSession) -> GeneIndex:
         .withColumnSpec("start", percentNulls=0.1)
         .withColumnSpec("end", percentNulls=0.1)
         .withColumnSpec("strand", percentNulls=0.1, values=[1, -1])
-    ).build()
+    )
 
     return GeneIndex(_df=data_spec.build(), _schema=gi_schema)
 
