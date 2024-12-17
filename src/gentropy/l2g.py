@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-from functools import reduce
 from typing import Any
 
 import pyspark.sql.functions as f
@@ -118,9 +117,7 @@ class LocusToGeneStep:
         variant_index_path: str | None = None,
         gene_interactions_path: str | None = None,
         gene_index_path: str | None = None,
-        interval_path: dict[str, str] | None = None,
-        liftover_chain_file_path: str | None = None,
-        liftover_max_length_difference: int = 100,
+        interval_path: str | None = None,
         predictions_path: str | None = None,
         l2g_threshold: float | None = None,
         hf_hub_repo_id: str | None = None,
@@ -144,8 +141,6 @@ class LocusToGeneStep:
             gene_interactions_path (str | None): Path to the gene interactions dataset
             gene_index_path (str | None = None):  Path to the gene index
             interval_path (dict[str, str] | None) : Path and source of interval input datasets
-            liftover_chain_file_path (str | None) : Path to the liftover chain file
-            liftover_max_length_difference (int) : Maximum allowed difference for liftover
             predictions_path (str | None): Path to the L2G predictions output dataset
             l2g_threshold (float | None): An optional threshold for the L2G score to filter predictions. A threshold of 0.05 is recommended.
             hf_hub_repo_id (str | None): Hugging Face Hub repository ID. If provided, the model will be uploaded to Hugging Face.
@@ -187,56 +182,9 @@ class LocusToGeneStep:
             if gene_index_path
             else None
         )
-        self.lift = (
-            LiftOverSpark(
-                liftover_chain_file_path,
-                liftover_max_length_difference,
-            )
-            if liftover_chain_file_path
-            else None
+        self.intervals = Intervals.from_parquet(
+            session, interval_path, recursiveFileLookup=True
         )
-
-        if self.variant_index and self.gene_index and self.lift and interval_path:
-            self.intervals = Intervals(
-                _df=reduce(
-                    lambda x, y: x.unionByName(y, allowMissingColumns=True),
-                    # create interval instances by parsing each source
-                    [
-                        Intervals.from_source(
-                            session.spark,
-                            source_name,
-                            source_path,
-                            self.gene_index,
-                            self.lift,
-                        ).df
-                        for source_name, source_path in interval_path.items()
-                    ],
-                )
-            ).overlap_variant_index(variant_index=self.variant_index)
-
-        else:
-            raise ValueError("variant_index is None, cannot join with intervals.")
-
-        if self.variant_index and self.gene_index and self.lift and interval_path:
-            self.intervals = Intervals(
-                _df=reduce(
-                    lambda x, y: x.unionByName(y, allowMissingColumns=True),
-                    # create interval instances by parsing each source
-                    [
-                        Intervals.from_source(
-                            session.spark,
-                            source_name,
-                            source_path,
-                            self.gene_index,
-                            self.lift,
-                        ).df
-                        for source_name, source_path in interval_path.items()
-                    ],
-                )
-            ).overlap_variant_index(variant_index=self.variant_index)
-
-        else:
-            raise ValueError("variant_index is None, cannot join with intervals.")
 
         if run_mode == "predict":
             self.run_predict()
