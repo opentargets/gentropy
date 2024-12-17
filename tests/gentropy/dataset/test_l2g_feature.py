@@ -710,12 +710,7 @@ class TestCommonIntervalFeatureLogic:
                         "studyLocusId": "1",
                         "geneId": "gene1",
                         "pchicMean": 0.4,
-                    },
-                    {
-                        "studyLocusId": "1",
-                        "geneId": "gene2",
-                        "pchicMean": 0.6,
-                    },
+                    },  # 0.8 * 0.5
                 ],
             ),
         ],
@@ -738,11 +733,13 @@ class TestCommonIntervalFeatureLogic:
             .withColumn(feature_name, f.round(f.col(feature_name), 2))
             .orderBy(feature_name)
         )
+
         expected_df = (
             spark.createDataFrame(expected_data)
             .select("studyLocusId", "geneId", feature_name)
             .orderBy(feature_name)
         )
+
         assert (
             observed_df.collect() == expected_df.collect()
         ), f"Expected and observed dataframes are not equal for feature {feature_name}."
@@ -753,6 +750,7 @@ class TestCommonIntervalFeatureLogic:
     ) -> None:
         """Test the logic of the function that computes neighbourhood interval scores."""
         feature_name = "pchicMeanNeighbourhood"
+
         observed_df = (
             common_neighbourhood_interval_feature_logic(
                 self.sample_study_locus,
@@ -763,16 +761,17 @@ class TestCommonIntervalFeatureLogic:
             .withColumn(feature_name, f.round(f.col(feature_name), 2))
             .orderBy(f.col(feature_name).asc())
         )
+
         expected_df = (
             spark.createDataFrame(
                 [
-                    {"studyLocusId": "1", "geneId": "gene1", feature_name: -0.1},
-                    {"studyLocusId": "1", "geneId": "gene2", feature_name: 0.1},
+                    {"studyLocusId": "1", "geneId": "gene1", feature_name: 0.0},
                 ]
             )
             .orderBy(feature_name)
             .select("studyLocusId", "geneId", feature_name)
         )
+
         assert (
             observed_df.collect() == expected_df.collect()
         ), "Output doesn't meet the expectation."
@@ -788,17 +787,14 @@ class TestCommonIntervalFeatureLogic:
                 [
                     {
                         "studyLocusId": "1",
-                        "variantId": "lead1",
+                        "variantId": "1_1000001",  # Variant follows chr_position format
                         "studyId": "study1",
                         "locus": [
+                            {"variantId": "1_1000001", "posteriorProbability": 0.5},
                             {
-                                "variantId": "lead1",
-                                "posteriorProbability": 0.5,
-                            },
-                            {
-                                "variantId": "tag1",
-                                "posteriorProbability": 0.5,
-                            },
+                                "variantId": "1_1002500",
+                                "posteriorProbability": 0.0005,
+                            },  # Below threshold
                         ],
                         "chromosome": "1",
                     },
@@ -807,6 +803,7 @@ class TestCommonIntervalFeatureLogic:
             ),
             _schema=StudyLocus.get_schema(),
         )
+
         self.sample_intervals = Intervals(
             _df=spark.createDataFrame(
                 [
@@ -815,9 +812,7 @@ class TestCommonIntervalFeatureLogic:
                         "start": "1000000",
                         "end": "1005000",
                         "geneId": "gene1",
-                        "variantId": "lead1",
                         "resourceScore": 0.8,
-                        "score": 0.95,
                         "datasourceId": "javierre2016",
                         "datatypeId": "pchic",  # Required field
                         "pmid": "12345678",  # Example PubMed ID
@@ -825,12 +820,10 @@ class TestCommonIntervalFeatureLogic:
                     },
                     {
                         "chromosome": "1",
-                        "start": "1000000",
-                        "end": "1005000",
+                        "start": "1002000",
+                        "end": "1006000",
                         "geneId": "gene2",
-                        "variantId": "tag1",
                         "resourceScore": 1.2,
-                        "score": 1.1,
                         "datasourceId": "javierre2016",
                         "datatypeId": "pchic",  # Required field
                         "pmid": "87654321",  # Example PubMed ID

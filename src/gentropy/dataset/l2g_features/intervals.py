@@ -28,7 +28,7 @@ def common_interval_feature_logic(
     feature_name: str,
     interval_source: str,
 ) -> DataFrame:
-    """Computes the feature.
+    """Computes the feature with positional overlap.
 
     Args:
         study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci
@@ -38,34 +38,50 @@ def common_interval_feature_logic(
         interval_source (str): The datasource of the interval input
 
     Returns:
-            DataFrame: Feature dataset
+        DataFrame: Feature dataset
     """
-    # Only implementing mean average interval features.
-    agg_expr = f.mean(f.col("weightedIntervalScore"))
-    return (
+    study_loci_exploded = (
         study_loci_to_annotate.df.withColumn("variantInLocus", f.explode_outer("locus"))
-        .select(
-            "studyLocusId",
-            f.col("variantInLocus.variantId").alias("variantInLocusId"),
-            f.col("variantInLocus.posteriorProbability").alias(
-                "variantInLocusPosteriorProbability"
-            ),
-        )
-        .join(
-            intervals.df.filter(
-                f.col("datasourceId") == interval_source
-            ).withColumnRenamed("variantId", "variantInLocusId"),
-            # .withColumnRenamed("targetId", "geneId"),
-            # on=["variantInLocusId", "geneId"],
-            on="variantInLocusId",
-            how="inner",
+        .withColumn(
+            "chromosome", f.split(f.col("variantInLocus.variantId"), "_").getItem(0)
         )
         .withColumn(
-            "weightedIntervalScore",
-            f.col("resourceScore") * f.col("variantInLocusPosteriorProbability"),
+            "position",
+            f.split(f.col("variantInLocus.variantId"), "_").getItem(1).cast("long"),
         )
-        .groupBy("studyLocusId", "geneId")
-        .agg(agg_expr.alias(feature_name))
+        .withColumn(
+            "posteriorProbability",
+            f.col("variantInLocus.posteriorProbability").cast("double"),
+        )
+        # Filter for PP > 0.001
+        .filter(f.col("posteriorProbability") > 0.001)
+        .select("studyLocusId", "chromosome", "position", "posteriorProbability")
+    )
+
+    intervals_filtered = (
+        intervals.df.filter(f.col("datasourceId") == interval_source)
+        .select("chromosome", "start", "end", "geneId", "resourceScore")
+        .withColumn("start", f.col("start").cast("long"))
+        .withColumn("end", f.col("end").cast("long"))
+    )
+
+    # Overlapping join:
+    joined_data = study_loci_exploded.join(
+        intervals_filtered,
+        (study_loci_exploded["chromosome"] == intervals_filtered["chromosome"])
+        & (study_loci_exploded["position"] >= intervals_filtered["start"])
+        & (study_loci_exploded["position"] <= intervals_filtered["end"]),
+        how="inner",
+    )
+
+    # Compute weighted interval score
+    weighted_scores = joined_data.withColumn(
+        "weightedIntervalScore", f.col("resourceScore") * f.col("posteriorProbability")
+    )
+
+    # Group by studyLocusId and geneId, compute mean weighted interval score
+    return weighted_scores.groupBy("studyLocusId", "geneId").agg(
+        f.mean("weightedIntervalScore").alias(feature_name)
     )
 
 
