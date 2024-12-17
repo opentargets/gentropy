@@ -8,7 +8,9 @@ from enum import Enum
 from functools import reduce
 from typing import TYPE_CHECKING, Any
 
-import pyspark.sql.functions as f
+from pyspark.sql import DataFrame
+from pyspark.sql import functions as f
+from pyspark.sql import types as t
 from pyspark.sql.types import DoubleType
 from pyspark.sql.window import Window
 from typing_extensions import Self
@@ -18,7 +20,7 @@ from gentropy.common.schemas import SchemaValidationError, compare_struct_schema
 if TYPE_CHECKING:
     from enum import Enum
 
-    from pyspark.sql import Column, DataFrame
+    from pyspark.sql import Column
     from pyspark.sql.types import StructType
 
     from gentropy.common.session import Session
@@ -26,16 +28,34 @@ if TYPE_CHECKING:
 
 @dataclass
 class Dataset(ABC):
-    """Open Targets Gentropy Dataset.
+    """Open Targets Gentropy Dataset Interface.
 
-    `Dataset` is a wrapper around a Spark DataFrame with a predefined schema. Schemas for each child dataset are described in the `schemas` module.
+    The `Dataset` interface is a wrapper around a Spark DataFrame with a predefined schema.
+    Class allows for overwriting the schema with `_schema` parameter.
+    If the `_schema` is not provided, the schema is inferred from the Dataset.get_schema specific
+    method which must be implemented by the child classes.
     """
 
     _df: DataFrame
+    _schema: StructType | None = None
 
     def __post_init__(self: Dataset) -> None:
-        """Post init."""
-        self.validate_schema()
+        """Post init.
+
+        Raises:
+            TypeError: If the type of the _df or _schema is not valid
+        """
+        match self._df:
+            case DataFrame():
+                pass
+            case _:
+                raise TypeError(f"Invalid type for _df: {type(self._df)}")
+
+        match self._schema:
+            case None | t.StructType():
+                self.validate_schema()
+            case _:
+                raise TypeError(f"Invalid type for _schema: {type(self._schema)}")
 
     @property
     def df(self: Dataset) -> DataFrame:
@@ -63,7 +83,7 @@ class Dataset(ABC):
         Returns:
             StructType: Dataframe expected schema
         """
-        return self.get_schema()
+        return self._schema or self.get_schema()
 
     @classmethod
     def _process_class_params(
