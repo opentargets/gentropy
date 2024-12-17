@@ -200,9 +200,6 @@ def mock_study_locus_overlap(spark: SparkSession) -> StudyLocusOverlap:
         .withColumnSpec(
             "rightStudyType", percentNulls=0.0, values=StudyIndex.VALID_TYPES
         )
-        .withColumnSpec(
-            "leftStudyType", percentNulls=0.0, values=StudyIndex.VALID_TYPES
-        )
     )
 
     return StudyLocusOverlap(_df=data_spec.build(), _schema=overlap_schema)
@@ -445,7 +442,7 @@ def mock_ld_index(spark: SparkSession) -> LDIndex:
         )
         .withColumnSpec(
             "ldSet",
-            expr="array(named_struct('tagVariantId', cast(floor(rand() * 400) + 1 as string), 'rValues', array(named_struct('population', cast(rand() as string), 'r', cast(rand() as double)))))",
+            expr="array(named_struct('tagVariantId', cast(rand() as string), 'rValues', array(named_struct('population', cast(rand() as string), 'r', cast(rand() as double)))))",
         )
     )
 
@@ -681,7 +678,6 @@ def mock_l2g_gold_standard(spark: SparkSession) -> L2GGoldStandard:
             spark, rows=400, partitions=4, randomSeedMethod="hash_fieldname"
         )
         .withSchema(schema)
-        .withColumnSpec("studyLocusId", minValue=1, maxValue=400)
         .withColumnSpec(
             "studyLocusId",
             expr="cast(id as string)",
@@ -720,7 +716,7 @@ def mock_l2g_predictions(spark: SparkSession) -> L2GPrediction:
         )
         .withSchema(schema)
         .withColumnSpec(
-            "studyId",
+            "studyLocusId",
             expr="cast(id as string)",
         )
         .withColumnSpec(
