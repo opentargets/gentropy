@@ -49,7 +49,7 @@ jobs:
       - name: Publish package to GitHub Release
         uses: python-semantic-release/upload-to-gh-release@main
         # NOTE: semrelease output is a string, so we need to compare it to a string
-        if: ${{ steps.semrelease.outputs.released == 'true' }}
+        if: steps.semrelease.outputs.released == 'true'
         with:
           # NOTE: allow to start the workflow when push action on tag gets executed
           # requires using GH_APP to authenitcate, otherwise push authorised with
@@ -59,7 +59,7 @@ jobs:
           tag: ${{ steps.semrelease.outputs.tag }}
 
       - name: Store the distribution packages
-        if: ${{ steps.semrelease.outputs.released == 'true' }}
+        if: steps.semrelease.outputs.released == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: python-package-distributions
@@ -68,7 +68,7 @@ jobs:
   publish-to-pypi:
     needs: release
     name: Publish 📦 in PyPI
-    if: ${{github.ref == 'refs/heads/main' && needs.release.outputs.released == 'true'}}
+    if: github.ref == 'refs/heads/main' && needs.release.outputs.released == 'true'
     runs-on: ubuntu-latest
     environment:
       name: pypi
@@ -87,7 +87,7 @@ jobs:
   publish-to-testpypi:
     name: Publish 📦 in TestPyPI
     needs: release
-    if: ${{github.ref == 'refs/heads/main' && needs.release.outputs.released == 'true'}}
+    if: github.ref == 'refs/heads/main' && needs.release.outputs.released == 'true'
     runs-on: ubuntu-latest
 
     environment:
@@ -111,7 +111,7 @@ jobs:
   documentation:
     needs: release
     runs-on: ubuntu-latest
-    if: ${{github.ref == 'refs/heads/main' && needs.release.outputs.released == 'true'}}
+    if: github.ref == 'refs/heads/main' && needs.release.outputs.released == 'true'
     steps:
       - uses: actions/checkout@v4
         with:
