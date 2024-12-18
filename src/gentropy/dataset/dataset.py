@@ -11,7 +11,6 @@ from typing import TYPE_CHECKING, Any
 from pyspark.sql import DataFrame
 from pyspark.sql import functions as f
 from pyspark.sql import types as t
-from pyspark.sql.types import DoubleType
 from pyspark.sql.window import Window
 from typing_extensions import Self
 
@@ -263,7 +262,7 @@ class Dataset(ABC):
         if len(cols) == 0:
             return self
         inf_strings = ("Inf", "+Inf", "-Inf", "Infinity", "+Infinity", "-Infinity")
-        inf_values = [f.lit(v).cast(DoubleType()) for v in inf_strings]
+        inf_values = [f.lit(v).cast(t.DoubleType()) for v in inf_strings]
         conditions = [f.col(c).isin(inf_values) for c in cols]
         # reduce individual filter expressions with or statement
         # to col("beta").isin([lit(Inf)]) | col("beta").isin([lit(Inf)])...

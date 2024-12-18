@@ -80,7 +80,6 @@ def test_dataset_drop_infinity_values() -> None:
     rows = [(v,) for v in data]
     schema = StructType([StructField("field", DoubleType())])
     input_df = spark.createDataFrame(rows, schema=schema)
-    input_df.printSchema()
 
     assert input_df.count() == 7
     # run without specifying *cols results in no filtering
