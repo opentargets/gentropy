@@ -38,7 +38,7 @@ class PairwiseLD(Dataset):
         ), f"The number of rows in a pairwise LD table has to be square. Got: {row_count}"
 
         self.dimension = (int(sqrt(row_count)), int(sqrt(row_count)))
-        self.validate_schema()
+        super().__post_init__()
 
     @classmethod
     def get_schema(cls: type[PairwiseLD]) -> StructType:

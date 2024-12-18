@@ -21,32 +21,44 @@ class MockDataset(Dataset):
         return StructType([StructField("value", IntegerType(), False)])
 
 
-class TestCoalesceAndRepartition:
+class TestDataset:
     """Test TestDataset.coalesce and TestDataset.repartition."""
 
-    def test_repartition(self: TestCoalesceAndRepartition) -> None:
+    def test_repartition(self: TestDataset) -> None:
         """Test Dataset.repartition."""
         initial_partitions = self.test_dataset._df.rdd.getNumPartitions()
         new_partitions = initial_partitions + 1
         self.test_dataset.repartition(new_partitions)
         assert self.test_dataset._df.rdd.getNumPartitions() == new_partitions
 
-    def test_coalesce(self: TestCoalesceAndRepartition) -> None:
+    def test_coalesce(self: TestDataset) -> None:
         """Test Dataset.coalesce."""
         initial_partitions = self.test_dataset._df.rdd.getNumPartitions()
         new_partitions = initial_partitions - 1 if initial_partitions > 1 else 1
         self.test_dataset.coalesce(new_partitions)
         assert self.test_dataset._df.rdd.getNumPartitions() == new_partitions
 
+    def test_initialize_without_schema(self: TestDataset, spark: SparkSession) -> None:
+        """Test if Dataset derived class collects the schema from assets if schema is not provided."""
+        df = spark.createDataFrame([(1,)], schema=MockDataset.get_schema())
+        ds = MockDataset(_df=df)
+        assert (
+            ds.schema == MockDataset.get_schema()
+        ), "Schema should be inferred from df"
+
+    def test_passing_incorrect_types(self: TestDataset, spark: SparkSession) -> None:
+        """Test if passing incorrect object types to Dataset raises an error."""
+        with pytest.raises(TypeError):
+            MockDataset(_df="not a dataframe")
+        with pytest.raises(TypeError):
+            MockDataset(_df=self.df, _schema="not a schema")
+
     @pytest.fixture(autouse=True)
-    def _setup(self: TestCoalesceAndRepartition, spark: SparkSession) -> None:
+    def _setup(self: TestDataset, spark: SparkSession) -> None:
         """Setup fixture."""
-        self.test_dataset = MockDataset(
-            _df=spark.createDataFrame(
-                [(1,), (2,), (3,)], schema=MockDataset.get_schema()
-            ),
-            _schema=MockDataset.get_schema(),
-        )
+        df = spark.createDataFrame([(1,), (2,), (3,)], schema=MockDataset.get_schema())
+        self.df = df
+        self.test_dataset = MockDataset(_df=df, _schema=MockDataset.get_schema())
 
 
 def test_dataset_filter(mock_study_index: StudyIndex) -> None:
@@ -68,6 +80,7 @@ def test_dataset_drop_infinity_values() -> None:
     rows = [(v,) for v in data]
     schema = StructType([StructField("field", DoubleType())])
     input_df = spark.createDataFrame(rows, schema=schema)
+
     assert input_df.count() == 7
     # run without specifying *cols results in no filtering
     ds = MockDataset(_df=input_df, _schema=schema)
@@ -76,7 +89,7 @@ def test_dataset_drop_infinity_values() -> None:
     assert ds.drop_infinity_values("field").df.count() == 1
 
 
-def test__process_class_params(spark: SparkSession) -> None:
+def test_process_class_params(spark: SparkSession) -> None:
     """Test splitting of parameters between class and spark parameters."""
     params = {
         "_df": spark.createDataFrame([(1,)], schema=MockDataset.get_schema()),
