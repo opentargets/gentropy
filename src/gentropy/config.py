@@ -215,6 +215,18 @@ class LDBasedClumpingConfig(StepConfig):
 
 
 @dataclass
+class IntervalConfig(StepConfig):
+    """Interval step configuration."""
+
+    gene_index_path: str = MISSING
+    liftover_chain_file_path: str = MISSING
+    max_distance: int = 250_000
+    interval_sources: dict[str, str] = MISSING
+    processed_interval_path: str = MISSING
+    _target_: str = "gentropy.intervals.IntervalStep"
+
+
+@dataclass
 class LocusToGeneConfig(StepConfig):
     """Locus to gene step configuration."""
 
@@ -263,10 +275,10 @@ class LocusToGeneConfig(StepConfig):
             # intervals
             "pchicMean",
             "pchicMeanNeighbourhood",
-            "enhTssMean",
-            "enhTssMeanNeighbourhood",
-            "dhsPmtrMean",
-            "dhsPmtrMeanNeighbourhood",
+            "enhTssCorrelationMean",
+            "enhTssCorrelationMeanNeighbourhood",
+            "dhsPmtrCorrelationMean",
+            "dhsPmtrCorrelationMeanNeighbourhood",
             # other
             "geneCount500kb",
             "proteinGeneCount500kb",
@@ -345,6 +357,13 @@ class LocusToGeneFeatureMatrixConfig(StepConfig):
             "vepMaximumNeighbourhood",
             "vepMean",
             "vepMeanNeighbourhood",
+            # intervals
+            "pchicMean",
+            "pchicMeanNeighbourhood",
+            "enhTssCorrelationMean",
+            "enhTssCorrelationMeanNeighbourhood",
+            "dhsPmtrCorrelationMean",
+            "dhsPmtrCorrelationMeanNeighbourhood",
             # other
             "geneCount500kb",
             "proteinGeneCount500kb",
