@@ -298,7 +298,7 @@ class DhsPmtrCorrelationMeanFeature(L2GFeature):
             feature_dependency (dict[str, Any]): Dataset that contains the distance information
 
         Returns:
-            DhsPmtrMeanFeature: Feature dataset
+            DhsPmtrCorrelationMeanFeature: Feature dataset
         """
         interval_source = "thurman2012"
         return cls(
@@ -340,7 +340,7 @@ class DhsPmtrCorrelationMeanNeighbourhoodFeature(L2GFeature):
             feature_dependency (dict[str, Any]): Dataset that contains the distance information
 
         Returns:
-            DhsPmtrMeanNeighbourhoodFeature: Feature dataset
+            DhsPmtrCorrelationMeanNeighbourhoodFeature: Feature dataset
         """
         interval_source = "thurman2012"
         return cls(
