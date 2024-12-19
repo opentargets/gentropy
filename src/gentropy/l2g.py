@@ -13,8 +13,10 @@ from gentropy.common.schemas import compare_struct_schemas
 from gentropy.common.session import Session
 from gentropy.common.spark_helpers import calculate_harmonic_sum
 from gentropy.common.utils import access_gcp_secret
+from gentropy.config import LocusToGeneFeatureMatrixConfig
 from gentropy.dataset.colocalisation import Colocalisation
 from gentropy.dataset.gene_index import GeneIndex
+from gentropy.dataset.intervals import Intervals
 from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
 from gentropy.dataset.l2g_prediction import L2GPrediction
@@ -33,7 +35,7 @@ class LocusToGeneFeatureMatrixStep:
         self,
         session: Session,
         *,
-        features_list: list[str],
+        features_list: list[str] = LocusToGeneFeatureMatrixConfig().features_list,
         credible_set_path: str,
         variant_index_path: str | None = None,
         colocalisation_path: str | None = None,
@@ -107,12 +109,14 @@ class LocusToGeneStep:
         download_from_hub: bool,
         cross_validate: bool,
         wandb_run_name: str,
+        model_path: str | None = None,
         credible_set_path: str,
         feature_matrix_path: str,
-        model_path: str | None = None,
         gold_standard_curation_path: str | None = None,
         variant_index_path: str | None = None,
         gene_interactions_path: str | None = None,
+        gene_index_path: str | None = None,
+        interval_path: str | None = None,
         predictions_path: str | None = None,
         l2g_threshold: float | None = None,
         hf_hub_repo_id: str | None = None,
@@ -128,12 +132,14 @@ class LocusToGeneStep:
             download_from_hub (bool): Whether to download the model from Hugging Face Hub
             cross_validate (bool): Whether to run cross validation (5-fold by default) to train the model.
             wandb_run_name (str): Name of the run to track model training in Weights and Biases
+            model_path (str | None): Path to the model. It can be either in the filesystem or the name on the Hugging Face Hub (in the form of username/repo_name).
             credible_set_path (str): Path to the credible set dataset necessary to build the feature matrix
             feature_matrix_path (str): Path to the L2G feature matrix input dataset
-            model_path (str | None): Path to the model. It can be either in the filesystem or the name on the Hugging Face Hub (in the form of username/repo_name).
             gold_standard_curation_path (str | None): Path to the gold standard curation file
             variant_index_path (str | None): Path to the variant index
             gene_interactions_path (str | None): Path to the gene interactions dataset
+            gene_index_path (str | None):  Path to the gene index
+            interval_path (str | None) : Path and source of interval input datasets
             predictions_path (str | None): Path to the L2G predictions output dataset
             l2g_threshold (float | None): An optional threshold for the L2G score to filter predictions. A threshold of 0.05 is recommended.
             hf_hub_repo_id (str | None): Hugging Face Hub repository ID. If provided, the model will be uploaded to Hugging Face.
@@ -169,6 +175,14 @@ class LocusToGeneStep:
         )
         self.feature_matrix = L2GFeatureMatrix(
             _df=session.load_data(feature_matrix_path),
+        )
+        self.gene_index = (
+            GeneIndex.from_parquet(session, gene_index_path)
+            if gene_index_path
+            else None
+        )
+        self.intervals = (
+            Intervals.from_parquet(session, interval_path) if interval_path else None
         )
 
         if run_mode == "predict":
