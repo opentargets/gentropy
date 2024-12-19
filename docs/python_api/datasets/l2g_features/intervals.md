@@ -10,6 +10,7 @@ title: From intervals
 ::: gentropy.dataset.l2g_features.intervals.EnhTssCorrelationMeanNeighbourhoodFeature
 ::: gentropy.dataset.l2g_features.intervals.DhsPmtrCorrelationMeanFeature
 ::: gentropy.dataset.l2g_features.intervals.DhsPmtrCorrelationMeanNeighbourhoodFeature
+
 ## Common logic
 
 ::: gentropy.dataset.l2g_features.intervals.common_interval_feature_logic
