@@ -273,7 +273,7 @@ class SusieFineMapperStep:
                     ),
                     "variantId",
                 )
-                .sort(f.desc("posteriorProbability"))
+                .sort(f.desc(f.col("posteriorProbability").cast("double")))
                 .withColumn(
                     "locus",
                     f.collect_list(
@@ -896,8 +896,9 @@ class SusieFineMapperStep:
             logging.warning("Analysis Flags check failed for this study")
             return None
 
-        schema = StudyLocus.get_schema()
-        gwas_df = session.spark.createDataFrame([study_locus_row], schema=schema)
+        gwas_df = session.spark.createDataFrame(
+            [study_locus_row], StudyLocus.get_schema()
+        )
         exploded_df = gwas_df.select(f.explode("locus").alias("locus"))
 
         result_df = exploded_df.select(

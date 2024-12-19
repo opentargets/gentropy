@@ -67,6 +67,18 @@ class StudyIndex(Dataset):
     A study index dataset captures all the metadata for all studies including GWAS and Molecular QTL.
     """
 
+    VALID_TYPES = [
+        "gwas",
+        "eqtl",
+        "pqtl",
+        "sqtl",
+        "tuqtl",
+        "sceqtl",
+        "scpqtl",
+        "scsqtl",
+        "sctuqtl",
+    ]
+
     @staticmethod
     def _aggregate_samples_by_ancestry(merged: Column, ancestry: Column) -> Column:
         """Aggregate sample counts by ancestry in a list of struct colmns.
