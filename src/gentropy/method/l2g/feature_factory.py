@@ -30,10 +30,10 @@ from gentropy.dataset.l2g_features.distance import (
     DistanceTssMeanNeighbourhoodFeature,
 )
 from gentropy.dataset.l2g_features.intervals import (
-    DhsPmtrMeanFeature,
-    DhsPmtrMeanNeighbourhoodFeature,
-    EnhTssMeanFeature,
-    EnhTssMeanNeighbourhoodFeature,
+    DhsPmtrCorrelationMeanFeature,
+    DhsPmtrCorrelationMeanNeighbourhoodFeature,
+    EnhTssCorrelationMeanFeature,
+    EnhTssCorrelationMeanNeighbourhoodFeature,
     PchicMeanFeature,
     PchicMeanNeighbourhoodFeature,
 )
@@ -140,10 +140,10 @@ class FeatureFactory:
         "credibleSetConfidence": CredibleSetConfidenceFeature,
         "pchicMean": PchicMeanFeature,
         "pchicMeanNeighbourhood": PchicMeanNeighbourhoodFeature,
-        "enhTssMean": EnhTssMeanFeature,
-        "enhTssMeanNeighbourhood": EnhTssMeanNeighbourhoodFeature,
-        "dhsPmtrMean": DhsPmtrMeanFeature,
-        "dhsPmtrMeanNeighbourhood": DhsPmtrMeanNeighbourhoodFeature,
+        "enhTssCorrelationMean": EnhTssCorrelationMeanFeature,
+        "enhTssCorrelationMeanNeighbourhood": EnhTssCorrelationMeanNeighbourhoodFeature,
+        "dhsPmtrCorrelationMean": DhsPmtrCorrelationMeanFeature,
+        "dhsPmtrCorrelationMeanNeighbourhood": DhsPmtrCorrelationMeanNeighbourhoodFeature,
     }
 
     def __init__(

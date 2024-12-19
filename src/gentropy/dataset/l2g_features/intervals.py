@@ -2,23 +2,16 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 import pyspark.sql.functions as f
-from pyspark.sql import Window
+from pyspark.sql import DataFrame, Window
 
 from gentropy.common.spark_helpers import convert_from_wide_to_long
-
-# from gentropy.dataset.colocalisation import Colocalisation
 from gentropy.dataset.intervals import Intervals
 from gentropy.dataset.l2g_features.l2g_feature import L2GFeature
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
-
-# from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import StudyLocus
-
-if TYPE_CHECKING:
-    from pyspark.sql import DataFrame
 
 
 def common_interval_feature_logic(
@@ -204,19 +197,19 @@ class PchicMeanNeighbourhoodFeature(L2GFeature):
         )
 
 
-class EnhTssMeanFeature(L2GFeature):
+class EnhTssCorrelationMeanFeature(L2GFeature):
     """Average weighted Enhancer-TSS correlation between studylocus and gene TSS."""
 
     fill_na_value = 0  # would be 0 if implemented
     feature_dependency_type = Intervals
-    feature_name = "enhTssMean"
+    feature_name = "enhTssCorrelationMeanFeature"
 
     @classmethod
     def compute(
-        cls: type[EnhTssMeanFeature],
+        cls: type[EnhTssCorrelationMeanFeature],
         study_loci_to_annotate: StudyLocus | L2GGoldStandard,
         feature_dependency: dict[str, Any],
-    ) -> EnhTssMeanFeature:
+    ) -> EnhTssCorrelationMeanFeature:
         """Computes the feature.
 
         Args:
@@ -224,7 +217,7 @@ class EnhTssMeanFeature(L2GFeature):
             feature_dependency (dict[str, Any]): Dataset that contains the distance information
 
         Returns:
-            EnhTssMeanFeature: Feature dataset
+            EnhTssCorrelationMeanFeature: Feature dataset
         """
         interval_source = "andersson2014"
         return cls(
@@ -243,7 +236,7 @@ class EnhTssMeanFeature(L2GFeature):
         )
 
 
-class EnhTssMeanNeighbourhoodFeature(L2GFeature):
+class EnhTssCorrelationMeanNeighbourhoodFeature(L2GFeature):
     """Average weighted Enhancer-TSS correlation from studylocus to gene TSS.
 
     Compared to the Mean weighted Enhancer-TSS correlation for all genes in the vicinity.
@@ -251,14 +244,14 @@ class EnhTssMeanNeighbourhoodFeature(L2GFeature):
 
     fill_na_value = 0  # would be 0 if implemented
     feature_dependency_type = Intervals
-    feature_name = "enhTssMeanNeighbourhoodFeature"
+    feature_name = "enhTssCorrelationMeanNeighbourhoodFeature"
 
     @classmethod
     def compute(
-        cls: type[EnhTssMeanNeighbourhoodFeature],
+        cls: type[EnhTssCorrelationMeanNeighbourhoodFeature],
         study_loci_to_annotate: StudyLocus | L2GGoldStandard,
         feature_dependency: dict[str, Any],
-    ) -> EnhTssMeanNeighbourhoodFeature:
+    ) -> EnhTssCorrelationMeanNeighbourhoodFeature:
         """Computes the feature.
 
         Args:
@@ -266,7 +259,7 @@ class EnhTssMeanNeighbourhoodFeature(L2GFeature):
             feature_dependency (dict[str, Any]): Dataset that contains the distance information
 
         Returns:
-            EnhTssMeanNeighbourhoodFeature: Feature dataset
+            EnhTssCorrelationMeanNeighbourhoodFeature: Feature dataset
         """
         interval_source = "andersson2014"
         return cls(
@@ -285,19 +278,19 @@ class EnhTssMeanNeighbourhoodFeature(L2GFeature):
         )
 
 
-class DhsPmtrMeanFeature(L2GFeature):
+class DhsPmtrCorrelationMeanFeature(L2GFeature):
     """Average weighted DHS-promoter correlation between studylocus and gene TSS."""
 
     fill_na_value = 0  # would be 0 if implemented
     feature_dependency_type = Intervals
-    feature_name = "dhsPmtrMean"
+    feature_name = "dhsPmtrCorrelationMeanFeature"
 
     @classmethod
     def compute(
-        cls: type[DhsPmtrMeanFeature],
+        cls: type[DhsPmtrCorrelationMeanFeature],
         study_loci_to_annotate: StudyLocus | L2GGoldStandard,
         feature_dependency: dict[str, Any],
-    ) -> DhsPmtrMeanFeature:
+    ) -> DhsPmtrCorrelationMeanFeature:
         """Computes the feature.
 
         Args:
@@ -324,7 +317,7 @@ class DhsPmtrMeanFeature(L2GFeature):
         )
 
 
-class DhsPmtrMeanNeighbourhoodFeature(L2GFeature):
+class DhsPmtrCorrelationMeanNeighbourhoodFeature(L2GFeature):
     """Average weighted DHS-promoter correlation from studylocus to gene TSS.
 
     Compared to the Mean weighted DHS-promoter correlation for all genes in the vicinity.
@@ -332,14 +325,14 @@ class DhsPmtrMeanNeighbourhoodFeature(L2GFeature):
 
     fill_na_value = 0  # would be 0 if implemented
     feature_dependency_type = Intervals
-    feature_name = "dhsPmtrMeanNeighbourhood"
+    feature_name = "dhsPmtrCorrelationMeanNeighbourhoodFeature"
 
     @classmethod
     def compute(
-        cls: type[DhsPmtrMeanNeighbourhoodFeature],
+        cls: type[DhsPmtrCorrelationMeanNeighbourhoodFeature],
         study_loci_to_annotate: StudyLocus | L2GGoldStandard,
         feature_dependency: dict[str, Any],
-    ) -> DhsPmtrMeanNeighbourhoodFeature:
+    ) -> DhsPmtrCorrelationMeanNeighbourhoodFeature:
         """Computes the feature.
 
         Args:
