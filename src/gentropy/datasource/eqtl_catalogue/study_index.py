@@ -81,7 +81,8 @@ class EqtlCatalogueStudyIndex:
             *[f.lit(x) for x in chain(*cls.method_to_qtl_type_mapping.items())]
         )[f.col("quant_method")]
         return f.when(
-            f.col("study_type") == "single-cell", f.concat(f.lit("sc"), qtl_type_mapping)
+            f.col("study_type") == "single-cell",
+            f.concat(f.lit("sc"), qtl_type_mapping),
         ).otherwise(qtl_type_mapping)
 
     @classmethod
@@ -122,9 +123,13 @@ class EqtlCatalogueStudyIndex:
             for field in StudyIndex.get_schema().fields
             if field.name in processed_finemapping_df.columns
         ]
-        return StudyIndex(
-            _df=processed_finemapping_df.select(study_index_cols).distinct(),
-            _schema=StudyIndex.get_schema(),
+        return (
+            StudyIndex(
+                _df=processed_finemapping_df.select(study_index_cols).distinct(),
+                _schema=StudyIndex.get_schema(),
+            )
+            # Convert study identifier to a URL safe format:
+            .url_safe_study_id()
         )
 
     @classmethod
