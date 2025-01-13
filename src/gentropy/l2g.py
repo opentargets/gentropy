@@ -7,7 +7,7 @@ from typing import Any
 
 import pyspark.sql.functions as f
 from sklearn.ensemble import GradientBoostingClassifier
-from wandb import login as wandb_login
+from wandb.sdk.wandb_login import login as wandb_login
 
 from gentropy.common.schemas import compare_struct_schemas
 from gentropy.common.session import Session
@@ -100,11 +100,12 @@ class LocusToGeneStep:
     def __init__(
         self,
         session: Session,
-        hyperparameters: dict[str, Any],
         *,
         run_mode: str,
         features_list: list[str],
+        hyperparameters: dict[str, Any],
         download_from_hub: bool,
+        cross_validate: bool,
         wandb_run_name: str,
         credible_set_path: str,
         feature_matrix_path: str,
@@ -113,18 +114,19 @@ class LocusToGeneStep:
         variant_index_path: str | None = None,
         gene_interactions_path: str | None = None,
         predictions_path: str | None = None,
-        l2g_threshold: float | None,
-        hf_hub_repo_id: str | None,
+        l2g_threshold: float | None = None,
+        hf_hub_repo_id: str | None = None,
         hf_model_commit_message: str | None = "chore: update model",
     ) -> None:
         """Initialise the step and run the logic based on mode.
 
         Args:
             session (Session): Session object that contains the Spark session
-            hyperparameters (dict[str, Any]): Hyperparameters for the model
             run_mode (str): Run mode, either 'train' or 'predict'
             features_list (list[str]): List of features to use for the model
+            hyperparameters (dict[str, Any]): Hyperparameters for the model
             download_from_hub (bool): Whether to download the model from Hugging Face Hub
+            cross_validate (bool): Whether to run cross validation (5-fold by default) to train the model.
             wandb_run_name (str): Name of the run to track model training in Weights and Biases
             credible_set_path (str): Path to the credible set dataset necessary to build the feature matrix
             feature_matrix_path (str): Path to the L2G feature matrix input dataset
@@ -152,6 +154,7 @@ class LocusToGeneStep:
         self.features_list = list(features_list)
         self.hyperparameters = dict(hyperparameters)
         self.wandb_run_name = wandb_run_name
+        self.cross_validate = cross_validate
         self.hf_hub_repo_id = hf_hub_repo_id
         self.download_from_hub = download_from_hub
         self.hf_model_commit_message = hf_model_commit_message
@@ -285,9 +288,11 @@ class LocusToGeneStep:
         )
         predictions.filter(
             f.col("score") >= self.l2g_threshold
-        ).add_locus_to_gene_features(self.feature_matrix).df.coalesce(
-            self.session.output_partitions
-        ).write.mode(self.session.write_mode).parquet(self.predictions_path)
+        ).add_locus_to_gene_features(
+            self.feature_matrix, self.features_list
+        ).df.coalesce(self.session.output_partitions).write.mode(
+            self.session.write_mode
+        ).parquet(self.predictions_path)
         self.session.logger.info("L2G predictions saved successfully.")
 
     def run_train(self) -> None:
@@ -298,7 +303,7 @@ class LocusToGeneStep:
 
         # Instantiate classifier and train model
         l2g_model = LocusToGeneModel(
-            model=GradientBoostingClassifier(random_state=42),
+            model=GradientBoostingClassifier(random_state=42, loss="log_loss"),
             hyperparameters=self.hyperparameters,
         )
 
@@ -308,7 +313,7 @@ class LocusToGeneStep:
         # Run the training
         trained_model = LocusToGeneTrainer(
             model=l2g_model, feature_matrix=feature_matrix
-        ).train(self.wandb_run_name)
+        ).train(self.wandb_run_name, cross_validate=self.cross_validate)
 
         # Export the model
         if trained_model.training_data and trained_model.model and self.model_path:
