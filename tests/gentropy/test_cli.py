@@ -22,7 +22,9 @@ def test_main_no_step() -> None:
 
 def test_main_step() -> None:
     """Test the main function of the CLI complains about mandatory values."""
-    with patch("sys.argv", ["cli.py", "step=gene_index"]), pytest.raises(
-        MissingMandatoryValue, match="Missing mandatory value: step.target_path"
+    with patch(
+        "sys.argv", ["cli.py", "step=gwas_catalog_sumstat_preprocess"]
+    ), pytest.raises(
+        MissingMandatoryValue, match="Missing mandatory value: step.raw_sumstats_path"
     ):
         main()
