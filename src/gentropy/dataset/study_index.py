@@ -15,8 +15,10 @@ from pyspark.sql.window import Window
 
 from gentropy.assets import data
 from gentropy.common.schemas import parse_spark_schema
-from gentropy.common.spark_helpers import convert_from_wide_to_long
-from gentropy.common.utils import sanitise_strings_for_url
+from gentropy.common.spark_helpers import (
+    clean_strings_from_symbols,
+    convert_from_wide_to_long,
+)
 from gentropy.dataset.dataset import Dataset
 
 if TYPE_CHECKING:
@@ -390,7 +392,7 @@ class StudyIndex(Dataset):
         return StudyIndex(
             _df=self.df.withColumn(
                 "studyId",
-                f.udf(sanitise_strings_for_url, StringType())(f.col("studyId")),
+                clean_strings_from_symbols(f.col("studyId")),
             ),
             _schema=StudyIndex.get_schema(),
         )

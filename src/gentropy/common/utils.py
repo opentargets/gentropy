@@ -5,7 +5,6 @@ from __future__ import annotations
 import sys
 from math import floor, log10
 from typing import TYPE_CHECKING
-from urllib.parse import quote_plus
 
 import hail as hl
 import numpy as np
@@ -372,19 +371,3 @@ def extract_position(variant_id: Column) -> Column:
 
     """
     return f.regexp_extract(variant_id, r"^.*_(\d+)_.*$", 1)
-
-
-def sanitise_strings_for_url(source_string: str) -> str:
-    """Sanitise strings for URL.
-
-    Args:
-        source_string (str): Source string to sanitise
-
-    Returns:
-        str: Sanitised string
-
-    Examples:
-        >>> sanitise_strings_for_url("This is a test")
-        'This+is+a+test'
-    """
-    return quote_plus(source_string)
