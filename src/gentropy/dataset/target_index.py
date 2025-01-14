@@ -49,11 +49,11 @@ class TargetIndex(Dataset):
             DataFrame: Gene LUT including genomic location information.
         """
         return self.df.select(
-            "geneId",
-            "chromosome",
-            "start",
-            "end",
-            "strand",
+            f.col("id").alias("geneId"),
+            f.col("genomicLocation.chromosome").alias("chromosome"),
+            f.col("genomicLocation.start").alias("start"),
+            f.col("genomicLocation.end").alias("end"),
+            f.col("genomicLocation.strand").alias("strand"),
             "tss",
         )
 
@@ -68,7 +68,9 @@ class TargetIndex(Dataset):
         """
         return self.df.select(
             f.explode(
-                f.array_union(f.array("approvedSymbol"), f.col("obsoleteSymbols"))
+                f.array_union(f.array("approvedSymbol"), f.col("obsoleteSymbols.label"))
             ).alias("geneSymbol"),
-            "*",
+            f.col("id").alias("geneId"),
+            f.col("genomicLocation.chromosome").alias("chromosome"),
+            "tss",
         )
