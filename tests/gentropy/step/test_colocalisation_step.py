@@ -212,9 +212,9 @@ class TestColocalisationStep:
     ) -> None:
         """Test _get_colocalisation_class method on ColocalisationStep."""
         method = ColocalisationStep._get_colocalisation_class(label)
-        assert (
-            method is expected_method
-        ), "Incorrect colocalisation class returned by ColocalisationStep._get_colocalisation_class(label)"
+        assert method is expected_method, (
+            "Incorrect colocalisation class returned by ColocalisationStep._get_colocalisation_class(label)"
+        )
 
     def test_label_with_invalid_method(self) -> None:
         """Test what happens when invalid method_label is passed to the _get_colocalisation_class."""
@@ -284,10 +284,10 @@ class TestColocalisationStep:
             expected_values = expected_data[column]
             for v, e in zip(values, expected_values):
                 if isinstance(e, float):
-                    assert (
-                        e == pytest.approx(v, 1e-1)
-                    ), f"Incorrect value {v} at {column} found in {coloc_method}, expected {e}"
+                    assert e == pytest.approx(v, 1e-1), (
+                        f"Incorrect value {v} at {column} found in {coloc_method}, expected {e}"
+                    )
                 else:
-                    assert (
-                        e == v
-                    ), f"Incorrect value {v} at {column} found in {coloc_method}, expected {e}"
+                    assert e == v, (
+                        f"Incorrect value {v} at {column} found in {coloc_method}, expected {e}"
+                    )
