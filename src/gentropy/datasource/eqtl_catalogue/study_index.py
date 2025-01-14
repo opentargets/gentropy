@@ -123,13 +123,9 @@ class EqtlCatalogueStudyIndex:
             for field in StudyIndex.get_schema().fields
             if field.name in processed_finemapping_df.columns
         ]
-        return (
-            StudyIndex(
-                _df=processed_finemapping_df.select(study_index_cols).distinct(),
-                _schema=StudyIndex.get_schema(),
-            )
-            # Convert study identifier to a URL safe format:
-            .url_safe_study_id()
+        return StudyIndex(
+            _df=processed_finemapping_df.select(study_index_cols).distinct(),
+            _schema=StudyIndex.get_schema(),
         )
 
     @classmethod
