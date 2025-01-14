@@ -74,7 +74,6 @@ class StudyLocusQualityCheck(Enum):
         LD_CLUMPED (str): Explained by a more significant variant in high LD
         WINDOW_CLUMPED (str): Explained by a more significant variant in the same window
         NO_POPULATION (str): Study does not have population annotation to resolve LD
-        NOT_QUALIFYING_LD_BLOCK (str): LD block does not contain variants at the required R^2 threshold
         FLAGGED_STUDY (str): Study has quality control flag(s)
         MISSING_STUDY (str): Flagging study loci if the study is not found in the study index as a reference
         DUPLICATED_STUDYLOCUS_ID (str): Study-locus identifier is not unique
@@ -100,9 +99,6 @@ class StudyLocusQualityCheck(Enum):
     LD_CLUMPED = "Explained by a more significant variant in high LD"
     WINDOW_CLUMPED = "Explained by a more significant variant in the same window"
     NO_POPULATION = "Study does not have population annotation to resolve LD"
-    NOT_QUALIFYING_LD_BLOCK = (
-        "LD block does not contain variants at the required R^2 threshold"
-    )
     FLAGGED_STUDY = "Study has quality control flag(s)"
     MISSING_STUDY = "Study not found in the study index"
     DUPLICATED_STUDYLOCUS_ID = "Non-unique study locus identifier"
@@ -117,7 +113,7 @@ class StudyLocusQualityCheck(Enum):
     EXPLAINED_BY_SUSIE = "Study locus in region explained by a SuSiE credible set"
     OUT_OF_SAMPLE_LD = "Study locus finemapped without in-sample LD reference"
     ABNORMAL_PIPS = (
-        "Study locus with a sum of PIPs that not in the expected range [0.99,1]"
+        "Study locus with a sum of PIPs that not in the expected range [0.95,1]"
     )
     INVALID_CHROMOSOME = "Chromosome not in 1:22, X, Y, XY or MT"
     TOP_HIT_AND_SUMMARY_STATS = (

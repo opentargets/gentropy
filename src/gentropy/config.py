@@ -2,7 +2,7 @@
 
 import os
 from dataclasses import dataclass, field
-from typing import Any, ClassVar, List, TypedDict
+from typing import Any, ClassVar, TypedDict
 
 from hail import __file__ as hail_location
 from hydra.core.config_store import ConfigStore
@@ -18,6 +18,7 @@ class SessionConfig:
     spark_uri: str = "local[*]"
     hail_home: str = os.path.dirname(hail_location)
     extended_spark_conf: dict[str, str] | None = field(default_factory=dict[str, str])
+    output_partitions: int = 200
     _target_: str = "gentropy.common.session.Session"
 
 
@@ -26,7 +27,7 @@ class StepConfig:
     """Base step configuration."""
 
     session: SessionConfig
-    defaults: List[Any] = field(
+    defaults: list[Any] = field(
         default_factory=lambda: [{"session": "base_session"}, "_self_"]
     )
 
@@ -145,7 +146,8 @@ class FinngenStudiesConfig(StepConfig):
     )
     finngen_summary_stats_url_suffix: str = ".gz"
     efo_curation_mapping_url: str = "https://raw.githubusercontent.com/opentargets/curation/24.09.1/mappings/disease/manual_string.tsv"
-    sample_size: int = 453733  # https://www.finngen.fi/en/access_results#:~:text=Total%20sample%20size%3A%C2%A0453%2C733%C2%A0(254%2C618%C2%A0females%20and%C2%A0199%2C115%20males)
+    # https://www.finngen.fi/en/access_results#:~:text=Total%20sample%20size%3A%C2%A0453%2C733%C2%A0(254%2C618%C2%A0females%20and%C2%A0199%2C115%20males)
+    sample_size: int = 453733
     _target_: str = "gentropy.finngen_studies.FinnGenStudiesStep"
 
 
@@ -198,7 +200,6 @@ class LDIndexConfig(StepConfig):
             "nfe",  # Non-Finnish European
         ]
     )
-    use_version_from_input: bool = False
     _target_: str = "gentropy.gnomad_ingestion.LDIndexStep"
 
 
@@ -263,20 +264,24 @@ class LocusToGeneConfig(StepConfig):
             "geneCount500kb",
             "proteinGeneCount500kb",
             "credibleSetConfidence",
-            # "isProteinCoding",
         ]
     )
     hyperparameters: dict[str, Any] = field(
         default_factory=lambda: {
             "n_estimators": 100,
-            "max_depth": 5,
-            "loss": "log_loss",
+            "max_depth": 10,
+            "ccp_alpha": 0,
+            "learning_rate": 0.1,
+            "min_samples_leaf": 5,
+            "min_samples_split": 5,
+            "subsample": 1,
         }
     )
     wandb_run_name: str | None = None
     hf_hub_repo_id: str | None = "opentargets/locus_to_gene"
     hf_model_commit_message: str | None = "chore: update model"
     download_from_hub: bool = True
+    cross_validate: bool = True
     _target_: str = "gentropy.l2g.LocusToGeneStep"
 
 
@@ -387,7 +392,9 @@ class GnomadVariantConfig(StepConfig):
         }
     )
     variant_annotation_path: str = MISSING
-    gnomad_genomes_path: str = "gs://gcp-public-data--gnomad/release/4.0/ht/genomes/gnomad.genomes.v4.0.sites.ht/"
+    gnomad_genomes_path: str = (
+        "gs://gcp-public-data--gnomad/release/4.1/ht/joint/gnomad.joint.v4.1.sites.ht/"
+    )
     gnomad_variant_populations: list[str] = field(
         default_factory=lambda: [
             "afr",  # African-American
@@ -402,7 +409,6 @@ class GnomadVariantConfig(StepConfig):
             "remaining",  # Other
         ]
     )
-    use_version_from_input: bool = False
     _target_: str = "gentropy.gnomad_ingestion.GnomadVariantIndexStep"
 
 
@@ -425,7 +431,6 @@ class PanUKBBConfig(StepConfig):
             "EUR",  # European
         ]
     )
-    use_version_from_input: bool = False
     _target_: str = "gentropy.pan_ukb_ingestion.PanUKBBVariantIndexStep"
 
 
@@ -476,6 +481,11 @@ class VariantIndexConfig(StepConfig):
             "label": "splice_polypyrimidine_tract_variant",
             "score": 0.33,
         },
+        {
+            "id": "SO_0001626",
+            "label": "incomplete_terminal_codon_variant",
+            "score": 0.33,
+        },
         {"id": "SO_0001819", "label": "synonymous_variant", "score": 0.33},
         {
             "id": "SO_0002170",
@@ -499,6 +509,7 @@ class VariantIndexConfig(StepConfig):
             "score": 0.0,
         },
         {"id": "SO_0001620", "label": "mature_miRNA_variant", "score": 0.0},
+        {"id": "SO_0001060", "label": "intergenic_variant", "score": 0.0},
     ]
 
     _target_: str = "gentropy.variant_index.VariantIndexStep"
@@ -667,7 +678,7 @@ class Config:
     """Application configuration."""
 
     # this is unfortunately verbose due to @dataclass limitations
-    defaults: List[Any] = field(default_factory=lambda: ["_self_", {"step": MISSING}])
+    defaults: list[Any] = field(default_factory=lambda: ["_self_", {"step": MISSING}])
     step: StepConfig = MISSING
     datasets: dict[str, str] = field(default_factory=dict)
 

@@ -84,31 +84,10 @@ class GnomADVariants:
                     ).map(
                         lambda p: hl.struct(
                             populationName=p,
-                            alleleFrequency=ht.freq[ht.globals.freq_index_dict[p]].AF,
+                            alleleFrequency=ht.joint.freq[
+                                ht.joint_globals.freq_index_dict[p]
+                            ].AF,
                         )
-                    ),
-                    # Extract in silico predictors:
-                    inSilicoPredictors=hl.array(
-                        [
-                            hl.struct(
-                                method=hl.str("spliceai"),
-                                assessment=hl.missing(hl.tstr),
-                                score=hl.expr.functions.float32(
-                                    ht.in_silico_predictors.spliceai_ds_max
-                                ),
-                                assessmentFlag=hl.missing(hl.tstr),
-                                targetId=hl.missing(hl.tstr),
-                            ),
-                            hl.struct(
-                                method=hl.str("pangolin"),
-                                assessment=hl.missing(hl.tstr),
-                                score=hl.expr.functions.float32(
-                                    ht.in_silico_predictors.pangolin_largest_ds
-                                ),
-                                assessmentFlag=hl.missing(hl.tstr),
-                                targetId=hl.missing(hl.tstr),
-                            ),
-                        ]
                     ),
                     # Extract cross references to GnomAD:
                     dbXrefs=hl.array(
@@ -133,11 +112,6 @@ class GnomADVariants:
                 .to_spark(flatten=False)
                 .withColumns(
                     {
-                        # Once The parsing is done, we have to drop objects with no score from inSilicoPredictors:
-                        "inSilicoPredictors": f.filter(
-                            f.col("inSilicoPredictors"),
-                            lambda predictor: predictor["score"].isNotNull(),
-                        ),
                         # Generate a variantId that is hashed for long variant ids:
                         "variantId": VariantIndex.hash_long_variant_ids(
                             f.col("variantId"),
