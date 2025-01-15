@@ -165,7 +165,7 @@ class FinnGenStudyIndex:
                 f.lit(finngen_release_prefix).alias("projectId"),
                 f.lit("gwas").alias("studyType"),
                 f.lit(True).alias("hasSumstats"),
-                f.lit("453,733 (254,618 females and 199,115 males)").alias(
+                f.lit("500,348 (282,064 females and 218,284 males)").alias(
                     "initialSampleSize"
                 ),
                 f.array(
