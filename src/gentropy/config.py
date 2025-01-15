@@ -46,15 +46,6 @@ class ColocalisationConfig(StepConfig):
 
 
 @dataclass
-class TargetIndexConfig(StepConfig):
-    """Target index step configuration."""
-
-    target_path: str = MISSING
-    target_index_path: str = MISSING
-    _target_: str = "gentropy.target_index.TargetIndexStep"
-
-
-@dataclass
 class BiosampleIndexConfig(StepConfig):
     """Biosample index step configuration."""
 
@@ -694,7 +685,6 @@ def register_config() -> None:
     cs.store(group="step/session", name="base_session", node=SessionConfig)
     cs.store(group="step", name="colocalisation", node=ColocalisationConfig)
     cs.store(group="step", name="eqtl_catalogue", node=EqtlCatalogueConfig)
-    cs.store(group="step", name="target_index", node=TargetIndexConfig)
     cs.store(group="step", name="biosample_index", node=BiosampleIndexConfig)
     cs.store(
         group="step",
