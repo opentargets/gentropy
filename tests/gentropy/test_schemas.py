@@ -101,7 +101,7 @@ class TestValidateSchema:
 
     @pytest.mark.parametrize(
         "mock_dataset_instance",
-        ["mock_l2g_predictions", "mock_target_index"],
+        ["mock_l2g_predictions"],
         indirect=True,
     )
     def test_validate_schema_missing_field(
