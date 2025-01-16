@@ -571,7 +571,7 @@ def sample_target_index(spark: SparkSession) -> DataFrame:
 @pytest.fixture()
 def mock_target_index(spark: SparkSession) -> TargetIndex:
     """Mock target index dataset."""
-    gi_schema = TargetIndex.get_schema()
+    ti_schema = TargetIndex.get_schema()
 
     data_spec = (
         dg.DataGenerator(
@@ -579,11 +579,12 @@ def mock_target_index(spark: SparkSession) -> TargetIndex:
             rows=30,
             partitions=4,
             randomSeedMethod="hash_fieldname",
+            seedColumnName="_id",  # required as the target_index has the id column
         )
-        .withSchema(gi_schema)
+        .withSchema(ti_schema)
         .withColumnSpec(
-            "geneId",
-            expr="cast(id as string)",
+            "id",
+            expr="cast(_id as string)",
         )
         .withColumnSpec("approvedSymbol", percentNulls=0.1)
         .withColumnSpec(
@@ -591,12 +592,10 @@ def mock_target_index(spark: SparkSession) -> TargetIndex:
         )
         .withColumnSpec("approvedName", percentNulls=0.1)
         .withColumnSpec("tss", percentNulls=0.1)
-        .withColumnSpec("start", percentNulls=0.1)
-        .withColumnSpec("end", percentNulls=0.1)
-        .withColumnSpec("strand", percentNulls=0.1, values=[1, -1])
+        .withColumnSpec("genomicLocation", percentNulls=0.1)
     )
 
-    return TargetIndex(_df=data_spec.build(), _schema=gi_schema)
+    return TargetIndex(_df=data_spec.build(), _schema=ti_schema)
 
 
 @pytest.fixture()
