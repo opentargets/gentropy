@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 
 import hail as hl
 import numpy as np
+from pyspark.ml.linalg import DenseVector
 from pyspark.sql import functions as f
 from pyspark.sql import types as t
 
@@ -371,3 +372,24 @@ def extract_position(variant_id: Column) -> Column:
 
     """
     return f.regexp_extract(variant_id, r"^.*_(\d+)_.*$", 1)
+
+
+def get_logsum_from_spark_vector(vec: DenseVector) -> float:
+    """Calculates logarithm of the sum of exponentials of a vector. The max is extracted to ensure that the sum is not Inf.
+
+    This function emulates scipy's logsumexp expression.
+
+    Args:
+        vec (DenseVector): input vector
+
+    Returns:
+        float: logsumexp of the input vector
+
+    Example:
+        >>> l = DenseVector([0.2, 0.1, 0.05, 0])
+        >>> round(get_logsum_from_spark_vector(l), 6)
+        1.476557
+    """
+    arr = np.array(vec)
+    themax = np.max(arr)
+    return float(themax + np.log(np.sum(np.exp(arr - themax))))

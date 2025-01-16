@@ -43,6 +43,8 @@ def test_coloc(mock_study_locus_overlap: StudyLocusOverlap) -> None:
                         "right_logBF": 10.5,
                         "left_beta": 0.1,
                         "right_beta": 0.2,
+                        "left_posteriorProbability": 0.91,
+                        "right_posteriorProbability": 0.92,
                     },
                 },
             ],
@@ -72,6 +74,8 @@ def test_coloc(mock_study_locus_overlap: StudyLocusOverlap) -> None:
                         "right_logBF": 10.5,
                         "left_beta": 0.1,
                         "right_beta": 0.2,
+                        "left_posteriorProbability": 0.91,
+                        "right_posteriorProbability": 0.92,
                     },
                 },
                 {
@@ -85,6 +89,8 @@ def test_coloc(mock_study_locus_overlap: StudyLocusOverlap) -> None:
                         "right_logBF": 10.5,
                         "left_beta": 0.3,
                         "right_beta": 0.5,
+                        "left_posteriorProbability": 0.91,
+                        "right_posteriorProbability": 0.92,
                     },
                 },
             ],
@@ -121,7 +127,8 @@ def test_coloc_semantic(
         .select("h0", "h1", "h2", "h3", "h4")
         .toPandas()
     )
-
+    print("DEBUG: row count:", observed_coloc_pdf.count())
+    observed_coloc_pdf.show(truncate=False)
     assert_frame_equal(
         observed_coloc_pdf,
         expected_coloc_pdf,
@@ -151,8 +158,8 @@ def test_coloc_no_logbf(
                             "right_logBF": None,
                             "left_beta": 0.1,
                             "right_beta": 0.2,
-                            "left_posteriorProbability": None,
-                            "right_posteriorProbability": None,
+                            "left_posteriorProbability": 0.91,
+                            "right_posteriorProbability": 0.92,
                         },  # irrelevant for COLOC
                     }
                 ],
@@ -187,6 +194,8 @@ def test_coloc_no_logbf(
         StudyLocusOverlap.get_schema(),
     )
     observed_coloc_df = Coloc.colocalise(observed_overlap).df
+    print("DEBUG: row count:", observed_coloc_df.count())
+    observed_coloc_df.show(truncate=False)
     assert (
         observed_coloc_df.select("h0").collect()[0]["h0"] > minimum_expected_h0
     ), "COLOC should return a high h0 (no association) when the input data has irrelevant logBF."
@@ -212,8 +221,8 @@ def test_coloc_no_betas(spark: SparkSession) -> None:
                             "right_logBF": 10.3,
                             "left_beta": None,
                             "right_beta": None,
-                            "left_posteriorProbability": None,
-                            "right_posteriorProbability": None,
+                            "left_posteriorProbability": 0.91,
+                            "right_posteriorProbability": 0.92,
                         },  # irrelevant for COLOC
                     }
                 ],
