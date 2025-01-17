@@ -1,4 +1,4 @@
-"""Tests on LD index."""
+"""Tests on target index."""
 
 from __future__ import annotations
 

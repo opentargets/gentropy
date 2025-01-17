@@ -413,7 +413,7 @@ class StudyIndex(Dataset):
         Returns:
             StudyIndex: with flagged studies if geneId could not be validated.
         """
-        gene_set = target_index.df.select("geneId", f.lit(True).alias("isIdFound"))
+        gene_set = target_index.df.select(f.col("id").alias("geneId"), f.lit(True).alias("isIdFound"))
 
         # As the geneId is not a mandatory field of study index, we return if the column is not there:
         if "geneId" not in self.df.columns:

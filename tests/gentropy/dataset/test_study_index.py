@@ -148,10 +148,10 @@ class TestQTLValidation:
     """A small test suite to ensure the QTL study validation works as intended."""
 
     GENE_DATA = [
-        ("ENSG00000102021", "1"),
-        ("ENSG000001020", "1"),
+        ("ENSG00000102021", "protein_coding"),
+        ("ENSG000001020", "lncRNA"),
     ]
-    GENE_COLUMNS = ["geneId", "chromosome"]
+    GENE_COLUMNS = ["id", "biotype"]
 
     BIOSAMPLE_DATA = [("UBERON_00123", "lung"), ("CL_00321", "monocyte")]
     BIOSAMPLE_COLUMNS = ["biosampleId", "biosampleName"]
