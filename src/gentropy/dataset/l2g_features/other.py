@@ -56,28 +56,28 @@ def common_genecount_feature_logic(
         study_loci_window.join(
             target_index_filter.alias("genes"),
             on=(
-                (f.col("SL_chromosome") == f.col("genes.chromosome"))
+                (f.col("SL_chromosome") == f.col("genes.genomicLocation.chromosome"))
                 & (f.col("genes.tss") >= f.col("window_start"))
                 & (f.col("genes.tss") <= f.col("window_end"))
             ),
             how="inner",
         )
         .groupBy("studyLocusId")
-        .agg(f.approx_count_distinct("geneId").alias(feature_name))
+        .agg(f.approx_count_distinct(f.col("id").alias("geneId")).alias(feature_name))
     )
 
     return (
         study_loci_window.join(
             target_index_filter.alias("genes"),
             on=(
-                (f.col("SL_chromosome") == f.col("genes.chromosome"))
+                (f.col("SL_chromosome") == f.col("genes.genomicLocation.chromosome"))
                 & (f.col("genes.tss") >= f.col("window_start"))
                 & (f.col("genes.tss") <= f.col("window_end"))
             ),
             how="inner",
         )
         .join(distinct_gene_counts, on="studyLocusId", how="inner")
-        .select("studyLocusId", "geneId", feature_name)
+        .select("studyLocusId", f.col("id").alias("geneId"), feature_name)
         .distinct()
     )
 
@@ -112,7 +112,7 @@ def is_protein_coding_feature_logic(
         study_loci_window.join(
             target_index.df.alias("genes"),
             on=(
-                (f.col("SL_chromosome") == f.col("genes.chromosome"))
+                (f.col("SL_chromosome") == f.col("genes.genomicLocation.chromosome"))
                 & (f.col("genes.tss") >= f.col("window_start"))
                 & (f.col("genes.tss") <= f.col("window_end"))
             ),
@@ -122,7 +122,7 @@ def is_protein_coding_feature_logic(
             feature_name,
             f.when(f.col("biotype") == "protein_coding", f.lit(1)).otherwise(f.lit(0)),
         )
-        .select("studyLocusId", "geneId", feature_name)
+        .select("studyLocusId", f.col("id").alias("geneId"), feature_name)
         .distinct()
     )
 

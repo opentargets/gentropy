@@ -113,7 +113,7 @@ def common_neighbourhood_distance_feature_logic(
     return (
         # Then compute mean distance in the vicinity (feature will be the same for any gene associated with a studyLocus)
         local_metric.join(
-            target_index.df.filter(f.col("biotype") == "protein_coding").select("geneId"),
+            target_index.df.filter(f.col("biotype") == "protein_coding").select(f.col("id").alias("geneId")),
             "geneId",
             "inner",
         )

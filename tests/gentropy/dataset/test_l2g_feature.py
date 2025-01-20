@@ -142,19 +142,25 @@ def sample_target_index(spark: SparkSession) -> TargetIndex:
         _df=spark.createDataFrame(
             [
                 {
-                    "geneId": "gene1",
+                    "id": "gene1",
+                    "genomicLocation": {
+                        "chromosome": "1",
+                    },
                     "biotype": "protein_coding",
-                    "chromosome": "1",
                 },
                 {
-                    "geneId": "gene2",
+                    "id": "gene2",
+                    "genomicLocation": {
+                        "chromosome": "1",
+                    },
                     "biotype": "lncRNA",
-                    "chromosome": "1",
                 },
                 {
-                    "geneId": "gene3",
+                    "id": "gene3",
+                    "genomicLocation": {
+                        "chromosome": "1",
+                    },
                     "biotype": "protein_coding",
-                    "chromosome": "1",
                 },
             ],
             TargetIndex.get_schema(),
@@ -657,20 +663,26 @@ class TestCommonDistanceFeatureLogic:
             _df=spark.createDataFrame(
                 [
                     {
-                        "geneId": "gene1",
-                        "chromosome": "1",
+                        "id": "gene1",
+                        "genomicLocation": {
+                            "chromosome": "1",
+                        },
                         "tss": 950000,
                         "biotype": "protein_coding",
                     },
                     {
-                        "geneId": "gene2",
-                        "chromosome": "1",
+                        "id": "gene2",
+                        "genomicLocation": {
+                            "chromosome": "1",
+                        },
                         "tss": 1050000,
                         "biotype": "protein_coding",
                     },
                     {
-                        "geneId": "gene3",
-                        "chromosome": "1",
+                        "id": "gene3",
+                        "genomicLocation": {
+                            "chromosome": "1",
+                        },
                         "tss": 1010000,
                         "biotype": "non_coding",
                     },
@@ -896,20 +908,26 @@ class TestCommonGeneCountFeatureLogic:
             _df=spark.createDataFrame(
                 [
                     {
-                        "geneId": "gene1",
-                        "chromosome": "1",
+                        "id": "gene1",
+                        "genomicLocation": {
+                            "chromosome": "1",
+                        },
                         "tss": 950000,
                         "biotype": "protein_coding",
                     },
                     {
-                        "geneId": "gene2",
-                        "chromosome": "1",
+                        "id": "gene2",
+                        "genomicLocation": {
+                            "chromosome": "1",
+                        },
                         "tss": 1050000,
                         "biotype": "protein_coding",
                     },
                     {
-                        "geneId": "gene3",
-                        "chromosome": "1",
+                        "id": "gene3",
+                        "genomicLocation": {
+                            "chromosome": "1",
+                        },
                         "tss": 1010000,
                         "biotype": "non_coding",
                     },
@@ -986,20 +1004,26 @@ class TestCommonProteinCodingFeatureLogic:
             _df=spark.createDataFrame(
                 [
                     {
-                        "geneId": "gene1",
-                        "chromosome": "1",
+                        "id": "gene1",
+                        "genomicLocation": {
+                            "chromosome": "1",
+                        },
                         "tss": 950000,
                         "biotype": "protein_coding",
                     },
                     {
-                        "geneId": "gene2",
-                        "chromosome": "1",
+                        "id": "gene2",
+                        "genomicLocation": {
+                            "chromosome": "1",
+                        },
                         "tss": 1050000,
                         "biotype": "protein_coding",
                     },
                     {
-                        "geneId": "gene3",
-                        "chromosome": "1",
+                        "id": "gene3",
+                        "genomicLocation": {
+                            "chromosome": "1",
+                        },
                         "tss": 1010000,
                         "biotype": "non_coding",
                     },

@@ -173,15 +173,24 @@ class TestFromFeaturesList:
         self.sample_target_index = TargetIndex(
             _df=spark.createDataFrame(
                 [
-                    ("g1", "X", "protein_coding", 200),
-                    ("g2", "X", "protein_coding", 300),
+                    {
+                        "id": "g1",
+                        "genomicLocation": {
+                            "chromosome": "X",
+                        },
+                        "tss": 200,
+                        "biotype": "protein_coding",
+                    },
+                    {
+                        "id": "g2",
+                        "genomicLocation": {
+                            "chromosome": "X",
+                        },
+                        "tss": 300,
+                        "biotype": "protein_coding",
+                    },
                 ],
-                [
-                    "geneId",
-                    "chromosome",
-                    "biotype",
-                    "tss",
-                ],
+                TargetIndex.get_schema(),
             ),
             _schema=TargetIndex.get_schema(),
         )

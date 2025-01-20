@@ -102,7 +102,7 @@ def common_neighbourhood_vep_feature_logic(
         # Compute average score in the vicinity (feature will be the same for any gene associated with a studyLocus)
         # (non protein coding genes in the vicinity are excluded see #3552)
         .join(
-            target_index.df.filter(f.col("biotype") == "protein_coding").select("geneId"),
+            target_index.df.filter(f.col("biotype") == "protein_coding").select(f.col("id").alias("geneId")),
             "geneId",
             "inner",
         )
