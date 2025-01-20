@@ -51,27 +51,48 @@ jobs:
           cache-to: type=gha,mode=max
 
       # skip the `v` at the beginning of the tag for docker image tags
-      - name: Create a docker version tag
-        id: docker-tag
+      - name: Create a docker version tag for gentropy
+        id: docker-tag-gentropy
         if: github.ref == 'refs/heads/dev' || startsWith(github.ref, 'refs/tags/v')
-        run: echo "TAG_VERSION=${v#${{ github.ref_name }}}" >> $GITHUB_ENV
+        uses: actions/github-script@v7
+        env:
+          REPOSITORY: ${{ env.REPOSITORY }}
+          GAR_LOCATION: ${{ env.GAR_LOCATION }}
+        with:
+          script: |
+            const { REPOSITORY, GAR_LOCATION } = process.env;
+            const version = context.ref.replace('refs/tags/v', '');
+            return `${GAR_LOCATION}/${REPOSITORY}/gentropy:${version}`;
+
+      - name: Create a docker version tag for VEP
+        id: docker-tag-vep
+        if: github.ref == 'refs/heads/dev' || startsWith(github.ref, 'refs/tags/v')
+        uses: actions/github-script@v7
+        env:
+          REPOSITORY: ${{ env.REPOSITORY }}
+          GAR_LOCATION: ${{ env.GAR_LOCATION }}
+        with:
+          script: |
+            const { REPOSITORY, GAR_LOCATION } = process.env;
+            const version = context.ref.replace('refs/tags/v', '');
+            return `${GAR_LOCATION}/${REPOSITORY}/custom_ensembl_vep:${version}`;
 
       - name: Build and push gentropy image
-        if: steps.docker-tag.outcome == 'success'
+        if: steps.docker-tag-gentropy.outcome == 'success'
         uses: docker/build-push-action@v6
         with:
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: "${{ env.GAR_LOCATION }}/${{ env.REPOSITORY }}/gentropy:${{ env.TAG_VERSION}}"
+          tags: "${{ steps.docker-tag-gentropy.outputs.result }}"
           context: .
 
       - name: Build and push VEP image
-        if: steps.docker-tag.outcome == 'success'
+        if: steps.docker-tag-vep.outcome == 'success'
         uses: docker/build-push-action@v6
         with:
           platforms: linux/amd64
           push: true
-          tags: "${{ env.GAR_LOCATION }}/${{ env.REPOSITORY }}/custom_ensembl_vep:${{ env.TAG_VERSION}}"
+          tags: "${{ steps.docker-tag-vep.outputs.result }}"
           context: .
           file: "src/vep/Dockerfile"
 
