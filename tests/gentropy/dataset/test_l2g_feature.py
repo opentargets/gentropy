@@ -244,9 +244,11 @@ def sample_variant_index_schema() -> StructType:
                 ArrayType(
                     StructType(
                         [
+                            StructField("distanceFromFootprint", LongType(), True),
                             StructField("distanceFromTss", LongType(), True),
                             StructField("targetId", StringType(), True),
                             StructField("isEnsemblCanonical", BooleanType(), True),
+                            StructField("biotype", StringType(), True),
                         ]
                     )
                 ),
@@ -630,13 +632,17 @@ class TestCommonDistanceFeatureLogic:
                         [
                             {
                                 "distanceFromTss": 10,
+                                "distanceFromFootprint": 0,
                                 "targetId": "gene1",
                                 "isEnsemblCanonical": True,
+                                "biotype": "protein_coding",
                             },
                             {
                                 "distanceFromTss": 2,
+                                "distanceFromFootprint": 0,
                                 "targetId": "gene2",
                                 "isEnsemblCanonical": True,
+                                "biotype": "protein_coding",
                             },
                         ],
                     ),
@@ -649,8 +655,10 @@ class TestCommonDistanceFeatureLogic:
                         [
                             {
                                 "distanceFromTss": 5,
+                                "distanceFromFootprint": 0,
                                 "targetId": "gene1",
                                 "isEnsemblCanonical": True,
+                                "biotype": "protein_coding",
                             },
                         ],
                     ),
@@ -946,9 +954,8 @@ class TestCommonProteinCodingFeatureLogic:
         [
             (
                 [
-                    {"studyLocusId": "1", "geneId": "gene1", "isProteinCoding500kb": 1},
-                    {"studyLocusId": "1", "geneId": "gene2", "isProteinCoding500kb": 1},
-                    {"studyLocusId": "1", "geneId": "gene3", "isProteinCoding500kb": 0},
+                    {"studyLocusId": "1", "geneId": "gene1", "isProteinCoding": 1.0},
+                    {"studyLocusId": "1", "geneId": "gene2", "isProteinCoding": 0.0},
                 ]
             ),
         ],
@@ -962,17 +969,16 @@ class TestCommonProteinCodingFeatureLogic:
         observed_df = (
             is_protein_coding_feature_logic(
                 study_loci_to_annotate=self.sample_study_locus,
-                target_index=self.sample_target_index,
-                feature_name="isProteinCoding500kb",
-                genomic_window=500000,
+                variant_index=self.sample_variant_index,
+                feature_name="isProteinCoding",
             )
-            .select("studyLocusId", "geneId", "isProteinCoding500kb")
+            .select("studyLocusId", "geneId", "isProteinCoding")
             .orderBy("studyLocusId", "geneId")
         )
 
         expected_df = (
             spark.createDataFrame(expected_data)
-            .select("studyLocusId", "geneId", "isProteinCoding500kb")
+            .select("studyLocusId", "geneId", "isProteinCoding")
             .orderBy("studyLocusId", "geneId")
         )
         assert (
@@ -980,7 +986,11 @@ class TestCommonProteinCodingFeatureLogic:
         ), "Expected and observed DataFrames do not match."
 
     @pytest.fixture(autouse=True)
-    def _setup(self: TestCommonProteinCodingFeatureLogic, spark: SparkSession) -> None:
+    def _setup(
+        self: TestCommonProteinCodingFeatureLogic,
+        spark: SparkSession,
+        sample_variant_index_schema: StructType,
+    ) -> None:
         """Set up sample data for the test."""
         # Sample study locus data
         self.sample_study_locus = StudyLocus(
@@ -992,45 +1002,47 @@ class TestCommonProteinCodingFeatureLogic:
                         "studyId": "study1",
                         "chromosome": "1",
                         "position": 1000000,
+                        "locus": [
+                            {
+                                "variantId": "var1",
+                            },
+                        ],
                     },
                 ],
                 StudyLocus.get_schema(),
             ),
             _schema=StudyLocus.get_schema(),
         )
-
-        # Sample target index data with biotype
-        self.sample_target_index = TargetIndex(
+        self.sample_variant_index = VariantIndex(
             _df=spark.createDataFrame(
                 [
-                    {
-                        "id": "gene1",
-                        "genomicLocation": {
-                            "chromosome": "1",
-                        },
-                        "tss": 950000,
-                        "biotype": "protein_coding",
-                    },
-                    {
-                        "id": "gene2",
-                        "genomicLocation": {
-                            "chromosome": "1",
-                        },
-                        "tss": 1050000,
-                        "biotype": "protein_coding",
-                    },
-                    {
-                        "id": "gene3",
-                        "genomicLocation": {
-                            "chromosome": "1",
-                        },
-                        "tss": 1010000,
-                        "biotype": "non_coding",
-                    },
+                    (
+                        "var1",
+                        "chrom",
+                        1,
+                        "A",
+                        "T",
+                        [
+                            {
+                                "distanceFromFootprint": 0,
+                                "distanceFromTss": 10,
+                                "targetId": "gene1",
+                                "biotype": "protein_coding",
+                                "isEnsemblCanonical": True,
+                            },
+                            {
+                                "distanceFromFootprint": 0,
+                                "distanceFromTss": 20,
+                                "targetId": "gene2",
+                                "biotype": "non_coding",
+                                "isEnsemblCanonical": True,
+                            },
+                        ],
+                    ),
                 ],
-                TargetIndex.get_schema(),
+                sample_variant_index_schema,
             ),
-            _schema=TargetIndex.get_schema(),
+            _schema=VariantIndex.get_schema(),
         )
 
 
@@ -1091,8 +1103,10 @@ class TestCredibleSetConfidenceFeatureLogic:
                         [
                             {
                                 "distanceFromTss": 10,
+                                "distanceFromFootprint": 0,
                                 "targetId": "gene1",
                                 "isEnsemblCanonical": True,
+                                "biotype": "protein_coding",
                             },
                         ],
                     )

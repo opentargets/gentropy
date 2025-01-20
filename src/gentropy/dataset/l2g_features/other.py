@@ -85,42 +85,56 @@ def common_genecount_feature_logic(
 def is_protein_coding_feature_logic(
     study_loci_to_annotate: StudyLocus | L2GGoldStandard,
     *,
-    target_index: TargetIndex,
+    variant_index: VariantIndex,
     feature_name: str,
-    genomic_window: int,
+    genomic_window: int = 500_000,
 ) -> DataFrame:
     """Computes the feature to indicate if a gene is protein-coding or not.
 
     Args:
         study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci
             that will be used for annotation
-        target_index (TargetIndex): Dataset containing information related to all genes in release.
+        variant_index (VariantIndex): Dataset containing information related to all overlapping genes within a genomic window.
         feature_name (str): The name of the feature
-        genomic_window (int): The maximum window size to consider
+        genomic_window (int): The window size around the locus to consider. Defaults to its maximum value: 500kb up and downstream the locus
 
     Returns:
         DataFrame: Feature dataset, with 1 if the gene is protein-coding, 0 if not.
     """
-    study_loci_window = (
-        study_loci_to_annotate.df.withColumn(
-            "window_start", f.col("position") - (genomic_window / 2)
+    assert genomic_window <= 500_000, "Genomic window must be less than 500kb."
+    genes_in_window = (
+        variant_index.df.withColumn(
+            "transcriptConsequence", f.explode("transcriptConsequences")
         )
-        .withColumn("window_end", f.col("position") + (genomic_window / 2))
-        .withColumnRenamed("chromosome", "SL_chromosome")
-    )
-    return (
-        study_loci_window.join(
-            target_index.df.alias("genes"),
-            on=(
-                (f.col("SL_chromosome") == f.col("genes.genomicLocation.chromosome"))
-                & (f.col("genes.tss") >= f.col("window_start"))
-                & (f.col("genes.tss") <= f.col("window_end"))
+        .select(
+            "variantId",
+            f.col("transcriptConsequence.targetId").alias("geneId"),
+            f.col("transcriptConsequence.biotype").alias("biotype"),
+            f.col("transcriptConsequence.distanceFromFootprint").alias(
+                "distanceFromFootprint"
             ),
-            how="inner",
         )
+        .filter(f.col("distanceFromFootprint") <= genomic_window)
+    )
+    if isinstance(study_loci_to_annotate, StudyLocus):
+        variants_df = study_loci_to_annotate.df.select(
+            f.explode_outer("locus.variantId").alias("variantId"),
+            "studyLocusId",
+        ).filter(f.col("variantId").isNotNull())
+    elif isinstance(study_loci_to_annotate, L2GGoldStandard):
+        variants_df = study_loci_to_annotate.df.select("studyLocusId", "variantId")
+    return (
+        # Annotate all genes in the window of a locus
+        variants_df.join(
+            genes_in_window,
+            on="variantId",
+        )
+        # Apply flag across all variants in the locus
         .withColumn(
             feature_name,
-            f.when(f.col("biotype") == "protein_coding", f.lit(1)).otherwise(f.lit(0)),
+            f.when(f.col("biotype") == "protein_coding", f.lit(1.0)).otherwise(
+                f.lit(0.0)
+            ),
         )
         .select("studyLocusId", f.col("id").alias("geneId"), feature_name)
         .distinct()
@@ -211,7 +225,7 @@ class ProteinGeneCountFeature(L2GFeature):
 class ProteinCodingFeature(L2GFeature):
     """Indicates whether a gene is protein-coding within a specified window size from the study locus."""
 
-    feature_dependency_type = TargetIndex
+    feature_dependency_type = VariantIndex
     feature_name = "isProteinCoding"
 
     @classmethod
@@ -224,12 +238,12 @@ class ProteinCodingFeature(L2GFeature):
 
         Args:
             study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
-            feature_dependency (dict[str, Any]): Dictionary containing dependencies, including target index
+            feature_dependency (dict[str, Any]): Dictionary containing dependencies, including variant index
 
         Returns:
             ProteinCodingFeature: Feature dataset with 1 if the gene is protein-coding, 0 otherwise
         """
-        genomic_window = 1000000
+        genomic_window = 500_000
         protein_coding_df = is_protein_coding_feature_logic(
             study_loci_to_annotate=study_loci_to_annotate,
             feature_name=cls.feature_name,

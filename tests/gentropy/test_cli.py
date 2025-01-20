@@ -14,8 +14,9 @@ def test_main_no_step() -> None:
     override_key = "step"
     expected = f"You must specify '{override_key}', e.g, {override_key}=<OPTION>\nAvailable options:"
 
-    with patch("sys.argv", ["cli.py"]), pytest.raises(
-        ConfigCompositionException, match=expected
+    with (
+        patch("sys.argv", ["cli.py"]),
+        pytest.raises(ConfigCompositionException, match=expected),
     ):
         main()
 
