@@ -136,7 +136,7 @@ def is_protein_coding_feature_logic(
                 f.lit(0.0)
             ),
         )
-        .select("studyLocusId", f.col("id").alias("geneId"), feature_name)
+        .select("studyLocusId", "geneId", feature_name)
         .distinct()
     )
 
