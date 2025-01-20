@@ -30,7 +30,6 @@ if TYPE_CHECKING:
 
     from gentropy.dataset.colocalisation import Colocalisation
     from gentropy.dataset.study_locus import StudyLocus
-    from gentropy.dataset.target_index import TargetIndex
 
 
 def test_open_targets_as_l2g_gold_standard(
