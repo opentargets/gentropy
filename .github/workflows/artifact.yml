@@ -54,6 +54,7 @@ jobs:
 
       # skip the `v` at the beginning of the tag for docker image tags
       - name: Create a docker tag
+        if: github.ref == 'refs/heads/dev' || startsWith(github.ref, 'refs/tags/v')
         id: docker-tag
         shell: bash
         env:
