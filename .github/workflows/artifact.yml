@@ -3,7 +3,7 @@ name: Build and Push to Artifact Registry
 "on":
   push:
     branches: ["*"]
-    tags: ["*"]
+    tags: ["v[0-9]+.[0-9]+.[0-9]+-*"]
 
 env:
   PROJECT_ID: open-targets-genetics-dev
@@ -51,48 +51,32 @@ jobs:
           cache-to: type=gha,mode=max
 
       # skip the `v` at the beginning of the tag for docker image tags
-      - name: Create a docker version tag for gentropy
-        id: docker-tag-gentropy
-        if: github.ref == 'refs/heads/dev' || startsWith(github.ref, 'refs/tags/v')
-        uses: actions/github-script@v7
+      - name: Create a docker tag
+        id: docker-tag
+        shell: bash
         env:
-          REPOSITORY: ${{ env.REPOSITORY }}
-          GAR_LOCATION: ${{ env.GAR_LOCATION }}
-        with:
-          script: |
-            const { REPOSITORY, GAR_LOCATION } = process.env;
-            const version = context.ref.replace('refs/tags/v', '');
-            return `${GAR_LOCATION}/${REPOSITORY}/gentropy:${version}`;
-
-      - name: Create a docker version tag for VEP
-        id: docker-tag-vep
-        if: github.ref == 'refs/heads/dev' || startsWith(github.ref, 'refs/tags/v')
-        uses: actions/github-script@v7
-        env:
-          REPOSITORY: ${{ env.REPOSITORY }}
-          GAR_LOCATION: ${{ env.GAR_LOCATION }}
-        with:
-          script: |
-            const { REPOSITORY, GAR_LOCATION } = process.env;
-            const version = context.ref.replace('refs/tags/v', '');
-            return `${GAR_LOCATION}/${REPOSITORY}/custom_ensembl_vep:${version}`;
+          TAG: ${{ github.ref_name }}
+        run: |
+          TAG=$(echo $TAG | sed 's/^v//')
+          echo "TAG=$TAG" >> $GITHUB_ENV
+          echo "The tag for this build is $TAG"
 
       - name: Build and push gentropy image
-        if: steps.docker-tag-gentropy.outcome == 'success'
+        if: steps.docker-tag.outcome == 'success'
         uses: docker/build-push-action@v6
         with:
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: "${{ steps.docker-tag-gentropy.outputs.result }}"
+          tags: "${{ env.GAR_LOCATION }}/${{ env.REPOSITORY }}/gentropy:${{ env.TAG }}"
           context: .
 
       - name: Build and push VEP image
-        if: steps.docker-tag-vep.outcome == 'success'
+        if: steps.docker-tag.outcome == 'success'
         uses: docker/build-push-action@v6
         with:
           platforms: linux/amd64
           push: true
-          tags: "${{ steps.docker-tag-vep.outputs.result }}"
+          tags: "${{ env.GAR_LOCATION }}/${{ env.REPOSITORY }}/custom_ensembl_vep:${{ env.TAG }}"
           context: .
           file: "src/vep/Dockerfile"
 
