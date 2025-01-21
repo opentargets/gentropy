@@ -4,7 +4,7 @@ name: Build and Push to Artifact Registry
   push:
     branches:
       - '*'
-    tags: 
+    tags:
       - 'v[0-9]+.[0-9]+.[0-9]+-*'
 
 env:
