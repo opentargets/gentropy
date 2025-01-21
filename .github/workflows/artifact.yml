@@ -2,8 +2,10 @@ name: Build and Push to Artifact Registry
 
 "on":
   push:
-    branches: ["*"]
-    tags: ["*"]
+    branches:
+      - "*"
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+-*"
 
 env:
   PROJECT_ID: open-targets-genetics-dev
@@ -37,7 +39,7 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: "Docker auth"
-        run: |-
+        run: |
           gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
 
       - name: Quick Docker build (gentropy only, AMD64 only, with layer cache)
@@ -50,22 +52,33 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      # skip the `v` at the beginning of the tag for docker image tags
+      - name: Create a docker tag
+        id: docker-tag
+        shell: bash
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          TAG=$(echo $TAG | sed 's/^v//')
+          echo "TAG=$TAG" >> $GITHUB_ENV
+          echo "The tag for this build is $TAG"
+
       - name: Build and push gentropy image
-        if: github.ref == 'refs/heads/dev' || startsWith(github.ref, 'refs/tags/v')
+        if: steps.docker-tag.outcome == 'success'
         uses: docker/build-push-action@v6
         with:
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: "${{ env.GAR_LOCATION }}/${{ env.REPOSITORY }}/gentropy:${{ github.ref_name }}"
+          tags: "${{ env.GAR_LOCATION }}/${{ env.REPOSITORY }}/gentropy:${{ env.TAG }}"
           context: .
 
       - name: Build and push VEP image
-        if: github.ref == 'refs/heads/dev' || startsWith(github.ref, 'refs/tags/v')
+        if: steps.docker-tag.outcome == 'success'
         uses: docker/build-push-action@v6
         with:
           platforms: linux/amd64
           push: true
-          tags: "${{ env.GAR_LOCATION }}/${{ env.REPOSITORY }}/custom_ensembl_vep:${{ github.ref_name }}"
+          tags: "${{ env.GAR_LOCATION }}/${{ env.REPOSITORY }}/custom_ensembl_vep:${{ env.TAG }}"
           context: .
           file: "src/vep/Dockerfile"
 
