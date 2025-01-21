@@ -31,8 +31,8 @@ dependencies = [
     "matplotlib (>=3.7.3, <3.8.0)"
 ]
 classifiers = [
-  "Programming Language :: Python :: 3.10"
-  "Programming Language :: Python :: 3.11"
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
 ]
