@@ -51,8 +51,8 @@ def get_tag_variant_source(statistics: Column) -> Column:
         |   a|   b|source|
         +----+----+------+
         |   a|   b|  both|
-        |NULL|   b| right|
-        |   a|NULL|  left|
+        |null|   b| right|
+        |   a|null|  left|
         +----+----+------+
         <BLANKLINE>
     """
@@ -181,8 +181,8 @@ class ECaviar(ColocalisationMethodInterface):
                 .withColumn("colocalisationMethod", f.lit(cls.METHOD_NAME))
                 .join(
                     overlapping_signals.calculate_beta_ratio(),
-                    on=["leftStudyLocusId", "rightStudyLocusId", "chromosome"],
-                    how="left",
+                    on=["leftStudyLocusId", "rightStudyLocusId","chromosome"],
+                    how="left"
                 )
             ),
             _schema=Colocalisation.get_schema(),
@@ -386,8 +386,8 @@ class Coloc(ColocalisationMethodInterface):
                 .withColumn("colocalisationMethod", f.lit(cls.METHOD_NAME))
                 .join(
                     overlapping_signals.calculate_beta_ratio(),
-                    on=["leftStudyLocusId", "rightStudyLocusId", "chromosome"],
-                    how="left",
+                    on=["leftStudyLocusId", "rightStudyLocusId","chromosome"],
+                    how="left"
                 )
             ),
             _schema=Colocalisation.get_schema(),

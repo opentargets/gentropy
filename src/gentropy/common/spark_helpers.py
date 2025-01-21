@@ -119,7 +119,7 @@ def pvalue_to_zscore(pval_col: Column) -> Column:
         | t3|   0.05|  1.959964|
         | t4| 1e-300| 37.537838|
         | t5|1e-1000| 37.537838|
-        | t6|     NA|      NULL|
+        | t6|     NA|      null|
         +---+-------+----------+
         <BLANKLINE>
 
@@ -149,7 +149,7 @@ def nullify_empty_array(column: Column) -> Column:
     +---------+---------+
     |    value|      new|
     +---------+---------+
-    |       []|     NULL|
+    |       []|     null|
     |[1, 2, 3]|[1, 2, 3]|
     +---------+---------+
     <BLANKLINE>
@@ -472,8 +472,8 @@ def map_column_by_dictionary(col: Column, mapping_dict: dict[str, Any]) -> Colum
         |               label|       id|
         +--------------------+---------+
         |       consequence_1|SO:000000|
-        |unmapped_consequence|     NULL|
-        |                NULL|     NULL|
+        |unmapped_consequence|     null|
+        |                null|     null|
         +--------------------+---------+
         <BLANKLINE>
     """
@@ -604,7 +604,7 @@ def rename_all_columns(df: DataFrame, prefix: str) -> DataFrame:
         +-----------+-----------+-----------+
         |          a|        1.2|       true|
         |          b|        0.0|      false|
-        |          c|       NULL|       NULL|
+        |          c|       null|       null|
         +-----------+-----------+-----------+
         <BLANKLINE>
     """
@@ -649,7 +649,7 @@ def safe_array_union(
         |[a, b]|
         |   [c]|
         |   [d]|
-        |  NULL|
+        |  null|
         +------+
         <BLANKLINE>
         >>> schema="arr2: array<struct<b:int,a:string>>, arr: array<struct<a:string,b:int>>"
@@ -752,7 +752,7 @@ def create_empty_column_if_not_exists(
         +----+----+----+
         |col1|col2|col3|
         +----+----+----+
-        |   1|   2|NULL|
+        |   1|   2|null|
         +----+----+----+
         <BLANKLINE>
     """
@@ -782,8 +782,8 @@ def get_standard_error_from_confidence_interval(lower: Column, upper: Column) ->
         |     standard_error|
         +-------------------+
         |0.25510204081632654|
-        |               NULL|
-        |               NULL|
+        |               null|
+        |               null|
         +-------------------+
         <BLANKLINE>
     """

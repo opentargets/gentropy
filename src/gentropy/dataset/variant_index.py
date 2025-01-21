@@ -94,7 +94,7 @@ class VariantIndex(Dataset):
             |v_short     |v_short                                     |
             |v_looooooong|OTVAR_23_23_3749d019d645894770c364992ae70a05|
             |no_chrom    |OTVAR_41acfcd7d4fd523b33600b504914ef25      |
-            |NULL        |NULL                                        |
+            |null        |null                                        |
             +------------+--------------------------------------------+
             <BLANKLINE>
         """

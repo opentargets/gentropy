@@ -219,7 +219,7 @@ class StudyIndexGWASCatalogParser:
         |parsedCohorts                         |
         +--------------------------------------+
         |[BioME, CaPS, Estonia, FHS, UKB, GERA]|
-        |NULL                                  |
+        |null                                  |
         +--------------------------------------+
         <BLANKLINE>
         """
@@ -655,7 +655,7 @@ class StudyIndexGWASCatalog(StudyIndex):
         """
         self.df = self.df.withColumn(
             "qualityControls",
-            f.array(f.lit(StudyQualityCheck.SUMSTATS_NOT_AVAILABLE.value)),
+            f.array(f.lit(StudyQualityCheck.SUMSTATS_NOT_AVAILABLE.value))
         )
         return self
 
