@@ -192,7 +192,7 @@ class VariantEffectPredictorParser:
             |rsIds          |
             +---------------+
             |[rs1, rs2, rs3]|
-            |[null]         |
+            |[NULL]         |
             +---------------+
             <BLANKLINE>
         """
@@ -380,8 +380,8 @@ class VariantEffectPredictorParser:
         +-----------------------------------------------------+
         |am                                                   |
         +-----------------------------------------------------+
-        |{AlphaMissense, assessment 1, 0.4, null, gene1, null}|
-        |{AlphaMissense, null, null, null, gene1, null}       |
+        |{AlphaMissense, assessment 1, 0.4, NULL, gene1, NULL}|
+        |{AlphaMissense, NULL, NULL, NULL, gene1, NULL}       |
         +-----------------------------------------------------+
         <BLANKLINE>
         """
@@ -513,8 +513,8 @@ class VariantEffectPredictorParser:
             |amino_acid_change|
             +-----------------+
             |              A1B|
-            |             null|
-            |             null|
+            |             NULL|
+            |             NULL|
             +-----------------+
             <BLANKLINE>
         """
