@@ -46,7 +46,7 @@ create-dev-cluster: build ## Spin up a simple dataproc cluster with all dependen
 	@echo "Creating Dataproc Dev Cluster"
 	@gcloud config set project ${PROJECT_ID}
 	@gcloud dataproc clusters create "ot-genetics-dev-${CLEAN_PACKAGE_VERSION}-$(USER)" \
-		--image-version 2.1 \
+		--image-version 2.2 \
 		--region ${REGION} \
 		--master-machine-type n1-standard-16 \
 		--initialization-actions=$(BUCKET_NAME)/install_dependencies_on_cluster.sh \
