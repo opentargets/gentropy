@@ -44,15 +44,6 @@ class ColocalisationConfig(StepConfig):
 
 
 @dataclass
-class GeneIndexConfig(StepConfig):
-    """Gene index step configuration."""
-
-    target_path: str = MISSING
-    gene_index_path: str = MISSING
-    _target_: str = "gentropy.gene_index.GeneIndexStep"
-
-
-@dataclass
 class BiosampleIndexConfig(StepConfig):
     """Biosample index step configuration."""
 
@@ -302,7 +293,7 @@ class LocusToGeneFeatureMatrixConfig(StepConfig):
     variant_index_path: str | None = None
     colocalisation_path: str | None = None
     study_index_path: str | None = None
-    gene_index_path: str | None = None
+    target_index_path: str | None = None
     feature_matrix_path: str = MISSING
     features_list: list[str] = field(
         default_factory=lambda: [
@@ -692,7 +683,6 @@ def register_config() -> None:
     cs.store(group="step/session", name="base_session", node=SessionConfig)
     cs.store(group="step", name="colocalisation", node=ColocalisationConfig)
     cs.store(group="step", name="eqtl_catalogue", node=EqtlCatalogueConfig)
-    cs.store(group="step", name="gene_index", node=GeneIndexConfig)
     cs.store(group="step", name="biosample_index", node=BiosampleIndexConfig)
     cs.store(
         group="step",

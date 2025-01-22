@@ -15,7 +15,6 @@ from gentropy.common.Liftover import LiftOverSpark
 from gentropy.common.session import Session
 from gentropy.dataset.biosample_index import BiosampleIndex
 from gentropy.dataset.colocalisation import Colocalisation
-from gentropy.dataset.gene_index import GeneIndex
 from gentropy.dataset.intervals import Intervals
 from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
@@ -25,6 +24,7 @@ from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import StudyLocus
 from gentropy.dataset.study_locus_overlap import StudyLocusOverlap
 from gentropy.dataset.summary_statistics import SummaryStatistics
+from gentropy.dataset.target_index import TargetIndex
 from gentropy.dataset.variant_index import VariantIndex
 from gentropy.datasource.eqtl_catalogue.finemapping import EqtlCatalogueFinemapping
 from gentropy.datasource.eqtl_catalogue.study_index import EqtlCatalogueStudyIndex
@@ -425,7 +425,7 @@ def mock_summary_statistics(
 
 @pytest.fixture()
 def mock_ld_index(spark: SparkSession) -> LDIndex:
-    """Mock gene index."""
+    """Mock ld index."""
     ld_schema = LDIndex.get_schema()
 
     data_spec = (
@@ -569,9 +569,9 @@ def sample_target_index(spark: SparkSession) -> DataFrame:
 
 
 @pytest.fixture()
-def mock_gene_index(spark: SparkSession) -> GeneIndex:
-    """Mock gene index dataset."""
-    gi_schema = GeneIndex.get_schema()
+def mock_target_index(spark: SparkSession) -> TargetIndex:
+    """Mock target index dataset."""
+    ti_schema = TargetIndex.get_schema()
 
     data_spec = (
         dg.DataGenerator(
@@ -579,11 +579,12 @@ def mock_gene_index(spark: SparkSession) -> GeneIndex:
             rows=30,
             partitions=4,
             randomSeedMethod="hash_fieldname",
+            seedColumnName="_id",  # required as the target_index has the id column
         )
-        .withSchema(gi_schema)
+        .withSchema(ti_schema)
         .withColumnSpec(
-            "geneId",
-            expr="cast(id as string)",
+            "id",
+            expr="cast(_id as string)",
         )
         .withColumnSpec("approvedSymbol", percentNulls=0.1)
         .withColumnSpec(
@@ -591,12 +592,10 @@ def mock_gene_index(spark: SparkSession) -> GeneIndex:
         )
         .withColumnSpec("approvedName", percentNulls=0.1)
         .withColumnSpec("tss", percentNulls=0.1)
-        .withColumnSpec("start", percentNulls=0.1)
-        .withColumnSpec("end", percentNulls=0.1)
-        .withColumnSpec("strand", percentNulls=0.1, values=[1, -1])
+        .withColumnSpec("genomicLocation", percentNulls=0.1)
     )
 
-    return GeneIndex(_df=data_spec.build(), _schema=gi_schema)
+    return TargetIndex(_df=data_spec.build(), _schema=ti_schema)
 
 
 @pytest.fixture()
