@@ -8,25 +8,15 @@ title: Troubleshooting
 
 If you see errors related to BLAS/LAPACK libraries, see [this StackOverflow post](https://stackoverflow.com/questions/69954587/no-blas-lapack-libraries-found-when-installing-scipy) for guidance.
 
-## Pyenv and Poetry
+## UV
 
-If you see various errors thrown by Pyenv or Poetry, they can be hard to specifically diagnose and resolve. In this case, it often helps to remove those tools from the system completely. Follow these steps:
-
-1. Close your currently activated environment, if any: `exit`
-2. Uninstall Poetry: `curl -sSL https://install.python-poetry.org | python3 - --uninstall`
-3. Clear Poetry cache: `rm -rf ~/.cache/pypoetry`
-4. Clear pre-commit cache: `rm -rf ~/.cache/pre-commit`
-5. Switch to system Python shell: `pyenv shell system`
-6. Edit `~/.bashrc` to remove the lines related to Pyenv configuration
-7. Remove Pyenv configuration and cache: `rm -rf ~/.pyenv`
-
-After that, open a fresh shell session and run `make setup-dev` again.
+The default python version and gentropy dependencies are managed by (uv)[https://docs.astral.sh/uv/]. To perform a fresh installation run `make setup-dev`.
 
 ## Java
 
 Officially, PySpark requires Java version 8 (a.k.a. 1.8) or above to work. However, if you have a very recent version of Java, you may experience issues, as it may introduce breaking changes that PySpark hasn't had time to integrate. For example, as of May 2023, PySpark did not work with Java 20.
 
-If you are encountering problems with initialising a Spark session, try using Java 11.
+If you are encountering problems with initializing a Spark session, try using Java 11.
 
 ## Pre-commit
 

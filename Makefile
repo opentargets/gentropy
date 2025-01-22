@@ -1,7 +1,8 @@
+SHELL := /bin/bash
 PROJECT_ID ?= open-targets-genetics-dev
 REGION ?= europe-west1
 APP_NAME ?= $$(cat pyproject.toml | grep -m 1 "name" | cut -d" " -f3 | sed  's/"//g')
-PACKAGE_VERSION ?= $$(poetry version --short)
+PACKAGE_VERSION ?= $(shell grep -m 1 'version = ' pyproject.toml | sed 's/version = "\(.*\)"/\1/')
 # NOTE: git rev-parse will always return the HEAD if it sits in the tag,
 # this way we can distinguish the tag vs branch name
 ifeq ($(shell git rev-parse --abbrev-ref HEAD),HEAD)
@@ -29,18 +30,18 @@ setup-dev: ## Setup development environment
 
 check: ## Lint and format code
 	@echo "Linting API..."
-	@poetry run ruff check src/gentropy .
+	@uv run ruff check src/gentropy .
 	@echo "Linting docstrings..."
-	@poetry run pydoclint --config=pyproject.toml src
-	@poetry run pydoclint --config=pyproject.toml --skip-checking-short-docstrings=true tests
+	@uv run pydoclint --config=pyproject.toml src
+	@uv run pydoclint --config=pyproject.toml --skip-checking-short-docstrings=true tests
 
 test: ## Run tests
 	@echo "Running Tests..."
-	@poetry run pytest
+	@uv run pytest
 
 build-documentation: ## Create local server with documentation
 	@echo "Building Documentation..."
-	@poetry run mkdocs serve
+	@uv run mkdocs serve
 
 create-dev-cluster: build ## Spin up a simple dataproc cluster with all dependencies for development purposes
 	@echo "Creating Dataproc Dev Cluster"
@@ -70,7 +71,7 @@ make update-dev-cluster: build ## Reinstalls the package on the dev-cluster
 build: clean ## Build Python package with dependencies
 	@gcloud config set project ${PROJECT_ID}
 	@echo "Packaging Code and Dependencies for ${APP_NAME}-${PACKAGE_VERSION}"
-	@poetry build
+	@uv build
 	@echo "Uploading to ${BUCKET_NAME}"
 	@gsutil cp src/${APP_NAME}/cli.py ${BUCKET_NAME}/
 	@gsutil cp ./dist/${APP_NAME}-${PACKAGE_VERSION}-py3-none-any.whl ${BUCKET_NAME}/

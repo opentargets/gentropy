@@ -31,7 +31,7 @@ It is recommended to use VS Code as an IDE for development.
 All gentropy steps can be invoked after successful environment configuration by running
 
 ```python
-poetry run gentropy step=<step_name>
+uv run gentropy step=<step_name>
 ```
 
 1. Create a new step config in the `src/gentropy/config.py` that inherits from `StepConfig` class.
