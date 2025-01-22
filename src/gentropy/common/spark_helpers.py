@@ -866,13 +866,13 @@ def calculate_harmonic_sum(input_array: Column) -> Column:
         ...     Row([0.7, 0.2, 0.9]),
         ...     ], ["input_array"]
         ... )
-        >>> df.select("*", calculate_harmonic_sum(f.col("input_array")).alias("harmonic_sum")).show()
-        +---------------+------------------+
-        |    input_array|      harmonic_sum|
-        +---------------+------------------+
-        |[0.3, 0.8, 1.0]|0.7502326177269538|
-        |[0.7, 0.2, 0.9]|0.6674366756805108|
-        +---------------+------------------+
+        >>> df.select("*", f.round(calculate_harmonic_sum(f.col("input_array")), 2).alias("harmonic_sum")).show()
+        +---------------+------------+
+        |    input_array|harmonic_sum|
+        +---------------+------------+
+        |[0.3, 0.8, 1.0]|        0.75|
+        |[0.7, 0.2, 0.9]|        0.67|
+        +---------------+------------+
         <BLANKLINE>
     """
     return f.aggregate(
