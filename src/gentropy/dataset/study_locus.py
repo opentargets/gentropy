@@ -34,6 +34,7 @@ if TYPE_CHECKING:
     from gentropy.dataset.ld_index import LDIndex
     from gentropy.dataset.study_index import StudyIndex
     from gentropy.dataset.summary_statistics import SummaryStatistics
+    from gentropy.dataset.target_index import TargetIndex
     from gentropy.method.l2g.feature_factory import L2GFeatureInputLoader
 
 
@@ -684,7 +685,7 @@ class StudyLocus(Dataset):
     def flag_trans_qtls(
         self: StudyLocus,
         study_index: StudyIndex,
-        target_index: DataFrame,
+        target_index: TargetIndex,
         trans_threshold: int = 5_000_000,
     ) -> StudyLocus:
         """Flagging transQTL credible sets based on genomic location of the measured gene.
@@ -698,7 +699,7 @@ class StudyLocus(Dataset):
 
         Args:
             study_index (StudyIndex): study index to extract identifier of the measured gene
-            target_index (DataFrame): target index dataframe
+            target_index (TargetIndex): target index bringing TSS and chromosome of the measured gene
             trans_threshold (int): Distance above which the QTL is considered trans. Default: 5_000_000bp
 
         Returns:
@@ -730,19 +731,10 @@ class StudyLocus(Dataset):
         )
 
         # Process target index:
-        processed_targets = target_index.select(
+        processed_targets = target_index.df.select(
             f.col("id").alias("geneId"),
-            # Depending on the orientation of the transcript the transcription start site is either the start or end position:
-            f.when(
-                f.col("canonicalTranscript.strand") == "+",
-                f.col("canonicalTranscript.start"),
-            )
-            .when(
-                f.col("canonicalTranscript.strand") == "-",
-                f.col("canonicalTranscript.end"),
-            )
-            .alias("tss"),
-            f.col("canonicalTranscript.chromosome").alias("geneChromosome"),
+            f.col("tss"),
+            f.col("genomicLocation.chromosome").alias("geneChromosome"),
         )
 
         # Pool datasets:

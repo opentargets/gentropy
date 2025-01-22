@@ -5,6 +5,7 @@ from __future__ import annotations
 from gentropy.common.session import Session
 from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import CredibleInterval, StudyLocus
+from gentropy.dataset.target_index import TargetIndex
 
 
 class StudyLocusValidationStep:
@@ -39,7 +40,7 @@ class StudyLocusValidationStep:
         """
         # Reading datasets:
         study_index = StudyIndex.from_parquet(session, study_index_path)
-        target_index = session.spark.read.parquet(target_index_path)
+        target_index = TargetIndex.from_parquet(session, target_index_path)
 
         # Running validation then writing output:
         study_locus_with_qc = (

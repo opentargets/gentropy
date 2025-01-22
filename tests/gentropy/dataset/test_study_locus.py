@@ -12,6 +12,7 @@ from pyspark.sql.types import (
     ArrayType,
     BooleanType,
     DoubleType,
+    IntegerType,
     StringType,
     StructField,
     StructType,
@@ -29,6 +30,7 @@ from gentropy.dataset.study_locus import (
 )
 from gentropy.dataset.study_locus_overlap import StudyLocusOverlap
 from gentropy.dataset.summary_statistics import SummaryStatistics
+from gentropy.dataset.target_index import TargetIndex
 from gentropy.dataset.variant_index import VariantIndex
 from gentropy.method.l2g.feature_factory import L2GFeatureInputLoader
 
@@ -1215,8 +1217,8 @@ class TestTransQtlFlagging:
 
     STUDY_COLUMNS = ["studyId", "projectId", "studyType", "geneId"]
 
-    GENE_DATA = [("g1", "-", "10", "30", "c1")]
-    GENE_COLUMNS = ["id", "strand", "start", "end", "chromosome"]
+    GENE_DATA = [("g1", -1, 10, 30, "c1", 30)]
+    GENE_COLUMNS = ["id", "strand", "start", "end", "chromosome", "tss"]
 
     @pytest.fixture(autouse=True)
     def _setup(self: TestTransQtlFlagging, spark: SparkSession) -> None:
@@ -1231,11 +1233,20 @@ class TestTransQtlFlagging:
         self.study_index = StudyIndex(
             _df=spark.createDataFrame(self.STUDY_DATA, self.STUDY_COLUMNS)
         )
-
-        self.target_index = spark.createDataFrame(
-            self.GENE_DATA, self.GENE_COLUMNS
-        ).withColumn(
-            "canonicalTranscript", f.struct("strand", "start", "end", "chromosome")
+        self.target_index = TargetIndex(
+            _df=(
+                spark.createDataFrame(self.GENE_DATA, self.GENE_COLUMNS).select(
+                    f.struct(
+                        "strand",
+                        f.col("strand").cast(IntegerType()).alias("strand"),
+                        "start",
+                        "end",
+                        "chromosome",
+                    ).alias("genomicLocation"),
+                    f.col("id"),
+                    f.col("tss"),
+                )
+            )
         )
 
         self.qtl_flagged = self.study_locus.flag_trans_qtls(
