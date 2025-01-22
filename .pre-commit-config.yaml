@@ -1,5 +1,5 @@
 default_language_version:
-  python: python3.10
+  python: python3.12.7
 ci:
   autoupdate_commit_msg: "chore: pre-commit autoupdate"
   autofix_commit_msg: "chore: pre-commit auto fixes [...]"
@@ -100,3 +100,7 @@ repos:
     rev: 0.5.9
     hooks:
       - id: pydoclint
+  - repo: https://github.com/astral-sh/uv-pre-commit
+    rev: 0.5.22
+    hooks:
+      - id: uv-lock

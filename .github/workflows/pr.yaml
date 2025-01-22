@@ -34,8 +34,6 @@ jobs:
         with:
           path: .venv
           key: venv-${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('**/uv.lock') }}
-      - name: Validate project dependencies
-        run: uv check
       - name: Install dependencies
         if: steps.cached-uv-dependencies.outputs.cache-hit != 'true'
         run: uv sync --group dev
