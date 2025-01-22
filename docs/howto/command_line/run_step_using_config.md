@@ -15,11 +15,11 @@ To run a step using a configuration file, you need to create a configuration fil
 ```{ .sh .no-copy }
 config/
 ├─ step/
-│  └─ my_gene_index.md
+│  └─ my_gwas_catalog_sumstat_preprocess.md
 └─ my_config.yml
 ```
 
-The configuration file should contain the parameters you want to use to run the step. For example, to run the `gene_index` step, you need to specify the `step.target_path` and `step.gene_index_path` parameters. The configuration file should look like this:
+The configuration file should contain the parameters you want to use to run the step. For example, to run the `gwas_catalog_sumstat_preprocess` step, you need to specify the `step.raw_sumstats_path` and `step.out_sumstats_path` parameters. The configuration file should look like this:
 
 === "my_config.yaml"
 
@@ -31,20 +31,20 @@ The configuration file should contain the parameters you want to use to run the 
 
     This config file will specify that your configuration file will inherit the default configuration (`config`) and everything provided (`_self_`) will overwrite the default configuration.
 
-=== "step/my_gene_index.md"
+=== "step/my_gwas_catalog_sumstat_preprocess.md"
 
     ``` yaml
     defaults:
-        - gene_index
+        - gwas_catalog_sumstat_preprocess
 
-    target_path: /path/to/target
-    gene_index_path: /path/to/gene_index
+    raw_sumstats_path: /path/to/raw_sumstats
+    out_sumstats_path: /path/to/out_sumstats
     ```
 
-    This config file will inherit the default configuration for the `gene_index` step and overwrite the `target_path` and `gene_index_path` parameters.
+    This config file will inherit the default configuration for the `gwas_catalog_sumstat_preprocess` step and overwrite the `raw_sumstats_path` and `out_sumstats_path` parameters.
 
-Once you have created the configuration file, you can run your own new `my_gene_index`:
+Once you have created the configuration file, you can run your own new `my_gwas_catalog_sumstat_preprocess`:
 
 ```bash
-gentropy step=my_gene_index --config-dir=config --config-name=my_config
+gentropy step=my_gwas_catalog_sumstat_preprocess --config-dir=config --config-name=my_config
 ```
