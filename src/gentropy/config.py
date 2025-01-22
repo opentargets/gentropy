@@ -2,7 +2,7 @@
 
 import os
 from dataclasses import dataclass, field
-from typing import Any, ClassVar, List, TypedDict
+from typing import Any, ClassVar, TypedDict
 
 from hail import __file__ as hail_location
 from hydra.core.config_store import ConfigStore
@@ -27,7 +27,7 @@ class StepConfig:
     """Base step configuration."""
 
     session: SessionConfig
-    defaults: List[Any] = field(
+    defaults: list[Any] = field(
         default_factory=lambda: [{"session": "base_session"}, "_self_"]
     )
 
@@ -41,15 +41,6 @@ class ColocalisationConfig(StepConfig):
     colocalisation_method: str = MISSING
     colocalisation_method_params: dict[str, Any] = field(default_factory=dict[str, Any])
     _target_: str = "gentropy.colocalisation.ColocalisationStep"
-
-
-@dataclass
-class GeneIndexConfig(StepConfig):
-    """Gene index step configuration."""
-
-    target_path: str = MISSING
-    gene_index_path: str = MISSING
-    _target_: str = "gentropy.gene_index.GeneIndexStep"
 
 
 @dataclass
@@ -321,6 +312,7 @@ class LocusToGeneFeatureMatrixConfig(StepConfig):
     variant_index_path: str | None = None
     colocalisation_path: str | None = None
     study_index_path: str | None = None
+    target_index_path: str | None = None
     gene_index_path: str | None = None
     interval_path: str | None = None
     feature_matrix_path: str = MISSING
@@ -705,7 +697,7 @@ class Config:
     """Application configuration."""
 
     # this is unfortunately verbose due to @dataclass limitations
-    defaults: List[Any] = field(default_factory=lambda: ["_self_", {"step": MISSING}])
+    defaults: list[Any] = field(default_factory=lambda: ["_self_", {"step": MISSING}])
     step: StepConfig = MISSING
     datasets: dict[str, str] = field(default_factory=dict)
 
@@ -717,7 +709,6 @@ def register_config() -> None:
     cs.store(group="step/session", name="base_session", node=SessionConfig)
     cs.store(group="step", name="colocalisation", node=ColocalisationConfig)
     cs.store(group="step", name="eqtl_catalogue", node=EqtlCatalogueConfig)
-    cs.store(group="step", name="gene_index", node=GeneIndexConfig)
     cs.store(group="step", name="biosample_index", node=BiosampleIndexConfig)
     cs.store(
         group="step",
