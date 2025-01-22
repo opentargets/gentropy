@@ -208,11 +208,15 @@ class Coloc(ColocalisationMethodInterface):
 
     Attributes:
         PSEUDOCOUNT (float): Pseudocount to avoid log(0). Defaults to 1e-10.
+        OVERLAP_SIZE_CUTOFF (int): Minimum number of overlapping variants bfore filtering. Defaults to 10.
+        POSTERIOR_CUTOFF (float): Minimum overlapping Posterior probability cutoff for small overlaps. Defaults to 0.9.
     """
 
     METHOD_NAME: str = "COLOC"
     METHOD_METRIC: str = "h4"
     PSEUDOCOUNT: float = 1e-10
+    OVERLAP_SIZE_CUTOFF: int = 10
+    POSTERIOR_CUTOFF: float = 0.9
 
     @staticmethod
     def _get_posteriors(all_bfs: NDArray[np.float64]) -> DenseVector:
@@ -358,8 +362,8 @@ class Coloc(ColocalisationMethodInterface):
                             # row["0"] = left PP, row["1"] = right PP, row["tagVariantSourceList"]
                             lambda row: f.when(
                                 (row["tagVariantSourceList"] == "both")
-                                & (row["0"] > 0.9)
-                                & (row["1"] > 0.9),
+                                & (row["0"] > Coloc.POSTERIOR_CUTOFF)
+                                & (row["1"] > Coloc.POSTERIOR_CUTOFF),
                                 1.0,
                             ).otherwise(0.0),
                         ),
@@ -369,7 +373,7 @@ class Coloc(ColocalisationMethodInterface):
                     > 0,  # True if sum of these 1.0's > 0
                 )
                 .filter(
-                    (f.col("numberColocalisingVariants") > 10)
+                    (f.col("numberColocalisingVariants") > Coloc.OVERLAP_SIZE_CUTOFF)
                     | (f.col("anySnpBothSidesHigh"))
                 )
                 .withColumn(
