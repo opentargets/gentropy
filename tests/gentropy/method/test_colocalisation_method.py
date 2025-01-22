@@ -43,6 +43,8 @@ def test_coloc(mock_study_locus_overlap: StudyLocusOverlap) -> None:
                         "right_logBF": 10.5,
                         "left_beta": 0.1,
                         "right_beta": 0.2,
+                        "left_posteriorProbability": 0.91,
+                        "right_posteriorProbability": 0.92,
                     },
                 },
             ],
@@ -72,6 +74,8 @@ def test_coloc(mock_study_locus_overlap: StudyLocusOverlap) -> None:
                         "right_logBF": 10.5,
                         "left_beta": 0.1,
                         "right_beta": 0.2,
+                        "left_posteriorProbability": 0.91,
+                        "right_posteriorProbability": 0.92,
                     },
                 },
                 {
@@ -85,6 +89,8 @@ def test_coloc(mock_study_locus_overlap: StudyLocusOverlap) -> None:
                         "right_logBF": 10.5,
                         "left_beta": 0.3,
                         "right_beta": 0.5,
+                        "left_posteriorProbability": 0.91,
+                        "right_posteriorProbability": 0.92,
                     },
                 },
             ],
@@ -151,8 +157,8 @@ def test_coloc_no_logbf(
                             "right_logBF": None,
                             "left_beta": 0.1,
                             "right_beta": 0.2,
-                            "left_posteriorProbability": None,
-                            "right_posteriorProbability": None,
+                            "left_posteriorProbability": 0.91,
+                            "right_posteriorProbability": 0.92,
                         },  # irrelevant for COLOC
                     }
                 ],
@@ -212,8 +218,8 @@ def test_coloc_no_betas(spark: SparkSession) -> None:
                             "right_logBF": 10.3,
                             "left_beta": None,
                             "right_beta": None,
-                            "left_posteriorProbability": None,
-                            "right_posteriorProbability": None,
+                            "left_posteriorProbability": 0.91,
+                            "right_posteriorProbability": 0.92,
                         },  # irrelevant for COLOC
                     }
                 ],
