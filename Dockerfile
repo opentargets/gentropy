@@ -1,6 +1,6 @@
 FROM python:3.10-bullseye
 
-RUN apt-get update &&
+RUN apt-get update && \
     apt-get clean && \
     apt-get install -y openjdk-11-jdk && \
     rm -rf /var/lib/apt/lists/*
@@ -16,6 +16,5 @@ RUN touch README.md
 RUN uv sync
 
 COPY src ./src
-
 
 ENTRYPOINT ["uv", "run", "gentropy"]
