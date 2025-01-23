@@ -57,6 +57,7 @@ create-dev-cluster: sync-cluster-init-script## Spin up a simple dataproc cluster
 		--region ${REGION} \
 		--master-machine-type n1-standard-2 \
 		--metadata="GENTROPY_REF=${REF}" \
+		--initialization-actions=$(BUCKET_NAME)/install_dependencies_on_cluster.sh \
 		--secondary-worker-type spot \
 		--worker-machine-type n1-standard-4 \
 		--public-ip-address \
