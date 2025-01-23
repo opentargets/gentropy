@@ -43,11 +43,15 @@ build-documentation: ## Create local server with documentation
 	@echo "Building Documentation..."
 	@uv run mkdocs serve
 
-sync-cluster-init-script: ## Synchronise the cluster inicialisation actions script to google cloud
-	@echo "Synching install_dependencies_on_cluster.sh to $(BUCKET_NAME)"
-	@gcloud storage cp utils/install_dependencies_on_cluster.sh $(BUCKET_NAME)/install_dependencies_on_cluster.sh
+sync-cluster-init-script: ## Synchronize the cluster inicialisation actions script to google cloud
+	@echo "Syncing install_dependencies_on_cluster.sh to ${BUCKET_NAME}"
+	@gcloud storage cp utils/install_dependencies_on_cluster.sh ${BUCKET_NAME}/install_dependencies_on_cluster.sh
 
-create-dev-cluster: sync-cluster-init-script## Spin up a simple dataproc cluster with all dependencies for development purposes
+sync-gentropy-cli-script: ## Synchronize the gentropy cli script
+	@echo "Syncing gentropy cli script to ${BUCKET_NAME}"
+	@gcloud storage cp src/gentropy/cli.py ${BUCKET_NAME}/cli.py
+
+create-dev-cluster: sync-cluster-init-script sync-gentropy-cli-script ## Spin up a simple dataproc cluster with all dependencies for development purposes
 	@echo "Making sure the branch is in sync with remote, so cluster can install gentropy dev version..."
 	@./utils/clean_status.sh || (echo "ERROR: Commit and push or stash local changes, to have up to date cluster"; exit 1)
 	@echo "Creating Dataproc Dev Cluster"
@@ -57,7 +61,7 @@ create-dev-cluster: sync-cluster-init-script## Spin up a simple dataproc cluster
 		--region ${REGION} \
 		--master-machine-type n1-standard-2 \
 		--metadata="GENTROPY_REF=${REF}" \
-		--initialization-actions=$(BUCKET_NAME)/install_dependencies_on_cluster.sh \
+		--initialization-actions=${BUCKET_NAME}/install_dependencies_on_cluster.sh \
 		--secondary-worker-type spot \
 		--worker-machine-type n1-standard-4 \
 		--public-ip-address \
