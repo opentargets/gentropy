@@ -38,14 +38,6 @@ function install_pip() {
 }
 
 
-function install_uv() (
-    if !command -v uv >/dev/null; then
-        echo "Installing UV"
-        pip install uv
-    fi
-    return 0
-)
-
 function main() {
     # Define a specific directory to download the files
     echo "export HYDRA_FULL_ERROR=1" | tee --append /etc/profile
@@ -56,11 +48,11 @@ function main() {
         exit 1
     fi
     install_pip
-    install_uv
+    pip install uv
 
     pip uninstall -y gentropy
     echo "Install package..."
-    run_with_retry uv pip install --no-break-system-packages --system "gentropy @ git+${REPO}.git@${GENTROPY_REF}"
+    run_with_retry uv pip install --no-break-system-packages --system "gentropy @ git+${REPO_URI}.git@${GENTROPY_REF}"
 }
 
 main
