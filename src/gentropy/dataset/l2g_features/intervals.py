@@ -40,7 +40,7 @@ def common_interval_feature_logic(
         )
         .withColumn(
             "position",
-            f.split(f.col("variantInLocus.variantId"), "_").getItem(1).cast("long"),
+            f.split(f.col("variantInLocus.variantId"), "_").getItem(1).cast("integer"),
         )
         .withColumn(
             "posteriorProbability",
@@ -53,9 +53,7 @@ def common_interval_feature_logic(
 
     intervals_filtered = (
         intervals.df.filter(f.col("datasourceId") == interval_source)
-        .select("chromosome", "start", "end", "geneId", "resourceScore")
-        .withColumn("start", f.col("start").cast("long"))
-        .withColumn("end", f.col("end").cast("long"))
+        .select("chromosome", f.col("start").cast("integer"), f.col("end").cast("integer"), "geneId", "resourceScore")
     )
 
     # Overlapping join:
@@ -119,7 +117,6 @@ def common_neighbourhood_interval_feature_logic(
 class PchicMeanFeature(L2GFeature):
     """Average weighted CHiCAGO scores from studylocus to gene TSS."""
 
-    fill_na_value = 0  # would be 0 if implemented
     feature_dependency_type = Intervals
     feature_name = "pchicMean"
 

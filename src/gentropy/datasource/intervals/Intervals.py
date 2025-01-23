@@ -6,8 +6,8 @@ from functools import reduce
 
 from gentropy.common.Liftover import LiftOverSpark
 from gentropy.common.session import Session
-from gentropy.dataset.gene_index import GeneIndex
 from gentropy.dataset.intervals import Intervals
+from gentropy.dataset.target_index import TargetIndex
 
 
 class IntervalStep:
@@ -21,10 +21,9 @@ class IntervalStep:
 
     Attributes:
         session (Session): Session object.
-        gene_index_path (str): Input gene index path.
+        target_index_path (str): Input target index path.
         liftover_chain_file_path (str): Path to GRCh37 to GRCh38 chain file.
         liftover_max_length_difference: Maximum length difference for liftover.
-        max_distance (int): Maximum distance to consider.
         intervals (dict): Dictionary of interval sources.
         processed_interval_path (str): Output path to processed intervals.
     """
@@ -32,26 +31,26 @@ class IntervalStep:
     def __init__(
         self,
         session: Session,
-        gene_index_path: str,
+        target_index_path: str,
         liftover_chain_file_path: str,
         interval_sources: dict[str, str],
         processed_interval_path: str,
         liftover_max_length_difference: int = 100,
     ) -> None:
-        """Run Variant-to-gene (V2G) step.
+        """Run Interval processing step.
 
         Args:
             session (Session): Session object.
-            gene_index_path (str): Input gene index path.
+            target_index_path (str): Input target index path.
             liftover_chain_file_path (str): Path to GRCh37 to GRCh38 chain file.
             interval_sources (dict[str, str]): Dictionary of interval sources.
-            processed_interval_path (str): Output V2G path.
+            processed_interval_path (str): Output for processed Intervals path.
             liftover_max_length_difference (int): Maximum length difference for liftover.
         """
         # Read
-        gene_index = GeneIndex.from_parquet(
+        target_index = TargetIndex.from_parquet(
             session,
-            gene_index_path,
+            target_index_path,
         ).persist()
         lift = LiftOverSpark(
             # lift over variants to hg38
@@ -64,7 +63,7 @@ class IntervalStep:
                 # create interval instances by parsing each source
                 [
                     Intervals.from_source(
-                        session.spark, source_name, source_path, gene_index, lift
+                        session.spark, source_name, source_path, target_index, lift
                     ).df
                     for source_name, source_path in interval_sources.items()
                 ],

@@ -13,9 +13,7 @@ from gentropy.common.schemas import compare_struct_schemas
 from gentropy.common.session import Session
 from gentropy.common.spark_helpers import calculate_harmonic_sum
 from gentropy.common.utils import access_gcp_secret
-from gentropy.config import LocusToGeneFeatureMatrixConfig
 from gentropy.dataset.colocalisation import Colocalisation
-from gentropy.dataset.gene_index import GeneIndex
 from gentropy.dataset.intervals import Intervals
 from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
@@ -36,7 +34,7 @@ class LocusToGeneFeatureMatrixStep:
         self,
         session: Session,
         *,
-        features_list: list[str] = LocusToGeneFeatureMatrixConfig().features_list,
+        features_list: list[str],
         credible_set_path: str,
         variant_index_path: str | None = None,
         colocalisation_path: str | None = None,
@@ -118,7 +116,7 @@ class LocusToGeneStep:
         gold_standard_curation_path: str | None = None,
         variant_index_path: str | None = None,
         gene_interactions_path: str | None = None,
-        gene_index_path: str | None = None,
+        target_index_path: str | None = None,
         interval_path: str | None = None,
         predictions_path: str | None = None,
         l2g_threshold: float | None = None,
@@ -141,7 +139,7 @@ class LocusToGeneStep:
             gold_standard_curation_path (str | None): Path to the gold standard curation file
             variant_index_path (str | None): Path to the variant index
             gene_interactions_path (str | None): Path to the gene interactions dataset
-            gene_index_path (str | None):  Path to the gene index
+            target_index_path (str | None):  Path to the target index
             interval_path (str | None) : Path and source of interval input datasets
             predictions_path (str | None): Path to the L2G predictions output dataset
             l2g_threshold (float | None): An optional threshold for the L2G score to filter predictions. A threshold of 0.05 is recommended.
@@ -179,9 +177,9 @@ class LocusToGeneStep:
         self.feature_matrix = L2GFeatureMatrix(
             _df=session.load_data(feature_matrix_path),
         )
-        self.gene_index = (
-            GeneIndex.from_parquet(session, gene_index_path)
-            if gene_index_path
+        self.target_index = (
+            TargetIndex.from_parquet(session, target_index_path)
+            if target_index_path
             else None
         )
         self.intervals = (

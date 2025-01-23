@@ -101,7 +101,6 @@ class Intervals(Dataset):
                     how="inner",
                 )
                 .drop("vi_chromosome", "position")
-                # .drop("start", "end", "vi_chromosome", "position")
             ),
             _schema=Intervals.get_schema(),
         )

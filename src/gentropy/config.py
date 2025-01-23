@@ -209,9 +209,8 @@ class LDBasedClumpingConfig(StepConfig):
 class IntervalConfig(StepConfig):
     """Interval step configuration."""
 
-    gene_index_path: str = MISSING
+    target_index_path: str = MISSING
     liftover_chain_file_path: str = MISSING
-    max_distance: int = 250_000
     interval_sources: dict[str, str] = MISSING
     processed_interval_path: str = MISSING
     _target_: str = "gentropy.intervals.IntervalStep"
@@ -313,7 +312,6 @@ class LocusToGeneFeatureMatrixConfig(StepConfig):
     colocalisation_path: str | None = None
     study_index_path: str | None = None
     target_index_path: str | None = None
-    gene_index_path: str | None = None
     interval_path: str | None = None
     feature_matrix_path: str = MISSING
     features_list: list[str] = field(
