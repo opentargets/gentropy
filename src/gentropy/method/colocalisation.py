@@ -215,7 +215,7 @@ class Coloc(ColocalisationMethodInterface):
     METHOD_NAME: str = "COLOC"
     METHOD_METRIC: str = "h4"
     PSEUDOCOUNT: float = 1e-10
-    OVERLAP_SIZE_CUTOFF: int = 10
+    OVERLAP_SIZE_CUTOFF: int = 5
     POSTERIOR_CUTOFF: float = 0.9
 
     @staticmethod
