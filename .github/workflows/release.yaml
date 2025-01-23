@@ -2,14 +2,14 @@ name: Release
 
 "on":
   push:
-    branches: ["main", "release/**"]
+    branches: ["main", "release/**", "dev"]
 
 concurrency:
   group: deploy
   cancel-in-progress: false # prevent hickups with semantic-release
 
 env:
-  PYTHON_VERSION_DEFAULT: "3.12.7"
+  PYTHON_VERSION_DEFAULT: "3.11.11"
 
 jobs:
   release:

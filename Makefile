@@ -12,7 +12,7 @@ else
 endif
 
 CLEAN_PACKAGE_VERSION := $(shell echo "$(PACKAGE_VERSION)" | tr -cd '[:alnum:]')
-BUCKET_NAME=gs://genetics_etl_python_playground/initialisation/${APP_NAME}/${REF}
+BUCKET_NAME=gs://genetics_etl_python_playground/initialisation
 
 .PHONY: $(shell sed -n -e '/^$$/ { n ; /^[^ .\#][^ ]*:/ { s/:.*$$// ; p ; } ; }' $(MAKEFILE_LIST))
 
@@ -43,24 +43,30 @@ build-documentation: ## Create local server with documentation
 	@echo "Building Documentation..."
 	@uv run mkdocs serve
 
-create-dev-cluster: build ## Spin up a simple dataproc cluster with all dependencies for development purposes
+sync-cluster-init-script: ## Synchronise the cluster inicialisation actions script to google cloud
+	@echo "Synching install_dependencies_on_cluster.sh to $(BUCKET_NAME)"
+	@gcloud storage cp utils/install_dependencies_on_cluster.sh $(BUCKET_NAME)/install_dependencies_on_cluster.sh
+
+create-dev-cluster: sync-cluster-init-script## Spin up a simple dataproc cluster with all dependencies for development purposes
+	@echo "Making sure the branch is in sync with remote, so cluster can install gentropy dev version..."
+	@./utils/clean_status.sh || (echo "ERROR: Commit and push or stash local changes, to have up to date cluster"; exit 1)
 	@echo "Creating Dataproc Dev Cluster"
-	@gcloud config set project ${PROJECT_ID}
-	@gcloud dataproc clusters create "ot-genetics-dev-${CLEAN_PACKAGE_VERSION}-$(USER)" \
+	gcloud config set project ${PROJECT_ID}
+	gcloud dataproc clusters create "ot-genetics-dev-${CLEAN_PACKAGE_VERSION}-$(USER)" \
 		--image-version 2.2 \
 		--region ${REGION} \
-		--master-machine-type n1-standard-16 \
-		--initialization-actions=$(BUCKET_NAME)/install_dependencies_on_cluster.sh \
-		--metadata="PACKAGE=$(BUCKET_NAME)/${APP_NAME}-${PACKAGE_VERSION}-py3-none-any.whl" \
+		--master-machine-type n1-standard-2 \
+		--metadata="GENTROPY_REF=${REF}" \
 		--secondary-worker-type spot \
 		--worker-machine-type n1-standard-4 \
+		--public-ip-address \
 		--worker-boot-disk-size 500 \
 		--autoscaling-policy="projects/${PROJECT_ID}/regions/${REGION}/autoscalingPolicies/otg-etl" \
 		--optional-components=JUPYTER \
 		--enable-component-gateway \
 		--max-idle=60m
 
-make update-dev-cluster: build ## Reinstalls the package on the dev-cluster
+update-dev-cluster: build ## Reinstalls the package on the dev-cluster
 	@echo "Updating Dataproc Dev Cluster"
 	@gcloud config set project ${PROJECT_ID}
 	gcloud dataproc jobs submit pig --cluster="ot-genetics-dev-${CLEAN_PACKAGE_VERSION}" \
@@ -69,10 +75,4 @@ make update-dev-cluster: build ## Reinstalls the package on the dev-cluster
 		-e='sh chmod 750 $${PWD}/install_dependencies_on_cluster.sh; sh $${PWD}/install_dependencies_on_cluster.sh'
 
 build: clean ## Build Python package with dependencies
-	@gcloud config set project ${PROJECT_ID}
-	@echo "Packaging Code and Dependencies for ${APP_NAME}-${PACKAGE_VERSION}"
 	@uv build
-	@echo "Uploading to ${BUCKET_NAME}"
-	@gsutil cp src/${APP_NAME}/cli.py ${BUCKET_NAME}/
-	@gsutil cp ./dist/${APP_NAME}-${PACKAGE_VERSION}-py3-none-any.whl ${BUCKET_NAME}/
-	@gsutil cp ./utils/install_dependencies_on_cluster.sh ${BUCKET_NAME}/

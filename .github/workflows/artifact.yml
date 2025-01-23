@@ -12,7 +12,7 @@ env:
   REGION: europe-west1
   GAR_LOCATION: europe-west1-docker.pkg.dev/open-targets-genetics-dev
   REPOSITORY: gentropy-app
-  PYTHON_VERSION_DEFAULT: "3.12.7"
+  PYTHON_VERSION_DEFAULT: "3.11.11"
 
 jobs:
   build-push-artifact:

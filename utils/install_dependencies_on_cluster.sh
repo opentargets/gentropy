@@ -2,8 +2,8 @@
 
 set -exo pipefail
 
-readonly PACKAGE=$(/usr/share/google/get_metadata_value attributes/PACKAGE || true)
-
+readonly GENTROPY_REF=$(/usr/share/google/get_metadata_value attributes/GENTROPY_REF || true)
+readonly REPO_URI="https://github.com/opentargets/gentropy"
 function err() {
     echo "[$(date +'%Y-%m-%dT%H:%M:%S%z')]: $*" >&2
     exit 1
@@ -11,7 +11,7 @@ function err() {
 
 function run_with_retry() {
     local -r cmd=("$@")
-    for ((i = 0; i < 10; i++)); do
+    for ((i = 0; i < 3; i++)); do
         if "${cmd[@]}"; then
             return 0
         fi
@@ -37,33 +37,30 @@ function install_pip() {
     run_with_retry apt install python-pip -y
 }
 
+
+function install_uv() (
+    if !command -v uv >/dev/null; then
+        echo "Installing UV"
+        pip install uv
+    fi
+    return 0
+)
+
 function main() {
     # Define a specific directory to download the files
-    local work_dir="/"
-    cd "${work_dir}" || err "Failed to change to working directory"
-    echo "Working directory: $(pwd)"
-
-    # more meaningful errors from hydra
     echo "export HYDRA_FULL_ERROR=1" | tee --append /etc/profile
     source /etc/profile
 
-    if [[ -z "${PACKAGE}" ]]; then
-        echo "ERROR: Must specify PACKAGE metadata key"
+    if [[ -z "${GENTROPY_REF}" ]]; then
+        echo "ERROR: Must specify GENTROPY_REF metadata key"
         exit 1
     fi
     install_pip
+    install_uv
 
-    echo "Downloading package..."
-    gsutil cp ${PACKAGE} . || err "Failed to download PACKAGE"
-    PACKAGENAME=$(basename ${PACKAGE})
-
-    echo "Uninstalling previous version if it exists"
     pip uninstall -y gentropy
     echo "Install package..."
-    # NOTE: ensure the gentropy is reinstalled each time without version cache
-    # see https://pip.pypa.io/en/stable/cli/pip_install/#cmdoption-force-reinstall
-    run_with_retry pip install --force-reinstall --ignore-installed ${PACKAGENAME}
-
+    run_with_retry uv pip install --no-break-system-packages --system "gentropy @ git+${REPO}.git@${GENTROPY_REF}"
 }
 
 main

@@ -1,5 +1,5 @@
 export SHELL_RC=$(echo "$HOME/.${SHELL##*/}rc")
-readonly PYTHON_VERSION=$(cat .python-version >&/dev/null || echo "3.12.7")
+readonly PYTHON_VERSION=$(cat .python-version >&/dev/null || echo "3.11.11")
 
 if ! command -v uv &>/dev/null; then
     echo "uv was not found, installing uv..."
