@@ -40,6 +40,7 @@ class LocusToGeneFeatureMatrixStep:
         colocalisation_path: str | None = None,
         study_index_path: str | None = None,
         target_index_path: str | None = None,
+        interval_path: str | None = None,
         feature_matrix_path: str,
     ) -> None:
         """Initialise the step and run the logic based on mode.
@@ -52,6 +53,7 @@ class LocusToGeneFeatureMatrixStep:
             colocalisation_path (str | None): Path to the colocalisation dataset
             study_index_path (str | None): Path to the study index dataset
             target_index_path (str | None): Path to the target index dataset
+            interval_path (str | None): Path to the interval dataset
             feature_matrix_path (str): Path to the L2G feature matrix output dataset
         """
         credible_set = StudyLocus.from_parquet(
@@ -81,12 +83,16 @@ class LocusToGeneFeatureMatrixStep:
             if target_index_path
             else None
         )
+        intervals = (
+            Intervals.from_parquet(session, interval_path) if interval_path else None
+        )
         features_input_loader = L2GFeatureInputLoader(
             variant_index=variant_index,
             colocalisation=coloc,
             study_index=studies,
             study_locus=credible_set,
             target_index=target_index,
+            intervals=intervals,
         )
 
         fm = credible_set.filter(f.col("studyType") == "gwas").build_feature_matrix(
