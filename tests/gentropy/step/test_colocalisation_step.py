@@ -61,6 +61,7 @@ class TestColocalisationStep:
                     )
                 ],
                 "SuSiE fine-mapped credible set with out-of-sample LD",
+                None,
             ),
             (
                 "-1245591334543437941",
@@ -104,6 +105,7 @@ class TestColocalisationStep:
                     )
                 ],
                 "SuSiE fine-mapped credible set with out-of-sample LD",
+                None,
             ),
             (
                 "-0.20241232721094407",
@@ -147,6 +149,7 @@ class TestColocalisationStep:
                     )
                 ],
                 "SuSiE fine-mapped credible set with out-of-sample LD",
+                None,
             ),
             (
                 "-2271857845883525223",
@@ -190,6 +193,7 @@ class TestColocalisationStep:
                     )
                 ],
                 "SuSiE fine-mapped credible set with out-of-sample LD",
+                None,
             ),
         ]
         self.credible_set_path = str(tmp_path / "credible_set_datasets")

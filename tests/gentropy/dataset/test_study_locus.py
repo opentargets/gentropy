@@ -12,6 +12,7 @@ from pyspark.sql.types import (
     ArrayType,
     BooleanType,
     DoubleType,
+    IntegerType,
     StringType,
     StructField,
     StructType,
@@ -29,6 +30,7 @@ from gentropy.dataset.study_locus import (
 )
 from gentropy.dataset.study_locus_overlap import StudyLocusOverlap
 from gentropy.dataset.summary_statistics import SummaryStatistics
+from gentropy.dataset.target_index import TargetIndex
 from gentropy.dataset.variant_index import VariantIndex
 from gentropy.method.l2g.feature_factory import L2GFeatureInputLoader
 
@@ -1189,3 +1191,95 @@ class TestStudyLocusDuplicationFlagging:
         assert self.validated.df.filter(f.size("qualityControls") == 0).count() == 2
 
         assert self.validated.df.filter(f.size("qualityControls") > 0).count() == 2
+
+
+class TestTransQtlFlagging:
+    """Test flagging trans qtl credible sets."""
+
+    THRESHOLD = 30
+    STUDY_LOCUS_DATA = [
+        # QTL in cis position -> flag: False
+        ("sl1", "c1_50", "s1"),
+        # QTL in trans position (by distance) -> flag: True
+        ("sl2", "c1_100", "s1"),
+        # QTL in trans position (by chromosome) -> flag: True
+        ("sl3", "c2_50", "s1"),
+        # Not qtl -> flag: Null
+        ("sl4", "c1_50", "s2"),
+    ]
+
+    STUDY_LOCUS_COLUMNS = ["studyLocusId", "variantId", "studyId"]
+
+    STUDY_DATA = [
+        ("s1", "p1", "qtl", "g1"),
+        ("s2", "p2", "gwas", None),
+    ]
+
+    STUDY_COLUMNS = ["studyId", "projectId", "studyType", "geneId"]
+
+    GENE_DATA = [("g1", -1, 10, 30, "c1", 30)]
+    GENE_COLUMNS = ["id", "strand", "start", "end", "chromosome", "tss"]
+
+    @pytest.fixture(autouse=True)
+    def _setup(self: TestTransQtlFlagging, spark: SparkSession) -> None:
+        """Setup study locus for testing."""
+        self.study_locus = StudyLocus(
+            _df=(
+                spark.createDataFrame(
+                    self.STUDY_LOCUS_DATA, self.STUDY_LOCUS_COLUMNS
+                ).withColumn("locus", f.array(f.struct("variantId")))
+            )
+        )
+        self.study_index = StudyIndex(
+            _df=spark.createDataFrame(self.STUDY_DATA, self.STUDY_COLUMNS)
+        )
+        self.target_index = TargetIndex(
+            _df=(
+                spark.createDataFrame(self.GENE_DATA, self.GENE_COLUMNS).select(
+                    f.struct(
+                        f.col("strand").cast(IntegerType()).alias("strand"),
+                        "start",
+                        "end",
+                        "chromosome",
+                    ).alias("genomicLocation"),
+                    f.col("id"),
+                    f.col("tss"),
+                )
+            )
+        )
+
+        self.qtl_flagged = self.study_locus.flag_trans_qtls(
+            self.study_index, self.target_index, self.THRESHOLD
+        )
+
+    def test_return_type(self: TestTransQtlFlagging) -> None:
+        """Test duplication flagging return type."""
+        assert isinstance(self.qtl_flagged, StudyLocus)
+
+    def test_number_of_rows(self: TestTransQtlFlagging) -> None:
+        """Test duplication flagging no data loss."""
+        assert self.qtl_flagged.df.count() == self.study_locus.df.count()
+
+    def test_column_added(self: TestTransQtlFlagging) -> None:
+        """Test duplication flagging no data loss."""
+        assert "isTransQtl" in self.qtl_flagged.df.columns
+
+    def test_correctness_no_gwas_flagged(self: TestTransQtlFlagging) -> None:
+        """Make sure the flag is null for gwas credible sets."""
+        gwas_studies = self.study_index.df.filter(f.col("studyId") == "s2")
+
+        assert (
+            self.qtl_flagged.df.join(gwas_studies, on="studyId", how="inner")
+            .filter(f.col("isTransQtl").isNotNull())
+            .count()
+        ) == 0
+
+    def test_correctness_all_qlts_are_flagged(self: TestTransQtlFlagging) -> None:
+        """Make sure all qtls have non-null flags."""
+        assert self.qtl_flagged.df.filter(f.col("isTransQtl").isNotNull()).count() == 3
+
+    def test_correctness_found_trans(self: TestTransQtlFlagging) -> None:
+        """Make sure trans qtls are flagged."""
+        assert (
+            self.qtl_flagged.df.filter(f.col("isTransQtl")).count() == 2
+        ), "Expected number of rows differ from observed."
