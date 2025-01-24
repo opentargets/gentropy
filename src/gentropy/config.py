@@ -662,9 +662,11 @@ class StudyLocusValidationStepConfig(StepConfig):
 
     study_index_path: str = MISSING
     study_locus_path: list[str] = MISSING
+    target_index_path: str = MISSING
     valid_study_locus_path: str = MISSING
     invalid_study_locus_path: str = MISSING
     invalid_qc_reasons: list[str] = MISSING
+    trans_qtl_threshold: int = MISSING
     _target_: str = "gentropy.study_locus_validation.StudyLocusValidationStep"
 
 
