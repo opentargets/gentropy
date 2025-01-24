@@ -757,15 +757,16 @@ class StudyLocus(Dataset):
             )
             .groupby("studyLocusId")
             .agg(
-                # If any of the tags of a locus is in trans position, the QTL is considered trans:
-                f.array_contains(f.collect_set("isTagTrans"), True).alias("isTransQtl")
+                # If all tagging variants of the locus is in trans position, the QTL is considered trans:
+                f.when(
+                    f.array_contains(f.collect_set("isTagTrans"), f.lit(False)), False
+                )
+                .otherwise(f.lit(True))
+                .alias("isTransQtl")
             )
         )
         # Adding new column, where the value is null for gwas loci:
-        return StudyLocus(
-            _df=self.df.join(joined_data, on="studyLocusId", how="left"),
-            _schema=self.get_schema(),
-        )
+        return StudyLocus(self.df.join(joined_data, on="studyLocusId", how="left"))
 
     def filter_credible_set(
         self: StudyLocus,

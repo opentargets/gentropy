@@ -1237,7 +1237,6 @@ class TestTransQtlFlagging:
             _df=(
                 spark.createDataFrame(self.GENE_DATA, self.GENE_COLUMNS).select(
                     f.struct(
-                        "strand",
                         f.col("strand").cast(IntegerType()).alias("strand"),
                         "start",
                         "end",
