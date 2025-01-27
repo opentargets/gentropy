@@ -22,78 +22,78 @@ jobs:
       - name: "Checkout"
         uses: "actions/checkout@v3"
 
-      - name: "auth"
-        uses: "google-github-actions/auth@v2"
-        with:
-          credentials_json: "${{ secrets.SERVICE_ACCOUNT_KEY }}"
+      # - name: "auth"
+      #   uses: "google-github-actions/auth@v2"
+      #   with:
+      #     credentials_json: "${{ secrets.SERVICE_ACCOUNT_KEY }}"
 
       - name: "shell"
-        run: echo ${SHELL}
-          make shell
-
-      - name: "Set up Cloud SDK"
-        uses: "google-github-actions/setup-gcloud@v2"
-
-      - name: "Use gcloud CLI"
-        run: "gcloud info"
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: "Docker auth"
         run: |
-          gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
+          make clean
 
-      - name: Quick Docker build (gentropy only, AMD64 only, with layer cache)
-        uses: docker/build-push-action@v6
-        with:
-          platforms: linux/amd64
-          push: true
-          tags: "${{ env.GAR_LOCATION }}/${{ env.REPOSITORY }}/gentropy:${{ github.ref_name }}"
-          context: .
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+      # - name: "Set up Cloud SDK"
+      #   uses: "google-github-actions/setup-gcloud@v2"
 
-      # skip the `v` at the beginning of the tag for docker image tags
-      - name: Create a docker tag
-        if: github.ref == 'refs/heads/dev' || startsWith(github.ref, 'refs/tags/v')
-        id: docker-tag
-        shell: bash
-        env:
-          TAG: ${{ github.ref_name }}
-        run: |
-          TAG=$(echo $TAG | sed 's/^v//')
-          echo "TAG=$TAG" >> $GITHUB_ENV
-          echo "The tag for this build is $TAG"
+      # - name: "Use gcloud CLI"
+      #   run: "gcloud info"
 
-      - name: Build and push gentropy image
-        if: steps.docker-tag.outcome == 'success'
-        uses: docker/build-push-action@v6
-        with:
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: "${{ env.GAR_LOCATION }}/${{ env.REPOSITORY }}/gentropy:${{ env.TAG }}"
-          context: .
+      # - name: Set up QEMU
+      #   uses: docker/setup-qemu-action@v3
 
-      - name: Build and push VEP image
-        if: steps.docker-tag.outcome == 'success'
-        uses: docker/build-push-action@v6
-        with:
-          platforms: linux/amd64
-          push: true
-          tags: "${{ env.GAR_LOCATION }}/${{ env.REPOSITORY }}/custom_ensembl_vep:${{ env.TAG }}"
-          context: .
-          file: "src/vep/Dockerfile"
+      # - name: Set up Docker Buildx
+      #   uses: docker/setup-buildx-action@v3
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: ${{ env.PYTHON_VERSION_DEFAULT }}
-      - name: Install uv
-        uses: astral-sh/setup-uv@v5
+      # - name: "Docker auth"
+      #   run: |
+      #     gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
 
-      - name: Build and push spark cluster dependencies
-        run: make build
+      # - name: Quick Docker build (gentropy only, AMD64 only, with layer cache)
+      #   uses: docker/build-push-action@v6
+      #   with:
+      #     platforms: linux/amd64
+      #     push: true
+      #     tags: "${{ env.GAR_LOCATION }}/${{ env.REPOSITORY }}/gentropy:${{ github.ref_name }}"
+      #     context: .
+      #     cache-from: type=gha
+      #     cache-to: type=gha,mode=max
+
+      # # skip the `v` at the beginning of the tag for docker image tags
+      # - name: Create a docker tag
+      #   if: github.ref == 'refs/heads/dev' || startsWith(github.ref, 'refs/tags/v')
+      #   id: docker-tag
+      #   shell: bash
+      #   env:
+      #     TAG: ${{ github.ref_name }}
+      #   run: |
+      #     TAG=$(echo $TAG | sed 's/^v//')
+      #     echo "TAG=$TAG" >> $GITHUB_ENV
+      #     echo "The tag for this build is $TAG"
+
+      # - name: Build and push gentropy image
+      #   if: steps.docker-tag.outcome == 'success'
+      #   uses: docker/build-push-action@v6
+      #   with:
+      #     platforms: linux/amd64,linux/arm64
+      #     push: true
+      #     tags: "${{ env.GAR_LOCATION }}/${{ env.REPOSITORY }}/gentropy:${{ env.TAG }}"
+      #     context: .
+
+      # - name: Build and push VEP image
+      #   if: steps.docker-tag.outcome == 'success'
+      #   uses: docker/build-push-action@v6
+      #   with:
+      #     platforms: linux/amd64
+      #     push: true
+      #     tags: "${{ env.GAR_LOCATION }}/${{ env.REPOSITORY }}/custom_ensembl_vep:${{ env.TAG }}"
+      #     context: .
+      #     file: "src/vep/Dockerfile"
+
+      # - name: Set up Python
+      #   uses: actions/setup-python@v4
+      #   with:
+      #     python-version: ${{ env.PYTHON_VERSION_DEFAULT }}
+      # - name: Install uv
+      #   uses: astral-sh/setup-uv@v5
+
+      # - name: Build and push spark cluster dependencies
+      #   run: make build
