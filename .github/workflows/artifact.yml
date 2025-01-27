@@ -22,6 +22,11 @@ jobs:
       - name: "Checkout"
         uses: "actions/checkout@v3"
 
+      - name: "Make check"
+        run: |
+          make check
+          make build
+
       - name: "auth"
         uses: "google-github-actions/auth@v2"
         with:

@@ -15,3 +15,4 @@ site/
 wandb/
 hail*.log
 .python-version
+.idea
