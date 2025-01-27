@@ -1,6 +1,7 @@
 name: Build and Push to Artifact Registry
 
 "on":
+  workflow_dispatch:
   push:
     branches:
       - "*"
@@ -91,5 +92,4 @@ jobs:
         uses: astral-sh/setup-uv@v5
 
       - name: Build and push spark cluster dependencies
-        run: |
-          make build
+        run: uv build
