@@ -1,4 +1,4 @@
-SHELL := /bin/bash
+SHELL := $(shell echo $$SHELL)
 PROJECT_ID ?= open-targets-genetics-dev
 REGION ?= europe-west1
 APP_NAME ?= $$(cat pyproject.toml | grep -m 1 "name" | cut -d" " -f3 | sed  's/"//g')
@@ -24,9 +24,9 @@ help: ## This is help
 clean: ## Clean up prior to building
 	@rm -Rf ./dist
 
-setup-dev: SHELL:=/bin/bash
 setup-dev: ## Setup development environment
 	@. utils/install_dependencies.sh
+	@echo "Run . ${HOME}/.$(notdir $(SHELL))rc to finish setup"
 
 check: ## Lint and format code
 	@echo "Linting API..."

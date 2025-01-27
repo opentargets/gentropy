@@ -135,7 +135,7 @@ color = true
 exclude = ["dist"]
 
 [tool.pytest.ini_options]
-addopts = "-n auto --doctest-modules --cov=src/ --cov-report=xml"
+addopts = "-n auto --doctest-modules --cov=src/ --cov-report=xml --cache-clear"
 pythonpath = ["."]
 testpaths = ["tests/gentropy", "src/gentropy"]
 markers = ["step_test"]
