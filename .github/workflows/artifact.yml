@@ -28,7 +28,8 @@ jobs:
           credentials_json: "${{ secrets.SERVICE_ACCOUNT_KEY }}"
 
       - name: "shell"
-        run: make shell
+        run: echo ${SHELL}
+          make shell
 
       - name: "Set up Cloud SDK"
         uses: "google-github-actions/setup-gcloud@v2"
