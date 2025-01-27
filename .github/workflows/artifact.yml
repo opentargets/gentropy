@@ -97,4 +97,4 @@ jobs:
         uses: astral-sh/setup-uv@v5
 
       - name: Build and push spark cluster dependencies
-        run: uv build
+        run: make build

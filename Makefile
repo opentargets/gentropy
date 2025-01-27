@@ -1,4 +1,4 @@
-SHELL := $(shell echo $$SHELL)
+SHELL := /bin/bash
 PROJECT_ID ?= open-targets-genetics-dev
 REGION ?= europe-west1
 APP_NAME ?= $$(cat pyproject.toml | grep -m 1 "name" | cut -d" " -f3 | sed  's/"//g')
