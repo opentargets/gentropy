@@ -74,7 +74,9 @@ class LocusToGeneFeatureMatrixStep:
             else None
         )
         target_index = (
-            TargetIndex.from_parquet(session, target_index_path, recursiveFileLookup=True)
+            TargetIndex.from_parquet(
+                session, target_index_path, recursiveFileLookup=True
+            )
             if target_index_path
             else None
         )
@@ -305,6 +307,7 @@ class LocusToGeneStep:
         l2g_model = LocusToGeneModel(
             model=GradientBoostingClassifier(random_state=42, loss="log_loss"),
             hyperparameters=self.hyperparameters,
+            features_list=self.features_list,
         )
 
         # Calculate the gold standard features

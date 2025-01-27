@@ -27,6 +27,7 @@ class LocusToGeneModel:
     """Wrapper for the Locus to Gene classifier."""
 
     model: Any = GradientBoostingClassifier(random_state=42)
+    features_list: list[str] = field(default_factory=list)
     hyperparameters: dict[str, Any] = field(
         default_factory=lambda: {
             "n_estimators": 100,
@@ -51,11 +52,14 @@ class LocusToGeneModel:
         self.model.set_params(**self.hyperparameters_dict)
 
     @classmethod
-    def load_from_disk(cls: type[LocusToGeneModel], path: str) -> LocusToGeneModel:
+    def load_from_disk(
+        cls: type[LocusToGeneModel], path: str, **kwargs: Any
+    ) -> LocusToGeneModel:
         """Load a fitted model from disk.
 
         Args:
             path (str): Path to the model
+            **kwargs: Keyword arguments to pass to the constructor
 
         Returns:
             LocusToGeneModel: L2G model loaded from disk
@@ -79,7 +83,7 @@ class LocusToGeneModel:
 
         if not loaded_model._is_fitted():
             raise ValueError("Model has not been fitted yet.")
-        return cls(model=loaded_model)
+        return cls(model=loaded_model, **kwargs)
 
     @classmethod
     def load_from_hub(
@@ -98,9 +102,26 @@ class LocusToGeneModel:
         Returns:
             LocusToGeneModel: L2G model loaded from the Hugging Face Hub
         """
+
+        def get_features_list_from_metadata() -> list[str]:
+            """Get the features list (in the right order) from the metadata file from the Hub."""
+            import json
+
+            model_config_path = str(Path(local_path) / "config.json")
+            with open(model_config_path) as f:
+                model_config = json.load(f)
+            return [
+                column
+                for column in model_config["sklearn"]["columns"]
+                if column != "studyLocusId"
+            ]
+
         local_path = Path(model_id)
         hub_utils.download(repo_id=model_id, dst=local_path, token=hf_token)
-        return cls.load_from_disk(str(Path(local_path) / model_name))
+        features_list = get_features_list_from_metadata()
+        return cls.load_from_disk(
+            str(Path(local_path) / model_name), features_list=features_list
+        )
 
     @property
     def hyperparameters_dict(self) -> dict[str, Any]:
