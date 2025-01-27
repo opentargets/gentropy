@@ -79,5 +79,5 @@ update-dev-cluster: build ## Reinstalls the package on the dev-cluster
 		--jars=${BUCKET_NAME}/install_dependencies_on_cluster.sh \
 		-e='sh chmod 750 $${PWD}/install_dependencies_on_cluster.sh; sh $${PWD}/install_dependencies_on_cluster.sh'
 
-build: clean ## Build Python package with dependencies
+build: ## Build Python package with dependencies
 	@uv build
