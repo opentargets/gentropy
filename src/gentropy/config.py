@@ -2,7 +2,7 @@
 
 import os
 from dataclasses import dataclass, field
-from typing import Any, ClassVar, List, TypedDict
+from typing import Any, ClassVar, TypedDict
 
 from hail import __file__ as hail_location
 from hydra.core.config_store import ConfigStore
@@ -27,7 +27,7 @@ class StepConfig:
     """Base step configuration."""
 
     session: SessionConfig
-    defaults: List[Any] = field(
+    defaults: list[Any] = field(
         default_factory=lambda: [{"session": "base_session"}, "_self_"]
     )
 
@@ -41,15 +41,6 @@ class ColocalisationConfig(StepConfig):
     colocalisation_method: str = MISSING
     colocalisation_method_params: dict[str, Any] = field(default_factory=dict[str, Any])
     _target_: str = "gentropy.colocalisation.ColocalisationStep"
-
-
-@dataclass
-class GeneIndexConfig(StepConfig):
-    """Gene index step configuration."""
-
-    target_path: str = MISSING
-    gene_index_path: str = MISSING
-    _target_: str = "gentropy.gene_index.GeneIndexStep"
 
 
 @dataclass
@@ -146,7 +137,8 @@ class FinngenStudiesConfig(StepConfig):
     )
     finngen_summary_stats_url_suffix: str = ".gz"
     efo_curation_mapping_url: str = "https://raw.githubusercontent.com/opentargets/curation/24.09.1/mappings/disease/manual_string.tsv"
-    sample_size: int = 453733  # https://www.finngen.fi/en/access_results#:~:text=Total%20sample%20size%3A%C2%A0453%2C733%C2%A0(254%2C618%C2%A0females%20and%C2%A0199%2C115%20males)
+    # https://www.finngen.fi/en/access_results#:~:text=Total%20sample%20size%3A%C2%A0453%2C733%C2%A0(254%2C618%C2%A0females%20and%C2%A0199%2C115%20males)
+    sample_size: int = 453733
     _target_: str = "gentropy.finngen_studies.FinnGenStudiesStep"
 
 
@@ -199,7 +191,6 @@ class LDIndexConfig(StepConfig):
             "nfe",  # Non-Finnish European
         ]
     )
-    use_version_from_input: bool = False
     _target_: str = "gentropy.gnomad_ingestion.LDIndexStep"
 
 
@@ -264,20 +255,24 @@ class LocusToGeneConfig(StepConfig):
             "geneCount500kb",
             "proteinGeneCount500kb",
             "credibleSetConfidence",
-            # "isProteinCoding",
         ]
     )
     hyperparameters: dict[str, Any] = field(
         default_factory=lambda: {
             "n_estimators": 100,
-            "max_depth": 5,
-            "loss": "log_loss",
+            "max_depth": 10,
+            "ccp_alpha": 0,
+            "learning_rate": 0.1,
+            "min_samples_leaf": 5,
+            "min_samples_split": 5,
+            "subsample": 1,
         }
     )
     wandb_run_name: str | None = None
     hf_hub_repo_id: str | None = "opentargets/locus_to_gene"
     hf_model_commit_message: str | None = "chore: update model"
     download_from_hub: bool = True
+    cross_validate: bool = True
     _target_: str = "gentropy.l2g.LocusToGeneStep"
 
 
@@ -298,7 +293,7 @@ class LocusToGeneFeatureMatrixConfig(StepConfig):
     variant_index_path: str | None = None
     colocalisation_path: str | None = None
     study_index_path: str | None = None
-    gene_index_path: str | None = None
+    target_index_path: str | None = None
     feature_matrix_path: str = MISSING
     features_list: list[str] = field(
         default_factory=lambda: [
@@ -405,7 +400,6 @@ class GnomadVariantConfig(StepConfig):
             "remaining",  # Other
         ]
     )
-    use_version_from_input: bool = False
     _target_: str = "gentropy.gnomad_ingestion.GnomadVariantIndexStep"
 
 
@@ -428,7 +422,6 @@ class PanUKBBConfig(StepConfig):
             "EUR",  # European
         ]
     )
-    use_version_from_input: bool = False
     _target_: str = "gentropy.pan_ukb_ingestion.PanUKBBVariantIndexStep"
 
 
@@ -665,9 +658,11 @@ class StudyLocusValidationStepConfig(StepConfig):
 
     study_index_path: str = MISSING
     study_locus_path: list[str] = MISSING
+    target_index_path: str = MISSING
     valid_study_locus_path: str = MISSING
     invalid_study_locus_path: str = MISSING
     invalid_qc_reasons: list[str] = MISSING
+    trans_qtl_threshold: int = MISSING
     _target_: str = "gentropy.study_locus_validation.StudyLocusValidationStep"
 
 
@@ -676,7 +671,7 @@ class Config:
     """Application configuration."""
 
     # this is unfortunately verbose due to @dataclass limitations
-    defaults: List[Any] = field(default_factory=lambda: ["_self_", {"step": MISSING}])
+    defaults: list[Any] = field(default_factory=lambda: ["_self_", {"step": MISSING}])
     step: StepConfig = MISSING
     datasets: dict[str, str] = field(default_factory=dict)
 
@@ -688,7 +683,6 @@ def register_config() -> None:
     cs.store(group="step/session", name="base_session", node=SessionConfig)
     cs.store(group="step", name="colocalisation", node=ColocalisationConfig)
     cs.store(group="step", name="eqtl_catalogue", node=EqtlCatalogueConfig)
-    cs.store(group="step", name="gene_index", node=GeneIndexConfig)
     cs.store(group="step", name="biosample_index", node=BiosampleIndexConfig)
     cs.store(
         group="step",
