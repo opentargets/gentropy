@@ -27,7 +27,9 @@ class LocusToGeneModel:
     """Wrapper for the Locus to Gene classifier."""
 
     model: Any = GradientBoostingClassifier(random_state=42)
-    features_list: list[str] = field(default_factory=list)
+    features_list: list[str] = field(
+        default_factory=list
+    )  # TODO: default to list in config if not provided
     hyperparameters: dict[str, Any] = field(
         default_factory=lambda: {
             "n_estimators": 100,
@@ -59,7 +61,7 @@ class LocusToGeneModel:
 
         Args:
             path (str): Path to the model
-            **kwargs: Keyword arguments to pass to the constructor
+            **kwargs(Any): Keyword arguments to pass to the constructor
 
         Returns:
             LocusToGeneModel: L2G model loaded from disk
@@ -104,7 +106,11 @@ class LocusToGeneModel:
         """
 
         def get_features_list_from_metadata() -> list[str]:
-            """Get the features list (in the right order) from the metadata file from the Hub."""
+            """Get the features list (in the right order) from the metadata JSON file downloaded from the Hub.
+
+            Returns:
+                list[str]: Features list
+            """
             import json
 
             model_config_path = str(Path(local_path) / "config.json")

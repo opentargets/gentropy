@@ -104,7 +104,6 @@ class LocusToGeneStep:
         session: Session,
         *,
         run_mode: str,
-        features_list: list[str],
         hyperparameters: dict[str, Any],
         download_from_hub: bool,
         cross_validate: bool,
@@ -112,6 +111,7 @@ class LocusToGeneStep:
         credible_set_path: str,
         feature_matrix_path: str,
         model_path: str | None = None,
+        features_list: list[str] | None,
         gold_standard_curation_path: str | None = None,
         variant_index_path: str | None = None,
         gene_interactions_path: str | None = None,
@@ -125,7 +125,6 @@ class LocusToGeneStep:
         Args:
             session (Session): Session object that contains the Spark session
             run_mode (str): Run mode, either 'train' or 'predict'
-            features_list (list[str]): List of features to use for the model
             hyperparameters (dict[str, Any]): Hyperparameters for the model
             download_from_hub (bool): Whether to download the model from Hugging Face Hub
             cross_validate (bool): Whether to run cross validation (5-fold by default) to train the model.
@@ -133,6 +132,7 @@ class LocusToGeneStep:
             credible_set_path (str): Path to the credible set dataset necessary to build the feature matrix
             feature_matrix_path (str): Path to the L2G feature matrix input dataset
             model_path (str | None): Path to the model. It can be either in the filesystem or the name on the Hugging Face Hub (in the form of username/repo_name).
+            features_list (list[str] | None): List of features to use to train the model
             gold_standard_curation_path (str | None): Path to the gold standard curation file
             variant_index_path (str | None): Path to the variant index
             gene_interactions_path (str | None): Path to the gene interactions dataset
@@ -153,7 +153,7 @@ class LocusToGeneStep:
         self.run_mode = run_mode
         self.model_path = model_path
         self.predictions_path = predictions_path
-        self.features_list = list(features_list)
+        self.features_list = list(features_list) if features_list else None
         self.hyperparameters = dict(hyperparameters)
         self.wandb_run_name = wandb_run_name
         self.cross_validate = cross_validate
@@ -283,7 +283,6 @@ class LocusToGeneStep:
             self.session,
             self.credible_set,
             self.feature_matrix,
-            self.features_list,
             model_path=self.model_path,
             hf_token=access_gcp_secret("hfhub-key", "open-targets-genetics-dev"),
             download_from_hub=self.download_from_hub,
@@ -291,14 +290,20 @@ class LocusToGeneStep:
         predictions.filter(
             f.col("score") >= self.l2g_threshold
         ).add_locus_to_gene_features(
-            self.feature_matrix, self.features_list
-        ).df.coalesce(self.session.output_partitions).write.mode(
+            self.feature_matrix,
+        ).explain().df.coalesce(self.session.output_partitions).write.mode(
             self.session.write_mode
         ).parquet(self.predictions_path)
         self.session.logger.info("L2G predictions saved successfully.")
 
     def run_train(self) -> None:
-        """Run the training step."""
+        """Run the training step.
+
+        Raises:
+            ValueError: If features list is not provided for model training.
+        """
+        if self.features_list is None:
+            raise ValueError("Features list is required for model training.")
         # Initialize access to weights and biases
         wandb_key = access_gcp_secret("wandb-key", "open-targets-genetics-dev")
         wandb_login(key=wandb_key)
