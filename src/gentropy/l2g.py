@@ -288,9 +288,7 @@ class LocusToGeneStep:
             hf_token=access_gcp_secret("hfhub-key", "open-targets-genetics-dev"),
             download_from_hub=self.download_from_hub,
         )
-        predictions.filter(
-            f.col("score") >= self.l2g_threshold
-        ).add_locus_to_gene_features(
+        predictions.filter(f.col("score") >= self.l2g_threshold).add_features(
             self.feature_matrix,
         ).explain().df.coalesce(self.session.output_partitions).write.mode(
             self.session.write_mode

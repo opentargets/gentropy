@@ -13,7 +13,6 @@ from pyspark.sql.types import StructType
 
 from gentropy.common.schemas import parse_spark_schema
 from gentropy.common.session import Session
-from gentropy.common.spark_helpers import convert_map_type_to_columns
 from gentropy.dataset.dataset import Dataset
 from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
 from gentropy.dataset.study_index import StudyIndex
@@ -142,7 +141,7 @@ class L2GPrediction(Dataset):
             )
         )
 
-    def explain(self: L2GPrediction) -> L2GPrediction:
+    def explain(self: L2GPrediction) -> NotImplementedError:
         """Extract Shapley values for the L2G predictions and add them as a map in an additional column.
 
         Returns:
@@ -151,50 +150,52 @@ class L2GPrediction(Dataset):
         Raises:
             ValueError: If the model is not set
         """
-        if self.model is None:
-            raise ValueError("Model not set, explainer cannot be created")
+        return NotImplementedError
 
-        explainer = shap.TreeExplainer(
-            self.model.model, feature_perturbation="tree_path_dependent"
-        )
-        df_w_features = self.df.select(
-            "*", *convert_map_type_to_columns(self.df, f.col("locusToGeneFeatures"))
-        ).drop("shapleyValues")
-        # The matrix needs to present the features in the same order that the model was trained on
-        features_list = self.model.features_list
-        pdf = df_w_features.select(*features_list).toPandas()
+        # if self.model is None:
+        #     raise ValueError("Model not set, explainer cannot be created")
 
-        # Calculate SHAP values
-        if pdf.shape[0] >= 10_000:
-            logging.warning(
-                "Calculating SHAP values for more than 10,000 rows. This may take a while..."
-            )
-        shap_values = explainer.shap_values(pdf.to_numpy())
-        for i, feature in enumerate(features_list):
-            pdf[f"shap_{feature}"] = [row[i] for row in shap_values]
+        # explainer = shap.TreeExplainer(
+        #     self.model.model, feature_perturbation="tree_path_dependent"
+        # )
+        # df_w_features = self.df.select(
+        #     "*", *convert_map_type_to_columns(self.df, f.col("locusToGeneFeatures"))
+        # ).drop("shapleyValues")
+        # # The matrix needs to present the features in the same order that the model was trained on
+        # features_list = self.model.features_list
+        # pdf = df_w_features.select(*features_list).toPandas()
 
-        spark_session = df_w_features.sparkSession
-        return L2GPrediction(
-            _df=df_w_features.join(
-                # Convert df with shapley values to Spark and join with original df
-                spark_session.createDataFrame(pdf.to_dict(orient="records")),
-                features_list,
-            )
-            .withColumn(
-                "shapleyValues",
-                f.create_map(
-                    *sum(
-                        ((f.lit(col), f.col(f"shap_{col}")) for col in features_list),
-                        (),
-                    )
-                ),
-            )
-            .select(*self.get_schema().names),
-            _schema=self.get_schema(),
-            model=self.model,
-        )
+        # # Calculate SHAP values
+        # if pdf.shape[0] >= 10_000:
+        #     logging.warning(
+        #         "Calculating SHAP values for more than 10,000 rows. This may take a while..."
+        #     )
+        # shap_values = explainer.shap_values(pdf.to_numpy())
+        # for i, feature in enumerate(features_list):
+        #     pdf[f"shap_{feature}"] = [row[i] for row in shap_values]
 
-    def add_locus_to_gene_features(
+        # spark_session = df_w_features.sparkSession
+        # return L2GPrediction(
+        #     _df=df_w_features.join(
+        #         # Convert df with shapley values to Spark and join with original df
+        #         spark_session.createDataFrame(pdf.to_dict(orient="records")),
+        #         features_list,
+        #     )
+        #     .withColumn(
+        #         "shapleyValues",
+        #         f.create_map(
+        #             *sum(
+        #                 ((f.lit(col), f.col(f"shap_{col}")) for col in features_list),
+        #                 (),
+        #             )
+        #         ),
+        #     )
+        #     .select(*self.get_schema().names),
+        #     _schema=self.get_schema(),
+        #     model=self.model,
+        # )
+
+    def add_features(
         self: L2GPrediction,
         feature_matrix: L2GFeatureMatrix,
     ) -> L2GPrediction:
@@ -204,40 +205,34 @@ class L2GPrediction(Dataset):
             feature_matrix (L2GFeatureMatrix): Feature matrix dataset
 
         Returns:
-            L2GPrediction: L2G predictions with additional features
+            L2GPrediction: L2G predictions with additional column `features`
 
         Raises:
             ValueError: If model is not set, feature list won't be available
         """
         if self.model is None:
             raise ValueError("Model not set, feature annotation cannot be created.")
-        # Testing if `locusToGeneFeatures` column already exists:
-        if "locusToGeneFeatures" in self.df.columns:
-            self.df = self.df.drop("locusToGeneFeatures")
+        # Testing if `features` column already exists:
+        if "features" in self.df.columns:
+            self.df = self.df.drop("features")
 
-        # Aggregating all features into a single map column:
-        aggregated_features = (
-            feature_matrix._df.withColumn(
-                "locusToGeneFeatures",
-                f.create_map(
-                    *sum(
-                        (
-                            (f.lit(feature), f.col(feature))
-                            for feature in self.model.features_list
-                        ),
-                        (),
-                    )
-                ),
-            )
-            .withColumn(
-                "locusToGeneFeatures",
-                f.expr("map_filter(locusToGeneFeatures, (k, v) -> v != 0)"),
-            )
-            .drop(*self.model.features_list)
-        )
+        features_list = self.model.features_list
+        feature_expressions = [
+            f.struct(f.lit(col).alias("name"), f.col(col).alias("value"))
+            for col in features_list
+        ]
         return L2GPrediction(
-            _df=self.df.join(
-                aggregated_features, on=["studyLocusId", "geneId"], how="left"
+            _df=(
+                self.df.join(
+                    feature_matrix._df.select(*features_list),
+                    on=["studyLocusId", "geneId"],
+                    how="left",
+                ).select(
+                    "studyLocusId",
+                    "geneId",
+                    "score",
+                    f.array(*feature_expressions).alias("features"),
+                )
             ),
             _schema=self.get_schema(),
             model=self.model,
