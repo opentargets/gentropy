@@ -2,26 +2,26 @@ version: 1
 labels:
   - label: "size-XS"
     size:
-      exclude-files: ["poetry.lock"]
+      exclude-files: ["uv.lock"]
       below: 10
   - label: "size-S"
     size:
-      exclude-files: ["poetry.lock"]
+      exclude-files: ["uv.lock"]
       above: 9
       below: 100
   - label: "size-M"
     size:
-      exclude-files: ["poetry.lock"]
+      exclude-files: ["uv.lock"]
       above: 100
       below: 500
   - label: "size-L"
     size:
-      exclude-files: ["poetry.lock"]
+      exclude-files: ["uv.lock"]
       above: 499
       below: 1000
   - label: "size-XL"
     size:
-      exclude-files: ["poetry.lock"]
+      exclude-files: ["uv.lock"]
       above: 999
   - label: "airflow"
     files:

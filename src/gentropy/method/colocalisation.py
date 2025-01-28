@@ -51,8 +51,8 @@ def get_tag_variant_source(statistics: Column) -> Column:
         |   a|   b|source|
         +----+----+------+
         |   a|   b|  both|
-        |null|   b| right|
-        |   a|null|  left|
+        |NULL|   b| right|
+        |   a|NULL|  left|
         +----+----+------+
         <BLANKLINE>
     """

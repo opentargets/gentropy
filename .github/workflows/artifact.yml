@@ -1,6 +1,7 @@
 name: Build and Push to Artifact Registry
 
 "on":
+  workflow_dispatch:
   push:
     branches:
       - "*"
@@ -12,7 +13,7 @@ env:
   REGION: europe-west1
   GAR_LOCATION: europe-west1-docker.pkg.dev/open-targets-genetics-dev
   REPOSITORY: gentropy-app
-  PYTHON_VERSION_DEFAULT: "3.10.8"
+  PYTHON_VERSION_DEFAULT: "3.11.11"
 
 jobs:
   build-push-artifact:
@@ -54,6 +55,7 @@ jobs:
 
       # skip the `v` at the beginning of the tag for docker image tags
       - name: Create a docker tag
+        if: github.ref == 'refs/heads/dev' || startsWith(github.ref, 'refs/tags/v')
         id: docker-tag
         shell: bash
         env:
@@ -86,13 +88,8 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: ${{ env.PYTHON_VERSION_DEFAULT }}
-      - name: Install and configure Poetry
-        uses: snok/install-poetry@v1
-        with:
-          virtualenvs-create: true
-          virtualenvs-in-project: true
-          installer-parallel: true
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
 
       - name: Build and push spark cluster dependencies
-        run: |
-          make build
+        run: make build
