@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 import pyspark.sql.functions as f
@@ -33,7 +33,7 @@ class L2GPrediction(Dataset):
     confidence of the prediction that a gene is causal to an association.
     """
 
-    model: LocusToGeneModel | None = None
+    model: LocusToGeneModel | None = field(default=None, repr=False)
 
     @classmethod
     def get_schema(cls: type[L2GPrediction]) -> StructType:
@@ -99,10 +99,7 @@ class L2GPrediction(Dataset):
             .fill_na()
             .select_features(l2g_model.features_list)
         )
-
-        predictions = l2g_model.predict(fm, session)
-        predictions.model = l2g_model  # Set the model attribute
-        return predictions
+        return l2g_model.predict(fm, session)
 
     def to_disease_target_evidence(
         self: L2GPrediction,
