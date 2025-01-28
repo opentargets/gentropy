@@ -120,9 +120,9 @@ class GWASCatalogCuratedAssociationsParser:
             |  European Ancestry|      [EA]|
             |   African ancestry|      [AA]|
             |Alzheimer’s Disease|      [AD]|
-            |      (progression)|      null|
-            |                   |      null|
-            |               null|      null|
+            |      (progression)|      NULL|
+            |                   |      NULL|
+            |               NULL|      NULL|
             +-------------------+----------+
             <BLANKLINE>
 
@@ -297,9 +297,7 @@ class GWASCatalogCuratedAssociationsParser:
             "position",
         )
 
-        return gwas_associations.join(
-            fully_mapped_associations, on="rowId", how="left"
-        )
+        return gwas_associations.join(fully_mapped_associations, on="rowId", how="left")
 
     @staticmethod
     def _compare_rsids(gnomad: Column, gwas: Column) -> Column:
@@ -423,7 +421,7 @@ class GWASCatalogCuratedAssociationsParser:
             |         A|              T|              G|        true|
             |         A|              C|              G|       false|
             |         A|              A|              ?|        true|
-            |      null|           null|              A|        true|
+            |      NULL|           NULL|              A|        true|
             +----------+---------------+---------------+------------+
             <BLANKLINE>
 
@@ -481,7 +479,7 @@ class GWASCatalogCuratedAssociationsParser:
             |    AC|           GT|
             |GTaatc|       GATTAC|
             |     ?|            ?|
-            |  null|         null|
+            |  NULL|         NULL|
             +------+-------------+
             <BLANKLINE>
 
@@ -551,7 +549,7 @@ class GWASCatalogCuratedAssociationsParser:
             |       AG|       AT|         false|
             |       AT|       AT|          true|
             |   CATATG|   CATATG|          true|
-            |     null|        -|         false|
+            |     NULL|        -|         false|
             +---------+---------+--------------+
             <BLANKLINE>
 
@@ -653,7 +651,7 @@ class GWASCatalogCuratedAssociationsParser:
         |   0.5|false|       0.5|
         |   0.5| true|       2.0|
         |   0.0|false|       0.0|
-        |   0.0| true|      null|
+        |   0.0| true|      NULL|
         +------+-----+----------+
         <BLANKLINE>
         """
@@ -693,7 +691,7 @@ class GWASCatalogCuratedAssociationsParser:
         |association_trait|mapped_trait_uri                                                         |pvalue_text      |substudy_description                      |
         +-----------------+-------------------------------------------------------------------------+-----------------+------------------------------------------+
         |Height           |http://www.ebi.ac.uk/efo/EFO_0000001,http://www.ebi.ac.uk/efo/EFO_0000002|European Ancestry|Height|EA|EFO_0000001/EFO_0000002         |
-        |Schizophrenia    |http://www.ebi.ac.uk/efo/MONDO_0005090                                   |null             |Schizophrenia|no_pvalue_text|MONDO_0005090|
+        |Schizophrenia    |http://www.ebi.ac.uk/efo/MONDO_0005090                                   |NULL             |Schizophrenia|no_pvalue_text|MONDO_0005090|
         +-----------------+-------------------------------------------------------------------------+-----------------+------------------------------------------+
         <BLANKLINE>
         """
@@ -803,9 +801,9 @@ class GWASCatalogCuratedAssociationsParser:
             +----------------------------+----------+--------+
             |qc                          |chromosome|position|
             +----------------------------+----------+--------+
-            |[Incomplete genomic mapping]|null      |null    |
-            |[Incomplete genomic mapping]|1         |null    |
-            |[Incomplete genomic mapping]|null      |1       |
+            |[Incomplete genomic mapping]|NULL      |NULL    |
+            |[Incomplete genomic mapping]|1         |NULL    |
+            |[Incomplete genomic mapping]|NULL      |1       |
             |[]                          |1         |1       |
             +----------------------------+----------+--------+
             <BLANKLINE>
@@ -867,8 +865,8 @@ class GWASCatalogCuratedAssociationsParser:
             +----------------+----+--------------------+
             |alternate_allele|  qc|              new_qc|
             +----------------+----+--------------------+
-            |               A|null|                  []|
-            |            null|null|[No mapping in Gn...|
+            |               A|NULL|                  []|
+            |            NULL|NULL|[No mapping in Gn...|
             +----------------+----+--------------------+
             <BLANKLINE>
 
@@ -940,7 +938,7 @@ class GWASCatalogCuratedAssociationsParser:
             |95% CI: [0.1-0.2]         |odds_ratio |
             |95% CI: [0.1-0.2] increase|beta       |
             |95% CI: [0.1-0.2] decrease|beta       |
-            |null                      |null       |
+            |NULL                      |NULL       |
             +--------------------------+-----------+
             <BLANKLINE>
 
@@ -994,11 +992,11 @@ class GWASCatalogCuratedAssociationsParser:
             +-------------------------+---------------+---------------+----------+--------------------+-------------------+--------------------+
             |STRONGEST SNP-RISK ALLELE|referenceAllele|alternateAllele|OR or BETA|       95% CI (TEXT)|               beta|       standardError|
             +-------------------------+---------------+---------------+----------+--------------------+-------------------+--------------------+
-            |                  rs123-T|              A|              T|       0.1|[0.08-0.12] unit ...|               null|                null|
+            |                  rs123-T|              A|              T|       0.1|[0.08-0.12] unit ...|               NULL|                NULL|
             |                  rs123-C|              G|              T|       0.1|[0.08-0.12] unit ...|               -0.1|0.010204081404574064|
             |                  rs123-T|              C|              T|       0.1|[0.08-0.12] unit ...|                0.1|0.010204081404574064|
-            |                  rs123-T|              C|              T|       0.1|         [0.08-0.12]|-2.3025850929940455|                null|
-            |                  rs123-C|              G|              T|       0.1|         [0.08-0.12]|  2.302585092994046|                null|
+            |                  rs123-T|              C|              T|       0.1|         [0.08-0.12]|-2.3025850929940455|                NULL|
+            |                  rs123-C|              G|              T|       0.1|         [0.08-0.12]|  2.302585092994046|                NULL|
             +-------------------------+---------------+---------------+----------+--------------------+-------------------+--------------------+
             <BLANKLINE>
         """
@@ -1108,7 +1106,8 @@ class GWASCatalogCuratedAssociationsParser:
         return StudyLocusGWASCatalog(
             _df=gwas_associations.withColumn(
                 # temporary column
-                "rowId", f.monotonically_increasing_id().cast(StringType())
+                "rowId",
+                f.monotonically_increasing_id().cast(StringType()),
             )
             .transform(
                 # Map/harmonise variants to variant annotation dataset:
@@ -1140,9 +1139,7 @@ class GWASCatalogCuratedAssociationsParser:
             # Adding study-locus id:
             .withColumn(
                 "studyLocusId",
-                StudyLocus.assign_study_locus_id(
-                    ["studyId", "variantId"]
-                ),
+                StudyLocus.assign_study_locus_id(["studyId", "variantId"]),
             )
             .select(
                 # INSIDE STUDY-LOCUS SCHEMA:
