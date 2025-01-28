@@ -282,9 +282,8 @@ class TestColocalisationStep:
         coloc_dataset = Colocalisation.from_parquet(
             session, self.coloc_path, recursiveFileLookup=True
         )
-        for column in expected_data:
+        for column, expected_values in expected_data.items():
             values = [c[column] for c in coloc_dataset.df.collect()]
-            expected_values = expected_data[column]
             for v, e in zip(values, expected_values):
                 if isinstance(e, float):
                     assert e == pytest.approx(v, 1e-1), (
