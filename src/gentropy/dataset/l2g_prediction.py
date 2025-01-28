@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 import pyspark.sql.functions as f
@@ -28,6 +28,8 @@ class L2GPrediction(Dataset):
     the study/locus pairs and their functional annotations. The score column informs the
     confidence of the prediction that a gene is causal to an association.
     """
+
+    model: LocusToGeneModel | None = field(default=None, repr=False)
 
     @classmethod
     def get_schema(cls: type[L2GPrediction]) -> StructType:
@@ -82,7 +84,6 @@ class L2GPrediction(Dataset):
             .fill_na()
             .select_features(l2g_model.features_list)
         )
-
         return l2g_model.predict(fm, session)
 
     def to_disease_target_evidence(
@@ -172,4 +173,5 @@ class L2GPrediction(Dataset):
                 aggregated_features, on=["studyLocusId", "geneId"], how="left"
             ),
             _schema=self.get_schema(),
+            model=self.model,
         )

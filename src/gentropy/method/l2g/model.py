@@ -175,6 +175,7 @@ class LocusToGeneModel:
         return L2GPrediction(
             _df=session.spark.createDataFrame(feature_matrix_pdf.filter(output_cols)),
             _schema=L2GPrediction.get_schema(),
+            model=self,
         )
 
     def save(self: LocusToGeneModel, path: str) -> None:
