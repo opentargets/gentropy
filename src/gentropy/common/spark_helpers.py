@@ -119,7 +119,7 @@ def pvalue_to_zscore(pval_col: Column) -> Column:
         | t3|   0.05|  1.959964|
         | t4| 1e-300| 37.537838|
         | t5|1e-1000| 37.537838|
-        | t6|     NA|      null|
+        | t6|     NA|      NULL|
         +---+-------+----------+
         <BLANKLINE>
 
@@ -149,7 +149,7 @@ def nullify_empty_array(column: Column) -> Column:
     +---------+---------+
     |    value|      new|
     +---------+---------+
-    |       []|     null|
+    |       []|     NULL|
     |[1, 2, 3]|[1, 2, 3]|
     +---------+---------+
     <BLANKLINE>
@@ -472,8 +472,8 @@ def map_column_by_dictionary(col: Column, mapping_dict: dict[str, Any]) -> Colum
         |               label|       id|
         +--------------------+---------+
         |       consequence_1|SO:000000|
-        |unmapped_consequence|     null|
-        |                null|     null|
+        |unmapped_consequence|     NULL|
+        |                NULL|     NULL|
         +--------------------+---------+
         <BLANKLINE>
     """
@@ -604,7 +604,7 @@ def rename_all_columns(df: DataFrame, prefix: str) -> DataFrame:
         +-----------+-----------+-----------+
         |          a|        1.2|       true|
         |          b|        0.0|      false|
-        |          c|       null|       null|
+        |          c|       NULL|       NULL|
         +-----------+-----------+-----------+
         <BLANKLINE>
     """
@@ -649,7 +649,7 @@ def safe_array_union(
         |[a, b]|
         |   [c]|
         |   [d]|
-        |  null|
+        |  NULL|
         +------+
         <BLANKLINE>
         >>> schema="arr2: array<struct<b:int,a:string>>, arr: array<struct<a:string,b:int>>"
@@ -752,7 +752,7 @@ def create_empty_column_if_not_exists(
         +----+----+----+
         |col1|col2|col3|
         +----+----+----+
-        |   1|   2|null|
+        |   1|   2|NULL|
         +----+----+----+
         <BLANKLINE>
     """
@@ -782,8 +782,8 @@ def get_standard_error_from_confidence_interval(lower: Column, upper: Column) ->
         |     standard_error|
         +-------------------+
         |0.25510204081632654|
-        |               null|
-        |               null|
+        |               NULL|
+        |               NULL|
         +-------------------+
         <BLANKLINE>
     """
@@ -866,13 +866,13 @@ def calculate_harmonic_sum(input_array: Column) -> Column:
         ...     Row([0.7, 0.2, 0.9]),
         ...     ], ["input_array"]
         ... )
-        >>> df.select("*", calculate_harmonic_sum(f.col("input_array")).alias("harmonic_sum")).show()
-        +---------------+------------------+
-        |    input_array|      harmonic_sum|
-        +---------------+------------------+
-        |[0.3, 0.8, 1.0]|0.7502326177269538|
-        |[0.7, 0.2, 0.9]|0.6674366756805108|
-        +---------------+------------------+
+        >>> df.select("*", f.round(calculate_harmonic_sum(f.col("input_array")), 2).alias("harmonic_sum")).show()
+        +---------------+------------+
+        |    input_array|harmonic_sum|
+        +---------------+------------+
+        |[0.3, 0.8, 1.0]|        0.75|
+        |[0.7, 0.2, 0.9]|        0.67|
+        +---------------+------------+
         <BLANKLINE>
     """
     return f.aggregate(

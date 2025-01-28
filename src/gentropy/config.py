@@ -436,7 +436,11 @@ class VariantIndexConfig(StepConfig):
         label: str
         score: float
 
-    session: SessionConfig = SessionConfig()
+    session: Any = field(
+        default_factory=lambda: {
+            "start_hail": False,
+        }
+    )
     vep_output_json_path: str = MISSING
     variant_index_path: str = MISSING
     gnomad_variant_annotations_path: str | None = None
