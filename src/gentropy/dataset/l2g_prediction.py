@@ -154,10 +154,9 @@ class L2GPrediction(Dataset):
         df_w_features = self.df.select(
             "*", *convert_map_type_to_columns(self.df, f.col("locusToGeneFeatures"))
         ).drop("shapleyValues")
-        features_list = [
-            col for col in df_w_features.columns if col not in self.get_schema().names
-        ]
-        pdf = df_w_features.select(features_list).toPandas()
+        # The matrix needs to present the features in the same order that the model was trained on
+        features_list = self.model.features_list
+        pdf = df_w_features.select(*features_list).toPandas()
 
         # Calculate SHAP values
         if pdf.shape[0] >= 10_000:
