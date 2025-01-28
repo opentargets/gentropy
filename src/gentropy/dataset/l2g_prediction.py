@@ -51,6 +51,7 @@ class L2GPrediction(Dataset):
         credible_set: StudyLocus,
         feature_matrix: L2GFeatureMatrix,
         model_path: str | None,
+        features_list: list[str] | None = None,
         hf_token: str | None = None,
         download_from_hub: bool = True,
     ) -> L2GPrediction:
@@ -61,11 +62,15 @@ class L2GPrediction(Dataset):
             credible_set (StudyLocus): Dataset containing credible sets from GWAS only
             feature_matrix (L2GFeatureMatrix): Dataset containing all credible sets and their annotations
             model_path (str | None): Path to the model file. It can be either in the filesystem or the name on the Hugging Face Hub (in the form of username/repo_name).
+            features_list (list[str] | None): Default list of features the model uses. Only used if the model is not downloaded from the Hub. CAUTION: This default list can differ from the actual list the model was trained on.
             hf_token (str | None): Hugging Face token to download the model from the Hub. Only required if the model is private.
             download_from_hub (bool): Whether to download the model from the Hugging Face Hub. Defaults to True.
 
         Returns:
             L2GPrediction: L2G scores for a set of credible sets.
+
+        Raises:
+            AttributeError: If `features_list` is not provided and the model is not downloaded from the Hub.
         """
         # Load the model
         if download_from_hub:
@@ -73,7 +78,13 @@ class L2GPrediction(Dataset):
             model_id = model_path or "opentargets/locus_to_gene"
             l2g_model = LocusToGeneModel.load_from_hub(model_id, hf_token)
         elif model_path:
-            l2g_model = LocusToGeneModel.load_from_disk(model_path)
+            if not features_list:
+                raise AttributeError(
+                    "features_list is required if the model is not downloaded from the Hub"
+                )
+            l2g_model = LocusToGeneModel.load_from_disk(
+                model_path, features_list=features_list
+            )
 
         # Prepare data
         fm = (

@@ -27,9 +27,7 @@ class LocusToGeneModel:
     """Wrapper for the Locus to Gene classifier."""
 
     model: Any = GradientBoostingClassifier(random_state=42)
-    features_list: list[str] = field(
-        default_factory=list
-    )  # TODO: default to list in config if not provided
+    features_list: list[str] = field(default_factory=list)
     hyperparameters: dict[str, Any] = field(
         default_factory=lambda: {
             "n_estimators": 100,

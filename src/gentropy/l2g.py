@@ -284,6 +284,7 @@ class LocusToGeneStep:
             self.credible_set,
             self.feature_matrix,
             model_path=self.model_path,
+            features_list=self.features_list,
             hf_token=access_gcp_secret("hfhub-key", "open-targets-genetics-dev"),
             download_from_hub=self.download_from_hub,
         )
