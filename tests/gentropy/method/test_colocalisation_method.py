@@ -187,12 +187,12 @@ def test_coloc_no_logbf(
         StudyLocusOverlap.get_schema(),
     )
     observed_coloc_df = Coloc.colocalise(observed_overlap).df
-    assert (
-        observed_coloc_df.select("h0").collect()[0]["h0"] > minimum_expected_h0
-    ), "COLOC should return a high h0 (no association) when the input data has irrelevant logBF."
-    assert (
-        observed_coloc_df.select("h4").collect()[0]["h4"] < maximum_expected_h4
-    ), "COLOC should return a low h4 (traits are associated) when the input data has irrelevant logBF."
+    assert observed_coloc_df.select("h0").collect()[0]["h0"] > minimum_expected_h0, (
+        "COLOC should return a high h0 (no association) when the input data has irrelevant logBF."
+    )
+    assert observed_coloc_df.select("h4").collect()[0]["h4"] < maximum_expected_h4, (
+        "COLOC should return a low h4 (traits are associated) when the input data has irrelevant logBF."
+    )
 
 
 def test_coloc_no_betas(spark: SparkSession) -> None:
