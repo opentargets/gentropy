@@ -208,7 +208,7 @@ class Coloc(ColocalisationMethodInterface):
 
     Attributes:
         PSEUDOCOUNT (float): Pseudocount to avoid log(0). Defaults to 1e-10.
-        OVERLAP_SIZE_CUTOFF (int): Minimum number of overlapping variants bfore filtering. Defaults to 10.
+        OVERLAP_SIZE_CUTOFF (int): Minimum number of overlapping variants bfore filtering. Defaults to 5.
         POSTERIOR_CUTOFF (float): Minimum overlapping Posterior probability cutoff for small overlaps. Defaults to 0.9.
     """
 
