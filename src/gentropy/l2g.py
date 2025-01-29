@@ -7,19 +7,19 @@ from typing import Any
 
 import pyspark.sql.functions as f
 from sklearn.ensemble import GradientBoostingClassifier
-from wandb import login as wandb_login
+from wandb.sdk.wandb_login import login as wandb_login
 
 from gentropy.common.schemas import compare_struct_schemas
 from gentropy.common.session import Session
 from gentropy.common.spark_helpers import calculate_harmonic_sum
 from gentropy.common.utils import access_gcp_secret
 from gentropy.dataset.colocalisation import Colocalisation
-from gentropy.dataset.gene_index import GeneIndex
 from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
 from gentropy.dataset.l2g_prediction import L2GPrediction
 from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import StudyLocus
+from gentropy.dataset.target_index import TargetIndex
 from gentropy.dataset.variant_index import VariantIndex
 from gentropy.method.l2g.feature_factory import L2GFeatureInputLoader
 from gentropy.method.l2g.model import LocusToGeneModel
@@ -38,7 +38,7 @@ class LocusToGeneFeatureMatrixStep:
         variant_index_path: str | None = None,
         colocalisation_path: str | None = None,
         study_index_path: str | None = None,
-        gene_index_path: str | None = None,
+        target_index_path: str | None = None,
         feature_matrix_path: str,
     ) -> None:
         """Initialise the step and run the logic based on mode.
@@ -50,7 +50,7 @@ class LocusToGeneFeatureMatrixStep:
             variant_index_path (str | None): Path to the variant index dataset
             colocalisation_path (str | None): Path to the colocalisation dataset
             study_index_path (str | None): Path to the study index dataset
-            gene_index_path (str | None): Path to the gene index dataset
+            target_index_path (str | None): Path to the target index dataset
             feature_matrix_path (str): Path to the L2G feature matrix output dataset
         """
         credible_set = StudyLocus.from_parquet(
@@ -73,9 +73,9 @@ class LocusToGeneFeatureMatrixStep:
             if colocalisation_path
             else None
         )
-        gene_index = (
-            GeneIndex.from_parquet(session, gene_index_path, recursiveFileLookup=True)
-            if gene_index_path
+        target_index = (
+            TargetIndex.from_parquet(session, target_index_path, recursiveFileLookup=True)
+            if target_index_path
             else None
         )
         features_input_loader = L2GFeatureInputLoader(
@@ -83,13 +83,15 @@ class LocusToGeneFeatureMatrixStep:
             colocalisation=coloc,
             study_index=studies,
             study_locus=credible_set,
-            gene_index=gene_index,
+            target_index=target_index,
         )
 
         fm = credible_set.filter(f.col("studyType") == "gwas").build_feature_matrix(
             features_list, features_input_loader
         )
-        fm._df.write.mode(session.write_mode).parquet(feature_matrix_path)
+        fm._df.coalesce(session.output_partitions).write.mode(
+            session.write_mode
+        ).parquet(feature_matrix_path)
 
 
 class LocusToGeneStep:
@@ -98,11 +100,12 @@ class LocusToGeneStep:
     def __init__(
         self,
         session: Session,
-        hyperparameters: dict[str, Any],
         *,
         run_mode: str,
         features_list: list[str],
+        hyperparameters: dict[str, Any],
         download_from_hub: bool,
+        cross_validate: bool,
         wandb_run_name: str,
         credible_set_path: str,
         feature_matrix_path: str,
@@ -111,18 +114,19 @@ class LocusToGeneStep:
         variant_index_path: str | None = None,
         gene_interactions_path: str | None = None,
         predictions_path: str | None = None,
-        l2g_threshold: float | None,
-        hf_hub_repo_id: str | None,
+        l2g_threshold: float | None = None,
+        hf_hub_repo_id: str | None = None,
         hf_model_commit_message: str | None = "chore: update model",
     ) -> None:
         """Initialise the step and run the logic based on mode.
 
         Args:
             session (Session): Session object that contains the Spark session
-            hyperparameters (dict[str, Any]): Hyperparameters for the model
             run_mode (str): Run mode, either 'train' or 'predict'
             features_list (list[str]): List of features to use for the model
+            hyperparameters (dict[str, Any]): Hyperparameters for the model
             download_from_hub (bool): Whether to download the model from Hugging Face Hub
+            cross_validate (bool): Whether to run cross validation (5-fold by default) to train the model.
             wandb_run_name (str): Name of the run to track model training in Weights and Biases
             credible_set_path (str): Path to the credible set dataset necessary to build the feature matrix
             feature_matrix_path (str): Path to the L2G feature matrix input dataset
@@ -150,6 +154,7 @@ class LocusToGeneStep:
         self.features_list = list(features_list)
         self.hyperparameters = dict(hyperparameters)
         self.wandb_run_name = wandb_run_name
+        self.cross_validate = cross_validate
         self.hf_hub_repo_id = hf_hub_repo_id
         self.download_from_hub = download_from_hub
         self.hf_model_commit_message = hf_model_commit_message
@@ -283,7 +288,9 @@ class LocusToGeneStep:
         )
         predictions.filter(
             f.col("score") >= self.l2g_threshold
-        ).add_locus_to_gene_features(self.feature_matrix).df.write.mode(
+        ).add_locus_to_gene_features(
+            self.feature_matrix, self.features_list
+        ).df.coalesce(self.session.output_partitions).write.mode(
             self.session.write_mode
         ).parquet(self.predictions_path)
         self.session.logger.info("L2G predictions saved successfully.")
@@ -296,7 +303,7 @@ class LocusToGeneStep:
 
         # Instantiate classifier and train model
         l2g_model = LocusToGeneModel(
-            model=GradientBoostingClassifier(random_state=42),
+            model=GradientBoostingClassifier(random_state=42, loss="log_loss"),
             hyperparameters=self.hyperparameters,
         )
 
@@ -306,7 +313,7 @@ class LocusToGeneStep:
         # Run the training
         trained_model = LocusToGeneTrainer(
             model=l2g_model, feature_matrix=feature_matrix
-        ).train(self.wandb_run_name)
+        ).train(self.wandb_run_name, cross_validate=self.cross_validate)
 
         # Export the model
         if trained_model.training_data and trained_model.model and self.model_path:
@@ -378,6 +385,7 @@ class LocusToGeneEvidenceStep:
             locus_to_gene_prediction.to_disease_target_evidence(
                 credible_sets, study_index, locus_to_gene_threshold
             )
+            .coalesce(session.output_partitions)
             .write.mode(session.write_mode)
             .option("compression", "gzip")
             .json(evidence_output_path)

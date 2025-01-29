@@ -18,8 +18,8 @@ from gentropy.datasource.finngen.study_index import (
 from gentropy.finngen_studies import FinnGenStudiesStep
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
     from pathlib import Path
-    from typing import Callable
 
     from pyspark.sql import SparkSession
 
@@ -354,9 +354,9 @@ def test_finngen_validate_release_prefix(
 ) -> None:
     """Test validate_release_prefix."""
     if not xfail:
-        assert (
-            FinnGenStudyIndex.validate_release_prefix(prefix) == expected_output
-        ), "Incorrect match object"
+        assert FinnGenStudyIndex.validate_release_prefix(prefix) == expected_output, (
+            "Incorrect match object"
+        )
     else:
         with pytest.raises(ValueError):
             FinnGenStudyIndex.validate_release_prefix(prefix)

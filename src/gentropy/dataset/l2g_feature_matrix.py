@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from functools import reduce
-from typing import TYPE_CHECKING, Type
+from typing import TYPE_CHECKING
 
 import pyspark.sql.functions as f
 from pyspark.sql import Window
@@ -39,6 +39,8 @@ class L2GFeatureMatrix:
         self.fixed_cols = ["studyLocusId", "geneId"]
         if self.with_gold_standard:
             self.fixed_cols.append("goldStandardSet")
+        if "traitFromSourceMappedId" in _df.columns:
+            self.fixed_cols.append("traitFromSourceMappedId")
 
         self.features_list = features_list or [
             col for col in _df.columns if col not in self.fixed_cols
@@ -53,7 +55,7 @@ class L2GFeatureMatrix:
 
     @classmethod
     def from_features_list(
-        cls: Type[L2GFeatureMatrix],
+        cls: type[L2GFeatureMatrix],
         study_loci_to_annotate: StudyLocus | L2GGoldStandard,
         features_list: list[str],
         features_input_loader: L2GFeatureInputLoader,

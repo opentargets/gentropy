@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 import pyspark.sql.functions as f
-from pyspark.sql.types import ArrayType, FloatType, StringType
+from pyspark.sql.types import ArrayType, FloatType, LongType, StringType
 
 from gentropy.common.genomic_region import GenomicRegion, KnownGenomicRegions
 from gentropy.common.schemas import parse_spark_schema
@@ -34,6 +34,7 @@ if TYPE_CHECKING:
     from gentropy.dataset.ld_index import LDIndex
     from gentropy.dataset.study_index import StudyIndex
     from gentropy.dataset.summary_statistics import SummaryStatistics
+    from gentropy.dataset.target_index import TargetIndex
     from gentropy.method.l2g.feature_factory import L2GFeatureInputLoader
 
 
@@ -74,7 +75,6 @@ class StudyLocusQualityCheck(Enum):
         LD_CLUMPED (str): Explained by a more significant variant in high LD
         WINDOW_CLUMPED (str): Explained by a more significant variant in the same window
         NO_POPULATION (str): Study does not have population annotation to resolve LD
-        NOT_QUALIFYING_LD_BLOCK (str): LD block does not contain variants at the required R^2 threshold
         FLAGGED_STUDY (str): Study has quality control flag(s)
         MISSING_STUDY (str): Flagging study loci if the study is not found in the study index as a reference
         DUPLICATED_STUDYLOCUS_ID (str): Study-locus identifier is not unique
@@ -100,9 +100,6 @@ class StudyLocusQualityCheck(Enum):
     LD_CLUMPED = "Explained by a more significant variant in high LD"
     WINDOW_CLUMPED = "Explained by a more significant variant in the same window"
     NO_POPULATION = "Study does not have population annotation to resolve LD"
-    NOT_QUALIFYING_LD_BLOCK = (
-        "LD block does not contain variants at the required R^2 threshold"
-    )
     FLAGGED_STUDY = "Study has quality control flag(s)"
     MISSING_STUDY = "Study not found in the study index"
     DUPLICATED_STUDYLOCUS_ID = "Non-unique study locus identifier"
@@ -117,7 +114,7 @@ class StudyLocusQualityCheck(Enum):
     EXPLAINED_BY_SUSIE = "Study locus in region explained by a SuSiE credible set"
     OUT_OF_SAMPLE_LD = "Study locus finemapped without in-sample LD reference"
     ABNORMAL_PIPS = (
-        "Study locus with a sum of PIPs that not in the expected range [0.99,1]"
+        "Study locus with a sum of PIPs that not in the expected range [0.95,1]"
     )
     INVALID_CHROMOSOME = "Chromosome not in 1:22, X, Y, XY or MT"
     TOP_HIT_AND_SUMMARY_STATS = (
@@ -682,6 +679,92 @@ class StudyLocus(Dataset):
             dict[str, str]: Mapping between flag name and QC column category value.
         """
         return {member.name: member.value for member in StudyLocusQualityCheck}
+
+    def flag_trans_qtls(
+        self: StudyLocus,
+        study_index: StudyIndex,
+        target_index: TargetIndex,
+        trans_threshold: int = 5_000_000,
+    ) -> StudyLocus:
+        """Flagging transQTL credible sets based on genomic location of the measured gene.
+
+        Process:
+        1. Enrich study-locus dataset with geneId based on study metadata. (only QTL studies are considered)
+        2. Enrich with transcription start site and chromosome of the studied gegne.
+        3. Flagging any tagging variant of QTL credible sets, if chromosome is different from the gene or distance is above the threshold.
+        4. Propagate flags to credible sets where any tags are considered as trans.
+        5. Return study locus object with annotation stored in 'isTransQtl` boolean column, where gwas credible sets will be `null`
+
+        Args:
+            study_index (StudyIndex): study index to extract identifier of the measured gene
+            target_index (TargetIndex): target index bringing TSS and chromosome of the measured gene
+            trans_threshold (int): Distance above which the QTL is considered trans. Default: 5_000_000bp
+
+        Returns:
+            StudyLocus: new column added indicating if the QTL credibles sets are trans.
+        """
+        # As the `geneId` column in the study index is optional, we have to test for that:
+        if "geneId" not in study_index.df.columns:
+            return self
+
+        # Process study index:
+        processed_studies = (
+            study_index.df
+            # Dropping gwas studies. This ensures that only QTLs will have "isTrans" annotation:
+            .filter(f.col("studyType") != "gwas").select(
+                "studyId", "geneId", "projectId"
+            )
+        )
+
+        # Process study locus:
+        processed_credible_set = (
+            self.df
+            # Exploding locus to test all tag variants:
+            .withColumn("locus", f.explode("locus")).select(
+                "studyLocusId",
+                "studyId",
+                f.split("locus.variantId", "_")[0].alias("chromosome"),
+                f.split("locus.variantId", "_")[1].cast(LongType()).alias("position"),
+            )
+        )
+
+        # Process target index:
+        processed_targets = target_index.df.select(
+            f.col("id").alias("geneId"),
+            f.col("tss"),
+            f.col("genomicLocation.chromosome").alias("geneChromosome"),
+        )
+
+        # Pool datasets:
+        joined_data = (
+            processed_credible_set
+            # Join processed studies:
+            .join(processed_studies, on="studyId", how="inner")
+            # Join processed targets:
+            .join(processed_targets, on="geneId", how="left")
+            # Assign True/False for QTL studies:
+            .withColumn(
+                "isTagTrans",
+                # The QTL signal is considered trans if the locus is on a different chromosome than the measured gene.
+                # OR the distance from the gene's transcription start site is > threshold.
+                f.when(
+                    (f.col("chromosome") != f.col("geneChromosome"))
+                    | (f.abs(f.col("tss") - f.col("position")) > trans_threshold),
+                    f.lit(True),
+                ).otherwise(f.lit(False)),
+            )
+            .groupby("studyLocusId")
+            .agg(
+                # If all tagging variants of the locus is in trans position, the QTL is considered trans:
+                f.when(
+                    f.array_contains(f.collect_set("isTagTrans"), f.lit(False)), False
+                )
+                .otherwise(f.lit(True))
+                .alias("isTransQtl")
+            )
+        )
+        # Adding new column, where the value is null for gwas loci:
+        return StudyLocus(self.df.join(joined_data, on="studyLocusId", how="left"))
 
     def filter_credible_set(
         self: StudyLocus,

@@ -247,6 +247,12 @@
       "name": "confidence",
       "nullable": true,
       "type": "string"
+    },
+    {
+      "metadata": {},
+      "name": "isTransQtl",
+      "nullable": true,
+      "type": "boolean"
     }
   ],
   "type": "struct"

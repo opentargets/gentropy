@@ -22,6 +22,12 @@
           "fields": [
             {
               "metadata": {},
+              "name": "conservation",
+              "nullable": true,
+              "type": "double"
+            },
+            {
+              "metadata": {},
               "name": "hgvsg",
               "nullable": true,
               "type": "string"
@@ -296,6 +302,12 @@
           "fields": [
             {
               "metadata": {},
+              "name": "conservation",
+              "nullable": true,
+              "type": "double"
+            },
+            {
+              "metadata": {},
               "name": "alphamissense",
               "nullable": true,
               "type": {
@@ -337,6 +349,18 @@
             {
               "metadata": {},
               "name": "hgvsp",
+              "nullable": true,
+              "type": "string"
+            },
+            {
+              "metadata": {},
+              "name": "gene_symbol",
+              "nullable": true,
+              "type": "string"
+            },
+            {
+              "metadata": {},
+              "name": "biotype",
               "nullable": true,
               "type": "string"
             },

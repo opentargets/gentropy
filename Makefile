@@ -1,10 +1,18 @@
+SHELL := /bin/bash
 PROJECT_ID ?= open-targets-genetics-dev
 REGION ?= europe-west1
 APP_NAME ?= $$(cat pyproject.toml | grep -m 1 "name" | cut -d" " -f3 | sed  's/"//g')
-REF ?= $$(git rev-parse --abbrev-ref HEAD)
-PACKAGE_VERSION ?= $$(poetry version --short)
+PACKAGE_VERSION ?= $(shell grep -m 1 'version = ' pyproject.toml | sed 's/version = "\(.*\)"/\1/')
+# NOTE: git rev-parse will always return the HEAD if it sits in the tag,
+# this way we can distinguish the tag vs branch name
+ifeq ($(shell git rev-parse --abbrev-ref HEAD),HEAD)
+	REF := $(shell git describe --exact-match --tags)
+else
+	REF := $(shell git rev-parse --abbrev-ref HEAD)
+endif
+
 CLEAN_PACKAGE_VERSION := $(shell echo "$(PACKAGE_VERSION)" | tr -cd '[:alnum:]')
-BUCKET_NAME=gs://genetics_etl_python_playground/initialisation/${APP_NAME}/${REF}
+BUCKET_NAME=gs://genetics_etl_python_playground/initialisation
 
 .PHONY: $(shell sed -n -e '/^$$/ { n ; /^[^ .\#][^ ]*:/ { s/:.*$$// ; p ; } ; }' $(MAKEFILE_LIST))
 
@@ -16,43 +24,55 @@ help: ## This is help
 clean: ## Clean up prior to building
 	@rm -Rf ./dist
 
-setup-dev: SHELL:=/bin/bash
-setup-dev: ## Setup development environment
+setup-dev: SHELL := $(shell echo $${SHELL})
+setup-dev:  ## Setup development environment
 	@. utils/install_dependencies.sh
+	@echo "Run . ${HOME}/.$(notdir $(SHELL))rc to finish setup"
 
 check: ## Lint and format code
 	@echo "Linting API..."
-	@poetry run ruff check src/gentropy .
+	@uv run ruff check src/gentropy .
 	@echo "Linting docstrings..."
-	@poetry run pydoclint --config=pyproject.toml src
-	@poetry run pydoclint --config=pyproject.toml --skip-checking-short-docstrings=true tests
+	@uv run pydoclint --config=pyproject.toml src
+	@uv run pydoclint --config=pyproject.toml --skip-checking-short-docstrings=true tests
 
 test: ## Run tests
 	@echo "Running Tests..."
-	@poetry run pytest
+	@uv run pytest
 
 build-documentation: ## Create local server with documentation
 	@echo "Building Documentation..."
-	@poetry run mkdocs serve
+	@uv run mkdocs serve
 
-create-dev-cluster: build ## Spin up a simple dataproc cluster with all dependencies for development purposes
+sync-cluster-init-script: ## Synchronize the cluster inicialisation actions script to google cloud
+	@echo "Syncing install_dependencies_on_cluster.sh to ${BUCKET_NAME}"
+	@gcloud storage cp utils/install_dependencies_on_cluster.sh ${BUCKET_NAME}/install_dependencies_on_cluster.sh
+
+sync-gentropy-cli-script: ## Synchronize the gentropy cli script
+	@echo "Syncing gentropy cli script to ${BUCKET_NAME}"
+	@gcloud storage cp src/gentropy/cli.py ${BUCKET_NAME}/cli.py
+
+create-dev-cluster: sync-cluster-init-script sync-gentropy-cli-script ## Spin up a simple dataproc cluster with all dependencies for development purposes
+	@echo "Making sure the branch is in sync with remote, so cluster can install gentropy dev version..."
+	@./utils/clean_status.sh || (echo "ERROR: Commit and push or stash local changes, to have up to date cluster"; exit 1)
 	@echo "Creating Dataproc Dev Cluster"
-	@gcloud config set project ${PROJECT_ID}
-	@gcloud dataproc clusters create "ot-genetics-dev-${CLEAN_PACKAGE_VERSION}-$(USER)" \
-		--image-version 2.1 \
+	gcloud config set project ${PROJECT_ID}
+	gcloud dataproc clusters create "ot-genetics-dev-${CLEAN_PACKAGE_VERSION}-$(USER)" \
+		--image-version 2.2 \
 		--region ${REGION} \
-		--master-machine-type n1-standard-16 \
-		--initialization-actions=$(BUCKET_NAME)/install_dependencies_on_cluster.sh \
-		--metadata="PACKAGE=$(BUCKET_NAME)/${APP_NAME}-${PACKAGE_VERSION}-py3-none-any.whl" \
+		--master-machine-type n1-standard-2 \
+		--metadata="GENTROPY_REF=${REF}" \
+		--initialization-actions=${BUCKET_NAME}/install_dependencies_on_cluster.sh \
 		--secondary-worker-type spot \
 		--worker-machine-type n1-standard-4 \
+		--public-ip-address \
 		--worker-boot-disk-size 500 \
 		--autoscaling-policy="projects/${PROJECT_ID}/regions/${REGION}/autoscalingPolicies/otg-etl" \
 		--optional-components=JUPYTER \
 		--enable-component-gateway \
 		--max-idle=60m
 
-make update-dev-cluster: build ## Reinstalls the package on the dev-cluster
+update-dev-cluster: build ## Reinstalls the package on the dev-cluster
 	@echo "Updating Dataproc Dev Cluster"
 	@gcloud config set project ${PROJECT_ID}
 	gcloud dataproc jobs submit pig --cluster="ot-genetics-dev-${CLEAN_PACKAGE_VERSION}" \
@@ -61,10 +81,4 @@ make update-dev-cluster: build ## Reinstalls the package on the dev-cluster
 		-e='sh chmod 750 $${PWD}/install_dependencies_on_cluster.sh; sh $${PWD}/install_dependencies_on_cluster.sh'
 
 build: clean ## Build Python package with dependencies
-	@gcloud config set project ${PROJECT_ID}
-	@echo "Packaging Code and Dependencies for ${APP_NAME}-${PACKAGE_VERSION}"
-	@poetry build
-	@echo "Uploading to ${BUCKET_NAME}"
-	@gsutil cp src/${APP_NAME}/cli.py ${BUCKET_NAME}/
-	@gsutil cp ./dist/${APP_NAME}-${PACKAGE_VERSION}-py3-none-any.whl ${BUCKET_NAME}/
-	@gsutil cp ./utils/install_dependencies_on_cluster.sh ${BUCKET_NAME}/
+	@uv build
