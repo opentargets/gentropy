@@ -1,33 +1,18 @@
-if ! command -v pyenv &>/dev/null; then
-    echo "Installing Pyenv, a tool to manage multiple Python versions..."
-    curl -sSL https://pyenv.run | bash
-    # Add Pyenv configuration to ~/.bashrc.
-    echo 'export PYENV_ROOT="$HOME/.pyenv"' >> ~/.bashrc
-    echo 'command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.bashrc
-    echo 'eval "$(pyenv init -)"' >> ~/.bashrc
-    # And also execute it right now.
-    . <(tail -n3 ~/.bashrc)
+readonly SHELL_RC="$HOME/.${SHELL##*/}rc"
+readonly PYTHON_VERSION=$(cat .python-version >&/dev/null || echo "3.11.11")
+
+if ! command -v uv &>/dev/null; then
+    echo "uv was not found, installing uv..."
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+    source "$SHELL_RC"
 fi
 
-echo "Activating Pyenv environment with a Python version required for the project..."
-if [ -f ".python-version" ]; then
-    PYTHON_VERSION=$(cat .python-version)
-    pyenv install --skip-existing $PYTHON_VERSION
-    pyenv shell $PYTHON_VERSION
-else
-    echo ".python-version file not found."
-    exit 1
-fi
+echo "Installing python version from .python-version..."
+uv python install "$PYTHON_VERSION"
 
-if ! command -v poetry &>/dev/null; then
-    echo "Installing Poetry, a tool to manage Python dependencies..."
-    curl -sSL https://install.python-poetry.org | python3 -
-fi
-
-echo "Preparing the Poetry environment and installing dependencies..."
-poetry env use $PYTHON_VERSION
-poetry install --sync
+echo "Installing dependencies with UV..."
+uv sync --all-groups --frozen
 
 echo "Setting up pre-commit..."
-poetry run pre-commit install
-poetry run pre-commit install --hook-type commit-msg
+uv run --no-sync pre-commit install
+uv run --no-sync pre-commit install --hook-type commit-msg
