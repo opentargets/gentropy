@@ -51,9 +51,14 @@ def common_interval_feature_logic(
         .select("studyLocusId", "chromosome", "position", "posteriorProbability")
     )
 
-    intervals_filtered = (
-        intervals.df.filter(f.col("datasourceId") == interval_source)
-        .select("chromosome", f.col("start").cast("integer"), f.col("end").cast("integer"), "geneId", "resourceScore")
+    intervals_filtered = intervals.df.filter(
+        f.col("datasourceId") == interval_source
+    ).select(
+        "chromosome",
+        f.col("start").cast("integer"),
+        f.col("end").cast("integer"),
+        "geneId",
+        "resourceScore",
     )
 
     # Overlapping join:

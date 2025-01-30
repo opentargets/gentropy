@@ -195,7 +195,7 @@ class FeatureFactory:
 
         Args:
             feature_name (str): name of the feature
-            features_input_loader (L2GFeatureInputLoader): Object that contais features input.
+            features_input_loader (L2GFeatureInputLoader): Object that contains features input.
 
         Returns:
             L2GFeature: instantiated feature object
