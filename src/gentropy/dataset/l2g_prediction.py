@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 import pyspark.sql.functions as f
@@ -29,6 +29,8 @@ class L2GPrediction(Dataset):
     confidence of the prediction that a gene is causal to an association.
     """
 
+    model: LocusToGeneModel | None = field(default=None, repr=False)
+
     @classmethod
     def get_schema(cls: type[L2GPrediction]) -> StructType:
         """Provides the schema for the L2GPrediction dataset.
@@ -44,7 +46,6 @@ class L2GPrediction(Dataset):
         session: Session,
         credible_set: StudyLocus,
         feature_matrix: L2GFeatureMatrix,
-        features_list: list[str],
         model_path: str | None,
         hf_token: str | None = None,
         download_from_hub: bool = True,
@@ -55,7 +56,6 @@ class L2GPrediction(Dataset):
             session (Session): Session object that contains the Spark session
             credible_set (StudyLocus): Dataset containing credible sets from GWAS only
             feature_matrix (L2GFeatureMatrix): Dataset containing all credible sets and their annotations
-            features_list (list[str]): List of features to use for the model
             model_path (str | None): Path to the model file. It can be either in the filesystem or the name on the Hugging Face Hub (in the form of username/repo_name).
             hf_token (str | None): Hugging Face token to download the model from the Hub. Only required if the model is private.
             download_from_hub (bool): Whether to download the model from the Hugging Face Hub. Defaults to True.
@@ -82,9 +82,8 @@ class L2GPrediction(Dataset):
                 )
             )
             .fill_na()
-            .select_features(features_list)
+            .select_features(l2g_model.features_list)
         )
-
         return l2g_model.predict(fm, session)
 
     def to_disease_target_evidence(
@@ -129,17 +128,22 @@ class L2GPrediction(Dataset):
         )
 
     def add_locus_to_gene_features(
-        self: L2GPrediction, feature_matrix: L2GFeatureMatrix, features_list: list[str]
+        self: L2GPrediction,
+        feature_matrix: L2GFeatureMatrix,
     ) -> L2GPrediction:
         """Add features used to extract the L2G predictions.
 
         Args:
             feature_matrix (L2GFeatureMatrix): Feature matrix dataset
-            features_list (list[str]): List of features used in the model
 
         Returns:
             L2GPrediction: L2G predictions with additional features
+
+        Raises:
+            ValueError: If model is not set, feature list won't be available
         """
+        if self.model is None:
+            raise ValueError("Model not set, feature annotation cannot be created.")
         # Testing if `locusToGeneFeatures` column already exists:
         if "locusToGeneFeatures" in self.df.columns:
             self.df = self.df.drop("locusToGeneFeatures")
@@ -150,7 +154,10 @@ class L2GPrediction(Dataset):
                 "locusToGeneFeatures",
                 f.create_map(
                     *sum(
-                        ((f.lit(feature), f.col(feature)) for feature in features_list),
+                        (
+                            (f.lit(feature), f.col(feature))
+                            for feature in self.model.features_list
+                        ),
                         (),
                     )
                 ),
@@ -159,11 +166,12 @@ class L2GPrediction(Dataset):
                 "locusToGeneFeatures",
                 f.expr("map_filter(locusToGeneFeatures, (k, v) -> v != 0)"),
             )
-            .drop(*features_list)
+            .drop(*self.model.features_list)
         )
         return L2GPrediction(
             _df=self.df.join(
                 aggregated_features, on=["studyLocusId", "geneId"], how="left"
             ),
             _schema=self.get_schema(),
+            model=self.model,
         )
