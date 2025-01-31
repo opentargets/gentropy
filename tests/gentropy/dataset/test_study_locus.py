@@ -519,9 +519,9 @@ def test_filter_ld_set(spark: SparkSession) -> None:
         observed_data, ["studyLocusId", "ldSet"]
     ).withColumn("ldSet", StudyLocus.filter_ld_set(f.col("ldSet"), 0.5))
     expected_tags_in_ld = 0
-    assert observed_df.filter(f.size("ldSet") > 1).count() == expected_tags_in_ld, (
-        "Expected tags in ld set differ from observed."
-    )
+    assert (
+        observed_df.filter(f.size("ldSet") > 1).count() == expected_tags_in_ld
+    ), "Expected tags in ld set differ from observed."
 
 
 def test_annotate_locus_statistics_boundaries(
@@ -862,9 +862,9 @@ def test_build_feature_matrix(
         study_locus=mock_study_locus,
     )
     fm = mock_study_locus.build_feature_matrix(features_list, loader)
-    assert isinstance(fm, L2GFeatureMatrix), (
-        "Feature matrix should be of type L2GFeatureMatrix"
-    )
+    assert isinstance(
+        fm, L2GFeatureMatrix
+    ), "Feature matrix should be of type L2GFeatureMatrix"
 
 
 class TestStudyLocusRedundancyFlagging:
@@ -1280,6 +1280,6 @@ class TestTransQtlFlagging:
 
     def test_correctness_found_trans(self: TestTransQtlFlagging) -> None:
         """Make sure trans qtls are flagged."""
-        assert self.qtl_flagged.df.filter(f.col("isTransQtl")).count() == 2, (
-            "Expected number of rows differ from observed."
-        )
+        assert (
+            self.qtl_flagged.df.filter(f.col("isTransQtl")).count() == 2
+        ), "Expected number of rows differ from observed."
