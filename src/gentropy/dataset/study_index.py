@@ -15,7 +15,9 @@ from pyspark.sql.window import Window
 
 from gentropy.assets import data
 from gentropy.common.schemas import parse_spark_schema
-from gentropy.common.spark_helpers import convert_from_wide_to_long
+from gentropy.common.spark_helpers import (
+    convert_from_wide_to_long,
+)
 from gentropy.dataset.dataset import Dataset
 
 if TYPE_CHECKING:
