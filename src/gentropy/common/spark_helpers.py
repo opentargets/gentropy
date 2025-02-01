@@ -886,3 +886,29 @@ def calculate_harmonic_sum(input_array: Column) -> Column:
         / f.pow(x["pos"], 2)
         / f.lit(sum(1 / ((i + 1) ** 2) for i in range(1000))),
     )
+
+
+def clean_strings_from_symbols(source: Column) -> Column:
+    """To make strings URL-safe and consitent by lower-casing and replace special characters with underscores.
+
+    Args:
+        source (Column): Source string
+
+    Returns:
+        Column: Cleaned string
+
+    Examples:
+        >>> d = [("AbCd-12.2",),("AaBb..123?",),("cDd!@#$%^&*()",),]
+        >>> df = spark.createDataFrame(d).toDF("source")
+        >>> df.withColumn("cleaned", clean_strings_from_symbols(f.col("source"))).show(truncate=False)
+        +-------------+---------+
+        |source       |cleaned  |
+        +-------------+---------+
+        |AbCd-12.2    |abcd-12_2|
+        |AaBb..123?   |aabb_123_|
+        |cDd!@#$%^&*()|cdd_     |
+        +-------------+---------+
+        <BLANKLINE>
+    """
+    characters_to_replace = r"[^a-z0-9-_]+"
+    return f.regexp_replace(f.lower(source), characters_to_replace, "_")
