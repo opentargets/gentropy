@@ -184,17 +184,19 @@ class L2GPrediction(Dataset):
         ).toPandas()
 
         features_list = self.model.features_list  # The matrix needs to present the features in the same order that the model was trained on)
-        base_value, shap_values = L2GPrediction._explain(
+        _, shap_values = L2GPrediction._explain(
             model=self.model, pdf=pdf.filter(items=features_list)
         )
-
         for i, feature in enumerate(features_list):
             pdf[f"shap_{feature}"] = [row[i] for row in shap_values]
+
+        # Normalise feature contributions so they sum to final probability
+        scaled_pdf = L2GPrediction._normalise_feature_contributions(pdf)
 
         spark_session = self.df.sparkSession
         return L2GPrediction(
             _df=(
-                spark_session.createDataFrame(pdf.to_dict(orient="records"))
+                spark_session.createDataFrame(scaled_pdf.to_dict(orient="records"))
                 .withColumn(
                     "features",
                     f.array(
@@ -202,13 +204,14 @@ class L2GPrediction(Dataset):
                             f.struct(
                                 f.lit(feature).alias("name"),
                                 f.col(feature).alias("value"),
-                                f.col(f"shap_{feature}").alias("shapValue"),
+                                f.col(f"scaled_prob_shap_{feature}").alias(
+                                    "scaledProbability"
+                                ),
                             )
                             for feature in features_list
                         )
                     ),
                 )
-                .withColumn("shapBaseProbability", f.lit(base_value))
                 .select(*L2GPrediction.get_schema().names)
             ),
             _schema=self.get_schema(),
@@ -240,6 +243,26 @@ class L2GPrediction(Dataset):
         shap_values = explainer.shap_values(pdf.to_numpy())
         base_value = expit(explainer.expected_value[0])
         return (base_value, shap_values)
+
+    @staticmethod
+    def _normalise_feature_contributions(pdf: pd_dataframe) -> pd_dataframe:
+        """Normalise feature contributions.
+
+        Args:
+            pdf (pd_dataframe): Pandas dataframe containing the SHAP values (log odds) for each feature.
+
+        Returns:
+            pd_dataframe: Pandas dataframe with normalised feature contributions
+        """
+        shap_cols = [col for col in pdf if col.startswith("shap")]
+        for col in shap_cols:
+            pdf[f"prob_{col}"] = expit(pdf[col])
+        prob_feature_sum = pdf[[f"prob_{col}" for col in shap_cols]].sum(axis=1)
+        pdf["scaling_factor"] = pdf["score"] / prob_feature_sum
+        for col in shap_cols:
+            pdf[f"scaled_prob_{col}"] = pdf[f"prob_{col}"] * pdf["scaling_factor"]
+        pdf.drop(columns=[f"prob_{col}" for col in shap_cols], inplace=True)
+        return pdf
 
     def add_features(
         self: L2GPrediction,
