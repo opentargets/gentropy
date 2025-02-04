@@ -10,9 +10,11 @@ import pyspark.sql.functions as f
 import shap
 from pyspark.sql import DataFrame
 from pyspark.sql.types import StructType
+from scipy.special import expit
 
 from gentropy.common.schemas import parse_spark_schema
 from gentropy.common.session import Session
+from gentropy.common.spark_helpers import pivot_df
 from gentropy.dataset.dataset import Dataset
 from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
 from gentropy.dataset.study_index import StudyIndex
@@ -20,6 +22,7 @@ from gentropy.dataset.study_locus import StudyLocus
 from gentropy.method.l2g.model import LocusToGeneModel
 
 if TYPE_CHECKING:
+    from pandas import DataFrame as pd_dataframe
     from pyspark.sql.types import StructType
 
 
@@ -141,59 +144,102 @@ class L2GPrediction(Dataset):
             )
         )
 
-    def explain(self: L2GPrediction) -> NotImplementedError:
+    def explain(
+        self: L2GPrediction, feature_matrix: L2GFeatureMatrix | None
+    ) -> L2GPrediction:
         """Extract Shapley values for the L2G predictions and add them as a map in an additional column.
+
+        Args:
+            feature_matrix (L2GFeatureMatrix | None): Feature matrix in case the predictions are missing the feature annotation. If None, the features are fetched from the dataset.
 
         Returns:
             L2GPrediction: L2GPrediction object with additional column containing feature name to Shapley value mappings
 
         Raises:
-            ValueError: If the model is not set
+            ValueError: If the model is not set or If feature matrix is not provided and the predictions do not have features
         """
-        return NotImplementedError
+        # Fetch features if they are not present:
+        if "features" not in self.df.columns:
+            if feature_matrix is None:
+                raise ValueError(
+                    "Feature matrix is required to explain the L2G predictions"
+                )
+            self.add_features(feature_matrix)
 
-        # if self.model is None:
-        #     raise ValueError("Model not set, explainer cannot be created")
+        if self.model is None:
+            raise ValueError("Model not set, explainer cannot be created")
 
-        # explainer = shap.TreeExplainer(
-        #     self.model.model, feature_perturbation="tree_path_dependent"
-        # )
-        # df_w_features = self.df.select(
-        #     "*", *convert_map_type_to_columns(self.df, f.col("locusToGeneFeatures"))
-        # ).drop("shapleyValues")
-        # # The matrix needs to present the features in the same order that the model was trained on
-        # features_list = self.model.features_list
-        # pdf = df_w_features.select(*features_list).toPandas()
+        # Format and pivot the dataframe to pass them before calculating shapley values
+        pdf = pivot_df(
+            df=self.df.withColumn("feature", f.explode("features")).select(
+                "studyLocusId",
+                "geneId",
+                "score",
+                f.col("feature.name").alias("feature_name"),
+                f.col("feature.value").alias("feature_value"),
+            ),
+            pivot_col="feature_name",
+            value_col="feature_value",
+            grouping_cols=[f.col("studyLocusId"), f.col("geneId"), f.col("score")],
+        ).toPandas()
 
-        # # Calculate SHAP values
-        # if pdf.shape[0] >= 10_000:
-        #     logging.warning(
-        #         "Calculating SHAP values for more than 10,000 rows. This may take a while..."
-        #     )
-        # shap_values = explainer.shap_values(pdf.to_numpy())
-        # for i, feature in enumerate(features_list):
-        #     pdf[f"shap_{feature}"] = [row[i] for row in shap_values]
+        features_list = self.model.features_list  # The matrix needs to present the features in the same order that the model was trained on)
+        base_value, shap_values = L2GPrediction._explain(
+            model=self.model, pdf=pdf.filter(items=features_list)
+        )
 
-        # spark_session = df_w_features.sparkSession
-        # return L2GPrediction(
-        #     _df=df_w_features.join(
-        #         # Convert df with shapley values to Spark and join with original df
-        #         spark_session.createDataFrame(pdf.to_dict(orient="records")),
-        #         features_list,
-        #     )
-        #     .withColumn(
-        #         "shapleyValues",
-        #         f.create_map(
-        #             *sum(
-        #                 ((f.lit(col), f.col(f"shap_{col}")) for col in features_list),
-        #                 (),
-        #             )
-        #         ),
-        #     )
-        #     .select(*self.get_schema().names),
-        #     _schema=self.get_schema(),
-        #     model=self.model,
-        # )
+        for i, feature in enumerate(features_list):
+            pdf[f"shap_{feature}"] = [row[i] for row in shap_values]
+
+        spark_session = self.df.sparkSession
+        return L2GPrediction(
+            _df=(
+                spark_session.createDataFrame(pdf.to_dict(orient="records"))
+                .withColumn(
+                    "features",
+                    f.array(
+                        *(
+                            f.struct(
+                                f.lit(feature).alias("name"),
+                                f.col(feature).alias("value"),
+                                f.col(f"shap_{feature}").alias("shapValue"),
+                            )
+                            for feature in features_list
+                        )
+                    ),
+                )
+                .withColumn("shapBaseProbability", f.lit(base_value))
+                .select(*L2GPrediction.get_schema().names)
+            ),
+            _schema=self.get_schema(),
+            model=self.model,
+        )
+
+    @staticmethod
+    def _explain(
+        model: LocusToGeneModel, pdf: pd_dataframe
+    ) -> tuple[float, list[list[float]]]:
+        """Calculate SHAP values. Output is log odds ratio (raw mode).
+
+        Args:
+            model (LocusToGeneModel): L2G model
+            pdf (pd_dataframe): Pandas dataframe containing the feature matrix in the same order that the model was trained on
+
+        Returns:
+            tuple[float, list[list[float]]]: A tuple containing:
+                - base_value (float): Base value of the model
+                - shap_values (list[list[float]]): SHAP values for prediction
+        """
+        explainer = shap.TreeExplainer(
+            model.model, feature_perturbation="tree_path_dependent"
+        )
+        if pdf.shape[0] >= 10_000:
+            logging.warning(
+                "Calculating SHAP values for more than 10,000 rows. This may take a while..."
+            )
+        shap_values = explainer.shap_values(pdf.to_numpy())
+        base_value = expit(explainer.expected_value[0])
+        return (base_value, shap_values)
 
     def add_features(
         self: L2GPrediction,
@@ -221,19 +267,14 @@ class L2GPrediction(Dataset):
             f.struct(f.lit(col).alias("name"), f.col(col).alias("value"))
             for col in features_list
         ]
-        return L2GPrediction(
-            _df=(
-                self.df.join(
-                    feature_matrix._df.select(*features_list),
-                    on=["studyLocusId", "geneId"],
-                    how="left",
-                ).select(
-                    "studyLocusId",
-                    "geneId",
-                    "score",
-                    f.array(*feature_expressions).alias("features"),
-                )
-            ),
-            _schema=self.get_schema(),
-            model=self.model,
+        self.df = self.df.join(
+            feature_matrix._df.select(*features_list),
+            on=["studyLocusId", "geneId"],
+            how="left",
+        ).select(
+            "studyLocusId",
+            "geneId",
+            "score",
+            f.array(*feature_expressions).alias("features"),
         )
+        return self

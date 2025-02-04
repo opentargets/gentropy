@@ -38,6 +38,18 @@
               "name": "value",
               "nullable": false,
               "type": "float"
+            },
+            {
+              "metadata": {},
+              "name": "shapValue",
+              "nullable": false,
+              "type": "float"
+            },
+            {
+              "metadata": {},
+              "name": "shapProbabilityContribution",
+              "nullable": false,
+              "type": "float"
             }
           ],
           "type": "struct"
@@ -46,15 +58,10 @@
       }
     },
     {
-      "metadata": {},
-      "name": "shapleyValues",
-      "nullable": true,
-      "type": {
-        "keyType": "string",
-        "type": "map",
-        "valueContainsNull": false,
-        "valueType": "float"
-      }
+      "name": "shapBaseProbability",
+      "type": "double",
+      "nullable": false,
+      "metadata": {}
     }
   ]
 }
