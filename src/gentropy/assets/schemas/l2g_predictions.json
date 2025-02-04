@@ -47,7 +47,7 @@
             },
             {
               "metadata": {},
-              "name": "shapProbabilityContribution",
+              "name": "scaledProbability",
               "nullable": false,
               "type": "float"
             }
@@ -56,12 +56,6 @@
         },
         "type": "array"
       }
-    },
-    {
-      "name": "shapBaseProbability",
-      "type": "double",
-      "nullable": false,
-      "metadata": {}
     }
   ]
 }
