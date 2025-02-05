@@ -182,10 +182,19 @@ class L2GPrediction(Dataset):
             value_col="feature_value",
             grouping_cols=[f.col("studyLocusId"), f.col("geneId"), f.col("score")],
         ).toPandas()
+        pdf = pdf.rename(
+            # trim the suffix that is added after pivoting the df
+            columns={
+                col: col.replace("_feature_value", "")
+                for col in pdf.columns
+                if col.endswith("_feature_value")
+            }
+        )
 
         features_list = self.model.features_list  # The matrix needs to present the features in the same order that the model was trained on)
         base_value, shap_values = L2GPrediction._explain(
-            model=self.model, pdf=pdf.filter(items=features_list)
+            model=self.model,
+            pdf=pdf.filter(items=features_list),
         )
         for i, feature in enumerate(features_list):
             pdf[f"shap_{feature}"] = [row[i] for row in shap_values]
@@ -203,10 +212,10 @@ class L2GPrediction(Dataset):
                         *(
                             f.struct(
                                 f.lit(feature).alias("name"),
-                                f.col(feature).alias("value"),
-                                f.col(f"scaled_prob_shap_{feature}").alias(
-                                    "scaledProbability"
-                                ),
+                                f.col(feature).cast("float").alias("value"),
+                                f.col(f"scaled_prob_shap_{feature}")
+                                .cast("float")
+                                .alias("scaledProbability"),
                             )
                             for feature in features_list
                         )
@@ -234,13 +243,17 @@ class L2GPrediction(Dataset):
                 - shap_values (list[list[float]]): SHAP values for prediction
         """
         explainer = shap.TreeExplainer(
-            model.model, feature_perturbation="tree_path_dependent"
+            model.model,
+            feature_perturbation="tree_path_dependent",
         )
         if pdf.shape[0] >= 10_000:
             logging.warning(
                 "Calculating SHAP values for more than 10,000 rows. This may take a while..."
             )
-        shap_values = explainer.shap_values(pdf.to_numpy())
+        shap_values = explainer.shap_values(
+            pdf.to_numpy(),
+            check_additivity=False,
+        )
         base_value = expit(explainer.expected_value[0])
         return (base_value, shap_values)
 
