@@ -10,13 +10,14 @@ def test_normalise_feature_contributions() -> None:
     """Tests that scaled probabilities per feature add up to the probability inferred by the model."""
     df = pd.DataFrame(
         {
-            "score": [0.163311],  # Final probability
-            "shap_feature1": [-3.850356],
-            "shap_feature2": [3.015085],
-            "shap_feature3": [0.063206],
+            "score": [0.45],  # Final probability
+            "shap_feature1": [-3.85],
+            "shap_feature2": [3.015],
+            "shap_feature3": [0.063],
         }
     )
-    scaled_df = L2GPrediction._normalise_feature_contributions(df)
+    base_log_odds = 0.56
+    scaled_df = L2GPrediction._normalise_feature_contributions(df, base_log_odds)
     reconstructed_prob = (
         scaled_df["scaled_prob_shap_feature1"].sum()
         + scaled_df["scaled_prob_shap_feature2"].sum()

@@ -42,13 +42,13 @@
             {
               "metadata": {},
               "name": "shapValue",
-              "nullable": false,
+              "nullable": true,
               "type": "float"
             },
             {
               "metadata": {},
               "name": "scaledProbability",
-              "nullable": false,
+              "nullable": true,
               "type": "float"
             }
           ],

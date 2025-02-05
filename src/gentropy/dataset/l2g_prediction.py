@@ -145,7 +145,7 @@ class L2GPrediction(Dataset):
         )
 
     def explain(
-        self: L2GPrediction, feature_matrix: L2GFeatureMatrix | None
+        self: L2GPrediction, feature_matrix: L2GFeatureMatrix | None = None
     ) -> L2GPrediction:
         """Extract Shapley values for the L2G predictions and add them as a map in an additional column.
 
@@ -184,14 +184,14 @@ class L2GPrediction(Dataset):
         ).toPandas()
 
         features_list = self.model.features_list  # The matrix needs to present the features in the same order that the model was trained on)
-        _, shap_values = L2GPrediction._explain(
+        base_value, shap_values = L2GPrediction._explain(
             model=self.model, pdf=pdf.filter(items=features_list)
         )
         for i, feature in enumerate(features_list):
             pdf[f"shap_{feature}"] = [row[i] for row in shap_values]
 
         # Normalise feature contributions so they sum to final probability
-        scaled_pdf = L2GPrediction._normalise_feature_contributions(pdf)
+        scaled_pdf = L2GPrediction._normalise_feature_contributions(pdf, base_value)
 
         spark_session = self.df.sparkSession
         return L2GPrediction(
@@ -245,23 +245,67 @@ class L2GPrediction(Dataset):
         return (base_value, shap_values)
 
     @staticmethod
-    def _normalise_feature_contributions(pdf: pd_dataframe) -> pd_dataframe:
-        """Normalise feature contributions.
+    def _normalise_feature_contributions(
+        pdf: pd_dataframe, base_log_odds: float
+    ) -> pd_dataframe:
+        """Normalize SHAP contributions to probability space while preserving directionality.
 
         Args:
-            pdf (pd_dataframe): Pandas dataframe containing the SHAP values (log odds) for each feature.
+            pdf (pd_dataframe): Input dataframe with SHAP values and scores
+            base_log_odds (float): Base log-odds from the SHAP explainer
 
         Returns:
-            pd_dataframe: Pandas dataframe with normalised feature contributions
+            pd_dataframe: Output dataframe with normalized probability contributions
         """
-        shap_cols = [col for col in pdf if col.startswith("shap")]
+        # Calculate base probability and sigmoid derivative
+        prob_base = expit(base_log_odds)
+        sigmoid_slope = prob_base * (1 - prob_base)  # Derivative at base log-odds
+
+        # ----------------------------------
+        # 1. Linear Approximation Phase
+        # ----------------------------------
+        # Convert SHAP values to directional probability deltas
+        shap_cols = [col for col in pdf.columns if col.startswith("shap_")]
+        linear_deltas = pdf[shap_cols] * sigmoid_slope
+
+        # ----------------------------------
+        # 2. Base Probability Distribution
+        # ----------------------------------
+        # Calculate total absolute SHAP magnitude per row
+        total_abs_shap = (
+            pdf[shap_cols].abs().sum(axis=1).replace(0, 1)  # Avoid division by zero
+        )
+
+        # Distribute base probability proportionally to SHAP magnitudes
+        base_distribution = (
+            pdf[shap_cols].abs().div(total_abs_shap, axis=0).mul(prob_base, axis=0)
+        )
+
+        # ----------------------------------
+        # 3. Contribution Scaling Phase
+        # ----------------------------------
+        # Calculate required probability adjustment
+        target_diff = pdf["score"] - prob_base
+
+        # Calculate scaling factor for linear deltas
+        raw_delta_sum = linear_deltas.sum(axis=1).replace(
+            0, 1
+        )  # Avoid division by zero
+        scaling_factor = target_diff / raw_delta_sum
+
+        # Scale deltas to match target probability difference
+        scaled_deltas = linear_deltas.mul(scaling_factor, axis=0)
+
+        # ----------------------------------
+        # 4. Final Contribution Calculation
+        # ----------------------------------
+        # Combine base distribution and scaled deltas
+        final_contributions = base_distribution + scaled_deltas
+
+        # Assign results to new columns
         for col in shap_cols:
-            pdf[f"prob_{col}"] = expit(pdf[col])
-        prob_feature_sum = pdf[[f"prob_{col}" for col in shap_cols]].sum(axis=1)
-        pdf["scaling_factor"] = pdf["score"] / prob_feature_sum
-        for col in shap_cols:
-            pdf[f"scaled_prob_{col}"] = pdf[f"prob_{col}"] * pdf["scaling_factor"]
-        pdf.drop(columns=[f"prob_{col}" for col in shap_cols], inplace=True)
+            feature_name = col.replace("shap_", "")
+            pdf[f"scaled_prob_shap_{feature_name}"] = final_contributions[col]
         return pdf
 
     def add_features(
@@ -291,7 +335,7 @@ class L2GPrediction(Dataset):
             for col in features_list
         ]
         self.df = self.df.join(
-            feature_matrix._df.select(*features_list),
+            feature_matrix._df.select(*features_list, "studyLocusId", "geneId"),
             on=["studyLocusId", "geneId"],
             how="left",
         ).select(
