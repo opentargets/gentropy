@@ -71,3 +71,24 @@ def test_studies_from_susie_results(processed_finemapping_df: DataFrame) -> None
         EqtlCatalogueStudyIndex.from_susie_results(processed_finemapping_df),
         StudyIndex,
     )
+
+
+def test_study_identifier_sanitisation(processed_finemapping_df: DataFrame) -> None:
+    """Test that the study identifiers are sanitised."""
+    replaced_characters = r"[\+\:]"
+
+    # Assert the presence of the characters that need to be replaced in the source data:
+    assert (
+        processed_finemapping_df.filter(
+            f.col("molecular_trait_id").rlike(replaced_characters)
+        ).count()
+        > 0
+    )
+
+    # Assert the absence pf the characters that need to be replaced in the study index:
+    assert (
+        EqtlCatalogueStudyIndex.from_susie_results(processed_finemapping_df)
+        .df.filter(f.col("studyId").rlike(replaced_characters))
+        .count()
+        == 0
+    )
