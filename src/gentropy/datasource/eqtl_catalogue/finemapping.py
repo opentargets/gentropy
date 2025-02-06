@@ -16,6 +16,7 @@ from pyspark.sql.types import (
 )
 
 from gentropy.common.session import Session
+from gentropy.common.spark_helpers import clean_strings_from_symbols
 from gentropy.common.utils import parse_pvalue
 from gentropy.dataset.study_locus import FinemappingMethod, StudyLocus
 from gentropy.datasource.eqtl_catalogue.study_index import EqtlCatalogueStudyIndex
@@ -171,12 +172,15 @@ class EqtlCatalogueFinemapping:
                 f.col("molecular_trait_id").alias("traitFromSource"),
                 f.col("gene_id").alias("geneId"),
                 f.col("dataset_id"),
-                f.concat_ws(
-                    "_",
-                    f.col("study_label"),
-                    f.col("quant_method"),
-                    f.col("sample_group"),
-                    f.col("molecular_trait_id"),
+                # Upon creation, the studyId cleaned from symbols:
+                clean_strings_from_symbols(
+                    f.concat_ws(
+                        "_",
+                        f.col("study_label"),
+                        f.col("quant_method"),
+                        f.col("sample_group"),
+                        f.col("molecular_trait_id"),
+                    )
                 ).alias("studyId"),
                 f.col("tissue_id").alias("biosampleFromSourceId"),
                 EqtlCatalogueStudyIndex._identify_study_type().alias("studyType"),
