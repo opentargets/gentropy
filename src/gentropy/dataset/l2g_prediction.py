@@ -213,6 +213,9 @@ class L2GPrediction(Dataset):
                             f.struct(
                                 f.lit(feature).alias("name"),
                                 f.col(feature).cast("float").alias("value"),
+                                f.col(f"shap_{feature}")
+                                .cast("float")
+                                .alias("shapValue"),
                                 f.col(f"scaled_prob_shap_{feature}")
                                 .cast("float")
                                 .alias("scaledProbability"),
