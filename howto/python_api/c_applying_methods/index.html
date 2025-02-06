@@ -1114,27 +1114,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../python_api/datasets/gene_index/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Gene Index
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../../../python_api/datasets/intervals/" class="md-nav__link">
         
   
@@ -1308,6 +1287,27 @@
   
   <span class="md-ellipsis">
     Summary Statistics
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../python_api/datasets/target_index/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Target Index
   </span>
   
 
@@ -2353,27 +2353,6 @@
 
               
             
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../python_api/datasources/open_targets/target/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Target
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
           </ul>
         </nav>
       
@@ -3025,27 +3004,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../python_api/steps/gene_index/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    gene_index
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../../../python_api/steps/gwas_catalog_curation/" class="md-nav__link">
         
   
@@ -3465,7 +3423,7 @@
 <p>The full list of available methods can be found in the Python API <a href="../../../python_api/methods/_methods/">documentation</a>.</p>
 <h2 id="apply-a-class-method">Apply a class method<a class="headerlink" href="#apply-a-class-method" title="Permanent link">&para;</a></h2>
 <p>Some methods are implemented as class methods. For example, the <code>finemap</code> method is a class method of the <a href="../../../python_api/methods/pics/"><code>PICS</code></a> class. This method performs fine-mapping using the PICS algorithm. These methods usually take as input one or several <code>Dataset</code>(s) and produce one or several <code>Dataset</code>(s) as output.</p>
-<div class="highlight"><pre><span></span><code><span class="kn">from</span> <span class="nn">gentropy.method.pics</span> <span class="kn">import</span> <span class="n">PICS</span>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">gentropy.method.pics</span><span class="w"> </span><span class="kn">import</span> <span class="n">PICS</span>
 
 <span class="n">finemapped_study_locus</span> <span class="o">=</span> <span class="n">PICS</span><span class="o">.</span><span class="n">finemap</span><span class="p">(</span>
     <span class="n">study_locus_ld_annotated</span>
@@ -3481,7 +3439,7 @@
 <p class="admonition-title">The <code>window_based_clumping</code> method is also available as a class method</p>
 <p>The <code>window_based_clumping</code> method is also available as a class method of the <code>WindowBasedClumping</code> class. This method performs window-based clumping on summary statistics.</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># Perform window-based clumping on summary statistics</span>
-<span class="kn">from</span> <span class="nn">gentropy.method.window_based_clumping</span> <span class="kn">import</span> <span class="n">WindowBasedClumping</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">gentropy.method.window_based_clumping</span><span class="w"> </span><span class="kn">import</span> <span class="n">WindowBasedClumping</span>
 
 <span class="n">clumped_summary_statistics</span> <span class="o">=</span> <span class="n">WindowBasedClumping</span><span class="o">.</span><span class="n">clump</span><span class="p">(</span>
     <span class="n">summary_stats</span><span class="p">,</span> <span class="n">distance</span><span class="o">=</span><span class="mi">250_000</span>
@@ -3530,6 +3488,14 @@
               data-bi-name="contributorprofile"
               target="_blank"
               ><img src="https://avatars.githubusercontent.com/u/45119610?v=4" alt="ireneisdoomed"
+            /></a>
+          </li><li>
+            <a
+              href="https://github.com/web-flow"
+              title="web-flow"
+              data-bi-name="contributorprofile"
+              target="_blank"
+              ><img src="https://avatars.githubusercontent.com/u/19864447?v=4" alt="web-flow"
             /></a>
           </li></ul>
       </li>

@@ -1049,27 +1049,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../../datasets/gene_index/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Gene Index
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../../datasets/intervals/" class="md-nav__link">
         
   
@@ -1243,6 +1222,27 @@
   
   <span class="md-ellipsis">
     Summary Statistics
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../datasets/target_index/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Target Index
   </span>
   
 
@@ -2288,27 +2288,6 @@
 
               
             
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../datasources/open_targets/target/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Target
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
           </ul>
         </nav>
       
@@ -3015,27 +2994,6 @@
   
   <span class="md-ellipsis">
     finngen_sumstat_preprocess
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../steps/gene_index/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    gene_index
   </span>
   
 
@@ -4413,11 +4371,11 @@
 <span class="normal">916</span>
 <span class="normal">917</span>
 <span class="normal">918</span>
-<span class="normal">919</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">CARMA</span><span class="p">:</span>
+<span class="normal">919</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">CARMA</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Implementation of CARMA outlier detection method.&quot;&quot;&quot;</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">time_limited_CARMA_spike_slab_noEM</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">time_limited_CARMA_spike_slab_noEM</span><span class="p">(</span>
         <span class="n">z</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
         <span class="n">ld</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
         <span class="n">sec_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">600</span><span class="p">,</span>
@@ -4453,7 +4411,7 @@
         <span class="k">return</span> <span class="n">result</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">CARMA_spike_slab_noEM</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">CARMA_spike_slab_noEM</span><span class="p">(</span>
         <span class="n">z</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
         <span class="n">ld</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
         <span class="n">lambda_val</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
@@ -4546,7 +4504,7 @@
         <span class="k">return</span> <span class="n">results_list</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_ind_normal_sigma_fixed_marginal_fun_indi</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_ind_normal_sigma_fixed_marginal_fun_indi</span><span class="p">(</span>
         <span class="n">zSigmaz_S</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">tau</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">p_S</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">det_S</span><span class="p">:</span> <span class="nb">float</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Internal function for calculating the marginal likelihood of configuration model.</span>
@@ -4571,7 +4529,7 @@
         <span class="k">return</span> <span class="n">p_S</span> <span class="o">/</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">tau</span><span class="p">)</span> <span class="o">-</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">det_S</span><span class="p">)</span> <span class="o">+</span> <span class="n">zSigmaz_S</span> <span class="o">/</span> <span class="mf">2.0</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_ind_Normal_fixed_sigma_marginal_external</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_ind_Normal_fixed_sigma_marginal_external</span><span class="p">(</span>
         <span class="n">index_vec_input</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
         <span class="n">Sigma</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
         <span class="n">z</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
@@ -4616,7 +4574,7 @@
         <span class="k">return</span> <span class="n">results</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_outlier_ind_Normal_marginal_external</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_outlier_ind_Normal_marginal_external</span><span class="p">(</span>
         <span class="n">index_vec_input</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
         <span class="n">Sigma</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
         <span class="n">z</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
@@ -4665,7 +4623,7 @@
         <span class="k">return</span> <span class="n">results</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_add_function</span><span class="p">(</span><span class="n">S_sub</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_add_function</span><span class="p">(</span><span class="n">S_sub</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Concatenate two arrays and sort the result.</span>
 
 <span class="sd">        Args:</span>
@@ -4685,7 +4643,7 @@
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(([</span><span class="n">x</span><span class="p">],</span> <span class="n">y</span><span class="p">)))</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">S_sub</span><span class="p">])</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_set_gamma_func_base</span><span class="p">(</span><span class="n">S</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">p</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_set_gamma_func_base</span><span class="p">(</span><span class="n">S</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">p</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Creates a dictionary of sets of configurations assuming no conditional set.</span>
 
 <span class="sd">        Args:</span>
@@ -4741,7 +4699,7 @@
         <span class="k">return</span> <span class="n">set_gamma</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_set_gamma_func_conditional</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_set_gamma_func_conditional</span><span class="p">(</span>
         <span class="n">input_S</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">condition_index</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">p</span><span class="p">:</span> <span class="nb">int</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Creates a dictionary of sets of configurations assuming conditional set.</span>
@@ -4790,7 +4748,7 @@
         <span class="k">return</span> <span class="n">set_gamma</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_set_gamma_func</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_set_gamma_func</span><span class="p">(</span>
         <span class="n">input_S</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">p</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">condition_index</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Creates a dictionary of sets of configurations.</span>
@@ -4819,7 +4777,7 @@
         <span class="k">return</span> <span class="n">results</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_index_fun_internal</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_index_fun_internal</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Convert an array of causal SNP indexes to comma-separated string.</span>
 
 <span class="sd">        Args:</span>
@@ -4838,7 +4796,7 @@
         <span class="k">return</span> <span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_index_fun</span><span class="p">(</span><span class="n">y</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_index_fun</span><span class="p">(</span><span class="n">y</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Convert an array of causal SNP indexes to comma-separated string.</span>
 
 <span class="sd">        Args:</span>
@@ -4855,7 +4813,7 @@
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">CARMA</span><span class="o">.</span><span class="n">_index_fun_internal</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">y</span><span class="p">])</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_ridge_fun</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_ridge_fun</span><span class="p">(</span>
         <span class="n">x</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
         <span class="n">Sigma</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
         <span class="n">modi_ld_S</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
@@ -4901,7 +4859,7 @@
         <span class="p">)</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_prior_dist</span><span class="p">(</span><span class="n">t</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">lambda_val</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">p</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_prior_dist</span><span class="p">(</span><span class="n">t</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">lambda_val</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">p</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Estimate the priors for the given configurations.</span>
 
 <span class="sd">        Args:</span>
@@ -4928,7 +4886,7 @@
         <span class="p">)</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_PIP_func</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_PIP_func</span><span class="p">(</span>
         <span class="n">likeli</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">model_space</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">p</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">num_causal</span><span class="p">:</span> <span class="nb">int</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Estimates the posterior inclusion probabilities (PIPs) for all SNPs.</span>
@@ -4987,7 +4945,7 @@
         <span class="k">return</span> <span class="n">result_prob</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_MCS_modified</span><span class="p">(</span>  <span class="c1"># noqa: C901</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_MCS_modified</span><span class="p">(</span>  <span class="c1"># noqa: C901</span>
         <span class="n">z</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
         <span class="n">ld_matrix</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
         <span class="n">Max_Model_Dim</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10_000</span><span class="p">,</span>
@@ -5659,7 +5617,7 @@
 <span class="normal">145</span>
 <span class="normal">146</span>
 <span class="normal">147</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@staticmethod</span>
-<span class="k">def</span> <span class="nf">CARMA_spike_slab_noEM</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">CARMA_spike_slab_noEM</span><span class="p">(</span>
     <span class="n">z</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
     <span class="n">ld</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
     <span class="n">lambda_val</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
@@ -5915,7 +5873,7 @@
 <span class="normal">52</span>
 <span class="normal">53</span>
 <span class="normal">54</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@staticmethod</span>
-<span class="k">def</span> <span class="nf">time_limited_CARMA_spike_slab_noEM</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">time_limited_CARMA_spike_slab_noEM</span><span class="p">(</span>
     <span class="n">z</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
     <span class="n">ld</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
     <span class="n">sec_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">600</span><span class="p">,</span>
@@ -5984,7 +5942,7 @@
         <span class="icon twemoji">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1-2.1-2M12.5 7v5.2l4 2.4-1 1L11 13V7h1.5M11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2v1.8Z"/></svg>
         </span>
-        <span class="label"> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2024-01-18T11:17:17+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2024-01-18</span> </span>
+        <span class="label"> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2024-01-17T10:30:44+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2024-01-17</span> </span>
       </li>
       
 

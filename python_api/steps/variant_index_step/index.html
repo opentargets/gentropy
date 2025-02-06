@@ -1049,27 +1049,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../../datasets/gene_index/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Gene Index
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../../datasets/intervals/" class="md-nav__link">
         
   
@@ -1243,6 +1222,27 @@
   
   <span class="md-ellipsis">
     Summary Statistics
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../datasets/target_index/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Target Index
   </span>
   
 
@@ -2288,27 +2288,6 @@
 
               
             
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../datasources/open_targets/target/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Target
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
           </ul>
         </nav>
       
@@ -2962,27 +2941,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../gene_index/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    gene_index
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../gwas_catalog_curation/" class="md-nav__link">
         
   
@@ -3480,8 +3438,7 @@ There's an option to provide extra variant annotations to be added to the varian
 
               <details class="quote">
                 <summary>Source code in <code>src/gentropy/variant_index.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">16</span>
-<span class="normal">17</span>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">17</span>
 <span class="normal">18</span>
 <span class="normal">19</span>
 <span class="normal">20</span>
@@ -3529,20 +3486,36 @@ There's an option to provide extra variant annotations to be added to the varian
 <span class="normal">62</span>
 <span class="normal">63</span>
 <span class="normal">64</span>
-<span class="normal">65</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">VariantIndexStep</span><span class="p">:</span>
+<span class="normal">65</span>
+<span class="normal">66</span>
+<span class="normal">67</span>
+<span class="normal">68</span>
+<span class="normal">69</span>
+<span class="normal">70</span>
+<span class="normal">71</span>
+<span class="normal">72</span>
+<span class="normal">73</span>
+<span class="normal">74</span>
+<span class="normal">75</span>
+<span class="normal">76</span>
+<span class="normal">77</span>
+<span class="normal">78</span>
+<span class="normal">79</span>
+<span class="normal">80</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">VariantIndexStep</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Generate variant index based on a VEP output in json format.</span>
 
 <span class="sd">    The variant index is a dataset that contains variant annotations extracted from VEP output. It is expected that all variants in the VEP output are present in the variant index.</span>
 <span class="sd">    There&#39;s an option to provide extra variant annotations to be added to the variant index eg. allele frequencies from GnomAD.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">:</span> <span class="n">VariantIndexStep</span><span class="p">,</span>
         <span class="n">session</span><span class="p">:</span> <span class="n">Session</span><span class="p">,</span>
         <span class="n">vep_output_json_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">variant_index_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">hash_threshold</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">gnomad_variant_annotations_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">amino_acid_change_annotations</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Run VariantIndex step.</span>
 
@@ -3552,6 +3525,7 @@ There's an option to provide extra variant annotations to be added to the varian
 <span class="sd">            variant_index_path (str): Variant index dataset path to save resulting data.</span>
 <span class="sd">            hash_threshold (int): Hash threshold for variant identifier length.</span>
 <span class="sd">            gnomad_variant_annotations_path (str | None): Path to extra variant annotation dataset.</span>
+<span class="sd">            amino_acid_change_annotations (list[str] | None): list of paths to amino-acid based variant annotations.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1"># Extract variant annotations from VEP output:</span>
         <span class="n">variant_index</span> <span class="o">=</span> <span class="n">VariantEffectPredictorParser</span><span class="o">.</span><span class="n">extract_variant_index_from_vep</span><span class="p">(</span>
@@ -3568,8 +3542,20 @@ There's an option to provide extra variant annotations to be added to the varian
                 <span class="n">id_threshold</span><span class="o">=</span><span class="n">hash_threshold</span><span class="p">,</span>
             <span class="p">)</span>
 
-            <span class="c1"># Update file with extra annotations:</span>
+            <span class="c1"># Update index with extra annotations:</span>
             <span class="n">variant_index</span> <span class="o">=</span> <span class="n">variant_index</span><span class="o">.</span><span class="n">add_annotation</span><span class="p">(</span><span class="n">annotations</span><span class="p">)</span>
+
+        <span class="c1"># If provided read amion-acid based annotation and enrich variant index:</span>
+        <span class="k">if</span> <span class="n">amino_acid_change_annotations</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">annotation_path</span> <span class="ow">in</span> <span class="n">amino_acid_change_annotations</span><span class="p">:</span>
+                <span class="n">annotation_data</span> <span class="o">=</span> <span class="n">AminoAcidVariants</span><span class="o">.</span><span class="n">from_parquet</span><span class="p">(</span>
+                    <span class="n">session</span><span class="p">,</span> <span class="n">annotation_path</span>
+                <span class="p">)</span>
+
+                <span class="c1"># Update index with extra annotations:</span>
+                <span class="n">variant_index</span> <span class="o">=</span> <span class="n">variant_index</span><span class="o">.</span><span class="n">annotate_with_amino_acid_consequences</span><span class="p">(</span>
+                    <span class="n">annotation_data</span>
+                <span class="p">)</span>
 
         <span class="p">(</span>
             <span class="n">variant_index</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">repartitionByRange</span><span class="p">(</span>
@@ -3598,7 +3584,7 @@ There's an option to provide extra variant annotations to be added to the varian
 
 
 <h3 id="gentropy.variant_index.VariantIndexStep.__init__" class="doc doc-heading">
-            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">session</span><span class="p">:</span> <span class="n">Session</span><span class="p">,</span> <span class="n">vep_output_json_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">variant_index_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">hash_threshold</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">gnomad_variant_annotations_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span></code>
+            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">session</span><span class="p">:</span> <span class="n">Session</span><span class="p">,</span> <span class="n">vep_output_json_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">variant_index_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">hash_threshold</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">gnomad_variant_annotations_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">amino_acid_change_annotations</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span></code>
 
 <a href="#gentropy.variant_index.VariantIndexStep.__init__" class="headerlink" title="Permanent link">&para;</a></h3>
 
@@ -3699,13 +3685,28 @@ There's an option to provide extra variant annotations to be added to the varian
                   <code>None</code>
             </td>
           </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>amino_acid_change_annotations</code>
+            </td>
+            <td>
+                  <code>list[str] | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>list of paths to amino-acid based variant annotations.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
       </tbody>
     </table>
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/variant_index.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">23</span>
-<span class="normal">24</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">24</span>
 <span class="normal">25</span>
 <span class="normal">26</span>
 <span class="normal">27</span>
@@ -3746,13 +3747,29 @@ There's an option to provide extra variant annotations to be added to the varian
 <span class="normal">62</span>
 <span class="normal">63</span>
 <span class="normal">64</span>
-<span class="normal">65</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+<span class="normal">65</span>
+<span class="normal">66</span>
+<span class="normal">67</span>
+<span class="normal">68</span>
+<span class="normal">69</span>
+<span class="normal">70</span>
+<span class="normal">71</span>
+<span class="normal">72</span>
+<span class="normal">73</span>
+<span class="normal">74</span>
+<span class="normal">75</span>
+<span class="normal">76</span>
+<span class="normal">77</span>
+<span class="normal">78</span>
+<span class="normal">79</span>
+<span class="normal">80</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">:</span> <span class="n">VariantIndexStep</span><span class="p">,</span>
     <span class="n">session</span><span class="p">:</span> <span class="n">Session</span><span class="p">,</span>
     <span class="n">vep_output_json_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">variant_index_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">hash_threshold</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">gnomad_variant_annotations_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">amino_acid_change_annotations</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Run VariantIndex step.</span>
 
@@ -3762,6 +3779,7 @@ There's an option to provide extra variant annotations to be added to the varian
 <span class="sd">        variant_index_path (str): Variant index dataset path to save resulting data.</span>
 <span class="sd">        hash_threshold (int): Hash threshold for variant identifier length.</span>
 <span class="sd">        gnomad_variant_annotations_path (str | None): Path to extra variant annotation dataset.</span>
+<span class="sd">        amino_acid_change_annotations (list[str] | None): list of paths to amino-acid based variant annotations.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># Extract variant annotations from VEP output:</span>
     <span class="n">variant_index</span> <span class="o">=</span> <span class="n">VariantEffectPredictorParser</span><span class="o">.</span><span class="n">extract_variant_index_from_vep</span><span class="p">(</span>
@@ -3778,8 +3796,20 @@ There's an option to provide extra variant annotations to be added to the varian
             <span class="n">id_threshold</span><span class="o">=</span><span class="n">hash_threshold</span><span class="p">,</span>
         <span class="p">)</span>
 
-        <span class="c1"># Update file with extra annotations:</span>
+        <span class="c1"># Update index with extra annotations:</span>
         <span class="n">variant_index</span> <span class="o">=</span> <span class="n">variant_index</span><span class="o">.</span><span class="n">add_annotation</span><span class="p">(</span><span class="n">annotations</span><span class="p">)</span>
+
+    <span class="c1"># If provided read amion-acid based annotation and enrich variant index:</span>
+    <span class="k">if</span> <span class="n">amino_acid_change_annotations</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">annotation_path</span> <span class="ow">in</span> <span class="n">amino_acid_change_annotations</span><span class="p">:</span>
+            <span class="n">annotation_data</span> <span class="o">=</span> <span class="n">AminoAcidVariants</span><span class="o">.</span><span class="n">from_parquet</span><span class="p">(</span>
+                <span class="n">session</span><span class="p">,</span> <span class="n">annotation_path</span>
+            <span class="p">)</span>
+
+            <span class="c1"># Update index with extra annotations:</span>
+            <span class="n">variant_index</span> <span class="o">=</span> <span class="n">variant_index</span><span class="o">.</span><span class="n">annotate_with_amino_acid_consequences</span><span class="p">(</span>
+                <span class="n">annotation_data</span>
+            <span class="p">)</span>
 
     <span class="p">(</span>
         <span class="n">variant_index</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">repartitionByRange</span><span class="p">(</span>

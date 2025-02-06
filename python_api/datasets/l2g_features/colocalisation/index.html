@@ -1051,27 +1051,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../../gene_index/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Gene Index
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../../intervals/" class="md-nav__link">
         
   
@@ -1245,6 +1224,27 @@
   
   <span class="md-ellipsis">
     Summary Statistics
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../target_index/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Target Index
   </span>
   
 
@@ -2661,27 +2661,6 @@
 
               
             
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../datasources/open_targets/target/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Target
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
           </ul>
         </nav>
       
@@ -3317,27 +3296,6 @@
   
   <span class="md-ellipsis">
     finngen_sumstat_preprocess
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../steps/gene_index/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    gene_index
   </span>
   
 
@@ -4147,14 +4105,14 @@
 <span class="normal">233</span>
 <span class="normal">234</span>
 <span class="normal">235</span>
-<span class="normal">236</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">EQtlColocClppMaximumFeature</span><span class="p">(</span><span class="n">L2GFeature</span><span class="p">):</span>
+<span class="normal">236</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">EQtlColocClppMaximumFeature</span><span class="p">(</span><span class="n">L2GFeature</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Max CLPP for each (study, locus, gene) aggregating over all eQTLs.&quot;&quot;&quot;</span>
 
     <span class="n">feature_dependency_type</span> <span class="o">=</span> <span class="p">[</span><span class="n">Colocalisation</span><span class="p">,</span> <span class="n">StudyIndex</span><span class="p">,</span> <span class="n">StudyLocus</span><span class="p">]</span>
     <span class="n">feature_name</span> <span class="o">=</span> <span class="s2">&quot;eQtlColocClppMaximum&quot;</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">EQtlColocClppMaximumFeature</span><span class="p">],</span>
         <span class="n">study_loci_to_annotate</span><span class="p">:</span> <span class="n">StudyLocus</span> <span class="o">|</span> <span class="n">L2GGoldStandard</span><span class="p">,</span>
         <span class="n">feature_dependency</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
@@ -4327,7 +4285,7 @@
 <span class="normal">234</span>
 <span class="normal">235</span>
 <span class="normal">236</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
-<span class="k">def</span> <span class="nf">compute</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span>
     <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">EQtlColocClppMaximumFeature</span><span class="p">],</span>
     <span class="n">study_loci_to_annotate</span><span class="p">:</span> <span class="n">StudyLocus</span> <span class="o">|</span> <span class="n">L2GGoldStandard</span><span class="p">,</span>
     <span class="n">feature_dependency</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
@@ -4443,14 +4401,14 @@
 <span class="normal">324</span>
 <span class="normal">325</span>
 <span class="normal">326</span>
-<span class="normal">327</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">PQtlColocClppMaximumFeature</span><span class="p">(</span><span class="n">L2GFeature</span><span class="p">):</span>
+<span class="normal">327</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">PQtlColocClppMaximumFeature</span><span class="p">(</span><span class="n">L2GFeature</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Max CLPP for each (study, locus, gene) aggregating over all pQTLs.&quot;&quot;&quot;</span>
 
     <span class="n">feature_dependency_type</span> <span class="o">=</span> <span class="p">[</span><span class="n">Colocalisation</span><span class="p">,</span> <span class="n">StudyIndex</span><span class="p">,</span> <span class="n">StudyLocus</span><span class="p">]</span>
     <span class="n">feature_name</span> <span class="o">=</span> <span class="s2">&quot;pQtlColocClppMaximum&quot;</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">PQtlColocClppMaximumFeature</span><span class="p">],</span>
         <span class="n">study_loci_to_annotate</span><span class="p">:</span> <span class="n">StudyLocus</span> <span class="o">|</span> <span class="n">L2GGoldStandard</span><span class="p">,</span>
         <span class="n">feature_dependency</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
@@ -4621,7 +4579,7 @@
 <span class="normal">325</span>
 <span class="normal">326</span>
 <span class="normal">327</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
-<span class="k">def</span> <span class="nf">compute</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span>
     <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">PQtlColocClppMaximumFeature</span><span class="p">],</span>
     <span class="n">study_loci_to_annotate</span><span class="p">:</span> <span class="n">StudyLocus</span> <span class="o">|</span> <span class="n">L2GGoldStandard</span><span class="p">,</span>
     <span class="n">feature_dependency</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
@@ -4736,14 +4694,14 @@
 <span class="normal">414</span>
 <span class="normal">415</span>
 <span class="normal">416</span>
-<span class="normal">417</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">SQtlColocClppMaximumFeature</span><span class="p">(</span><span class="n">L2GFeature</span><span class="p">):</span>
+<span class="normal">417</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">SQtlColocClppMaximumFeature</span><span class="p">(</span><span class="n">L2GFeature</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Max CLPP for each (study, locus, gene) aggregating over all sQTLs.&quot;&quot;&quot;</span>
 
     <span class="n">feature_dependency_type</span> <span class="o">=</span> <span class="p">[</span><span class="n">Colocalisation</span><span class="p">,</span> <span class="n">StudyIndex</span><span class="p">,</span> <span class="n">StudyLocus</span><span class="p">]</span>
     <span class="n">feature_name</span> <span class="o">=</span> <span class="s2">&quot;sQtlColocClppMaximum&quot;</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">SQtlColocClppMaximumFeature</span><span class="p">],</span>
         <span class="n">study_loci_to_annotate</span><span class="p">:</span> <span class="n">StudyLocus</span> <span class="o">|</span> <span class="n">L2GGoldStandard</span><span class="p">,</span>
         <span class="n">feature_dependency</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
@@ -4914,7 +4872,7 @@
 <span class="normal">415</span>
 <span class="normal">416</span>
 <span class="normal">417</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
-<span class="k">def</span> <span class="nf">compute</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span>
     <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">SQtlColocClppMaximumFeature</span><span class="p">],</span>
     <span class="n">study_loci_to_annotate</span><span class="p">:</span> <span class="n">StudyLocus</span> <span class="o">|</span> <span class="n">L2GGoldStandard</span><span class="p">,</span>
     <span class="n">feature_dependency</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
@@ -5029,14 +4987,14 @@
 <span class="normal">504</span>
 <span class="normal">505</span>
 <span class="normal">506</span>
-<span class="normal">507</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">EQtlColocH4MaximumFeature</span><span class="p">(</span><span class="n">L2GFeature</span><span class="p">):</span>
+<span class="normal">507</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">EQtlColocH4MaximumFeature</span><span class="p">(</span><span class="n">L2GFeature</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Max H4 for each (study, locus, gene) aggregating over all eQTLs.&quot;&quot;&quot;</span>
 
     <span class="n">feature_dependency_type</span> <span class="o">=</span> <span class="p">[</span><span class="n">Colocalisation</span><span class="p">,</span> <span class="n">StudyIndex</span><span class="p">,</span> <span class="n">StudyLocus</span><span class="p">]</span>
     <span class="n">feature_name</span> <span class="o">=</span> <span class="s2">&quot;eQtlColocH4Maximum&quot;</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">EQtlColocH4MaximumFeature</span><span class="p">],</span>
         <span class="n">study_loci_to_annotate</span><span class="p">:</span> <span class="n">StudyLocus</span> <span class="o">|</span> <span class="n">L2GGoldStandard</span><span class="p">,</span>
         <span class="n">feature_dependency</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
@@ -5207,7 +5165,7 @@
 <span class="normal">505</span>
 <span class="normal">506</span>
 <span class="normal">507</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
-<span class="k">def</span> <span class="nf">compute</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span>
     <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">EQtlColocH4MaximumFeature</span><span class="p">],</span>
     <span class="n">study_loci_to_annotate</span><span class="p">:</span> <span class="n">StudyLocus</span> <span class="o">|</span> <span class="n">L2GGoldStandard</span><span class="p">,</span>
     <span class="n">feature_dependency</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
@@ -5322,14 +5280,14 @@
 <span class="normal">594</span>
 <span class="normal">595</span>
 <span class="normal">596</span>
-<span class="normal">597</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">PQtlColocH4MaximumFeature</span><span class="p">(</span><span class="n">L2GFeature</span><span class="p">):</span>
+<span class="normal">597</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">PQtlColocH4MaximumFeature</span><span class="p">(</span><span class="n">L2GFeature</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Max H4 for each (study, locus, gene) aggregating over all pQTLs.&quot;&quot;&quot;</span>
 
     <span class="n">feature_dependency_type</span> <span class="o">=</span> <span class="p">[</span><span class="n">Colocalisation</span><span class="p">,</span> <span class="n">StudyIndex</span><span class="p">,</span> <span class="n">StudyLocus</span><span class="p">]</span>
     <span class="n">feature_name</span> <span class="o">=</span> <span class="s2">&quot;pQtlColocH4Maximum&quot;</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">PQtlColocH4MaximumFeature</span><span class="p">],</span>
         <span class="n">study_loci_to_annotate</span><span class="p">:</span> <span class="n">StudyLocus</span> <span class="o">|</span> <span class="n">L2GGoldStandard</span><span class="p">,</span>
         <span class="n">feature_dependency</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
@@ -5500,7 +5458,7 @@
 <span class="normal">595</span>
 <span class="normal">596</span>
 <span class="normal">597</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
-<span class="k">def</span> <span class="nf">compute</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span>
     <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">PQtlColocH4MaximumFeature</span><span class="p">],</span>
     <span class="n">study_loci_to_annotate</span><span class="p">:</span> <span class="n">StudyLocus</span> <span class="o">|</span> <span class="n">L2GGoldStandard</span><span class="p">,</span>
     <span class="n">feature_dependency</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
@@ -5615,14 +5573,14 @@
 <span class="normal">684</span>
 <span class="normal">685</span>
 <span class="normal">686</span>
-<span class="normal">687</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">SQtlColocH4MaximumFeature</span><span class="p">(</span><span class="n">L2GFeature</span><span class="p">):</span>
+<span class="normal">687</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">SQtlColocH4MaximumFeature</span><span class="p">(</span><span class="n">L2GFeature</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Max H4 for each (study, locus, gene) aggregating over all sQTLs.&quot;&quot;&quot;</span>
 
     <span class="n">feature_dependency_type</span> <span class="o">=</span> <span class="p">[</span><span class="n">Colocalisation</span><span class="p">,</span> <span class="n">StudyIndex</span><span class="p">,</span> <span class="n">StudyLocus</span><span class="p">]</span>
     <span class="n">feature_name</span> <span class="o">=</span> <span class="s2">&quot;sQtlColocH4Maximum&quot;</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">SQtlColocH4MaximumFeature</span><span class="p">],</span>
         <span class="n">study_loci_to_annotate</span><span class="p">:</span> <span class="n">StudyLocus</span> <span class="o">|</span> <span class="n">L2GGoldStandard</span><span class="p">,</span>
         <span class="n">feature_dependency</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
@@ -5793,7 +5751,7 @@
 <span class="normal">685</span>
 <span class="normal">686</span>
 <span class="normal">687</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
-<span class="k">def</span> <span class="nf">compute</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span>
     <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">SQtlColocH4MaximumFeature</span><span class="p">],</span>
     <span class="n">study_loci_to_annotate</span><span class="p">:</span> <span class="n">StudyLocus</span> <span class="o">|</span> <span class="n">L2GGoldStandard</span><span class="p">,</span>
     <span class="n">feature_dependency</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
@@ -5915,20 +5873,20 @@
 <span class="normal">282</span>
 <span class="normal">283</span>
 <span class="normal">284</span>
-<span class="normal">285</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">EQtlColocClppMaximumNeighbourhoodFeature</span><span class="p">(</span><span class="n">L2GFeature</span><span class="p">):</span>
+<span class="normal">285</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">EQtlColocClppMaximumNeighbourhoodFeature</span><span class="p">(</span><span class="n">L2GFeature</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Max CLPP for each (study, locus) aggregating over all eQTLs.&quot;&quot;&quot;</span>
 
     <span class="n">feature_dependency_type</span> <span class="o">=</span> <span class="p">[</span>
         <span class="n">Colocalisation</span><span class="p">,</span>
         <span class="n">StudyIndex</span><span class="p">,</span>
-        <span class="n">GeneIndex</span><span class="p">,</span>
+        <span class="n">TargetIndex</span><span class="p">,</span>
         <span class="n">StudyLocus</span><span class="p">,</span>
         <span class="n">VariantIndex</span><span class="p">,</span>
     <span class="p">]</span>
     <span class="n">feature_name</span> <span class="o">=</span> <span class="s2">&quot;eQtlColocClppMaximumNeighbourhood&quot;</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">EQtlColocClppMaximumNeighbourhoodFeature</span><span class="p">],</span>
         <span class="n">study_loci_to_annotate</span><span class="p">:</span> <span class="n">StudyLocus</span> <span class="o">|</span> <span class="n">L2GGoldStandard</span><span class="p">,</span>
         <span class="n">feature_dependency</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
@@ -6101,7 +6059,7 @@
 <span class="normal">283</span>
 <span class="normal">284</span>
 <span class="normal">285</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
-<span class="k">def</span> <span class="nf">compute</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span>
     <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">EQtlColocClppMaximumNeighbourhoodFeature</span><span class="p">],</span>
     <span class="n">study_loci_to_annotate</span><span class="p">:</span> <span class="n">StudyLocus</span> <span class="o">|</span> <span class="n">L2GGoldStandard</span><span class="p">,</span>
     <span class="n">feature_dependency</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
@@ -6223,20 +6181,20 @@
 <span class="normal">372</span>
 <span class="normal">373</span>
 <span class="normal">374</span>
-<span class="normal">375</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">PQtlColocClppMaximumNeighbourhoodFeature</span><span class="p">(</span><span class="n">L2GFeature</span><span class="p">):</span>
+<span class="normal">375</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">PQtlColocClppMaximumNeighbourhoodFeature</span><span class="p">(</span><span class="n">L2GFeature</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Max CLPP for each (study, locus, gene) aggregating over all pQTLs.&quot;&quot;&quot;</span>
 
     <span class="n">feature_dependency_type</span> <span class="o">=</span> <span class="p">[</span>
         <span class="n">Colocalisation</span><span class="p">,</span>
         <span class="n">StudyIndex</span><span class="p">,</span>
-        <span class="n">GeneIndex</span><span class="p">,</span>
+        <span class="n">TargetIndex</span><span class="p">,</span>
         <span class="n">StudyLocus</span><span class="p">,</span>
         <span class="n">VariantIndex</span><span class="p">,</span>
     <span class="p">]</span>
     <span class="n">feature_name</span> <span class="o">=</span> <span class="s2">&quot;pQtlColocClppMaximumNeighbourhood&quot;</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">PQtlColocClppMaximumNeighbourhoodFeature</span><span class="p">],</span>
         <span class="n">study_loci_to_annotate</span><span class="p">:</span> <span class="n">StudyLocus</span> <span class="o">|</span> <span class="n">L2GGoldStandard</span><span class="p">,</span>
         <span class="n">feature_dependency</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
@@ -6407,7 +6365,7 @@
 <span class="normal">373</span>
 <span class="normal">374</span>
 <span class="normal">375</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
-<span class="k">def</span> <span class="nf">compute</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span>
     <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">PQtlColocClppMaximumNeighbourhoodFeature</span><span class="p">],</span>
     <span class="n">study_loci_to_annotate</span><span class="p">:</span> <span class="n">StudyLocus</span> <span class="o">|</span> <span class="n">L2GGoldStandard</span><span class="p">,</span>
     <span class="n">feature_dependency</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
@@ -6528,20 +6486,20 @@
 <span class="normal">462</span>
 <span class="normal">463</span>
 <span class="normal">464</span>
-<span class="normal">465</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">SQtlColocClppMaximumNeighbourhoodFeature</span><span class="p">(</span><span class="n">L2GFeature</span><span class="p">):</span>
+<span class="normal">465</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">SQtlColocClppMaximumNeighbourhoodFeature</span><span class="p">(</span><span class="n">L2GFeature</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Max CLPP for each (study, locus, gene) aggregating over all sQTLs.&quot;&quot;&quot;</span>
 
     <span class="n">feature_dependency_type</span> <span class="o">=</span> <span class="p">[</span>
         <span class="n">Colocalisation</span><span class="p">,</span>
         <span class="n">StudyIndex</span><span class="p">,</span>
-        <span class="n">GeneIndex</span><span class="p">,</span>
+        <span class="n">TargetIndex</span><span class="p">,</span>
         <span class="n">StudyLocus</span><span class="p">,</span>
         <span class="n">VariantIndex</span><span class="p">,</span>
     <span class="p">]</span>
     <span class="n">feature_name</span> <span class="o">=</span> <span class="s2">&quot;sQtlColocClppMaximumNeighbourhood&quot;</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">SQtlColocClppMaximumNeighbourhoodFeature</span><span class="p">],</span>
         <span class="n">study_loci_to_annotate</span><span class="p">:</span> <span class="n">StudyLocus</span> <span class="o">|</span> <span class="n">L2GGoldStandard</span><span class="p">,</span>
         <span class="n">feature_dependency</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
@@ -6712,7 +6670,7 @@
 <span class="normal">463</span>
 <span class="normal">464</span>
 <span class="normal">465</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
-<span class="k">def</span> <span class="nf">compute</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span>
     <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">SQtlColocClppMaximumNeighbourhoodFeature</span><span class="p">],</span>
     <span class="n">study_loci_to_annotate</span><span class="p">:</span> <span class="n">StudyLocus</span> <span class="o">|</span> <span class="n">L2GGoldStandard</span><span class="p">,</span>
     <span class="n">feature_dependency</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
@@ -6833,20 +6791,20 @@
 <span class="normal">552</span>
 <span class="normal">553</span>
 <span class="normal">554</span>
-<span class="normal">555</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">EQtlColocH4MaximumNeighbourhoodFeature</span><span class="p">(</span><span class="n">L2GFeature</span><span class="p">):</span>
+<span class="normal">555</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">EQtlColocH4MaximumNeighbourhoodFeature</span><span class="p">(</span><span class="n">L2GFeature</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Max H4 for each (study, locus) aggregating over all eQTLs.&quot;&quot;&quot;</span>
 
     <span class="n">feature_dependency_type</span> <span class="o">=</span> <span class="p">[</span>
         <span class="n">Colocalisation</span><span class="p">,</span>
         <span class="n">StudyIndex</span><span class="p">,</span>
-        <span class="n">GeneIndex</span><span class="p">,</span>
+        <span class="n">TargetIndex</span><span class="p">,</span>
         <span class="n">StudyLocus</span><span class="p">,</span>
         <span class="n">VariantIndex</span><span class="p">,</span>
     <span class="p">]</span>
     <span class="n">feature_name</span> <span class="o">=</span> <span class="s2">&quot;eQtlColocH4MaximumNeighbourhood&quot;</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">EQtlColocH4MaximumNeighbourhoodFeature</span><span class="p">],</span>
         <span class="n">study_loci_to_annotate</span><span class="p">:</span> <span class="n">StudyLocus</span> <span class="o">|</span> <span class="n">L2GGoldStandard</span><span class="p">,</span>
         <span class="n">feature_dependency</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
@@ -7017,7 +6975,7 @@
 <span class="normal">553</span>
 <span class="normal">554</span>
 <span class="normal">555</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
-<span class="k">def</span> <span class="nf">compute</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span>
     <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">EQtlColocH4MaximumNeighbourhoodFeature</span><span class="p">],</span>
     <span class="n">study_loci_to_annotate</span><span class="p">:</span> <span class="n">StudyLocus</span> <span class="o">|</span> <span class="n">L2GGoldStandard</span><span class="p">,</span>
     <span class="n">feature_dependency</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
@@ -7138,20 +7096,20 @@
 <span class="normal">642</span>
 <span class="normal">643</span>
 <span class="normal">644</span>
-<span class="normal">645</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">PQtlColocH4MaximumNeighbourhoodFeature</span><span class="p">(</span><span class="n">L2GFeature</span><span class="p">):</span>
+<span class="normal">645</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">PQtlColocH4MaximumNeighbourhoodFeature</span><span class="p">(</span><span class="n">L2GFeature</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Max H4 for each (study, locus) aggregating over all pQTLs.&quot;&quot;&quot;</span>
 
     <span class="n">feature_dependency_type</span> <span class="o">=</span> <span class="p">[</span>
         <span class="n">Colocalisation</span><span class="p">,</span>
         <span class="n">StudyIndex</span><span class="p">,</span>
-        <span class="n">GeneIndex</span><span class="p">,</span>
+        <span class="n">TargetIndex</span><span class="p">,</span>
         <span class="n">StudyLocus</span><span class="p">,</span>
         <span class="n">VariantIndex</span><span class="p">,</span>
     <span class="p">]</span>
     <span class="n">feature_name</span> <span class="o">=</span> <span class="s2">&quot;pQtlColocH4MaximumNeighbourhood&quot;</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">PQtlColocH4MaximumNeighbourhoodFeature</span><span class="p">],</span>
         <span class="n">study_loci_to_annotate</span><span class="p">:</span> <span class="n">StudyLocus</span> <span class="o">|</span> <span class="n">L2GGoldStandard</span><span class="p">,</span>
         <span class="n">feature_dependency</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
@@ -7322,7 +7280,7 @@
 <span class="normal">643</span>
 <span class="normal">644</span>
 <span class="normal">645</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
-<span class="k">def</span> <span class="nf">compute</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span>
     <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">PQtlColocH4MaximumNeighbourhoodFeature</span><span class="p">],</span>
     <span class="n">study_loci_to_annotate</span><span class="p">:</span> <span class="n">StudyLocus</span> <span class="o">|</span> <span class="n">L2GGoldStandard</span><span class="p">,</span>
     <span class="n">feature_dependency</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
@@ -7443,20 +7401,20 @@
 <span class="normal">732</span>
 <span class="normal">733</span>
 <span class="normal">734</span>
-<span class="normal">735</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">SQtlColocH4MaximumNeighbourhoodFeature</span><span class="p">(</span><span class="n">L2GFeature</span><span class="p">):</span>
+<span class="normal">735</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">SQtlColocH4MaximumNeighbourhoodFeature</span><span class="p">(</span><span class="n">L2GFeature</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Max H4 for each (study, locus) aggregating over all sQTLs.&quot;&quot;&quot;</span>
 
     <span class="n">feature_dependency_type</span> <span class="o">=</span> <span class="p">[</span>
         <span class="n">Colocalisation</span><span class="p">,</span>
         <span class="n">StudyIndex</span><span class="p">,</span>
-        <span class="n">GeneIndex</span><span class="p">,</span>
+        <span class="n">TargetIndex</span><span class="p">,</span>
         <span class="n">StudyLocus</span><span class="p">,</span>
         <span class="n">VariantIndex</span><span class="p">,</span>
     <span class="p">]</span>
     <span class="n">feature_name</span> <span class="o">=</span> <span class="s2">&quot;sQtlColocH4MaximumNeighbourhood&quot;</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">SQtlColocH4MaximumNeighbourhoodFeature</span><span class="p">],</span>
         <span class="n">study_loci_to_annotate</span><span class="p">:</span> <span class="n">StudyLocus</span> <span class="o">|</span> <span class="n">L2GGoldStandard</span><span class="p">,</span>
         <span class="n">feature_dependency</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
@@ -7627,7 +7585,7 @@
 <span class="normal">733</span>
 <span class="normal">734</span>
 <span class="normal">735</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
-<span class="k">def</span> <span class="nf">compute</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span>
     <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">SQtlColocH4MaximumNeighbourhoodFeature</span><span class="p">],</span>
     <span class="n">study_loci_to_annotate</span><span class="p">:</span> <span class="n">StudyLocus</span> <span class="o">|</span> <span class="n">L2GGoldStandard</span><span class="p">,</span>
     <span class="n">feature_dependency</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
@@ -7903,7 +7861,7 @@
 <span class="normal">67</span>
 <span class="normal">68</span>
 <span class="normal">69</span>
-<span class="normal">70</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">common_colocalisation_feature_logic</span><span class="p">(</span>
+<span class="normal">70</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">common_colocalisation_feature_logic</span><span class="p">(</span>
     <span class="n">study_loci_to_annotate</span><span class="p">:</span> <span class="n">StudyLocus</span> <span class="o">|</span> <span class="n">L2GGoldStandard</span><span class="p">,</span>
     <span class="n">colocalisation_method</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">colocalisation_metric</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
@@ -7961,7 +7919,7 @@
 
 
 <h2 id="gentropy.dataset.l2g_features.colocalisation.extend_missing_colocalisation_to_neighbourhood_genes" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">gentropy</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">l2g_features</span><span class="o">.</span><span class="n">colocalisation</span><span class="o">.</span><span class="n">extend_missing_colocalisation_to_neighbourhood_genes</span><span class="p">(</span><span class="n">feature_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">local_features</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span> <span class="n">variant_index</span><span class="p">:</span> <span class="n">VariantIndex</span><span class="p">,</span> <span class="n">gene_index</span><span class="p">:</span> <span class="n">GeneIndex</span><span class="p">,</span> <span class="n">study_locus</span><span class="p">:</span> <span class="n">StudyLocus</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataFrame</span></code>
+            <code class="highlight language-python"><span class="n">gentropy</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">l2g_features</span><span class="o">.</span><span class="n">colocalisation</span><span class="o">.</span><span class="n">extend_missing_colocalisation_to_neighbourhood_genes</span><span class="p">(</span><span class="n">feature_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">local_features</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span> <span class="n">variant_index</span><span class="p">:</span> <span class="n">VariantIndex</span><span class="p">,</span> <span class="n">target_index</span><span class="p">:</span> <span class="n">TargetIndex</span><span class="p">,</span> <span class="n">study_locus</span><span class="p">:</span> <span class="n">StudyLocus</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataFrame</span></code>
 
 <a href="#gentropy.dataset.l2g_features.colocalisation.extend_missing_colocalisation_to_neighbourhood_genes" class="headerlink" title="Permanent link">&para;</a></h2>
 
@@ -8032,14 +7990,14 @@
           </tr>
           <tr class="doc-section-item">
             <td>
-                <code>gene_index</code>
+                <code>target_index</code>
             </td>
             <td>
-                  <code><a class="autorefs autorefs-internal" title="gentropy.dataset.gene_index.GeneIndex" href="../../gene_index/#gentropy.dataset.gene_index.GeneIndex">GeneIndex</a></code>
+                  <code><a class="autorefs autorefs-internal" title="gentropy.dataset.target_index.TargetIndex" href="../../target_index/#gentropy.dataset.target_index.TargetIndex">TargetIndex</a></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Gene index to fetch the gene information</p>
+                <p>Target index to fetch the gene information</p>
               </div>
             </td>
             <td>
@@ -8135,11 +8093,11 @@
 <span class="normal">115</span>
 <span class="normal">116</span>
 <span class="normal">117</span>
-<span class="normal">118</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">extend_missing_colocalisation_to_neighbourhood_genes</span><span class="p">(</span>
+<span class="normal">118</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">extend_missing_colocalisation_to_neighbourhood_genes</span><span class="p">(</span>
     <span class="n">feature_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">local_features</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span>
     <span class="n">variant_index</span><span class="p">:</span> <span class="n">VariantIndex</span><span class="p">,</span>
-    <span class="n">gene_index</span><span class="p">:</span> <span class="n">GeneIndex</span><span class="p">,</span>
+    <span class="n">target_index</span><span class="p">:</span> <span class="n">TargetIndex</span><span class="p">,</span>
     <span class="n">study_locus</span><span class="p">:</span> <span class="n">StudyLocus</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataFrame</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;This function creates an artificial dataset of features that represents the missing colocalisation to the neighbourhood genes.</span>
@@ -8148,7 +8106,7 @@
 <span class="sd">        feature_name (str): The name of the feature to extend</span>
 <span class="sd">        local_features (DataFrame): The dataframe of features to extend</span>
 <span class="sd">        variant_index (VariantIndex): Variant index containing all variant/gene relationships</span>
-<span class="sd">        gene_index (GeneIndex): Gene index to fetch the gene information</span>
+<span class="sd">        target_index (TargetIndex): Target index to fetch the gene information</span>
 <span class="sd">        study_locus (StudyLocus): Study locus to traverse between colocalisation and variant index</span>
 
 <span class="sd">    Returns:</span>
@@ -8159,7 +8117,7 @@
             <span class="s2">&quot;variantId&quot;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">explode</span><span class="p">(</span><span class="s2">&quot;transcriptConsequences&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;tc&quot;</span><span class="p">)</span>
         <span class="p">)</span>
         <span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;tc.targetId&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;geneId&quot;</span><span class="p">),</span> <span class="s2">&quot;variantId&quot;</span><span class="p">)</span>
-        <span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">gene_index</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="s2">&quot;geneId&quot;</span><span class="p">,</span> <span class="s2">&quot;biotype&quot;</span><span class="p">),</span> <span class="s2">&quot;geneId&quot;</span><span class="p">,</span> <span class="s2">&quot;left&quot;</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">target_index</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;id&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;geneId&quot;</span><span class="p">),</span> <span class="s2">&quot;biotype&quot;</span><span class="p">),</span> <span class="s2">&quot;geneId&quot;</span><span class="p">,</span> <span class="s2">&quot;left&quot;</span><span class="p">)</span>
         <span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;biotype&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;protein_coding&quot;</span><span class="p">)</span>
         <span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="s2">&quot;biotype&quot;</span><span class="p">)</span>
         <span class="o">.</span><span class="n">distinct</span><span class="p">()</span>
@@ -8191,7 +8149,7 @@
 
 
 <h2 id="gentropy.dataset.l2g_features.colocalisation.common_neighbourhood_colocalisation_feature_logic" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">gentropy</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">l2g_features</span><span class="o">.</span><span class="n">colocalisation</span><span class="o">.</span><span class="n">common_neighbourhood_colocalisation_feature_logic</span><span class="p">(</span><span class="n">study_loci_to_annotate</span><span class="p">:</span> <span class="n">StudyLocus</span> <span class="o">|</span> <span class="n">L2GGoldStandard</span><span class="p">,</span> <span class="n">colocalisation_method</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">colocalisation_metric</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">feature_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">qtl_types</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">colocalisation</span><span class="p">:</span> <span class="n">Colocalisation</span><span class="p">,</span> <span class="n">study_index</span><span class="p">:</span> <span class="n">StudyIndex</span><span class="p">,</span> <span class="n">gene_index</span><span class="p">:</span> <span class="n">GeneIndex</span><span class="p">,</span> <span class="n">study_locus</span><span class="p">:</span> <span class="n">StudyLocus</span><span class="p">,</span> <span class="n">variant_index</span><span class="p">:</span> <span class="n">VariantIndex</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataFrame</span></code>
+            <code class="highlight language-python"><span class="n">gentropy</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">l2g_features</span><span class="o">.</span><span class="n">colocalisation</span><span class="o">.</span><span class="n">common_neighbourhood_colocalisation_feature_logic</span><span class="p">(</span><span class="n">study_loci_to_annotate</span><span class="p">:</span> <span class="n">StudyLocus</span> <span class="o">|</span> <span class="n">L2GGoldStandard</span><span class="p">,</span> <span class="n">colocalisation_method</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">colocalisation_metric</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">feature_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">qtl_types</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">colocalisation</span><span class="p">:</span> <span class="n">Colocalisation</span><span class="p">,</span> <span class="n">study_index</span><span class="p">:</span> <span class="n">StudyIndex</span><span class="p">,</span> <span class="n">target_index</span><span class="p">:</span> <span class="n">TargetIndex</span><span class="p">,</span> <span class="n">study_locus</span><span class="p">:</span> <span class="n">StudyLocus</span><span class="p">,</span> <span class="n">variant_index</span><span class="p">:</span> <span class="n">VariantIndex</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataFrame</span></code>
 
 <a href="#gentropy.dataset.l2g_features.colocalisation.common_neighbourhood_colocalisation_feature_logic" class="headerlink" title="Permanent link">&para;</a></h2>
 
@@ -8326,14 +8284,14 @@
           </tr>
           <tr class="doc-section-item">
             <td>
-                <code>gene_index</code>
+                <code>target_index</code>
             </td>
             <td>
-                  <code><a class="autorefs autorefs-internal" title="gentropy.dataset.gene_index.GeneIndex" href="../../gene_index/#gentropy.dataset.gene_index.GeneIndex">GeneIndex</a></code>
+                  <code><a class="autorefs autorefs-internal" title="gentropy.dataset.target_index.TargetIndex" href="../../target_index/#gentropy.dataset.target_index.TargetIndex">TargetIndex</a></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Gene index to add gene type</p>
+                <p>Target index to add gene type</p>
               </div>
             </td>
             <td>
@@ -8472,7 +8430,7 @@
 <span class="normal">190</span>
 <span class="normal">191</span>
 <span class="normal">192</span>
-<span class="normal">193</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">common_neighbourhood_colocalisation_feature_logic</span><span class="p">(</span>
+<span class="normal">193</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">common_neighbourhood_colocalisation_feature_logic</span><span class="p">(</span>
     <span class="n">study_loci_to_annotate</span><span class="p">:</span> <span class="n">StudyLocus</span> <span class="o">|</span> <span class="n">L2GGoldStandard</span><span class="p">,</span>
     <span class="n">colocalisation_method</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">colocalisation_metric</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
@@ -8481,7 +8439,7 @@
     <span class="o">*</span><span class="p">,</span>
     <span class="n">colocalisation</span><span class="p">:</span> <span class="n">Colocalisation</span><span class="p">,</span>
     <span class="n">study_index</span><span class="p">:</span> <span class="n">StudyIndex</span><span class="p">,</span>
-    <span class="n">gene_index</span><span class="p">:</span> <span class="n">GeneIndex</span><span class="p">,</span>
+    <span class="n">target_index</span><span class="p">:</span> <span class="n">TargetIndex</span><span class="p">,</span>
     <span class="n">study_locus</span><span class="p">:</span> <span class="n">StudyLocus</span><span class="p">,</span>
     <span class="n">variant_index</span><span class="p">:</span> <span class="n">VariantIndex</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataFrame</span><span class="p">:</span>
@@ -8495,7 +8453,7 @@
 <span class="sd">        qtl_types (list[str] | str): The types of QTL to filter the data by</span>
 <span class="sd">        colocalisation (Colocalisation): Dataset with the colocalisation results</span>
 <span class="sd">        study_index (StudyIndex): Study index to fetch study type and gene</span>
-<span class="sd">        gene_index (GeneIndex): Gene index to add gene type</span>
+<span class="sd">        target_index (TargetIndex): Target index to add gene type</span>
 <span class="sd">        study_locus (StudyLocus): Study locus to traverse between colocalisation and study index</span>
 <span class="sd">        variant_index (VariantIndex): Variant index to annotate all overlapping genes</span>
 
@@ -8519,7 +8477,7 @@
             <span class="n">local_feature_name</span><span class="p">,</span>
             <span class="n">local_max</span><span class="p">,</span>
             <span class="n">variant_index</span><span class="p">,</span>
-            <span class="n">gene_index</span><span class="p">,</span>
+            <span class="n">target_index</span><span class="p">,</span>
             <span class="n">study_locus</span><span class="p">,</span>
         <span class="p">)</span>
     <span class="p">)</span>
@@ -8527,7 +8485,7 @@
         <span class="n">extended_local_max</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
             <span class="c1"># Compute average score in the vicinity (feature will be the same for any gene associated with a studyLocus)</span>
             <span class="c1"># (non protein coding genes in the vicinity are excluded see #3552)</span>
-            <span class="n">gene_index</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;biotype&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;protein_coding&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="s2">&quot;geneId&quot;</span><span class="p">),</span>
+            <span class="n">target_index</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;biotype&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;protein_coding&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;id&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;geneId&quot;</span><span class="p">)),</span>
             <span class="s2">&quot;geneId&quot;</span><span class="p">,</span>
             <span class="s2">&quot;inner&quot;</span><span class="p">,</span>
         <span class="p">)</span>
@@ -8590,6 +8548,14 @@
               data-bi-name="contributorprofile"
               target="_blank"
               ><img src="https://avatars.githubusercontent.com/u/45119610?v=4" alt="ireneisdoomed"
+            /></a>
+          </li><li>
+            <a
+              href="https://github.com/web-flow"
+              title="web-flow"
+              data-bi-name="contributorprofile"
+              target="_blank"
+              ><img src="https://avatars.githubusercontent.com/u/19864447?v=4" alt="web-flow"
             /></a>
           </li></ul>
       </li>

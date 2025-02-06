@@ -1049,27 +1049,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../datasets/gene_index/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Gene Index
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../../../datasets/intervals/" class="md-nav__link">
         
   
@@ -1243,6 +1222,27 @@
   
   <span class="md-ellipsis">
     Summary Statistics
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../datasets/target_index/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Target Index
   </span>
   
 
@@ -2379,27 +2379,6 @@
 
               
             
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../open_targets/target/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Target
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
           </ul>
         </nav>
       
@@ -3035,27 +3014,6 @@
   
   <span class="md-ellipsis">
     finngen_sumstat_preprocess
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../steps/gene_index/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    gene_index
   </span>
   
 
@@ -3710,7 +3668,7 @@
 <span class="normal">186</span>
 <span class="normal">187</span>
 <span class="normal">188</span>
-<span class="normal">189</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">FinnGenStudyIndex</span><span class="p">:</span>
+<span class="normal">189</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">FinnGenStudyIndex</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Study index dataset from FinnGen.</span>
 
 <span class="sd">    The following information is aggregated/extracted:</span>
@@ -3725,7 +3683,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">validate_release_prefix</span><span class="p">(</span><span class="n">release_prefix</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">FinngenPrefixMatch</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">validate_release_prefix</span><span class="p">(</span><span class="n">release_prefix</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">FinngenPrefixMatch</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Validate release prefix passed to finngen StudyIndex.</span>
 
 <span class="sd">        Args:</span>
@@ -3751,7 +3709,7 @@
         <span class="k">return</span> <span class="n">FinngenPrefixMatch</span><span class="p">(</span><span class="n">prefix</span><span class="o">=</span><span class="n">release_prefix</span><span class="p">,</span> <span class="n">release</span><span class="o">=</span><span class="n">release</span><span class="p">)</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">read_efo_curation</span><span class="p">(</span><span class="n">session</span><span class="p">:</span> <span class="n">SparkSession</span><span class="p">,</span> <span class="n">url</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataFrame</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">read_efo_curation</span><span class="p">(</span><span class="n">session</span><span class="p">:</span> <span class="n">SparkSession</span><span class="p">,</span> <span class="n">url</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataFrame</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Read efo curation from provided url.</span>
 
 <span class="sd">        Args:</span>
@@ -3771,7 +3729,7 @@
         <span class="k">return</span> <span class="n">efo_curation_mapping_df</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">join_efo_mapping</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">join_efo_mapping</span><span class="p">(</span>
         <span class="n">study_index</span><span class="p">:</span> <span class="n">StudyIndex</span><span class="p">,</span>
         <span class="n">efo_curation_mapping</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span>
         <span class="n">finngen_release</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
@@ -3816,7 +3774,7 @@
         <span class="k">return</span> <span class="n">StudyIndex</span><span class="p">(</span><span class="n">_df</span><span class="o">=</span><span class="n">si_df</span><span class="p">,</span> <span class="n">_schema</span><span class="o">=</span><span class="n">StudyIndex</span><span class="o">.</span><span class="n">get_schema</span><span class="p">())</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">from_source</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_source</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">FinnGenStudyIndex</span><span class="p">],</span>
         <span class="n">spark</span><span class="p">:</span> <span class="n">SparkSession</span><span class="p">,</span>
         <span class="n">finngen_phenotype_table_url</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
@@ -3856,7 +3814,7 @@
                 <span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="n">finngen_release_prefix</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;projectId&quot;</span><span class="p">),</span>
                 <span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="s2">&quot;gwas&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;studyType&quot;</span><span class="p">),</span>
                 <span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;hasSumstats&quot;</span><span class="p">),</span>
-                <span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="s2">&quot;453,733 (254,618 females and 199,115 males)&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="s2">&quot;500,348 (282,064 females and 218,284 males)&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span>
                     <span class="s2">&quot;initialSampleSize&quot;</span>
                 <span class="p">),</span>
                 <span class="n">f</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
@@ -4109,7 +4067,7 @@
 <span class="normal">187</span>
 <span class="normal">188</span>
 <span class="normal">189</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
-<span class="k">def</span> <span class="nf">from_source</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">from_source</span><span class="p">(</span>
     <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">FinnGenStudyIndex</span><span class="p">],</span>
     <span class="n">spark</span><span class="p">:</span> <span class="n">SparkSession</span><span class="p">,</span>
     <span class="n">finngen_phenotype_table_url</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
@@ -4149,7 +4107,7 @@
             <span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="n">finngen_release_prefix</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;projectId&quot;</span><span class="p">),</span>
             <span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="s2">&quot;gwas&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;studyType&quot;</span><span class="p">),</span>
             <span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;hasSumstats&quot;</span><span class="p">),</span>
-            <span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="s2">&quot;453,733 (254,618 females and 199,115 males)&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="s2">&quot;500,348 (282,064 females and 218,284 males)&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span>
                 <span class="s2">&quot;initialSampleSize&quot;</span>
             <span class="p">),</span>
             <span class="n">f</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
@@ -4332,7 +4290,7 @@ The rows with missing EFO mappings will be dropped in the study_index validation
 <span class="normal">123</span>
 <span class="normal">124</span>
 <span class="normal">125</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@staticmethod</span>
-<span class="k">def</span> <span class="nf">join_efo_mapping</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">join_efo_mapping</span><span class="p">(</span>
     <span class="n">study_index</span><span class="p">:</span> <span class="n">StudyIndex</span><span class="p">,</span>
     <span class="n">efo_curation_mapping</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span>
     <span class="n">finngen_release</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
@@ -4490,7 +4448,7 @@ The rows with missing EFO mappings will be dropped in the study_index validation
 <span class="normal">78</span>
 <span class="normal">79</span>
 <span class="normal">80</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@staticmethod</span>
-<span class="k">def</span> <span class="nf">read_efo_curation</span><span class="p">(</span><span class="n">session</span><span class="p">:</span> <span class="n">SparkSession</span><span class="p">,</span> <span class="n">url</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataFrame</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">read_efo_curation</span><span class="p">(</span><span class="n">session</span><span class="p">:</span> <span class="n">SparkSession</span><span class="p">,</span> <span class="n">url</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataFrame</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Read efo curation from provided url.</span>
 
 <span class="sd">    Args:</span>
@@ -4636,7 +4594,7 @@ The rows with missing EFO mappings will be dropped in the study_index validation
 <span class="normal">58</span>
 <span class="normal">59</span>
 <span class="normal">60</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@staticmethod</span>
-<span class="k">def</span> <span class="nf">validate_release_prefix</span><span class="p">(</span><span class="n">release_prefix</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">FinngenPrefixMatch</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">validate_release_prefix</span><span class="p">(</span><span class="n">release_prefix</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">FinngenPrefixMatch</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Validate release prefix passed to finngen StudyIndex.</span>
 
 <span class="sd">    Args:</span>
@@ -4695,7 +4653,7 @@ The rows with missing EFO mappings will be dropped in the study_index validation
         <span class="icon twemoji">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1-2.1-2M12.5 7v5.2l4 2.4-1 1L11 13V7h1.5M11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2v1.8Z"/></svg>
         </span>
-        <span class="label"> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2024-01-18T11:17:17+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2024-01-18</span> </span>
+        <span class="label"> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2024-01-17T10:30:44+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2024-01-17</span> </span>
       </li>
       
 
@@ -4713,6 +4671,14 @@ The rows with missing EFO mappings will be dropped in the study_index validation
               data-bi-name="contributorprofile"
               target="_blank"
               ><img src="https://avatars.githubusercontent.com/u/5097586?v=4" alt="d0choa"
+            /></a>
+          </li><li>
+            <a
+              href="https://github.com/web-flow"
+              title="web-flow"
+              data-bi-name="contributorprofile"
+              target="_blank"
+              ><img src="https://avatars.githubusercontent.com/u/19864447?v=4" alt="web-flow"
             /></a>
           </li></ul>
       </li>

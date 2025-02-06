@@ -1051,27 +1051,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../gene_index/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Gene Index
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../intervals/" class="md-nav__link">
         
   
@@ -1458,6 +1437,27 @@
   
   <span class="md-ellipsis">
     Summary Statistics
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../target_index/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Target Index
   </span>
   
 
@@ -2503,27 +2503,6 @@
 
               
             
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../datasources/open_targets/target/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Target
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
           </ul>
         </nav>
       
@@ -3175,27 +3154,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../../steps/gene_index/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    gene_index
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../../steps/gwas_catalog_curation/" class="md-nav__link">
         
   
@@ -3791,9 +3749,7 @@
 
               <details class="quote">
                 <summary>Source code in <code>src/gentropy/dataset/study_index.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 63</span>
-<span class="normal"> 64</span>
-<span class="normal"> 65</span>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 65</span>
 <span class="normal"> 66</span>
 <span class="normal"> 67</span>
 <span class="normal"> 68</span>
@@ -4477,15 +4433,41 @@
 <span class="normal">746</span>
 <span class="normal">747</span>
 <span class="normal">748</span>
-<span class="normal">749</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
-<span class="k">class</span> <span class="nc">StudyIndex</span><span class="p">(</span><span class="n">Dataset</span><span class="p">):</span>
+<span class="normal">749</span>
+<span class="normal">750</span>
+<span class="normal">751</span>
+<span class="normal">752</span>
+<span class="normal">753</span>
+<span class="normal">754</span>
+<span class="normal">755</span>
+<span class="normal">756</span>
+<span class="normal">757</span>
+<span class="normal">758</span>
+<span class="normal">759</span>
+<span class="normal">760</span>
+<span class="normal">761</span>
+<span class="normal">762</span>
+<span class="normal">763</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">StudyIndex</span><span class="p">(</span><span class="n">Dataset</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Study index dataset.</span>
 
 <span class="sd">    A study index dataset captures all the metadata for all studies including GWAS and Molecular QTL.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
+    <span class="n">VALID_TYPES</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="s2">&quot;gwas&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;eqtl&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;pqtl&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;sqtl&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;tuqtl&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;sceqtl&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;scpqtl&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;scsqtl&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;sctuqtl&quot;</span><span class="p">,</span>
+    <span class="p">]</span>
+
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_aggregate_samples_by_ancestry</span><span class="p">(</span><span class="n">merged</span><span class="p">:</span> <span class="n">Column</span><span class="p">,</span> <span class="n">ancestry</span><span class="p">:</span> <span class="n">Column</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_aggregate_samples_by_ancestry</span><span class="p">(</span><span class="n">merged</span><span class="p">:</span> <span class="n">Column</span><span class="p">,</span> <span class="n">ancestry</span><span class="p">:</span> <span class="n">Column</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Aggregate sample counts by ancestry in a list of struct colmns.</span>
 
 <span class="sd">        Args:</span>
@@ -4509,7 +4491,7 @@
         <span class="p">)</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_map_ancestries_to_ld_population</span><span class="p">(</span><span class="n">gwas_ancestry_label</span><span class="p">:</span> <span class="n">Column</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_map_ancestries_to_ld_population</span><span class="p">(</span><span class="n">gwas_ancestry_label</span><span class="p">:</span> <span class="n">Column</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Normalise ancestry column from GWAS studies into reference LD panel based on a pre-defined map.</span>
 
 <span class="sd">        This function assumes all possible ancestry categories have a corresponding</span>
@@ -4537,7 +4519,7 @@
         <span class="p">)</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">get_schema</span><span class="p">(</span><span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">StudyIndex</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">StructType</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_schema</span><span class="p">(</span><span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">StudyIndex</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">StructType</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Provide the schema for the StudyIndex dataset.</span>
 
 <span class="sd">        Returns:</span>
@@ -4546,7 +4528,7 @@
         <span class="k">return</span> <span class="n">parse_spark_schema</span><span class="p">(</span><span class="s2">&quot;study_index.json&quot;</span><span class="p">)</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">get_QC_column_name</span><span class="p">(</span><span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">StudyIndex</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_QC_column_name</span><span class="p">(</span><span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">StudyIndex</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the name of the quality control column.</span>
 
 <span class="sd">        Returns:</span>
@@ -4555,7 +4537,7 @@
         <span class="k">return</span> <span class="s2">&quot;qualityControls&quot;</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">get_QC_mappings</span><span class="p">(</span><span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">StudyIndex</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_QC_mappings</span><span class="p">(</span><span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">StudyIndex</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Quality control flag to QC column category mappings.</span>
 
 <span class="sd">        Returns:</span>
@@ -4564,7 +4546,7 @@
         <span class="k">return</span> <span class="p">{</span><span class="n">member</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">member</span><span class="o">.</span><span class="n">value</span> <span class="k">for</span> <span class="n">member</span> <span class="ow">in</span> <span class="n">StudyQualityCheck</span><span class="p">}</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">aggregate_and_map_ancestries</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">aggregate_and_map_ancestries</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">StudyIndex</span><span class="p">],</span> <span class="n">discovery_samples</span><span class="p">:</span> <span class="n">Column</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Map ancestries to populations in the LD reference and calculate relative sample size.</span>
@@ -4609,7 +4591,7 @@
             <span class="p">),</span>
         <span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">study_type_lut</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyIndex</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataFrame</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">study_type_lut</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyIndex</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataFrame</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Return a lookup table of study type.</span>
 
 <span class="sd">        Returns:</span>
@@ -4617,7 +4599,7 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="s2">&quot;studyId&quot;</span><span class="p">,</span> <span class="s2">&quot;studyType&quot;</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">is_qtl</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyIndex</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">is_qtl</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyIndex</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Return a boolean column with true values for QTL studies.</span>
 
 <span class="sd">        Returns:</span>
@@ -4625,7 +4607,7 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">studyType</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;qtl&quot;</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">is_gwas</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyIndex</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">is_gwas</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyIndex</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Return a boolean column with true values for GWAS studies.</span>
 
 <span class="sd">        Returns:</span>
@@ -4633,7 +4615,7 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">studyType</span> <span class="o">==</span> <span class="s2">&quot;gwas&quot;</span>
 
-    <span class="k">def</span> <span class="nf">has_mapped_trait</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyIndex</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">has_mapped_trait</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyIndex</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Return a boolean column indicating if a study has mapped disease.</span>
 
 <span class="sd">        Returns:</span>
@@ -4641,7 +4623,7 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="n">f</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">traitFromSourceMappedIds</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span>
 
-    <span class="k">def</span> <span class="nf">is_quality_flagged</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyIndex</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">is_quality_flagged</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyIndex</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Return a boolean column indicating if a study is flagged due to quality issues.</span>
 
 <span class="sd">        Returns:</span>
@@ -4653,7 +4635,7 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">f</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;qualityControls&quot;</span><span class="p">])</span> <span class="o">!=</span> <span class="mi">0</span>
 
-    <span class="k">def</span> <span class="nf">has_summarystats</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyIndex</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">has_summarystats</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyIndex</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Return a boolean column indicating if a study has harmonized summary statistics.</span>
 
 <span class="sd">        Returns:</span>
@@ -4661,7 +4643,7 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">hasSumstats</span>
 
-    <span class="k">def</span> <span class="nf">validate_unique_study_id</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyIndex</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyIndex</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">validate_unique_study_id</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyIndex</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyIndex</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Validating the uniqueness of study identifiers and flagging duplicated studies.</span>
 
 <span class="sd">        Returns:</span>
@@ -4679,7 +4661,7 @@
             <span class="n">_schema</span><span class="o">=</span><span class="n">StudyIndex</span><span class="o">.</span><span class="n">get_schema</span><span class="p">(),</span>
         <span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_normalise_disease</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_normalise_disease</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">:</span> <span class="n">StudyIndex</span><span class="p">,</span>
         <span class="n">source_disease_column_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">disease_column_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
@@ -4716,7 +4698,7 @@
             <span class="p">)</span>
         <span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">validate_disease</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyIndex</span><span class="p">,</span> <span class="n">disease_map</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyIndex</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">validate_disease</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyIndex</span><span class="p">,</span> <span class="n">disease_map</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyIndex</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Validate diseases in the study index dataset.</span>
 
 <span class="sd">        Args:</span>
@@ -4785,7 +4767,7 @@
             <span class="n">_schema</span><span class="o">=</span><span class="n">StudyIndex</span><span class="o">.</span><span class="n">get_schema</span><span class="p">(),</span>
         <span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">validate_study_type</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyIndex</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyIndex</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">validate_study_type</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyIndex</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyIndex</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Validating study type and flag unsupported types.</span>
 
 <span class="sd">        Returns:</span>
@@ -4809,16 +4791,16 @@
         <span class="p">)</span>
         <span class="k">return</span> <span class="n">StudyIndex</span><span class="p">(</span><span class="n">_df</span><span class="o">=</span><span class="n">validated_df</span><span class="p">,</span> <span class="n">_schema</span><span class="o">=</span><span class="n">StudyIndex</span><span class="o">.</span><span class="n">get_schema</span><span class="p">())</span>
 
-    <span class="k">def</span> <span class="nf">validate_target</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyIndex</span><span class="p">,</span> <span class="n">target_index</span><span class="p">:</span> <span class="n">GeneIndex</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyIndex</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">validate_target</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyIndex</span><span class="p">,</span> <span class="n">target_index</span><span class="p">:</span> <span class="n">TargetIndex</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyIndex</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Validating gene identifiers in the study index against the provided target index.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            target_index (GeneIndex): gene index containing the reference gene identifiers (Ensembl gene identifiers).</span>
+<span class="sd">            target_index (TargetIndex): target index containing the reference gene identifiers (Ensembl gene identifiers).</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            StudyIndex: with flagged studies if geneId could not be validated.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">gene_set</span> <span class="o">=</span> <span class="n">target_index</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="s2">&quot;geneId&quot;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;isIdFound&quot;</span><span class="p">))</span>
+        <span class="n">gene_set</span> <span class="o">=</span> <span class="n">target_index</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;id&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;geneId&quot;</span><span class="p">),</span> <span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;isIdFound&quot;</span><span class="p">))</span>
 
         <span class="c1"># As the geneId is not a mandatory field of study index, we return if the column is not there:</span>
         <span class="k">if</span> <span class="s2">&quot;geneId&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
@@ -4846,7 +4828,7 @@
 
         <span class="k">return</span> <span class="n">StudyIndex</span><span class="p">(</span><span class="n">_df</span><span class="o">=</span><span class="n">validated_df</span><span class="p">,</span> <span class="n">_schema</span><span class="o">=</span><span class="n">StudyIndex</span><span class="o">.</span><span class="n">get_schema</span><span class="p">())</span>
 
-    <span class="k">def</span> <span class="nf">validate_biosample</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">validate_biosample</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">:</span> <span class="n">StudyIndex</span><span class="p">,</span> <span class="n">biosample_index</span><span class="p">:</span> <span class="n">BiosampleIndex</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyIndex</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Validating biosample identifiers in the study index against the provided biosample index.</span>
@@ -4895,7 +4877,7 @@
 
         <span class="k">return</span> <span class="n">StudyIndex</span><span class="p">(</span><span class="n">_df</span><span class="o">=</span><span class="n">validated_df</span><span class="p">,</span> <span class="n">_schema</span><span class="o">=</span><span class="n">StudyIndex</span><span class="o">.</span><span class="n">get_schema</span><span class="p">())</span>
 
-    <span class="k">def</span> <span class="nf">annotate_sumstats_qc</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">annotate_sumstats_qc</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">:</span> <span class="n">StudyIndex</span><span class="p">,</span>
         <span class="n">sumstats_qc</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span>
         <span class="n">threshold_mean_beta</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.05</span><span class="p">,</span>
@@ -5010,7 +4992,7 @@
             <span class="n">_schema</span><span class="o">=</span><span class="n">StudyIndex</span><span class="o">.</span><span class="n">get_schema</span><span class="p">(),</span>
         <span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">deconvolute_studies</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyIndex</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyIndex</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">deconvolute_studies</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyIndex</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyIndex</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Deconvolute the study index dataset.</span>
 
 <span class="sd">        When ingesting the study index dataset, the same studyId might be ingested from more than one source.</span>
@@ -5252,21 +5234,7 @@
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/dataset/study_index.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">149</span>
-<span class="normal">150</span>
-<span class="normal">151</span>
-<span class="normal">152</span>
-<span class="normal">153</span>
-<span class="normal">154</span>
-<span class="normal">155</span>
-<span class="normal">156</span>
-<span class="normal">157</span>
-<span class="normal">158</span>
-<span class="normal">159</span>
-<span class="normal">160</span>
-<span class="normal">161</span>
-<span class="normal">162</span>
-<span class="normal">163</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">163</span>
 <span class="normal">164</span>
 <span class="normal">165</span>
 <span class="normal">166</span>
@@ -5296,8 +5264,22 @@
 <span class="normal">190</span>
 <span class="normal">191</span>
 <span class="normal">192</span>
-<span class="normal">193</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
-<span class="k">def</span> <span class="nf">aggregate_and_map_ancestries</span><span class="p">(</span>
+<span class="normal">193</span>
+<span class="normal">194</span>
+<span class="normal">195</span>
+<span class="normal">196</span>
+<span class="normal">197</span>
+<span class="normal">198</span>
+<span class="normal">199</span>
+<span class="normal">200</span>
+<span class="normal">201</span>
+<span class="normal">202</span>
+<span class="normal">203</span>
+<span class="normal">204</span>
+<span class="normal">205</span>
+<span class="normal">206</span>
+<span class="normal">207</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">aggregate_and_map_ancestries</span><span class="p">(</span>
     <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">StudyIndex</span><span class="p">],</span> <span class="n">discovery_samples</span><span class="p">:</span> <span class="n">Column</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Map ancestries to populations in the LD reference and calculate relative sample size.</span>
@@ -5512,21 +5494,7 @@
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/dataset/study_index.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">481</span>
-<span class="normal">482</span>
-<span class="normal">483</span>
-<span class="normal">484</span>
-<span class="normal">485</span>
-<span class="normal">486</span>
-<span class="normal">487</span>
-<span class="normal">488</span>
-<span class="normal">489</span>
-<span class="normal">490</span>
-<span class="normal">491</span>
-<span class="normal">492</span>
-<span class="normal">493</span>
-<span class="normal">494</span>
-<span class="normal">495</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">495</span>
 <span class="normal">496</span>
 <span class="normal">497</span>
 <span class="normal">498</span>
@@ -5625,7 +5593,21 @@
 <span class="normal">591</span>
 <span class="normal">592</span>
 <span class="normal">593</span>
-<span class="normal">594</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">annotate_sumstats_qc</span><span class="p">(</span>
+<span class="normal">594</span>
+<span class="normal">595</span>
+<span class="normal">596</span>
+<span class="normal">597</span>
+<span class="normal">598</span>
+<span class="normal">599</span>
+<span class="normal">600</span>
+<span class="normal">601</span>
+<span class="normal">602</span>
+<span class="normal">603</span>
+<span class="normal">604</span>
+<span class="normal">605</span>
+<span class="normal">606</span>
+<span class="normal">607</span>
+<span class="normal">608</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">annotate_sumstats_qc</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">:</span> <span class="n">StudyIndex</span><span class="p">,</span>
     <span class="n">sumstats_qc</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span>
     <span class="n">threshold_mean_beta</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.05</span><span class="p">,</span>
@@ -5785,21 +5767,7 @@ In such cases, the data needs to be merged and the quality control flags need to
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/dataset/study_index.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">596</span>
-<span class="normal">597</span>
-<span class="normal">598</span>
-<span class="normal">599</span>
-<span class="normal">600</span>
-<span class="normal">601</span>
-<span class="normal">602</span>
-<span class="normal">603</span>
-<span class="normal">604</span>
-<span class="normal">605</span>
-<span class="normal">606</span>
-<span class="normal">607</span>
-<span class="normal">608</span>
-<span class="normal">609</span>
-<span class="normal">610</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">610</span>
 <span class="normal">611</span>
 <span class="normal">612</span>
 <span class="normal">613</span>
@@ -5938,7 +5906,21 @@ In such cases, the data needs to be merged and the quality control flags need to
 <span class="normal">746</span>
 <span class="normal">747</span>
 <span class="normal">748</span>
-<span class="normal">749</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">deconvolute_studies</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyIndex</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyIndex</span><span class="p">:</span>
+<span class="normal">749</span>
+<span class="normal">750</span>
+<span class="normal">751</span>
+<span class="normal">752</span>
+<span class="normal">753</span>
+<span class="normal">754</span>
+<span class="normal">755</span>
+<span class="normal">756</span>
+<span class="normal">757</span>
+<span class="normal">758</span>
+<span class="normal">759</span>
+<span class="normal">760</span>
+<span class="normal">761</span>
+<span class="normal">762</span>
+<span class="normal">763</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">deconvolute_studies</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyIndex</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyIndex</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Deconvolute the study index dataset.</span>
 
 <span class="sd">    When ingesting the study index dataset, the same studyId might be ingested from more than one source.</span>
@@ -6140,15 +6122,15 @@ In such cases, the data needs to be merged and the quality control flags need to
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/dataset/study_index.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">131</span>
-<span class="normal">132</span>
-<span class="normal">133</span>
-<span class="normal">134</span>
-<span class="normal">135</span>
-<span class="normal">136</span>
-<span class="normal">137</span>
-<span class="normal">138</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
-<span class="k">def</span> <span class="nf">get_QC_column_name</span><span class="p">(</span><span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">StudyIndex</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">145</span>
+<span class="normal">146</span>
+<span class="normal">147</span>
+<span class="normal">148</span>
+<span class="normal">149</span>
+<span class="normal">150</span>
+<span class="normal">151</span>
+<span class="normal">152</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_QC_column_name</span><span class="p">(</span><span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">StudyIndex</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Return the name of the quality control column.</span>
 
 <span class="sd">    Returns:</span>
@@ -6203,15 +6185,15 @@ In such cases, the data needs to be merged and the quality control flags need to
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/dataset/study_index.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">140</span>
-<span class="normal">141</span>
-<span class="normal">142</span>
-<span class="normal">143</span>
-<span class="normal">144</span>
-<span class="normal">145</span>
-<span class="normal">146</span>
-<span class="normal">147</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
-<span class="k">def</span> <span class="nf">get_QC_mappings</span><span class="p">(</span><span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">StudyIndex</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">154</span>
+<span class="normal">155</span>
+<span class="normal">156</span>
+<span class="normal">157</span>
+<span class="normal">158</span>
+<span class="normal">159</span>
+<span class="normal">160</span>
+<span class="normal">161</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_QC_mappings</span><span class="p">(</span><span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">StudyIndex</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Quality control flag to QC column category mappings.</span>
 
 <span class="sd">    Returns:</span>
@@ -6266,15 +6248,15 @@ In such cases, the data needs to be merged and the quality control flags need to
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/dataset/study_index.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">122</span>
-<span class="normal">123</span>
-<span class="normal">124</span>
-<span class="normal">125</span>
-<span class="normal">126</span>
-<span class="normal">127</span>
-<span class="normal">128</span>
-<span class="normal">129</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
-<span class="k">def</span> <span class="nf">get_schema</span><span class="p">(</span><span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">StudyIndex</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">StructType</span><span class="p">:</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">136</span>
+<span class="normal">137</span>
+<span class="normal">138</span>
+<span class="normal">139</span>
+<span class="normal">140</span>
+<span class="normal">141</span>
+<span class="normal">142</span>
+<span class="normal">143</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_schema</span><span class="p">(</span><span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">StudyIndex</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">StructType</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Provide the schema for the StudyIndex dataset.</span>
 
 <span class="sd">    Returns:</span>
@@ -6325,13 +6307,13 @@ In such cases, the data needs to be merged and the quality control flags need to
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/dataset/study_index.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">219</span>
-<span class="normal">220</span>
-<span class="normal">221</span>
-<span class="normal">222</span>
-<span class="normal">223</span>
-<span class="normal">224</span>
-<span class="normal">225</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">has_mapped_trait</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyIndex</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">233</span>
+<span class="normal">234</span>
+<span class="normal">235</span>
+<span class="normal">236</span>
+<span class="normal">237</span>
+<span class="normal">238</span>
+<span class="normal">239</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">has_mapped_trait</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyIndex</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Return a boolean column indicating if a study has mapped disease.</span>
 
 <span class="sd">    Returns:</span>
@@ -6382,13 +6364,13 @@ In such cases, the data needs to be merged and the quality control flags need to
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/dataset/study_index.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">239</span>
-<span class="normal">240</span>
-<span class="normal">241</span>
-<span class="normal">242</span>
-<span class="normal">243</span>
-<span class="normal">244</span>
-<span class="normal">245</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">has_summarystats</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyIndex</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">253</span>
+<span class="normal">254</span>
+<span class="normal">255</span>
+<span class="normal">256</span>
+<span class="normal">257</span>
+<span class="normal">258</span>
+<span class="normal">259</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">has_summarystats</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyIndex</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Return a boolean column indicating if a study has harmonized summary statistics.</span>
 
 <span class="sd">    Returns:</span>
@@ -6439,13 +6421,13 @@ In such cases, the data needs to be merged and the quality control flags need to
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/dataset/study_index.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">211</span>
-<span class="normal">212</span>
-<span class="normal">213</span>
-<span class="normal">214</span>
-<span class="normal">215</span>
-<span class="normal">216</span>
-<span class="normal">217</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">is_gwas</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyIndex</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">225</span>
+<span class="normal">226</span>
+<span class="normal">227</span>
+<span class="normal">228</span>
+<span class="normal">229</span>
+<span class="normal">230</span>
+<span class="normal">231</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">is_gwas</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyIndex</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Return a boolean column with true values for GWAS studies.</span>
 
 <span class="sd">    Returns:</span>
@@ -6496,13 +6478,13 @@ In such cases, the data needs to be merged and the quality control flags need to
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/dataset/study_index.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">203</span>
-<span class="normal">204</span>
-<span class="normal">205</span>
-<span class="normal">206</span>
-<span class="normal">207</span>
-<span class="normal">208</span>
-<span class="normal">209</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">is_qtl</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyIndex</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">217</span>
+<span class="normal">218</span>
+<span class="normal">219</span>
+<span class="normal">220</span>
+<span class="normal">221</span>
+<span class="normal">222</span>
+<span class="normal">223</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">is_qtl</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyIndex</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Return a boolean column with true values for QTL studies.</span>
 
 <span class="sd">    Returns:</span>
@@ -6553,17 +6535,17 @@ In such cases, the data needs to be merged and the quality control flags need to
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/dataset/study_index.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">227</span>
-<span class="normal">228</span>
-<span class="normal">229</span>
-<span class="normal">230</span>
-<span class="normal">231</span>
-<span class="normal">232</span>
-<span class="normal">233</span>
-<span class="normal">234</span>
-<span class="normal">235</span>
-<span class="normal">236</span>
-<span class="normal">237</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">is_quality_flagged</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyIndex</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">241</span>
+<span class="normal">242</span>
+<span class="normal">243</span>
+<span class="normal">244</span>
+<span class="normal">245</span>
+<span class="normal">246</span>
+<span class="normal">247</span>
+<span class="normal">248</span>
+<span class="normal">249</span>
+<span class="normal">250</span>
+<span class="normal">251</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">is_quality_flagged</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyIndex</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Return a boolean column indicating if a study is flagged due to quality issues.</span>
 
 <span class="sd">    Returns:</span>
@@ -6618,13 +6600,13 @@ In such cases, the data needs to be merged and the quality control flags need to
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/dataset/study_index.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">195</span>
-<span class="normal">196</span>
-<span class="normal">197</span>
-<span class="normal">198</span>
-<span class="normal">199</span>
-<span class="normal">200</span>
-<span class="normal">201</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">study_type_lut</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyIndex</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataFrame</span><span class="p">:</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">209</span>
+<span class="normal">210</span>
+<span class="normal">211</span>
+<span class="normal">212</span>
+<span class="normal">213</span>
+<span class="normal">214</span>
+<span class="normal">215</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">study_type_lut</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyIndex</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataFrame</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Return a lookup table of study type.</span>
 
 <span class="sd">    Returns:</span>
@@ -6706,21 +6688,7 @@ In such cases, the data needs to be merged and the quality control flags need to
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/dataset/study_index.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">432</span>
-<span class="normal">433</span>
-<span class="normal">434</span>
-<span class="normal">435</span>
-<span class="normal">436</span>
-<span class="normal">437</span>
-<span class="normal">438</span>
-<span class="normal">439</span>
-<span class="normal">440</span>
-<span class="normal">441</span>
-<span class="normal">442</span>
-<span class="normal">443</span>
-<span class="normal">444</span>
-<span class="normal">445</span>
-<span class="normal">446</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">446</span>
 <span class="normal">447</span>
 <span class="normal">448</span>
 <span class="normal">449</span>
@@ -6753,7 +6721,21 @@ In such cases, the data needs to be merged and the quality control flags need to
 <span class="normal">476</span>
 <span class="normal">477</span>
 <span class="normal">478</span>
-<span class="normal">479</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">validate_biosample</span><span class="p">(</span>
+<span class="normal">479</span>
+<span class="normal">480</span>
+<span class="normal">481</span>
+<span class="normal">482</span>
+<span class="normal">483</span>
+<span class="normal">484</span>
+<span class="normal">485</span>
+<span class="normal">486</span>
+<span class="normal">487</span>
+<span class="normal">488</span>
+<span class="normal">489</span>
+<span class="normal">490</span>
+<span class="normal">491</span>
+<span class="normal">492</span>
+<span class="normal">493</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">validate_biosample</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">:</span> <span class="n">StudyIndex</span><span class="p">,</span> <span class="n">biosample_index</span><span class="p">:</span> <span class="n">BiosampleIndex</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyIndex</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Validating biosample identifiers in the study index against the provided biosample index.</span>
@@ -6876,21 +6858,7 @@ In such cases, the data needs to be merged and the quality control flags need to
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/dataset/study_index.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">302</span>
-<span class="normal">303</span>
-<span class="normal">304</span>
-<span class="normal">305</span>
-<span class="normal">306</span>
-<span class="normal">307</span>
-<span class="normal">308</span>
-<span class="normal">309</span>
-<span class="normal">310</span>
-<span class="normal">311</span>
-<span class="normal">312</span>
-<span class="normal">313</span>
-<span class="normal">314</span>
-<span class="normal">315</span>
-<span class="normal">316</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">316</span>
 <span class="normal">317</span>
 <span class="normal">318</span>
 <span class="normal">319</span>
@@ -6943,7 +6911,21 @@ In such cases, the data needs to be merged and the quality control flags need to
 <span class="normal">366</span>
 <span class="normal">367</span>
 <span class="normal">368</span>
-<span class="normal">369</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">validate_disease</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyIndex</span><span class="p">,</span> <span class="n">disease_map</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyIndex</span><span class="p">:</span>
+<span class="normal">369</span>
+<span class="normal">370</span>
+<span class="normal">371</span>
+<span class="normal">372</span>
+<span class="normal">373</span>
+<span class="normal">374</span>
+<span class="normal">375</span>
+<span class="normal">376</span>
+<span class="normal">377</span>
+<span class="normal">378</span>
+<span class="normal">379</span>
+<span class="normal">380</span>
+<span class="normal">381</span>
+<span class="normal">382</span>
+<span class="normal">383</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">validate_disease</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyIndex</span><span class="p">,</span> <span class="n">disease_map</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyIndex</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Validate diseases in the study index dataset.</span>
 
 <span class="sd">    Args:</span>
@@ -7055,21 +7037,7 @@ In such cases, the data needs to be merged and the quality control flags need to
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/dataset/study_index.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">371</span>
-<span class="normal">372</span>
-<span class="normal">373</span>
-<span class="normal">374</span>
-<span class="normal">375</span>
-<span class="normal">376</span>
-<span class="normal">377</span>
-<span class="normal">378</span>
-<span class="normal">379</span>
-<span class="normal">380</span>
-<span class="normal">381</span>
-<span class="normal">382</span>
-<span class="normal">383</span>
-<span class="normal">384</span>
-<span class="normal">385</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">385</span>
 <span class="normal">386</span>
 <span class="normal">387</span>
 <span class="normal">388</span>
@@ -7077,7 +7045,21 @@ In such cases, the data needs to be merged and the quality control flags need to
 <span class="normal">390</span>
 <span class="normal">391</span>
 <span class="normal">392</span>
-<span class="normal">393</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">validate_study_type</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyIndex</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyIndex</span><span class="p">:</span>
+<span class="normal">393</span>
+<span class="normal">394</span>
+<span class="normal">395</span>
+<span class="normal">396</span>
+<span class="normal">397</span>
+<span class="normal">398</span>
+<span class="normal">399</span>
+<span class="normal">400</span>
+<span class="normal">401</span>
+<span class="normal">402</span>
+<span class="normal">403</span>
+<span class="normal">404</span>
+<span class="normal">405</span>
+<span class="normal">406</span>
+<span class="normal">407</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">validate_study_type</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyIndex</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyIndex</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Validating study type and flag unsupported types.</span>
 
 <span class="sd">    Returns:</span>
@@ -7110,7 +7092,7 @@ In such cases, the data needs to be merged and the quality control flags need to
 
 
 <h3 id="gentropy.dataset.study_index.StudyIndex.validate_target" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">validate_target</span><span class="p">(</span><span class="n">target_index</span><span class="p">:</span> <span class="n">GeneIndex</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyIndex</span></code>
+            <code class="highlight language-python"><span class="n">validate_target</span><span class="p">(</span><span class="n">target_index</span><span class="p">:</span> <span class="n">TargetIndex</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyIndex</span></code>
 
 <a href="#gentropy.dataset.study_index.StudyIndex.validate_target" class="headerlink" title="Permanent link">&para;</a></h3>
 
@@ -7136,11 +7118,11 @@ In such cases, the data needs to be merged and the quality control flags need to
                 <code>target_index</code>
             </td>
             <td>
-                  <code><a class="autorefs autorefs-internal" title="gentropy.dataset.gene_index.GeneIndex" href="../gene_index/#gentropy.dataset.gene_index.GeneIndex">GeneIndex</a></code>
+                  <code><a class="autorefs autorefs-internal" title="gentropy.dataset.target_index.TargetIndex" href="../target_index/#gentropy.dataset.target_index.TargetIndex">TargetIndex</a></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>gene index containing the reference gene identifiers (Ensembl gene identifiers).</p>
+                <p>target index containing the reference gene identifiers (Ensembl gene identifiers).</p>
               </div>
             </td>
             <td>
@@ -7175,21 +7157,7 @@ In such cases, the data needs to be merged and the quality control flags need to
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/dataset/study_index.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">395</span>
-<span class="normal">396</span>
-<span class="normal">397</span>
-<span class="normal">398</span>
-<span class="normal">399</span>
-<span class="normal">400</span>
-<span class="normal">401</span>
-<span class="normal">402</span>
-<span class="normal">403</span>
-<span class="normal">404</span>
-<span class="normal">405</span>
-<span class="normal">406</span>
-<span class="normal">407</span>
-<span class="normal">408</span>
-<span class="normal">409</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">409</span>
 <span class="normal">410</span>
 <span class="normal">411</span>
 <span class="normal">412</span>
@@ -7210,16 +7178,30 @@ In such cases, the data needs to be merged and the quality control flags need to
 <span class="normal">427</span>
 <span class="normal">428</span>
 <span class="normal">429</span>
-<span class="normal">430</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">validate_target</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyIndex</span><span class="p">,</span> <span class="n">target_index</span><span class="p">:</span> <span class="n">GeneIndex</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyIndex</span><span class="p">:</span>
+<span class="normal">430</span>
+<span class="normal">431</span>
+<span class="normal">432</span>
+<span class="normal">433</span>
+<span class="normal">434</span>
+<span class="normal">435</span>
+<span class="normal">436</span>
+<span class="normal">437</span>
+<span class="normal">438</span>
+<span class="normal">439</span>
+<span class="normal">440</span>
+<span class="normal">441</span>
+<span class="normal">442</span>
+<span class="normal">443</span>
+<span class="normal">444</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">validate_target</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyIndex</span><span class="p">,</span> <span class="n">target_index</span><span class="p">:</span> <span class="n">TargetIndex</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyIndex</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Validating gene identifiers in the study index against the provided target index.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        target_index (GeneIndex): gene index containing the reference gene identifiers (Ensembl gene identifiers).</span>
+<span class="sd">        target_index (TargetIndex): target index containing the reference gene identifiers (Ensembl gene identifiers).</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        StudyIndex: with flagged studies if geneId could not be validated.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">gene_set</span> <span class="o">=</span> <span class="n">target_index</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="s2">&quot;geneId&quot;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;isIdFound&quot;</span><span class="p">))</span>
+    <span class="n">gene_set</span> <span class="o">=</span> <span class="n">target_index</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;id&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;geneId&quot;</span><span class="p">),</span> <span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;isIdFound&quot;</span><span class="p">))</span>
 
     <span class="c1"># As the geneId is not a mandatory field of study index, we return if the column is not there:</span>
     <span class="k">if</span> <span class="s2">&quot;geneId&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
@@ -7290,23 +7272,23 @@ In such cases, the data needs to be merged and the quality control flags need to
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/dataset/study_index.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">247</span>
-<span class="normal">248</span>
-<span class="normal">249</span>
-<span class="normal">250</span>
-<span class="normal">251</span>
-<span class="normal">252</span>
-<span class="normal">253</span>
-<span class="normal">254</span>
-<span class="normal">255</span>
-<span class="normal">256</span>
-<span class="normal">257</span>
-<span class="normal">258</span>
-<span class="normal">259</span>
-<span class="normal">260</span>
-<span class="normal">261</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">261</span>
 <span class="normal">262</span>
-<span class="normal">263</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">validate_unique_study_id</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyIndex</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyIndex</span><span class="p">:</span>
+<span class="normal">263</span>
+<span class="normal">264</span>
+<span class="normal">265</span>
+<span class="normal">266</span>
+<span class="normal">267</span>
+<span class="normal">268</span>
+<span class="normal">269</span>
+<span class="normal">270</span>
+<span class="normal">271</span>
+<span class="normal">272</span>
+<span class="normal">273</span>
+<span class="normal">274</span>
+<span class="normal">275</span>
+<span class="normal">276</span>
+<span class="normal">277</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">validate_unique_study_id</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyIndex</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyIndex</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Validating the uniqueness of study identifiers and flagging duplicated studies.</span>
 
 <span class="sd">    Returns:</span>
@@ -7408,7 +7390,7 @@ In such cases, the data needs to be merged and the quality control flags need to
         <span class="icon twemoji">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1-2.1-2M12.5 7v5.2l4 2.4-1 1L11 13V7h1.5M11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2v1.8Z"/></svg>
         </span>
-        <span class="label"> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2024-01-18T11:17:17+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2024-01-18</span> </span>
+        <span class="label"> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2024-01-17T10:30:44+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2024-01-17</span> </span>
       </li>
       
 
@@ -7426,6 +7408,14 @@ In such cases, the data needs to be merged and the quality control flags need to
               data-bi-name="contributorprofile"
               target="_blank"
               ><img src="https://avatars.githubusercontent.com/u/5097586?v=4" alt="d0choa"
+            /></a>
+          </li><li>
+            <a
+              href="https://github.com/web-flow"
+              title="web-flow"
+              data-bi-name="contributorprofile"
+              target="_blank"
+              ><img src="https://avatars.githubusercontent.com/u/19864447?v=4" alt="web-flow"
             /></a>
           </li></ul>
       </li>

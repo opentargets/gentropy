@@ -1049,27 +1049,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../datasets/gene_index/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Gene Index
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../../../datasets/intervals/" class="md-nav__link">
         
   
@@ -1243,6 +1222,27 @@
   
   <span class="md-ellipsis">
     Summary Statistics
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../datasets/target_index/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Target Index
   </span>
   
 
@@ -2370,27 +2370,6 @@
 
               
             
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../open_targets/target/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Target
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
           </ul>
         </nav>
       
@@ -3026,27 +3005,6 @@
   
   <span class="md-ellipsis">
     finngen_sumstat_preprocess
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../steps/gene_index/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    gene_index
   </span>
   
 
@@ -4623,7 +4581,7 @@
 <span class="normal">1131</span>
 <span class="normal">1132</span>
 <span class="normal">1133</span>
-<span class="normal">1134</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">VariantEffectPredictorParser</span><span class="p">:</span>
+<span class="normal">1134</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">VariantEffectPredictorParser</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Collection of methods to parse VEP output in json format.&quot;&quot;&quot;</span>
 
     <span class="c1"># NOTE: Due to the fact that the comparison of the xrefs is done om the base of rsids</span>
@@ -4653,7 +4611,7 @@
     <span class="p">}</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">get_schema</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">StructType</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_schema</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">StructType</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the schema of the VEP output.</span>
 
 <span class="sd">        Returns:</span>
@@ -4666,7 +4624,7 @@
         <span class="k">return</span> <span class="n">parse_spark_schema</span><span class="p">(</span><span class="s2">&quot;vep_json_output.json&quot;</span><span class="p">)</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">extract_variant_index_from_vep</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">extract_variant_index_from_vep</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">VariantEffectPredictorParser</span><span class="p">],</span>
         <span class="n">spark</span><span class="p">:</span> <span class="n">SparkSession</span><span class="p">,</span>
         <span class="n">vep_output_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
@@ -4693,7 +4651,7 @@
         <span class="k">try</span><span class="p">:</span>
             <span class="n">vep_data</span> <span class="o">=</span> <span class="n">spark</span><span class="o">.</span><span class="n">read</span><span class="o">.</span><span class="n">json</span><span class="p">(</span><span class="n">vep_output_path</span><span class="p">,</span> <span class="n">schema</span><span class="o">=</span><span class="n">vep_schema</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
         <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed reading file: </span><span class="si">{</span><span class="n">vep_output_path</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span> <span class="kn">from</span> <span class="nn">e</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed reading file: </span><span class="si">{</span><span class="n">vep_output_path</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span>
 
         <span class="k">if</span> <span class="n">vep_data</span><span class="o">.</span><span class="n">isEmpty</span><span class="p">():</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;The dataset is empty: </span><span class="si">{</span><span class="n">vep_output_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
@@ -4708,7 +4666,7 @@
         <span class="p">)</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_extract_ensembl_xrefs</span><span class="p">(</span><span class="n">colocated_variants</span><span class="p">:</span> <span class="n">Column</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_extract_ensembl_xrefs</span><span class="p">(</span><span class="n">colocated_variants</span><span class="p">:</span> <span class="n">Column</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Extract rs identifiers and build cross reference to Ensembl&#39;s variant page.</span>
 
 <span class="sd">        Args:</span>
@@ -4726,7 +4684,7 @@
 
     <span class="nd">@enforce_schema</span><span class="p">(</span><span class="n">DBXREF_SCHEMA</span><span class="p">)</span>
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_generate_dbxrefs</span><span class="p">(</span><span class="n">ids</span><span class="p">:</span> <span class="n">Column</span><span class="p">,</span> <span class="n">source</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_generate_dbxrefs</span><span class="p">(</span><span class="n">ids</span><span class="p">:</span> <span class="n">Column</span><span class="p">,</span> <span class="n">source</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Convert a list of variant identifiers to dbXrefs given the source label.</span>
 
 <span class="sd">        Identifiers are cast to strings, then Null values are filtered out of the id list.</span>
@@ -4769,7 +4727,7 @@
         <span class="k">return</span> <span class="n">f</span><span class="o">.</span><span class="n">when</span><span class="p">(</span><span class="n">xref_column</span><span class="o">.</span><span class="n">isNull</span><span class="p">(),</span> <span class="n">f</span><span class="o">.</span><span class="n">array</span><span class="p">())</span><span class="o">.</span><span class="n">otherwise</span><span class="p">(</span><span class="n">xref_column</span><span class="p">)</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_colocated_variants_to_rsids</span><span class="p">(</span><span class="n">colocated_variants</span><span class="p">:</span> <span class="n">Column</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_colocated_variants_to_rsids</span><span class="p">(</span><span class="n">colocated_variants</span><span class="p">:</span> <span class="n">Column</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Extract rs identifiers from the colocated variants VEP field.</span>
 
 <span class="sd">        Args:</span>
@@ -4791,7 +4749,7 @@
 <span class="sd">            |rsIds          |</span>
 <span class="sd">            +---------------+</span>
 <span class="sd">            |[rs1, rs2, rs3]|</span>
-<span class="sd">            |[null]         |</span>
+<span class="sd">            |[NULL]         |</span>
 <span class="sd">            +---------------+</span>
 <span class="sd">            &lt;BLANKLINE&gt;</span>
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -4803,7 +4761,7 @@
         <span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;rsIds&quot;</span><span class="p">)</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_extract_omim_xrefs</span><span class="p">(</span><span class="n">colocated_variants</span><span class="p">:</span> <span class="n">Column</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_extract_omim_xrefs</span><span class="p">(</span><span class="n">colocated_variants</span><span class="p">:</span> <span class="n">Column</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Build xdbRefs for OMIM identifiers.</span>
 
 <span class="sd">        OMIM identifiers are extracted from the colocated variants field, casted to strings and formatted as dbXrefs.</span>
@@ -4847,7 +4805,7 @@
         <span class="p">)</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_extract_clinvar_xrefs</span><span class="p">(</span><span class="n">colocated_variants</span><span class="p">:</span> <span class="n">Column</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_extract_clinvar_xrefs</span><span class="p">(</span><span class="n">colocated_variants</span><span class="p">:</span> <span class="n">Column</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Build xdbRefs for VCV ClinVar identifiers.</span>
 
 <span class="sd">        ClinVar identifiers are extracted from the colocated variants field.</span>
@@ -4894,7 +4852,7 @@
         <span class="p">)</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_get_most_severe_transcript</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_most_severe_transcript</span><span class="p">(</span>
         <span class="n">transcript_column_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">score_field_name</span><span class="p">:</span> <span class="nb">str</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Return transcript with the highest in silico predicted score.</span>
@@ -4941,7 +4899,7 @@
 
     <span class="nd">@classmethod</span>
     <span class="nd">@enforce_schema</span><span class="p">(</span><span class="n">IN_SILICO_PREDICTOR_SCHEMA</span><span class="p">)</span>
-    <span class="k">def</span> <span class="nf">_get_vep_prediction</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">most_severe_consequence</span><span class="p">:</span> <span class="n">Column</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_vep_prediction</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">most_severe_consequence</span><span class="p">:</span> <span class="n">Column</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">f</span><span class="o">.</span><span class="n">struct</span><span class="p">(</span>
             <span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="s2">&quot;VEP&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;method&quot;</span><span class="p">),</span>
             <span class="n">most_severe_consequence</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;assessment&quot;</span><span class="p">),</span>
@@ -4952,7 +4910,7 @@
 
     <span class="nd">@staticmethod</span>
     <span class="nd">@enforce_schema</span><span class="p">(</span><span class="n">IN_SILICO_PREDICTOR_SCHEMA</span><span class="p">)</span>
-    <span class="k">def</span> <span class="nf">_get_max_alpha_missense</span><span class="p">(</span><span class="n">transcripts</span><span class="p">:</span> <span class="n">Column</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_max_alpha_missense</span><span class="p">(</span><span class="n">transcripts</span><span class="p">:</span> <span class="n">Column</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the most severe alpha missense prediction from all transcripts.</span>
 
 <span class="sd">        This function assumes one variant can fall onto only one gene with alpha-sense prediction available on the canonical transcript.</span>
@@ -4979,8 +4937,8 @@
 <span class="sd">        +-----------------------------------------------------+</span>
 <span class="sd">        |am                                                   |</span>
 <span class="sd">        +-----------------------------------------------------+</span>
-<span class="sd">        |{AlphaMissense, assessment 1, 0.4, null, gene1, null}|</span>
-<span class="sd">        |{AlphaMissense, null, null, null, gene1, null}       |</span>
+<span class="sd">        |{AlphaMissense, assessment 1, 0.4, NULL, gene1, NULL}|</span>
+<span class="sd">        |{AlphaMissense, NULL, NULL, NULL, gene1, NULL}       |</span>
 <span class="sd">        +-----------------------------------------------------+</span>
 <span class="sd">        &lt;BLANKLINE&gt;</span>
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -5010,7 +4968,7 @@
 
     <span class="nd">@classmethod</span>
     <span class="nd">@enforce_schema</span><span class="p">(</span><span class="n">IN_SILICO_PREDICTOR_SCHEMA</span><span class="p">)</span>
-    <span class="k">def</span> <span class="nf">_vep_in_silico_prediction_extractor</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_vep_in_silico_prediction_extractor</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">VariantEffectPredictorParser</span><span class="p">],</span>
         <span class="n">transcript_column_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">method_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
@@ -5088,7 +5046,7 @@
         <span class="p">)</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_parser_amino_acid_change</span><span class="p">(</span><span class="n">amino_acids</span><span class="p">:</span> <span class="n">Column</span><span class="p">,</span> <span class="n">protein_end</span><span class="p">:</span> <span class="n">Column</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_parser_amino_acid_change</span><span class="p">(</span><span class="n">amino_acids</span><span class="p">:</span> <span class="n">Column</span><span class="p">,</span> <span class="n">protein_end</span><span class="p">:</span> <span class="n">Column</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Convert VEP amino acid change information to one letter code aa substitution code.</span>
 
 <span class="sd">        The logic assumes that the amino acid change is given in the format &quot;from/to&quot; and the protein end is given also.</span>
@@ -5112,8 +5070,8 @@
 <span class="sd">            |amino_acid_change|</span>
 <span class="sd">            +-----------------+</span>
 <span class="sd">            |              A1B|</span>
-<span class="sd">            |             null|</span>
-<span class="sd">            |             null|</span>
+<span class="sd">            |             NULL|</span>
+<span class="sd">            |             NULL|</span>
 <span class="sd">            +-----------------+</span>
 <span class="sd">            &lt;BLANKLINE&gt;</span>
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -5127,7 +5085,7 @@
         <span class="p">)</span><span class="o">.</span><span class="n">otherwise</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="kc">None</span><span class="p">))</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_collect_uniprot_accessions</span><span class="p">(</span><span class="n">trembl</span><span class="p">:</span> <span class="n">Column</span><span class="p">,</span> <span class="n">swissprot</span><span class="p">:</span> <span class="n">Column</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_collect_uniprot_accessions</span><span class="p">(</span><span class="n">trembl</span><span class="p">:</span> <span class="n">Column</span><span class="p">,</span> <span class="n">swissprot</span><span class="p">:</span> <span class="n">Column</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Flatten arrays containing Uniprot accessions.</span>
 
 <span class="sd">        Args:</span>
@@ -5170,7 +5128,7 @@
         <span class="p">)</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_parse_variant_location_id</span><span class="p">(</span><span class="n">vep_input_field</span><span class="p">:</span> <span class="n">Column</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">Column</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_parse_variant_location_id</span><span class="p">(</span><span class="n">vep_input_field</span><span class="p">:</span> <span class="n">Column</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">Column</span><span class="p">]:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Parse variant identifier, chromosome, position, reference allele and alternate allele from VEP input field.</span>
 
 <span class="sd">        Args:</span>
@@ -5197,7 +5155,7 @@
         <span class="p">]</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">process_vep_output</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">process_vep_output</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span> <span class="n">vep_output</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span> <span class="n">hash_threshold</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataFrame</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Process and format a VEP output in JSON format.</span>
@@ -5504,7 +5462,7 @@
         <span class="p">)</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">_compose_variant_description</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_compose_variant_description</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">VariantEffectPredictorParser</span><span class="p">],</span>
         <span class="n">most_severe_consequence</span><span class="p">:</span> <span class="n">Column</span><span class="p">,</span>
         <span class="n">first_transcript</span><span class="p">:</span> <span class="n">Column</span><span class="p">,</span>
@@ -5542,7 +5500,7 @@
         <span class="p">)</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_process_consequence_term</span><span class="p">(</span><span class="n">consequence_term</span><span class="p">:</span> <span class="n">Column</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_process_consequence_term</span><span class="p">(</span><span class="n">consequence_term</span><span class="p">:</span> <span class="n">Column</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Cleaning up consequence term: capitalizing and replacing underscores.</span>
 
 <span class="sd">        Args:</span>
@@ -5557,7 +5515,7 @@
         <span class="k">return</span> <span class="n">f</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">regexp_replace</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">initcap</span><span class="p">(</span><span class="n">consequence_term</span><span class="p">),</span> <span class="s2">&quot;_&quot;</span><span class="p">,</span> <span class="s2">&quot; &quot;</span><span class="p">),</span> <span class="n">last</span><span class="p">)</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_process_overlap</span><span class="p">(</span><span class="n">transcript</span><span class="p">:</span> <span class="n">Column</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_process_overlap</span><span class="p">(</span><span class="n">transcript</span><span class="p">:</span> <span class="n">Column</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Process overlap with gene: if the variant overlaps with the gene, return the gene name or distance.</span>
 
 <span class="sd">        Args:</span>
@@ -5586,7 +5544,7 @@
         <span class="p">)</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_process_aa_change</span><span class="p">(</span><span class="n">transcript</span><span class="p">:</span> <span class="n">Column</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_process_aa_change</span><span class="p">(</span><span class="n">transcript</span><span class="p">:</span> <span class="n">Column</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Extract amino acid change information from transcript when available.</span>
 
 <span class="sd">        Args:</span>
@@ -5607,7 +5565,7 @@
         <span class="p">)</span><span class="o">.</span><span class="n">otherwise</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">))</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_process_lof</span><span class="p">(</span><span class="n">transcript</span><span class="p">:</span> <span class="n">Column</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_process_lof</span><span class="p">(</span><span class="n">transcript</span><span class="p">:</span> <span class="n">Column</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Process loss of function annotation from LOFTEE prediction.</span>
 
 <span class="sd">        Args:</span>
@@ -5623,7 +5581,7 @@
         <span class="p">)</span><span class="o">.</span><span class="n">otherwise</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">))</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">_process_protein_coding_transcript</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_process_protein_coding_transcript</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">VariantEffectPredictorParser</span><span class="p">],</span>
         <span class="n">transcript</span><span class="p">:</span> <span class="n">Column</span><span class="p">,</span>
         <span class="n">most_severe_consequence</span><span class="p">:</span> <span class="n">Column</span><span class="p">,</span>
@@ -5653,7 +5611,7 @@
         <span class="k">return</span> <span class="n">f</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">consequence_text</span><span class="p">,</span> <span class="n">overlap</span><span class="p">,</span> <span class="n">amino_acid_change</span><span class="p">,</span> <span class="n">lof_assessment</span><span class="p">)</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_adding_biotype</span><span class="p">(</span><span class="n">transcript</span><span class="p">:</span> <span class="n">Column</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_adding_biotype</span><span class="p">(</span><span class="n">transcript</span><span class="p">:</span> <span class="n">Column</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Adding biotype information to the variant description.</span>
 
 <span class="sd">        Args:</span>
@@ -5675,7 +5633,7 @@
         <span class="k">return</span> <span class="n">f</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="s2">&quot;, a &quot;</span><span class="p">),</span> <span class="n">biotype</span><span class="p">)</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_parse_protein_coding_transcript</span><span class="p">(</span><span class="n">transcript</span><span class="p">:</span> <span class="n">Column</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_parse_protein_coding_transcript</span><span class="p">(</span><span class="n">transcript</span><span class="p">:</span> <span class="n">Column</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Parse the closest, not first protein coding transcript: extract gene symbol and distance.</span>
 
 <span class="sd">        Args:</span>
@@ -5701,7 +5659,7 @@
         <span class="p">)</span><span class="o">.</span><span class="n">otherwise</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">))</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">_process_non_protein_coding_transcript</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_process_non_protein_coding_transcript</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">VariantEffectPredictorParser</span><span class="p">],</span>
         <span class="n">most_severe_consequence</span><span class="p">:</span> <span class="n">Column</span><span class="p">,</span>
         <span class="n">first_transcript</span><span class="p">:</span> <span class="n">Column</span><span class="p">,</span>
@@ -5931,7 +5889,7 @@
 <span class="normal">107</span>
 <span class="normal">108</span>
 <span class="normal">109</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
-<span class="k">def</span> <span class="nf">extract_variant_index_from_vep</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">extract_variant_index_from_vep</span><span class="p">(</span>
     <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">VariantEffectPredictorParser</span><span class="p">],</span>
     <span class="n">spark</span><span class="p">:</span> <span class="n">SparkSession</span><span class="p">,</span>
     <span class="n">vep_output_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
@@ -5958,7 +5916,7 @@
     <span class="k">try</span><span class="p">:</span>
         <span class="n">vep_data</span> <span class="o">=</span> <span class="n">spark</span><span class="o">.</span><span class="n">read</span><span class="o">.</span><span class="n">json</span><span class="p">(</span><span class="n">vep_output_path</span><span class="p">,</span> <span class="n">schema</span><span class="o">=</span><span class="n">vep_schema</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
     <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed reading file: </span><span class="si">{</span><span class="n">vep_output_path</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span> <span class="kn">from</span> <span class="nn">e</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed reading file: </span><span class="si">{</span><span class="n">vep_output_path</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span>
 
     <span class="k">if</span> <span class="n">vep_data</span><span class="o">.</span><span class="n">isEmpty</span><span class="p">():</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;The dataset is empty: </span><span class="si">{</span><span class="n">vep_output_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
@@ -6037,7 +5995,7 @@
 <span class="normal">65</span>
 <span class="normal">66</span>
 <span class="normal">67</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@staticmethod</span>
-<span class="k">def</span> <span class="nf">get_schema</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">StructType</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_schema</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">StructType</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Return the schema of the VEP output.</span>
 
 <span class="sd">    Returns:</span>
@@ -6449,7 +6407,7 @@
 <span class="normal">903</span>
 <span class="normal">904</span>
 <span class="normal">905</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
-<span class="k">def</span> <span class="nf">process_vep_output</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">process_vep_output</span><span class="p">(</span>
     <span class="bp">cls</span><span class="p">,</span> <span class="n">vep_output</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span> <span class="n">hash_threshold</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataFrame</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Process and format a VEP output in JSON format.</span>
@@ -6807,6 +6765,14 @@
               data-bi-name="contributorprofile"
               target="_blank"
               ><img src="https://avatars.githubusercontent.com/u/7122521?v=4" alt="DSuveges"
+            /></a>
+          </li><li>
+            <a
+              href="https://github.com/web-flow"
+              title="web-flow"
+              data-bi-name="contributorprofile"
+              target="_blank"
+              ><img src="https://avatars.githubusercontent.com/u/19864447?v=4" alt="web-flow"
             /></a>
           </li></ul>
       </li>

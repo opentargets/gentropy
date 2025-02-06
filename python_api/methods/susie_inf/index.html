@@ -1049,27 +1049,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../../datasets/gene_index/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Gene Index
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../../datasets/intervals/" class="md-nav__link">
         
   
@@ -1243,6 +1222,27 @@
   
   <span class="md-ellipsis">
     Summary Statistics
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../datasets/target_index/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Target Index
   </span>
   
 
@@ -2288,27 +2288,6 @@
 
               
             
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../datasources/open_targets/target/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Target
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
           </ul>
         </nav>
       
@@ -3028,27 +3007,6 @@
   
   <span class="md-ellipsis">
     finngen_sumstat_preprocess
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../steps/gene_index/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    gene_index
   </span>
   
 
@@ -4065,7 +4023,7 @@ https://github.com/FinucaneLab/fine-mapping-inf</p>
 <span class="normal">528</span>
 <span class="normal">529</span>
 <span class="normal">530</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
-<span class="k">class</span> <span class="nc">SUSIE_inf</span><span class="p">:</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">SUSIE_inf</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;SuSiE fine-mapping of a study locus from fine-mapping-inf package.</span>
 
 <span class="sd">    Note: code copied from fine-mapping-inf package as a placeholder</span>
@@ -4076,7 +4034,7 @@ https://github.com/FinucaneLab/fine-mapping-inf</p>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">susie_inf</span><span class="p">(</span>  <span class="c1"># noqa: C901</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">susie_inf</span><span class="p">(</span>  <span class="c1"># noqa: C901</span>
         <span class="n">z</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
         <span class="n">meansq</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
         <span class="n">n</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100000</span><span class="p">,</span>
@@ -4175,7 +4133,7 @@ https://github.com/FinucaneLab/fine-mapping-inf</p>
             <span class="n">logpi0</span><span class="p">[</span><span class="n">inds</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">pi0</span><span class="p">[</span><span class="n">inds</span><span class="p">])</span>
 
         <span class="c1">####### Main SuSiE iteration loop ######</span>
-        <span class="k">def</span> <span class="nf">f</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">f</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
 <span class="w">            </span><span class="sd">&quot;&quot;&quot;Negative ELBO as function of x = sigma_e^2.</span>
 
 <span class="sd">            Args:</span>
@@ -4280,7 +4238,7 @@ https://github.com/FinucaneLab/fine-mapping-inf</p>
         <span class="p">}</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_MoM</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_MoM</span><span class="p">(</span>
         <span class="n">PIP</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
         <span class="n">mu</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
         <span class="n">omega</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
@@ -4345,7 +4303,7 @@ https://github.com/FinucaneLab/fine-mapping-inf</p>
         <span class="k">return</span> <span class="n">sigmasq</span><span class="p">,</span> <span class="n">tausq</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_MLE</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_MLE</span><span class="p">(</span>
         <span class="n">PIP</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
         <span class="n">mu</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
         <span class="n">omega</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
@@ -4402,7 +4360,7 @@ https://github.com/FinucaneLab/fine-mapping-inf</p>
         <span class="n">diagVtMV</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">V</span><span class="o">.</span><span class="n">T</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">tmpD</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 
         <span class="c1"># negative ELBO as function of x = (sigma_e^2,sigma_g^2)</span>
-        <span class="k">def</span> <span class="nf">f</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">f</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
 <span class="w">            </span><span class="sd">&quot;&quot;&quot;Negative ELBO as function of x = (sigma_e^2,sigma_g^2).</span>
 
 <span class="sd">            Args:</span>
@@ -4433,7 +4391,7 @@ https://github.com/FinucaneLab/fine-mapping-inf</p>
                 <span class="n">sigmasq</span><span class="p">,</span> <span class="n">tausq</span> <span class="o">=</span> <span class="n">res</span><span class="o">.</span><span class="n">x</span>
         <span class="k">elif</span> <span class="n">est_sigmasq</span><span class="p">:</span>
 
-            <span class="k">def</span> <span class="nf">g</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+            <span class="k">def</span><span class="w"> </span><span class="nf">g</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
 <span class="w">                </span><span class="sd">&quot;&quot;&quot;Negative ELBO as function of x = sigma_e^2.</span>
 
 <span class="sd">                Args:</span>
@@ -4450,7 +4408,7 @@ https://github.com/FinucaneLab/fine-mapping-inf</p>
         <span class="k">return</span> <span class="n">sigmasq</span><span class="p">,</span> <span class="n">tausq</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">cred_inf</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">cred_inf</span><span class="p">(</span>
         <span class="n">PIP</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
         <span class="n">n</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100_000</span><span class="p">,</span>
         <span class="n">coverage</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.99</span><span class="p">,</span>
@@ -4514,7 +4472,7 @@ https://github.com/FinucaneLab/fine-mapping-inf</p>
         <span class="k">return</span> <span class="n">cred</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">credible_set_qc</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">credible_set_qc</span><span class="p">(</span>
         <span class="n">cred_sets</span><span class="p">:</span> <span class="n">StudyLocus</span><span class="p">,</span>
         <span class="n">p_value_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-5</span><span class="p">,</span>
         <span class="n">purity_min_r2</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.01</span><span class="p">,</span>
@@ -4870,7 +4828,7 @@ https://github.com/FinucaneLab/fine-mapping-inf</p>
 <span class="normal">466</span>
 <span class="normal">467</span>
 <span class="normal">468</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@staticmethod</span>
-<span class="k">def</span> <span class="nf">cred_inf</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">cred_inf</span><span class="p">(</span>
     <span class="n">PIP</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
     <span class="n">n</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100_000</span><span class="p">,</span>
     <span class="n">coverage</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.99</span><span class="p">,</span>
@@ -5169,7 +5127,7 @@ https://github.com/FinucaneLab/fine-mapping-inf</p>
 <span class="normal">528</span>
 <span class="normal">529</span>
 <span class="normal">530</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@staticmethod</span>
-<span class="k">def</span> <span class="nf">credible_set_qc</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">credible_set_qc</span><span class="p">(</span>
     <span class="n">cred_sets</span><span class="p">:</span> <span class="n">StudyLocus</span><span class="p">,</span>
     <span class="n">p_value_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-5</span><span class="p">,</span>
     <span class="n">purity_min_r2</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.01</span><span class="p">,</span>
@@ -5879,7 +5837,7 @@ lbf -- length-p array of log-Bayes-factors for each CS</p>
 <span class="normal">232</span>
 <span class="normal">233</span>
 <span class="normal">234</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@staticmethod</span>
-<span class="k">def</span> <span class="nf">susie_inf</span><span class="p">(</span>  <span class="c1"># noqa: C901</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">susie_inf</span><span class="p">(</span>  <span class="c1"># noqa: C901</span>
     <span class="n">z</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
     <span class="n">meansq</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
     <span class="n">n</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100000</span><span class="p">,</span>
@@ -5978,7 +5936,7 @@ lbf -- length-p array of log-Bayes-factors for each CS</p>
         <span class="n">logpi0</span><span class="p">[</span><span class="n">inds</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">pi0</span><span class="p">[</span><span class="n">inds</span><span class="p">])</span>
 
     <span class="c1">####### Main SuSiE iteration loop ######</span>
-    <span class="k">def</span> <span class="nf">f</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">f</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Negative ELBO as function of x = sigma_e^2.</span>
 
 <span class="sd">        Args:</span>
@@ -6116,7 +6074,7 @@ lbf -- length-p array of log-Bayes-factors for each CS</p>
         <span class="icon twemoji">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1-2.1-2M12.5 7v5.2l4 2.4-1 1L11 13V7h1.5M11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2v1.8Z"/></svg>
         </span>
-        <span class="label"> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2024-02-08T13:44:57+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2024-02-08</span> </span>
+        <span class="label"> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2024-02-08T11:11:25+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2024-02-08</span> </span>
       </li>
       
 

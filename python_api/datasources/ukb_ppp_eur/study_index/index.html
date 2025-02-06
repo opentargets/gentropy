@@ -1049,27 +1049,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../datasets/gene_index/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Gene Index
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../../../datasets/intervals/" class="md-nav__link">
         
   
@@ -1243,6 +1222,27 @@
   
   <span class="md-ellipsis">
     Summary Statistics
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../datasets/target_index/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Target Index
   </span>
   
 
@@ -2290,27 +2290,6 @@
 
               
             
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../open_targets/target/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Target
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
           </ul>
         </nav>
       
@@ -3024,27 +3003,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../steps/gene_index/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    gene_index
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../../../steps/gwas_catalog_curation/" class="md-nav__link">
         
   
@@ -3550,11 +3508,11 @@
 <span class="normal">72</span>
 <span class="normal">73</span>
 <span class="normal">74</span>
-<span class="normal">75</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">UkbPppEurStudyIndex</span><span class="p">(</span><span class="n">StudyIndex</span><span class="p">):</span>
+<span class="normal">75</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">UkbPppEurStudyIndex</span><span class="p">(</span><span class="n">StudyIndex</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Study index dataset from UKB PPP (EUR).&quot;&quot;&quot;</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">from_source</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_source</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">UkbPppEurStudyIndex</span><span class="p">],</span>
         <span class="n">spark</span><span class="p">:</span> <span class="n">SparkSession</span><span class="p">,</span>
         <span class="n">raw_study_index_path_from_tsv</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
@@ -3797,7 +3755,7 @@
 <span class="normal">73</span>
 <span class="normal">74</span>
 <span class="normal">75</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
-<span class="k">def</span> <span class="nf">from_source</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">from_source</span><span class="p">(</span>
     <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">UkbPppEurStudyIndex</span><span class="p">],</span>
     <span class="n">spark</span><span class="p">:</span> <span class="n">SparkSession</span><span class="p">,</span>
     <span class="n">raw_study_index_path_from_tsv</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>

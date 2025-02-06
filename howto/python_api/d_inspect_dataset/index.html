@@ -1138,27 +1138,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../python_api/datasets/gene_index/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Gene Index
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../../../python_api/datasets/intervals/" class="md-nav__link">
         
   
@@ -1332,6 +1311,27 @@
   
   <span class="md-ellipsis">
     Summary Statistics
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../python_api/datasets/target_index/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Target Index
   </span>
   
 
@@ -2377,27 +2377,6 @@
 
               
             
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../python_api/datasources/open_targets/target/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Target
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
           </ul>
         </nav>
       
@@ -3049,27 +3028,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../python_api/steps/gene_index/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    gene_index
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../../../python_api/steps/gwas_catalog_curation/" class="md-nav__link">
         
   
@@ -3521,7 +3479,7 @@
 </code></pre></div>
 <p>This method displays the first 10 rows of your dataset, giving you a snapshot of your data's structure and content.</p>
 <h3 id="filter-data">Filter data<a class="headerlink" href="#filter-data" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><span class="kn">import</span> <span class="nn">pyspark.sql.functions</span> <span class="k">as</span> <span class="nn">f</span>
+<div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">pyspark.sql.functions</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">f</span>
 
 <span class="c1"># Filter summary statistics to only include associations in chromosome 22</span>
 <span class="n">filtered</span> <span class="o">=</span> <span class="n">summary_stats</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">condition</span><span class="o">=</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;chromosome&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;22&quot;</span><span class="p">)</span>
@@ -3582,6 +3540,14 @@
               data-bi-name="contributorprofile"
               target="_blank"
               ><img src="https://avatars.githubusercontent.com/u/45119610?v=4" alt="ireneisdoomed"
+            /></a>
+          </li><li>
+            <a
+              href="https://github.com/web-flow"
+              title="web-flow"
+              data-bi-name="contributorprofile"
+              target="_blank"
+              ><img src="https://avatars.githubusercontent.com/u/19864447?v=4" alt="web-flow"
             /></a>
           </li></ul>
       </li>

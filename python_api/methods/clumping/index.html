@@ -1049,27 +1049,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../../datasets/gene_index/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Gene Index
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../../datasets/intervals/" class="md-nav__link">
         
   
@@ -1243,6 +1222,27 @@
   
   <span class="md-ellipsis">
     Summary Statistics
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../datasets/target_index/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Target Index
   </span>
   
 
@@ -2288,27 +2288,6 @@
 
               
             
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../datasources/open_targets/target/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Target
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
           </ul>
         </nav>
       
@@ -2956,27 +2935,6 @@
   
   <span class="md-ellipsis">
     finngen_sumstat_preprocess
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../steps/gene_index/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    gene_index
   </span>
   
 
@@ -3642,11 +3600,11 @@
 <span class="normal">255</span>
 <span class="normal">256</span>
 <span class="normal">257</span>
-<span class="normal">258</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">WindowBasedClumping</span><span class="p">:</span>
+<span class="normal">258</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">WindowBasedClumping</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Get semi-lead snps from summary statistics using a window based function.&quot;&quot;&quot;</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_cluster_peaks</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_cluster_peaks</span><span class="p">(</span>
         <span class="n">study</span><span class="p">:</span> <span class="n">Column</span><span class="p">,</span> <span class="n">chromosome</span><span class="p">:</span> <span class="n">Column</span><span class="p">,</span> <span class="n">position</span><span class="p">:</span> <span class="n">Column</span><span class="p">,</span> <span class="n">window_length</span><span class="p">:</span> <span class="nb">int</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Cluster GWAS significant variants, were clusters are separated by a defined distance.</span>
@@ -3733,7 +3691,7 @@
         <span class="p">)</span><span class="o">.</span><span class="n">otherwise</span><span class="p">(</span><span class="n">cluster_id</span><span class="p">)</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_prune_peak</span><span class="p">(</span><span class="n">position</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">],</span> <span class="n">window_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DenseVector</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_prune_peak</span><span class="p">(</span><span class="n">position</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">],</span> <span class="n">window_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DenseVector</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Establish lead snps based on their positions listed by p-value.</span>
 
 <span class="sd">        The function `find_peak` assigns lead SNPs based on their positions listed by p-value within a specified window size.</span>
@@ -3774,7 +3732,7 @@
         <span class="k">return</span> <span class="n">DenseVector</span><span class="p">(</span><span class="n">is_lead</span><span class="p">)</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">clump</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">clump</span><span class="p">(</span>
         <span class="n">unclumped_associations</span><span class="p">:</span> <span class="n">SummaryStatistics</span> <span class="o">|</span> <span class="n">StudyLocus</span><span class="p">,</span>
         <span class="n">distance</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">WindowBasedClumpingStepConfig</span><span class="p">()</span><span class="o">.</span><span class="n">distance</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyLocus</span><span class="p">:</span>
@@ -4085,7 +4043,7 @@
 <span class="normal">256</span>
 <span class="normal">257</span>
 <span class="normal">258</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@staticmethod</span>
-<span class="k">def</span> <span class="nf">clump</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">clump</span><span class="p">(</span>
     <span class="n">unclumped_associations</span><span class="p">:</span> <span class="n">SummaryStatistics</span> <span class="o">|</span> <span class="n">StudyLocus</span><span class="p">,</span>
     <span class="n">distance</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">WindowBasedClumpingStepConfig</span><span class="p">()</span><span class="o">.</span><span class="n">distance</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyLocus</span><span class="p">:</span>
@@ -4286,11 +4244,11 @@
 <span class="normal">73</span>
 <span class="normal">74</span>
 <span class="normal">75</span>
-<span class="normal">76</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">LDclumping</span><span class="p">:</span>
+<span class="normal">76</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">LDclumping</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;LD clumping reports the most significant genetic associations in a region in terms of a smaller number of “clumps” of genetically linked SNPs.&quot;&quot;&quot;</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_is_lead_linked</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_is_lead_linked</span><span class="p">(</span>
         <span class="n">study_id</span><span class="p">:</span> <span class="n">Column</span><span class="p">,</span>
         <span class="n">chromosome</span><span class="p">:</span> <span class="n">Column</span><span class="p">,</span>
         <span class="n">variant_id</span><span class="p">:</span> <span class="n">Column</span><span class="p">,</span>
@@ -4337,7 +4295,7 @@
         <span class="p">)</span><span class="o">.</span><span class="n">otherwise</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="kc">False</span><span class="p">))</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">clump</span><span class="p">(</span><span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">LDclumping</span><span class="p">],</span> <span class="n">associations</span><span class="p">:</span> <span class="n">StudyLocus</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyLocus</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">clump</span><span class="p">(</span><span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">LDclumping</span><span class="p">],</span> <span class="n">associations</span><span class="p">:</span> <span class="n">StudyLocus</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyLocus</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Perform clumping on studyLocus dataset.</span>
 
 <span class="sd">        Args:</span>
@@ -4446,7 +4404,7 @@
 <span class="normal">74</span>
 <span class="normal">75</span>
 <span class="normal">76</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
-<span class="k">def</span> <span class="nf">clump</span><span class="p">(</span><span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">LDclumping</span><span class="p">],</span> <span class="n">associations</span><span class="p">:</span> <span class="n">StudyLocus</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyLocus</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">clump</span><span class="p">(</span><span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">LDclumping</span><span class="p">],</span> <span class="n">associations</span><span class="p">:</span> <span class="n">StudyLocus</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyLocus</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Perform clumping on studyLocus dataset.</span>
 
 <span class="sd">    Args:</span>
@@ -4644,11 +4602,11 @@
 <span class="normal">164</span>
 <span class="normal">165</span>
 <span class="normal">166</span>
-<span class="normal">167</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">LocusBreakerClumping</span><span class="p">:</span>
+<span class="normal">167</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">LocusBreakerClumping</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Locus-breaker clumping method.&quot;&quot;&quot;</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">locus_breaker</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">locus_breaker</span><span class="p">(</span>
         <span class="n">summary_statistics</span><span class="p">:</span> <span class="n">SummaryStatistics</span><span class="p">,</span>
         <span class="n">baseline_pvalue_cutoff</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
         <span class="n">distance_cutoff</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -4748,7 +4706,7 @@
         <span class="p">)</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">process_locus_breaker_output</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">process_locus_breaker_output</span><span class="p">(</span>
         <span class="n">lbc</span><span class="p">:</span> <span class="n">StudyLocus</span><span class="p">,</span>
         <span class="n">wbc</span><span class="p">:</span> <span class="n">StudyLocus</span><span class="p">,</span>
         <span class="n">large_loci_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -5052,7 +5010,7 @@
 <span class="normal">116</span>
 <span class="normal">117</span>
 <span class="normal">118</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@staticmethod</span>
-<span class="k">def</span> <span class="nf">locus_breaker</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">locus_breaker</span><span class="p">(</span>
     <span class="n">summary_statistics</span><span class="p">:</span> <span class="n">SummaryStatistics</span><span class="p">,</span>
     <span class="n">baseline_pvalue_cutoff</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
     <span class="n">distance_cutoff</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -5309,7 +5267,7 @@
 <span class="normal">165</span>
 <span class="normal">166</span>
 <span class="normal">167</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@staticmethod</span>
-<span class="k">def</span> <span class="nf">process_locus_breaker_output</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">process_locus_breaker_output</span><span class="p">(</span>
     <span class="n">lbc</span><span class="p">:</span> <span class="n">StudyLocus</span><span class="p">,</span>
     <span class="n">wbc</span><span class="p">:</span> <span class="n">StudyLocus</span><span class="p">,</span>
     <span class="n">large_loci_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>

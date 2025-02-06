@@ -1049,27 +1049,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../datasets/gene_index/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Gene Index
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../../../datasets/intervals/" class="md-nav__link">
         
   
@@ -1243,6 +1222,27 @@
   
   <span class="md-ellipsis">
     Summary Statistics
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../datasets/target_index/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Target Index
   </span>
   
 
@@ -2352,27 +2352,6 @@
 
               
             
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../open_targets/target/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Target
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
           </ul>
         </nav>
       
@@ -3008,27 +2987,6 @@
   
   <span class="md-ellipsis">
     finngen_sumstat_preprocess
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../steps/gene_index/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    gene_index
   </span>
   
 
@@ -4006,7 +3964,7 @@
 <span class="normal">530</span>
 <span class="normal">531</span>
 <span class="normal">532</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
-<span class="k">class</span> <span class="nc">FinnGenFinemapping</span><span class="p">:</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">FinnGenFinemapping</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;SuSIE finemapping dataset for FinnGen.</span>
 
 <span class="sd">    Credible sets from SuSIE are extracted and transformed into StudyLocus objects:</span>
@@ -4180,7 +4138,7 @@
     <span class="p">)</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_infer_block_gzip_compression</span><span class="p">(</span><span class="n">paths</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_infer_block_gzip_compression</span><span class="p">(</span><span class="n">paths</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Naively infer compression type based on the file extension.</span>
 
 <span class="sd">        Args:</span>
@@ -4194,7 +4152,7 @@
         <span class="k">return</span> <span class="nb">all</span><span class="p">(</span><span class="n">path</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;.bgz&quot;</span><span class="p">)</span> <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">paths</span><span class="p">)</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">from_finngen_susie_finemapping</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_finngen_susie_finemapping</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">FinnGenFinemapping</span><span class="p">],</span>
         <span class="n">spark</span><span class="p">:</span> <span class="n">SparkSession</span><span class="p">,</span>
         <span class="n">finngen_susie_finemapping_snp_files</span><span class="p">:</span> <span class="p">(</span><span class="nb">str</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]),</span>
@@ -5052,7 +5010,7 @@ downloaded, transfromed from block gzipped to plain gzipped and then uploaded to
 <span class="normal">530</span>
 <span class="normal">531</span>
 <span class="normal">532</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
-<span class="k">def</span> <span class="nf">from_finngen_susie_finemapping</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">from_finngen_susie_finemapping</span><span class="p">(</span>
     <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">FinnGenFinemapping</span><span class="p">],</span>
     <span class="n">spark</span><span class="p">:</span> <span class="n">SparkSession</span><span class="p">,</span>
     <span class="n">finngen_susie_finemapping_snp_files</span><span class="p">:</span> <span class="p">(</span><span class="nb">str</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]),</span>
@@ -5430,6 +5388,14 @@ downloaded, transfromed from block gzipped to plain gzipped and then uploaded to
               data-bi-name="contributorprofile"
               target="_blank"
               ><img src="https://avatars.githubusercontent.com/u/33658607?v=4" alt="xyg123"
+            /></a>
+          </li><li>
+            <a
+              href="https://github.com/web-flow"
+              title="web-flow"
+              data-bi-name="contributorprofile"
+              target="_blank"
+              ><img src="https://avatars.githubusercontent.com/u/19864447?v=4" alt="web-flow"
             /></a>
           </li></ul>
       </li>

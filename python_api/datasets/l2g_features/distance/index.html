@@ -1051,27 +1051,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../../gene_index/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Gene Index
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../../intervals/" class="md-nav__link">
         
   
@@ -1245,6 +1224,27 @@
   
   <span class="md-ellipsis">
     Summary Statistics
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../target_index/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Target Index
   </span>
   
 
@@ -2556,27 +2556,6 @@
 
               
             
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../datasources/open_targets/target/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Target
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
           </ul>
         </nav>
       
@@ -3212,27 +3191,6 @@
   
   <span class="md-ellipsis">
     finngen_sumstat_preprocess
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../steps/gene_index/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    gene_index
   </span>
   
 
@@ -3932,14 +3890,14 @@
 <span class="normal">255</span>
 <span class="normal">256</span>
 <span class="normal">257</span>
-<span class="normal">258</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">DistanceSentinelTssFeature</span><span class="p">(</span><span class="n">L2GFeature</span><span class="p">):</span>
+<span class="normal">258</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">DistanceSentinelTssFeature</span><span class="p">(</span><span class="n">L2GFeature</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Distance of the sentinel variant to gene TSS. This is not weighted by the causal probability.&quot;&quot;&quot;</span>
 
     <span class="n">feature_dependency_type</span> <span class="o">=</span> <span class="n">VariantIndex</span>
     <span class="n">feature_name</span> <span class="o">=</span> <span class="s2">&quot;distanceSentinelTss&quot;</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">DistanceSentinelTssFeature</span><span class="p">],</span>
         <span class="n">study_loci_to_annotate</span><span class="p">:</span> <span class="n">StudyLocus</span> <span class="o">|</span> <span class="n">L2GGoldStandard</span><span class="p">,</span>
         <span class="n">feature_dependency</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
@@ -4102,7 +4060,7 @@
 <span class="normal">256</span>
 <span class="normal">257</span>
 <span class="normal">258</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
-<span class="k">def</span> <span class="nf">compute</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span>
     <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">DistanceSentinelTssFeature</span><span class="p">],</span>
     <span class="n">study_loci_to_annotate</span><span class="p">:</span> <span class="n">StudyLocus</span> <span class="o">|</span> <span class="n">L2GGoldStandard</span><span class="p">,</span>
     <span class="n">feature_dependency</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
@@ -4209,14 +4167,14 @@
 <span class="normal">293</span>
 <span class="normal">294</span>
 <span class="normal">295</span>
-<span class="normal">296</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">DistanceSentinelTssNeighbourhoodFeature</span><span class="p">(</span><span class="n">L2GFeature</span><span class="p">):</span>
+<span class="normal">296</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">DistanceSentinelTssNeighbourhoodFeature</span><span class="p">(</span><span class="n">L2GFeature</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Distance between the sentinel variant and a gene TSS as a relation of the distnace with all the genes in the vicinity of a studyLocus. This is not weighted by the causal probability.&quot;&quot;&quot;</span>
 
-    <span class="n">feature_dependency_type</span> <span class="o">=</span> <span class="p">[</span><span class="n">VariantIndex</span><span class="p">,</span> <span class="n">GeneIndex</span><span class="p">]</span>
+    <span class="n">feature_dependency_type</span> <span class="o">=</span> <span class="p">[</span><span class="n">VariantIndex</span><span class="p">,</span> <span class="n">TargetIndex</span><span class="p">]</span>
     <span class="n">feature_name</span> <span class="o">=</span> <span class="s2">&quot;distanceSentinelTssNeighbourhood&quot;</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">DistanceSentinelTssNeighbourhoodFeature</span><span class="p">],</span>
         <span class="n">study_loci_to_annotate</span><span class="p">:</span> <span class="n">StudyLocus</span> <span class="o">|</span> <span class="n">L2GGoldStandard</span><span class="p">,</span>
         <span class="n">feature_dependency</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
@@ -4379,7 +4337,7 @@
 <span class="normal">294</span>
 <span class="normal">295</span>
 <span class="normal">296</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
-<span class="k">def</span> <span class="nf">compute</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span>
     <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">DistanceSentinelTssNeighbourhoodFeature</span><span class="p">],</span>
     <span class="n">study_loci_to_annotate</span><span class="p">:</span> <span class="n">StudyLocus</span> <span class="o">|</span> <span class="n">L2GGoldStandard</span><span class="p">,</span>
     <span class="n">feature_dependency</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
@@ -4491,14 +4449,14 @@
 <span class="normal">179</span>
 <span class="normal">180</span>
 <span class="normal">181</span>
-<span class="normal">182</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">DistanceTssMeanFeature</span><span class="p">(</span><span class="n">L2GFeature</span><span class="p">):</span>
+<span class="normal">182</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">DistanceTssMeanFeature</span><span class="p">(</span><span class="n">L2GFeature</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Average distance of all tagging variants to gene TSS.&quot;&quot;&quot;</span>
 
     <span class="n">feature_dependency_type</span> <span class="o">=</span> <span class="n">VariantIndex</span>
     <span class="n">feature_name</span> <span class="o">=</span> <span class="s2">&quot;distanceTssMean&quot;</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">DistanceTssMeanFeature</span><span class="p">],</span>
         <span class="n">study_loci_to_annotate</span><span class="p">:</span> <span class="n">StudyLocus</span> <span class="o">|</span> <span class="n">L2GGoldStandard</span><span class="p">,</span>
         <span class="n">feature_dependency</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
@@ -4671,7 +4629,7 @@
 <span class="normal">180</span>
 <span class="normal">181</span>
 <span class="normal">182</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
-<span class="k">def</span> <span class="nf">compute</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span>
     <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">DistanceTssMeanFeature</span><span class="p">],</span>
     <span class="n">study_loci_to_annotate</span><span class="p">:</span> <span class="n">StudyLocus</span> <span class="o">|</span> <span class="n">L2GGoldStandard</span><span class="p">,</span>
     <span class="n">feature_dependency</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
@@ -4783,14 +4741,14 @@
 <span class="normal">217</span>
 <span class="normal">218</span>
 <span class="normal">219</span>
-<span class="normal">220</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">DistanceTssMeanNeighbourhoodFeature</span><span class="p">(</span><span class="n">L2GFeature</span><span class="p">):</span>
+<span class="normal">220</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">DistanceTssMeanNeighbourhoodFeature</span><span class="p">(</span><span class="n">L2GFeature</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Minimum mean distance to TSS for all genes in the vicinity of a studyLocus.&quot;&quot;&quot;</span>
 
-    <span class="n">feature_dependency_type</span> <span class="o">=</span> <span class="p">[</span><span class="n">VariantIndex</span><span class="p">,</span> <span class="n">GeneIndex</span><span class="p">]</span>
+    <span class="n">feature_dependency_type</span> <span class="o">=</span> <span class="p">[</span><span class="n">VariantIndex</span><span class="p">,</span> <span class="n">TargetIndex</span><span class="p">]</span>
     <span class="n">feature_name</span> <span class="o">=</span> <span class="s2">&quot;distanceTssMeanNeighbourhood&quot;</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">DistanceTssMeanNeighbourhoodFeature</span><span class="p">],</span>
         <span class="n">study_loci_to_annotate</span><span class="p">:</span> <span class="n">StudyLocus</span> <span class="o">|</span> <span class="n">L2GGoldStandard</span><span class="p">,</span>
         <span class="n">feature_dependency</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
@@ -4953,7 +4911,7 @@
 <span class="normal">218</span>
 <span class="normal">219</span>
 <span class="normal">220</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
-<span class="k">def</span> <span class="nf">compute</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span>
     <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">DistanceTssMeanNeighbourhoodFeature</span><span class="p">],</span>
     <span class="n">study_loci_to_annotate</span><span class="p">:</span> <span class="n">StudyLocus</span> <span class="o">|</span> <span class="n">L2GGoldStandard</span><span class="p">,</span>
     <span class="n">feature_dependency</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
@@ -5060,14 +5018,14 @@
 <span class="normal">412</span>
 <span class="normal">413</span>
 <span class="normal">414</span>
-<span class="normal">415</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">DistanceSentinelFootprintFeature</span><span class="p">(</span><span class="n">L2GFeature</span><span class="p">):</span>
+<span class="normal">415</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">DistanceSentinelFootprintFeature</span><span class="p">(</span><span class="n">L2GFeature</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Distance between the sentinel variant and the footprint of a gene.&quot;&quot;&quot;</span>
 
     <span class="n">feature_dependency_type</span> <span class="o">=</span> <span class="n">VariantIndex</span>
     <span class="n">feature_name</span> <span class="o">=</span> <span class="s2">&quot;distanceSentinelFootprint&quot;</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">DistanceSentinelFootprintFeature</span><span class="p">],</span>
         <span class="n">study_loci_to_annotate</span><span class="p">:</span> <span class="n">StudyLocus</span> <span class="o">|</span> <span class="n">L2GGoldStandard</span><span class="p">,</span>
         <span class="n">feature_dependency</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
@@ -5230,7 +5188,7 @@
 <span class="normal">413</span>
 <span class="normal">414</span>
 <span class="normal">415</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
-<span class="k">def</span> <span class="nf">compute</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span>
     <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">DistanceSentinelFootprintFeature</span><span class="p">],</span>
     <span class="n">study_loci_to_annotate</span><span class="p">:</span> <span class="n">StudyLocus</span> <span class="o">|</span> <span class="n">L2GGoldStandard</span><span class="p">,</span>
     <span class="n">feature_dependency</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
@@ -5337,14 +5295,14 @@
 <span class="normal">450</span>
 <span class="normal">451</span>
 <span class="normal">452</span>
-<span class="normal">453</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">DistanceSentinelFootprintNeighbourhoodFeature</span><span class="p">(</span><span class="n">L2GFeature</span><span class="p">):</span>
+<span class="normal">453</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">DistanceSentinelFootprintNeighbourhoodFeature</span><span class="p">(</span><span class="n">L2GFeature</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Distance between the sentinel variant and a gene footprint as a relation of the distnace with all the genes in the vicinity of a studyLocus. This is not weighted by the causal probability.&quot;&quot;&quot;</span>
 
-    <span class="n">feature_dependency_type</span> <span class="o">=</span> <span class="p">[</span><span class="n">VariantIndex</span><span class="p">,</span> <span class="n">GeneIndex</span><span class="p">]</span>
+    <span class="n">feature_dependency_type</span> <span class="o">=</span> <span class="p">[</span><span class="n">VariantIndex</span><span class="p">,</span> <span class="n">TargetIndex</span><span class="p">]</span>
     <span class="n">feature_name</span> <span class="o">=</span> <span class="s2">&quot;distanceSentinelFootprintNeighbourhood&quot;</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">DistanceSentinelFootprintNeighbourhoodFeature</span><span class="p">],</span>
         <span class="n">study_loci_to_annotate</span><span class="p">:</span> <span class="n">StudyLocus</span> <span class="o">|</span> <span class="n">L2GGoldStandard</span><span class="p">,</span>
         <span class="n">feature_dependency</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
@@ -5507,7 +5465,7 @@
 <span class="normal">451</span>
 <span class="normal">452</span>
 <span class="normal">453</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
-<span class="k">def</span> <span class="nf">compute</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span>
     <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">DistanceSentinelFootprintNeighbourhoodFeature</span><span class="p">],</span>
     <span class="n">study_loci_to_annotate</span><span class="p">:</span> <span class="n">StudyLocus</span> <span class="o">|</span> <span class="n">L2GGoldStandard</span><span class="p">,</span>
     <span class="n">feature_dependency</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
@@ -5619,14 +5577,14 @@
 <span class="normal">336</span>
 <span class="normal">337</span>
 <span class="normal">338</span>
-<span class="normal">339</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">DistanceFootprintMeanFeature</span><span class="p">(</span><span class="n">L2GFeature</span><span class="p">):</span>
+<span class="normal">339</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">DistanceFootprintMeanFeature</span><span class="p">(</span><span class="n">L2GFeature</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Average distance of all tagging variants to the footprint of a gene.&quot;&quot;&quot;</span>
 
     <span class="n">feature_dependency_type</span> <span class="o">=</span> <span class="n">VariantIndex</span>
     <span class="n">feature_name</span> <span class="o">=</span> <span class="s2">&quot;distanceFootprintMean&quot;</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">DistanceFootprintMeanFeature</span><span class="p">],</span>
         <span class="n">study_loci_to_annotate</span><span class="p">:</span> <span class="n">StudyLocus</span> <span class="o">|</span> <span class="n">L2GGoldStandard</span><span class="p">,</span>
         <span class="n">feature_dependency</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
@@ -5799,7 +5757,7 @@
 <span class="normal">337</span>
 <span class="normal">338</span>
 <span class="normal">339</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
-<span class="k">def</span> <span class="nf">compute</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span>
     <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">DistanceFootprintMeanFeature</span><span class="p">],</span>
     <span class="n">study_loci_to_annotate</span><span class="p">:</span> <span class="n">StudyLocus</span> <span class="o">|</span> <span class="n">L2GGoldStandard</span><span class="p">,</span>
     <span class="n">feature_dependency</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
@@ -5911,14 +5869,14 @@
 <span class="normal">374</span>
 <span class="normal">375</span>
 <span class="normal">376</span>
-<span class="normal">377</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">DistanceFootprintMeanNeighbourhoodFeature</span><span class="p">(</span><span class="n">L2GFeature</span><span class="p">):</span>
+<span class="normal">377</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">DistanceFootprintMeanNeighbourhoodFeature</span><span class="p">(</span><span class="n">L2GFeature</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Minimum mean distance to footprint for all genes in the vicinity of a studyLocus.&quot;&quot;&quot;</span>
 
-    <span class="n">feature_dependency_type</span> <span class="o">=</span> <span class="p">[</span><span class="n">VariantIndex</span><span class="p">,</span> <span class="n">GeneIndex</span><span class="p">]</span>
+    <span class="n">feature_dependency_type</span> <span class="o">=</span> <span class="p">[</span><span class="n">VariantIndex</span><span class="p">,</span> <span class="n">TargetIndex</span><span class="p">]</span>
     <span class="n">feature_name</span> <span class="o">=</span> <span class="s2">&quot;distanceFootprintMeanNeighbourhood&quot;</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">DistanceFootprintMeanNeighbourhoodFeature</span><span class="p">],</span>
         <span class="n">study_loci_to_annotate</span><span class="p">:</span> <span class="n">StudyLocus</span> <span class="o">|</span> <span class="n">L2GGoldStandard</span><span class="p">,</span>
         <span class="n">feature_dependency</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
@@ -6081,7 +6039,7 @@
 <span class="normal">375</span>
 <span class="normal">376</span>
 <span class="normal">377</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
-<span class="k">def</span> <span class="nf">compute</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span>
     <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">DistanceFootprintMeanNeighbourhoodFeature</span><span class="p">],</span>
     <span class="n">study_loci_to_annotate</span><span class="p">:</span> <span class="n">StudyLocus</span> <span class="o">|</span> <span class="n">L2GGoldStandard</span><span class="p">,</span>
     <span class="n">feature_dependency</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
@@ -6317,7 +6275,7 @@
 <span class="normal">76</span>
 <span class="normal">77</span>
 <span class="normal">78</span>
-<span class="normal">79</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">common_distance_feature_logic</span><span class="p">(</span>
+<span class="normal">79</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">common_distance_feature_logic</span><span class="p">(</span>
     <span class="n">study_loci_to_annotate</span><span class="p">:</span> <span class="n">StudyLocus</span> <span class="o">|</span> <span class="n">L2GGoldStandard</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">variant_index</span><span class="p">:</span> <span class="n">VariantIndex</span><span class="p">,</span>
@@ -6386,7 +6344,7 @@
 
 
 <h2 id="gentropy.dataset.l2g_features.distance.common_neighbourhood_distance_feature_logic" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">gentropy</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">l2g_features</span><span class="o">.</span><span class="n">distance</span><span class="o">.</span><span class="n">common_neighbourhood_distance_feature_logic</span><span class="p">(</span><span class="n">study_loci_to_annotate</span><span class="p">:</span> <span class="n">StudyLocus</span> <span class="o">|</span> <span class="n">L2GGoldStandard</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">variant_index</span><span class="p">:</span> <span class="n">VariantIndex</span><span class="p">,</span> <span class="n">feature_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">distance_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">gene_index</span><span class="p">:</span> <span class="n">GeneIndex</span><span class="p">,</span> <span class="n">genomic_window</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">500000</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataFrame</span></code>
+            <code class="highlight language-python"><span class="n">gentropy</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">l2g_features</span><span class="o">.</span><span class="n">distance</span><span class="o">.</span><span class="n">common_neighbourhood_distance_feature_logic</span><span class="p">(</span><span class="n">study_loci_to_annotate</span><span class="p">:</span> <span class="n">StudyLocus</span> <span class="o">|</span> <span class="n">L2GGoldStandard</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">variant_index</span><span class="p">:</span> <span class="n">VariantIndex</span><span class="p">,</span> <span class="n">feature_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">distance_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">target_index</span><span class="p">:</span> <span class="n">TargetIndex</span><span class="p">,</span> <span class="n">genomic_window</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">500000</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataFrame</span></code>
 
 <a href="#gentropy.dataset.l2g_features.distance.common_neighbourhood_distance_feature_logic" class="headerlink" title="Permanent link">&para;</a></h2>
 
@@ -6473,10 +6431,10 @@
           </tr>
           <tr class="doc-section-item">
             <td>
-                <code>gene_index</code>
+                <code>target_index</code>
             </td>
             <td>
-                  <code><a class="autorefs autorefs-internal" title="gentropy.dataset.gene_index.GeneIndex" href="../../gene_index/#gentropy.dataset.gene_index.GeneIndex">GeneIndex</a></code>
+                  <code><a class="autorefs autorefs-internal" title="gentropy.dataset.target_index.TargetIndex" href="../../target_index/#gentropy.dataset.target_index.TargetIndex">TargetIndex</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -6588,13 +6546,13 @@
 <span class="normal">136</span>
 <span class="normal">137</span>
 <span class="normal">138</span>
-<span class="normal">139</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">common_neighbourhood_distance_feature_logic</span><span class="p">(</span>
+<span class="normal">139</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">common_neighbourhood_distance_feature_logic</span><span class="p">(</span>
     <span class="n">study_loci_to_annotate</span><span class="p">:</span> <span class="n">StudyLocus</span> <span class="o">|</span> <span class="n">L2GGoldStandard</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">variant_index</span><span class="p">:</span> <span class="n">VariantIndex</span><span class="p">,</span>
     <span class="n">feature_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">distance_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-    <span class="n">gene_index</span><span class="p">:</span> <span class="n">GeneIndex</span><span class="p">,</span>
+    <span class="n">target_index</span><span class="p">:</span> <span class="n">TargetIndex</span><span class="p">,</span>
     <span class="n">genomic_window</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">500_000</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataFrame</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculate the distance feature that correlates any variant in a credible set with any protein coding gene nearby the locus. The distance is weighted by the posterior probability of the variant to factor in its contribution to the trait.</span>
@@ -6604,7 +6562,7 @@
 <span class="sd">        variant_index (VariantIndex): The dataset containing distance to gene information</span>
 <span class="sd">        feature_name (str): The name of the feature</span>
 <span class="sd">        distance_type (str): The type of distance to gene</span>
-<span class="sd">        gene_index (GeneIndex): The dataset containing gene information</span>
+<span class="sd">        target_index (TargetIndex): The dataset containing gene information</span>
 <span class="sd">        genomic_window (int): The maximum window size to consider</span>
 
 <span class="sd">    Returns:</span>
@@ -6622,7 +6580,7 @@
     <span class="k">return</span> <span class="p">(</span>
         <span class="c1"># Then compute mean distance in the vicinity (feature will be the same for any gene associated with a studyLocus)</span>
         <span class="n">local_metric</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
-            <span class="n">gene_index</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;biotype&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;protein_coding&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="s2">&quot;geneId&quot;</span><span class="p">),</span>
+            <span class="n">target_index</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;biotype&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;protein_coding&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;id&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;geneId&quot;</span><span class="p">)),</span>
             <span class="s2">&quot;geneId&quot;</span><span class="p">,</span>
             <span class="s2">&quot;inner&quot;</span><span class="p">,</span>
         <span class="p">)</span>
@@ -6691,6 +6649,14 @@
               data-bi-name="contributorprofile"
               target="_blank"
               ><img src="https://avatars.githubusercontent.com/u/45119610?v=4" alt="ireneisdoomed"
+            /></a>
+          </li><li>
+            <a
+              href="https://github.com/web-flow"
+              title="web-flow"
+              data-bi-name="contributorprofile"
+              target="_blank"
+              ><img src="https://avatars.githubusercontent.com/u/19864447?v=4" alt="web-flow"
             /></a>
           </li></ul>
       </li>

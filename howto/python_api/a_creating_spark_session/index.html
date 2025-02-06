@@ -1129,27 +1129,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../python_api/datasets/gene_index/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Gene Index
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../../../python_api/datasets/intervals/" class="md-nav__link">
         
   
@@ -1323,6 +1302,27 @@
   
   <span class="md-ellipsis">
     Summary Statistics
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../python_api/datasets/target_index/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Target Index
   </span>
   
 
@@ -2368,27 +2368,6 @@
 
               
             
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../python_api/datasources/open_targets/target/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Target
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
           </ul>
         </nav>
       
@@ -3040,27 +3019,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../python_api/steps/gene_index/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    gene_index
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../../../python_api/steps/gwas_catalog_curation/" class="md-nav__link">
         
   
@@ -3494,7 +3452,7 @@
 <p>In this section, we'll guide you through creating a Spark session using Gentropy's Session class. Gentropy uses <em>Apache PySpark</em> as the underlying framework for distributed computing. The Session class provides a convenient way to initialize a Spark session with pre-configured settings.</p>
 <h2 id="creating-a-default-session">Creating a Default Session<a class="headerlink" href="#creating-a-default-session" title="Permanent link">&para;</a></h2>
 <p>To begin your journey with Gentropy, start by creating a default Spark session. This is the simplest way to initialize your environment.</p>
-<div class="highlight"><pre><span></span><code><span class="kn">from</span> <span class="nn">gentropy.common.session</span> <span class="kn">import</span> <span class="n">Session</span>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">gentropy.common.session</span><span class="w"> </span><span class="kn">import</span> <span class="n">Session</span>
 
 <span class="c1"># Create a default Spark Session</span>
 <span class="n">session</span> <span class="o">=</span> <span class="n">Session</span><span class="p">()</span>
@@ -3504,7 +3462,7 @@
 <p>Gentropy allows you to customize the Spark session to suit your specific needs. You can modify various parameters such as memory allocation, number of executors, and more. This flexibility is particularly useful for optimizing performance in steps that are more computationally intensive.</p>
 <h3 id="example-increasing-driver-memory">Example: Increasing Driver Memory<a class="headerlink" href="#example-increasing-driver-memory" title="Permanent link">&para;</a></h3>
 <p>If you require more memory for the Spark driver, you can easily adjust this setting:</p>
-<div class="highlight"><pre><span></span><code><span class="kn">from</span> <span class="nn">gentropy.common.session</span> <span class="kn">import</span> <span class="n">Session</span>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">gentropy.common.session</span><span class="w"> </span><span class="kn">import</span> <span class="n">Session</span>
 
 <span class="c1"># Create a Spark session with increased driver memory</span>
 <span class="n">session</span> <span class="o">=</span> <span class="n">Session</span><span class="p">(</span><span class="n">extended_spark_conf</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;spark.driver.memory&quot;</span><span class="p">:</span> <span class="s2">&quot;4g&quot;</span><span class="p">})</span>
@@ -3552,6 +3510,14 @@
               data-bi-name="contributorprofile"
               target="_blank"
               ><img src="https://avatars.githubusercontent.com/u/45119610?v=4" alt="ireneisdoomed"
+            /></a>
+          </li><li>
+            <a
+              href="https://github.com/web-flow"
+              title="web-flow"
+              data-bi-name="contributorprofile"
+              target="_blank"
+              ><img src="https://avatars.githubusercontent.com/u/19864447?v=4" alt="web-flow"
             /></a>
           </li></ul>
       </li>

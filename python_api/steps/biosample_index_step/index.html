@@ -1049,27 +1049,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../../datasets/gene_index/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Gene Index
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../../datasets/intervals/" class="md-nav__link">
         
   
@@ -1243,6 +1222,27 @@
   
   <span class="md-ellipsis">
     Summary Statistics
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../datasets/target_index/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Target Index
   </span>
   
 
@@ -2288,27 +2288,6 @@
 
               
             
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../datasources/open_targets/target/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Target
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
           </ul>
         </nav>
       
@@ -3022,27 +3001,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../gene_index/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    gene_index
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../gwas_catalog_curation/" class="md-nav__link">
         
   
@@ -3514,13 +3472,13 @@
 <span class="normal">41</span>
 <span class="normal">42</span>
 <span class="normal">43</span>
-<span class="normal">44</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">BiosampleIndexStep</span><span class="p">:</span>
+<span class="normal">44</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">BiosampleIndexStep</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Biosample index step.</span>
 
 <span class="sd">    This step generates a Biosample index dataset from the various ontology sources. Currently Cell Ontology and Uberon are supported.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">session</span><span class="p">:</span> <span class="n">Session</span><span class="p">,</span>
         <span class="n">cell_ontology_input_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
@@ -3535,7 +3493,7 @@
 <span class="sd">            cell_ontology_input_path (str): Input cell ontology dataset path.</span>
 <span class="sd">            uberon_input_path (str): Input uberon dataset path.</span>
 <span class="sd">            efo_input_path (str): Input efo dataset path.</span>
-<span class="sd">            biosample_index_path (str): Output gene index dataset path.</span>
+<span class="sd">            biosample_index_path (str): Output biosample index dataset path.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">cell_ontology_index</span> <span class="o">=</span> <span class="n">extract_ontology_from_json</span><span class="p">(</span>
             <span class="n">cell_ontology_input_path</span><span class="p">,</span> <span class="n">session</span><span class="o">.</span><span class="n">spark</span>
@@ -3663,7 +3621,7 @@
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Output gene index dataset path.</p>
+                <p>Output biosample index dataset path.</p>
               </div>
             </td>
             <td>
@@ -3704,7 +3662,7 @@
 <span class="normal">41</span>
 <span class="normal">42</span>
 <span class="normal">43</span>
-<span class="normal">44</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+<span class="normal">44</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
     <span class="n">session</span><span class="p">:</span> <span class="n">Session</span><span class="p">,</span>
     <span class="n">cell_ontology_input_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
@@ -3719,7 +3677,7 @@
 <span class="sd">        cell_ontology_input_path (str): Input cell ontology dataset path.</span>
 <span class="sd">        uberon_input_path (str): Input uberon dataset path.</span>
 <span class="sd">        efo_input_path (str): Input efo dataset path.</span>
-<span class="sd">        biosample_index_path (str): Output gene index dataset path.</span>
+<span class="sd">        biosample_index_path (str): Output biosample index dataset path.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">cell_ontology_index</span> <span class="o">=</span> <span class="n">extract_ontology_from_json</span><span class="p">(</span>
         <span class="n">cell_ontology_input_path</span><span class="p">,</span> <span class="n">session</span><span class="o">.</span><span class="n">spark</span>

@@ -1049,27 +1049,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../datasets/gene_index/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Gene Index
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../../../datasets/intervals/" class="md-nav__link">
         
   
@@ -1243,6 +1222,27 @@
   
   <span class="md-ellipsis">
     Summary Statistics
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../datasets/target_index/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Target Index
   </span>
   
 
@@ -2421,27 +2421,6 @@
 
               
             
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../open_targets/target/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Target
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
           </ul>
         </nav>
       
@@ -3077,27 +3056,6 @@
   
   <span class="md-ellipsis">
     finngen_sumstat_preprocess
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../steps/gene_index/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    gene_index
   </span>
   
 
@@ -4758,15 +4716,12 @@
 <span class="normal">1163</span>
 <span class="normal">1164</span>
 <span class="normal">1165</span>
-<span class="normal">1166</span>
-<span class="normal">1167</span>
-<span class="normal">1168</span>
-<span class="normal">1169</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
-<span class="k">class</span> <span class="nc">GWASCatalogCuratedAssociationsParser</span><span class="p">:</span>
+<span class="normal">1166</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">GWASCatalogCuratedAssociationsParser</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;GWAS Catalog curated associations parser.&quot;&quot;&quot;</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">convert_gnomad_position_to_ensembl</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">convert_gnomad_position_to_ensembl</span><span class="p">(</span>
         <span class="n">position</span><span class="p">:</span> <span class="n">Column</span><span class="p">,</span> <span class="n">reference</span><span class="p">:</span> <span class="n">Column</span><span class="p">,</span> <span class="n">alternate</span><span class="p">:</span> <span class="n">Column</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Convert GnomAD variant position to Ensembl variant position.</span>
@@ -4800,7 +4755,7 @@
         <span class="p">)</span><span class="o">.</span><span class="n">otherwise</span><span class="p">(</span><span class="n">position</span><span class="p">)</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_parse_pvalue</span><span class="p">(</span><span class="n">pvalue</span><span class="p">:</span> <span class="n">Column</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Column</span><span class="p">,</span> <span class="n">Column</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_parse_pvalue</span><span class="p">(</span><span class="n">pvalue</span><span class="p">:</span> <span class="n">Column</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Column</span><span class="p">,</span> <span class="n">Column</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Parse p-value column.</span>
 
 <span class="sd">        Args:</span>
@@ -4832,7 +4787,7 @@
         <span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;pValueExponent&quot;</span><span class="p">)</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_normalise_pvaluetext</span><span class="p">(</span><span class="n">p_value_text</span><span class="p">:</span> <span class="n">Column</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_normalise_pvaluetext</span><span class="p">(</span><span class="n">p_value_text</span><span class="p">:</span> <span class="n">Column</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Normalised p-value text column to a standardised format.</span>
 
 <span class="sd">        For cases where there is no mapping, the value is set to null.</span>
@@ -4854,9 +4809,9 @@
 <span class="sd">            |  European Ancestry|      [EA]|</span>
 <span class="sd">            |   African ancestry|      [AA]|</span>
 <span class="sd">            |Alzheimer’s Disease|      [AD]|</span>
-<span class="sd">            |      (progression)|      null|</span>
-<span class="sd">            |                   |      null|</span>
-<span class="sd">            |               null|      null|</span>
+<span class="sd">            |      (progression)|      NULL|</span>
+<span class="sd">            |                   |      NULL|</span>
+<span class="sd">            |               NULL|      NULL|</span>
 <span class="sd">            +-------------------+----------+</span>
 <span class="sd">            &lt;BLANKLINE&gt;</span>
 
@@ -4874,7 +4829,7 @@
         <span class="p">)</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_extract_risk_allele</span><span class="p">(</span><span class="n">risk_allele</span><span class="p">:</span> <span class="n">Column</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_extract_risk_allele</span><span class="p">(</span><span class="n">risk_allele</span><span class="p">:</span> <span class="n">Column</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Extract risk allele from provided &quot;STRONGEST SNP-RISK ALLELE&quot; input column.</span>
 
 <span class="sd">        If multiple risk alleles are present, the first one is returned.</span>
@@ -4903,7 +4858,7 @@
         <span class="k">return</span> <span class="n">f</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">risk_allele</span><span class="p">,</span> <span class="s2">&quot;; &quot;</span><span class="p">)</span><span class="o">.</span><span class="n">getItem</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="s2">&quot;-&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">getItem</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_collect_rsids</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_collect_rsids</span><span class="p">(</span>
         <span class="n">snp_id</span><span class="p">:</span> <span class="n">Column</span><span class="p">,</span> <span class="n">snp_id_current</span><span class="p">:</span> <span class="n">Column</span><span class="p">,</span> <span class="n">risk_allele</span><span class="p">:</span> <span class="n">Column</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;It takes three columns, and returns an array of distinct values from those columns.</span>
@@ -4928,7 +4883,7 @@
         <span class="k">return</span> <span class="n">f</span><span class="o">.</span><span class="n">array_distinct</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">snp_id</span><span class="p">,</span> <span class="n">snp_id_current</span><span class="p">,</span> <span class="n">risk_allele</span><span class="p">))</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_map_variants_to_gnomad_variants</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_map_variants_to_gnomad_variants</span><span class="p">(</span>
         <span class="n">gwas_associations</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span> <span class="n">variant_index</span><span class="p">:</span> <span class="n">VariantIndex</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataFrame</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Add variant metadata in associations.</span>
@@ -5031,12 +4986,10 @@
             <span class="s2">&quot;position&quot;</span><span class="p">,</span>
         <span class="p">)</span>
 
-        <span class="k">return</span> <span class="n">gwas_associations</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
-            <span class="n">fully_mapped_associations</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="s2">&quot;rowId&quot;</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s2">&quot;left&quot;</span>
-        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">gwas_associations</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">fully_mapped_associations</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="s2">&quot;rowId&quot;</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s2">&quot;left&quot;</span><span class="p">)</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_compare_rsids</span><span class="p">(</span><span class="n">gnomad</span><span class="p">:</span> <span class="n">Column</span><span class="p">,</span> <span class="n">gwas</span><span class="p">:</span> <span class="n">Column</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_compare_rsids</span><span class="p">(</span><span class="n">gnomad</span><span class="p">:</span> <span class="n">Column</span><span class="p">,</span> <span class="n">gwas</span><span class="p">:</span> <span class="n">Column</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;If the intersection of the two arrays is greater than 0, return True, otherwise return False.</span>
 
 <span class="sd">        Args:</span>
@@ -5071,7 +5024,7 @@
         <span class="p">)</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_flag_mappings_to_retain</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_flag_mappings_to_retain</span><span class="p">(</span>
         <span class="n">association_id</span><span class="p">:</span> <span class="n">Column</span><span class="p">,</span> <span class="n">filter_column</span><span class="p">:</span> <span class="n">Column</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Flagging mappings to drop for each association.</span>
@@ -5122,7 +5075,7 @@
         <span class="k">return</span> <span class="n">f</span><span class="o">.</span><span class="n">when</span><span class="p">(</span><span class="n">aggregated_filter</span> <span class="o">&amp;</span> <span class="p">(</span><span class="o">~</span><span class="n">filter_column</span><span class="p">),</span> <span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">otherwise</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_check_concordance</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_check_concordance</span><span class="p">(</span>
         <span class="n">risk_allele</span><span class="p">:</span> <span class="n">Column</span><span class="p">,</span> <span class="n">reference_allele</span><span class="p">:</span> <span class="n">Column</span><span class="p">,</span> <span class="n">alternate_allele</span><span class="p">:</span> <span class="n">Column</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;A function to check if the risk allele is concordant with the alt or ref allele.</span>
@@ -5157,7 +5110,7 @@
 <span class="sd">            |         A|              T|              G|        true|</span>
 <span class="sd">            |         A|              C|              G|       false|</span>
 <span class="sd">            |         A|              A|              ?|        true|</span>
-<span class="sd">            |      null|           null|              A|        true|</span>
+<span class="sd">            |      NULL|           NULL|              A|        true|</span>
 <span class="sd">            +----------+---------------+---------------+------------+</span>
 <span class="sd">            &lt;BLANKLINE&gt;</span>
 
@@ -5189,7 +5142,7 @@
         <span class="p">)</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_get_reverse_complement</span><span class="p">(</span><span class="n">allele_col</span><span class="p">:</span> <span class="n">Column</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_reverse_complement</span><span class="p">(</span><span class="n">allele_col</span><span class="p">:</span> <span class="n">Column</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;A function to return the reverse complement of an allele column.</span>
 
 <span class="sd">        It takes a string and returns the reverse complement of that string if it&#39;s a DNA sequence,</span>
@@ -5215,7 +5168,7 @@
 <span class="sd">            |    AC|           GT|</span>
 <span class="sd">            |GTaatc|       GATTAC|</span>
 <span class="sd">            |     ?|            ?|</span>
-<span class="sd">            |  null|         null|</span>
+<span class="sd">            |  NULL|         NULL|</span>
 <span class="sd">            +------+-------------+</span>
 <span class="sd">            &lt;BLANKLINE&gt;</span>
 
@@ -5227,7 +5180,7 @@
         <span class="p">)</span><span class="o">.</span><span class="n">otherwise</span><span class="p">(</span><span class="n">allele_col</span><span class="p">)</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_effect_needs_harmonisation</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_effect_needs_harmonisation</span><span class="p">(</span>
         <span class="n">risk_allele</span><span class="p">:</span> <span class="n">Column</span><span class="p">,</span> <span class="n">reference_allele</span><span class="p">:</span> <span class="n">Column</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;A function to check if the effect allele needs to be harmonised.</span>
@@ -5262,7 +5215,7 @@
         <span class="p">)</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_are_alleles_palindromic</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_are_alleles_palindromic</span><span class="p">(</span>
         <span class="n">reference_allele</span><span class="p">:</span> <span class="n">Column</span><span class="p">,</span> <span class="n">alternate_allele</span><span class="p">:</span> <span class="n">Column</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;A function to check if the alleles are palindromic.</span>
@@ -5285,7 +5238,7 @@
 <span class="sd">            |       AG|       AT|         false|</span>
 <span class="sd">            |       AT|       AT|          true|</span>
 <span class="sd">            |   CATATG|   CATATG|          true|</span>
-<span class="sd">            |     null|        -|         false|</span>
+<span class="sd">            |     NULL|        -|         false|</span>
 <span class="sd">            +---------+---------+--------------+</span>
 <span class="sd">            &lt;BLANKLINE&gt;</span>
 
@@ -5300,7 +5253,7 @@
         <span class="p">)</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_harmonise_beta</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_harmonise_beta</span><span class="p">(</span>
         <span class="n">effect_size</span><span class="p">:</span> <span class="n">Column</span><span class="p">,</span>
         <span class="n">confidence_interval</span><span class="p">:</span> <span class="n">Column</span><span class="p">,</span>
         <span class="n">flipping_needed</span><span class="p">:</span> <span class="n">Column</span><span class="p">,</span>
@@ -5361,7 +5314,7 @@
         <span class="p">)</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_harmonise_odds_ratio</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_harmonise_odds_ratio</span><span class="p">(</span>
         <span class="n">effect_size</span><span class="p">:</span> <span class="n">Column</span><span class="p">,</span>
         <span class="n">flipping_needed</span><span class="p">:</span> <span class="n">Column</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
@@ -5387,7 +5340,7 @@
 <span class="sd">        |   0.5|false|       0.5|</span>
 <span class="sd">        |   0.5| true|       2.0|</span>
 <span class="sd">        |   0.0|false|       0.0|</span>
-<span class="sd">        |   0.0| true|      null|</span>
+<span class="sd">        |   0.0| true|      NULL|</span>
 <span class="sd">        +------+-----+----------+</span>
 <span class="sd">        &lt;BLANKLINE&gt;</span>
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -5403,7 +5356,7 @@
         <span class="p">)</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_concatenate_substudy_description</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_concatenate_substudy_description</span><span class="p">(</span>
         <span class="n">association_trait</span><span class="p">:</span> <span class="n">Column</span><span class="p">,</span> <span class="n">pvalue_text</span><span class="p">:</span> <span class="n">Column</span><span class="p">,</span> <span class="n">mapped_trait_uri</span><span class="p">:</span> <span class="n">Column</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Substudy description parsing. Complex string containing metadata about the substudy (e.g. QTL, specific EFO, etc.).</span>
@@ -5427,7 +5380,7 @@
 <span class="sd">        |association_trait|mapped_trait_uri                                                         |pvalue_text      |substudy_description                      |</span>
 <span class="sd">        +-----------------+-------------------------------------------------------------------------+-----------------+------------------------------------------+</span>
 <span class="sd">        |Height           |http://www.ebi.ac.uk/efo/EFO_0000001,http://www.ebi.ac.uk/efo/EFO_0000002|European Ancestry|Height|EA|EFO_0000001/EFO_0000002         |</span>
-<span class="sd">        |Schizophrenia    |http://www.ebi.ac.uk/efo/MONDO_0005090                                   |null             |Schizophrenia|no_pvalue_text|MONDO_0005090|</span>
+<span class="sd">        |Schizophrenia    |http://www.ebi.ac.uk/efo/MONDO_0005090                                   |NULL             |Schizophrenia|no_pvalue_text|MONDO_0005090|</span>
 <span class="sd">        +-----------------+-------------------------------------------------------------------------+-----------------+------------------------------------------+</span>
 <span class="sd">        &lt;BLANKLINE&gt;</span>
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -5449,7 +5402,7 @@
         <span class="p">)</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_qc_all</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_qc_all</span><span class="p">(</span>
         <span class="n">qc</span><span class="p">:</span> <span class="n">Column</span><span class="p">,</span>
         <span class="n">chromosome</span><span class="p">:</span> <span class="n">Column</span><span class="p">,</span>
         <span class="n">position</span><span class="p">:</span> <span class="n">Column</span><span class="p">,</span>
@@ -5497,7 +5450,7 @@
         <span class="k">return</span> <span class="n">qc</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_qc_variant_interactions</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_qc_variant_interactions</span><span class="p">(</span>
         <span class="n">qc</span><span class="p">:</span> <span class="n">Column</span><span class="p">,</span> <span class="n">strongest_snp_risk_allele</span><span class="p">:</span> <span class="n">Column</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Flag associations based on variant x variant interactions.</span>
@@ -5516,7 +5469,7 @@
         <span class="p">)</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_qc_genomic_location</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_qc_genomic_location</span><span class="p">(</span>
         <span class="n">qc</span><span class="p">:</span> <span class="n">Column</span><span class="p">,</span> <span class="n">chromosome</span><span class="p">:</span> <span class="n">Column</span><span class="p">,</span> <span class="n">position</span><span class="p">:</span> <span class="n">Column</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Flag associations without genomic location in GWAS Catalog.</span>
@@ -5537,9 +5490,9 @@
 <span class="sd">            +----------------------------+----------+--------+</span>
 <span class="sd">            |qc                          |chromosome|position|</span>
 <span class="sd">            +----------------------------+----------+--------+</span>
-<span class="sd">            |[Incomplete genomic mapping]|null      |null    |</span>
-<span class="sd">            |[Incomplete genomic mapping]|1         |null    |</span>
-<span class="sd">            |[Incomplete genomic mapping]|null      |1       |</span>
+<span class="sd">            |[Incomplete genomic mapping]|NULL      |NULL    |</span>
+<span class="sd">            |[Incomplete genomic mapping]|1         |NULL    |</span>
+<span class="sd">            |[Incomplete genomic mapping]|NULL      |1       |</span>
 <span class="sd">            |[]                          |1         |1       |</span>
 <span class="sd">            +----------------------------+----------+--------+</span>
 <span class="sd">            &lt;BLANKLINE&gt;</span>
@@ -5552,7 +5505,7 @@
         <span class="p">)</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_qc_variant_inconsistencies</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_qc_variant_inconsistencies</span><span class="p">(</span>
         <span class="n">qc</span><span class="p">:</span> <span class="n">Column</span><span class="p">,</span>
         <span class="n">chromosome</span><span class="p">:</span> <span class="n">Column</span><span class="p">,</span>
         <span class="n">position</span><span class="p">:</span> <span class="n">Column</span><span class="p">,</span>
@@ -5582,7 +5535,7 @@
         <span class="p">)</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_qc_unmapped_variants</span><span class="p">(</span><span class="n">qc</span><span class="p">:</span> <span class="n">Column</span><span class="p">,</span> <span class="n">alternate_allele</span><span class="p">:</span> <span class="n">Column</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_qc_unmapped_variants</span><span class="p">(</span><span class="n">qc</span><span class="p">:</span> <span class="n">Column</span><span class="p">,</span> <span class="n">alternate_allele</span><span class="p">:</span> <span class="n">Column</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Flag associations with variants not mapped to variantAnnotation.</span>
 
 <span class="sd">        Args:</span>
@@ -5601,8 +5554,8 @@
 <span class="sd">            +----------------+----+--------------------+</span>
 <span class="sd">            |alternate_allele|  qc|              new_qc|</span>
 <span class="sd">            +----------------+----+--------------------+</span>
-<span class="sd">            |               A|null|                  []|</span>
-<span class="sd">            |            null|null|[No mapping in Gn...|</span>
+<span class="sd">            |               A|NULL|                  []|</span>
+<span class="sd">            |            NULL|NULL|[No mapping in Gn...|</span>
 <span class="sd">            +----------------+----+--------------------+</span>
 <span class="sd">            &lt;BLANKLINE&gt;</span>
 
@@ -5614,7 +5567,7 @@
         <span class="p">)</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_qc_palindromic_alleles</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_qc_palindromic_alleles</span><span class="p">(</span>
         <span class="n">qc</span><span class="p">:</span> <span class="n">Column</span><span class="p">,</span> <span class="n">reference_allele</span><span class="p">:</span> <span class="n">Column</span><span class="p">,</span> <span class="n">alternate_allele</span><span class="p">:</span> <span class="n">Column</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Flag associations with palindromic variants which effects can not be harmonised.</span>
@@ -5652,7 +5605,7 @@
         <span class="p">)</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_get_effect_type</span><span class="p">(</span><span class="n">ci_text</span><span class="p">:</span> <span class="n">Column</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_effect_type</span><span class="p">(</span><span class="n">ci_text</span><span class="p">:</span> <span class="n">Column</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Extracts the effect type from the 95% CI text.</span>
 
 <span class="sd">        The GWAS Catalog confidence interval column contains text that can be used to infer the effect type.</span>
@@ -5674,7 +5627,7 @@
 <span class="sd">            |95% CI: [0.1-0.2]         |odds_ratio |</span>
 <span class="sd">            |95% CI: [0.1-0.2] increase|beta       |</span>
 <span class="sd">            |95% CI: [0.1-0.2] decrease|beta       |</span>
-<span class="sd">            |null                      |null       |</span>
+<span class="sd">            |NULL                      |NULL       |</span>
 <span class="sd">            +--------------------------+-----------+</span>
 <span class="sd">            &lt;BLANKLINE&gt;</span>
 
@@ -5686,7 +5639,7 @@
         <span class="p">)</span><span class="o">.</span><span class="n">when</span><span class="p">(</span><span class="n">ci_text</span><span class="o">.</span><span class="n">isNotNull</span><span class="p">(),</span> <span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="s2">&quot;odds_ratio&quot;</span><span class="p">))</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">harmonise_association_effect_to_beta</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">harmonise_association_effect_to_beta</span><span class="p">(</span>
         <span class="n">df</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataFrame</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Harmonise effect to beta value.</span>
@@ -5728,11 +5681,11 @@
 <span class="sd">            +-------------------------+---------------+---------------+----------+--------------------+-------------------+--------------------+</span>
 <span class="sd">            |STRONGEST SNP-RISK ALLELE|referenceAllele|alternateAllele|OR or BETA|       95% CI (TEXT)|               beta|       standardError|</span>
 <span class="sd">            +-------------------------+---------------+---------------+----------+--------------------+-------------------+--------------------+</span>
-<span class="sd">            |                  rs123-T|              A|              T|       0.1|[0.08-0.12] unit ...|               null|                null|</span>
+<span class="sd">            |                  rs123-T|              A|              T|       0.1|[0.08-0.12] unit ...|               NULL|                NULL|</span>
 <span class="sd">            |                  rs123-C|              G|              T|       0.1|[0.08-0.12] unit ...|               -0.1|0.010204081404574064|</span>
 <span class="sd">            |                  rs123-T|              C|              T|       0.1|[0.08-0.12] unit ...|                0.1|0.010204081404574064|</span>
-<span class="sd">            |                  rs123-T|              C|              T|       0.1|         [0.08-0.12]|-2.3025850929940455|                null|</span>
-<span class="sd">            |                  rs123-C|              G|              T|       0.1|         [0.08-0.12]|  2.302585092994046|                null|</span>
+<span class="sd">            |                  rs123-T|              C|              T|       0.1|         [0.08-0.12]|-2.3025850929940455|                NULL|</span>
+<span class="sd">            |                  rs123-C|              G|              T|       0.1|         [0.08-0.12]|  2.302585092994046|                NULL|</span>
 <span class="sd">            +-------------------------+---------------+---------------+----------+--------------------+-------------------+--------------------+</span>
 <span class="sd">            &lt;BLANKLINE&gt;</span>
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -5818,7 +5771,7 @@
         <span class="p">)</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">from_source</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_source</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">GWASCatalogCuratedAssociationsParser</span><span class="p">],</span>
         <span class="n">gwas_associations</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span>
         <span class="n">gnomad_variants</span><span class="p">:</span> <span class="n">VariantIndex</span><span class="p">,</span>
@@ -5842,7 +5795,8 @@
         <span class="k">return</span> <span class="n">StudyLocusGWASCatalog</span><span class="p">(</span>
             <span class="n">_df</span><span class="o">=</span><span class="n">gwas_associations</span><span class="o">.</span><span class="n">withColumn</span><span class="p">(</span>
                 <span class="c1"># temporary column</span>
-                <span class="s2">&quot;rowId&quot;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">monotonically_increasing_id</span><span class="p">()</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">StringType</span><span class="p">())</span>
+                <span class="s2">&quot;rowId&quot;</span><span class="p">,</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">monotonically_increasing_id</span><span class="p">()</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">StringType</span><span class="p">()),</span>
             <span class="p">)</span>
             <span class="o">.</span><span class="n">transform</span><span class="p">(</span>
                 <span class="c1"># Map/harmonise variants to variant annotation dataset:</span>
@@ -5874,9 +5828,7 @@
             <span class="c1"># Adding study-locus id:</span>
             <span class="o">.</span><span class="n">withColumn</span><span class="p">(</span>
                 <span class="s2">&quot;studyLocusId&quot;</span><span class="p">,</span>
-                <span class="n">StudyLocus</span><span class="o">.</span><span class="n">assign_study_locus_id</span><span class="p">(</span>
-                    <span class="p">[</span><span class="s2">&quot;studyId&quot;</span><span class="p">,</span> <span class="s2">&quot;variantId&quot;</span><span class="p">]</span>
-                <span class="p">),</span>
+                <span class="n">StudyLocus</span><span class="o">.</span><span class="n">assign_study_locus_id</span><span class="p">([</span><span class="s2">&quot;studyId&quot;</span><span class="p">,</span> <span class="s2">&quot;variantId&quot;</span><span class="p">]),</span>
             <span class="p">)</span>
             <span class="o">.</span><span class="n">select</span><span class="p">(</span>
                 <span class="c1"># INSIDE STUDY-LOCUS SCHEMA:</span>
@@ -6070,7 +6022,7 @@ the position is unchanged. More info about the problem: https://www.biostars.org
 <span class="normal">64</span>
 <span class="normal">65</span>
 <span class="normal">66</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@staticmethod</span>
-<span class="k">def</span> <span class="nf">convert_gnomad_position_to_ensembl</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">convert_gnomad_position_to_ensembl</span><span class="p">(</span>
     <span class="n">position</span><span class="p">:</span> <span class="n">Column</span><span class="p">,</span> <span class="n">reference</span><span class="p">:</span> <span class="n">Column</span><span class="p">,</span> <span class="n">alternate</span><span class="p">:</span> <span class="n">Column</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Convert GnomAD variant position to Ensembl variant position.</span>
@@ -6216,7 +6168,9 @@ applies some pre-defined filters on the data:</p>
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/datasource/gwas_catalog/associations.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1086</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1084</span>
+<span class="normal">1085</span>
+<span class="normal">1086</span>
 <span class="normal">1087</span>
 <span class="normal">1088</span>
 <span class="normal">1089</span>
@@ -6296,11 +6250,8 @@ applies some pre-defined filters on the data:</p>
 <span class="normal">1163</span>
 <span class="normal">1164</span>
 <span class="normal">1165</span>
-<span class="normal">1166</span>
-<span class="normal">1167</span>
-<span class="normal">1168</span>
-<span class="normal">1169</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
-<span class="k">def</span> <span class="nf">from_source</span><span class="p">(</span>
+<span class="normal">1166</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">from_source</span><span class="p">(</span>
     <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">GWASCatalogCuratedAssociationsParser</span><span class="p">],</span>
     <span class="n">gwas_associations</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span>
     <span class="n">gnomad_variants</span><span class="p">:</span> <span class="n">VariantIndex</span><span class="p">,</span>
@@ -6324,7 +6275,8 @@ applies some pre-defined filters on the data:</p>
     <span class="k">return</span> <span class="n">StudyLocusGWASCatalog</span><span class="p">(</span>
         <span class="n">_df</span><span class="o">=</span><span class="n">gwas_associations</span><span class="o">.</span><span class="n">withColumn</span><span class="p">(</span>
             <span class="c1"># temporary column</span>
-            <span class="s2">&quot;rowId&quot;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">monotonically_increasing_id</span><span class="p">()</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">StringType</span><span class="p">())</span>
+            <span class="s2">&quot;rowId&quot;</span><span class="p">,</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">monotonically_increasing_id</span><span class="p">()</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">StringType</span><span class="p">()),</span>
         <span class="p">)</span>
         <span class="o">.</span><span class="n">transform</span><span class="p">(</span>
             <span class="c1"># Map/harmonise variants to variant annotation dataset:</span>
@@ -6356,9 +6308,7 @@ applies some pre-defined filters on the data:</p>
         <span class="c1"># Adding study-locus id:</span>
         <span class="o">.</span><span class="n">withColumn</span><span class="p">(</span>
             <span class="s2">&quot;studyLocusId&quot;</span><span class="p">,</span>
-            <span class="n">StudyLocus</span><span class="o">.</span><span class="n">assign_study_locus_id</span><span class="p">(</span>
-                <span class="p">[</span><span class="s2">&quot;studyId&quot;</span><span class="p">,</span> <span class="s2">&quot;variantId&quot;</span><span class="p">]</span>
-            <span class="p">),</span>
+            <span class="n">StudyLocus</span><span class="o">.</span><span class="n">assign_study_locus_id</span><span class="p">([</span><span class="s2">&quot;studyId&quot;</span><span class="p">,</span> <span class="s2">&quot;variantId&quot;</span><span class="p">]),</span>
         <span class="p">)</span>
         <span class="o">.</span><span class="n">select</span><span class="p">(</span>
             <span class="c1"># INSIDE STUDY-LOCUS SCHEMA:</span>
@@ -6511,17 +6461,19 @@ applies some pre-defined filters on the data:</p>
 <span class="go">+-------------------------+---------------+---------------+----------+--------------------+-------------------+--------------------+</span>
 <span class="go">|STRONGEST SNP-RISK ALLELE|referenceAllele|alternateAllele|OR or BETA|       95% CI (TEXT)|               beta|       standardError|</span>
 <span class="go">+-------------------------+---------------+---------------+----------+--------------------+-------------------+--------------------+</span>
-<span class="go">|                  rs123-T|              A|              T|       0.1|[0.08-0.12] unit ...|               null|                null|</span>
+<span class="go">|                  rs123-T|              A|              T|       0.1|[0.08-0.12] unit ...|               NULL|                NULL|</span>
 <span class="go">|                  rs123-C|              G|              T|       0.1|[0.08-0.12] unit ...|               -0.1|0.010204081404574064|</span>
 <span class="go">|                  rs123-T|              C|              T|       0.1|[0.08-0.12] unit ...|                0.1|0.010204081404574064|</span>
-<span class="go">|                  rs123-T|              C|              T|       0.1|         [0.08-0.12]|-2.3025850929940455|                null|</span>
-<span class="go">|                  rs123-C|              G|              T|       0.1|         [0.08-0.12]|  2.302585092994046|                null|</span>
+<span class="go">|                  rs123-T|              C|              T|       0.1|         [0.08-0.12]|-2.3025850929940455|                NULL|</span>
+<span class="go">|                  rs123-C|              G|              T|       0.1|         [0.08-0.12]|  2.302585092994046|                NULL|</span>
 <span class="go">+-------------------------+---------------+---------------+----------+--------------------+-------------------+--------------------+</span>
 </code></pre></div>
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/datasource/gwas_catalog/associations.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 954</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 952</span>
+<span class="normal"> 953</span>
+<span class="normal"> 954</span>
 <span class="normal"> 955</span>
 <span class="normal"> 956</span>
 <span class="normal"> 957</span>
@@ -6649,10 +6601,8 @@ applies some pre-defined filters on the data:</p>
 <span class="normal">1079</span>
 <span class="normal">1080</span>
 <span class="normal">1081</span>
-<span class="normal">1082</span>
-<span class="normal">1083</span>
-<span class="normal">1084</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@staticmethod</span>
-<span class="k">def</span> <span class="nf">harmonise_association_effect_to_beta</span><span class="p">(</span>
+<span class="normal">1082</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@staticmethod</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">harmonise_association_effect_to_beta</span><span class="p">(</span>
     <span class="n">df</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataFrame</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Harmonise effect to beta value.</span>
@@ -6694,11 +6644,11 @@ applies some pre-defined filters on the data:</p>
 <span class="sd">        +-------------------------+---------------+---------------+----------+--------------------+-------------------+--------------------+</span>
 <span class="sd">        |STRONGEST SNP-RISK ALLELE|referenceAllele|alternateAllele|OR or BETA|       95% CI (TEXT)|               beta|       standardError|</span>
 <span class="sd">        +-------------------------+---------------+---------------+----------+--------------------+-------------------+--------------------+</span>
-<span class="sd">        |                  rs123-T|              A|              T|       0.1|[0.08-0.12] unit ...|               null|                null|</span>
+<span class="sd">        |                  rs123-T|              A|              T|       0.1|[0.08-0.12] unit ...|               NULL|                NULL|</span>
 <span class="sd">        |                  rs123-C|              G|              T|       0.1|[0.08-0.12] unit ...|               -0.1|0.010204081404574064|</span>
 <span class="sd">        |                  rs123-T|              C|              T|       0.1|[0.08-0.12] unit ...|                0.1|0.010204081404574064|</span>
-<span class="sd">        |                  rs123-T|              C|              T|       0.1|         [0.08-0.12]|-2.3025850929940455|                null|</span>
-<span class="sd">        |                  rs123-C|              G|              T|       0.1|         [0.08-0.12]|  2.302585092994046|                null|</span>
+<span class="sd">        |                  rs123-T|              C|              T|       0.1|         [0.08-0.12]|-2.3025850929940455|                NULL|</span>
+<span class="sd">        |                  rs123-C|              G|              T|       0.1|         [0.08-0.12]|  2.302585092994046|                NULL|</span>
 <span class="sd">        +-------------------------+---------------+---------------+----------+--------------------+-------------------+--------------------+</span>
 <span class="sd">        &lt;BLANKLINE&gt;</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -6827,7 +6777,10 @@ applies some pre-defined filters on the data:</p>
 
               <details class="quote">
                 <summary>Source code in <code>src/gentropy/datasource/gwas_catalog/associations.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1172</span>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1169</span>
+<span class="normal">1170</span>
+<span class="normal">1171</span>
+<span class="normal">1172</span>
 <span class="normal">1173</span>
 <span class="normal">1174</span>
 <span class="normal">1175</span>
@@ -6906,17 +6859,14 @@ applies some pre-defined filters on the data:</p>
 <span class="normal">1248</span>
 <span class="normal">1249</span>
 <span class="normal">1250</span>
-<span class="normal">1251</span>
-<span class="normal">1252</span>
-<span class="normal">1253</span>
-<span class="normal">1254</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
-<span class="k">class</span> <span class="nc">StudyLocusGWASCatalog</span><span class="p">(</span><span class="n">StudyLocus</span><span class="p">):</span>
+<span class="normal">1251</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">StudyLocusGWASCatalog</span><span class="p">(</span><span class="n">StudyLocus</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Study locus Dataset for GWAS Catalog curated associations.</span>
 
 <span class="sd">    A study index dataset captures all the metadata for all studies including GWAS and Molecular QTL.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">update_study_id</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">update_study_id</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">:</span> <span class="n">StudyLocusGWASCatalog</span><span class="p">,</span> <span class="n">study_annotation</span><span class="p">:</span> <span class="n">DataFrame</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyLocusGWASCatalog</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Update final studyId and studyLocusId with a dataframe containing study annotation.</span>
@@ -6939,7 +6889,7 @@ applies some pre-defined filters on the data:</p>
         <span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span>
 
-    <span class="k">def</span> <span class="nf">qc_ambiguous_study</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyLocusGWASCatalog</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyLocusGWASCatalog</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">qc_ambiguous_study</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyLocusGWASCatalog</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyLocusGWASCatalog</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Flag associations with variants that can not be unambiguously associated with one study.</span>
 
 <span class="sd">        Returns:</span>
@@ -6959,7 +6909,7 @@ applies some pre-defined filters on the data:</p>
         <span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span>
 
-    <span class="k">def</span> <span class="nf">qc_flag_all_tophits</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyLocusGWASCatalog</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyLocusGWASCatalog</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">qc_flag_all_tophits</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyLocusGWASCatalog</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyLocusGWASCatalog</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Flag all associations as top hits.</span>
 
 <span class="sd">        Returns:</span>
@@ -6977,7 +6927,7 @@ applies some pre-defined filters on the data:</p>
             <span class="n">_schema</span><span class="o">=</span><span class="n">StudyLocusGWASCatalog</span><span class="o">.</span><span class="n">get_schema</span><span class="p">(),</span>
         <span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">apply_inclusion_list</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">apply_inclusion_list</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">:</span> <span class="n">StudyLocusGWASCatalog</span><span class="p">,</span> <span class="n">inclusion_list</span><span class="p">:</span> <span class="n">DataFrame</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyLocusGWASCatalog</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Restricting GWAS Catalog studies based on a list of accpected study ids.</span>
@@ -7076,7 +7026,10 @@ applies some pre-defined filters on the data:</p>
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/datasource/gwas_catalog/associations.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1240</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1237</span>
+<span class="normal">1238</span>
+<span class="normal">1239</span>
+<span class="normal">1240</span>
 <span class="normal">1241</span>
 <span class="normal">1242</span>
 <span class="normal">1243</span>
@@ -7087,10 +7040,7 @@ applies some pre-defined filters on the data:</p>
 <span class="normal">1248</span>
 <span class="normal">1249</span>
 <span class="normal">1250</span>
-<span class="normal">1251</span>
-<span class="normal">1252</span>
-<span class="normal">1253</span>
-<span class="normal">1254</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">apply_inclusion_list</span><span class="p">(</span>
+<span class="normal">1251</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">apply_inclusion_list</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">:</span> <span class="n">StudyLocusGWASCatalog</span><span class="p">,</span> <span class="n">inclusion_list</span><span class="p">:</span> <span class="n">DataFrame</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyLocusGWASCatalog</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Restricting GWAS Catalog studies based on a list of accpected study ids.</span>
@@ -7149,7 +7099,10 @@ applies some pre-defined filters on the data:</p>
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/datasource/gwas_catalog/associations.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1202</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1199</span>
+<span class="normal">1200</span>
+<span class="normal">1201</span>
+<span class="normal">1202</span>
 <span class="normal">1203</span>
 <span class="normal">1204</span>
 <span class="normal">1205</span>
@@ -7164,10 +7117,7 @@ applies some pre-defined filters on the data:</p>
 <span class="normal">1214</span>
 <span class="normal">1215</span>
 <span class="normal">1216</span>
-<span class="normal">1217</span>
-<span class="normal">1218</span>
-<span class="normal">1219</span>
-<span class="normal">1220</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">qc_ambiguous_study</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyLocusGWASCatalog</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyLocusGWASCatalog</span><span class="p">:</span>
+<span class="normal">1217</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">qc_ambiguous_study</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyLocusGWASCatalog</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyLocusGWASCatalog</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Flag associations with variants that can not be unambiguously associated with one study.</span>
 
 <span class="sd">    Returns:</span>
@@ -7230,7 +7180,10 @@ applies some pre-defined filters on the data:</p>
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/datasource/gwas_catalog/associations.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1222</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1219</span>
+<span class="normal">1220</span>
+<span class="normal">1221</span>
+<span class="normal">1222</span>
 <span class="normal">1223</span>
 <span class="normal">1224</span>
 <span class="normal">1225</span>
@@ -7243,10 +7196,7 @@ applies some pre-defined filters on the data:</p>
 <span class="normal">1232</span>
 <span class="normal">1233</span>
 <span class="normal">1234</span>
-<span class="normal">1235</span>
-<span class="normal">1236</span>
-<span class="normal">1237</span>
-<span class="normal">1238</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">qc_flag_all_tophits</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyLocusGWASCatalog</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyLocusGWASCatalog</span><span class="p">:</span>
+<span class="normal">1235</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">qc_flag_all_tophits</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyLocusGWASCatalog</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyLocusGWASCatalog</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Flag all associations as top hits.</span>
 
 <span class="sd">    Returns:</span>
@@ -7338,7 +7288,10 @@ applies some pre-defined filters on the data:</p>
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/datasource/gwas_catalog/associations.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1179</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1176</span>
+<span class="normal">1177</span>
+<span class="normal">1178</span>
+<span class="normal">1179</span>
 <span class="normal">1180</span>
 <span class="normal">1181</span>
 <span class="normal">1182</span>
@@ -7356,10 +7309,7 @@ applies some pre-defined filters on the data:</p>
 <span class="normal">1194</span>
 <span class="normal">1195</span>
 <span class="normal">1196</span>
-<span class="normal">1197</span>
-<span class="normal">1198</span>
-<span class="normal">1199</span>
-<span class="normal">1200</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">update_study_id</span><span class="p">(</span>
+<span class="normal">1197</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">update_study_id</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">:</span> <span class="n">StudyLocusGWASCatalog</span><span class="p">,</span> <span class="n">study_annotation</span><span class="p">:</span> <span class="n">DataFrame</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyLocusGWASCatalog</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Update final studyId and studyLocusId with a dataframe containing study annotation.</span>
@@ -7416,7 +7366,7 @@ applies some pre-defined filters on the data:</p>
         <span class="icon twemoji">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1-2.1-2M12.5 7v5.2l4 2.4-1 1L11 13V7h1.5M11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2v1.8Z"/></svg>
         </span>
-        <span class="label"> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2024-01-18T11:17:17+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2024-01-18</span> </span>
+        <span class="label"> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2024-01-17T10:30:44+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2024-01-17</span> </span>
       </li>
       
 
@@ -7434,6 +7384,14 @@ applies some pre-defined filters on the data:</p>
               data-bi-name="contributorprofile"
               target="_blank"
               ><img src="https://avatars.githubusercontent.com/u/5097586?v=4" alt="d0choa"
+            /></a>
+          </li><li>
+            <a
+              href="https://github.com/web-flow"
+              title="web-flow"
+              data-bi-name="contributorprofile"
+              target="_blank"
+              ><img src="https://avatars.githubusercontent.com/u/19864447?v=4" alt="web-flow"
             /></a>
           </li></ul>
       </li>

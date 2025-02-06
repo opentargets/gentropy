@@ -1049,27 +1049,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../../datasets/gene_index/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Gene Index
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../../datasets/intervals/" class="md-nav__link">
         
   
@@ -1243,6 +1222,27 @@
   
   <span class="md-ellipsis">
     Summary Statistics
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../datasets/target_index/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Target Index
   </span>
   
 
@@ -2288,27 +2288,6 @@
 
               
             
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../datasources/open_targets/target/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Target
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
           </ul>
         </nav>
       
@@ -3051,27 +3030,6 @@
   
   <span class="md-ellipsis">
     finngen_sumstat_preprocess
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../steps/gene_index/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    gene_index
   </span>
   
 
@@ -3847,7 +3805,7 @@ The list of methods includes:</p>
 <span class="normal">260</span>
 <span class="normal">261</span>
 <span class="normal">262</span>
-<span class="normal">263</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">SummaryStatisticsQC</span><span class="p">:</span>
+<span class="normal">263</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">SummaryStatisticsQC</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Summary statistics QC methods.</span>
 
 <span class="sd">    This module contains methods for quality control of GWAS summary statistics.</span>
@@ -3865,7 +3823,7 @@ The list of methods includes:</p>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">sumstat_qc_beta_check</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">sumstat_qc_beta_check</span><span class="p">(</span>
         <span class="n">gwas_for_qc</span><span class="p">:</span> <span class="n">SummaryStatistics</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataFrame</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;The mean beta check for QC of GWAS summary statstics.</span>
@@ -3883,7 +3841,7 @@ The list of methods includes:</p>
         <span class="k">return</span> <span class="n">qc_c</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_calculate_logpval</span><span class="p">(</span><span class="n">z2</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_calculate_logpval</span><span class="p">(</span><span class="n">z2</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate negative log10-pval from Z-score.</span>
 
 <span class="sd">        Args:</span>
@@ -3900,7 +3858,7 @@ The list of methods includes:</p>
         <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">logpval</span><span class="p">)</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">sumstat_qc_pz_check</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">sumstat_qc_pz_check</span><span class="p">(</span>
         <span class="n">gwas_for_qc</span><span class="p">:</span> <span class="n">SummaryStatistics</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataFrame</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;The PZ check for QC of GWAS summary statstics. It runs linear regression between reported p-values and p-values infered from z-scores.</span>
@@ -3937,7 +3895,7 @@ The list of methods includes:</p>
         <span class="k">return</span> <span class="n">qc_c</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">sumstat_n_eff_check</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">sumstat_n_eff_check</span><span class="p">(</span>
         <span class="n">gwas_for_qc</span><span class="p">:</span> <span class="n">SummaryStatistics</span><span class="p">,</span>
         <span class="n">n_total</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100_000</span><span class="p">,</span>
         <span class="n">limit</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10_000_000</span><span class="p">,</span>
@@ -4016,7 +3974,7 @@ The list of methods includes:</p>
         <span class="k">return</span> <span class="n">qc_c</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">gc_lambda_check</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">gc_lambda_check</span><span class="p">(</span>
         <span class="n">gwas_for_qc</span><span class="p">:</span> <span class="n">SummaryStatistics</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataFrame</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;The genomic control lambda check for QC of GWAS summary statstics.</span>
@@ -4041,7 +3999,7 @@ The list of methods includes:</p>
         <span class="k">return</span> <span class="n">qc_c</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">number_of_snps</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">number_of_snps</span><span class="p">(</span>
         <span class="n">gwas_for_qc</span><span class="p">:</span> <span class="n">SummaryStatistics</span><span class="p">,</span> <span class="n">pval_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">5e-8</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataFrame</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;The function caluates number of SNPs and number of SNPs with p-value less than 5e-8.</span>
@@ -4068,7 +4026,7 @@ The list of methods includes:</p>
         <span class="k">return</span> <span class="n">snp_counts</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">get_quality_control_metrics</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_quality_control_metrics</span><span class="p">(</span>
         <span class="n">gwas</span><span class="p">:</span> <span class="n">SummaryStatistics</span><span class="p">,</span>
         <span class="n">pval_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-8</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataFrame</span><span class="p">:</span>
@@ -4206,7 +4164,7 @@ The list of methods includes:</p>
 <span class="normal">206</span>
 <span class="normal">207</span>
 <span class="normal">208</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@staticmethod</span>
-<span class="k">def</span> <span class="nf">gc_lambda_check</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">gc_lambda_check</span><span class="p">(</span>
     <span class="n">gwas_for_qc</span><span class="p">:</span> <span class="n">SummaryStatistics</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataFrame</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;The genomic control lambda check for QC of GWAS summary statstics.</span>
@@ -4351,7 +4309,7 @@ The list of methods includes:</p>
 <span class="normal">261</span>
 <span class="normal">262</span>
 <span class="normal">263</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@staticmethod</span>
-<span class="k">def</span> <span class="nf">get_quality_control_metrics</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_quality_control_metrics</span><span class="p">(</span>
     <span class="n">gwas</span><span class="p">:</span> <span class="n">SummaryStatistics</span><span class="p">,</span>
     <span class="n">pval_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-8</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataFrame</span><span class="p">:</span>
@@ -4498,7 +4456,7 @@ The list of methods includes:</p>
 <span class="normal">233</span>
 <span class="normal">234</span>
 <span class="normal">235</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@staticmethod</span>
-<span class="k">def</span> <span class="nf">number_of_snps</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">number_of_snps</span><span class="p">(</span>
     <span class="n">gwas_for_qc</span><span class="p">:</span> <span class="n">SummaryStatistics</span><span class="p">,</span> <span class="n">pval_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">5e-8</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataFrame</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;The function caluates number of SNPs and number of SNPs with p-value less than 5e-8.</span>
@@ -4731,7 +4689,7 @@ The median rartio is always close to 1, but standard error could be inflated.</p
 <span class="normal">181</span>
 <span class="normal">182</span>
 <span class="normal">183</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@staticmethod</span>
-<span class="k">def</span> <span class="nf">sumstat_n_eff_check</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">sumstat_n_eff_check</span><span class="p">(</span>
     <span class="n">gwas_for_qc</span><span class="p">:</span> <span class="n">SummaryStatistics</span><span class="p">,</span>
     <span class="n">n_total</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100_000</span><span class="p">,</span>
     <span class="n">limit</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10_000_000</span><span class="p">,</span>
@@ -4904,7 +4862,7 @@ The median rartio is always close to 1, but standard error could be inflated.</p
 <span class="normal">48</span>
 <span class="normal">49</span>
 <span class="normal">50</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@staticmethod</span>
-<span class="k">def</span> <span class="nf">sumstat_qc_beta_check</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">sumstat_qc_beta_check</span><span class="p">(</span>
     <span class="n">gwas_for_qc</span><span class="p">:</span> <span class="n">SummaryStatistics</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataFrame</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;The mean beta check for QC of GWAS summary statstics.</span>
@@ -5035,7 +4993,7 @@ The median rartio is always close to 1, but standard error could be inflated.</p
 <span class="normal">102</span>
 <span class="normal">103</span>
 <span class="normal">104</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@staticmethod</span>
-<span class="k">def</span> <span class="nf">sumstat_qc_pz_check</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">sumstat_qc_pz_check</span><span class="p">(</span>
     <span class="n">gwas_for_qc</span><span class="p">:</span> <span class="n">SummaryStatistics</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataFrame</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;The PZ check for QC of GWAS summary statstics. It runs linear regression between reported p-values and p-values infered from z-scores.</span>

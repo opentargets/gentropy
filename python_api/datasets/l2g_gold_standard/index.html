@@ -1051,27 +1051,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../gene_index/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Gene Index
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../intervals/" class="md-nav__link">
         
   
@@ -1359,6 +1338,27 @@
   
   <span class="md-ellipsis">
     Summary Statistics
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../target_index/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Target Index
   </span>
   
 
@@ -2404,27 +2404,6 @@
 
               
             
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../datasources/open_targets/target/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Target
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
           </ul>
         </nav>
       
@@ -3060,27 +3039,6 @@
   
   <span class="md-ellipsis">
     finngen_sumstat_preprocess
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../steps/gene_index/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    gene_index
   </span>
   
 
@@ -3805,7 +3763,7 @@
 <span class="normal">235</span>
 <span class="normal">236</span>
 <span class="normal">237</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
-<span class="k">class</span> <span class="nc">L2GGoldStandard</span><span class="p">(</span><span class="n">Dataset</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">L2GGoldStandard</span><span class="p">(</span><span class="n">Dataset</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;L2G gold standard dataset.&quot;&quot;&quot;</span>
 
     <span class="n">INTERACTION_THRESHOLD</span> <span class="o">=</span> <span class="mf">0.7</span>
@@ -3813,7 +3771,7 @@
     <span class="n">GS_NEGATIVE_LABEL</span> <span class="o">=</span> <span class="s2">&quot;negative&quot;</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">from_otg_curation</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_otg_curation</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">L2GGoldStandard</span><span class="p">],</span>
         <span class="n">gold_standard_curation</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span>
         <span class="n">study_locus_overlap</span><span class="p">:</span> <span class="n">StudyLocusOverlap</span><span class="p">,</span>
@@ -3831,7 +3789,7 @@
 <span class="sd">        Returns:</span>
 <span class="sd">            L2GGoldStandard: L2G Gold Standard dataset</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="kn">from</span> <span class="nn">gentropy.datasource.open_targets.l2g_gold_standard</span> <span class="kn">import</span> <span class="p">(</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">gentropy.datasource.open_targets.l2g_gold_standard</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
             <span class="n">OpenTargetsL2GGoldStandard</span><span class="p">,</span>
         <span class="p">)</span>
 
@@ -3846,7 +3804,7 @@
         <span class="p">)</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">get_schema</span><span class="p">(</span><span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">L2GGoldStandard</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">StructType</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_schema</span><span class="p">(</span><span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">L2GGoldStandard</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">StructType</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Provides the schema for the L2GGoldStandard dataset.</span>
 
 <span class="sd">        Returns:</span>
@@ -3855,8 +3813,8 @@
         <span class="k">return</span> <span class="n">parse_spark_schema</span><span class="p">(</span><span class="s2">&quot;l2g_gold_standard.json&quot;</span><span class="p">)</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">process_gene_interactions</span><span class="p">(</span>
-        <span class="bp">cls</span><span class="p">:</span> <span class="n">Type</span><span class="p">[</span><span class="n">L2GGoldStandard</span><span class="p">],</span> <span class="n">interactions</span><span class="p">:</span> <span class="n">DataFrame</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">process_gene_interactions</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">L2GGoldStandard</span><span class="p">],</span> <span class="n">interactions</span><span class="p">:</span> <span class="n">DataFrame</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataFrame</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Extract top scoring gene-gene interaction from the interactions dataset of the Platform.</span>
 
@@ -3887,7 +3845,7 @@
             <span class="s2">&quot;scoring as score&quot;</span><span class="p">,</span>
         <span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">build_feature_matrix</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">build_feature_matrix</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">:</span> <span class="n">L2GGoldStandard</span><span class="p">,</span>
         <span class="n">full_feature_matrix</span><span class="p">:</span> <span class="n">L2GFeatureMatrix</span><span class="p">,</span>
         <span class="n">credible_set</span><span class="p">:</span> <span class="n">StudyLocus</span><span class="p">,</span>
@@ -3901,7 +3859,7 @@
 <span class="sd">        Returns:</span>
 <span class="sd">            L2GFeatureMatrix: Feature matrix for study loci in the gold standard</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="kn">from</span> <span class="nn">gentropy.dataset.l2g_feature_matrix</span> <span class="kn">import</span> <span class="n">L2GFeatureMatrix</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">gentropy.dataset.l2g_feature_matrix</span><span class="w"> </span><span class="kn">import</span> <span class="n">L2GFeatureMatrix</span>
 
         <span class="k">return</span> <span class="n">L2GFeatureMatrix</span><span class="p">(</span>
             <span class="n">_df</span><span class="o">=</span><span class="n">full_feature_matrix</span><span class="o">.</span><span class="n">_df</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
@@ -3920,7 +3878,7 @@
             <span class="n">with_gold_standard</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
         <span class="p">)</span><span class="o">.</span><span class="n">fill_na</span><span class="p">()</span>
 
-    <span class="k">def</span> <span class="nf">filter_unique_associations</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">filter_unique_associations</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">:</span> <span class="n">L2GGoldStandard</span><span class="p">,</span>
         <span class="n">study_locus_overlap</span><span class="p">:</span> <span class="n">StudyLocusOverlap</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">L2GGoldStandard</span><span class="p">:</span>
@@ -3964,7 +3922,7 @@
         <span class="p">)</span>
         <span class="k">return</span> <span class="n">L2GGoldStandard</span><span class="p">(</span><span class="n">_df</span><span class="o">=</span><span class="n">unique_associations</span><span class="p">,</span> <span class="n">_schema</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">get_schema</span><span class="p">())</span>
 
-    <span class="k">def</span> <span class="nf">remove_false_negatives</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">remove_false_negatives</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">:</span> <span class="n">L2GGoldStandard</span><span class="p">,</span>
         <span class="n">interactions_df</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">L2GGoldStandard</span><span class="p">:</span>
@@ -4148,7 +4106,7 @@
 <span class="normal">136</span>
 <span class="normal">137</span>
 <span class="normal">138</span>
-<span class="normal">139</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">build_feature_matrix</span><span class="p">(</span>
+<span class="normal">139</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">build_feature_matrix</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">:</span> <span class="n">L2GGoldStandard</span><span class="p">,</span>
     <span class="n">full_feature_matrix</span><span class="p">:</span> <span class="n">L2GFeatureMatrix</span><span class="p">,</span>
     <span class="n">credible_set</span><span class="p">:</span> <span class="n">StudyLocus</span><span class="p">,</span>
@@ -4162,7 +4120,7 @@
 <span class="sd">    Returns:</span>
 <span class="sd">        L2GFeatureMatrix: Feature matrix for study loci in the gold standard</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="kn">from</span> <span class="nn">gentropy.dataset.l2g_feature_matrix</span> <span class="kn">import</span> <span class="n">L2GFeatureMatrix</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">gentropy.dataset.l2g_feature_matrix</span><span class="w"> </span><span class="kn">import</span> <span class="n">L2GFeatureMatrix</span>
 
     <span class="k">return</span> <span class="n">L2GFeatureMatrix</span><span class="p">(</span>
         <span class="n">_df</span><span class="o">=</span><span class="n">full_feature_matrix</span><span class="o">.</span><span class="n">_df</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
@@ -4301,7 +4259,7 @@
 <span class="normal">180</span>
 <span class="normal">181</span>
 <span class="normal">182</span>
-<span class="normal">183</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">filter_unique_associations</span><span class="p">(</span>
+<span class="normal">183</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">filter_unique_associations</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">:</span> <span class="n">L2GGoldStandard</span><span class="p">,</span>
     <span class="n">study_locus_overlap</span><span class="p">:</span> <span class="n">StudyLocusOverlap</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">L2GGoldStandard</span><span class="p">:</span>
@@ -4503,7 +4461,7 @@
 <span class="normal">62</span>
 <span class="normal">63</span>
 <span class="normal">64</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
-<span class="k">def</span> <span class="nf">from_otg_curation</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">from_otg_curation</span><span class="p">(</span>
     <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">L2GGoldStandard</span><span class="p">],</span>
     <span class="n">gold_standard_curation</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span>
     <span class="n">study_locus_overlap</span><span class="p">:</span> <span class="n">StudyLocusOverlap</span><span class="p">,</span>
@@ -4521,7 +4479,7 @@
 <span class="sd">    Returns:</span>
 <span class="sd">        L2GGoldStandard: L2G Gold Standard dataset</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="kn">from</span> <span class="nn">gentropy.datasource.open_targets.l2g_gold_standard</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">gentropy.datasource.open_targets.l2g_gold_standard</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
         <span class="n">OpenTargetsL2GGoldStandard</span><span class="p">,</span>
     <span class="p">)</span>
 
@@ -4590,7 +4548,7 @@
 <span class="normal">71</span>
 <span class="normal">72</span>
 <span class="normal">73</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
-<span class="k">def</span> <span class="nf">get_schema</span><span class="p">(</span><span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">L2GGoldStandard</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">StructType</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_schema</span><span class="p">(</span><span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">L2GGoldStandard</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">StructType</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Provides the schema for the L2GGoldStandard dataset.</span>
 
 <span class="sd">    Returns:</span>
@@ -4720,8 +4678,8 @@
 <span class="normal">104</span>
 <span class="normal">105</span>
 <span class="normal">106</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
-<span class="k">def</span> <span class="nf">process_gene_interactions</span><span class="p">(</span>
-    <span class="bp">cls</span><span class="p">:</span> <span class="n">Type</span><span class="p">[</span><span class="n">L2GGoldStandard</span><span class="p">],</span> <span class="n">interactions</span><span class="p">:</span> <span class="n">DataFrame</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">process_gene_interactions</span><span class="p">(</span>
+    <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">L2GGoldStandard</span><span class="p">],</span> <span class="n">interactions</span><span class="p">:</span> <span class="n">DataFrame</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataFrame</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Extract top scoring gene-gene interaction from the interactions dataset of the Platform.</span>
 
@@ -4878,7 +4836,7 @@
 <span class="normal">234</span>
 <span class="normal">235</span>
 <span class="normal">236</span>
-<span class="normal">237</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">remove_false_negatives</span><span class="p">(</span>
+<span class="normal">237</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">remove_false_negatives</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">:</span> <span class="n">L2GGoldStandard</span><span class="p">,</span>
     <span class="n">interactions_df</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">L2GGoldStandard</span><span class="p">:</span>
@@ -4976,7 +4934,7 @@
         <span class="icon twemoji">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1-2.1-2M12.5 7v5.2l4 2.4-1 1L11 13V7h1.5M11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2v1.8Z"/></svg>
         </span>
-        <span class="label"> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2024-01-18T11:17:17+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2024-01-18</span> </span>
+        <span class="label"> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2024-01-17T10:30:44+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2024-01-17</span> </span>
       </li>
       
 
@@ -4994,6 +4952,14 @@
               data-bi-name="contributorprofile"
               target="_blank"
               ><img src="https://avatars.githubusercontent.com/u/5097586?v=4" alt="d0choa"
+            /></a>
+          </li><li>
+            <a
+              href="https://github.com/web-flow"
+              title="web-flow"
+              data-bi-name="contributorprofile"
+              target="_blank"
+              ><img src="https://avatars.githubusercontent.com/u/19864447?v=4" alt="web-flow"
             /></a>
           </li></ul>
       </li>

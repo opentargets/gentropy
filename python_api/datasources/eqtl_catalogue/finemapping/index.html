@@ -1049,27 +1049,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../datasets/gene_index/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Gene Index
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../../../datasets/intervals/" class="md-nav__link">
         
   
@@ -1243,6 +1222,27 @@
   
   <span class="md-ellipsis">
     Summary Statistics
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../datasets/target_index/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Target Index
   </span>
   
 
@@ -2379,27 +2379,6 @@
 
               
             
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../open_targets/target/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Target
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
           </ul>
         </nav>
       
@@ -3051,27 +3030,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../steps/gene_index/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    gene_index
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../../../steps/gwas_catalog_curation/" class="md-nav__link">
         
   
@@ -3542,8 +3500,7 @@
 
               <details class="quote">
                 <summary>Source code in <code>src/gentropy/datasource/eqtl_catalogue/finemapping.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 27</span>
-<span class="normal"> 28</span>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 28</span>
 <span class="normal"> 29</span>
 <span class="normal"> 30</span>
 <span class="normal"> 31</span>
@@ -3836,8 +3793,12 @@
 <span class="normal">318</span>
 <span class="normal">319</span>
 <span class="normal">320</span>
-<span class="normal">321</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
-<span class="k">class</span> <span class="nc">EqtlCatalogueFinemapping</span><span class="p">:</span>
+<span class="normal">321</span>
+<span class="normal">322</span>
+<span class="normal">323</span>
+<span class="normal">324</span>
+<span class="normal">325</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">EqtlCatalogueFinemapping</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;SuSIE finemapping dataset for eQTL Catalogue.</span>
 
 <span class="sd">    Credible sets from SuSIE are extracted and transformed into StudyLocus objects:</span>
@@ -3884,7 +3845,7 @@
     <span class="p">)</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">_extract_credible_set_index</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_extract_credible_set_index</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">EqtlCatalogueFinemapping</span><span class="p">],</span> <span class="n">cs_id</span><span class="p">:</span> <span class="n">Column</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Extract the credible set index from the cs_id.</span>
@@ -3907,7 +3868,7 @@
         <span class="k">return</span> <span class="n">f</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">cs_id</span><span class="p">,</span> <span class="s2">&quot;_L&quot;</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">IntegerType</span><span class="p">())</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;credibleSetIndex&quot;</span><span class="p">)</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">_extract_dataset_id_from_file_path</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_extract_dataset_id_from_file_path</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">EqtlCatalogueFinemapping</span><span class="p">],</span> <span class="n">file_path</span><span class="p">:</span> <span class="n">Column</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Extract the dataset_id from the file_path. The dataset_id follows the pattern QTD{6}.</span>
@@ -3930,7 +3891,7 @@
         <span class="k">return</span> <span class="n">f</span><span class="o">.</span><span class="n">regexp_extract</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="sa">r</span><span class="s2">&quot;QTD\d</span><span class="si">{6}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;dataset_id&quot;</span><span class="p">)</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">parse_susie_results</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">parse_susie_results</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">EqtlCatalogueFinemapping</span><span class="p">],</span>
         <span class="n">credible_sets</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span>
         <span class="n">lbf</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span>
@@ -3983,12 +3944,15 @@
                 <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;molecular_trait_id&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;traitFromSource&quot;</span><span class="p">),</span>
                 <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;gene_id&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;geneId&quot;</span><span class="p">),</span>
                 <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;dataset_id&quot;</span><span class="p">),</span>
-                <span class="n">f</span><span class="o">.</span><span class="n">concat_ws</span><span class="p">(</span>
-                    <span class="s2">&quot;_&quot;</span><span class="p">,</span>
-                    <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;study_label&quot;</span><span class="p">),</span>
-                    <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;quant_method&quot;</span><span class="p">),</span>
-                    <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;sample_group&quot;</span><span class="p">),</span>
-                    <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;molecular_trait_id&quot;</span><span class="p">),</span>
+                <span class="c1"># Upon creation, the studyId cleaned from symbols:</span>
+                <span class="n">clean_strings_from_symbols</span><span class="p">(</span>
+                    <span class="n">f</span><span class="o">.</span><span class="n">concat_ws</span><span class="p">(</span>
+                        <span class="s2">&quot;_&quot;</span><span class="p">,</span>
+                        <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;study_label&quot;</span><span class="p">),</span>
+                        <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;quant_method&quot;</span><span class="p">),</span>
+                        <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;sample_group&quot;</span><span class="p">),</span>
+                        <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;molecular_trait_id&quot;</span><span class="p">),</span>
+                    <span class="p">)</span>
                 <span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;studyId&quot;</span><span class="p">),</span>
                 <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;tissue_id&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;biosampleFromSourceId&quot;</span><span class="p">),</span>
                 <span class="n">EqtlCatalogueStudyIndex</span><span class="o">.</span><span class="n">_identify_study_type</span><span class="p">()</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;studyType&quot;</span><span class="p">),</span>
@@ -4007,7 +3971,7 @@
         <span class="p">)</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">from_susie_results</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_susie_results</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">EqtlCatalogueFinemapping</span><span class="p">],</span> <span class="n">processed_finemapping_df</span><span class="p">:</span> <span class="n">DataFrame</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyLocus</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Create a StudyLocus object from the processed SuSIE results.</span>
@@ -4067,7 +4031,7 @@
         <span class="p">)</span><span class="o">.</span><span class="n">annotate_credible_sets</span><span class="p">()</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">read_credible_set_from_source</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">read_credible_set_from_source</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">EqtlCatalogueFinemapping</span><span class="p">],</span>
         <span class="n">session</span><span class="p">:</span> <span class="n">Session</span><span class="p">,</span>
         <span class="n">credible_set_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
@@ -4104,7 +4068,7 @@
         <span class="p">)</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">read_lbf_from_source</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">read_lbf_from_source</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">EqtlCatalogueFinemapping</span><span class="p">],</span>
         <span class="n">session</span><span class="p">:</span> <span class="n">Session</span><span class="p">,</span>
         <span class="n">lbf_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
@@ -4219,11 +4183,7 @@
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/datasource/eqtl_catalogue/finemapping.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">197</span>
-<span class="normal">198</span>
-<span class="normal">199</span>
-<span class="normal">200</span>
-<span class="normal">201</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">201</span>
 <span class="normal">202</span>
 <span class="normal">203</span>
 <span class="normal">204</span>
@@ -4277,8 +4237,12 @@
 <span class="normal">252</span>
 <span class="normal">253</span>
 <span class="normal">254</span>
-<span class="normal">255</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
-<span class="k">def</span> <span class="nf">from_susie_results</span><span class="p">(</span>
+<span class="normal">255</span>
+<span class="normal">256</span>
+<span class="normal">257</span>
+<span class="normal">258</span>
+<span class="normal">259</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">from_susie_results</span><span class="p">(</span>
     <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">EqtlCatalogueFinemapping</span><span class="p">],</span> <span class="n">processed_finemapping_df</span><span class="p">:</span> <span class="n">DataFrame</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyLocus</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Create a StudyLocus object from the processed SuSIE results.</span>
@@ -4447,8 +4411,7 @@
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/datasource/eqtl_catalogue/finemapping.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">120</span>
-<span class="normal">121</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">121</span>
 <span class="normal">122</span>
 <span class="normal">123</span>
 <span class="normal">124</span>
@@ -4522,8 +4485,12 @@
 <span class="normal">192</span>
 <span class="normal">193</span>
 <span class="normal">194</span>
-<span class="normal">195</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
-<span class="k">def</span> <span class="nf">parse_susie_results</span><span class="p">(</span>
+<span class="normal">195</span>
+<span class="normal">196</span>
+<span class="normal">197</span>
+<span class="normal">198</span>
+<span class="normal">199</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">parse_susie_results</span><span class="p">(</span>
     <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">EqtlCatalogueFinemapping</span><span class="p">],</span>
     <span class="n">credible_sets</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span>
     <span class="n">lbf</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span>
@@ -4576,12 +4543,15 @@
             <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;molecular_trait_id&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;traitFromSource&quot;</span><span class="p">),</span>
             <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;gene_id&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;geneId&quot;</span><span class="p">),</span>
             <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;dataset_id&quot;</span><span class="p">),</span>
-            <span class="n">f</span><span class="o">.</span><span class="n">concat_ws</span><span class="p">(</span>
-                <span class="s2">&quot;_&quot;</span><span class="p">,</span>
-                <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;study_label&quot;</span><span class="p">),</span>
-                <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;quant_method&quot;</span><span class="p">),</span>
-                <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;sample_group&quot;</span><span class="p">),</span>
-                <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;molecular_trait_id&quot;</span><span class="p">),</span>
+            <span class="c1"># Upon creation, the studyId cleaned from symbols:</span>
+            <span class="n">clean_strings_from_symbols</span><span class="p">(</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">concat_ws</span><span class="p">(</span>
+                    <span class="s2">&quot;_&quot;</span><span class="p">,</span>
+                    <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;study_label&quot;</span><span class="p">),</span>
+                    <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;quant_method&quot;</span><span class="p">),</span>
+                    <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;sample_group&quot;</span><span class="p">),</span>
+                    <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;molecular_trait_id&quot;</span><span class="p">),</span>
+                <span class="p">)</span>
             <span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;studyId&quot;</span><span class="p">),</span>
             <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;tissue_id&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;biosampleFromSourceId&quot;</span><span class="p">),</span>
             <span class="n">EqtlCatalogueStudyIndex</span><span class="o">.</span><span class="n">_identify_study_type</span><span class="p">()</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;studyType&quot;</span><span class="p">),</span>
@@ -4693,11 +4663,7 @@
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/datasource/eqtl_catalogue/finemapping.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">257</span>
-<span class="normal">258</span>
-<span class="normal">259</span>
-<span class="normal">260</span>
-<span class="normal">261</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">261</span>
 <span class="normal">262</span>
 <span class="normal">263</span>
 <span class="normal">264</span>
@@ -4728,8 +4694,12 @@
 <span class="normal">289</span>
 <span class="normal">290</span>
 <span class="normal">291</span>
-<span class="normal">292</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
-<span class="k">def</span> <span class="nf">read_credible_set_from_source</span><span class="p">(</span>
+<span class="normal">292</span>
+<span class="normal">293</span>
+<span class="normal">294</span>
+<span class="normal">295</span>
+<span class="normal">296</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">read_credible_set_from_source</span><span class="p">(</span>
     <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">EqtlCatalogueFinemapping</span><span class="p">],</span>
     <span class="n">session</span><span class="p">:</span> <span class="n">Session</span><span class="p">,</span>
     <span class="n">credible_set_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
@@ -4859,11 +4829,7 @@
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/datasource/eqtl_catalogue/finemapping.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">294</span>
-<span class="normal">295</span>
-<span class="normal">296</span>
-<span class="normal">297</span>
-<span class="normal">298</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">298</span>
 <span class="normal">299</span>
 <span class="normal">300</span>
 <span class="normal">301</span>
@@ -4886,8 +4852,12 @@
 <span class="normal">318</span>
 <span class="normal">319</span>
 <span class="normal">320</span>
-<span class="normal">321</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
-<span class="k">def</span> <span class="nf">read_lbf_from_source</span><span class="p">(</span>
+<span class="normal">321</span>
+<span class="normal">322</span>
+<span class="normal">323</span>
+<span class="normal">324</span>
+<span class="normal">325</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">read_lbf_from_source</span><span class="p">(</span>
     <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">EqtlCatalogueFinemapping</span><span class="p">],</span>
     <span class="n">session</span><span class="p">:</span> <span class="n">Session</span><span class="p">,</span>
     <span class="n">lbf_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
@@ -4967,6 +4937,14 @@
               data-bi-name="contributorprofile"
               target="_blank"
               ><img src="https://avatars.githubusercontent.com/u/45119610?v=4" alt="ireneisdoomed"
+            /></a>
+          </li><li>
+            <a
+              href="https://github.com/web-flow"
+              title="web-flow"
+              data-bi-name="contributorprofile"
+              target="_blank"
+              ><img src="https://avatars.githubusercontent.com/u/19864447?v=4" alt="web-flow"
             /></a>
           </li></ul>
       </li>

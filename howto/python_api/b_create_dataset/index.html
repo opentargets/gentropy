@@ -1123,27 +1123,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../python_api/datasets/gene_index/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Gene Index
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../../../python_api/datasets/intervals/" class="md-nav__link">
         
   
@@ -1317,6 +1296,27 @@
   
   <span class="md-ellipsis">
     Summary Statistics
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../python_api/datasets/target_index/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Target Index
   </span>
   
 
@@ -2362,27 +2362,6 @@
 
               
             
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../python_api/datasources/open_targets/target/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Target
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
           </ul>
         </nav>
       
@@ -3034,27 +3013,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../python_api/steps/gene_index/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    gene_index
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../../../python_api/steps/gwas_catalog_curation/" class="md-nav__link">
         
   
@@ -3492,7 +3450,7 @@
 <h2 id="creating-a-dataset-from-parquet">Creating a dataset from parquet<a class="headerlink" href="#creating-a-dataset-from-parquet" title="Permanent link">&para;</a></h2>
 <p>All the <code>Dataset</code>s have a <code>from_parquet</code> method that allows you to create any <code>Dataset</code> instance from a parquet file or directory.</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># Create a SummaryStatistics object by loading data from the specified path</span>
-<span class="kn">from</span> <span class="nn">gentropy.dataset.summary_statistics</span> <span class="kn">import</span> <span class="n">SummaryStatistics</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">gentropy.dataset.summary_statistics</span><span class="w"> </span><span class="kn">import</span> <span class="n">SummaryStatistics</span>
 
 <span class="n">path</span> <span class="o">=</span> <span class="s2">&quot;path/to/summary/stats&quot;</span>
 <span class="n">summary_stats</span> <span class="o">=</span> <span class="n">SummaryStatistics</span><span class="o">.</span><span class="n">from_parquet</span><span class="p">(</span><span class="n">session</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
@@ -3504,7 +3462,7 @@
 <h2 id="creating-a-dataset-from-a-data-source">Creating a dataset from a data source<a class="headerlink" href="#creating-a-dataset-from-a-data-source" title="Permanent link">&para;</a></h2>
 <p>Alternatively, <code>Dataset</code>s can be created using a <a href="../../../python_api/datasources/_datasources/">data source</a> harmonisation method. For example, to create a <code>SummaryStatistics</code> object from Finngen's raw summary statistics, you can use the <a href="../../../python_api/datasources/finngen/summary_stats/"><code>FinnGen</code></a> data source.</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># Create a SummaryStatistics object by loading raw data from Finngen</span>
-<span class="kn">from</span> <span class="nn">gentropy.datasource.finngen.summary_stats</span> <span class="kn">import</span> <span class="n">FinnGenSummaryStats</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">gentropy.datasource.finngen.summary_stats</span><span class="w"> </span><span class="kn">import</span> <span class="n">FinnGenSummaryStats</span>
 
 <span class="n">path</span> <span class="o">=</span> <span class="s2">&quot;path/to/finngen/summary/stats&quot;</span>
 <span class="n">summary_stats</span> <span class="o">=</span> <span class="n">FinnGenSummaryStats</span><span class="o">.</span><span class="n">from_source</span><span class="p">(</span><span class="n">session</span><span class="o">.</span><span class="n">spark</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
@@ -3516,9 +3474,9 @@
 <p>The Dataset schemas can be found in the documentation of each Dataset. For example, the schema of the <code>SummaryStatistics</code> dataset can be found <a href="../../../python_api/datasets/summary_statistics/">here</a>.</p>
 </div>
 <p>You can also create a <code>Dataset</code> from a pandas DataFrame. This is useful when you want to create a <code>Dataset</code> from a small dataset that fits in memory.</p>
-<div class="highlight"><pre><span></span><code><span class="kn">import</span> <span class="nn">pyspark.pandas</span> <span class="k">as</span> <span class="nn">ps</span>
+<div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">pyspark.pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">ps</span>
 
-<span class="kn">from</span> <span class="nn">gentropy.dataset.summary_statistics</span> <span class="kn">import</span> <span class="n">SummaryStatistics</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">gentropy.dataset.summary_statistics</span><span class="w"> </span><span class="kn">import</span> <span class="n">SummaryStatistics</span>
 
 
 <span class="c1"># Load your transformed data into a pandas DataFrame</span>
@@ -3573,6 +3531,14 @@
               data-bi-name="contributorprofile"
               target="_blank"
               ><img src="https://avatars.githubusercontent.com/u/45119610?v=4" alt="ireneisdoomed"
+            /></a>
+          </li><li>
+            <a
+              href="https://github.com/web-flow"
+              title="web-flow"
+              data-bi-name="contributorprofile"
+              target="_blank"
+              ><img src="https://avatars.githubusercontent.com/u/19864447?v=4" alt="web-flow"
             /></a>
           </li></ul>
       </li>

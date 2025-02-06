@@ -1049,27 +1049,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../../datasets/gene_index/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Gene Index
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../../datasets/intervals/" class="md-nav__link">
         
   
@@ -1243,6 +1222,27 @@
   
   <span class="md-ellipsis">
     Summary Statistics
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../datasets/target_index/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Target Index
   </span>
   
 
@@ -2288,27 +2288,6 @@
 
               
             
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../datasources/open_targets/target/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Target
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
           </ul>
         </nav>
       
@@ -2962,27 +2941,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../gene_index/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    gene_index
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../gwas_catalog_curation/" class="md-nav__link">
         
   
@@ -3480,8 +3438,7 @@ when target of disease validation fails.</p>
 
               <details class="quote">
                 <summary>Source code in <code>src/gentropy/study_locus_validation.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">10</span>
-<span class="normal">11</span>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">11</span>
 <span class="normal">12</span>
 <span class="normal">13</span>
 <span class="normal">14</span>
@@ -3539,34 +3496,47 @@ when target of disease validation fails.</p>
 <span class="normal">66</span>
 <span class="normal">67</span>
 <span class="normal">68</span>
-<span class="normal">69</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">StudyLocusValidationStep</span><span class="p">:</span>
+<span class="normal">69</span>
+<span class="normal">70</span>
+<span class="normal">71</span>
+<span class="normal">72</span>
+<span class="normal">73</span>
+<span class="normal">74</span>
+<span class="normal">75</span>
+<span class="normal">76</span>
+<span class="normal">77</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">StudyLocusValidationStep</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Study index validation step.</span>
 
 <span class="sd">    This step reads and outputs a study index dataset with flagged studies</span>
 <span class="sd">    when target of disease validation fails.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">session</span><span class="p">:</span> <span class="n">Session</span><span class="p">,</span>
-        <span class="n">study_index_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">study_locus_path</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+        <span class="n">study_index_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">target_index_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">valid_study_locus_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">invalid_study_locus_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">trans_qtl_threshold</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">invalid_qc_reasons</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[],</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize step.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            session (Session): Session object.</span>
-<span class="sd">            study_index_path (str): Path to study index file.</span>
 <span class="sd">            study_locus_path (list[str]): Path to study locus dataset.</span>
+<span class="sd">            study_index_path (str): Path to study index file.</span>
+<span class="sd">            target_index_path (str): path to the target index.</span>
 <span class="sd">            valid_study_locus_path (str): Path to write the valid records.</span>
 <span class="sd">            invalid_study_locus_path (str): Path to write the output file.</span>
+<span class="sd">            trans_qtl_threshold (int): genomic distance above which a QTL is considered trans.</span>
 <span class="sd">            invalid_qc_reasons (list[str]): List of invalid quality check reason names from `StudyLocusQualityCheck` (e.g. [&#39;SUBSIGNIFICANT_FLAG&#39;]).</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1"># Reading datasets:</span>
         <span class="n">study_index</span> <span class="o">=</span> <span class="n">StudyIndex</span><span class="o">.</span><span class="n">from_parquet</span><span class="p">(</span><span class="n">session</span><span class="p">,</span> <span class="n">study_index_path</span><span class="p">)</span>
+        <span class="n">target_index</span> <span class="o">=</span> <span class="n">TargetIndex</span><span class="o">.</span><span class="n">from_parquet</span><span class="p">(</span><span class="n">session</span><span class="p">,</span> <span class="n">target_index_path</span><span class="p">)</span>
 
         <span class="c1"># Running validation then writing output:</span>
         <span class="n">study_locus_with_qc</span> <span class="o">=</span> <span class="p">(</span>
@@ -3586,6 +3556,8 @@ when target of disease validation fails.</p>
             <span class="p">)</span>
             <span class="c1"># Annotate credible set confidence:</span>
             <span class="o">.</span><span class="n">assign_confidence</span><span class="p">()</span>
+            <span class="c1"># Flagging trans qtls:</span>
+            <span class="o">.</span><span class="n">flag_trans_qtls</span><span class="p">(</span><span class="n">study_index</span><span class="p">,</span> <span class="n">target_index</span><span class="p">,</span> <span class="n">trans_qtl_threshold</span><span class="p">)</span>
         <span class="p">)</span><span class="o">.</span><span class="n">persist</span><span class="p">()</span>  <span class="c1"># we will need this for 2 types of outputs</span>
 
         <span class="c1"># Valid study locus partitioned to simplify the finding of overlaps</span>
@@ -3618,7 +3590,7 @@ when target of disease validation fails.</p>
 
 
 <h3 id="gentropy.study_locus_validation.StudyLocusValidationStep.__init__" class="doc doc-heading">
-            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">session</span><span class="p">:</span> <span class="n">Session</span><span class="p">,</span> <span class="n">study_index_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">study_locus_path</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">valid_study_locus_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">invalid_study_locus_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">invalid_qc_reasons</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[])</span> <span class="o">-&gt;</span> <span class="kc">None</span></code>
+            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">session</span><span class="p">:</span> <span class="n">Session</span><span class="p">,</span> <span class="n">study_locus_path</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">study_index_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">target_index_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">valid_study_locus_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">invalid_study_locus_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">trans_qtl_threshold</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">invalid_qc_reasons</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[])</span> <span class="o">-&gt;</span> <span class="kc">None</span></code>
 
 <a href="#gentropy.study_locus_validation.StudyLocusValidationStep.__init__" class="headerlink" title="Permanent link">&para;</a></h3>
 
@@ -3657,6 +3629,22 @@ when target of disease validation fails.</p>
           </tr>
           <tr class="doc-section-item">
             <td>
+                <code>study_locus_path</code>
+            </td>
+            <td>
+                  <code>list[str]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to study locus dataset.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
                 <code>study_index_path</code>
             </td>
             <td>
@@ -3673,14 +3661,14 @@ when target of disease validation fails.</p>
           </tr>
           <tr class="doc-section-item">
             <td>
-                <code>study_locus_path</code>
+                <code>target_index_path</code>
             </td>
             <td>
-                  <code>list[str]</code>
+                  <code>str</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Path to study locus dataset.</p>
+                <p>path to the target index.</p>
               </div>
             </td>
             <td>
@@ -3721,6 +3709,22 @@ when target of disease validation fails.</p>
           </tr>
           <tr class="doc-section-item">
             <td>
+                <code>trans_qtl_threshold</code>
+            </td>
+            <td>
+                  <code>int</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>genomic distance above which a QTL is considered trans.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
                 <code>invalid_qc_reasons</code>
             </td>
             <td>
@@ -3740,8 +3744,7 @@ when target of disease validation fails.</p>
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/study_locus_validation.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">17</span>
-<span class="normal">18</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">18</span>
 <span class="normal">19</span>
 <span class="normal">20</span>
 <span class="normal">21</span>
@@ -3792,27 +3795,40 @@ when target of disease validation fails.</p>
 <span class="normal">66</span>
 <span class="normal">67</span>
 <span class="normal">68</span>
-<span class="normal">69</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+<span class="normal">69</span>
+<span class="normal">70</span>
+<span class="normal">71</span>
+<span class="normal">72</span>
+<span class="normal">73</span>
+<span class="normal">74</span>
+<span class="normal">75</span>
+<span class="normal">76</span>
+<span class="normal">77</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
     <span class="n">session</span><span class="p">:</span> <span class="n">Session</span><span class="p">,</span>
-    <span class="n">study_index_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">study_locus_path</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">study_index_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">target_index_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">valid_study_locus_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">invalid_study_locus_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">trans_qtl_threshold</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">invalid_qc_reasons</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[],</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Initialize step.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        session (Session): Session object.</span>
-<span class="sd">        study_index_path (str): Path to study index file.</span>
 <span class="sd">        study_locus_path (list[str]): Path to study locus dataset.</span>
+<span class="sd">        study_index_path (str): Path to study index file.</span>
+<span class="sd">        target_index_path (str): path to the target index.</span>
 <span class="sd">        valid_study_locus_path (str): Path to write the valid records.</span>
 <span class="sd">        invalid_study_locus_path (str): Path to write the output file.</span>
+<span class="sd">        trans_qtl_threshold (int): genomic distance above which a QTL is considered trans.</span>
 <span class="sd">        invalid_qc_reasons (list[str]): List of invalid quality check reason names from `StudyLocusQualityCheck` (e.g. [&#39;SUBSIGNIFICANT_FLAG&#39;]).</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># Reading datasets:</span>
     <span class="n">study_index</span> <span class="o">=</span> <span class="n">StudyIndex</span><span class="o">.</span><span class="n">from_parquet</span><span class="p">(</span><span class="n">session</span><span class="p">,</span> <span class="n">study_index_path</span><span class="p">)</span>
+    <span class="n">target_index</span> <span class="o">=</span> <span class="n">TargetIndex</span><span class="o">.</span><span class="n">from_parquet</span><span class="p">(</span><span class="n">session</span><span class="p">,</span> <span class="n">target_index_path</span><span class="p">)</span>
 
     <span class="c1"># Running validation then writing output:</span>
     <span class="n">study_locus_with_qc</span> <span class="o">=</span> <span class="p">(</span>
@@ -3832,6 +3848,8 @@ when target of disease validation fails.</p>
         <span class="p">)</span>
         <span class="c1"># Annotate credible set confidence:</span>
         <span class="o">.</span><span class="n">assign_confidence</span><span class="p">()</span>
+        <span class="c1"># Flagging trans qtls:</span>
+        <span class="o">.</span><span class="n">flag_trans_qtls</span><span class="p">(</span><span class="n">study_index</span><span class="p">,</span> <span class="n">target_index</span><span class="p">,</span> <span class="n">trans_qtl_threshold</span><span class="p">)</span>
     <span class="p">)</span><span class="o">.</span><span class="n">persist</span><span class="p">()</span>  <span class="c1"># we will need this for 2 types of outputs</span>
 
     <span class="c1"># Valid study locus partitioned to simplify the finding of overlaps</span>

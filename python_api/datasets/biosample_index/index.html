@@ -1138,27 +1138,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../gene_index/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Gene Index
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../intervals/" class="md-nav__link">
         
   
@@ -1332,6 +1311,27 @@
   
   <span class="md-ellipsis">
     Summary Statistics
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../target_index/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Target Index
   </span>
   
 
@@ -2377,27 +2377,6 @@
 
               
             
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../datasources/open_targets/target/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Target
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
           </ul>
         </nav>
       
@@ -3049,27 +3028,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../../steps/gene_index/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    gene_index
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../../steps/gwas_catalog_curation/" class="md-nav__link">
         
   
@@ -3614,14 +3572,14 @@
 <span class="normal">92</span>
 <span class="normal">93</span>
 <span class="normal">94</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
-<span class="k">class</span> <span class="nc">BiosampleIndex</span><span class="p">(</span><span class="n">Dataset</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">BiosampleIndex</span><span class="p">(</span><span class="n">Dataset</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Biosample index dataset.</span>
 
 <span class="sd">    A Biosample index dataset captures the metadata of the biosamples (e.g. tissues, cell types, cell lines, etc) such as alternate names and relationships with other biosamples.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">get_schema</span><span class="p">(</span><span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">BiosampleIndex</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">StructType</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_schema</span><span class="p">(</span><span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">BiosampleIndex</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">StructType</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Provide the schema for the BiosampleIndex dataset.</span>
 
 <span class="sd">        Returns:</span>
@@ -3629,7 +3587,7 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="n">parse_spark_schema</span><span class="p">(</span><span class="s2">&quot;biosample_index.json&quot;</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">merge_indices</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">merge_indices</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">:</span> <span class="n">BiosampleIndex</span><span class="p">,</span>
         <span class="n">biosample_indices</span> <span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">BiosampleIndex</span><span class="p">]</span>
         <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BiosampleIndex</span><span class="p">:</span>
@@ -3667,7 +3625,7 @@
             <span class="n">_schema</span><span class="o">=</span><span class="n">BiosampleIndex</span><span class="o">.</span><span class="n">get_schema</span><span class="p">()</span>
             <span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">retain_rows_with_ancestor_id</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">retain_rows_with_ancestor_id</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">:</span> <span class="n">BiosampleIndex</span><span class="p">,</span>
         <span class="n">ancestor_ids</span> <span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
         <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BiosampleIndex</span><span class="p">:</span>
@@ -3753,7 +3711,7 @@
 <span class="normal">32</span>
 <span class="normal">33</span>
 <span class="normal">34</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
-<span class="k">def</span> <span class="nf">get_schema</span><span class="p">(</span><span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">BiosampleIndex</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">StructType</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_schema</span><span class="p">(</span><span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">BiosampleIndex</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">StructType</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Provide the schema for the BiosampleIndex dataset.</span>
 
 <span class="sd">    Returns:</span>
@@ -3872,7 +3830,7 @@
 <span class="normal">69</span>
 <span class="normal">70</span>
 <span class="normal">71</span>
-<span class="normal">72</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">merge_indices</span><span class="p">(</span>
+<span class="normal">72</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">merge_indices</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">:</span> <span class="n">BiosampleIndex</span><span class="p">,</span>
     <span class="n">biosample_indices</span> <span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">BiosampleIndex</span><span class="p">]</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BiosampleIndex</span><span class="p">:</span>
@@ -4004,7 +3962,7 @@
 <span class="normal">91</span>
 <span class="normal">92</span>
 <span class="normal">93</span>
-<span class="normal">94</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">retain_rows_with_ancestor_id</span><span class="p">(</span>
+<span class="normal">94</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">retain_rows_with_ancestor_id</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">:</span> <span class="n">BiosampleIndex</span><span class="p">,</span>
     <span class="n">ancestor_ids</span> <span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BiosampleIndex</span><span class="p">:</span>
@@ -4095,6 +4053,14 @@
               data-bi-name="contributorprofile"
               target="_blank"
               ><img src="https://avatars.githubusercontent.com/u/25749859?v=4" alt="Tobi1kenobi"
+            /></a>
+          </li><li>
+            <a
+              href="https://github.com/web-flow"
+              title="web-flow"
+              data-bi-name="contributorprofile"
+              target="_blank"
+              ><img src="https://avatars.githubusercontent.com/u/19864447?v=4" alt="web-flow"
             /></a>
           </li></ul>
       </li>

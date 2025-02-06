@@ -1049,27 +1049,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../datasets/gene_index/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Gene Index
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../../../datasets/intervals/" class="md-nav__link">
         
   
@@ -1243,6 +1222,27 @@
   
   <span class="md-ellipsis">
     Summary Statistics
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../datasets/target_index/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Target Index
   </span>
   
 
@@ -2439,27 +2439,6 @@
 
               
             
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../open_targets/target/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Target
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
           </ul>
         </nav>
       
@@ -3095,27 +3074,6 @@
   
   <span class="md-ellipsis">
     finngen_sumstat_preprocess
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../steps/gene_index/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    gene_index
   </span>
   
 
@@ -3938,7 +3896,7 @@
 <span class="normal">286</span>
 <span class="normal">287</span>
 <span class="normal">288</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
-<span class="k">class</span> <span class="nc">StudyIndexGWASCatalogParser</span><span class="p">:</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">StudyIndexGWASCatalogParser</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;GWAS Catalog study index parser.</span>
 
 <span class="sd">    The following information is harmonised from the GWAS Catalog:</span>
@@ -3954,7 +3912,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_parse_discovery_samples</span><span class="p">(</span><span class="n">discovery_samples</span><span class="p">:</span> <span class="n">Column</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_parse_discovery_samples</span><span class="p">(</span><span class="n">discovery_samples</span><span class="p">:</span> <span class="n">Column</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Parse discovery sample sizes from GWAS Catalog.</span>
 
 <span class="sd">        This is a curated field. From publication sometimes it is not clear how the samples were split</span>
@@ -4056,7 +4014,7 @@
         <span class="p">)</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_normalize_ancestries</span><span class="p">(</span><span class="n">merged</span><span class="p">:</span> <span class="n">Column</span><span class="p">,</span> <span class="n">ancestry</span><span class="p">:</span> <span class="n">Column</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_normalize_ancestries</span><span class="p">(</span><span class="n">merged</span><span class="p">:</span> <span class="n">Column</span><span class="p">,</span> <span class="n">ancestry</span><span class="p">:</span> <span class="n">Column</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Normalize ancestries from a list of structs.</span>
 
 <span class="sd">        As some ancestry label might be repeated with different sample counts,</span>
@@ -4084,7 +4042,7 @@
         <span class="p">)</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_merge_ancestries_and_counts</span><span class="p">(</span><span class="n">ancestry_group</span><span class="p">:</span> <span class="n">Column</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_merge_ancestries_and_counts</span><span class="p">(</span><span class="n">ancestry_group</span><span class="p">:</span> <span class="n">Column</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Merge ancestries with sample sizes.</span>
 
 <span class="sd">        After splitting ancestry annotations, all resulting ancestries needs to be assigned</span>
@@ -4124,7 +4082,7 @@
         <span class="p">)</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">parse_cohorts</span><span class="p">(</span><span class="n">raw_cohort</span><span class="p">:</span> <span class="n">Column</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">parse_cohorts</span><span class="p">(</span><span class="n">raw_cohort</span><span class="p">:</span> <span class="n">Column</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Return a list of unique cohort labels from pipe separated list if provided.</span>
 
 <span class="sd">        Args:</span>
@@ -4140,7 +4098,7 @@
 <span class="sd">        |parsedCohorts                         |</span>
 <span class="sd">        +--------------------------------------+</span>
 <span class="sd">        |[BioME, CaPS, Estonia, FHS, UKB, GERA]|</span>
-<span class="sd">        |null                                  |</span>
+<span class="sd">        |NULL                                  |</span>
 <span class="sd">        +--------------------------------------+</span>
 <span class="sd">        &lt;BLANKLINE&gt;</span>
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -4150,7 +4108,7 @@
         <span class="p">)</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">_parse_study_table</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_parse_study_table</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">StudyIndexGWASCatalogParser</span><span class="p">],</span> <span class="n">catalog_studies</span><span class="p">:</span> <span class="n">DataFrame</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyIndexGWASCatalog</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Harmonise GWASCatalog study table with `StudyIndex` schema.</span>
@@ -4187,7 +4145,7 @@
         <span class="p">)</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">from_source</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_source</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">StudyIndexGWASCatalogParser</span><span class="p">],</span>
         <span class="n">catalog_studies</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span>
         <span class="n">ancestry_file</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span>
@@ -4332,7 +4290,7 @@
 <span class="normal">286</span>
 <span class="normal">287</span>
 <span class="normal">288</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
-<span class="k">def</span> <span class="nf">from_source</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">from_source</span><span class="p">(</span>
     <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">StudyIndexGWASCatalogParser</span><span class="p">],</span>
     <span class="n">catalog_studies</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span>
     <span class="n">ancestry_file</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span>
@@ -4438,7 +4396,7 @@ spark.createDataFrame(data, ['cohorts']).select(StudyIndexGWASCatalogParser.pars
 |parsedCohorts                         |
 +--------------------------------------+
 |[BioME, CaPS, Estonia, FHS, UKB, GERA]|
-|null                                  |
+|NULL                                  |
 +--------------------------------------+
 <BLANKLINE></p>
 </blockquote>
@@ -4472,7 +4430,7 @@ spark.createDataFrame(data, ['cohorts']).select(StudyIndexGWASCatalogParser.pars
 <span class="normal">227</span>
 <span class="normal">228</span>
 <span class="normal">229</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@staticmethod</span>
-<span class="k">def</span> <span class="nf">parse_cohorts</span><span class="p">(</span><span class="n">raw_cohort</span><span class="p">:</span> <span class="n">Column</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">parse_cohorts</span><span class="p">(</span><span class="n">raw_cohort</span><span class="p">:</span> <span class="n">Column</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Return a list of unique cohort labels from pipe separated list if provided.</span>
 
 <span class="sd">    Args:</span>
@@ -4488,7 +4446,7 @@ spark.createDataFrame(data, ['cohorts']).select(StudyIndexGWASCatalogParser.pars
 <span class="sd">    |parsedCohorts                         |</span>
 <span class="sd">    +--------------------------------------+</span>
 <span class="sd">    |[BioME, CaPS, Estonia, FHS, UKB, GERA]|</span>
-<span class="sd">    |null                                  |</span>
+<span class="sd">    |NULL                                  |</span>
 <span class="sd">    +--------------------------------------+</span>
 <span class="sd">    &lt;BLANKLINE&gt;</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -4933,13 +4891,13 @@ spark.createDataFrame(data, ['cohorts']).select(StudyIndexGWASCatalogParser.pars
 <span class="normal">680</span>
 <span class="normal">681</span>
 <span class="normal">682</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
-<span class="k">class</span> <span class="nc">StudyIndexGWASCatalog</span><span class="p">(</span><span class="n">StudyIndex</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">StudyIndexGWASCatalog</span><span class="p">(</span><span class="n">StudyIndex</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Study index dataset from GWAS Catalog.</span>
 
 <span class="sd">    A study index dataset captures all the metadata for all studies including GWAS and Molecular QTL.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">update_study_id</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">update_study_id</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">:</span> <span class="n">StudyIndexGWASCatalog</span><span class="p">,</span> <span class="n">study_annotation</span><span class="p">:</span> <span class="n">DataFrame</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyIndexGWASCatalog</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Update studyId with a dataframe containing study.</span>
@@ -4983,7 +4941,7 @@ spark.createDataFrame(data, ['cohorts']).select(StudyIndexGWASCatalogParser.pars
 
         <span class="k">return</span> <span class="bp">self</span>
 
-    <span class="k">def</span> <span class="nf">annotate_from_study_curation</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">annotate_from_study_curation</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">:</span> <span class="n">StudyIndexGWASCatalog</span><span class="p">,</span> <span class="n">curation_table</span><span class="p">:</span> <span class="n">DataFrame</span> <span class="o">|</span> <span class="kc">None</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyIndexGWASCatalog</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Annotating study index with curation.</span>
@@ -5049,7 +5007,7 @@ spark.createDataFrame(data, ['cohorts']).select(StudyIndexGWASCatalogParser.pars
             <span class="n">_df</span><span class="o">=</span><span class="n">curated_df</span><span class="p">,</span> <span class="n">_schema</span><span class="o">=</span><span class="n">StudyIndexGWASCatalog</span><span class="o">.</span><span class="n">get_schema</span><span class="p">()</span>
         <span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">extract_studies_for_curation</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">extract_studies_for_curation</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">:</span> <span class="n">StudyIndexGWASCatalog</span><span class="p">,</span> <span class="n">curation</span><span class="p">:</span> <span class="n">DataFrame</span> <span class="o">|</span> <span class="kc">None</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataFrame</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Extract studies for curation.</span>
@@ -5109,7 +5067,7 @@ spark.createDataFrame(data, ['cohorts']).select(StudyIndexGWASCatalogParser.pars
             <span class="p">)</span>
         <span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">annotate_ancestries</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">annotate_ancestries</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">:</span> <span class="n">StudyIndexGWASCatalog</span><span class="p">,</span> <span class="n">ancestry_lut</span><span class="p">:</span> <span class="n">DataFrame</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyIndexGWASCatalog</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Extracting sample sizes and ancestry information.</span>
@@ -5123,7 +5081,7 @@ spark.createDataFrame(data, ['cohorts']).select(StudyIndexGWASCatalogParser.pars
 <span class="sd">        Returns:</span>
 <span class="sd">            StudyIndexGWASCatalog: Slimmed and cleaned version of the ancestry annotation.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="kn">from</span> <span class="nn">gentropy.datasource.gwas_catalog.study_index</span> <span class="kn">import</span> <span class="p">(</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">gentropy.datasource.gwas_catalog.study_index</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
             <span class="n">StudyIndexGWASCatalogParser</span> <span class="k">as</span> <span class="n">GWASCatalogStudyIndexParser</span><span class="p">,</span>
         <span class="p">)</span>
 
@@ -5230,7 +5188,7 @@ spark.createDataFrame(data, ['cohorts']).select(StudyIndexGWASCatalogParser.pars
         <span class="bp">self</span><span class="o">.</span><span class="n">df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">parsed_ancestry_lut</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="s2">&quot;studyId&quot;</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s2">&quot;left&quot;</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span>
 
-    <span class="k">def</span> <span class="nf">annotate_discovery_sample_sizes</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">annotate_discovery_sample_sizes</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">:</span> <span class="n">StudyIndexGWASCatalog</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyIndexGWASCatalog</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Extract the sample size of the discovery stage of the study as annotated in the GWAS Catalog.</span>
@@ -5275,7 +5233,7 @@ spark.createDataFrame(data, ['cohorts']).select(StudyIndexGWASCatalogParser.pars
         <span class="bp">self</span><span class="o">.</span><span class="n">df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">sample_size_lut</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="s2">&quot;studyId&quot;</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s2">&quot;left&quot;</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span>
 
-    <span class="k">def</span> <span class="nf">apply_inclusion_list</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">apply_inclusion_list</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">:</span> <span class="n">StudyIndexGWASCatalog</span><span class="p">,</span> <span class="n">inclusion_list</span><span class="p">:</span> <span class="n">DataFrame</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyIndexGWASCatalog</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Restricting GWAS Catalog studies based on a list of accepted study identifiers.</span>
@@ -5291,7 +5249,7 @@ spark.createDataFrame(data, ['cohorts']).select(StudyIndexGWASCatalogParser.pars
             <span class="n">_schema</span><span class="o">=</span><span class="n">StudyIndexGWASCatalog</span><span class="o">.</span><span class="n">get_schema</span><span class="p">(),</span>
         <span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">add_no_sumstats_flag</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyIndexGWASCatalog</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyIndexGWASCatalog</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">add_no_sumstats_flag</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyIndexGWASCatalog</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyIndexGWASCatalog</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Add a flag to the study index if no summary statistics are available.</span>
 
 <span class="sd">        Returns:</span>
@@ -5299,12 +5257,12 @@ spark.createDataFrame(data, ['cohorts']).select(StudyIndexGWASCatalogParser.pars
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">withColumn</span><span class="p">(</span>
             <span class="s2">&quot;qualityControls&quot;</span><span class="p">,</span>
-            <span class="n">f</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="n">StudyQualityCheck</span><span class="o">.</span><span class="n">SUMSTATS_NOT_AVAILABLE</span><span class="o">.</span><span class="n">value</span><span class="p">))</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="n">StudyQualityCheck</span><span class="o">.</span><span class="n">SUMSTATS_NOT_AVAILABLE</span><span class="o">.</span><span class="n">value</span><span class="p">)),</span>
         <span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_parse_gwas_catalog_study_id</span><span class="p">(</span><span class="n">sumstats_path_column</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_parse_gwas_catalog_study_id</span><span class="p">(</span><span class="n">sumstats_path_column</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Extract GWAS Catalog study accession from the summary statistics path.</span>
 
 <span class="sd">        Args:</span>
@@ -5387,7 +5345,7 @@ spark.createDataFrame(data, ['cohorts']).select(StudyIndexGWASCatalogParser.pars
 <span class="normal">657</span>
 <span class="normal">658</span>
 <span class="normal">659</span>
-<span class="normal">660</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">add_no_sumstats_flag</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyIndexGWASCatalog</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyIndexGWASCatalog</span><span class="p">:</span>
+<span class="normal">660</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">add_no_sumstats_flag</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyIndexGWASCatalog</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyIndexGWASCatalog</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Add a flag to the study index if no summary statistics are available.</span>
 
 <span class="sd">    Returns:</span>
@@ -5395,7 +5353,7 @@ spark.createDataFrame(data, ['cohorts']).select(StudyIndexGWASCatalogParser.pars
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">withColumn</span><span class="p">(</span>
         <span class="s2">&quot;qualityControls&quot;</span><span class="p">,</span>
-        <span class="n">f</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="n">StudyQualityCheck</span><span class="o">.</span><span class="n">SUMSTATS_NOT_AVAILABLE</span><span class="o">.</span><span class="n">value</span><span class="p">))</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="n">StudyQualityCheck</span><span class="o">.</span><span class="n">SUMSTATS_NOT_AVAILABLE</span><span class="o">.</span><span class="n">value</span><span class="p">)),</span>
     <span class="p">)</span>
     <span class="k">return</span> <span class="bp">self</span>
 </code></pre></div></td></tr></table></div>
@@ -5594,7 +5552,7 @@ discovery stage.</p>
 <span class="normal">584</span>
 <span class="normal">585</span>
 <span class="normal">586</span>
-<span class="normal">587</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">annotate_ancestries</span><span class="p">(</span>
+<span class="normal">587</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">annotate_ancestries</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">:</span> <span class="n">StudyIndexGWASCatalog</span><span class="p">,</span> <span class="n">ancestry_lut</span><span class="p">:</span> <span class="n">DataFrame</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyIndexGWASCatalog</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Extracting sample sizes and ancestry information.</span>
@@ -5608,7 +5566,7 @@ discovery stage.</p>
 <span class="sd">    Returns:</span>
 <span class="sd">        StudyIndexGWASCatalog: Slimmed and cleaned version of the ancestry annotation.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="kn">from</span> <span class="nn">gentropy.datasource.gwas_catalog.study_index</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">gentropy.datasource.gwas_catalog.study_index</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
         <span class="n">StudyIndexGWASCatalogParser</span> <span class="k">as</span> <span class="n">GWASCatalogStudyIndexParser</span><span class="p">,</span>
     <span class="p">)</span>
 
@@ -5802,7 +5760,7 @@ discovery stage.</p>
 <span class="normal">629</span>
 <span class="normal">630</span>
 <span class="normal">631</span>
-<span class="normal">632</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">annotate_discovery_sample_sizes</span><span class="p">(</span>
+<span class="normal">632</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">annotate_discovery_sample_sizes</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">:</span> <span class="n">StudyIndexGWASCatalog</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyIndexGWASCatalog</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Extract the sample size of the discovery stage of the study as annotated in the GWAS Catalog.</span>
@@ -5985,7 +5943,7 @@ discovery stage.</p>
 <span class="normal">403</span>
 <span class="normal">404</span>
 <span class="normal">405</span>
-<span class="normal">406</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">annotate_from_study_curation</span><span class="p">(</span>
+<span class="normal">406</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">annotate_from_study_curation</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">:</span> <span class="n">StudyIndexGWASCatalog</span><span class="p">,</span> <span class="n">curation_table</span><span class="p">:</span> <span class="n">DataFrame</span> <span class="o">|</span> <span class="kc">None</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyIndexGWASCatalog</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Annotating study index with curation.</span>
@@ -6139,7 +6097,7 @@ discovery stage.</p>
 <span class="normal">645</span>
 <span class="normal">646</span>
 <span class="normal">647</span>
-<span class="normal">648</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">apply_inclusion_list</span><span class="p">(</span>
+<span class="normal">648</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">apply_inclusion_list</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">:</span> <span class="n">StudyIndexGWASCatalog</span><span class="p">,</span> <span class="n">inclusion_list</span><span class="p">:</span> <span class="n">DataFrame</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyIndexGWASCatalog</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Restricting GWAS Catalog studies based on a list of accepted study identifiers.</span>
@@ -6287,7 +6245,7 @@ discovery stage.</p>
 <span class="normal">463</span>
 <span class="normal">464</span>
 <span class="normal">465</span>
-<span class="normal">466</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">extract_studies_for_curation</span><span class="p">(</span>
+<span class="normal">466</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">extract_studies_for_curation</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">:</span> <span class="n">StudyIndexGWASCatalog</span><span class="p">,</span> <span class="n">curation</span><span class="p">:</span> <span class="n">DataFrame</span> <span class="o">|</span> <span class="kc">None</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataFrame</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Extract studies for curation.</span>
@@ -6463,7 +6421,7 @@ discovery stage.</p>
 <span class="normal">337</span>
 <span class="normal">338</span>
 <span class="normal">339</span>
-<span class="normal">340</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">update_study_id</span><span class="p">(</span>
+<span class="normal">340</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">update_study_id</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">:</span> <span class="n">StudyIndexGWASCatalog</span><span class="p">,</span> <span class="n">study_annotation</span><span class="p">:</span> <span class="n">DataFrame</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyIndexGWASCatalog</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Update studyId with a dataframe containing study.</span>
@@ -6541,7 +6499,7 @@ discovery stage.</p>
         <span class="icon twemoji">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1-2.1-2M12.5 7v5.2l4 2.4-1 1L11 13V7h1.5M11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2v1.8Z"/></svg>
         </span>
-        <span class="label"> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2024-01-18T11:17:17+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2024-01-18</span> </span>
+        <span class="label"> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2024-01-17T10:30:44+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2024-01-17</span> </span>
       </li>
       
 
@@ -6559,6 +6517,14 @@ discovery stage.</p>
               data-bi-name="contributorprofile"
               target="_blank"
               ><img src="https://avatars.githubusercontent.com/u/5097586?v=4" alt="d0choa"
+            /></a>
+          </li><li>
+            <a
+              href="https://github.com/web-flow"
+              title="web-flow"
+              data-bi-name="contributorprofile"
+              target="_blank"
+              ><img src="https://avatars.githubusercontent.com/u/19864447?v=4" alt="web-flow"
             /></a>
           </li></ul>
       </li>
