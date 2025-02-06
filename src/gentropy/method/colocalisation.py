@@ -209,14 +209,14 @@ class Coloc(ColocalisationMethodInterface):
     Attributes:
         PSEUDOCOUNT (float): Pseudocount to avoid log(0). Defaults to 1e-10.
         OVERLAP_SIZE_CUTOFF (int): Minimum number of overlapping variants bfore filtering. Defaults to 5.
-        POSTERIOR_CUTOFF (float): Minimum overlapping Posterior probability cutoff for small overlaps. Defaults to 0.9.
+        POSTERIOR_CUTOFF (float): Minimum overlapping Posterior probability cutoff for small overlaps. Defaults to 0.5.
     """
 
     METHOD_NAME: str = "COLOC"
     METHOD_METRIC: str = "h4"
     PSEUDOCOUNT: float = 1e-10
     OVERLAP_SIZE_CUTOFF: int = 5
-    POSTERIOR_CUTOFF: float = 0.9
+    POSTERIOR_CUTOFF: float = 0.5
 
     @staticmethod
     def _get_posteriors(all_bfs: NDArray[np.float64]) -> DenseVector:
