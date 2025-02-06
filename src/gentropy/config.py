@@ -2,7 +2,7 @@
 
 import os
 from dataclasses import dataclass, field
-from typing import Any, ClassVar, List, TypedDict
+from typing import Any, ClassVar, TypedDict
 
 from hail import __file__ as hail_location
 from hydra.core.config_store import ConfigStore
@@ -17,8 +17,7 @@ class SessionConfig:
     write_mode: str = "errorifexists"
     spark_uri: str = "local[*]"
     hail_home: str = os.path.dirname(hail_location)
-    extended_spark_conf: dict[str, str] | None = field(
-        default_factory=dict[str, str])
+    extended_spark_conf: dict[str, str] | None = field(default_factory=dict[str, str])
     output_partitions: int = 200
     _target_: str = "gentropy.common.session.Session"
 
@@ -28,7 +27,7 @@ class StepConfig:
     """Base step configuration."""
 
     session: SessionConfig
-    defaults: List[Any] = field(
+    defaults: list[Any] = field(
         default_factory=lambda: [{"session": "base_session"}, "_self_"]
     )
 
@@ -40,18 +39,8 @@ class ColocalisationConfig(StepConfig):
     credible_set_path: str = MISSING
     coloc_path: str = MISSING
     colocalisation_method: str = MISSING
-    colocalisation_method_params: dict[str, Any] = field(
-        default_factory=dict[str, Any])
+    colocalisation_method_params: dict[str, Any] = field(default_factory=dict[str, Any])
     _target_: str = "gentropy.colocalisation.ColocalisationStep"
-
-
-@dataclass
-class GeneIndexConfig(StepConfig):
-    """Gene index step configuration."""
-
-    target_path: str = MISSING
-    gene_index_path: str = MISSING
-    _target_: str = "gentropy.gene_index.GeneIndexStep"
 
 
 @dataclass
@@ -115,6 +104,17 @@ class GWASCatalogSumstatsPreprocessConfig(StepConfig):
 
 
 @dataclass
+class FoldXVariantAnnotationConfig(StepConfig):
+    """Step to ingest FoldX amino acid variation data."""
+
+    foldx_dataset_path: str = MISSING
+    plddt_threshold: float = 0.7
+    annotation_path: str = MISSING
+
+    _target_: str = "gentropy.foldx_ingestion.FoldXIngestionStep"
+
+
+@dataclass
 class EqtlCatalogueConfig(StepConfig):
     """eQTL Catalogue step configuration."""
 
@@ -126,8 +126,7 @@ class EqtlCatalogueConfig(StepConfig):
     eqtl_catalogue_paths_imported: str = MISSING
     eqtl_catalogue_study_index_out: str = MISSING
     eqtl_catalogue_credible_sets_out: str = MISSING
-    mqtl_quantification_methods_blacklist: list[str] = field(
-        default_factory=lambda: [])
+    mqtl_quantification_methods_blacklist: list[str] = field(default_factory=lambda: [])
     eqtl_lead_pvalue_threshold: float = 1e-3
     _target_: str = "gentropy.eqtl_catalogue.EqtlCatalogueStep"
 
@@ -305,7 +304,7 @@ class LocusToGeneFeatureMatrixConfig(StepConfig):
     variant_index_path: str | None = None
     colocalisation_path: str | None = None
     study_index_path: str | None = None
-    gene_index_path: str | None = None
+    target_index_path: str | None = None
     feature_matrix_path: str = MISSING
     features_list: list[str] = field(
         default_factory=lambda: [
@@ -448,7 +447,11 @@ class VariantIndexConfig(StepConfig):
         label: str
         score: float
 
-    session: SessionConfig = SessionConfig()
+    session: Any = field(
+        default_factory=lambda: {
+            "start_hail": False,
+        }
+    )
     vep_output_json_path: str = MISSING
     variant_index_path: str = MISSING
     gnomad_variant_annotations_path: str | None = None
@@ -514,6 +517,7 @@ class VariantIndexConfig(StepConfig):
         {"id": "SO_0001620", "label": "mature_miRNA_variant", "score": 0.0},
         {"id": "SO_0001060", "label": "intergenic_variant", "score": 0.0},
     ]
+    amino_acid_change_annotations: list[str] = MISSING
 
     _target_: str = "gentropy.variant_index.VariantIndexStep"
 
@@ -670,9 +674,11 @@ class StudyLocusValidationStepConfig(StepConfig):
 
     study_index_path: str = MISSING
     study_locus_path: list[str] = MISSING
+    target_index_path: str = MISSING
     valid_study_locus_path: str = MISSING
     invalid_study_locus_path: str = MISSING
     invalid_qc_reasons: list[str] = MISSING
+    trans_qtl_threshold: int = MISSING
     _target_: str = "gentropy.study_locus_validation.StudyLocusValidationStep"
 
 
@@ -681,8 +687,7 @@ class Config:
     """Application configuration."""
 
     # this is unfortunately verbose due to @dataclass limitations
-    defaults: List[Any] = field(default_factory=lambda: [
-                                "_self_", {"step": MISSING}])
+    defaults: list[Any] = field(default_factory=lambda: ["_self_", {"step": MISSING}])
     step: StepConfig = MISSING
     datasets: dict[str, str] = field(default_factory=dict)
 
@@ -694,7 +699,6 @@ def register_config() -> None:
     cs.store(group="step/session", name="base_session", node=SessionConfig)
     cs.store(group="step", name="colocalisation", node=ColocalisationConfig)
     cs.store(group="step", name="eqtl_catalogue", node=EqtlCatalogueConfig)
-    cs.store(group="step", name="gene_index", node=GeneIndexConfig)
     cs.store(group="step", name="biosample_index", node=BiosampleIndexConfig)
     cs.store(
         group="step",
@@ -716,8 +720,7 @@ def register_config() -> None:
         name="gwas_catalog_top_hit_ingestion",
         node=GWASCatalogTopHitIngestionConfig,
     )
-    cs.store(group="step", name="ld_based_clumping",
-             node=LDBasedClumpingConfig)
+    cs.store(group="step", name="ld_based_clumping", node=LDBasedClumpingConfig)
     cs.store(group="step", name="ld_index", node=LDIndexConfig)
     cs.store(group="step", name="locus_to_gene", node=LocusToGeneConfig)
     cs.store(
@@ -735,8 +738,7 @@ def register_config() -> None:
 
     cs.store(group="step", name="pics", node=PICSConfig)
     cs.store(group="step", name="gnomad_variants", node=GnomadVariantConfig)
-    cs.store(group="step", name="ukb_ppp_eur_sumstat_preprocess",
-             node=UkbPppEurConfig)
+    cs.store(group="step", name="ukb_ppp_eur_sumstat_preprocess", node=UkbPppEurConfig)
     cs.store(group="step", name="variant_index", node=VariantIndexConfig)
     cs.store(group="step", name="variant_to_vcf", node=ConvertToVcfStepConfig)
     cs.store(
@@ -769,7 +771,6 @@ def register_config() -> None:
         name="locus_to_gene_associations",
         node=LocusToGeneAssociationsStepConfig,
     )
-    cs.store(group="step", name="finngen_ukb_meta_ingestion",
-             node=FinngenUkbMetaConfig)
-    cs.store(group="step", name="credible_set_qc",
-             node=CredibleSetQCStepConfig)
+    cs.store(group="step", name="finngen_ukb_meta_ingestion", node=FinngenUkbMetaConfig)
+    cs.store(group="step", name="credible_set_qc", node=CredibleSetQCStepConfig)
+    cs.store(group="step", name="foldx_integration", node=FoldXVariantAnnotationConfig)

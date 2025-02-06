@@ -51,8 +51,8 @@ def get_tag_variant_source(statistics: Column) -> Column:
         |   a|   b|source|
         +----+----+------+
         |   a|   b|  both|
-        |null|   b| right|
-        |   a|null|  left|
+        |NULL|   b| right|
+        |   a|NULL|  left|
         +----+----+------+
         <BLANKLINE>
     """
@@ -181,8 +181,8 @@ class ECaviar(ColocalisationMethodInterface):
                 .withColumn("colocalisationMethod", f.lit(cls.METHOD_NAME))
                 .join(
                     overlapping_signals.calculate_beta_ratio(),
-                    on=["leftStudyLocusId", "rightStudyLocusId","chromosome"],
-                    how="left"
+                    on=["leftStudyLocusId", "rightStudyLocusId", "chromosome"],
+                    how="left",
                 )
             ),
             _schema=Colocalisation.get_schema(),
@@ -208,11 +208,15 @@ class Coloc(ColocalisationMethodInterface):
 
     Attributes:
         PSEUDOCOUNT (float): Pseudocount to avoid log(0). Defaults to 1e-10.
+        OVERLAP_SIZE_CUTOFF (int): Minimum number of overlapping variants bfore filtering. Defaults to 5.
+        POSTERIOR_CUTOFF (float): Minimum overlapping Posterior probability cutoff for small overlaps. Defaults to 0.5.
     """
 
     METHOD_NAME: str = "COLOC"
     METHOD_METRIC: str = "h4"
     PSEUDOCOUNT: float = 1e-10
+    OVERLAP_SIZE_CUTOFF: int = 5
+    POSTERIOR_CUTOFF: float = 0.5
 
     @staticmethod
     def _get_posteriors(all_bfs: NDArray[np.float64]) -> DenseVector:
@@ -277,7 +281,15 @@ class Coloc(ColocalisationMethodInterface):
                 )
                 .select("*", "statistics.*")
                 # Before summing log_BF columns nulls need to be filled with 0:
-                .fillna(0, subset=["left_logBF", "right_logBF"])
+                .fillna(
+                    0,
+                    subset=[
+                        "left_logBF",
+                        "right_logBF",
+                        "left_posteriorProbability",
+                        "right_posteriorProbability",
+                    ],
+                )
                 # Sum of log_BFs for each pair of signals
                 .withColumn(
                     "sum_log_bf",
@@ -305,8 +317,17 @@ class Coloc(ColocalisationMethodInterface):
                     fml.array_to_vector(f.collect_list(f.col("right_logBF"))).alias(
                         "right_logBF"
                     ),
+                    fml.array_to_vector(
+                        f.collect_list(f.col("left_posteriorProbability"))
+                    ).alias("left_posteriorProbability"),
+                    fml.array_to_vector(
+                        f.collect_list(f.col("right_posteriorProbability"))
+                    ).alias("right_posteriorProbability"),
                     fml.array_to_vector(f.collect_list(f.col("sum_log_bf"))).alias(
                         "sum_log_bf"
+                    ),
+                    f.collect_list(f.col("tagVariantSource")).alias(
+                        "tagVariantSourceList"
                     ),
                 )
                 .withColumn("logsum1", logsum(f.col("left_logBF")))
@@ -328,9 +349,38 @@ class Coloc(ColocalisationMethodInterface):
                 .withColumn("sumlogsum", f.col("logsum1") + f.col("logsum2"))
                 .withColumn("max", f.greatest("sumlogsum", "logsum12"))
                 .withColumn(
+                    "anySnpBothSidesHigh",
+                    f.aggregate(
+                        f.transform(
+                            f.arrays_zip(
+                                fml.vector_to_array(f.col("left_posteriorProbability")),
+                                fml.vector_to_array(
+                                    f.col("right_posteriorProbability")
+                                ),
+                                f.col("tagVariantSourceList"),
+                            ),
+                            # row["0"] = left PP, row["1"] = right PP, row["tagVariantSourceList"]
+                            lambda row: f.when(
+                                (row["tagVariantSourceList"] == "both")
+                                & (row["0"] > Coloc.POSTERIOR_CUTOFF)
+                                & (row["1"] > Coloc.POSTERIOR_CUTOFF),
+                                1.0,
+                            ).otherwise(0.0),
+                        ),
+                        f.lit(0.0),
+                        lambda acc, x: acc + x,
+                    )
+                    > 0,  # True if sum of these 1.0's > 0
+                )
+                .filter(
+                    (f.col("numberColocalisingVariants") > Coloc.OVERLAP_SIZE_CUTOFF)
+                    | (f.col("anySnpBothSidesHigh"))
+                )
+                .withColumn(
                     "logdiff",
                     f.when(
-                        f.col("sumlogsum") == f.col("logsum12"), Coloc.PSEUDOCOUNT
+                        (f.col("sumlogsum") == f.col("logsum12")),
+                        Coloc.PSEUDOCOUNT,
                     ).otherwise(
                         f.col("max")
                         + f.log(
@@ -382,12 +432,16 @@ class Coloc(ColocalisationMethodInterface):
                     "lH2bf",
                     "lH3bf",
                     "lH4bf",
+                    "left_posteriorProbability",
+                    "right_posteriorProbability",
+                    "tagVariantSourceList",
+                    "anySnpBothSidesHigh",
                 )
                 .withColumn("colocalisationMethod", f.lit(cls.METHOD_NAME))
                 .join(
                     overlapping_signals.calculate_beta_ratio(),
-                    on=["leftStudyLocusId", "rightStudyLocusId","chromosome"],
-                    how="left"
+                    on=["leftStudyLocusId", "rightStudyLocusId", "chromosome"],
+                    how="left",
                 )
             ),
             _schema=Colocalisation.get_schema(),

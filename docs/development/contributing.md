@@ -18,11 +18,13 @@ For Google Cloud configuration:
 
 Check that you have the `make` utility installed, and if not (which is unlikely), install it using your system package manager.
 
-Check that you have `java` installed. To be able to use all features including hail support use java 11.
+!!! note "Java support"
+
+    Check that you have `java` installed. To be able to use all features including hail support use java 11 (for handling multiple java versions, consider using [`sdkman`](https://sdkman.io/)).
 
 ## Environment configuration
 
-Run `make setup-dev` to install/update the necessary packages and activate the development environment. You need to do this every time you open a new shell.
+Run `make setup-dev` to install/update the necessary packages (including required python version for development) and activate the development environment. You need to do it just once.
 
 It is recommended to use VS Code as an IDE for development.
 
@@ -30,15 +32,15 @@ It is recommended to use VS Code as an IDE for development.
 
 All gentropy steps can be invoked after successful environment configuration by running
 
-```python
-poetry run gentropy step=<step_name>
+```bash
+uv run gentropy step=<step_name>
 ```
 
 1. Create a new step config in the `src/gentropy/config.py` that inherits from `StepConfig` class.
 
 2. Register new step configuration to `ConfigStore`.
 
-3. Create a step class that holds the business logic in new file in the `src/gentropy`.
+3. Create a step class that holds the business logic in new file in the `src/gentropy/{your_step_name}.py`.
 
 ## Contributing checklist
 
@@ -78,3 +80,7 @@ For more details on each of these steps, see the sections below.
 ### Airflow dags
 
 - Upstream of version 2.0.0 airflow orchestration layer was moved to the [orchestration repository](https://github.com/opentargets/orchestration)
+
+### Support for python versions
+
+As of version 2.1.X gentropy supports multiple python versions. To ensure compatibility with all supported versions, unit tests are run for each of the minor python release from 3.10 to 3.12. Make sure your changes are compatible with all supported versions.

@@ -15,7 +15,9 @@ from pyspark.sql.window import Window
 
 from gentropy.assets import data
 from gentropy.common.schemas import parse_spark_schema
-from gentropy.common.spark_helpers import convert_from_wide_to_long
+from gentropy.common.spark_helpers import (
+    convert_from_wide_to_long,
+)
 from gentropy.dataset.dataset import Dataset
 
 if TYPE_CHECKING:
@@ -23,7 +25,7 @@ if TYPE_CHECKING:
     from pyspark.sql.types import StructType
 
     from gentropy.dataset.biosample_index import BiosampleIndex
-    from gentropy.dataset.gene_index import GeneIndex
+    from gentropy.dataset.target_index import TargetIndex
 
 
 class StudyQualityCheck(Enum):
@@ -66,6 +68,18 @@ class StudyIndex(Dataset):
 
     A study index dataset captures all the metadata for all studies including GWAS and Molecular QTL.
     """
+
+    VALID_TYPES = [
+        "gwas",
+        "eqtl",
+        "pqtl",
+        "sqtl",
+        "tuqtl",
+        "sceqtl",
+        "scpqtl",
+        "scsqtl",
+        "sctuqtl",
+    ]
 
     @staticmethod
     def _aggregate_samples_by_ancestry(merged: Column, ancestry: Column) -> Column:
@@ -392,16 +406,16 @@ class StudyIndex(Dataset):
         )
         return StudyIndex(_df=validated_df, _schema=StudyIndex.get_schema())
 
-    def validate_target(self: StudyIndex, target_index: GeneIndex) -> StudyIndex:
+    def validate_target(self: StudyIndex, target_index: TargetIndex) -> StudyIndex:
         """Validating gene identifiers in the study index against the provided target index.
 
         Args:
-            target_index (GeneIndex): gene index containing the reference gene identifiers (Ensembl gene identifiers).
+            target_index (TargetIndex): target index containing the reference gene identifiers (Ensembl gene identifiers).
 
         Returns:
             StudyIndex: with flagged studies if geneId could not be validated.
         """
-        gene_set = target_index.df.select("geneId", f.lit(True).alias("isIdFound"))
+        gene_set = target_index.df.select(f.col("id").alias("geneId"), f.lit(True).alias("isIdFound"))
 
         # As the geneId is not a mandatory field of study index, we return if the column is not there:
         if "geneId" not in self.df.columns:

@@ -14,3 +14,5 @@ site/
 .coverage*
 wandb/
 hail*.log
+.python-version
+.idea

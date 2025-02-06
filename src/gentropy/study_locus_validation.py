@@ -5,6 +5,7 @@ from __future__ import annotations
 from gentropy.common.session import Session
 from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import CredibleInterval, StudyLocus
+from gentropy.dataset.target_index import TargetIndex
 
 
 class StudyLocusValidationStep:
@@ -17,24 +18,29 @@ class StudyLocusValidationStep:
     def __init__(
         self,
         session: Session,
-        study_index_path: str,
         study_locus_path: list[str],
+        study_index_path: str,
+        target_index_path: str,
         valid_study_locus_path: str,
         invalid_study_locus_path: str,
+        trans_qtl_threshold: int,
         invalid_qc_reasons: list[str] = [],
     ) -> None:
         """Initialize step.
 
         Args:
             session (Session): Session object.
-            study_index_path (str): Path to study index file.
             study_locus_path (list[str]): Path to study locus dataset.
+            study_index_path (str): Path to study index file.
+            target_index_path (str): path to the target index.
             valid_study_locus_path (str): Path to write the valid records.
             invalid_study_locus_path (str): Path to write the output file.
+            trans_qtl_threshold (int): genomic distance above which a QTL is considered trans.
             invalid_qc_reasons (list[str]): List of invalid quality check reason names from `StudyLocusQualityCheck` (e.g. ['SUBSIGNIFICANT_FLAG']).
         """
         # Reading datasets:
         study_index = StudyIndex.from_parquet(session, study_index_path)
+        target_index = TargetIndex.from_parquet(session, target_index_path)
 
         # Running validation then writing output:
         study_locus_with_qc = (
@@ -54,6 +60,8 @@ class StudyLocusValidationStep:
             )
             # Annotate credible set confidence:
             .assign_confidence()
+            # Flagging trans qtls:
+            .flag_trans_qtls(study_index, target_index, trans_qtl_threshold)
         ).persist()  # we will need this for 2 types of outputs
 
         # Valid study locus partitioned to simplify the finding of overlaps
