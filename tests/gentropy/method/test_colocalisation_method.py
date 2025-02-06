@@ -59,7 +59,7 @@ def test_coloc(mock_study_locus_overlap: StudyLocusOverlap) -> None:
                 },
             ],
         ),
-        # associations with multiple overlapping SNPs
+        # Case with mismatched posterior probabilities:
         (
             # observed overlap
             [
@@ -97,7 +97,7 @@ def test_coloc(mock_study_locus_overlap: StudyLocusOverlap) -> None:
             # expected coloc
             [],
         ),
-        # associations with multiple overlapping SNPs
+        # Case of an overlap with significant PP overlap:
         (
             # observed overlap
             [
@@ -142,6 +142,120 @@ def test_coloc(mock_study_locus_overlap: StudyLocusOverlap) -> None:
                     "h4": 0.9992492967145488,
                 },
             ],
+        ),
+        # Case where the overlap source is ["left", "both", "both"]:
+        (
+            # observed overlap
+            [
+                {
+                    "leftStudyLocusId": "1",
+                    "rightStudyLocusId": "2",
+                    "rightStudyType": "eqtl",
+                    "chromosome": "1",
+                    "tagVariantId": "snp1",
+                    "statistics": {
+                        "left_logBF": 1.2,
+                        "right_logBF": None,
+                        "left_beta": 0.003,
+                        "right_beta": None,
+                        "left_posteriorProbability": 0.001,
+                        "right_posteriorProbability": 0.01,
+                    },
+                },
+                {
+                    "leftStudyLocusId": "1",
+                    "rightStudyLocusId": "2",
+                    "rightStudyType": "eqtl",
+                    "chromosome": "1",
+                    "tagVariantId": "snp2",
+                    "statistics": {
+                        "left_logBF": 1.2,
+                        "right_logBF": 3.8,
+                        "left_beta": 0.003,
+                        "right_beta": 0.005,
+                        "left_posteriorProbability": 0.001,
+                        "right_posteriorProbability": 0.01,
+                    },
+                },
+                {
+                    "leftStudyLocusId": "1",
+                    "rightStudyLocusId": "2",
+                    "rightStudyType": "eqtl",
+                    "chromosome": "1",
+                    "tagVariantId": "snp3",
+                    "statistics": {
+                        "left_logBF": 10.2,
+                        "right_logBF": 10.5,
+                        "left_beta": 0.5,
+                        "right_beta": 0.2,
+                        "left_posteriorProbability": 0.91,
+                        "right_posteriorProbability": 0.92,
+                    },
+                },
+            ],
+            # expected coloc
+            [
+                {
+                    "h0": 1.02277006860577e-4,
+                    "h1": 2.752255943423052e-4,
+                    "h2": 3.718914358059273e-4,
+                    "h3": 1.5042926116520848e-6,
+                    "h4": 0.9992491016906891,
+                },
+            ],
+        ),
+        # Case where PPs are high on the left, but low on the right:
+        (
+            # observed overlap
+            [
+                {
+                    "leftStudyLocusId": "1",
+                    "rightStudyLocusId": "2",
+                    "rightStudyType": "eqtl",
+                    "chromosome": "1",
+                    "tagVariantId": "snp1",
+                    "statistics": {
+                        "left_logBF": 1.2,
+                        "right_logBF": None,
+                        "left_beta": 0.003,
+                        "right_beta": None,
+                        "left_posteriorProbability": 0.001,
+                        "right_posteriorProbability": 0.01,
+                    },
+                },
+                {
+                    "leftStudyLocusId": "1",
+                    "rightStudyLocusId": "2",
+                    "rightStudyType": "eqtl",
+                    "chromosome": "1",
+                    "tagVariantId": "snp2",
+                    "statistics": {
+                        "left_logBF": 1.2,
+                        "right_logBF": 3.8,
+                        "left_beta": 0.003,
+                        "right_beta": 0.005,
+                        "left_posteriorProbability": 0.001,
+                        "right_posteriorProbability": 0.01,
+                    },
+                },
+                {
+                    "leftStudyLocusId": "1",
+                    "rightStudyLocusId": "2",
+                    "rightStudyType": "eqtl",
+                    "chromosome": "1",
+                    "tagVariantId": "snp3",
+                    "statistics": {
+                        "left_logBF": 10.2,
+                        "right_logBF": 10.5,
+                        "left_beta": 0.5,
+                        "right_beta": 0.2,
+                        "left_posteriorProbability": 0.36,
+                        "right_posteriorProbability": 0.92,
+                    },
+                },
+            ],
+            # expected coloc
+            [],
         ),
     ],
 )
