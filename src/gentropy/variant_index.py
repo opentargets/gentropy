@@ -27,6 +27,7 @@ class VariantIndexStep:
         variant_index_path: str,
         hash_threshold: int,
         gnomad_variant_annotations_path: str | None = None,
+        lof_curation_variant_annotations_path: str | None = None,
     ) -> None:
         """Run VariantIndex step.
 
@@ -36,6 +37,7 @@ class VariantIndexStep:
             variant_index_path (str): Variant index dataset path to save resulting data.
             hash_threshold (int): Hash threshold for variant identifier length.
             gnomad_variant_annotations_path (str | None): Path to extra variant annotation dataset.
+            lof_curation_variant_annotations_path (str | None): Path to loss-of-function variant annotation dataset.
         """
         # Extract variant annotations from VEP output:
         variant_index = VariantEffectPredictorParser.extract_variant_index_from_vep(
@@ -54,6 +56,17 @@ class VariantIndexStep:
 
             # Update file with extra annotations:
             variant_index = variant_index.add_annotation(annotations)
+
+        # Process LOF annotations if provided:
+        if lof_curation_variant_annotations_path:
+            # Read LOF annotations from parquet:
+            lof_annotations = VariantIndex.from_parquet(
+                session=session,
+                path=lof_curation_variant_annotations_path,
+            )
+
+            # Update variant index with LOF annotations:
+            variant_index = variant_index.add_annotation(lof_annotations)
 
         (
             variant_index.df.repartitionByRange(
