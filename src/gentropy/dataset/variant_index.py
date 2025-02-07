@@ -365,6 +365,7 @@ class InSilicoPredictorNormaliser:
             .when(method == "AlphaMissense", cls._normalise_alpha_missense(score))
             .when(method == "CADD", cls._normalise_cadd(score))
             .when(method == "Pangolin", cls._normalise_pangolin(score))
+            .when(method == "LossOfFunctionCuration", cls._normalise_lof(assessment))
             # The following predictors are not normalised:
             .when(method == "SpliceAI", score)
             .when(method == "VEP", score)
@@ -451,6 +452,35 @@ class InSilicoPredictorNormaliser:
             .when(score >= 0, cls._rescaleColumnValue(score, 0, 2, 0, 0.5))
             .when(score >= -3, cls._rescaleColumnValue(score, -3, 0, -1, 0))
             .when(score < -3, f.lit(-1.0))
+        )
+
+    @classmethod
+    def _normalise_lof(
+        cls: type[InSilicoPredictorNormaliser],
+        assessment: Column,
+    ) -> Column:
+        """Normalise loss-of-function verdicts.
+
+        There are five ordinal verdicts.
+        The normalised score is determined by the verdict:
+         - lof: 1
+         - likely_lof: 0.5
+         - uncertain: 0
+         - likely_not_lof: -0.5
+         - not_lof: -1
+
+        Args:
+            assessment (Column): Loss-of-function assessment.
+
+        Returns:
+            Column: Normalised loss-of-function score.
+        """
+        return (
+            f.when(assessment == "lof", f.lit(1))
+            .when(assessment == "likely_lof", f.lit(0.5))
+            .when(assessment == "uncertain", f.lit(0))
+            .when(assessment == "likely_not_lof", f.lit(-0.5))
+            .when(assessment == "not_lof", f.lit(-1))
         )
 
     @classmethod

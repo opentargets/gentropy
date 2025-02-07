@@ -8,7 +8,7 @@ import pyspark.sql.functions as f
 import pyspark.sql.types as t
 
 from gentropy.common.spark_helpers import enforce_schema
-from gentropy.dataset.variant_index import VariantIndex
+from gentropy.dataset.variant_index import InSilicoPredictorNormaliser, VariantIndex
 
 if TYPE_CHECKING:
     from pyspark.sql import Column, DataFrame
@@ -70,6 +70,8 @@ class OpenTargetsLOF:
                     # Populate inSilicoPredictors field:
                     f.array(cls._get_lof_assessment(f.col("Verdict"))).alias("inSilicoPredictors"),
                 )
+                # Convert assessments to normalised scores:
+                .withColumn("inSilicoPredictors", InSilicoPredictorNormaliser.normalise_in_silico_predictors(f.col("inSilicoPredictors")))
             ),
             _schema=VariantIndex.get_schema(),
         )
