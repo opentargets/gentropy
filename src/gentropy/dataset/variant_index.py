@@ -128,7 +128,7 @@ class VariantIndex(Dataset):
         """Import annotation from an other variant index dataset.
 
         At this point the annotation can be extended with extra cross-references,
-        in-silico predictions and allele frequencies.
+        in-silico predictions, allele frequencies, and variant descriptions.
 
         Args:
             annotation_source (VariantIndex): Annotation to add to the dataset
@@ -166,7 +166,12 @@ class VariantIndex(Dataset):
                             f.col(column), f.col(f"{prefix}{column}"), fields_order
                         ).alias(column)
                     )
-                # Non-array columns are coalesced:
+                # variantDescription columns are concatenated:
+                elif column == "variantDescription":
+                    select_expressions.append(
+                        f.concat_ws(" ", f.col(column), f.col(f"{prefix}{column}")).alias(column)
+                    )
+                # All other non-array columns are coalesced:
                 else:
                     select_expressions.append(
                         f.coalesce(f.col(column), f.col(f"{prefix}{column}")).alias(
