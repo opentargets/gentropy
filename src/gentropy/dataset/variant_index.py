@@ -128,7 +128,7 @@ class VariantIndex(Dataset):
         """Import annotation from an other variant index dataset.
 
         At this point the annotation can be extended with extra cross-references,
-        in-silico predictions, allele frequencies, and variant descriptions.
+        variant effects, allele frequencies, and variant descriptions.
 
         Args:
             annotation_source (VariantIndex): Annotation to add to the dataset
@@ -305,33 +305,33 @@ class VariantIndex(Dataset):
         )
 
 
-class InSilicoPredictorNormaliser:
-    """Class to normalise in silico predictor assessments.
+class VariantEffectNormaliser:
+    """Class to normalise variant effect assessments.
 
     Essentially based on the raw scores, it normalises the scores to a range between -1 and 1, and appends the normalised
-    value to the in silico predictor struct.
+    value to the variant effect struct.
 
     The higher negative values indicate increasingly confident prediction to be a benign variant,
     while the higher positive values indicate increasingly deleterious predicted effect.
 
-    The point of these operations to make the scores comparable across different in silico predictors.
+    The point of these operations to make the scores comparable across different variant effect assessments.
     """
 
     @classmethod
-    def normalise_in_silico_predictors(
-        cls: type[InSilicoPredictorNormaliser],
-        in_silico_predictors: Column,
+    def normalise_variant_effect(
+        cls: type[VariantEffectNormaliser],
+        variant_effect: Column,
     ) -> Column:
-        """Normalise in silico predictors. Appends a normalised score to the in silico predictor struct.
+        """Normalise variant effect assessments. Appends a normalised score to the variant effect struct.
 
         Args:
-            in_silico_predictors (Column): Column containing in silico predictors (list of structs).
+            variant_effect (Column): Column containing variant effect assessments (list of structs).
 
         Returns:
-            Column: Normalised in silico predictors.
+            Column: Normalised variant effect assessments.
         """
         return f.transform(
-            in_silico_predictors,
+            variant_effect,
             lambda predictor: f.struct(
                 # Extracing all existing columns:
                 predictor.method.alias("method"),
@@ -348,20 +348,20 @@ class InSilicoPredictorNormaliser:
 
     @classmethod
     def resolve_predictor_methods(
-        cls: type[InSilicoPredictorNormaliser],
+        cls: type[VariantEffectNormaliser],
         score: Column,
         method: Column,
         assessment: Column,
     ) -> Column:
-        """It takes a score, a method, and an assessment, and returns a normalized score for the in silico predictor.
+        """It takes a score, a method, and an assessment, and returns a normalized score for the variant effect.
 
         Args:
-            score (Column): The raw score from the in silico predictor.
+            score (Column): The raw score from the variant effect.
             method (Column): The method used to generate the score.
             assessment (Column): The assessment of the score.
 
         Returns:
-            Column: Normalised score for the in silico predictor.
+            Column: Normalised score for the variant effect.
         """
         return (
             f.when(method == "LOFTEE", cls._normalise_loftee(assessment))
@@ -403,7 +403,7 @@ class InSilicoPredictorNormaliser:
 
     @classmethod
     def _normalise_cadd(
-        cls: type[InSilicoPredictorNormaliser],
+        cls: type[VariantEffectNormaliser],
         score: Column,
     ) -> Column:
         """Normalise CADD scores.
@@ -429,7 +429,7 @@ class InSilicoPredictorNormaliser:
 
     @classmethod
     def _normalise_gerp(
-        cls: type[InSilicoPredictorNormaliser],
+        cls: type[VariantEffectNormaliser],
         score: Column,
     ) -> Column:
         """Normalise GERP scores.
@@ -461,7 +461,7 @@ class InSilicoPredictorNormaliser:
 
     @classmethod
     def _normalise_lof(
-        cls: type[InSilicoPredictorNormaliser],
+        cls: type[VariantEffectNormaliser],
         assessment: Column,
     ) -> Column:
         """Normalise loss-of-function verdicts.
@@ -490,7 +490,7 @@ class InSilicoPredictorNormaliser:
 
     @classmethod
     def _normalise_loftee(
-        cls: type[InSilicoPredictorNormaliser],
+        cls: type[VariantEffectNormaliser],
         assessment: Column,
     ) -> Column:
         """Normalise LOFTEE scores.
@@ -512,7 +512,7 @@ class InSilicoPredictorNormaliser:
 
     @classmethod
     def _normalise_sift(
-        cls: type[InSilicoPredictorNormaliser],
+        cls: type[VariantEffectNormaliser],
         score: Column,
         assessment: Column,
     ) -> Column:
@@ -556,7 +556,7 @@ class InSilicoPredictorNormaliser:
 
     @classmethod
     def _normalise_polyphen(
-        cls: type[InSilicoPredictorNormaliser],
+        cls: type[VariantEffectNormaliser],
         assessment: Column,
         score: Column,
     ) -> Column:
@@ -587,7 +587,7 @@ class InSilicoPredictorNormaliser:
 
     @classmethod
     def _normalise_alpha_missense(
-        cls: type[InSilicoPredictorNormaliser],
+        cls: type[VariantEffectNormaliser],
         score: Column,
     ) -> Column:
         """Normalise AlphaMissense scores.
@@ -611,7 +611,7 @@ class InSilicoPredictorNormaliser:
 
     @classmethod
     def _normalise_pangolin(
-        cls: type[InSilicoPredictorNormaliser],
+        cls: type[VariantEffectNormaliser],
         score: Column,
     ) -> Column:
         """Normalise Pangolin scores.

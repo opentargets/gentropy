@@ -8,7 +8,7 @@ import pyspark.sql.functions as f
 import pyspark.sql.types as t
 
 from gentropy.common.spark_helpers import enforce_schema
-from gentropy.dataset.variant_index import InSilicoPredictorNormaliser, VariantIndex
+from gentropy.dataset.variant_index import VariantEffectNormaliser, VariantIndex
 
 if TYPE_CHECKING:
     from pyspark.sql import Column, DataFrame
@@ -17,12 +17,12 @@ if TYPE_CHECKING:
 class OpenTargetsLOF:
     """Class to parse Loss-of-Function variant data from Open Targets Project OTAR2075."""
 
-    IN_SILICO_PREDICTOR_SCHEMA = VariantIndex.get_schema()[
-        "inSilicoPredictors"
+    VARIANT_EFFECT_SCHEMA = VariantIndex.get_schema()[
+        "variantEffect"
     ].dataType.elementType
 
     @staticmethod
-    @enforce_schema(IN_SILICO_PREDICTOR_SCHEMA)
+    @enforce_schema(VARIANT_EFFECT_SCHEMA)
     def _get_lof_assessment(verdict: Column) -> Column:
         """Get curated Loss-of-Function assessment from verdict column.
 
@@ -30,7 +30,7 @@ class OpenTargetsLOF:
             verdict (Column): verdict column from the input dataset.
 
         Returns:
-            Column: struct following the in silico predictor schema.
+            Column: struct following the variant effect schema.
         """
         return f.struct(
             f.lit("LossOfFunctionCuration").alias("method"),
@@ -87,12 +87,12 @@ class OpenTargetsLOF:
                     f.col("h38.pos").cast(t.IntegerType()).alias("position"),
                     f.col("h37.ref").alias("referenceAllele"),
                     f.col("h37.alt").alias("alternateAllele"),
-                    # Populate inSilicoPredictors field:
-                    f.array(cls._get_lof_assessment(f.col("Verdict"))).alias("inSilicoPredictors"),
+                    # Populate variantEffect and variantDescription fields:
+                    f.array(cls._get_lof_assessment(f.col("Verdict"))).alias("variantEffect"),
                     cls._compose_lof_description(f.col("Verdict")).alias("variantDescription"),
                 )
                 # Convert assessments to normalised scores:
-                .withColumn("inSilicoPredictors", InSilicoPredictorNormaliser.normalise_in_silico_predictors(f.col("inSilicoPredictors")))
+                .withColumn("variantEffect", VariantEffectNormaliser.normalise_variant_effect(f.col("variantEffect")))
             ),
             _schema=VariantIndex.get_schema(),
         )
