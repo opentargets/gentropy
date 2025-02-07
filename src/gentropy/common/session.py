@@ -42,7 +42,8 @@ class Session:
         )
 
         self.spark = (
-            SparkSession.builder.config(conf=merged_conf)
+            SparkSession.Builder()
+            .config(conf=merged_conf)
             .master(spark_uri)
             .appName(app_name)
             .getOrCreate()

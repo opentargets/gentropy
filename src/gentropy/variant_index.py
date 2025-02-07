@@ -8,6 +8,7 @@ from functools import reduce
 from pyspark.sql import functions as f
 
 from gentropy.common.session import Session
+from gentropy.dataset.amino_acid_variants import AminoAcidVariants
 from gentropy.dataset.variant_index import VariantIndex
 from gentropy.datasource.ensembl.vep_parser import VariantEffectPredictorParser
 from gentropy.datasource.open_targets.variants import OpenTargetsVariant
@@ -28,6 +29,7 @@ class VariantIndexStep:
         hash_threshold: int,
         gnomad_variant_annotations_path: str | None = None,
         lof_curation_variant_annotations_path: str | None = None,
+        amino_acid_change_annotations: list[str] | None = None,
     ) -> None:
         """Run VariantIndex step.
 
@@ -38,6 +40,7 @@ class VariantIndexStep:
             hash_threshold (int): Hash threshold for variant identifier length.
             gnomad_variant_annotations_path (str | None): Path to extra variant annotation dataset.
             lof_curation_variant_annotations_path (str | None): Path to loss-of-function variant annotation dataset.
+            amino_acid_change_annotations (list[str] | None): list of paths to amino-acid based variant annotations.
         """
         # Extract variant annotations from VEP output:
         variant_index = VariantEffectPredictorParser.extract_variant_index_from_vep(
@@ -54,7 +57,7 @@ class VariantIndexStep:
                 id_threshold=hash_threshold,
             )
 
-            # Update file with extra annotations:
+            # Update index with extra annotations:
             variant_index = variant_index.add_annotation(annotations)
 
         # Process LOF annotations if provided:
@@ -67,6 +70,18 @@ class VariantIndexStep:
 
             # Update variant index with LOF annotations:
             variant_index = variant_index.add_annotation(lof_annotations)
+
+        # If provided read amion-acid based annotation and enrich variant index:
+        if amino_acid_change_annotations:
+            for annotation_path in amino_acid_change_annotations:
+                annotation_data = AminoAcidVariants.from_parquet(
+                    session, annotation_path
+                )
+
+                # Update index with extra annotations:
+                variant_index = variant_index.annotate_with_amino_acid_consequences(
+                    annotation_data
+                )
 
         (
             variant_index.df.repartitionByRange(
