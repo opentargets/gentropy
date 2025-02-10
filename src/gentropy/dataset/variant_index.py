@@ -284,7 +284,7 @@ class VariantIndex(Dataset):
     def annotate_with_amino_acid_consequences(
         self: VariantIndex, annotation: AminoAcidVariants
     ) -> VariantIndex:
-        """Enriching in silico predictors with amino-acid derived predicted consequences.
+        """Enriching variant effect assessments with amino-acid derived predicted consequences.
 
         Args:
             annotation (AminoAcidVariants): amio-acid level variant consequences.
@@ -292,7 +292,7 @@ class VariantIndex(Dataset):
         Returns:
             VariantIndex: where amino-acid causing variants are enriched with extra annotation
         """
-        w = Window.partitionBy("variantId").orderBy(f.size("inSilicoPredictors").desc())
+        w = Window.partitionBy("variantId").orderBy(f.size("variantEffect").desc())
 
         return VariantIndex(
             _df=self.df
@@ -313,17 +313,17 @@ class VariantIndex(Dataset):
             )
             # Joining with amino-acid predictions:
             .join(
-                annotation.df.withColumnRenamed("inSilicoPredictors", "annotations"),
+                annotation.df.withColumnRenamed("variantEffect", "annotations"),
                 on=["uniprotAccession", "aminoAcidChange"],
                 how="left",
             )
             # Merge predictors:
             .withColumn(
-                "inSilicoPredictors",
+                "variantEffect",
                 f.when(
                     f.col("annotations").isNotNull(),
-                    f.array_union("inSilicoPredictors", "annotations"),
-                ).otherwise(f.col("inSilicoPredictors")),
+                    f.array_union("variantEffect", "annotations"),
+                ).otherwise(f.col("variantEffect")),
             )
             # Dropping unused columns:
             .drop("uniprotAccession", "aminoAcidChange", "annotations")
@@ -460,7 +460,7 @@ class VariantEffectNormaliser:
 
     @classmethod
     def _normalise_foldx(
-        cls: type[InSilicoPredictorNormaliser], score: Column
+        cls: type[VariantEffectNormaliser], score: Column
     ) -> Column:
         """Normalise FoldX ddG energies.
 
