@@ -359,12 +359,12 @@ class LocusToGeneFeatureMatrixConfig(StepConfig):
             "vepMean",
             "vepMeanNeighbourhood",
             # intervals
-            # "pchicMean",
-            # "pchicMeanNeighbourhood",
-            # "enhTssCorrelationMean",
-            # "enhTssCorrelationMeanNeighbourhood",
-            # "dhsPmtrCorrelationMean",
-            # "dhsPmtrCorrelationMeanNeighbourhood",
+            "pchicMean",
+            "pchicMeanNeighbourhood",
+            "enhTssCorrelationMean",
+            "enhTssCorrelationMeanNeighbourhood",
+            "dhsPmtrCorrelationMean",
+            "dhsPmtrCorrelationMeanNeighbourhood",
             # other
             "geneCount500kb",
             "proteinGeneCount500kb",
