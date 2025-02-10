@@ -35,6 +35,11 @@ def common_interval_feature_logic(
     """
     study_loci_exploded = (
         study_loci_to_annotate.df.withColumn("variantInLocus", f.explode_outer("locus"))
+        .select(
+            "studyLocusId",
+            f.col("variantInLocus.variantId").alias("variantId"),
+            f.col("variantInLocus.posteriorProbability").alias("posteriorProbability"),
+        )
         # Filter for PP > 0.001
         .filter(f.col("posteriorProbability") > 0.001)
         .select("studyLocusId", "variantId", "posteriorProbability")
