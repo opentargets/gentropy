@@ -35,20 +35,9 @@ def common_interval_feature_logic(
     """
     study_loci_exploded = (
         study_loci_to_annotate.df.withColumn("variantInLocus", f.explode_outer("locus"))
-        .withColumn(
-            "chromosome", f.split(f.col("variantInLocus.variantId"), "_").getItem(0)
-        )
-        .withColumn(
-            "position",
-            f.split(f.col("variantInLocus.variantId"), "_").getItem(1).cast("integer"),
-        )
-        .withColumn(
-            "posteriorProbability",
-            f.col("variantInLocus.posteriorProbability").cast("double"),
-        )
         # Filter for PP > 0.001
         .filter(f.col("posteriorProbability") > 0.001)
-        .select("studyLocusId", "chromosome", "position", "posteriorProbability")
+        .select("studyLocusId", "variantId", "posteriorProbability")
     )
 
     intervals_filtered = intervals.df.filter(
