@@ -194,7 +194,7 @@ class EnhTssCorrelationMeanFeature(L2GFeature):
 
     fill_na_value = 0  # would be 0 if implemented
     feature_dependency_type = Intervals
-    feature_name = "enhTssCorrelationMeanFeature"
+    feature_name = "enhTssCorrelationMean"
 
     @classmethod
     def compute(
@@ -236,7 +236,7 @@ class EnhTssCorrelationMeanNeighbourhoodFeature(L2GFeature):
 
     fill_na_value = 0  # would be 0 if implemented
     feature_dependency_type = Intervals
-    feature_name = "enhTssCorrelationMeanNeighbourhoodFeature"
+    feature_name = "enhTssCorrelationMeanNeighbourhood"
 
     @classmethod
     def compute(
@@ -275,7 +275,7 @@ class DhsPmtrCorrelationMeanFeature(L2GFeature):
 
     fill_na_value = 0  # would be 0 if implemented
     feature_dependency_type = Intervals
-    feature_name = "dhsPmtrCorrelationMeanFeature"
+    feature_name = "dhsPmtrCorrelationMean"
 
     @classmethod
     def compute(
@@ -317,7 +317,7 @@ class DhsPmtrCorrelationMeanNeighbourhoodFeature(L2GFeature):
 
     fill_na_value = 0  # would be 0 if implemented
     feature_dependency_type = Intervals
-    feature_name = "dhsPmtrCorrelationMeanNeighbourhoodFeature"
+    feature_name = "dhsPmtrCorrelationMeanNeighbourhood"
 
     @classmethod
     def compute(
