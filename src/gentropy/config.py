@@ -282,8 +282,8 @@ class LocusToGeneConfig(StepConfig):
             "dhsPmtrCorrelationMean",
             "dhsPmtrCorrelationMeanNeighbourhood",
             # other
-            "geneCount500kb",
-            "proteinGeneCount500kb",
+            # "geneCount500kb",
+            # "proteinGeneCount500kb",
             "credibleSetConfidence",
         ]
     )
