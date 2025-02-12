@@ -2,7 +2,10 @@ name: Release
 
 "on":
   push:
-    branches: ["main", "release/**", "dev"]
+    branches:
+      - main
+
+  workflow_dispatch:
 
 concurrency:
   group: deploy
