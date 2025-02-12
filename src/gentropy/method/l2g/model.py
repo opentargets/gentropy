@@ -269,7 +269,7 @@ class LocusToGeneModel:
         repo_id: str = "opentargets/locus_to_gene",
         local_repo: str = "locus_to_gene",
     ) -> None:
-        """Share the model on Hugging Face Hub.
+        """Share the model and training dataset on Hugging Face Hub.
 
         Args:
             model_path (str): The path to the L2G model file.
@@ -293,6 +293,7 @@ class LocusToGeneModel:
                 data=data,
             )
             self._create_hugging_face_model_card(local_repo)
+            data.to_parquet(f"{local_repo}/training_set.parquet")
             hub_utils.push(
                 repo_id=repo_id,
                 source=local_repo,
