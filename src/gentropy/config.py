@@ -302,7 +302,7 @@ class LocusToGeneConfig(StepConfig):
     hf_hub_repo_id: str | None = "opentargets/locus_to_gene"
     hf_model_commit_message: str | None = "chore: update model"
     download_from_hub: bool = True
-    cross_validate: bool = True
+    cross_validate: bool = False
     _target_: str = "gentropy.l2g.LocusToGeneStep"
 
 
