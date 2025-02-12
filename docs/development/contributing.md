@@ -106,5 +106,5 @@ Once per week, the `Trigger PR for release` github action creates a Pull Request
 Below you can find a simplified diagram of the development process.
 
 <div align="center">
-  <img width="800" height="400" src="../assets/imgs/development-flow.png" alt="development process">
+  <img width="800" height="400" src="../../assets/imgs/development-flow.png" alt="development process">
 </div>
