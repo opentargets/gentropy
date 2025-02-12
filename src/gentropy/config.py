@@ -464,8 +464,7 @@ class VariantIndexConfig(StepConfig):
     )
     vep_output_json_path: str = MISSING
     variant_index_path: str = MISSING
-    gnomad_variant_annotations_path: str | None = None
-    lof_curation_variant_annotations_path: str | None = None
+    variant_annotations_path: list[str] | None = None
     hash_threshold: int = 300
     consequence_to_pathogenicity_score: ClassVar[
         list[_ConsequenceToPathogenicityScoreMap]
