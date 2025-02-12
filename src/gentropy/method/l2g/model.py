@@ -194,6 +194,8 @@ class LocusToGeneModel:
             sio.dump(self.model, local_path)
             copy_to_gcs(local_path, path)
         else:
+            # create directory if path does not exist
+            Path(path).parent.mkdir(parents=True, exist_ok=True)
             sio.dump(self.model, path)
 
     @staticmethod

@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 import pyspark.sql.functions as f
+import shap
 from pyspark.sql import DataFrame
 from pyspark.sql.types import StructType
 from scipy.special import expit
