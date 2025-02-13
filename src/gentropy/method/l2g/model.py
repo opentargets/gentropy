@@ -136,7 +136,13 @@ class LocusToGeneModel:
             return [
                 column
                 for column in model_config["sklearn"]["columns"]
-                if column != "studyLocusId"
+                if column
+                not in [
+                    "studyLocusId",
+                    "geneId",
+                    "traitFromSourceMappedId",
+                    "goldStandardSet",
+                ]
             ]
 
         local_path = model_id

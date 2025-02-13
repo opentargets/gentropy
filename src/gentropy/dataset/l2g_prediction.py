@@ -96,7 +96,6 @@ class L2GPrediction(Dataset):
                     .join(feature_matrix._df, "studyLocusId")
                     .filter(f.col("isProteinCoding") == 1)
                 ),
-                features_list=l2g_model.features_list,
             )
             .fill_na()
             .select_features(l2g_model.features_list)
