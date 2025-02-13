@@ -330,7 +330,7 @@ class LocusToGeneStep:
                     "hfhub-key", "open-targets-genetics-dev"
                 )
                 trained_model.export_to_hugging_face_hub(
-                    # we upload the model in the filesystem
+                    # we upload the model saved in the filesystem
                     self.model_path.split("/")[-1],
                     hf_hub_token,
                     data=trained_model.training_data._df.drop(

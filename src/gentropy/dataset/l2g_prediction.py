@@ -78,14 +78,14 @@ class L2GPrediction(Dataset):
         if download_from_hub:
             # Model ID defaults to "opentargets/locus_to_gene" and it assumes the name of the classifier is "classifier.skops".
             model_id = model_path or "opentargets/locus_to_gene"
-            l2g_model = LocusToGeneModel.load_from_hub(model_id, hf_token)
+            l2g_model = LocusToGeneModel.load_from_hub(session, model_id, hf_token)
         elif model_path:
             if not features_list:
                 raise AttributeError(
                     "features_list is required if the model is not downloaded from the Hub"
                 )
             l2g_model = LocusToGeneModel.load_from_disk(
-                model_path, features_list=features_list
+                session, path=model_path, features_list=features_list
             )
 
         # Prepare data
