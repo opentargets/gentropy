@@ -168,7 +168,7 @@ class LocusToGeneStep:
         # Load common inputs
         self.credible_set = StudyLocus.from_parquet(
             session, credible_set_path, recursiveFileLookup=True
-        )
+        ).filter(f.col("studyLocusId") == "2089b267ff0a27715af4b75d81abd834")
         self.feature_matrix = L2GFeatureMatrix(
             _df=session.load_data(feature_matrix_path),
         )

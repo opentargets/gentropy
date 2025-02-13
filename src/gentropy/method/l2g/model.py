@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -92,12 +93,16 @@ class LocusToGeneModel:
             try:
                 # Try loading the training data if it is in the model directory
                 training_data = L2GFeatureMatrix(
-                    _df=session.load_data(
-                        (Path(path) / "training_data.parquet").as_posix()
+                    _df=session.spark.createDataFrame(
+                        # Parquet is read with Pandas to easily read local files
+                        pd.read_parquet(
+                            (Path(path) / "training_data.parquet").as_posix()
+                        )
                     ),
                     features_list=kwargs.get("features_list"),
                 )
-            except Exception:
+            except Exception as e:
+                logging.error("Training data set to none. Error: %s", e)
                 training_data = None
 
         if not loaded_model._is_fitted():
