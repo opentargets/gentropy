@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
 import pyspark.sql.functions as f
@@ -18,6 +19,8 @@ from pyspark.sql.types import (
     StructType,
 )
 
+from gentropy.common.schemas import SchemaValidationError
+from gentropy.common.session import Session
 from gentropy.dataset.colocalisation import Colocalisation
 from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
 from gentropy.dataset.ld_index import LDIndex
@@ -1209,7 +1212,6 @@ class TestTransQtlFlagging:
     ]
 
     STUDY_LOCUS_COLUMNS = ["studyLocusId", "variantId", "studyId"]
-
     STUDY_DATA = [
         ("s1", "p1", "qtl", "g1"),
         ("s2", "p2", "gwas", None),
@@ -1221,21 +1223,21 @@ class TestTransQtlFlagging:
     GENE_COLUMNS = ["id", "strand", "start", "end", "chromosome", "tss"]
 
     @pytest.fixture(autouse=True)
-    def _setup(self: TestTransQtlFlagging, spark: SparkSession) -> None:
+    def _setup(self: TestTransQtlFlagging, session: Session) -> None:
         """Setup study locus for testing."""
         self.study_locus = StudyLocus(
             _df=(
-                spark.createDataFrame(
+                session.spark.createDataFrame(
                     self.STUDY_LOCUS_DATA, self.STUDY_LOCUS_COLUMNS
                 ).withColumn("locus", f.array(f.struct("variantId")))
             )
         )
         self.study_index = StudyIndex(
-            _df=spark.createDataFrame(self.STUDY_DATA, self.STUDY_COLUMNS)
+            _df=session.spark.createDataFrame(self.STUDY_DATA, self.STUDY_COLUMNS)
         )
         self.target_index = TargetIndex(
             _df=(
-                spark.createDataFrame(self.GENE_DATA, self.GENE_COLUMNS).select(
+                session.spark.createDataFrame(self.GENE_DATA, self.GENE_COLUMNS).select(
                     f.struct(
                         f.col("strand").cast(IntegerType()).alias("strand"),
                         "start",
@@ -1283,3 +1285,27 @@ class TestTransQtlFlagging:
         assert (
             self.qtl_flagged.df.filter(f.col("isTransQtl")).count() == 2
         ), "Expected number of rows differ from observed."
+
+    def test_add_flag_if_column_is_present(
+        self: TestTransQtlFlagging, tmp_path: Path, session: Session
+    ) -> None:
+        """Test adding flag if the `isTransQtl` column is already present.
+
+        When reading the dataset, the reader will add the `isTransQtl` column to
+        the schema, which can cause column duplication captured only by Dataset schema validation.
+
+        This test ensures that the column is dropped before the `flag_trans_qtls` is run.
+        """
+        dataset_path = str(tmp_path / "study_locus")
+        self.study_locus.df.write.parquet(dataset_path)
+        schema_validated_study_locus = StudyLocus.from_parquet(session, dataset_path)
+        assert (
+            "isTransQtl" in schema_validated_study_locus.df.columns
+        ), "`isTransQtl` column is missing after reading the dataset."
+        # Rerun the flag addition and check if any error is raised by the schema validation
+        try:
+            schema_validated_study_locus.flag_trans_qtls(
+                self.study_index, self.target_index, self.THRESHOLD
+            )
+        except SchemaValidationError:
+            pytest.fail("Failed to validate the schema when adding isTransQtl flag")
