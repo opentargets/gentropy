@@ -75,13 +75,12 @@ class TestVEPParserVariantEffectExtractor:
             x[0] for x in filter(lambda x: x[2] is None, self.SAMPLE_DATA)
         ]
         # Assert that the correct variants return null:
-        assert (
-            [
-                x["variantId"]
-                for x in self.df.filter(f.col("variant_effect").isNull()).collect()
-            ]
-            == variant_with_missing_score
-        ), "Not the right variants got nullified in variant effect object."
+        assert [
+            x["variantId"]
+            for x in self.df.filter(f.col("variant_effect").isNull()).collect()
+        ] == variant_with_missing_score, (
+            "Not the right variants got nullified in variant effect object."
+        )
 
 
 class TestVEPParser:
@@ -118,18 +117,18 @@ class TestVEPParser:
             _schema=VariantIndex.get_schema(),
         )
 
-        assert isinstance(
-            variant_index, VariantIndex
-        ), "VariantIndex object not created."
+        assert isinstance(variant_index, VariantIndex), (
+            "VariantIndex object not created."
+        )
 
     def test_variant_count(self: TestVEPParser) -> None:
         """Test if the number of variants is correct.
 
         It is expected that all rows from the parsed VEP output are present in the processed VEP output.
         """
-        assert (
-            self.raw_vep_output.count() == self.processed_vep_output.count()
-        ), f"Incorrect number of variants in processed VEP output: expected {self.raw_vep_output.count()}, got {self.processed_vep_output.count()}."
+        assert self.raw_vep_output.count() == self.processed_vep_output.count(), (
+            f"Incorrect number of variants in processed VEP output: expected {self.raw_vep_output.count()}, got {self.processed_vep_output.count()}."
+        )
 
     def test_collection(self: TestVEPParser) -> None:
         """Test if the collection of VEP variantIndex runs without failures."""
@@ -148,6 +147,6 @@ class TestVEPParser:
         )
 
         asserted_targets = [t["targetId"] for t in targets]
-        assert len(asserted_targets) == len(
-            set(asserted_targets)
-        ), "Duplicate ensembl transcripts in a single row."
+        assert len(asserted_targets) == len(set(asserted_targets)), (
+            "Duplicate ensembl transcripts in a single row."
+        )
