@@ -15,8 +15,8 @@ if TYPE_CHECKING:
     from pyspark.sql import SparkSession
 
 
-class TestVEPParserInSilicoExtractor:
-    """Testing the _vep_in_silico_prediction_extractor method of the VEP parser class.
+class TestVEPParserVariantEffectExtractor:
+    """Testing the _vep_variant_effect_extractor method of the VEP parser class.
 
     These tests assumes that the _get_most_severe_transcript() method works correctly, as it's not tested.
 
@@ -42,7 +42,7 @@ class TestVEPParserInSilicoExtractor:
     SAMPLE_COLUMNS = ["variantId", "assessment", "score", "gene_id", "flag"]
 
     @pytest.fixture(autouse=True)
-    def _setup(self: TestVEPParserInSilicoExtractor, spark: SparkSession) -> None:
+    def _setup(self: TestVEPParserVariantEffectExtractor, spark: SparkSession) -> None:
         """Setup fixture."""
         parsed_df = (
             spark.createDataFrame(self.SAMPLE_DATA, self.SAMPLE_COLUMNS)
@@ -59,18 +59,18 @@ class TestVEPParserInSilicoExtractor:
             )
             .select(
                 "variantId",
-                VariantEffectPredictorParser._vep_in_silico_prediction_extractor(
+                VariantEffectPredictorParser._vep_variant_effect_extractor(
                     "transcripts", "method_name", "score", "assessment", "flag"
-                ).alias("in_silico_predictions"),
+                ).alias("variant_effect"),
             )
         ).persist()
 
         self.df = parsed_df
 
-    def test_in_silico_output_missing_value(
-        self: TestVEPParserInSilicoExtractor,
+    def test_variant_effect_missing_value(
+        self: TestVEPParserVariantEffectExtractor,
     ) -> None:
-        """Test if the in silico output count is correct."""
+        """Test if the variant effect count is correct."""
         variant_with_missing_score = [
             x[0] for x in filter(lambda x: x[2] is None, self.SAMPLE_DATA)
         ]
@@ -78,12 +78,10 @@ class TestVEPParserInSilicoExtractor:
         assert (
             [
                 x["variantId"]
-                for x in self.df.filter(
-                    f.col("in_silico_predictions").isNull()
-                ).collect()
+                for x in self.df.filter(f.col("variant_effect").isNull()).collect()
             ]
             == variant_with_missing_score
-        ), "Not the right variants got nullified in-silico predictor object."
+        ), "Not the right variants got nullified in variant effect object."
 
 
 class TestVEPParser:
