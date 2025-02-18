@@ -22,20 +22,29 @@ jobs:
     outputs:
       released: ${{ steps.semrelease.outputs.released }}
     permissions:
+      id-token: write
       contents: write
     steps:
+      - uses: actions/create-github-app-token@v1
+        id: trigger-token
+        with:
+          app-id: ${{ vars.TRIGGER_WORKFLOW_GH_APP_ID}}
+          private-key: ${{ secrets.TRIGGER_WORKFLOW_GH_APP_KEY }}
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
           ref: ${{ github.ref_name }}
+          repository: opentargets/gentropy
+          token: ${{ secrets.GITHUB_TOKEN }}
+          persist-credentials: false
       - uses: python-semantic-release/python-semantic-release@v9.19.1
         id: semrelease
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          github_token: ${{ steps.trigger-token.outputs.token }}
       - uses: python-semantic-release/publish-action@v9.19.1
         if: ${{ steps.semrelease.outputs.released }} == 'true'
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          github_token: ${{ steps.trigger-token.outputs.token }}
           tag: ${{ steps.semrelease.outputs.tag }}
       - uses: actions/upload-artifact@v4
         if: steps.semrelease.outputs.released == 'true'
