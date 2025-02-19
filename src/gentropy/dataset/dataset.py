@@ -182,17 +182,9 @@ class Dataset(ABC):
         Returns:
             Self: Filtered Dataset with preserved attributes
         """
-        df = self._df.filter(condition)
-        class_constructor = self.__class__
-        # Get all attributes from the current instance
-        attrs = {
-            key: value
-            for key, value in self.__dict__.items()
-            if key not in ["_df", "_schema"]
-        }
-        return class_constructor(
-            _df=df, _schema=class_constructor.get_schema(), **attrs
-        )
+        filtered_df = self._df.filter(condition)
+        attrs = {k: v for k, v in self.__dict__.items() if k != "_df"}
+        return self.__class__(_df=filtered_df, **attrs)
 
     def validate_schema(self: Dataset) -> None:
         """Validate DataFrame schema against expected class schema.
