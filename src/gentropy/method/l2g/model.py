@@ -325,7 +325,7 @@ class LocusToGeneModel:
                 data=data,
             )
             self._create_hugging_face_model_card(local_repo)
-            data.to_parquet(f"{local_repo}/training_set.parquet")
+            data.to_parquet(f"{local_repo}/training_data.parquet")
             hub_utils.push(
                 repo_id=repo_id,
                 source=local_repo,
