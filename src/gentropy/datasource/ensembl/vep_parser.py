@@ -325,6 +325,9 @@ class VariantEffectPredictorParser:
             |{0.6, transcript3}    |
             +----------------------+
             <BLANKLINE>
+
+        Raises:
+            AssertionError: When `transcript_column_name` is not a string.
         """
         assert isinstance(
             transcript_column_name, str

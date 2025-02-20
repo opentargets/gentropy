@@ -303,14 +303,13 @@ class LocusToGeneStep:
             self.credible_set,
             self.feature_matrix,
             model_path=self.model_path,
+            features_list=self.features_list,
             hf_token=access_gcp_secret("hfhub-key", "open-targets-genetics-dev"),
             download_from_hub=self.download_from_hub,
         )
-        predictions.filter(
-            f.col("score") >= self.l2g_threshold
-        ).add_locus_to_gene_features(
+        predictions.filter(f.col("score") >= self.l2g_threshold).add_features(
             self.feature_matrix,
-        ).df.coalesce(self.session.output_partitions).write.mode(
+        ).explain().df.coalesce(self.session.output_partitions).write.mode(
             self.session.write_mode
         ).parquet(self.predictions_path)
         self.session.logger.info("L2G predictions saved successfully.")
@@ -350,7 +349,7 @@ class LocusToGeneStep:
                     "hfhub-key", "open-targets-genetics-dev"
                 )
                 trained_model.export_to_hugging_face_hub(
-                    # we upload the model in the filesystem
+                    # we upload the model saved in the filesystem
                     self.model_path.split("/")[-1],
                     hf_hub_token,
                     data=trained_model.training_data._df.drop(
