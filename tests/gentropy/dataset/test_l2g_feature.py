@@ -764,9 +764,9 @@ class TestCommonIntervalFeatureLogic:
             .orderBy(feature_name)
         )
 
-        assert (
-            observed_df.collect() == expected_df.collect()
-        ), f"Expected and observed dataframes are not equal for feature {feature_name}."
+        assert observed_df.collect() == expected_df.collect(), (
+            f"Expected and observed dataframes are not equal for feature {feature_name}."
+        )
 
     def test_common_neighbourhood_interval_feature_logic(
         self: TestCommonIntervalFeatureLogic,
@@ -796,9 +796,9 @@ class TestCommonIntervalFeatureLogic:
             .select("studyLocusId", "geneId", feature_name)
         )
 
-        assert (
-            observed_df.collect() == expected_df.collect()
-        ), "Output doesn't meet the expectation."
+        assert observed_df.collect() == expected_df.collect(), (
+            "Output doesn't meet the expectation."
+        )
 
     @pytest.fixture(autouse=True)
     def _setup(
