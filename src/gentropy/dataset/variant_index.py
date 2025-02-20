@@ -227,10 +227,13 @@ class VariantIndex(Dataset):
         """Filter variant annotation dataset by a variant dataframe.
 
         Args:
-            df (DataFrame): A dataframe of variants
+            df (DataFrame): A dataframe of variants.
 
         Returns:
-            VariantIndex: A filtered variant annotation dataset
+            VariantIndex: A filtered variant annotation dataset.
+
+        Raises:
+            AssertionError: When the variant dataframe does not contain eiter `variantId` or `chromosome` column.
         """
         join_columns = ["variantId", "chromosome"]
 
