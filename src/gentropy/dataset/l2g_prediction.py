@@ -246,9 +246,11 @@ class L2GPrediction(Dataset):
             raise AttributeError(
                 "`model.training_data` is missing, seed dataset to get shapley values cannot be created."
             )
-        background_data = model.training_data._df.select(
-            *model.features_list
-        ).toPandas()
+        background_data = (
+            model.training_data._df.select(*model.features_list)
+            .toPandas()
+            .sample(n=1_000)
+        )
         explainer = shap.TreeExplainer(
             model.model,
             data=background_data,
