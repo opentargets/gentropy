@@ -106,6 +106,9 @@ class ConvertToVcfStep:
             source_formats (list[str]): Format of the input dataset.
             output_path (str): Output VCF file path.
             partition_size (int): Approximate number of variants in each output partition.
+
+        Raises:
+            AssertionError: When the length of `source_paths` does not match the lenght of `source_formats`.
         """
         assert len(source_formats) == len(
             source_paths
