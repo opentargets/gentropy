@@ -3,12 +3,16 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from functools import partial
 from typing import TYPE_CHECKING
 
 import pyspark.sql.functions as f
+from loguru import logger
+from py4j.protocol import Py4JJavaError
 from pyspark.sql import Window
 
-from gentropy.common.schemas import parse_spark_schema
+from gentropy.common.schemas import compare_struct_schemas, parse_spark_schema
+from gentropy.common.session import Session
 from gentropy.common.spark_helpers import get_record_with_maximum_value
 from gentropy.dataset.dataset import Dataset
 from gentropy.dataset.study_locus import StudyLocus
@@ -31,10 +35,50 @@ class L2GGoldStandard(Dataset):
     GS_NEGATIVE_LABEL = "negative"
 
     @classmethod
+    def from_gold_standard_curation(
+        cls: type[L2GGoldStandard], session: Session, curation_path: str
+    ) -> L2GGoldStandard:
+        """Prepare the gold standard for training.
+
+        Args:
+            curation_path (str): Path to the gold standard curation file, must be either JSON or parquet.
+
+        Returns:
+            L2GGoldStandard: training dataset.
+
+        Raises:
+            ValueError: When gold standard path, is not provided, or when
+                parsing OTG gold standard but missing interactions and variant index paths.
+            TypeError: When gold standard is not OTG gold standard nor L2GGoldStandard.
+
+        """
+        loader = partial(session.load_data, path=curation_path)
+        try:
+            gold_standard = loader(format="parquet")
+        except Py4JJavaError:
+            gold_standard = loader(format="json")
+
+        schema_issues = compare_struct_schemas(
+            gold_standard.schema, L2GGoldStandard.get_schema()
+        )
+        # Parse the gold standard depending on the input schema
+        match schema_issues:
+            case {**extra} if not extra:
+                # Schema is the same as L2GGoldStandard - load the GS
+                # NOTE: match to empty dict will be non-selective
+                # see https://stackoverflow.com/questions/75389166/how-to-match-an-empty-dictionary
+                return L2GGoldStandard(
+                    _df=gold_standard,
+                    _schema=L2GGoldStandard.get_schema(),
+                )
+            case _:
+                raise TypeError("Incorrect gold standard dataset provided.")
+
+    @classmethod
     def from_otg_curation(
         cls: type[L2GGoldStandard],
-        gold_standard_curation: DataFrame,
-        study_locus_overlap: StudyLocusOverlap,
+        otg_curation: DataFrame,
+        credible_sets: StudyLocus,
         variant_index: VariantIndex,
         interactions: DataFrame,
     ) -> L2GGoldStandard:
@@ -42,7 +86,7 @@ class L2GGoldStandard(Dataset):
 
         Args:
             gold_standard_curation (DataFrame): Gold standard curation dataframe, extracted from
-            study_locus_overlap (StudyLocusOverlap): Study locus overlap dataset to remove duplicated loci
+            credible_sets (StudyLocus): Credible sets used to annotate gold standard sentinel variant.
             variant_index (VariantIndex): Dataset to bring distance between a variant and a gene's footprint
             interactions (DataFrame): Gene-gene interactions dataset to remove negative cases where the gene interacts with a positive gene
 
@@ -53,12 +97,31 @@ class L2GGoldStandard(Dataset):
             OpenTargetsL2GGoldStandard,
         )
 
+        study_locus_overlap = StudyLocus(
+            _df=credible_sets.df.join(
+                otg_curation.select(
+                    f.concat_ws(
+                        "_",
+                        f.col("sentinel_variant.locus_GRCh38.chromosome"),
+                        f.col("sentinel_variant.locus_GRCh38.position"),
+                        f.col("sentinel_variant.alleles.reference"),
+                        f.col("sentinel_variant.alleles.alternative"),
+                    ).alias("variantId"),
+                    f.col("association_info.otg_id").alias("studyId"),
+                ),
+                on=[
+                    "studyId",
+                    "variantId",
+                ],
+                how="inner",
+            ),
+            _schema=StudyLocus.get_schema(),
+        ).find_overlaps()
+
         interactions_df = cls.process_gene_interactions(interactions)
 
         return (
-            OpenTargetsL2GGoldStandard.as_l2g_gold_standard(
-                gold_standard_curation, variant_index
-            )
+            OpenTargetsL2GGoldStandard.as_l2g_gold_standard(otg_curation, variant_index)
             .filter_unique_associations(study_locus_overlap)
             .remove_false_negatives(interactions_df)
         )

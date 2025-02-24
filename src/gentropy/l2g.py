@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 import logging
+from enum import StrEnum
+from functools import partial
 from typing import Any
 
 import pyspark.sql.functions as f
+from py4j.protocol import Py4JJavaError
 from sklearn.ensemble import GradientBoostingClassifier
 from wandb.sdk.wandb_login import login as wandb_login
 
@@ -24,6 +27,13 @@ from gentropy.dataset.variant_index import VariantIndex
 from gentropy.method.l2g.feature_factory import L2GFeatureInputLoader
 from gentropy.method.l2g.model import LocusToGeneModel
 from gentropy.method.l2g.trainer import LocusToGeneTrainer
+
+
+class RunMode(StrEnum):
+    """Class representing available run modes for Locus To Gene step."""
+
+    TRAIN = "train"
+    PREDICT = "predict"
 
 
 class LocusToGeneFeatureMatrixStep:
@@ -103,7 +113,7 @@ class LocusToGeneStep:
         self,
         session: Session,
         *,
-        run_mode: str,
+        run_mode: RunMode,
         hyperparameters: dict[str, Any],
         download_from_hub: bool,
         cross_validate: bool,
@@ -144,11 +154,6 @@ class LocusToGeneStep:
         Raises:
             ValueError: If run_mode is not 'train' or 'predict'
         """
-        if run_mode not in ["train", "predict"]:
-            raise ValueError(
-                f"run_mode must be one of 'train' or 'predict', got {run_mode}"
-            )
-
         self.session = session
         self.run_mode = run_mode
         self.predictions_path = predictions_path
@@ -176,104 +181,14 @@ class LocusToGeneStep:
         self.feature_matrix = L2GFeatureMatrix(
             _df=session.load_data(feature_matrix_path),
         )
-
-        if run_mode == "predict":
-            self.run_predict()
-        elif run_mode == "train":
-            self.gold_standard = self.prepare_gold_standard()
-            self.run_train()
-
-    def prepare_gold_standard(self) -> L2GGoldStandard:
-        """Prepare the gold standard for training.
-
-        Returns:
-            L2GGoldStandard: training dataset.
-
-        Raises:
-            ValueError: When gold standard path, is not provided, or when
-                parsing OTG gold standard but missing interactions and variant index paths.
-            TypeError: When gold standard is not OTG gold standard nor L2GGoldStandard.
-
-        """
-        if self.gold_standard_curation_path is None:
-            raise ValueError("Gold Standard is required for model training.")
-        # Read the gold standard either from json or parquet, default to parquet if can not infer the format from extension.
-        ext = self.gold_standard_curation_path.split(".")[-1]
-        ext = "parquet" if ext not in ["parquet", "json"] else ext
-        gold_standard = self.session.load_data(self.gold_standard_curation_path, ext)
-        schema_issues = compare_struct_schemas(
-            gold_standard.schema, L2GGoldStandard.get_schema()
-        )
-        # Parse the gold standard depending on the input schema
-        match schema_issues:
-            case {**extra} if not extra:
-                # Schema is the same as L2GGoldStandard - load the GS
-                # NOTE: match to empty dict will be non-selective
-                # see https://stackoverflow.com/questions/75389166/how-to-match-an-empty-dictionary
-                logging.info("Successfully parsed gold standard.")
-                return L2GGoldStandard(
-                    _df=gold_standard,
-                    _schema=L2GGoldStandard.get_schema(),
+        match run_mode:
+            case RunMode.PREDICT:
+                self.run_predict()
+            case RunMode.TRAIN:
+                self.gold_standard = self.prepare_gold_standard(
+                    gold_standard_curation_path
                 )
-            case {
-                "missing_mandatory_columns": [
-                    "studyLocusId",
-                    "variantId",
-                    "studyId",
-                    "geneId",
-                    "goldStandardSet",
-                ],
-                "unexpected_columns": [
-                    "association_info",
-                    "gold_standard_info",
-                    "metadata",
-                    "sentinel_variant",
-                    "trait_info",
-                ],
-            }:
-                # There are schema mismatches, this would mean that we have
-                logging.info("Detected OTG Gold Standard. Attempting to parse it.")
-                otg_curation = gold_standard
-                if self.gene_interactions_path is None:
-                    raise ValueError("Interactions are required for parsing curation.")
-                if self.variant_index_path is None:
-                    raise ValueError("Variant Index are required for parsing curation.")
-
-                interactions = self.session.load_data(
-                    self.gene_interactions_path, "parquet"
-                )
-                variant_index = VariantIndex.from_parquet(
-                    self.session, self.variant_index_path
-                )
-                study_locus_overlap = StudyLocus(
-                    _df=self.credible_set.df.join(
-                        otg_curation.select(
-                            f.concat_ws(
-                                "_",
-                                f.col("sentinel_variant.locus_GRCh38.chromosome"),
-                                f.col("sentinel_variant.locus_GRCh38.position"),
-                                f.col("sentinel_variant.alleles.reference"),
-                                f.col("sentinel_variant.alleles.alternative"),
-                            ).alias("variantId"),
-                            f.col("association_info.otg_id").alias("studyId"),
-                        ),
-                        on=[
-                            "studyId",
-                            "variantId",
-                        ],
-                        how="inner",
-                    ),
-                    _schema=StudyLocus.get_schema(),
-                ).find_overlaps()
-
-                return L2GGoldStandard.from_otg_curation(
-                    gold_standard_curation=otg_curation,
-                    variant_index=variant_index,
-                    study_locus_overlap=study_locus_overlap,
-                    interactions=interactions,
-                )
-            case _:
-                raise TypeError("Incorrect gold standard dataset provided.")
+                self.run_train()
 
     def run_predict(self) -> None:
         """Run the prediction step.
