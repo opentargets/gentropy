@@ -95,9 +95,9 @@ class LocusToGeneTrainer:
             and self.y_train is not None
             and self.features_list is not None
         ):
-            assert self.x_train.size != 0 and self.y_train.size != 0, (
-                "Train data not set, nothing to fit."
-            )
+            assert (
+                self.x_train.size != 0 and self.y_train.size != 0
+            ), "Train data not set, nothing to fit."
             fitted_model = self.model.model.fit(X=self.x_train, y=self.y_train)
             self.model = LocusToGeneModel(
                 model=fitted_model,
@@ -133,6 +133,7 @@ class LocusToGeneTrainer:
                 model.model,
                 data=training_data,
                 feature_perturbation="interventional",
+                approximate=True,
             )
             try:
                 return explainer(training_data)
@@ -191,9 +192,9 @@ class LocusToGeneTrainer:
             or self.features_list is None
         ):
             raise RuntimeError("Train data not set, we cannot log to W&B.")
-        assert self.x_train.size != 0 and self.y_train.size != 0, (
-            "Train data not set, nothing to evaluate."
-        )
+        assert (
+            self.x_train.size != 0 and self.y_train.size != 0
+        ), "Train data not set, nothing to evaluate."
         fitted_classifier = self.model.model
         y_predicted = fitted_classifier.predict(self.x_test)
         y_probas = fitted_classifier.predict_proba(self.x_test)
