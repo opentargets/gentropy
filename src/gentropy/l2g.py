@@ -106,6 +106,28 @@ class LocusToGeneFeatureMatrixStep:
         ).parquet(feature_matrix_path)
 
 
+class LocusToGeneAnnotateGoldStandardStep:
+    """Annotate the gold standard with information from the feature matrix."""
+
+    def __init__(
+        self,
+        session: Session,
+        *,
+        gold_standard_path: str,
+        feature_matrix_path: str,
+        credible_set_path: str,
+        annotated_gold_standard_path: str,
+    ):
+        credible_set = StudyLocus.from_parquet(
+            session, credible_set_path, recursiveFileLookup=True
+        )
+        feature_matrix = L2GFeatureMatrix(_df=session.load_data(feature_matrix_path))
+        gold_standard = L2GGoldStandard.from_gold_standard(session, gold_standard_path)
+
+        gs_fm = gold_standard.build_feature_matrix(feature_matrix, credible_set)
+        gs_fm._df.write.mode(session.write_mode).parquet(annotated_gold_standard_path)
+
+
 class LocusToGeneStep:
     """Locus to gene step."""
 
