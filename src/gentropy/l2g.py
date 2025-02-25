@@ -162,7 +162,6 @@ class LocusToGeneStep:
 
         self.session = session
         self.run_mode = run_mode
-        self.model_path = model_path
         self.predictions_path = predictions_path
         self.features_list = list(features_list) if features_list else None
         self.hyperparameters = dict(hyperparameters)
@@ -175,6 +174,11 @@ class LocusToGeneStep:
         self.gold_standard_curation_path = gold_standard_curation_path
         self.gene_interactions_path = gene_interactions_path
         self.variant_index_path = variant_index_path
+        self.model_path = (
+            hf_hub_repo_id
+            if not model_path and download_from_hub and hf_hub_repo_id
+            else model_path
+        )
 
         # Load common inputs
         self.credible_set = StudyLocus.from_parquet(
@@ -352,9 +356,7 @@ class LocusToGeneStep:
                     # we upload the model saved in the filesystem
                     self.model_path.split("/")[-1],
                     hf_hub_token,
-                    data=trained_model.training_data._df.drop(
-                        "goldStandardSet", "geneId"
-                    ).toPandas(),
+                    data=trained_model.training_data._df.toPandas(),
                     repo_id=self.hf_hub_repo_id,
                     commit_message=self.hf_model_commit_message,
                 )
