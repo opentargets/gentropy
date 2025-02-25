@@ -1,4 +1,4 @@
-FROM python:3.10-bookworm
+FROM python:3.10-bullseye
 
 RUN apt-get update && \
     apt-get clean && \
