@@ -2,7 +2,8 @@
   "fields": [
     {
       "metadata": {
-        "description": "The unique identifier for the variant following schema: {chromosome}-{position}-{referenceAllele}-{alternateAllele}"
+        "description": "The unique identifier for the variant following schema: {chromosome}-{position}-{referenceAllele}-{alternateAllele}",
+        "isPrimaryKey": true
       },
       "name": "variantId",
       "nullable": false,
