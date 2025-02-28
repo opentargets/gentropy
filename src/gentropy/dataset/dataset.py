@@ -8,7 +8,7 @@ from enum import Enum
 from functools import reduce
 from typing import TYPE_CHECKING, Any
 
-from pyspark.sql import DataFrame
+from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql import functions as f
 from pyspark.sql import types as t
 from pyspark.sql.window import Window
@@ -200,6 +200,11 @@ class Dataset(ABC):
             raise SchemaValidationError(
                 f"Schema validation failed for {type(self).__name__}", discrepancies
             )
+
+        # if the schema validation is successful, we enforce the schema:
+        self._df = SparkSession.getActiveSession().createDataFrame(
+            self._df.rdd, observed_schema
+        )
 
     def valid_rows(self: Self, invalid_flags: list[str], invalid: bool = False) -> Self:
         """Filters `Dataset` according to a list of quality control flags. Only `Dataset` classes with a QC column can be validated.
