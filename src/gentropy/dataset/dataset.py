@@ -186,8 +186,11 @@ class Dataset(ABC):
         attrs = {k: v for k, v in self.__dict__.items() if k != "_df"}
         return self.__class__(_df=filtered_df, **attrs)
 
-    def validate_schema(self: Dataset) -> None:
+    def validate_schema(self: Dataset, propagate_metadata: bool = True) -> None:
         """Validate DataFrame schema against expected class schema.
+
+        Args:
+            propagate_metadata (bool): If True, propagates metadata from the expected schema to the DataFrame schema
 
         Raises:
             SchemaValidationError: If the DataFrame schema does not match the expected schema
@@ -202,9 +205,10 @@ class Dataset(ABC):
             )
 
         # if the schema validation is successful, we enforce the schema:
-        self._df = SparkSession.getActiveSession().createDataFrame(
-            self._df.rdd, observed_schema
-        )
+        if propagate_metadata:
+            self._df = SparkSession.getActiveSession().createDataFrame(
+                self._df.rdd, observed_schema
+            )
 
     def valid_rows(self: Self, invalid_flags: list[str], invalid: bool = False) -> Self:
         """Filters `Dataset` according to a list of quality control flags. Only `Dataset` classes with a QC column can be validated.
