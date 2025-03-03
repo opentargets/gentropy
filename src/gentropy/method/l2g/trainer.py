@@ -20,6 +20,9 @@ from sklearn.metrics import (
     roc_auc_score,
 )
 from sklearn.model_selection import GroupKFold, GroupShuffleSplit
+
+from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
+from gentropy.method.l2g.model import LocusToGeneModel
 from wandb.data_types import Image, Table
 from wandb.errors.term import termlog as wandb_termlog
 from wandb.sdk.wandb_init import init as wandb_init
@@ -28,12 +31,10 @@ from wandb.sdk.wandb_sweep import sweep as wandb_sweep
 from wandb.sklearn import plot_classifier
 from wandb.wandb_agent import agent as wandb_agent
 
-from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
-from gentropy.method.l2g.model import LocusToGeneModel
-
 if TYPE_CHECKING:
     from matplotlib.axes._axes import Axes
     from shap._explanation import Explanation
+
     from wandb.sdk.wandb_run import Run
 
 
@@ -236,11 +237,7 @@ class LocusToGeneTrainer:
             }
         )
         self.run.log(
-            {
-                "averagePrecision": average_precision_score(
-                    self.y_test, y_predicted, average="weighted"
-                )
-            }
+            {"averagePrecision": average_precision_score(self.y_test, y_predicted)}
         )
         self.run.log(
             {
