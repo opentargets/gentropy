@@ -237,7 +237,11 @@ class LocusToGeneTrainer:
             }
         )
         self.run.log(
-            {"averagePrecision": average_precision_score(self.y_test, y_predicted)}
+            {
+                "averagePrecision": average_precision_score(
+                    self.y_test, y_predicted, average="macro"
+                )
+            }
         )
         self.run.log(
             {
