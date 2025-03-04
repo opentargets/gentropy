@@ -286,20 +286,24 @@ class LocusToGeneStep:
         """
         if not self.predictions_path:
             raise ValueError("predictions_path must be provided for prediction mode")
-        predictions = L2GPrediction.from_credible_set(
-            self.session,
-            self.credible_set,
-            self.feature_matrix,
-            model_path=self.model_path,
-            features_list=self.features_list,
-            hf_token=access_gcp_secret("hfhub-key", "open-targets-genetics-dev"),
-            download_from_hub=self.download_from_hub,
+        predictions = (
+            L2GPrediction.from_credible_set(
+                self.session,
+                self.credible_set,
+                self.feature_matrix,
+                model_path=self.model_path,
+                features_list=self.features_list,
+                hf_token=access_gcp_secret("hfhub-key", "open-targets-genetics-dev"),
+                download_from_hub=self.download_from_hub,
+            )
+            .filter(f.col("score") >= self.l2g_threshold)
+            .add_features(
+                self.feature_matrix,
+            )
         )
         if self.explain_predictions:
             predictions = predictions.explain()
-        predictions.filter(f.col("score") >= self.l2g_threshold).add_features(
-            self.feature_matrix,
-        ).df.coalesce(self.session.output_partitions).write.mode(
+        predictions.df.coalesce(self.session.output_partitions).write.mode(
             self.session.write_mode
         ).parquet(self.predictions_path)
         self.session.logger.info("L2G predictions saved successfully.")
