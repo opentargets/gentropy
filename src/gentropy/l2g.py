@@ -119,6 +119,7 @@ class LocusToGeneStep:
         l2g_threshold: float | None = None,
         hf_hub_repo_id: str | None = None,
         hf_model_commit_message: str | None = "chore: update model",
+        hf_model_version: str | None = None,
         explain_predictions: bool | None = None,
     ) -> None:
         """Initialise the step and run the logic based on mode.
@@ -141,6 +142,7 @@ class LocusToGeneStep:
             l2g_threshold (float | None): An optional threshold for the L2G score to filter predictions. A threshold of 0.05 is recommended.
             hf_hub_repo_id (str | None): Hugging Face Hub repository ID. If provided, the model will be uploaded to Hugging Face.
             hf_model_commit_message (str | None): Commit message when we upload the model to the Hugging Face Hub
+            hf_model_version (str | None): Tag, branch, or commit hash to download the model from the Hub. If None, the latest commit is downloaded.
             explain_predictions (bool | None): Whether to extract SHAP importances for the L2G predictions. This is computationally expensive.
 
         Raises:
@@ -170,6 +172,7 @@ class LocusToGeneStep:
             if not model_path and download_from_hub and hf_hub_repo_id
             else model_path
         )
+        self.hf_model_version = hf_model_version
         self.explain_predictions = explain_predictions
 
         # Load common inputs
@@ -294,6 +297,7 @@ class LocusToGeneStep:
                 model_path=self.model_path,
                 features_list=self.features_list,
                 hf_token=access_gcp_secret("hfhub-key", "open-targets-genetics-dev"),
+                hf_model_version=self.hf_model_version,
                 download_from_hub=self.download_from_hub,
             )
             .filter(f.col("score") >= self.l2g_threshold)
