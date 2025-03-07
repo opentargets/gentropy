@@ -54,6 +54,7 @@ class L2GPrediction(Dataset):
         model_path: str | None,
         features_list: list[str] | None = None,
         hf_token: str | None = None,
+        hf_model_version: str | None = None,
         download_from_hub: bool = True,
     ) -> L2GPrediction:
         """Extract L2G predictions for a set of credible sets derived from GWAS.
@@ -65,6 +66,7 @@ class L2GPrediction(Dataset):
             model_path (str | None): Path to the model file. It can be either in the filesystem or the name on the Hugging Face Hub (in the form of username/repo_name).
             features_list (list[str] | None): Default list of features the model uses. Only used if the model is not downloaded from the Hub. CAUTION: This default list can differ from the actual list the model was trained on.
             hf_token (str | None): Hugging Face token to download the model from the Hub. Only required if the model is private.
+            hf_model_version (str | None): Tag, branch, or commit hash to download the model from the Hub. If None, the latest commit is downloaded.
             download_from_hub (bool): Whether to download the model from the Hugging Face Hub. Defaults to True.
 
         Returns:
@@ -77,7 +79,9 @@ class L2GPrediction(Dataset):
         if download_from_hub:
             # Model ID defaults to "opentargets/locus_to_gene" and it assumes the name of the classifier is "classifier.skops".
             model_id = model_path or "opentargets/locus_to_gene"
-            l2g_model = LocusToGeneModel.load_from_hub(session, model_id, hf_token)
+            l2g_model = LocusToGeneModel.load_from_hub(
+                session, model_id, hf_model_version, hf_token
+            )
         elif model_path:
             if not features_list:
                 raise AttributeError(
