@@ -4572,16 +4572,7 @@
 <span class="normal">1122</span>
 <span class="normal">1123</span>
 <span class="normal">1124</span>
-<span class="normal">1125</span>
-<span class="normal">1126</span>
-<span class="normal">1127</span>
-<span class="normal">1128</span>
-<span class="normal">1129</span>
-<span class="normal">1130</span>
-<span class="normal">1131</span>
-<span class="normal">1132</span>
-<span class="normal">1133</span>
-<span class="normal">1134</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">VariantEffectPredictorParser</span><span class="p">:</span>
+<span class="normal">1125</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">VariantEffectPredictorParser</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Collection of methods to parse VEP output in json format.&quot;&quot;&quot;</span>
 
     <span class="c1"># NOTE: Due to the fact that the comparison of the xrefs is done om the base of rsids</span>
@@ -4590,9 +4581,9 @@
 
     <span class="n">DBXREF_SCHEMA</span> <span class="o">=</span> <span class="n">VariantIndex</span><span class="o">.</span><span class="n">get_schema</span><span class="p">()[</span><span class="s2">&quot;dbXrefs&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">dataType</span>
 
-    <span class="c1"># Schema description of the in silico predictor object:</span>
-    <span class="n">IN_SILICO_PREDICTOR_SCHEMA</span> <span class="o">=</span> <span class="n">get_nested_struct_schema</span><span class="p">(</span>
-        <span class="n">VariantIndex</span><span class="o">.</span><span class="n">get_schema</span><span class="p">()[</span><span class="s2">&quot;inSilicoPredictors&quot;</span><span class="p">]</span>
+    <span class="c1"># Schema description of the variant effect object:</span>
+    <span class="n">VARIANT_EFFECT_SCHEMA</span> <span class="o">=</span> <span class="n">get_nested_struct_schema</span><span class="p">(</span>
+        <span class="n">VariantIndex</span><span class="o">.</span><span class="n">get_schema</span><span class="p">()[</span><span class="s2">&quot;variantEffect&quot;</span><span class="p">]</span>
     <span class="p">)</span>
 
     <span class="c1"># Schema for the allele frequency column:</span>
@@ -4882,6 +4873,9 @@
 <span class="sd">            |{0.6, transcript3}    |</span>
 <span class="sd">            +----------------------+</span>
 <span class="sd">            &lt;BLANKLINE&gt;</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            AssertionError: When `transcript_column_name` is not a string.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span>
             <span class="n">transcript_column_name</span><span class="p">,</span> <span class="nb">str</span>
@@ -4898,7 +4892,7 @@
         <span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
 
     <span class="nd">@classmethod</span>
-    <span class="nd">@enforce_schema</span><span class="p">(</span><span class="n">IN_SILICO_PREDICTOR_SCHEMA</span><span class="p">)</span>
+    <span class="nd">@enforce_schema</span><span class="p">(</span><span class="n">VARIANT_EFFECT_SCHEMA</span><span class="p">)</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">_get_vep_prediction</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">most_severe_consequence</span><span class="p">:</span> <span class="n">Column</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">f</span><span class="o">.</span><span class="n">struct</span><span class="p">(</span>
             <span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="s2">&quot;VEP&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;method&quot;</span><span class="p">),</span>
@@ -4909,7 +4903,7 @@
         <span class="p">)</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="nd">@enforce_schema</span><span class="p">(</span><span class="n">IN_SILICO_PREDICTOR_SCHEMA</span><span class="p">)</span>
+    <span class="nd">@enforce_schema</span><span class="p">(</span><span class="n">VARIANT_EFFECT_SCHEMA</span><span class="p">)</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">_get_max_alpha_missense</span><span class="p">(</span><span class="n">transcripts</span><span class="p">:</span> <span class="n">Column</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the most severe alpha missense prediction from all transcripts.</span>
 
@@ -4967,8 +4961,8 @@
         <span class="p">)</span>
 
     <span class="nd">@classmethod</span>
-    <span class="nd">@enforce_schema</span><span class="p">(</span><span class="n">IN_SILICO_PREDICTOR_SCHEMA</span><span class="p">)</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">_vep_in_silico_prediction_extractor</span><span class="p">(</span>
+    <span class="nd">@enforce_schema</span><span class="p">(</span><span class="n">VARIANT_EFFECT_SCHEMA</span><span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_vep_variant_effect_extractor</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">VariantEffectPredictorParser</span><span class="p">],</span>
         <span class="n">transcript_column_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">method_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
@@ -4976,17 +4970,17 @@
         <span class="n">assessment_column_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">assessment_flag_column_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Extract in silico prediction from VEP output.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Extract variant effect from VEP output.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            transcript_column_name (str): Name of the column containing the list of transcripts.</span>
-<span class="sd">            method_name (str): Name of the in silico predictor.</span>
+<span class="sd">            method_name (str): Name of the variant effect.</span>
 <span class="sd">            score_column_name (str | None): Name of the column containing the score.</span>
 <span class="sd">            assessment_column_name (str | None): Name of the column containing the assessment.</span>
 <span class="sd">            assessment_flag_column_name (str | None): Name of the column containing the assessment flag.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            Column: In silico predictor.</span>
+<span class="sd">            Column: Variant effect.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1"># Get transcript with the highest score:</span>
         <span class="n">most_severe_transcript</span><span class="p">:</span> <span class="n">Column</span> <span class="o">=</span> <span class="p">(</span>
@@ -5191,34 +5185,34 @@
                 <span class="bp">cls</span><span class="o">.</span><span class="n">_extract_clinvar_xrefs</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;colocated_variants&quot;</span><span class="p">))</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span>
                     <span class="s2">&quot;clinvar_xrefs&quot;</span>
                 <span class="p">),</span>
-                <span class="c1"># Extracting in silico predictors</span>
+                <span class="c1"># Extracting variant effect assessments</span>
                 <span class="n">f</span><span class="o">.</span><span class="n">when</span><span class="p">(</span>
-                    <span class="c1"># The following in-silico predictors are only available for variants with transcript consequences:</span>
+                    <span class="c1"># The following variant effect assessments are only available for variants with transcript consequences:</span>
                     <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;transcript_consequences&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">isNotNull</span><span class="p">(),</span>
                     <span class="n">f</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
                         <span class="n">f</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
                             <span class="c1"># Extract CADD scores:</span>
-                            <span class="bp">cls</span><span class="o">.</span><span class="n">_vep_in_silico_prediction_extractor</span><span class="p">(</span>
+                            <span class="bp">cls</span><span class="o">.</span><span class="n">_vep_variant_effect_extractor</span><span class="p">(</span>
                                 <span class="n">transcript_column_name</span><span class="o">=</span><span class="s2">&quot;transcript_consequences&quot;</span><span class="p">,</span>
                                 <span class="n">method_name</span><span class="o">=</span><span class="s2">&quot;CADD&quot;</span><span class="p">,</span>
                                 <span class="n">score_column_name</span><span class="o">=</span><span class="s2">&quot;cadd_phred&quot;</span><span class="p">,</span>
                             <span class="p">),</span>
                             <span class="c1"># Extract polyphen scores:</span>
-                            <span class="bp">cls</span><span class="o">.</span><span class="n">_vep_in_silico_prediction_extractor</span><span class="p">(</span>
+                            <span class="bp">cls</span><span class="o">.</span><span class="n">_vep_variant_effect_extractor</span><span class="p">(</span>
                                 <span class="n">transcript_column_name</span><span class="o">=</span><span class="s2">&quot;transcript_consequences&quot;</span><span class="p">,</span>
                                 <span class="n">method_name</span><span class="o">=</span><span class="s2">&quot;PolyPhen&quot;</span><span class="p">,</span>
                                 <span class="n">score_column_name</span><span class="o">=</span><span class="s2">&quot;polyphen_score&quot;</span><span class="p">,</span>
                                 <span class="n">assessment_column_name</span><span class="o">=</span><span class="s2">&quot;polyphen_prediction&quot;</span><span class="p">,</span>
                             <span class="p">),</span>
                             <span class="c1"># Extract sift scores:</span>
-                            <span class="bp">cls</span><span class="o">.</span><span class="n">_vep_in_silico_prediction_extractor</span><span class="p">(</span>
+                            <span class="bp">cls</span><span class="o">.</span><span class="n">_vep_variant_effect_extractor</span><span class="p">(</span>
                                 <span class="n">transcript_column_name</span><span class="o">=</span><span class="s2">&quot;transcript_consequences&quot;</span><span class="p">,</span>
                                 <span class="n">method_name</span><span class="o">=</span><span class="s2">&quot;SIFT&quot;</span><span class="p">,</span>
                                 <span class="n">score_column_name</span><span class="o">=</span><span class="s2">&quot;sift_score&quot;</span><span class="p">,</span>
                                 <span class="n">assessment_column_name</span><span class="o">=</span><span class="s2">&quot;sift_prediction&quot;</span><span class="p">,</span>
                             <span class="p">),</span>
                             <span class="c1"># Extract loftee scores:</span>
-                            <span class="bp">cls</span><span class="o">.</span><span class="n">_vep_in_silico_prediction_extractor</span><span class="p">(</span>
+                            <span class="bp">cls</span><span class="o">.</span><span class="n">_vep_variant_effect_extractor</span><span class="p">(</span>
                                 <span class="n">method_name</span><span class="o">=</span><span class="s2">&quot;LOFTEE&quot;</span><span class="p">,</span>
                                 <span class="n">transcript_column_name</span><span class="o">=</span><span class="s2">&quot;transcript_consequences&quot;</span><span class="p">,</span>
                                 <span class="n">score_column_name</span><span class="o">=</span><span class="s2">&quot;lof&quot;</span><span class="p">,</span>
@@ -5226,7 +5220,7 @@
                                 <span class="n">assessment_flag_column_name</span><span class="o">=</span><span class="s2">&quot;lof_filter&quot;</span><span class="p">,</span>
                             <span class="p">),</span>
                             <span class="c1"># Extract GERP conservation score:</span>
-                            <span class="bp">cls</span><span class="o">.</span><span class="n">_vep_in_silico_prediction_extractor</span><span class="p">(</span>
+                            <span class="bp">cls</span><span class="o">.</span><span class="n">_vep_variant_effect_extractor</span><span class="p">(</span>
                                 <span class="n">method_name</span><span class="o">=</span><span class="s2">&quot;GERP&quot;</span><span class="p">,</span>
                                 <span class="n">transcript_column_name</span><span class="o">=</span><span class="s2">&quot;transcript_consequences&quot;</span><span class="p">,</span>
                                 <span class="n">score_column_name</span><span class="o">=</span><span class="s2">&quot;conservation&quot;</span><span class="p">,</span>
@@ -5242,24 +5236,12 @@
                     <span class="p">),</span>
                 <span class="p">)</span>
                 <span class="o">.</span><span class="n">otherwise</span><span class="p">(</span>
-                    <span class="c1"># Extract CADD scores from intergenic object:</span>
                     <span class="n">f</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
-                        <span class="bp">cls</span><span class="o">.</span><span class="n">_vep_in_silico_prediction_extractor</span><span class="p">(</span>
-                            <span class="n">transcript_column_name</span><span class="o">=</span><span class="s2">&quot;intergenic_consequences&quot;</span><span class="p">,</span>
-                            <span class="n">method_name</span><span class="o">=</span><span class="s2">&quot;CADD&quot;</span><span class="p">,</span>
-                            <span class="n">score_column_name</span><span class="o">=</span><span class="s2">&quot;cadd_phred&quot;</span><span class="p">,</span>
-                        <span class="p">),</span>
-                        <span class="c1"># Extract GERP conservation score:</span>
-                        <span class="bp">cls</span><span class="o">.</span><span class="n">_vep_in_silico_prediction_extractor</span><span class="p">(</span>
-                            <span class="n">method_name</span><span class="o">=</span><span class="s2">&quot;GERP&quot;</span><span class="p">,</span>
-                            <span class="n">transcript_column_name</span><span class="o">=</span><span class="s2">&quot;intergenic_consequences&quot;</span><span class="p">,</span>
-                            <span class="n">score_column_name</span><span class="o">=</span><span class="s2">&quot;conservation&quot;</span><span class="p">,</span>
-                        <span class="p">),</span>
                         <span class="c1"># Extract VEP prediction:</span>
                         <span class="bp">cls</span><span class="o">.</span><span class="n">_get_vep_prediction</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;most_severe_consequence&quot;</span><span class="p">)),</span>
                     <span class="p">)</span>
                 <span class="p">)</span>
-                <span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;inSilicoPredictors&quot;</span><span class="p">),</span>
+                <span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;variantEffect&quot;</span><span class="p">),</span>
                 <span class="c1"># Convert consequence to SO:</span>
                 <span class="n">map_column_by_dictionary</span><span class="p">(</span>
                     <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;most_severe_consequence&quot;</span><span class="p">),</span> <span class="bp">cls</span><span class="o">.</span><span class="n">SEQUENCE_ONTOLOGY_MAP</span>
@@ -5439,11 +5421,11 @@
                     <span class="p">)[</span><span class="n">f</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="s2">&quot;proteinCodingTranscripts&quot;</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">],</span>
                 <span class="p">),</span>
             <span class="p">)</span>
-            <span class="c1"># Normalising in silico predictor assessments:</span>
+            <span class="c1"># Normalising variant effect assessments:</span>
             <span class="o">.</span><span class="n">withColumn</span><span class="p">(</span>
-                <span class="s2">&quot;inSilicoPredictors&quot;</span><span class="p">,</span>
-                <span class="n">InSilicoPredictorNormaliser</span><span class="o">.</span><span class="n">normalise_in_silico_predictors</span><span class="p">(</span>
-                    <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;inSilicoPredictors&quot;</span><span class="p">)</span>
+                <span class="s2">&quot;variantEffect&quot;</span><span class="p">,</span>
+                <span class="n">VariantEffectNormaliser</span><span class="o">.</span><span class="n">normalise_variant_effect</span><span class="p">(</span>
+                    <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;variantEffect&quot;</span><span class="p">)</span>
                 <span class="p">),</span>
             <span class="p">)</span>
             <span class="c1"># Dropping intermediate xref columns:</span>
@@ -6101,10 +6083,7 @@
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/datasource/ensembl/vep_parser.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">600</span>
-<span class="normal">601</span>
-<span class="normal">602</span>
-<span class="normal">603</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">603</span>
 <span class="normal">604</span>
 <span class="normal">605</span>
 <span class="normal">606</span>
@@ -6397,16 +6376,7 @@
 <span class="normal">893</span>
 <span class="normal">894</span>
 <span class="normal">895</span>
-<span class="normal">896</span>
-<span class="normal">897</span>
-<span class="normal">898</span>
-<span class="normal">899</span>
-<span class="normal">900</span>
-<span class="normal">901</span>
-<span class="normal">902</span>
-<span class="normal">903</span>
-<span class="normal">904</span>
-<span class="normal">905</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
+<span class="normal">896</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">process_vep_output</span><span class="p">(</span>
     <span class="bp">cls</span><span class="p">,</span> <span class="n">vep_output</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span> <span class="n">hash_threshold</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataFrame</span><span class="p">:</span>
@@ -6443,34 +6413,34 @@
             <span class="bp">cls</span><span class="o">.</span><span class="n">_extract_clinvar_xrefs</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;colocated_variants&quot;</span><span class="p">))</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span>
                 <span class="s2">&quot;clinvar_xrefs&quot;</span>
             <span class="p">),</span>
-            <span class="c1"># Extracting in silico predictors</span>
+            <span class="c1"># Extracting variant effect assessments</span>
             <span class="n">f</span><span class="o">.</span><span class="n">when</span><span class="p">(</span>
-                <span class="c1"># The following in-silico predictors are only available for variants with transcript consequences:</span>
+                <span class="c1"># The following variant effect assessments are only available for variants with transcript consequences:</span>
                 <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;transcript_consequences&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">isNotNull</span><span class="p">(),</span>
                 <span class="n">f</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
                     <span class="n">f</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
                         <span class="c1"># Extract CADD scores:</span>
-                        <span class="bp">cls</span><span class="o">.</span><span class="n">_vep_in_silico_prediction_extractor</span><span class="p">(</span>
+                        <span class="bp">cls</span><span class="o">.</span><span class="n">_vep_variant_effect_extractor</span><span class="p">(</span>
                             <span class="n">transcript_column_name</span><span class="o">=</span><span class="s2">&quot;transcript_consequences&quot;</span><span class="p">,</span>
                             <span class="n">method_name</span><span class="o">=</span><span class="s2">&quot;CADD&quot;</span><span class="p">,</span>
                             <span class="n">score_column_name</span><span class="o">=</span><span class="s2">&quot;cadd_phred&quot;</span><span class="p">,</span>
                         <span class="p">),</span>
                         <span class="c1"># Extract polyphen scores:</span>
-                        <span class="bp">cls</span><span class="o">.</span><span class="n">_vep_in_silico_prediction_extractor</span><span class="p">(</span>
+                        <span class="bp">cls</span><span class="o">.</span><span class="n">_vep_variant_effect_extractor</span><span class="p">(</span>
                             <span class="n">transcript_column_name</span><span class="o">=</span><span class="s2">&quot;transcript_consequences&quot;</span><span class="p">,</span>
                             <span class="n">method_name</span><span class="o">=</span><span class="s2">&quot;PolyPhen&quot;</span><span class="p">,</span>
                             <span class="n">score_column_name</span><span class="o">=</span><span class="s2">&quot;polyphen_score&quot;</span><span class="p">,</span>
                             <span class="n">assessment_column_name</span><span class="o">=</span><span class="s2">&quot;polyphen_prediction&quot;</span><span class="p">,</span>
                         <span class="p">),</span>
                         <span class="c1"># Extract sift scores:</span>
-                        <span class="bp">cls</span><span class="o">.</span><span class="n">_vep_in_silico_prediction_extractor</span><span class="p">(</span>
+                        <span class="bp">cls</span><span class="o">.</span><span class="n">_vep_variant_effect_extractor</span><span class="p">(</span>
                             <span class="n">transcript_column_name</span><span class="o">=</span><span class="s2">&quot;transcript_consequences&quot;</span><span class="p">,</span>
                             <span class="n">method_name</span><span class="o">=</span><span class="s2">&quot;SIFT&quot;</span><span class="p">,</span>
                             <span class="n">score_column_name</span><span class="o">=</span><span class="s2">&quot;sift_score&quot;</span><span class="p">,</span>
                             <span class="n">assessment_column_name</span><span class="o">=</span><span class="s2">&quot;sift_prediction&quot;</span><span class="p">,</span>
                         <span class="p">),</span>
                         <span class="c1"># Extract loftee scores:</span>
-                        <span class="bp">cls</span><span class="o">.</span><span class="n">_vep_in_silico_prediction_extractor</span><span class="p">(</span>
+                        <span class="bp">cls</span><span class="o">.</span><span class="n">_vep_variant_effect_extractor</span><span class="p">(</span>
                             <span class="n">method_name</span><span class="o">=</span><span class="s2">&quot;LOFTEE&quot;</span><span class="p">,</span>
                             <span class="n">transcript_column_name</span><span class="o">=</span><span class="s2">&quot;transcript_consequences&quot;</span><span class="p">,</span>
                             <span class="n">score_column_name</span><span class="o">=</span><span class="s2">&quot;lof&quot;</span><span class="p">,</span>
@@ -6478,7 +6448,7 @@
                             <span class="n">assessment_flag_column_name</span><span class="o">=</span><span class="s2">&quot;lof_filter&quot;</span><span class="p">,</span>
                         <span class="p">),</span>
                         <span class="c1"># Extract GERP conservation score:</span>
-                        <span class="bp">cls</span><span class="o">.</span><span class="n">_vep_in_silico_prediction_extractor</span><span class="p">(</span>
+                        <span class="bp">cls</span><span class="o">.</span><span class="n">_vep_variant_effect_extractor</span><span class="p">(</span>
                             <span class="n">method_name</span><span class="o">=</span><span class="s2">&quot;GERP&quot;</span><span class="p">,</span>
                             <span class="n">transcript_column_name</span><span class="o">=</span><span class="s2">&quot;transcript_consequences&quot;</span><span class="p">,</span>
                             <span class="n">score_column_name</span><span class="o">=</span><span class="s2">&quot;conservation&quot;</span><span class="p">,</span>
@@ -6494,24 +6464,12 @@
                 <span class="p">),</span>
             <span class="p">)</span>
             <span class="o">.</span><span class="n">otherwise</span><span class="p">(</span>
-                <span class="c1"># Extract CADD scores from intergenic object:</span>
                 <span class="n">f</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
-                    <span class="bp">cls</span><span class="o">.</span><span class="n">_vep_in_silico_prediction_extractor</span><span class="p">(</span>
-                        <span class="n">transcript_column_name</span><span class="o">=</span><span class="s2">&quot;intergenic_consequences&quot;</span><span class="p">,</span>
-                        <span class="n">method_name</span><span class="o">=</span><span class="s2">&quot;CADD&quot;</span><span class="p">,</span>
-                        <span class="n">score_column_name</span><span class="o">=</span><span class="s2">&quot;cadd_phred&quot;</span><span class="p">,</span>
-                    <span class="p">),</span>
-                    <span class="c1"># Extract GERP conservation score:</span>
-                    <span class="bp">cls</span><span class="o">.</span><span class="n">_vep_in_silico_prediction_extractor</span><span class="p">(</span>
-                        <span class="n">method_name</span><span class="o">=</span><span class="s2">&quot;GERP&quot;</span><span class="p">,</span>
-                        <span class="n">transcript_column_name</span><span class="o">=</span><span class="s2">&quot;intergenic_consequences&quot;</span><span class="p">,</span>
-                        <span class="n">score_column_name</span><span class="o">=</span><span class="s2">&quot;conservation&quot;</span><span class="p">,</span>
-                    <span class="p">),</span>
                     <span class="c1"># Extract VEP prediction:</span>
                     <span class="bp">cls</span><span class="o">.</span><span class="n">_get_vep_prediction</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;most_severe_consequence&quot;</span><span class="p">)),</span>
                 <span class="p">)</span>
             <span class="p">)</span>
-            <span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;inSilicoPredictors&quot;</span><span class="p">),</span>
+            <span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;variantEffect&quot;</span><span class="p">),</span>
             <span class="c1"># Convert consequence to SO:</span>
             <span class="n">map_column_by_dictionary</span><span class="p">(</span>
                 <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;most_severe_consequence&quot;</span><span class="p">),</span> <span class="bp">cls</span><span class="o">.</span><span class="n">SEQUENCE_ONTOLOGY_MAP</span>
@@ -6691,11 +6649,11 @@
                 <span class="p">)[</span><span class="n">f</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="s2">&quot;proteinCodingTranscripts&quot;</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">],</span>
             <span class="p">),</span>
         <span class="p">)</span>
-        <span class="c1"># Normalising in silico predictor assessments:</span>
+        <span class="c1"># Normalising variant effect assessments:</span>
         <span class="o">.</span><span class="n">withColumn</span><span class="p">(</span>
-            <span class="s2">&quot;inSilicoPredictors&quot;</span><span class="p">,</span>
-            <span class="n">InSilicoPredictorNormaliser</span><span class="o">.</span><span class="n">normalise_in_silico_predictors</span><span class="p">(</span>
-                <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;inSilicoPredictors&quot;</span><span class="p">)</span>
+            <span class="s2">&quot;variantEffect&quot;</span><span class="p">,</span>
+            <span class="n">VariantEffectNormaliser</span><span class="o">.</span><span class="n">normalise_variant_effect</span><span class="p">(</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;variantEffect&quot;</span><span class="p">)</span>
             <span class="p">),</span>
         <span class="p">)</span>
         <span class="c1"># Dropping intermediate xref columns:</span>

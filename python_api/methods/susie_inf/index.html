@@ -4022,7 +4022,10 @@ https://github.com/FinucaneLab/fine-mapping-inf</p>
 <span class="normal">527</span>
 <span class="normal">528</span>
 <span class="normal">529</span>
-<span class="normal">530</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
+<span class="normal">530</span>
+<span class="normal">531</span>
+<span class="normal">532</span>
+<span class="normal">533</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">SUSIE_inf</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;SuSiE fine-mapping of a study locus from fine-mapping-inf package.</span>
 
@@ -4497,6 +4500,9 @@ https://github.com/FinucaneLab/fine-mapping-inf</p>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            StudyLocus: Credible sets which pass filters and LD clumping.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            AssertionError: When running in clump mode, but no study study_index or ld_index or ld_min_r2 were provided.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">cred_sets</span><span class="o">.</span><span class="n">df</span> <span class="o">=</span> <span class="p">(</span>
             <span class="n">cred_sets</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">withColumn</span><span class="p">(</span>
@@ -5064,6 +5070,29 @@ https://github.com/FinucaneLab/fine-mapping-inf</p>
       </tbody>
     </table>
 
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code>AssertionError</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>When running in clump mode, but no study study_index or ld_index or ld_min_r2 were provided.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
             <details class="quote">
               <summary>Source code in <code>src/gentropy/method/susie_inf.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">470</span>
@@ -5126,7 +5155,10 @@ https://github.com/FinucaneLab/fine-mapping-inf</p>
 <span class="normal">527</span>
 <span class="normal">528</span>
 <span class="normal">529</span>
-<span class="normal">530</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@staticmethod</span>
+<span class="normal">530</span>
+<span class="normal">531</span>
+<span class="normal">532</span>
+<span class="normal">533</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@staticmethod</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">credible_set_qc</span><span class="p">(</span>
     <span class="n">cred_sets</span><span class="p">:</span> <span class="n">StudyLocus</span><span class="p">,</span>
     <span class="n">p_value_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-5</span><span class="p">,</span>
@@ -5152,6 +5184,9 @@ https://github.com/FinucaneLab/fine-mapping-inf</p>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        StudyLocus: Credible sets which pass filters and LD clumping.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        AssertionError: When running in clump mode, but no study study_index or ld_index or ld_min_r2 were provided.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">cred_sets</span><span class="o">.</span><span class="n">df</span> <span class="o">=</span> <span class="p">(</span>
         <span class="n">cred_sets</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">withColumn</span><span class="p">(</span>

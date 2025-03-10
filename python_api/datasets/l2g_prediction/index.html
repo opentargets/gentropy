@@ -1166,9 +1166,18 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#gentropy.dataset.l2g_prediction.L2GPrediction.add_locus_to_gene_features" class="md-nav__link">
+  <a href="#gentropy.dataset.l2g_prediction.L2GPrediction.add_features" class="md-nav__link">
     <span class="md-ellipsis">
-      add_locus_to_gene_features
+      add_features
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gentropy.dataset.l2g_prediction.L2GPrediction.explain" class="md-nav__link">
+    <span class="md-ellipsis">
+      explain
     </span>
   </a>
   
@@ -3416,9 +3425,18 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#gentropy.dataset.l2g_prediction.L2GPrediction.add_locus_to_gene_features" class="md-nav__link">
+  <a href="#gentropy.dataset.l2g_prediction.L2GPrediction.add_features" class="md-nav__link">
     <span class="md-ellipsis">
-      add_locus_to_gene_features
+      add_features
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gentropy.dataset.l2g_prediction.L2GPrediction.explain" class="md-nav__link">
+    <span class="md-ellipsis">
+      explain
     </span>
   </a>
   
@@ -3517,12 +3535,7 @@ confidence of the prediction that a gene is causal to an association.</p>
 
               <details class="quote">
                 <summary>Source code in <code>src/gentropy/dataset/l2g_prediction.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 23</span>
-<span class="normal"> 24</span>
-<span class="normal"> 25</span>
-<span class="normal"> 26</span>
-<span class="normal"> 27</span>
-<span class="normal"> 28</span>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 28</span>
 <span class="normal"> 29</span>
 <span class="normal"> 30</span>
 <span class="normal"> 31</span>
@@ -3671,7 +3684,140 @@ confidence of the prediction that a gene is causal to an association.</p>
 <span class="normal">174</span>
 <span class="normal">175</span>
 <span class="normal">176</span>
-<span class="normal">177</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
+<span class="normal">177</span>
+<span class="normal">178</span>
+<span class="normal">179</span>
+<span class="normal">180</span>
+<span class="normal">181</span>
+<span class="normal">182</span>
+<span class="normal">183</span>
+<span class="normal">184</span>
+<span class="normal">185</span>
+<span class="normal">186</span>
+<span class="normal">187</span>
+<span class="normal">188</span>
+<span class="normal">189</span>
+<span class="normal">190</span>
+<span class="normal">191</span>
+<span class="normal">192</span>
+<span class="normal">193</span>
+<span class="normal">194</span>
+<span class="normal">195</span>
+<span class="normal">196</span>
+<span class="normal">197</span>
+<span class="normal">198</span>
+<span class="normal">199</span>
+<span class="normal">200</span>
+<span class="normal">201</span>
+<span class="normal">202</span>
+<span class="normal">203</span>
+<span class="normal">204</span>
+<span class="normal">205</span>
+<span class="normal">206</span>
+<span class="normal">207</span>
+<span class="normal">208</span>
+<span class="normal">209</span>
+<span class="normal">210</span>
+<span class="normal">211</span>
+<span class="normal">212</span>
+<span class="normal">213</span>
+<span class="normal">214</span>
+<span class="normal">215</span>
+<span class="normal">216</span>
+<span class="normal">217</span>
+<span class="normal">218</span>
+<span class="normal">219</span>
+<span class="normal">220</span>
+<span class="normal">221</span>
+<span class="normal">222</span>
+<span class="normal">223</span>
+<span class="normal">224</span>
+<span class="normal">225</span>
+<span class="normal">226</span>
+<span class="normal">227</span>
+<span class="normal">228</span>
+<span class="normal">229</span>
+<span class="normal">230</span>
+<span class="normal">231</span>
+<span class="normal">232</span>
+<span class="normal">233</span>
+<span class="normal">234</span>
+<span class="normal">235</span>
+<span class="normal">236</span>
+<span class="normal">237</span>
+<span class="normal">238</span>
+<span class="normal">239</span>
+<span class="normal">240</span>
+<span class="normal">241</span>
+<span class="normal">242</span>
+<span class="normal">243</span>
+<span class="normal">244</span>
+<span class="normal">245</span>
+<span class="normal">246</span>
+<span class="normal">247</span>
+<span class="normal">248</span>
+<span class="normal">249</span>
+<span class="normal">250</span>
+<span class="normal">251</span>
+<span class="normal">252</span>
+<span class="normal">253</span>
+<span class="normal">254</span>
+<span class="normal">255</span>
+<span class="normal">256</span>
+<span class="normal">257</span>
+<span class="normal">258</span>
+<span class="normal">259</span>
+<span class="normal">260</span>
+<span class="normal">261</span>
+<span class="normal">262</span>
+<span class="normal">263</span>
+<span class="normal">264</span>
+<span class="normal">265</span>
+<span class="normal">266</span>
+<span class="normal">267</span>
+<span class="normal">268</span>
+<span class="normal">269</span>
+<span class="normal">270</span>
+<span class="normal">271</span>
+<span class="normal">272</span>
+<span class="normal">273</span>
+<span class="normal">274</span>
+<span class="normal">275</span>
+<span class="normal">276</span>
+<span class="normal">277</span>
+<span class="normal">278</span>
+<span class="normal">279</span>
+<span class="normal">280</span>
+<span class="normal">281</span>
+<span class="normal">282</span>
+<span class="normal">283</span>
+<span class="normal">284</span>
+<span class="normal">285</span>
+<span class="normal">286</span>
+<span class="normal">287</span>
+<span class="normal">288</span>
+<span class="normal">289</span>
+<span class="normal">290</span>
+<span class="normal">291</span>
+<span class="normal">292</span>
+<span class="normal">293</span>
+<span class="normal">294</span>
+<span class="normal">295</span>
+<span class="normal">296</span>
+<span class="normal">297</span>
+<span class="normal">298</span>
+<span class="normal">299</span>
+<span class="normal">300</span>
+<span class="normal">301</span>
+<span class="normal">302</span>
+<span class="normal">303</span>
+<span class="normal">304</span>
+<span class="normal">305</span>
+<span class="normal">306</span>
+<span class="normal">307</span>
+<span class="normal">308</span>
+<span class="normal">309</span>
+<span class="normal">310</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">L2GPrediction</span><span class="p">(</span><span class="n">Dataset</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Dataset that contains the Locus to Gene predictions.</span>
 
@@ -3698,7 +3844,9 @@ confidence of the prediction that a gene is causal to an association.</p>
         <span class="n">credible_set</span><span class="p">:</span> <span class="n">StudyLocus</span><span class="p">,</span>
         <span class="n">feature_matrix</span><span class="p">:</span> <span class="n">L2GFeatureMatrix</span><span class="p">,</span>
         <span class="n">model_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">features_list</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">hf_token</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">hf_model_version</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">download_from_hub</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">L2GPrediction</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Extract L2G predictions for a set of credible sets derived from GWAS.</span>
@@ -3708,19 +3856,32 @@ confidence of the prediction that a gene is causal to an association.</p>
 <span class="sd">            credible_set (StudyLocus): Dataset containing credible sets from GWAS only</span>
 <span class="sd">            feature_matrix (L2GFeatureMatrix): Dataset containing all credible sets and their annotations</span>
 <span class="sd">            model_path (str | None): Path to the model file. It can be either in the filesystem or the name on the Hugging Face Hub (in the form of username/repo_name).</span>
+<span class="sd">            features_list (list[str] | None): Default list of features the model uses. Only used if the model is not downloaded from the Hub. CAUTION: This default list can differ from the actual list the model was trained on.</span>
 <span class="sd">            hf_token (str | None): Hugging Face token to download the model from the Hub. Only required if the model is private.</span>
+<span class="sd">            hf_model_version (str | None): Tag, branch, or commit hash to download the model from the Hub. If None, the latest commit is downloaded.</span>
 <span class="sd">            download_from_hub (bool): Whether to download the model from the Hugging Face Hub. Defaults to True.</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            L2GPrediction: L2G scores for a set of credible sets.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            AttributeError: If `features_list` is not provided and the model is not downloaded from the Hub.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1"># Load the model</span>
         <span class="k">if</span> <span class="n">download_from_hub</span><span class="p">:</span>
             <span class="c1"># Model ID defaults to &quot;opentargets/locus_to_gene&quot; and it assumes the name of the classifier is &quot;classifier.skops&quot;.</span>
             <span class="n">model_id</span> <span class="o">=</span> <span class="n">model_path</span> <span class="ow">or</span> <span class="s2">&quot;opentargets/locus_to_gene&quot;</span>
-            <span class="n">l2g_model</span> <span class="o">=</span> <span class="n">LocusToGeneModel</span><span class="o">.</span><span class="n">load_from_hub</span><span class="p">(</span><span class="n">model_id</span><span class="p">,</span> <span class="n">hf_token</span><span class="p">)</span>
+            <span class="n">l2g_model</span> <span class="o">=</span> <span class="n">LocusToGeneModel</span><span class="o">.</span><span class="n">load_from_hub</span><span class="p">(</span>
+                <span class="n">session</span><span class="p">,</span> <span class="n">model_id</span><span class="p">,</span> <span class="n">hf_model_version</span><span class="p">,</span> <span class="n">hf_token</span>
+            <span class="p">)</span>
         <span class="k">elif</span> <span class="n">model_path</span><span class="p">:</span>
-            <span class="n">l2g_model</span> <span class="o">=</span> <span class="n">LocusToGeneModel</span><span class="o">.</span><span class="n">load_from_disk</span><span class="p">(</span><span class="n">model_path</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">features_list</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span>
+                    <span class="s2">&quot;features_list is required if the model is not downloaded from the Hub&quot;</span>
+                <span class="p">)</span>
+            <span class="n">l2g_model</span> <span class="o">=</span> <span class="n">LocusToGeneModel</span><span class="o">.</span><span class="n">load_from_disk</span><span class="p">(</span>
+                <span class="n">session</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="n">model_path</span><span class="p">,</span> <span class="n">features_list</span><span class="o">=</span><span class="n">features_list</span>
+            <span class="p">)</span>
 
         <span class="c1"># Prepare data</span>
         <span class="n">fm</span> <span class="o">=</span> <span class="p">(</span>
@@ -3730,7 +3891,7 @@ confidence of the prediction that a gene is causal to an association.</p>
                     <span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="s2">&quot;studyLocusId&quot;</span><span class="p">)</span>
                     <span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">feature_matrix</span><span class="o">.</span><span class="n">_df</span><span class="p">,</span> <span class="s2">&quot;studyLocusId&quot;</span><span class="p">)</span>
                     <span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;isProteinCoding&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)</span>
-                <span class="p">)</span>
+                <span class="p">),</span>
             <span class="p">)</span>
             <span class="o">.</span><span class="n">fill_na</span><span class="p">()</span>
             <span class="o">.</span><span class="n">select_features</span><span class="p">(</span><span class="n">l2g_model</span><span class="o">.</span><span class="n">features_list</span><span class="p">)</span>
@@ -3778,7 +3939,131 @@ confidence of the prediction that a gene is causal to an association.</p>
             <span class="p">)</span>
         <span class="p">)</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">add_locus_to_gene_features</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">explain</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">:</span> <span class="n">L2GPrediction</span><span class="p">,</span> <span class="n">feature_matrix</span><span class="p">:</span> <span class="n">L2GFeatureMatrix</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">L2GPrediction</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Extract Shapley values for the L2G predictions and add them as a map in an additional column.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            feature_matrix (L2GFeatureMatrix | None): Feature matrix in case the predictions are missing the feature annotation. If None, the features are fetched from the dataset.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            L2GPrediction: L2GPrediction object with additional column containing feature name to Shapley value mappings</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: If the model is not set or If feature matrix is not provided and the predictions do not have features</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Fetch features if they are not present:</span>
+        <span class="k">if</span> <span class="s2">&quot;features&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">feature_matrix</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">&quot;Feature matrix is required to explain the L2G predictions&quot;</span>
+                <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_features</span><span class="p">(</span><span class="n">feature_matrix</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Model not set, explainer cannot be created&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Format and pivot the dataframe to pass them before calculating shapley values</span>
+        <span class="n">pdf</span> <span class="o">=</span> <span class="n">pivot_df</span><span class="p">(</span>
+            <span class="n">df</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">withColumn</span><span class="p">(</span><span class="s2">&quot;feature&quot;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">explode</span><span class="p">(</span><span class="s2">&quot;features&quot;</span><span class="p">))</span><span class="o">.</span><span class="n">select</span><span class="p">(</span>
+                <span class="s2">&quot;studyLocusId&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;geneId&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;score&quot;</span><span class="p">,</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;feature.name&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;feature_name&quot;</span><span class="p">),</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;feature.value&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;feature_value&quot;</span><span class="p">),</span>
+            <span class="p">),</span>
+            <span class="n">pivot_col</span><span class="o">=</span><span class="s2">&quot;feature_name&quot;</span><span class="p">,</span>
+            <span class="n">value_col</span><span class="o">=</span><span class="s2">&quot;feature_value&quot;</span><span class="p">,</span>
+            <span class="n">grouping_cols</span><span class="o">=</span><span class="p">[</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;studyLocusId&quot;</span><span class="p">),</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;geneId&quot;</span><span class="p">),</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;score&quot;</span><span class="p">)],</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">toPandas</span><span class="p">()</span>
+        <span class="n">pdf</span> <span class="o">=</span> <span class="n">pdf</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span>
+            <span class="c1"># trim the suffix that is added after pivoting the df</span>
+            <span class="n">columns</span><span class="o">=</span><span class="p">{</span>
+                <span class="n">col</span><span class="p">:</span> <span class="n">col</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;_feature_value&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">pdf</span><span class="o">.</span><span class="n">columns</span>
+                <span class="k">if</span> <span class="n">col</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;_feature_value&quot;</span><span class="p">)</span>
+            <span class="p">}</span>
+        <span class="p">)</span>
+
+        <span class="n">features_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">features_list</span>  <span class="c1"># The matrix needs to present the features in the same order that the model was trained on)</span>
+        <span class="n">base_value</span><span class="p">,</span> <span class="n">shap_values</span> <span class="o">=</span> <span class="n">L2GPrediction</span><span class="o">.</span><span class="n">_explain</span><span class="p">(</span>
+            <span class="n">model</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span>
+            <span class="n">pdf</span><span class="o">=</span><span class="n">pdf</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">items</span><span class="o">=</span><span class="n">features_list</span><span class="p">),</span>
+        <span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">feature</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">features_list</span><span class="p">):</span>
+            <span class="n">pdf</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;shap_</span><span class="si">{</span><span class="n">feature</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">row</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">shap_values</span><span class="p">]</span>
+
+        <span class="n">spark_session</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">sparkSession</span>
+        <span class="k">return</span> <span class="n">L2GPrediction</span><span class="p">(</span>
+            <span class="n">_df</span><span class="o">=</span><span class="p">(</span>
+                <span class="n">spark_session</span><span class="o">.</span><span class="n">createDataFrame</span><span class="p">(</span><span class="n">pdf</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(</span><span class="n">orient</span><span class="o">=</span><span class="s2">&quot;records&quot;</span><span class="p">))</span>
+                <span class="o">.</span><span class="n">withColumn</span><span class="p">(</span>
+                    <span class="s2">&quot;features&quot;</span><span class="p">,</span>
+                    <span class="n">f</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+                        <span class="o">*</span><span class="p">(</span>
+                            <span class="n">f</span><span class="o">.</span><span class="n">struct</span><span class="p">(</span>
+                                <span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="n">feature</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">),</span>
+                                <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="n">feature</span><span class="p">)</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="s2">&quot;float&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;value&quot;</span><span class="p">),</span>
+                                <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;shap_</span><span class="si">{</span><span class="n">feature</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                                <span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="s2">&quot;float&quot;</span><span class="p">)</span>
+                                <span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;shapValue&quot;</span><span class="p">),</span>
+                            <span class="p">)</span>
+                            <span class="k">for</span> <span class="n">feature</span> <span class="ow">in</span> <span class="n">features_list</span>
+                        <span class="p">)</span>
+                    <span class="p">),</span>
+                <span class="p">)</span>
+                <span class="o">.</span><span class="n">withColumn</span><span class="p">(</span><span class="s2">&quot;shapBaseValue&quot;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="n">base_value</span><span class="p">)</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="s2">&quot;float&quot;</span><span class="p">))</span>
+                <span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="o">*</span><span class="n">L2GPrediction</span><span class="o">.</span><span class="n">get_schema</span><span class="p">()</span><span class="o">.</span><span class="n">names</span><span class="p">)</span>
+            <span class="p">),</span>
+            <span class="n">_schema</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">get_schema</span><span class="p">(),</span>
+            <span class="n">model</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_explain</span><span class="p">(</span>
+        <span class="n">model</span><span class="p">:</span> <span class="n">LocusToGeneModel</span><span class="p">,</span> <span class="n">pdf</span><span class="p">:</span> <span class="n">pd_dataframe</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate SHAP values. Output is in probability form (approximated from the log odds ratios).</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            model (LocusToGeneModel): L2G model</span>
+<span class="sd">            pdf (pd_dataframe): Pandas dataframe containing the feature matrix in the same order that the model was trained on</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            tuple[float, list[list[float]]]: A tuple containing:</span>
+<span class="sd">                - base_value (float): Base value of the model</span>
+<span class="sd">                - shap_values (list[list[float]]): SHAP values for prediction</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            AttributeError: If model.training_data is not set, seed dataset to get shapley values cannot be created.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">model</span><span class="o">.</span><span class="n">training_data</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span>
+                <span class="s2">&quot;`model.training_data` is missing, seed dataset to get shapley values cannot be created.&quot;</span>
+            <span class="p">)</span>
+        <span class="n">background_data</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">model</span><span class="o">.</span><span class="n">training_data</span><span class="o">.</span><span class="n">_df</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="o">*</span><span class="n">model</span><span class="o">.</span><span class="n">features_list</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">toPandas</span><span class="p">()</span>
+            <span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">n</span><span class="o">=</span><span class="mi">1_000</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="n">explainer</span> <span class="o">=</span> <span class="n">shap</span><span class="o">.</span><span class="n">TreeExplainer</span><span class="p">(</span>
+            <span class="n">model</span><span class="o">.</span><span class="n">model</span><span class="p">,</span>
+            <span class="n">data</span><span class="o">=</span><span class="n">background_data</span><span class="p">,</span>
+            <span class="n">model_output</span><span class="o">=</span><span class="s2">&quot;probability&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">pdf</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">10_000</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="s2">&quot;Calculating SHAP values for more than 10,000 rows. This may take a while...&quot;</span>
+            <span class="p">)</span>
+        <span class="n">shap_values</span> <span class="o">=</span> <span class="n">explainer</span><span class="o">.</span><span class="n">shap_values</span><span class="p">(</span>
+            <span class="n">pdf</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(),</span>
+            <span class="n">check_additivity</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">base_value</span> <span class="o">=</span> <span class="n">explainer</span><span class="o">.</span><span class="n">expected_value</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">base_value</span><span class="p">,</span> <span class="n">shap_values</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">add_features</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">:</span> <span class="n">L2GPrediction</span><span class="p">,</span>
         <span class="n">feature_matrix</span><span class="p">:</span> <span class="n">L2GFeatureMatrix</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">L2GPrediction</span><span class="p">:</span>
@@ -3788,44 +4073,33 @@ confidence of the prediction that a gene is causal to an association.</p>
 <span class="sd">            feature_matrix (L2GFeatureMatrix): Feature matrix dataset</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            L2GPrediction: L2G predictions with additional features</span>
+<span class="sd">            L2GPrediction: L2G predictions with additional column `features`</span>
 
 <span class="sd">        Raises:</span>
 <span class="sd">            ValueError: If model is not set, feature list won&#39;t be available</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Model not set, feature annotation cannot be created.&quot;</span><span class="p">)</span>
-        <span class="c1"># Testing if `locusToGeneFeatures` column already exists:</span>
-        <span class="k">if</span> <span class="s2">&quot;locusToGeneFeatures&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="s2">&quot;locusToGeneFeatures&quot;</span><span class="p">)</span>
+        <span class="c1"># Testing if `features` column already exists:</span>
+        <span class="k">if</span> <span class="s2">&quot;features&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="s2">&quot;features&quot;</span><span class="p">)</span>
 
-        <span class="c1"># Aggregating all features into a single map column:</span>
-        <span class="n">aggregated_features</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="n">feature_matrix</span><span class="o">.</span><span class="n">_df</span><span class="o">.</span><span class="n">withColumn</span><span class="p">(</span>
-                <span class="s2">&quot;locusToGeneFeatures&quot;</span><span class="p">,</span>
-                <span class="n">f</span><span class="o">.</span><span class="n">create_map</span><span class="p">(</span>
-                    <span class="o">*</span><span class="nb">sum</span><span class="p">(</span>
-                        <span class="p">(</span>
-                            <span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="n">feature</span><span class="p">),</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="n">feature</span><span class="p">))</span>
-                            <span class="k">for</span> <span class="n">feature</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">features_list</span>
-                        <span class="p">),</span>
-                        <span class="p">(),</span>
-                    <span class="p">)</span>
-                <span class="p">),</span>
-            <span class="p">)</span>
-            <span class="o">.</span><span class="n">withColumn</span><span class="p">(</span>
-                <span class="s2">&quot;locusToGeneFeatures&quot;</span><span class="p">,</span>
-                <span class="n">f</span><span class="o">.</span><span class="n">expr</span><span class="p">(</span><span class="s2">&quot;map_filter(locusToGeneFeatures, (k, v) -&gt; v != 0)&quot;</span><span class="p">),</span>
-            <span class="p">)</span>
-            <span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">features_list</span><span class="p">)</span>
+        <span class="n">features_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">features_list</span>
+        <span class="n">feature_expressions</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">struct</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="n">col</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">),</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="n">col</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;value&quot;</span><span class="p">))</span>
+            <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">features_list</span>
+        <span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+            <span class="n">feature_matrix</span><span class="o">.</span><span class="n">_df</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="o">*</span><span class="n">features_list</span><span class="p">,</span> <span class="s2">&quot;studyLocusId&quot;</span><span class="p">,</span> <span class="s2">&quot;geneId&quot;</span><span class="p">),</span>
+            <span class="n">on</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;studyLocusId&quot;</span><span class="p">,</span> <span class="s2">&quot;geneId&quot;</span><span class="p">],</span>
+            <span class="n">how</span><span class="o">=</span><span class="s2">&quot;left&quot;</span><span class="p">,</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">select</span><span class="p">(</span>
+            <span class="s2">&quot;studyLocusId&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;geneId&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;score&quot;</span><span class="p">,</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="o">*</span><span class="n">feature_expressions</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;features&quot;</span><span class="p">),</span>
         <span class="p">)</span>
-        <span class="k">return</span> <span class="n">L2GPrediction</span><span class="p">(</span>
-            <span class="n">_df</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
-                <span class="n">aggregated_features</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;studyLocusId&quot;</span><span class="p">,</span> <span class="s2">&quot;geneId&quot;</span><span class="p">],</span> <span class="n">how</span><span class="o">=</span><span class="s2">&quot;left&quot;</span>
-            <span class="p">),</span>
-            <span class="n">_schema</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">get_schema</span><span class="p">(),</span>
-            <span class="n">model</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span>
-        <span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span>
 </code></pre></div></td></tr></table></div>
               </details>
 
@@ -3844,10 +4118,10 @@ confidence of the prediction that a gene is causal to an association.</p>
 <div class="doc doc-object doc-function">
 
 
-<h3 id="gentropy.dataset.l2g_prediction.L2GPrediction.add_locus_to_gene_features" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">add_locus_to_gene_features</span><span class="p">(</span><span class="n">feature_matrix</span><span class="p">:</span> <span class="n">L2GFeatureMatrix</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">L2GPrediction</span></code>
+<h3 id="gentropy.dataset.l2g_prediction.L2GPrediction.add_features" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">add_features</span><span class="p">(</span><span class="n">feature_matrix</span><span class="p">:</span> <span class="n">L2GFeatureMatrix</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">L2GPrediction</span></code>
 
-<a href="#gentropy.dataset.l2g_prediction.L2GPrediction.add_locus_to_gene_features" class="headerlink" title="Permanent link">&para;</a></h3>
+<a href="#gentropy.dataset.l2g_prediction.L2GPrediction.add_features" class="headerlink" title="Permanent link">&para;</a></h3>
 
 
     <div class="doc doc-contents ">
@@ -3901,7 +4175,7 @@ confidence of the prediction that a gene is causal to an association.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>L2G predictions with additional features</p>
+                <p>L2G predictions with additional column <code>features</code></p>
               </div>
             </td>
           </tr>
@@ -3933,27 +4207,178 @@ confidence of the prediction that a gene is causal to an association.</p>
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/dataset/l2g_prediction.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">130</span>
-<span class="normal">131</span>
-<span class="normal">132</span>
-<span class="normal">133</span>
-<span class="normal">134</span>
-<span class="normal">135</span>
-<span class="normal">136</span>
-<span class="normal">137</span>
-<span class="normal">138</span>
-<span class="normal">139</span>
-<span class="normal">140</span>
-<span class="normal">141</span>
-<span class="normal">142</span>
-<span class="normal">143</span>
-<span class="normal">144</span>
-<span class="normal">145</span>
-<span class="normal">146</span>
-<span class="normal">147</span>
-<span class="normal">148</span>
-<span class="normal">149</span>
-<span class="normal">150</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">274</span>
+<span class="normal">275</span>
+<span class="normal">276</span>
+<span class="normal">277</span>
+<span class="normal">278</span>
+<span class="normal">279</span>
+<span class="normal">280</span>
+<span class="normal">281</span>
+<span class="normal">282</span>
+<span class="normal">283</span>
+<span class="normal">284</span>
+<span class="normal">285</span>
+<span class="normal">286</span>
+<span class="normal">287</span>
+<span class="normal">288</span>
+<span class="normal">289</span>
+<span class="normal">290</span>
+<span class="normal">291</span>
+<span class="normal">292</span>
+<span class="normal">293</span>
+<span class="normal">294</span>
+<span class="normal">295</span>
+<span class="normal">296</span>
+<span class="normal">297</span>
+<span class="normal">298</span>
+<span class="normal">299</span>
+<span class="normal">300</span>
+<span class="normal">301</span>
+<span class="normal">302</span>
+<span class="normal">303</span>
+<span class="normal">304</span>
+<span class="normal">305</span>
+<span class="normal">306</span>
+<span class="normal">307</span>
+<span class="normal">308</span>
+<span class="normal">309</span>
+<span class="normal">310</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">add_features</span><span class="p">(</span>
+    <span class="bp">self</span><span class="p">:</span> <span class="n">L2GPrediction</span><span class="p">,</span>
+    <span class="n">feature_matrix</span><span class="p">:</span> <span class="n">L2GFeatureMatrix</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">L2GPrediction</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Add features used to extract the L2G predictions.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        feature_matrix (L2GFeatureMatrix): Feature matrix dataset</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        L2GPrediction: L2G predictions with additional column `features`</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError: If model is not set, feature list won&#39;t be available</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Model not set, feature annotation cannot be created.&quot;</span><span class="p">)</span>
+    <span class="c1"># Testing if `features` column already exists:</span>
+    <span class="k">if</span> <span class="s2">&quot;features&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="s2">&quot;features&quot;</span><span class="p">)</span>
+
+    <span class="n">features_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">features_list</span>
+    <span class="n">feature_expressions</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">struct</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="n">col</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">),</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="n">col</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;value&quot;</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">features_list</span>
+    <span class="p">]</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+        <span class="n">feature_matrix</span><span class="o">.</span><span class="n">_df</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="o">*</span><span class="n">features_list</span><span class="p">,</span> <span class="s2">&quot;studyLocusId&quot;</span><span class="p">,</span> <span class="s2">&quot;geneId&quot;</span><span class="p">),</span>
+        <span class="n">on</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;studyLocusId&quot;</span><span class="p">,</span> <span class="s2">&quot;geneId&quot;</span><span class="p">],</span>
+        <span class="n">how</span><span class="o">=</span><span class="s2">&quot;left&quot;</span><span class="p">,</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">select</span><span class="p">(</span>
+        <span class="s2">&quot;studyLocusId&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;geneId&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;score&quot;</span><span class="p">,</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="o">*</span><span class="n">feature_expressions</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;features&quot;</span><span class="p">),</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="bp">self</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="gentropy.dataset.l2g_prediction.L2GPrediction.explain" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">explain</span><span class="p">(</span><span class="n">feature_matrix</span><span class="p">:</span> <span class="n">L2GFeatureMatrix</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">L2GPrediction</span></code>
+
+<a href="#gentropy.dataset.l2g_prediction.L2GPrediction.explain" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Extract Shapley values for the L2G predictions and add them as a map in an additional column.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>feature_matrix</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="gentropy.dataset.l2g_feature_matrix.L2GFeatureMatrix" href="../l2g_feature_matrix/#gentropy.dataset.l2g_feature_matrix.L2GFeatureMatrix">L2GFeatureMatrix</a> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Feature matrix in case the predictions are missing the feature annotation. If None, the features are fetched from the dataset.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>L2GPrediction</code></td>            <td>
+                  <code><a class="autorefs autorefs-internal" title="gentropy.dataset.l2g_prediction.L2GPrediction" href="#gentropy.dataset.l2g_prediction.L2GPrediction">L2GPrediction</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>L2GPrediction object with additional column containing feature name to Shapley value mappings</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code>ValueError</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If the model is not set or If feature matrix is not provided and the predictions do not have features</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+            <details class="quote">
+              <summary>Source code in <code>src/gentropy/dataset/l2g_prediction.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">150</span>
 <span class="normal">151</span>
 <span class="normal">152</span>
 <span class="normal">153</span>
@@ -3980,50 +4405,134 @@ confidence of the prediction that a gene is causal to an association.</p>
 <span class="normal">174</span>
 <span class="normal">175</span>
 <span class="normal">176</span>
-<span class="normal">177</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">add_locus_to_gene_features</span><span class="p">(</span>
-    <span class="bp">self</span><span class="p">:</span> <span class="n">L2GPrediction</span><span class="p">,</span>
-    <span class="n">feature_matrix</span><span class="p">:</span> <span class="n">L2GFeatureMatrix</span><span class="p">,</span>
+<span class="normal">177</span>
+<span class="normal">178</span>
+<span class="normal">179</span>
+<span class="normal">180</span>
+<span class="normal">181</span>
+<span class="normal">182</span>
+<span class="normal">183</span>
+<span class="normal">184</span>
+<span class="normal">185</span>
+<span class="normal">186</span>
+<span class="normal">187</span>
+<span class="normal">188</span>
+<span class="normal">189</span>
+<span class="normal">190</span>
+<span class="normal">191</span>
+<span class="normal">192</span>
+<span class="normal">193</span>
+<span class="normal">194</span>
+<span class="normal">195</span>
+<span class="normal">196</span>
+<span class="normal">197</span>
+<span class="normal">198</span>
+<span class="normal">199</span>
+<span class="normal">200</span>
+<span class="normal">201</span>
+<span class="normal">202</span>
+<span class="normal">203</span>
+<span class="normal">204</span>
+<span class="normal">205</span>
+<span class="normal">206</span>
+<span class="normal">207</span>
+<span class="normal">208</span>
+<span class="normal">209</span>
+<span class="normal">210</span>
+<span class="normal">211</span>
+<span class="normal">212</span>
+<span class="normal">213</span>
+<span class="normal">214</span>
+<span class="normal">215</span>
+<span class="normal">216</span>
+<span class="normal">217</span>
+<span class="normal">218</span>
+<span class="normal">219</span>
+<span class="normal">220</span>
+<span class="normal">221</span>
+<span class="normal">222</span>
+<span class="normal">223</span>
+<span class="normal">224</span>
+<span class="normal">225</span>
+<span class="normal">226</span>
+<span class="normal">227</span>
+<span class="normal">228</span>
+<span class="normal">229</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">explain</span><span class="p">(</span>
+    <span class="bp">self</span><span class="p">:</span> <span class="n">L2GPrediction</span><span class="p">,</span> <span class="n">feature_matrix</span><span class="p">:</span> <span class="n">L2GFeatureMatrix</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">L2GPrediction</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Add features used to extract the L2G predictions.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Extract Shapley values for the L2G predictions and add them as a map in an additional column.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        feature_matrix (L2GFeatureMatrix): Feature matrix dataset</span>
+<span class="sd">        feature_matrix (L2GFeatureMatrix | None): Feature matrix in case the predictions are missing the feature annotation. If None, the features are fetched from the dataset.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        L2GPrediction: L2G predictions with additional features</span>
+<span class="sd">        L2GPrediction: L2GPrediction object with additional column containing feature name to Shapley value mappings</span>
 
 <span class="sd">    Raises:</span>
-<span class="sd">        ValueError: If model is not set, feature list won&#39;t be available</span>
+<span class="sd">        ValueError: If the model is not set or If feature matrix is not provided and the predictions do not have features</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Model not set, feature annotation cannot be created.&quot;</span><span class="p">)</span>
-    <span class="c1"># Testing if `locusToGeneFeatures` column already exists:</span>
-    <span class="k">if</span> <span class="s2">&quot;locusToGeneFeatures&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="s2">&quot;locusToGeneFeatures&quot;</span><span class="p">)</span>
+    <span class="c1"># Fetch features if they are not present:</span>
+    <span class="k">if</span> <span class="s2">&quot;features&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">feature_matrix</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Feature matrix is required to explain the L2G predictions&quot;</span>
+            <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_features</span><span class="p">(</span><span class="n">feature_matrix</span><span class="p">)</span>
 
-    <span class="c1"># Aggregating all features into a single map column:</span>
-    <span class="n">aggregated_features</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">feature_matrix</span><span class="o">.</span><span class="n">_df</span><span class="o">.</span><span class="n">withColumn</span><span class="p">(</span>
-            <span class="s2">&quot;locusToGeneFeatures&quot;</span><span class="p">,</span>
-            <span class="n">f</span><span class="o">.</span><span class="n">create_map</span><span class="p">(</span>
-                <span class="o">*</span><span class="nb">sum</span><span class="p">(</span>
-                    <span class="p">(</span>
-                        <span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="n">feature</span><span class="p">),</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="n">feature</span><span class="p">))</span>
-                        <span class="k">for</span> <span class="n">feature</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">features_list</span>
-                    <span class="p">),</span>
-                    <span class="p">(),</span>
-                <span class="p">)</span>
-            <span class="p">),</span>
-        <span class="p">)</span>
-        <span class="o">.</span><span class="n">withColumn</span><span class="p">(</span>
-            <span class="s2">&quot;locusToGeneFeatures&quot;</span><span class="p">,</span>
-            <span class="n">f</span><span class="o">.</span><span class="n">expr</span><span class="p">(</span><span class="s2">&quot;map_filter(locusToGeneFeatures, (k, v) -&gt; v != 0)&quot;</span><span class="p">),</span>
-        <span class="p">)</span>
-        <span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">features_list</span><span class="p">)</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Model not set, explainer cannot be created&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Format and pivot the dataframe to pass them before calculating shapley values</span>
+    <span class="n">pdf</span> <span class="o">=</span> <span class="n">pivot_df</span><span class="p">(</span>
+        <span class="n">df</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">withColumn</span><span class="p">(</span><span class="s2">&quot;feature&quot;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">explode</span><span class="p">(</span><span class="s2">&quot;features&quot;</span><span class="p">))</span><span class="o">.</span><span class="n">select</span><span class="p">(</span>
+            <span class="s2">&quot;studyLocusId&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;geneId&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;score&quot;</span><span class="p">,</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;feature.name&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;feature_name&quot;</span><span class="p">),</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;feature.value&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;feature_value&quot;</span><span class="p">),</span>
+        <span class="p">),</span>
+        <span class="n">pivot_col</span><span class="o">=</span><span class="s2">&quot;feature_name&quot;</span><span class="p">,</span>
+        <span class="n">value_col</span><span class="o">=</span><span class="s2">&quot;feature_value&quot;</span><span class="p">,</span>
+        <span class="n">grouping_cols</span><span class="o">=</span><span class="p">[</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;studyLocusId&quot;</span><span class="p">),</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;geneId&quot;</span><span class="p">),</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;score&quot;</span><span class="p">)],</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">toPandas</span><span class="p">()</span>
+    <span class="n">pdf</span> <span class="o">=</span> <span class="n">pdf</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span>
+        <span class="c1"># trim the suffix that is added after pivoting the df</span>
+        <span class="n">columns</span><span class="o">=</span><span class="p">{</span>
+            <span class="n">col</span><span class="p">:</span> <span class="n">col</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;_feature_value&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">pdf</span><span class="o">.</span><span class="n">columns</span>
+            <span class="k">if</span> <span class="n">col</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;_feature_value&quot;</span><span class="p">)</span>
+        <span class="p">}</span>
     <span class="p">)</span>
+
+    <span class="n">features_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">features_list</span>  <span class="c1"># The matrix needs to present the features in the same order that the model was trained on)</span>
+    <span class="n">base_value</span><span class="p">,</span> <span class="n">shap_values</span> <span class="o">=</span> <span class="n">L2GPrediction</span><span class="o">.</span><span class="n">_explain</span><span class="p">(</span>
+        <span class="n">model</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span>
+        <span class="n">pdf</span><span class="o">=</span><span class="n">pdf</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">items</span><span class="o">=</span><span class="n">features_list</span><span class="p">),</span>
+    <span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">feature</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">features_list</span><span class="p">):</span>
+        <span class="n">pdf</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;shap_</span><span class="si">{</span><span class="n">feature</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">row</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">shap_values</span><span class="p">]</span>
+
+    <span class="n">spark_session</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">sparkSession</span>
     <span class="k">return</span> <span class="n">L2GPrediction</span><span class="p">(</span>
-        <span class="n">_df</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
-            <span class="n">aggregated_features</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;studyLocusId&quot;</span><span class="p">,</span> <span class="s2">&quot;geneId&quot;</span><span class="p">],</span> <span class="n">how</span><span class="o">=</span><span class="s2">&quot;left&quot;</span>
+        <span class="n">_df</span><span class="o">=</span><span class="p">(</span>
+            <span class="n">spark_session</span><span class="o">.</span><span class="n">createDataFrame</span><span class="p">(</span><span class="n">pdf</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(</span><span class="n">orient</span><span class="o">=</span><span class="s2">&quot;records&quot;</span><span class="p">))</span>
+            <span class="o">.</span><span class="n">withColumn</span><span class="p">(</span>
+                <span class="s2">&quot;features&quot;</span><span class="p">,</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+                    <span class="o">*</span><span class="p">(</span>
+                        <span class="n">f</span><span class="o">.</span><span class="n">struct</span><span class="p">(</span>
+                            <span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="n">feature</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">),</span>
+                            <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="n">feature</span><span class="p">)</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="s2">&quot;float&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;value&quot;</span><span class="p">),</span>
+                            <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;shap_</span><span class="si">{</span><span class="n">feature</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                            <span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="s2">&quot;float&quot;</span><span class="p">)</span>
+                            <span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;shapValue&quot;</span><span class="p">),</span>
+                        <span class="p">)</span>
+                        <span class="k">for</span> <span class="n">feature</span> <span class="ow">in</span> <span class="n">features_list</span>
+                    <span class="p">)</span>
+                <span class="p">),</span>
+            <span class="p">)</span>
+            <span class="o">.</span><span class="n">withColumn</span><span class="p">(</span><span class="s2">&quot;shapBaseValue&quot;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="n">base_value</span><span class="p">)</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="s2">&quot;float&quot;</span><span class="p">))</span>
+            <span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="o">*</span><span class="n">L2GPrediction</span><span class="o">.</span><span class="n">get_schema</span><span class="p">()</span><span class="o">.</span><span class="n">names</span><span class="p">)</span>
         <span class="p">),</span>
         <span class="n">_schema</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">get_schema</span><span class="p">(),</span>
         <span class="n">model</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span>
@@ -4038,7 +4547,7 @@ confidence of the prediction that a gene is causal to an association.</p>
 
 
 <h3 id="gentropy.dataset.l2g_prediction.L2GPrediction.from_credible_set" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">from_credible_set</span><span class="p">(</span><span class="n">session</span><span class="p">:</span> <span class="n">Session</span><span class="p">,</span> <span class="n">credible_set</span><span class="p">:</span> <span class="n">StudyLocus</span><span class="p">,</span> <span class="n">feature_matrix</span><span class="p">:</span> <span class="n">L2GFeatureMatrix</span><span class="p">,</span> <span class="n">model_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">hf_token</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">download_from_hub</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">L2GPrediction</span></code>
+            <code class="highlight language-python"><span class="n">from_credible_set</span><span class="p">(</span><span class="n">session</span><span class="p">:</span> <span class="n">Session</span><span class="p">,</span> <span class="n">credible_set</span><span class="p">:</span> <span class="n">StudyLocus</span><span class="p">,</span> <span class="n">feature_matrix</span><span class="p">:</span> <span class="n">L2GFeatureMatrix</span><span class="p">,</span> <span class="n">model_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">features_list</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">hf_token</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">hf_model_version</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">download_from_hub</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">L2GPrediction</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
@@ -4129,6 +4638,22 @@ confidence of the prediction that a gene is causal to an association.</p>
           </tr>
           <tr class="doc-section-item">
             <td>
+                <code>features_list</code>
+            </td>
+            <td>
+                  <code>list[str] | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Default list of features the model uses. Only used if the model is not downloaded from the Hub. CAUTION: This default list can differ from the actual list the model was trained on.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
                 <code>hf_token</code>
             </td>
             <td>
@@ -4137,6 +4662,22 @@ confidence of the prediction that a gene is causal to an association.</p>
             <td>
               <div class="doc-md-description">
                 <p>Hugging Face token to download the model from the Hub. Only required if the model is private.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>hf_model_version</code>
+            </td>
+            <td>
+                  <code>str | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Tag, branch, or commit hash to download the model from the Hub. If None, the latest commit is downloaded.</p>
               </div>
             </td>
             <td>
@@ -4185,60 +4726,100 @@ confidence of the prediction that a gene is causal to an association.</p>
       </tbody>
     </table>
 
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code>AttributeError</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If <code>features_list</code> is not provided and the model is not downloaded from the Hub.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
             <details class="quote">
               <summary>Source code in <code>src/gentropy/dataset/l2g_prediction.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">43</span>
-<span class="normal">44</span>
-<span class="normal">45</span>
-<span class="normal">46</span>
-<span class="normal">47</span>
-<span class="normal">48</span>
-<span class="normal">49</span>
-<span class="normal">50</span>
-<span class="normal">51</span>
-<span class="normal">52</span>
-<span class="normal">53</span>
-<span class="normal">54</span>
-<span class="normal">55</span>
-<span class="normal">56</span>
-<span class="normal">57</span>
-<span class="normal">58</span>
-<span class="normal">59</span>
-<span class="normal">60</span>
-<span class="normal">61</span>
-<span class="normal">62</span>
-<span class="normal">63</span>
-<span class="normal">64</span>
-<span class="normal">65</span>
-<span class="normal">66</span>
-<span class="normal">67</span>
-<span class="normal">68</span>
-<span class="normal">69</span>
-<span class="normal">70</span>
-<span class="normal">71</span>
-<span class="normal">72</span>
-<span class="normal">73</span>
-<span class="normal">74</span>
-<span class="normal">75</span>
-<span class="normal">76</span>
-<span class="normal">77</span>
-<span class="normal">78</span>
-<span class="normal">79</span>
-<span class="normal">80</span>
-<span class="normal">81</span>
-<span class="normal">82</span>
-<span class="normal">83</span>
-<span class="normal">84</span>
-<span class="normal">85</span>
-<span class="normal">86</span>
-<span class="normal">87</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 48</span>
+<span class="normal"> 49</span>
+<span class="normal"> 50</span>
+<span class="normal"> 51</span>
+<span class="normal"> 52</span>
+<span class="normal"> 53</span>
+<span class="normal"> 54</span>
+<span class="normal"> 55</span>
+<span class="normal"> 56</span>
+<span class="normal"> 57</span>
+<span class="normal"> 58</span>
+<span class="normal"> 59</span>
+<span class="normal"> 60</span>
+<span class="normal"> 61</span>
+<span class="normal"> 62</span>
+<span class="normal"> 63</span>
+<span class="normal"> 64</span>
+<span class="normal"> 65</span>
+<span class="normal"> 66</span>
+<span class="normal"> 67</span>
+<span class="normal"> 68</span>
+<span class="normal"> 69</span>
+<span class="normal"> 70</span>
+<span class="normal"> 71</span>
+<span class="normal"> 72</span>
+<span class="normal"> 73</span>
+<span class="normal"> 74</span>
+<span class="normal"> 75</span>
+<span class="normal"> 76</span>
+<span class="normal"> 77</span>
+<span class="normal"> 78</span>
+<span class="normal"> 79</span>
+<span class="normal"> 80</span>
+<span class="normal"> 81</span>
+<span class="normal"> 82</span>
+<span class="normal"> 83</span>
+<span class="normal"> 84</span>
+<span class="normal"> 85</span>
+<span class="normal"> 86</span>
+<span class="normal"> 87</span>
+<span class="normal"> 88</span>
+<span class="normal"> 89</span>
+<span class="normal"> 90</span>
+<span class="normal"> 91</span>
+<span class="normal"> 92</span>
+<span class="normal"> 93</span>
+<span class="normal"> 94</span>
+<span class="normal"> 95</span>
+<span class="normal"> 96</span>
+<span class="normal"> 97</span>
+<span class="normal"> 98</span>
+<span class="normal"> 99</span>
+<span class="normal">100</span>
+<span class="normal">101</span>
+<span class="normal">102</span>
+<span class="normal">103</span>
+<span class="normal">104</span>
+<span class="normal">105</span>
+<span class="normal">106</span>
+<span class="normal">107</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">from_credible_set</span><span class="p">(</span>
     <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">L2GPrediction</span><span class="p">],</span>
     <span class="n">session</span><span class="p">:</span> <span class="n">Session</span><span class="p">,</span>
     <span class="n">credible_set</span><span class="p">:</span> <span class="n">StudyLocus</span><span class="p">,</span>
     <span class="n">feature_matrix</span><span class="p">:</span> <span class="n">L2GFeatureMatrix</span><span class="p">,</span>
     <span class="n">model_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">features_list</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">hf_token</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">hf_model_version</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">download_from_hub</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">L2GPrediction</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Extract L2G predictions for a set of credible sets derived from GWAS.</span>
@@ -4248,19 +4829,32 @@ confidence of the prediction that a gene is causal to an association.</p>
 <span class="sd">        credible_set (StudyLocus): Dataset containing credible sets from GWAS only</span>
 <span class="sd">        feature_matrix (L2GFeatureMatrix): Dataset containing all credible sets and their annotations</span>
 <span class="sd">        model_path (str | None): Path to the model file. It can be either in the filesystem or the name on the Hugging Face Hub (in the form of username/repo_name).</span>
+<span class="sd">        features_list (list[str] | None): Default list of features the model uses. Only used if the model is not downloaded from the Hub. CAUTION: This default list can differ from the actual list the model was trained on.</span>
 <span class="sd">        hf_token (str | None): Hugging Face token to download the model from the Hub. Only required if the model is private.</span>
+<span class="sd">        hf_model_version (str | None): Tag, branch, or commit hash to download the model from the Hub. If None, the latest commit is downloaded.</span>
 <span class="sd">        download_from_hub (bool): Whether to download the model from the Hugging Face Hub. Defaults to True.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        L2GPrediction: L2G scores for a set of credible sets.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        AttributeError: If `features_list` is not provided and the model is not downloaded from the Hub.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># Load the model</span>
     <span class="k">if</span> <span class="n">download_from_hub</span><span class="p">:</span>
         <span class="c1"># Model ID defaults to &quot;opentargets/locus_to_gene&quot; and it assumes the name of the classifier is &quot;classifier.skops&quot;.</span>
         <span class="n">model_id</span> <span class="o">=</span> <span class="n">model_path</span> <span class="ow">or</span> <span class="s2">&quot;opentargets/locus_to_gene&quot;</span>
-        <span class="n">l2g_model</span> <span class="o">=</span> <span class="n">LocusToGeneModel</span><span class="o">.</span><span class="n">load_from_hub</span><span class="p">(</span><span class="n">model_id</span><span class="p">,</span> <span class="n">hf_token</span><span class="p">)</span>
+        <span class="n">l2g_model</span> <span class="o">=</span> <span class="n">LocusToGeneModel</span><span class="o">.</span><span class="n">load_from_hub</span><span class="p">(</span>
+            <span class="n">session</span><span class="p">,</span> <span class="n">model_id</span><span class="p">,</span> <span class="n">hf_model_version</span><span class="p">,</span> <span class="n">hf_token</span>
+        <span class="p">)</span>
     <span class="k">elif</span> <span class="n">model_path</span><span class="p">:</span>
-        <span class="n">l2g_model</span> <span class="o">=</span> <span class="n">LocusToGeneModel</span><span class="o">.</span><span class="n">load_from_disk</span><span class="p">(</span><span class="n">model_path</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">features_list</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span>
+                <span class="s2">&quot;features_list is required if the model is not downloaded from the Hub&quot;</span>
+            <span class="p">)</span>
+        <span class="n">l2g_model</span> <span class="o">=</span> <span class="n">LocusToGeneModel</span><span class="o">.</span><span class="n">load_from_disk</span><span class="p">(</span>
+            <span class="n">session</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="n">model_path</span><span class="p">,</span> <span class="n">features_list</span><span class="o">=</span><span class="n">features_list</span>
+        <span class="p">)</span>
 
     <span class="c1"># Prepare data</span>
     <span class="n">fm</span> <span class="o">=</span> <span class="p">(</span>
@@ -4270,7 +4864,7 @@ confidence of the prediction that a gene is causal to an association.</p>
                 <span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="s2">&quot;studyLocusId&quot;</span><span class="p">)</span>
                 <span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">feature_matrix</span><span class="o">.</span><span class="n">_df</span><span class="p">,</span> <span class="s2">&quot;studyLocusId&quot;</span><span class="p">)</span>
                 <span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;isProteinCoding&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)</span>
-            <span class="p">)</span>
+            <span class="p">),</span>
         <span class="p">)</span>
         <span class="o">.</span><span class="n">fill_na</span><span class="p">()</span>
         <span class="o">.</span><span class="n">select_features</span><span class="p">(</span><span class="n">l2g_model</span><span class="o">.</span><span class="n">features_list</span><span class="p">)</span>
@@ -4324,14 +4918,14 @@ confidence of the prediction that a gene is causal to an association.</p>
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/dataset/l2g_prediction.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">34</span>
-<span class="normal">35</span>
-<span class="normal">36</span>
-<span class="normal">37</span>
-<span class="normal">38</span>
-<span class="normal">39</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">39</span>
 <span class="normal">40</span>
-<span class="normal">41</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
+<span class="normal">41</span>
+<span class="normal">42</span>
+<span class="normal">43</span>
+<span class="normal">44</span>
+<span class="normal">45</span>
+<span class="normal">46</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">get_schema</span><span class="p">(</span><span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">L2GPrediction</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">StructType</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Provides the schema for the L2GPrediction dataset.</span>
 
@@ -4446,27 +5040,7 @@ confidence of the prediction that a gene is causal to an association.</p>
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/dataset/l2g_prediction.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 89</span>
-<span class="normal"> 90</span>
-<span class="normal"> 91</span>
-<span class="normal"> 92</span>
-<span class="normal"> 93</span>
-<span class="normal"> 94</span>
-<span class="normal"> 95</span>
-<span class="normal"> 96</span>
-<span class="normal"> 97</span>
-<span class="normal"> 98</span>
-<span class="normal"> 99</span>
-<span class="normal">100</span>
-<span class="normal">101</span>
-<span class="normal">102</span>
-<span class="normal">103</span>
-<span class="normal">104</span>
-<span class="normal">105</span>
-<span class="normal">106</span>
-<span class="normal">107</span>
-<span class="normal">108</span>
-<span class="normal">109</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">109</span>
 <span class="normal">110</span>
 <span class="normal">111</span>
 <span class="normal">112</span>
@@ -4485,7 +5059,27 @@ confidence of the prediction that a gene is causal to an association.</p>
 <span class="normal">125</span>
 <span class="normal">126</span>
 <span class="normal">127</span>
-<span class="normal">128</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">to_disease_target_evidence</span><span class="p">(</span>
+<span class="normal">128</span>
+<span class="normal">129</span>
+<span class="normal">130</span>
+<span class="normal">131</span>
+<span class="normal">132</span>
+<span class="normal">133</span>
+<span class="normal">134</span>
+<span class="normal">135</span>
+<span class="normal">136</span>
+<span class="normal">137</span>
+<span class="normal">138</span>
+<span class="normal">139</span>
+<span class="normal">140</span>
+<span class="normal">141</span>
+<span class="normal">142</span>
+<span class="normal">143</span>
+<span class="normal">144</span>
+<span class="normal">145</span>
+<span class="normal">146</span>
+<span class="normal">147</span>
+<span class="normal">148</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">to_disease_target_evidence</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">:</span> <span class="n">L2GPrediction</span><span class="p">,</span>
     <span class="n">study_locus</span><span class="p">:</span> <span class="n">StudyLocus</span><span class="p">,</span>
     <span class="n">study_index</span><span class="p">:</span> <span class="n">StudyIndex</span><span class="p">,</span>
@@ -4542,9 +5136,12 @@ confidence of the prediction that a gene is causal to an association.</p>
  |-- studyLocusId: string (nullable = false)
  |-- geneId: string (nullable = false)
  |-- score: double (nullable = false)
- |-- locusToGeneFeatures: map (nullable = true)
- |    |-- key: string
- |    |-- value: float (valueContainsNull = true)
+ |-- features: array (nullable = true)
+ |    |-- element: struct (containsNull = false)
+ |    |    |-- name: string (nullable = false)
+ |    |    |-- value: float (nullable = false)
+ |    |    |-- shapValue: float (nullable = true)
+ |-- shapBaseValue: float (nullable = true)
 </code></pre></div>
 <hr />
 <div class="md-source-file">

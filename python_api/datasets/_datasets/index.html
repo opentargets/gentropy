@@ -3878,7 +3878,9 @@ method which must be implemented by the child classes.</p>
 <span class="normal">370</span>
 <span class="normal">371</span>
 <span class="normal">372</span>
-<span class="normal">373</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
+<span class="normal">373</span>
+<span class="normal">374</span>
+<span class="normal">375</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">Dataset</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Open Targets Gentropy Dataset Interface.</span>
 
@@ -4027,15 +4029,17 @@ method which must be implemented by the child classes.</p>
     <span class="k">def</span><span class="w"> </span><span class="nf">filter</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">Self</span><span class="p">,</span> <span class="n">condition</span><span class="p">:</span> <span class="n">Column</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Creates a new instance of a Dataset with the DataFrame filtered by the condition.</span>
 
+<span class="sd">        Preserves all attributes from the original instance.</span>
+
 <span class="sd">        Args:</span>
 <span class="sd">            condition (Column): Condition to filter the DataFrame</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            Self: Filtered Dataset</span>
+<span class="sd">            Self: Filtered Dataset with preserved attributes</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_df</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">condition</span><span class="p">)</span>
-        <span class="n">class_constructor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span>
-        <span class="k">return</span> <span class="n">class_constructor</span><span class="p">(</span><span class="n">_df</span><span class="o">=</span><span class="n">df</span><span class="p">,</span> <span class="n">_schema</span><span class="o">=</span><span class="n">class_constructor</span><span class="o">.</span><span class="n">get_schema</span><span class="p">())</span>
+        <span class="n">filtered_df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_df</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">condition</span><span class="p">)</span>
+        <span class="n">attrs</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">k</span> <span class="o">!=</span> <span class="s2">&quot;_df&quot;</span><span class="p">}</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span><span class="n">_df</span><span class="o">=</span><span class="n">filtered_df</span><span class="p">,</span> <span class="o">**</span><span class="n">attrs</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">validate_schema</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">Dataset</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Validate DataFrame schema against expected class schema.</span>
@@ -4414,9 +4418,7 @@ method which must be implemented by the child classes.</p>
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/dataset/dataset.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">291</span>
-<span class="normal">292</span>
-<span class="normal">293</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">293</span>
 <span class="normal">294</span>
 <span class="normal">295</span>
 <span class="normal">296</span>
@@ -4427,7 +4429,9 @@ method which must be implemented by the child classes.</p>
 <span class="normal">301</span>
 <span class="normal">302</span>
 <span class="normal">303</span>
-<span class="normal">304</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">coalesce</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">Self</span><span class="p">,</span> <span class="n">num_partitions</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
+<span class="normal">304</span>
+<span class="normal">305</span>
+<span class="normal">306</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">coalesce</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">Self</span><span class="p">,</span> <span class="n">num_partitions</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Coalesce the DataFrame included in the Dataset.</span>
 
 <span class="sd">    Coalescing is efficient for decreasing the number of partitions because it avoids a full shuffle of the data.</span>
@@ -4518,9 +4522,7 @@ The implementation comes from https://stackoverflow.com/questions/34432998/how-t
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/dataset/dataset.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">250</span>
-<span class="normal">251</span>
-<span class="normal">252</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">252</span>
 <span class="normal">253</span>
 <span class="normal">254</span>
 <span class="normal">255</span>
@@ -4539,7 +4541,9 @@ The implementation comes from https://stackoverflow.com/questions/34432998/how-t
 <span class="normal">268</span>
 <span class="normal">269</span>
 <span class="normal">270</span>
-<span class="normal">271</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">drop_infinity_values</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">Self</span><span class="p">,</span> <span class="o">*</span><span class="n">cols</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
+<span class="normal">271</span>
+<span class="normal">272</span>
+<span class="normal">273</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">drop_infinity_values</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">Self</span><span class="p">,</span> <span class="o">*</span><span class="n">cols</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Drop infinity values from Double typed column.</span>
 
 <span class="sd">    Infinity type reference - https://spark.apache.org/docs/latest/sql-ref-datatypes.html#floating-point-special-values</span>
@@ -4579,6 +4583,7 @@ The implementation comes from https://stackoverflow.com/questions/34432998/how-t
     <div class="doc doc-contents ">
 
         <p>Creates a new instance of a Dataset with the DataFrame filtered by the condition.</p>
+<p>Preserves all attributes from the original instance.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -4627,7 +4632,7 @@ The implementation comes from https://stackoverflow.com/questions/34432998/how-t
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Filtered Dataset</p>
+                <p>Filtered Dataset with preserved attributes</p>
               </div>
             </td>
           </tr>
@@ -4647,18 +4652,22 @@ The implementation comes from https://stackoverflow.com/questions/34432998/how-t
 <span class="normal">182</span>
 <span class="normal">183</span>
 <span class="normal">184</span>
-<span class="normal">185</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">filter</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">Self</span><span class="p">,</span> <span class="n">condition</span><span class="p">:</span> <span class="n">Column</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
+<span class="normal">185</span>
+<span class="normal">186</span>
+<span class="normal">187</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">filter</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">Self</span><span class="p">,</span> <span class="n">condition</span><span class="p">:</span> <span class="n">Column</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Creates a new instance of a Dataset with the DataFrame filtered by the condition.</span>
+
+<span class="sd">    Preserves all attributes from the original instance.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        condition (Column): Condition to filter the DataFrame</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        Self: Filtered Dataset</span>
+<span class="sd">        Self: Filtered Dataset with preserved attributes</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_df</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">condition</span><span class="p">)</span>
-    <span class="n">class_constructor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span>
-    <span class="k">return</span> <span class="n">class_constructor</span><span class="p">(</span><span class="n">_df</span><span class="o">=</span><span class="n">df</span><span class="p">,</span> <span class="n">_schema</span><span class="o">=</span><span class="n">class_constructor</span><span class="o">.</span><span class="n">get_schema</span><span class="p">())</span>
+    <span class="n">filtered_df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_df</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">condition</span><span class="p">)</span>
+    <span class="n">attrs</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">k</span> <span class="o">!=</span> <span class="s2">&quot;_df&quot;</span><span class="p">}</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span><span class="n">_df</span><span class="o">=</span><span class="n">filtered_df</span><span class="p">,</span> <span class="o">**</span><span class="n">attrs</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -4739,9 +4748,7 @@ The implementation comes from https://stackoverflow.com/questions/34432998/how-t
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/dataset/dataset.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">341</span>
-<span class="normal">342</span>
-<span class="normal">343</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">343</span>
 <span class="normal">344</span>
 <span class="normal">345</span>
 <span class="normal">346</span>
@@ -4753,7 +4760,9 @@ The implementation comes from https://stackoverflow.com/questions/34432998/how-t
 <span class="normal">352</span>
 <span class="normal">353</span>
 <span class="normal">354</span>
-<span class="normal">355</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@staticmethod</span>
+<span class="normal">355</span>
+<span class="normal">356</span>
+<span class="normal">357</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@staticmethod</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">flag_duplicates</span><span class="p">(</span><span class="n">test_column</span><span class="p">:</span> <span class="n">Column</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Return True for rows, where the value was already seen in column.</span>
 
@@ -5038,9 +5047,7 @@ The implementation comes from https://stackoverflow.com/questions/34432998/how-t
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/dataset/dataset.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">357</span>
-<span class="normal">358</span>
-<span class="normal">359</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">359</span>
 <span class="normal">360</span>
 <span class="normal">361</span>
 <span class="normal">362</span>
@@ -5054,7 +5061,9 @@ The implementation comes from https://stackoverflow.com/questions/34432998/how-t
 <span class="normal">370</span>
 <span class="normal">371</span>
 <span class="normal">372</span>
-<span class="normal">373</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@staticmethod</span>
+<span class="normal">373</span>
+<span class="normal">374</span>
+<span class="normal">375</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@staticmethod</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">generate_identifier</span><span class="p">(</span><span class="n">uniqueness_defining_columns</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Hashes the provided columns to generate a unique identifier.</span>
 
@@ -5341,14 +5350,14 @@ The implementation comes from https://stackoverflow.com/questions/34432998/how-t
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/dataset/dataset.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">273</span>
-<span class="normal">274</span>
-<span class="normal">275</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">275</span>
 <span class="normal">276</span>
 <span class="normal">277</span>
 <span class="normal">278</span>
 <span class="normal">279</span>
-<span class="normal">280</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">persist</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">Self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
+<span class="normal">280</span>
+<span class="normal">281</span>
+<span class="normal">282</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">persist</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">Self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Persist in memory the DataFrame included in the Dataset.</span>
 
 <span class="sd">    Returns:</span>
@@ -5448,9 +5457,7 @@ The implementation comes from https://stackoverflow.com/questions/34432998/how-t
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/dataset/dataset.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">306</span>
-<span class="normal">307</span>
-<span class="normal">308</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">308</span>
 <span class="normal">309</span>
 <span class="normal">310</span>
 <span class="normal">311</span>
@@ -5461,7 +5468,9 @@ The implementation comes from https://stackoverflow.com/questions/34432998/how-t
 <span class="normal">316</span>
 <span class="normal">317</span>
 <span class="normal">318</span>
-<span class="normal">319</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">repartition</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">Self</span><span class="p">,</span> <span class="n">num_partitions</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
+<span class="normal">319</span>
+<span class="normal">320</span>
+<span class="normal">321</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">repartition</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">Self</span><span class="p">,</span> <span class="n">num_partitions</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Repartition the DataFrame included in the Dataset.</span>
 
 <span class="sd">    Repartitioning creates new partitions with data that is distributed evenly.</span>
@@ -5519,14 +5528,14 @@ The implementation comes from https://stackoverflow.com/questions/34432998/how-t
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/dataset/dataset.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">282</span>
-<span class="normal">283</span>
-<span class="normal">284</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">284</span>
 <span class="normal">285</span>
 <span class="normal">286</span>
 <span class="normal">287</span>
 <span class="normal">288</span>
-<span class="normal">289</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">unpersist</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">Self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
+<span class="normal">289</span>
+<span class="normal">290</span>
+<span class="normal">291</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">unpersist</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">Self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Remove the persisted DataFrame from memory.</span>
 
 <span class="sd">    Returns:</span>
@@ -5645,9 +5654,7 @@ The implementation comes from https://stackoverflow.com/questions/34432998/how-t
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/dataset/dataset.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">321</span>
-<span class="normal">322</span>
-<span class="normal">323</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">323</span>
 <span class="normal">324</span>
 <span class="normal">325</span>
 <span class="normal">326</span>
@@ -5663,7 +5670,9 @@ The implementation comes from https://stackoverflow.com/questions/34432998/how-t
 <span class="normal">336</span>
 <span class="normal">337</span>
 <span class="normal">338</span>
-<span class="normal">339</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@staticmethod</span>
+<span class="normal">339</span>
+<span class="normal">340</span>
+<span class="normal">341</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@staticmethod</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">update_quality_flag</span><span class="p">(</span>
     <span class="n">qc</span><span class="p">:</span> <span class="n">Column</span><span class="p">,</span> <span class="n">flag_condition</span><span class="p">:</span> <span class="n">Column</span><span class="p">,</span> <span class="n">flag_text</span><span class="p">:</span> <span class="n">Enum</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
@@ -5800,9 +5809,7 @@ The implementation comes from https://stackoverflow.com/questions/34432998/how-t
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/dataset/dataset.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">202</span>
-<span class="normal">203</span>
-<span class="normal">204</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">204</span>
 <span class="normal">205</span>
 <span class="normal">206</span>
 <span class="normal">207</span>
@@ -5846,7 +5853,9 @@ The implementation comes from https://stackoverflow.com/questions/34432998/how-t
 <span class="normal">245</span>
 <span class="normal">246</span>
 <span class="normal">247</span>
-<span class="normal">248</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">valid_rows</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">Self</span><span class="p">,</span> <span class="n">invalid_flags</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">invalid</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
+<span class="normal">248</span>
+<span class="normal">249</span>
+<span class="normal">250</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">valid_rows</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">Self</span><span class="p">,</span> <span class="n">invalid_flags</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">invalid</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Filters `Dataset` according to a list of quality control flags. Only `Dataset` classes with a QC column can be validated.</span>
 
 <span class="sd">    This method checks do following steps:</span>
@@ -5937,9 +5946,7 @@ The implementation comes from https://stackoverflow.com/questions/34432998/how-t
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/dataset/dataset.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">187</span>
-<span class="normal">188</span>
-<span class="normal">189</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">189</span>
 <span class="normal">190</span>
 <span class="normal">191</span>
 <span class="normal">192</span>
@@ -5950,7 +5957,9 @@ The implementation comes from https://stackoverflow.com/questions/34432998/how-t
 <span class="normal">197</span>
 <span class="normal">198</span>
 <span class="normal">199</span>
-<span class="normal">200</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">validate_schema</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">Dataset</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="normal">200</span>
+<span class="normal">201</span>
+<span class="normal">202</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">validate_schema</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">Dataset</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Validate DataFrame schema against expected class schema.</span>
 
 <span class="sd">    Raises:</span>

@@ -3930,7 +3930,12 @@
 <span class="normal">468</span>
 <span class="normal">469</span>
 <span class="normal">470</span>
-<span class="normal">471</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
+<span class="normal">471</span>
+<span class="normal">472</span>
+<span class="normal">473</span>
+<span class="normal">474</span>
+<span class="normal">475</span>
+<span class="normal">476</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">LocusToGeneTrainer</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Modelling of what is the most likely causal gene associated with a given locus.&quot;&quot;&quot;</span>
 
@@ -3966,15 +3971,16 @@
 
 <span class="sd">        Raises:</span>
 <span class="sd">            ValueError: Train data not set, nothing to fit.</span>
+<span class="sd">            AssertionError: When x_train_size or y_train_size are not zero.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">x_train</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
             <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">y_train</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
             <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">features_list</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
         <span class="p">):</span>
-            <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_train</span><span class="o">.</span><span class="n">size</span> <span class="o">!=</span> <span class="mi">0</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">y_train</span><span class="o">.</span><span class="n">size</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">,</span> <span class="p">(</span>
-                <span class="s2">&quot;Train data not set, nothing to fit.&quot;</span>
-            <span class="p">)</span>
+            <span class="k">assert</span> <span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">x_train</span><span class="o">.</span><span class="n">size</span> <span class="o">!=</span> <span class="mi">0</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">y_train</span><span class="o">.</span><span class="n">size</span> <span class="o">!=</span> <span class="mi">0</span>
+            <span class="p">),</span> <span class="s2">&quot;Train data not set, nothing to fit.&quot;</span>
             <span class="n">fitted_model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">x_train</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">y_train</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">LocusToGeneModel</span><span class="p">(</span>
                 <span class="n">model</span><span class="o">=</span><span class="n">fitted_model</span><span class="p">,</span>
@@ -3989,7 +3995,7 @@
         <span class="bp">self</span><span class="p">:</span> <span class="n">LocusToGeneTrainer</span><span class="p">,</span>
         <span class="n">model</span><span class="p">:</span> <span class="n">LocusToGeneModel</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Explanation</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the SHAP values for the given model and data. We pass the full X matrix (without the labels) to interpret their shap values.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the SHAP values for the given model and data. We sample the full X matrix (without the labels) to interpret their shap values.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            model (LocusToGeneModel): Model to explain.</span>
@@ -4010,12 +4016,15 @@
                 <span class="n">model</span><span class="o">.</span><span class="n">model</span><span class="p">,</span>
                 <span class="n">data</span><span class="o">=</span><span class="n">training_data</span><span class="p">,</span>
                 <span class="n">feature_perturbation</span><span class="o">=</span><span class="s2">&quot;interventional&quot;</span><span class="p">,</span>
+                <span class="n">model_output</span><span class="o">=</span><span class="s2">&quot;probability&quot;</span><span class="p">,</span>
             <span class="p">)</span>
             <span class="k">try</span><span class="p">:</span>
-                <span class="k">return</span> <span class="n">explainer</span><span class="p">(</span><span class="n">training_data</span><span class="p">)</span>
+                <span class="k">return</span> <span class="n">explainer</span><span class="p">(</span><span class="n">training_data</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">n</span><span class="o">=</span><span class="mi">1_000</span><span class="p">))</span>
             <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
                 <span class="k">if</span> <span class="s2">&quot;Additivity check failed in TreeExplainer&quot;</span> <span class="ow">in</span> <span class="nb">repr</span><span class="p">(</span><span class="n">e</span><span class="p">):</span>
-                    <span class="k">return</span> <span class="n">explainer</span><span class="p">(</span><span class="n">training_data</span><span class="p">,</span> <span class="n">check_additivity</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+                    <span class="k">return</span> <span class="n">explainer</span><span class="p">(</span>
+                        <span class="n">training_data</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">n</span><span class="o">=</span><span class="mi">1_000</span><span class="p">),</span> <span class="n">check_additivity</span><span class="o">=</span><span class="kc">False</span>
+                    <span class="p">)</span>
                 <span class="k">else</span><span class="p">:</span>
                     <span class="k">raise</span>
 
@@ -4058,6 +4067,7 @@
 
 <span class="sd">        Raises:</span>
 <span class="sd">            RuntimeError: If dependencies are not available.</span>
+<span class="sd">            AssertionError: When x_train_size or y_train_size are not zero.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">x_train</span> <span class="ow">is</span> <span class="kc">None</span>
@@ -4067,9 +4077,9 @@
             <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">features_list</span> <span class="ow">is</span> <span class="kc">None</span>
         <span class="p">):</span>
             <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;Train data not set, we cannot log to W&amp;B.&quot;</span><span class="p">)</span>
-        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_train</span><span class="o">.</span><span class="n">size</span> <span class="o">!=</span> <span class="mi">0</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">y_train</span><span class="o">.</span><span class="n">size</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">,</span> <span class="p">(</span>
-            <span class="s2">&quot;Train data not set, nothing to evaluate.&quot;</span>
-        <span class="p">)</span>
+        <span class="k">assert</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">x_train</span><span class="o">.</span><span class="n">size</span> <span class="o">!=</span> <span class="mi">0</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">y_train</span><span class="o">.</span><span class="n">size</span> <span class="o">!=</span> <span class="mi">0</span>
+        <span class="p">),</span> <span class="s2">&quot;Train data not set, nothing to evaluate.&quot;</span>
         <span class="n">fitted_classifier</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">model</span>
         <span class="n">y_predicted</span> <span class="o">=</span> <span class="n">fitted_classifier</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x_test</span><span class="p">)</span>
         <span class="n">y_probas</span> <span class="o">=</span> <span class="n">fitted_classifier</span><span class="o">.</span><span class="n">predict_proba</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x_test</span><span class="p">)</span>
@@ -4440,12 +4450,7 @@
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/method/l2g/trainer.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">347</span>
-<span class="normal">348</span>
-<span class="normal">349</span>
-<span class="normal">350</span>
-<span class="normal">351</span>
-<span class="normal">352</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">352</span>
 <span class="normal">353</span>
 <span class="normal">354</span>
 <span class="normal">355</span>
@@ -4564,7 +4569,12 @@
 <span class="normal">468</span>
 <span class="normal">469</span>
 <span class="normal">470</span>
-<span class="normal">471</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">cross_validate</span><span class="p">(</span>
+<span class="normal">471</span>
+<span class="normal">472</span>
+<span class="normal">473</span>
+<span class="normal">474</span>
+<span class="normal">475</span>
+<span class="normal">476</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">cross_validate</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">:</span> <span class="n">LocusToGeneTrainer</span><span class="p">,</span>
     <span class="n">wandb_run_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">parameter_grid</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -4751,6 +4761,16 @@
               </div>
             </td>
           </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code>AssertionError</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>When x_train_size or y_train_size are not zero.</p>
+              </div>
+            </td>
+          </tr>
       </tbody>
     </table>
 
@@ -4783,7 +4803,8 @@
 <span class="normal">105</span>
 <span class="normal">106</span>
 <span class="normal">107</span>
-<span class="normal">108</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">fit</span><span class="p">(</span>
+<span class="normal">108</span>
+<span class="normal">109</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">fit</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">:</span> <span class="n">LocusToGeneTrainer</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">LocusToGeneModel</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Fit the pipeline to the feature matrix dataframe.</span>
@@ -4793,15 +4814,16 @@
 
 <span class="sd">    Raises:</span>
 <span class="sd">        ValueError: Train data not set, nothing to fit.</span>
+<span class="sd">        AssertionError: When x_train_size or y_train_size are not zero.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="p">(</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">x_train</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
         <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">y_train</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
         <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">features_list</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
     <span class="p">):</span>
-        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_train</span><span class="o">.</span><span class="n">size</span> <span class="o">!=</span> <span class="mi">0</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">y_train</span><span class="o">.</span><span class="n">size</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">,</span> <span class="p">(</span>
-            <span class="s2">&quot;Train data not set, nothing to fit.&quot;</span>
-        <span class="p">)</span>
+        <span class="k">assert</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">x_train</span><span class="o">.</span><span class="n">size</span> <span class="o">!=</span> <span class="mi">0</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">y_train</span><span class="o">.</span><span class="n">size</span> <span class="o">!=</span> <span class="mi">0</span>
+        <span class="p">),</span> <span class="s2">&quot;Train data not set, nothing to fit.&quot;</span>
         <span class="n">fitted_model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">x_train</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">y_train</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">LocusToGeneModel</span><span class="p">(</span>
             <span class="n">model</span><span class="o">=</span><span class="n">fitted_model</span><span class="p">,</span>
@@ -4902,11 +4924,7 @@
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/method/l2g/trainer.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">146</span>
-<span class="normal">147</span>
-<span class="normal">148</span>
-<span class="normal">149</span>
-<span class="normal">150</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">150</span>
 <span class="normal">151</span>
 <span class="normal">152</span>
 <span class="normal">153</span>
@@ -4923,7 +4941,11 @@
 <span class="normal">164</span>
 <span class="normal">165</span>
 <span class="normal">166</span>
-<span class="normal">167</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">log_plot_image_to_wandb</span><span class="p">(</span>
+<span class="normal">167</span>
+<span class="normal">168</span>
+<span class="normal">169</span>
+<span class="normal">170</span>
+<span class="normal">171</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">log_plot_image_to_wandb</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">:</span> <span class="n">LocusToGeneTrainer</span><span class="p">,</span> <span class="n">title</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">plot</span><span class="p">:</span> <span class="n">Axes</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Accepts a plot object, and saves the fig to PNG to then log it in W&amp;B.</span>
@@ -5017,16 +5039,22 @@ Credentials to access W&amp;B are available at the OT central login sheet.</p>
               </div>
             </td>
           </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code>AssertionError</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>When x_train_size or y_train_size are not zero.</p>
+              </div>
+            </td>
+          </tr>
       </tbody>
     </table>
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/method/l2g/trainer.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">169</span>
-<span class="normal">170</span>
-<span class="normal">171</span>
-<span class="normal">172</span>
-<span class="normal">173</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">173</span>
 <span class="normal">174</span>
 <span class="normal">175</span>
 <span class="normal">176</span>
@@ -5135,7 +5163,12 @@ Credentials to access W&amp;B are available at the OT central login sheet.</p>
 <span class="normal">279</span>
 <span class="normal">280</span>
 <span class="normal">281</span>
-<span class="normal">282</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">log_to_wandb</span><span class="p">(</span>
+<span class="normal">282</span>
+<span class="normal">283</span>
+<span class="normal">284</span>
+<span class="normal">285</span>
+<span class="normal">286</span>
+<span class="normal">287</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">log_to_wandb</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">:</span> <span class="n">LocusToGeneTrainer</span><span class="p">,</span>
     <span class="n">wandb_run_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
@@ -5149,6 +5182,7 @@ Credentials to access W&amp;B are available at the OT central login sheet.</p>
 
 <span class="sd">    Raises:</span>
 <span class="sd">        RuntimeError: If dependencies are not available.</span>
+<span class="sd">        AssertionError: When x_train_size or y_train_size are not zero.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="p">(</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">x_train</span> <span class="ow">is</span> <span class="kc">None</span>
@@ -5158,9 +5192,9 @@ Credentials to access W&amp;B are available at the OT central login sheet.</p>
         <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">features_list</span> <span class="ow">is</span> <span class="kc">None</span>
     <span class="p">):</span>
         <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;Train data not set, we cannot log to W&amp;B.&quot;</span><span class="p">)</span>
-    <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_train</span><span class="o">.</span><span class="n">size</span> <span class="o">!=</span> <span class="mi">0</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">y_train</span><span class="o">.</span><span class="n">size</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">,</span> <span class="p">(</span>
-        <span class="s2">&quot;Train data not set, nothing to evaluate.&quot;</span>
-    <span class="p">)</span>
+    <span class="k">assert</span> <span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">x_train</span><span class="o">.</span><span class="n">size</span> <span class="o">!=</span> <span class="mi">0</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">y_train</span><span class="o">.</span><span class="n">size</span> <span class="o">!=</span> <span class="mi">0</span>
+    <span class="p">),</span> <span class="s2">&quot;Train data not set, nothing to evaluate.&quot;</span>
     <span class="n">fitted_classifier</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">model</span>
     <span class="n">y_predicted</span> <span class="o">=</span> <span class="n">fitted_classifier</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x_test</span><span class="p">)</span>
     <span class="n">y_probas</span> <span class="o">=</span> <span class="n">fitted_classifier</span><span class="o">.</span><span class="n">predict_proba</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x_test</span><span class="p">)</span>
@@ -5376,12 +5410,7 @@ Credentials to access W&amp;B are available at the OT central login sheet.</p>
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/method/l2g/trainer.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">284</span>
-<span class="normal">285</span>
-<span class="normal">286</span>
-<span class="normal">287</span>
-<span class="normal">288</span>
-<span class="normal">289</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">289</span>
 <span class="normal">290</span>
 <span class="normal">291</span>
 <span class="normal">292</span>
@@ -5437,7 +5466,12 @@ Credentials to access W&amp;B are available at the OT central login sheet.</p>
 <span class="normal">342</span>
 <span class="normal">343</span>
 <span class="normal">344</span>
-<span class="normal">345</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">train</span><span class="p">(</span>
+<span class="normal">345</span>
+<span class="normal">346</span>
+<span class="normal">347</span>
+<span class="normal">348</span>
+<span class="normal">349</span>
+<span class="normal">350</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">train</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">:</span> <span class="n">LocusToGeneTrainer</span><span class="p">,</span>
     <span class="n">wandb_run_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">cross_validate</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>

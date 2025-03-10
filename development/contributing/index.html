@@ -906,6 +906,39 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#development-process" class="md-nav__link">
+    <span class="md-ellipsis">
+      Development process
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Development process">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#development-releases" class="md-nav__link">
+    <span class="md-ellipsis">
+      Development releases
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#production-releases" class="md-nav__link">
+    <span class="md-ellipsis">
+      Production releases
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -3536,6 +3569,39 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#development-process" class="md-nav__link">
+    <span class="md-ellipsis">
+      Development process
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Development process">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#development-releases" class="md-nav__link">
+    <span class="md-ellipsis">
+      Development releases
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#production-releases" class="md-nav__link">
+    <span class="md-ellipsis">
+      Production releases
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -3636,6 +3702,22 @@
 </ul>
 <h3 id="support-for-python-versions">Support for python versions<a class="headerlink" href="#support-for-python-versions" title="Permanent link">&para;</a></h3>
 <p>As of version 2.1.X gentropy supports multiple python versions. To ensure compatibility with all supported versions, unit tests are run for each of the minor python release from 3.10 to 3.12. Make sure your changes are compatible with all supported versions.</p>
+<h3 id="development-process">Development process<a class="headerlink" href="#development-process" title="Permanent link">&para;</a></h3>
+<p>The development follows simplified Git Flow process that includes usage of</p>
+<ul>
+<li><code>dev</code> (development branch)</li>
+<li><code>feature</code> branches</li>
+<li><code>main</code> (production branch)</li>
+</ul>
+<p>The development starts with creating new <code>feature</code> branch based on the <code>dev</code> branch. Once the feature is ready, the Pull Request for the <code>dev</code> branch is created and CI/CD Checks are performed to ensure that the code is compliant with the project conventions. Once the PR is approved, the feature branch is merged into the <code>dev</code> branch.</p>
+<h4 id="development-releases">Development releases<a class="headerlink" href="#development-releases" title="Permanent link">&para;</a></h4>
+<p>One can create the dev release tagged by <code>vX.Y.Z-dev.V</code> tag. This release will not trigger the CI/CD pipeline to publish the package to the PyPi repository. The release is done by triggering the <code>Release</code> GitHub action.</p>
+<h4 id="production-releases">Production releases<a class="headerlink" href="#production-releases" title="Permanent link">&para;</a></h4>
+<p>Once per week, the <code>Trigger PR for release</code> github action creates a Pull Request from <code>dev</code> to <code>main</code> branch, when the PR is approved, the <code>Release</code> GitHub action is triggered to create a production release tagged by <code>vX.Y.Z</code> tag. This release triggers the CI/CD pipeline to publish the package to the <em>TestPyPi</em> repository. If it is successful, then the actual deployment to the <em>PyPI</em> repository is done. The deployment to the PyPi repository must be verified by the gentropy maintainer.</p>
+<p>Below you can find a simplified diagram of the development process.</p>
+<div align="center">
+  <img width="800" height="400" src="../../assets/imgs/development-flow.png" alt="development process">
+</div>
 <hr />
 <div class="md-source-file">
   <small>
@@ -3658,7 +3740,7 @@
         <span class="icon twemoji">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1-2.1-2M12.5 7v5.2l4 2.4-1 1L11 13V7h1.5M11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2v1.8Z"/></svg>
         </span>
-        <span class="label"> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2025-01-28T09:58:31+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2025-01-28</span> </span>
+        <span class="label"> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2025-02-24T16:53:08+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2025-02-24</span> </span>
       </li>
       
 

@@ -3513,20 +3513,39 @@
 <p>This can be resolved by adding the follow line to your <code>~/.zshrc</code>:</p>
 <p><code>export OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES</code></p>
 <h2 id="creating-development-dataproc-cluster-ot-users-only">Creating development dataproc cluster (OT users only)<a class="headerlink" href="#creating-development-dataproc-cluster-ot-users-only" title="Permanent link">&para;</a></h2>
-<p>To start dataproc cluster in the development mode run</p>
-<div class="highlight"><pre><span></span><code>make<span class="w"> </span>create-dev-cluster
+<div class="admonition info">
+<p class="admonition-title">Requirements</p>
+<p>To create the cluster, you need to auth to the google cloud</p>
+<div class="highlight"><pre><span></span><code>gcloud<span class="w"> </span>auth<span class="w"> </span>login
 </code></pre></div>
-<div class="admonition note">
-<p class="admonition-title">Tip</p>
 </div>
-<p>This command will work, provided you have fully commited and pushed all your changes to the remote repository.</p>
+<p>To start dataproc cluster in the development mode run.</p>
+<div class="highlight"><pre><span></span><code>make<span class="w"> </span>create-dev-cluster<span class="w"> </span><span class="nv">REF</span><span class="o">=</span>dev
+</code></pre></div>
+<p><code>REF</code> - remote branch available at the <a href="https://github.com/opentargets/gentropy">gentropy repository</a></p>
+<p>During cluster <a href="https://cloud.google.com/dataproc/docs/concepts/configuring-clusters/init-actions#important_considerations_and_guidelines">initialization actions</a> the <code>utils/install_dependencies_on_cluster.sh</code> script is run, that installs <code>gentropy</code> package from the remote repository by using VCS support, hence it does not require the <strong>gentropy package whl artifact</strong> to be prepared in the Google Cloud Storage before the make command can be run.</p>
+<p>Check details how to make a package installable by VCS in <a href="https://pip.pypa.io/en/stable/topics/vcs-support/">pip documentation</a>.</p>
+<div class="admonition note">
+<p class="admonition-title">How <code>create-dev-cluster</code> works</p>
+<p>This command will work, provided you have done one of:</p>
+<ul>
+<li>run <code>make create-dev-cluster REF=dev</code>, since the REF is requested, the cluster will attempt to install it from the remote repository.</li>
+<li>run <code>make create-dev-cluster</code> without specifying the REF or specifying REF that points to your local branch will request branch name you are checkout on your local repository, if any changes are pending locally, the cluster can not be created, it requires stashing or pushing the changes to the remote.</li>
+</ul>
 <p>The command will create a new dataproc cluster with the following configuration:</p>
 <ul>
-<li>package installed from the current branch you are checkout on (for example <code>dev</code> or <code>feature/xxx</code>)</li>
+<li>package installed from the requested <strong>REF</strong> (for example <code>dev</code> or <code>feature/xxx</code>)</li>
 <li>uv installed in the cluster (to speed up the installation and dependency resolution process)</li>
 <li>cli script to run gentropy steps</li>
 </ul>
-<p>This process requires gentropy to be installable by git repository - see VCS support in <a href="https://pip.pypa.io/en/stable/topics/vcs-support/">pip documentation</a>.</p>
+</div>
+<div class="admonition tip">
+<p class="admonition-title">Dataproc cluster timeout</p>
+<p>By default the cluster will <strong>delete itself</strong> when running for <strong>60 minutes after the last submitted job to the cluster was successfully completed</strong> (running jobs interactively via Jupyter or Jupyter lab is not treated as submitted job). To preserve the cluster for arbitrary period (<strong>for instance when the cluster is used only for interactive jobs</strong>) increase the cluster timeout:</p>
+<div class="highlight"><pre><span></span><code>make<span class="w"> </span>create-dev-cluster<span class="w"> </span><span class="nv">CLUSTER_TIMEOUT</span><span class="o">=</span>1d<span class="w"> </span><span class="nv">REF</span><span class="o">=</span>dev<span class="w"> </span><span class="c1"># 60m 1h 1d (by default 60m)</span>
+</code></pre></div>
+<p>For the reference on timeout format check <a href="https://cloud.google.com/sdk/gcloud/reference/dataproc/clusters/create#--max-idle">gcloud documentation</a></p>
+</div>
 <hr />
 <div class="md-source-file">
   <small>
@@ -3549,7 +3568,7 @@
         <span class="icon twemoji">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1-2.1-2M12.5 7v5.2l4 2.4-1 1L11 13V7h1.5M11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2v1.8Z"/></svg>
         </span>
-        <span class="label"> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2025-01-28T09:58:31+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2025-01-28</span> </span>
+        <span class="label"> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2025-02-24T15:42:48+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2025-02-24</span> </span>
       </li>
       
 
