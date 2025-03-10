@@ -171,7 +171,9 @@ class VariantIndex(Dataset):
                 # variantDescription columns are concatenated:
                 elif column == "variantDescription":
                     select_expressions.append(
-                        f.concat_ws(" ", f.col(column), f.col(f"{prefix}{column}")).alias(column)
+                        f.concat_ws(
+                            " ", f.col(column), f.col(f"{prefix}{column}")
+                        ).alias(column)
                     )
                 # All other non-array columns are coalesced:
                 else:
@@ -290,7 +292,7 @@ class VariantIndex(Dataset):
         """Enriching variant effect assessments with amino-acid derived predicted consequences.
 
         Args:
-            annotation (AminoAcidVariants): amio-acid level variant consequences.
+            annotation (AminoAcidVariants): amino-acid level variant consequences.
 
         Returns:
             VariantIndex: where amino-acid causing variants are enriched with extra annotation
@@ -462,9 +464,7 @@ class VariantEffectNormaliser:
         ) + minimum
 
     @classmethod
-    def _normalise_foldx(
-        cls: type[VariantEffectNormaliser], score: Column
-    ) -> Column:
+    def _normalise_foldx(cls: type[VariantEffectNormaliser], score: Column) -> Column:
         """Normalise FoldX ddG energies.
 
         ΔΔG Range:
@@ -515,18 +515,18 @@ class VariantEffectNormaliser:
         cls: type[VariantEffectNormaliser],
         score: Column,
     ) -> Column:
-        """Normalise GERP scores.
+        """Normalise GERP scores between 0.0 -> 1.0.
 
         # Score interpretation from here:
         # https://pmc.ncbi.nlm.nih.gov/articles/PMC7286533/
         # https://genome.ucsc.edu/cgi-bin/hgTrackUi?db=hg19&g=allHg19RS_BW
 
         Logic: GERP scores are divided into three categories:
-         - >6 : 1.0 - GERP scores are not bounded, so any value above 6 is considered as 1.0
-         - 2-6: 0.5-1 - Highly conserved regions are scaled between 0.5 and 1
-         - 0-2: 0-0.5 - Moderately conserved regions are scaled between 0 and 0.5
-         - -3-0: -1-0.0 - Negative conservation indicates benign sequence alteration, so scaled between -1 and 0
-         - < -3: -1.0 - As the score goes below -3, it is considered as -1.0
+        - >6 : 1.0 - GERP scores are not bounded, so any value above 6 is considered as 1.0
+        - 2-6: 0.75-1 - Highly conserved regions are scaled between 0.75 and 1
+        - 0-2: 0.25-0.75 - Moderately conserved regions are scaled between 0.25 and 0.75
+        - -3-0: 0.0-0.25 - Negative conservation indicates benign sequence alteration, so scaled between 0.0 and 0.25
+        - < -3: 0.0 - As the score goes below -3, it is considered as 0.0
 
         Args:
             score (Column): GERP score.
@@ -536,10 +536,10 @@ class VariantEffectNormaliser:
         """
         return (
             f.when(score > 6, f.lit(1.0))
-            .when(score >= 2, cls._rescaleColumnValue(score, 2, 6, 0.5, 1))
-            .when(score >= 0, cls._rescaleColumnValue(score, 0, 2, 0, 0.5))
-            .when(score >= -3, cls._rescaleColumnValue(score, -3, 0, -1, 0))
-            .when(score < -3, f.lit(-1.0))
+            .when(score >= 2, cls._rescaleColumnValue(score, 2, 6, 0.75, 1))
+            .when(score >= 0, cls._rescaleColumnValue(score, 0, 2, 0.25, 0.75))
+            .when(score >= -3, cls._rescaleColumnValue(score, -3, 0, 0.0, 0.25))
+            .when(score < -3, f.lit(0.0))
         )
 
     @classmethod
