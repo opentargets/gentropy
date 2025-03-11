@@ -298,7 +298,6 @@ class LocusToGeneTrainer:
             LocusToGeneModel: Fitted model
         """
         data_df = self.feature_matrix._df.toPandas()
-        # enforce that data_df is a Pandas DataFrame
 
         # Encode labels in `goldStandardSet` to a numeric value
         data_df[self.label_col] = data_df[self.label_col].map(self.model.label_encoder)
@@ -320,8 +319,9 @@ class LocusToGeneTrainer:
 
         # Cross-validation
         if cross_validate:
+            wandb_run_name = f"{wandb_run_name}-cv" if wandb_run_name else None
             self.cross_validate(
-                wandb_run_name=f"{wandb_run_name}-cv",
+                wandb_run_name=wandb_run_name,
                 parameter_grid=hyperparameter_grid,
                 n_splits=n_splits,
             )
@@ -363,15 +363,6 @@ class LocusToGeneTrainer:
             param: {"values": [value]}
             for param, value in self.model.hyperparameters.items()
         }
-        sweep_config = {
-            "method": "grid",
-            "name": wandb_run_name,  # Add name to sweep config
-            "metric": {"name": "areaUnderROC", "goal": "maximize"},
-            "parameters": parameter_grid,
-        }
-        sweep_id = wandb_sweep(
-            sweep_config, project=self.wandb_l2g_project_name
-        )  # TODO
 
         def cross_validate_single_fold(
             fold_index: int,
@@ -411,8 +402,8 @@ class LocusToGeneTrainer:
 
             fold_model = clone(self.model.model)
             fold_model.fit(x_fold_train, y_fold_train)
-            y_pred_proba = fold_model.predict_proba(x_fold_val)[:, 1]
-            y_pred = (y_pred_proba >= 0.5).astype(int)
+            y_pred_proba = fold_model.predict_proba(x_fold_val)
+            y_pred = fold_model.predict(x_fold_val)
 
             # Log metrics
             metrics = self.evaluate(
@@ -441,7 +432,12 @@ class LocusToGeneTrainer:
 
         def run_all_folds() -> None:
             """Run cross-validation for all folds."""
+            # Initialise vars
             sweep_run = None
+            sweep_id = None
+            sweep_url = None
+            sweep_group_url = None
+            config = None
             if wandb_run_name:
                 # Initialize the sweep run and get metadata
                 sweep_run = wandb_init(name=wandb_run_name)
@@ -462,7 +458,7 @@ class LocusToGeneTrainer:
             for fold_index in range(len(cv_splits)):
                 cross_validate_single_fold(
                     fold_index=fold_index,
-                    sweep_id=sweep_id if sweep_id else None,
+                    sweep_id=sweep_id,
                     sweep_run_name=f"{wandb_run_name}-fold{fold_index + 1}"
                     if wandb_run_name
                     else None,
@@ -471,13 +467,20 @@ class LocusToGeneTrainer:
 
         if wandb_run_name:
             # Evaluate with cross validation in a W&B Sweep
+            sweep_config = {
+                "method": "grid",
+                "name": wandb_run_name,
+                "metric": {"name": "areaUnderROC", "goal": "maximize"},
+                "parameters": parameter_grid,
+            }
+            sweep_id = wandb_sweep(sweep_config, project=self.wandb_l2g_project_name)
             wandb_agent(sweep_id, run_all_folds)
         else:
             # Evaluate with cross validation to the terminal
             run_all_folds()
 
+    @staticmethod
     def evaluate(
-        self: LocusToGeneTrainer,
         y_true: np.ndarray,
         y_pred: np.ndarray,
         y_pred_proba: np.ndarray,
