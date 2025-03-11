@@ -107,9 +107,9 @@ class LocusToGeneStep:
         hyperparameters: dict[str, Any],
         download_from_hub: bool,
         cross_validate: bool,
-        wandb_run_name: str,
         credible_set_path: str,
         feature_matrix_path: str,
+        wandb_run_name: str | None = None,
         model_path: str | None = None,
         features_list: list[str] | None = None,
         gold_standard_curation_path: str | None = None,
@@ -129,9 +129,9 @@ class LocusToGeneStep:
             hyperparameters (dict[str, Any]): Hyperparameters for the model
             download_from_hub (bool): Whether to download the model from Hugging Face Hub
             cross_validate (bool): Whether to run cross validation (5-fold by default) to train the model.
-            wandb_run_name (str): Name of the run to track model training in Weights and Biases
             credible_set_path (str): Path to the credible set dataset necessary to build the feature matrix
             feature_matrix_path (str): Path to the L2G feature matrix input dataset
+            wandb_run_name (str | None): Name of the run to track model training in Weights and Biases
             model_path (str | None): Path to the model. It can be either in the filesystem or the name on the Hugging Face Hub (in the form of username/repo_name).
             features_list (list[str] | None): List of features to use to train the model
             gold_standard_curation_path (str | None): Path to the gold standard curation file
@@ -333,7 +333,7 @@ class LocusToGeneStep:
         # Run the training
         trained_model = LocusToGeneTrainer(
             model=l2g_model, feature_matrix=feature_matrix
-        ).train(self.wandb_run_name, cross_validate=self.cross_validate)
+        ).train(wandb_run_name=self.wandb_run_name, cross_validate=self.cross_validate)
 
         # Export the model
         if trained_model.training_data and trained_model.model and self.model_path:
