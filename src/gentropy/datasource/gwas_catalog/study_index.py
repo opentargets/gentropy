@@ -350,10 +350,6 @@ class StudyIndexGWASCatalog(StudyIndex):
         Returns:
             StudyIndexGWASCatalog: Updated study index
         """
-        # Providing curation table is optional. However once this method is called, the quality and studyFlag columns are added.
-        if curation_table is None:
-            return self
-
         studies = self.df
 
         if "qualityControls" not in studies.columns:
@@ -361,6 +357,12 @@ class StudyIndexGWASCatalog(StudyIndex):
 
         if "analysisFlags" not in studies.columns:
             studies = studies.withColumn("analysisFlags", f.array())
+
+        # Providing curation table is optional. However once this method is called, the quality and studyFlag columns are added.
+        if curation_table is None:
+            return StudyIndexGWASCatalog(
+                _df=studies, _schema=StudyIndexGWASCatalog.get_schema()
+            )
 
         # Adding prefix to columns in the curation table:
         curation_table = curation_table.select(
