@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 
 import pyspark.sql.functions as f
 import pyspark.sql.types as t
+from pyspark.sql.types import ArrayType, StringType
 
 from gentropy.common.spark_helpers import column2camel_case
 from gentropy.common.utils import parse_efos
@@ -353,10 +354,14 @@ class StudyIndexGWASCatalog(StudyIndex):
         studies = self.df
 
         if "qualityControls" not in studies.columns:
-            studies = studies.withColumn("qualityControls", f.array())
+            studies = studies.withColumn(
+                "qualityControls", f.array().cast(ArrayType(StringType()))
+            )
 
         if "analysisFlags" not in studies.columns:
-            studies = studies.withColumn("analysisFlags", f.array())
+            studies = studies.withColumn(
+                "analysisFlags", f.array().cast(ArrayType(StringType()))
+            )
 
         # Providing curation table is optional. However once this method is called, the quality and studyFlag columns are added.
         if curation_table is None:
