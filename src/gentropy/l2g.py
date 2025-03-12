@@ -321,8 +321,9 @@ class LocusToGeneStep:
         if self.features_list is None:
             raise ValueError("Features list is required for model training.")
         # Initialize access to weights and biases
-        wandb_key = access_gcp_secret("wandb-key", "open-targets-genetics-dev")
-        wandb_login(key=wandb_key)
+        if self.wandb_run_name:
+            wandb_key = access_gcp_secret("wandb-key", "open-targets-genetics-dev")
+            wandb_login(key=wandb_key)
 
         # Instantiate classifier and train model
         l2g_model = LocusToGeneModel(
