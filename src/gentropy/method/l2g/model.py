@@ -113,14 +113,16 @@ class LocusToGeneModel:
     def load_from_hub(
         cls: type[LocusToGeneModel],
         session: Session,
-        model_id: str,
+        hf_model_id: str,
+        hf_model_version: str | None = None,
         hf_token: str | None = None,
     ) -> LocusToGeneModel:
         """Load a model from the Hugging Face Hub. This will download the model from the hub and load it from disk.
 
         Args:
             session (Session): Session object to load the training data
-            model_id (str): Model ID on the Hugging Face Hub
+            hf_model_id (str): Model ID on the Hugging Face Hub
+            hf_model_version (str | None): Tag, branch, or commit hash to download the model from the Hub. If None, the latest commit is downloaded.
             hf_token (str | None): Hugging Face Hub token to download the model (only required if private)
 
         Returns:
@@ -150,8 +152,13 @@ class LocusToGeneModel:
                 ]
             ]
 
-        local_path = model_id
-        hub_utils.download(repo_id=model_id, dst=local_path, token=hf_token)
+        local_path = hf_model_id
+        hub_utils.download(
+            repo_id=hf_model_id,
+            dst=local_path,
+            token=hf_token,
+            revision=hf_model_version,
+        )
         features_list = get_features_list_from_metadata()
         return cls.load_from_disk(
             session,
