@@ -990,7 +990,7 @@ class VariantEffectPredictorParser:
         return f.when(
             transcript.getField("aminoAcidChange").isNotNull(),
             f.concat(
-                f.lit(", causing amio-acid change: "),
+                f.lit(", causing amino-acid change: "),
                 transcript.getField("aminoAcidChange"),
                 f.lit(" with "),
                 f.lower(transcript.getField("impact")),
