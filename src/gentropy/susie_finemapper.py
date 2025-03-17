@@ -65,6 +65,7 @@ class SusieFineMapperStep:
         imputed_r2_threshold: float = 0.9,
         ld_score_threshold: float = 5,
         ld_min_r2: float = 0.8,
+        ld_source: str = "UKBB",
     ) -> None:
         """Run fine-mapping on a studyLocusId from a collected studyLocus table.
 
@@ -93,6 +94,7 @@ class SusieFineMapperStep:
             imputed_r2_threshold (float): imputed R2 threshold, default is 0.9
             ld_score_threshold (float): LD score threshold ofr imputation, default is 5
             ld_min_r2 (float): Threshold to filter CS by leads in high LD, default is 0.8
+            ld_source (str): source used to build ld index for nfe, csa and afr datasets, current options are: UKBB and GNOMAD, default is "UKBB"
         """
         # Read locus manifest.
         study_locus_manifest = pd.read_csv(study_locus_manifest_path)
@@ -136,6 +138,7 @@ class SusieFineMapperStep:
             ld_score_threshold=ld_score_threshold,
             ld_min_r2=ld_min_r2,
             log_output=log_output,
+            ld_source=ld_source
         )
 
         if result_logging is not None:
@@ -710,6 +713,7 @@ class SusieFineMapperStep:
         cs_lbf_thr: float = 2,
         ld_min_r2: float = 0.9,
         log_output: str = "",
+        ld_source: str = "UKBB"
     ) -> dict[str, Any] | None:
         """Susie fine-mapper function that uses study-locus row with collected locus, chromosome and position as inputs.
 
@@ -732,6 +736,7 @@ class SusieFineMapperStep:
             cs_lbf_thr (float): credible set logBF threshold for filtering credible sets, default is 2
             ld_min_r2 (float): Threshold to fillter CS by leads in high LD, default is 0.9
             log_output (str): path to the log output
+            ld_source (str): source used to build ld index for nfe, csa and afr datasets, current options are: UKBB and GNOMAD, default is "UKBB"
 
         Returns:
             dict[str, Any] | None: dictionary with study locus, number of GWAS variants, number of LD variants, number of variants after merge, number of outliers, number of imputed variants, number of variants to fine-map, or None
@@ -831,7 +836,7 @@ class SusieFineMapperStep:
         keys_reasons = [
             "SMALL_NUMBER_OF_SNPS",
             "FAILED_GC_LAMBDA_CHECK",
-            "FAILED_PZ_CHECK",
+            # "FAILED_PZ_CHECK",
             "FAILED_MEAN_BETA_CHECK",
             "NO_OT_CURATION",
             "SUMSTATS_NOT_AVAILABLE",
@@ -921,7 +926,7 @@ class SusieFineMapperStep:
         gwas_df = gwas_df.join(unique_variants, on="variantId", how="left_semi")
 
         ld_index = LDMatrixInterface.get_locus_index_boundaries(
-            study_locus_row=study_locus_row, ancestry=major_population, session=session
+            study_locus_row=study_locus_row, ancestry=major_population, session=session, ld_source=ld_source
         )
 
         # Remove ALL duplicated variants from ld_index DataFrame - we don't know which is correct

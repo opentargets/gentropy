@@ -29,6 +29,7 @@ class LDMatrixInterface:
         session: Session,
         study_locus_row: Row,
         ancestry: str = "nfe",
+        ld_source: str = "UKBB",
     ) -> DataFrame:
         """Extract hail matrix index from StudyLocus rows.
 
@@ -36,12 +37,13 @@ class LDMatrixInterface:
             session (Session): Session object
             study_locus_row (Row): Study-locus row
             ancestry (str): Major population to extract from gnomad matrix, default is "nfe"
+            ld_source (str): source used to build ld index for nfe, csa and afr datasets, current options are: UKBB and GNOMAD, default is "UKBB"
 
         Returns:
             DataFrame: Returns the index of the gnomad matrix for the locus
 
         """
-        if ancestry in ("nfe", "csa", "afr"):
+        if ancestry in ("nfe", "csa", "afr") and ld_source == "UKBB":
             joined_index = PanUKBBLDMatrix().get_locus_index_boundaries(
                 session=session,
                 study_locus_row=study_locus_row,
