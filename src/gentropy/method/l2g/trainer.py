@@ -35,6 +35,7 @@ if TYPE_CHECKING:
     from matplotlib.axes._axes import Axes
     from shap._explanation import Explanation
     from wandb.sdk.wandb_run import Run
+import logging
 
 
 def reset_wandb_env() -> None:
@@ -88,7 +89,7 @@ class LocusToGeneTrainer:
 
         Raises:
             ValueError: Train data not set, nothing to fit.
-            AssertionError: When x_train_size or y_train_size are not zero.
+            AssertionError: If x_train or y_train are empty matrices
         """
         if (
             self.x_train is not None
@@ -184,7 +185,7 @@ class LocusToGeneTrainer:
 
         Raises:
             RuntimeError: If dependencies are not available.
-            AssertionError: When x_train_size or y_train_size are not zero.
+            AssertionError: If x_train or y_train are empty matrices
         """
         if (
             self.x_train is None
@@ -220,36 +221,10 @@ class LocusToGeneTrainer:
             is_binary=True,
         )
         # Track evaluation metrics
-        self.run.log(
-            {
-                "areaUnderROC": roc_auc_score(
-                    self.y_test, y_probas[:, 1], average="weighted"
-                )
-            }
+        metrics = self.evaluate(
+            y_true=self.y_test, y_pred=y_predicted, y_pred_proba=y_probas
         )
-        self.run.log({"accuracy": accuracy_score(self.y_test, y_predicted)})
-        self.run.log(
-            {
-                "weightedPrecision": precision_score(
-                    self.y_test, y_predicted, average="weighted"
-                )
-            }
-        )
-        self.run.log(
-            {
-                "averagePrecision": average_precision_score(
-                    self.y_test, y_predicted, average="weighted"
-                )
-            }
-        )
-        self.run.log(
-            {
-                "weightedRecall": recall_score(
-                    self.y_test, y_predicted, average="weighted"
-                )
-            }
-        )
-        self.run.log({"f1": f1_score(self.y_test, y_predicted, average="weighted")})
+        self.run.log(metrics)
         # Track gold standards and their features
         self.run.log(
             {"featureMatrix": Table(dataframe=self.feature_matrix._df.toPandas())}
@@ -286,9 +261,21 @@ class LocusToGeneTrainer:
         wandb_termlog("Logged Shapley contributions.")
         self.run.finish()
 
+    def log_to_terminal(
+        self: LocusToGeneTrainer, eval_id: str, metrics: dict[str, Any]
+    ) -> None:
+        """Log metrics to terminal.
+
+        Args:
+            eval_id (str): Name of the evaluation set
+            metrics (dict[str, Any]): Model metrics
+        """
+        for metric, value in metrics.items():
+            logging.info("(%s) %s: %s", eval_id, metric, value)
+
     def train(
         self: LocusToGeneTrainer,
-        wandb_run_name: str,
+        wandb_run_name: str | None = None,
         cross_validate: bool = True,
         n_splits: int = 5,
         hyperparameter_grid: dict[str, Any] | None = None,
@@ -302,7 +289,7 @@ class LocusToGeneTrainer:
             4. Evaluate once on test set
 
         Args:
-            wandb_run_name (str): Name of the W&B run. Unless this is provided, the model will not be logged to W&B.
+            wandb_run_name (str | None): Name of the W&B run. Unless this is provided, the model will not be logged to W&B.
             cross_validate (bool): Whether to run cross-validation. Defaults to True.
             n_splits(int): Number of folds the data is splitted in. The model is trained and evaluated `k - 1` times. Defaults to 5.
             hyperparameter_grid (dict[str, Any] | None): Hyperparameter grid to sweep over. Defaults to None.
@@ -311,7 +298,6 @@ class LocusToGeneTrainer:
             LocusToGeneModel: Fitted model
         """
         data_df = self.feature_matrix._df.toPandas()
-        # enforce that data_df is a Pandas DataFrame
 
         # Encode labels in `goldStandardSet` to a numeric value
         data_df[self.label_col] = data_df[self.label_col].map(self.model.label_encoder)
@@ -333,8 +319,9 @@ class LocusToGeneTrainer:
 
         # Cross-validation
         if cross_validate:
+            wandb_run_name = f"{wandb_run_name}-cv" if wandb_run_name else None
             self.cross_validate(
-                wandb_run_name=f"{wandb_run_name}-cv",
+                wandb_run_name=wandb_run_name,
                 parameter_grid=hyperparameter_grid,
                 n_splits=n_splits,
             )
@@ -343,39 +330,53 @@ class LocusToGeneTrainer:
         self.fit()
 
         # Evaluate once on hold out test set
-        self.log_to_wandb(
-            wandb_run_name=f"{wandb_run_name}-holdout",
-        )
+        if wandb_run_name:
+            wandb_run_name = f"{wandb_run_name}-holdout"
+            self.log_to_wandb(wandb_run_name)
+        else:
+            self.log_to_terminal(
+                eval_id="Hold-out",
+                metrics=self.evaluate(
+                    y_true=self.y_test,
+                    y_pred=self.model.model.predict(self.x_test),
+                    y_pred_proba=self.model.model.predict_proba(self.x_test),
+                ),
+            )
 
         return self.model
 
     def cross_validate(
         self: LocusToGeneTrainer,
-        wandb_run_name: str,
+        wandb_run_name: str | None = None,
         parameter_grid: dict[str, Any] | None = None,
         n_splits: int = 5,
     ) -> None:
         """Log results of cross validation and hyperparameter tuning with W&B Sweeps. Metrics for every combination of hyperparameters will be logged to W&B for comparison.
 
         Args:
-            wandb_run_name (str): Name of the W&B run
+            wandb_run_name (str | None): Name of the W&B run. Unless this is provided, the model will not be logged to W&B.
             parameter_grid (dict[str, Any] | None): Dictionary containing the hyperparameters to sweep over. The keys are the hyperparameter names, and the values are dictionaries containing the values to sweep over.
             n_splits (int): Number of folds the data is splitted in. The model is trained and evaluated `k - 1` times. Defaults to 5.
         """
+        # If no grid is provided, use default ones set in the model
+        parameter_grid = parameter_grid or {
+            param: {"values": [value]}
+            for param, value in self.model.hyperparameters.items()
+        }
 
         def cross_validate_single_fold(
             fold_index: int,
-            sweep_id: str,
-            sweep_run_name: str,
-            config: dict[str, Any],
+            sweep_id: str | None,
+            sweep_run_name: str | None,
+            config: dict[str, Any] | None,
         ) -> None:
             """Run cross-validation for a single fold.
 
             Args:
                 fold_index (int): Index of the fold to run
-                sweep_id (str): ID of the sweep
-                sweep_run_name (str): Name of the sweep run
-                config (dict[str, Any]): Configuration from the sweep
+                sweep_id (str | None): ID of the sweep, if logging to W&B is enabled
+                sweep_run_name (str | None): Name of the sweep run, if logging to W&B is enabled
+                config (dict[str, Any] | None): Configuration from the sweep, if logging to W&B is enabled
 
             Raises:
                 ValueError: If training data is not set
@@ -390,17 +391,6 @@ class LocusToGeneTrainer:
             ):
                 raise ValueError("Training data not set")
 
-            # Initialize a new run for this fold
-            os.environ["WANDB_SWEEP_ID"] = sweep_id
-            run = wandb_init(
-                project=self.wandb_l2g_project_name,
-                name=sweep_run_name,
-                config=config,
-                group=sweep_run_name,
-                job_type="fold",
-                reinit=True,
-            )
-
             x_fold_train, x_fold_val = (
                 self.x_train[train_idx],
                 self.x_train[val_idx],
@@ -411,66 +401,109 @@ class LocusToGeneTrainer:
             )
 
             fold_model = clone(self.model.model)
-            fold_model.set_params(**config)
             fold_model.fit(x_fold_train, y_fold_train)
-            y_pred_proba = fold_model.predict_proba(x_fold_val)[:, 1]
-            y_pred = (y_pred_proba >= 0.5).astype(int)
+            y_pred_proba = fold_model.predict_proba(x_fold_val)
+            y_pred = fold_model.predict(x_fold_val)
 
             # Log metrics
-            metrics = {
-                "weightedPrecision": precision_score(y_fold_val, y_pred),
-                "averagePrecision": average_precision_score(y_fold_val, y_pred_proba),
-                "areaUnderROC": roc_auc_score(y_fold_val, y_pred_proba),
-                "accuracy": accuracy_score(y_fold_val, y_pred),
-                "weightedRecall": recall_score(y_fold_val, y_pred, average="weighted"),
-                "f1": f1_score(y_fold_val, y_pred, average="weighted"),
-            }
-
-            run.log(metrics)
-            wandb_termlog(f"Logged metrics for fold {fold_index + 1}.")
-            run.finish()
-
-        # If no grid is provided, use default ones set in the model
-        parameter_grid = parameter_grid or {
-            param: {"values": [value]}
-            for param, value in self.model.hyperparameters.items()
-        }
-        sweep_config = {
-            "method": "grid",
-            "name": wandb_run_name,  # Add name to sweep config
-            "metric": {"name": "areaUnderROC", "goal": "maximize"},
-            "parameters": parameter_grid,
-        }
-        sweep_id = wandb_sweep(sweep_config, project=self.wandb_l2g_project_name)
+            metrics = self.evaluate(
+                y_true=y_fold_val, y_pred=y_pred, y_pred_proba=y_pred_proba
+            )
+            if sweep_id and sweep_run_name and config:
+                fold_model.set_params(**config)
+                # Initialize a new run for this fold
+                os.environ["WANDB_SWEEP_ID"] = sweep_id
+                run = wandb_init(
+                    project=self.wandb_l2g_project_name,
+                    name=sweep_run_name,
+                    config=config,
+                    group=sweep_run_name,
+                    job_type="fold",
+                    reinit=True,
+                )
+                run.log(metrics)
+                wandb_termlog(f"Logged metrics for fold {fold_index + 1}.")
+                run.finish()
+            else:
+                self.log_to_terminal(eval_id=f"Fold {fold_index+1}", metrics=metrics)
 
         gkf = GroupKFold(n_splits=n_splits)
         cv_splits = list(gkf.split(self.x_train, self.y_train, self.groups_train))
 
         def run_all_folds() -> None:
-            """Run cross-validation for all folds within a sweep."""
-            # Initialize the sweep run and get metadata
-            sweep_run = wandb_init(name=wandb_run_name)
-            sweep_id = sweep_run.sweep_id or "unknown"
-            sweep_url = sweep_run.get_sweep_url()
-            project_url = sweep_run.get_project_url()
-            sweep_group_url = f"{project_url}/groups/{sweep_id}"
-            sweep_run.notes = sweep_group_url
-            sweep_run.save()
-            config = dict(sweep_run.config)
+            """Run cross-validation for all folds."""
+            # Initialise vars
+            sweep_run = None
+            sweep_id = None
+            sweep_url = None
+            sweep_group_url = None
+            config = None
+            if wandb_run_name:
+                # Initialize the sweep run and get metadata
+                sweep_run = wandb_init(name=wandb_run_name)
+                sweep_id = sweep_run.sweep_id
+                sweep_url = sweep_run.get_sweep_url()
+                sweep_group_url = f"{sweep_run.get_project_url()}/groups/{sweep_id}"
+                sweep_run.notes = sweep_group_url
+                sweep_run.save()
+                config = dict(sweep_run.config)
 
-            # Reset wandb setup to ensure clean state
-            _setup(_reset=True)
+                # Reset wandb setup to ensure clean state
+                _setup(_reset=True)
+
+                wandb_termlog(f"Sweep URL: {sweep_url}")
+                wandb_termlog(f"Sweep Group URL: {sweep_group_url}")
 
             # Run all folds
             for fold_index in range(len(cv_splits)):
                 cross_validate_single_fold(
                     fold_index=fold_index,
                     sweep_id=sweep_id,
-                    sweep_run_name=f"{wandb_run_name}-fold{fold_index + 1}",
-                    config=config,
+                    sweep_run_name=f"{wandb_run_name}-fold{fold_index + 1}"
+                    if wandb_run_name
+                    else None,
+                    config=config if config else None,
                 )
 
-            wandb_termlog(f"Sweep URL: {sweep_url}")
-            wandb_termlog(f"Sweep Group URL: {sweep_group_url}")
+        if wandb_run_name:
+            # Evaluate with cross validation in a W&B Sweep
+            sweep_config = {
+                "method": "grid",
+                "name": wandb_run_name,
+                "metric": {"name": "areaUnderROC", "goal": "maximize"},
+                "parameters": parameter_grid,
+            }
+            sweep_id = wandb_sweep(sweep_config, project=self.wandb_l2g_project_name)
+            wandb_agent(sweep_id, run_all_folds)
+        else:
+            # Evaluate with cross validation to the terminal
+            run_all_folds()
 
-        wandb_agent(sweep_id, run_all_folds)
+    @staticmethod
+    def evaluate(
+        y_true: np.ndarray,
+        y_pred: np.ndarray,
+        y_pred_proba: np.ndarray,
+    ) -> dict[str, float]:
+        """Evaluate the model on a test set.
+
+        Args:
+            y_true (np.ndarray): True labels
+            y_pred (np.ndarray): Predicted labels
+            y_pred_proba (np.ndarray): Predicted probabilities for the positive class
+
+        Returns:
+            dict[str, float]: Dictionary of evaluation metrics
+        """
+        return {
+            "areaUnderROC": roc_auc_score(
+                y_true, y_pred_proba[:, 1], average="weighted"
+            ),
+            "accuracy": accuracy_score(y_true, y_pred),
+            "weightedPrecision": precision_score(y_true, y_pred, average="weighted"),
+            "averagePrecision": average_precision_score(
+                y_true, y_pred, average="weighted"
+            ),
+            "weightedRecall": recall_score(y_true, y_pred, average="weighted"),
+            "f1": f1_score(y_true, y_pred, average="weighted"),
+        }
