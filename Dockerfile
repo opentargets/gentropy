@@ -35,7 +35,7 @@ RUN uv pip install .
 FROM python:3.11-slim-bookworm
 
 # Install Java runtime (required for PySpark/Hail) and procps for process management
-RUN echo "deb http://deb.debian.org/debian oldstable main" >> /etc/apt/sources.list 
+RUN echo "deb http://deb.debian.org/debian oldstable main" >> /etc/apt/sources.list
 RUN apt-get update && \
     apt-get install --no-install-recommends -y openjdk-11-jdk-headless procps && \
     # Clean up apt cache to reduce image size
