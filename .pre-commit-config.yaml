@@ -3,6 +3,7 @@ default_language_version:
 ci:
   autoupdate_commit_msg: "chore: pre-commit autoupdate"
   autofix_commit_msg: "chore: pre-commit auto fixes [...]"
+  skip: [uv-lock]
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.11.0
@@ -104,4 +105,4 @@ repos:
     rev: 0.6.6
     hooks:
       - id: uv-lock
-        args: [--check, --offline, --python, "3.11"]
+        args: [--check, --python, "3.11"]
