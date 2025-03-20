@@ -104,4 +104,4 @@ repos:
     rev: 0.6.6
     hooks:
       - id: uv-lock
-        args: [--check, --python, "3.11"]
+        args: [--check, --offline, --python, "3.11"]
