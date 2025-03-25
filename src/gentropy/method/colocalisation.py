@@ -289,10 +289,15 @@ class Coloc(ColocalisationMethodInterface):
                 .fillna(
                     0,
                     subset=[
-                        "left_logBF",
-                        "right_logBF",
                         "left_posteriorProbability",
                         "right_posteriorProbability",
+                    ],
+                )
+                .fillna(
+                    -6.907,
+                    subset=[
+                        "left_logBF",
+                        "right_logBF",
                     ],
                 )
                 # Sum of log_BFs for each pair of signals
