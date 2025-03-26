@@ -836,7 +836,7 @@ class SusieFineMapperStep:
         keys_reasons = [
             "SMALL_NUMBER_OF_SNPS",
             "FAILED_GC_LAMBDA_CHECK",
-            # "FAILED_PZ_CHECK",
+            "FAILED_PZ_CHECK",
             "FAILED_MEAN_BETA_CHECK",
             "NO_OT_CURATION",
             "SUMSTATS_NOT_AVAILABLE",
