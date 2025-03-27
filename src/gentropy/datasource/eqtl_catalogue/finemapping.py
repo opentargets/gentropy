@@ -274,9 +274,9 @@ class EqtlCatalogueFinemapping:
             DataFrame: Credible sets DataFrame.
         """
         return (
-            session.spark.read.csv(
+            session.spark.read.parquet(
                 credible_set_path,
-                sep="\t",
+                # sep="\t",
                 header=True,
                 schema=cls.raw_credible_set_schema,
             )
@@ -311,9 +311,9 @@ class EqtlCatalogueFinemapping:
             DataFrame: Log Bayes Factors DataFrame.
         """
         return (
-            session.spark.read.csv(
+            session.spark.read.parquet(
                 lbf_path,
-                sep="\t",
+                # sep="\t",
                 header=True,
                 schema=cls.raw_lbf_schema,
             )

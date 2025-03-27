@@ -45,14 +45,14 @@ class EqtlCatalogueStep:
         credible_sets_df = EqtlCatalogueFinemapping.read_credible_set_from_source(
             session,
             credible_set_path=[
-                f"{eqtl_catalogue_paths_imported}/{qtd_id}.credible_sets.tsv"
+                f"{eqtl_catalogue_paths_imported}/{qtd_id}.credible_sets.parquet"
                 for qtd_id in studies_to_ingest
             ],
         )
         lbf_df = EqtlCatalogueFinemapping.read_lbf_from_source(
             session,
             lbf_path=[
-                f"{eqtl_catalogue_paths_imported}/{qtd_id}.lbf_variable.txt"
+                f"{eqtl_catalogue_paths_imported}/{qtd_id}.lbf_variable.parquet"
                 for qtd_id in studies_to_ingest
             ],
         )
