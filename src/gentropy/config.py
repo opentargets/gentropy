@@ -220,6 +220,7 @@ class LDBasedClumpingConfig(StepConfig):
 class IntervalConfig(StepConfig):
     """Interval step configuration."""
 
+    variant_index_path: str = MISSING
     target_index_path: str = MISSING
     liftover_chain_file_path: str = MISSING
     interval_sources: dict[str, str] = MISSING
