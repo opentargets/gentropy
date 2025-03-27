@@ -223,7 +223,7 @@ class IntervalConfig(StepConfig):
     target_index_path: str = MISSING
     liftover_chain_file_path: str = MISSING
     interval_sources: dict[str, str] = MISSING
-    processed_interval_path: str = MISSING
+    interval_index_path: str = MISSING
     _target_: str = "gentropy.intervals.IntervalStep"
 
 
@@ -814,4 +814,4 @@ def register_config() -> None:
     cs.store(group="step", name="finngen_ukb_meta_ingestion", node=FinngenUkbMetaConfig)
     cs.store(group="step", name="credible_set_qc", node=CredibleSetQCStepConfig)
     cs.store(group="step", name="foldx_integration", node=FoldXVariantAnnotationConfig)
-    cs.store(group="step", name="inteval_index", node=IntervalConfig)
+    cs.store(group="step", name="interval_index", node=IntervalConfig)
