@@ -7,17 +7,21 @@ from typing import TYPE_CHECKING
 from unittest.mock import MagicMock
 
 import pytest
+from pyspark.sql import DataFrame
 from pyspark.sql import types as T
 
 from gentropy.dataset.study_index import StudyIndex
-from gentropy.datasource.finngen.study_index import FinnGenStudyIndex
+from gentropy.datasource.finngen.study_index import (
+    FinngenPrefixMatch,
+    FinnGenStudyIndex,
+)
 from gentropy.finngen_studies import FinnGenStudiesStep
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
     from pathlib import Path
-    from typing import Callable
 
-    from pyspark.sql import DataFrame, SparkSession
+    from pyspark.sql import SparkSession
 
     from gentropy.common.session import Session
 
@@ -28,21 +32,21 @@ def finngen_study_index_mock(spark: SparkSession) -> StudyIndex:
     data = [
         # NOTE: Study maps to a single EFO trait
         (
-            "STUDY_1",
+            "FINNGEN_R11_STUDY_1",
             "Actinomycosis",
             "FINNGEN_R11",
             "gwas",
         ),
         # NOTE: Study does not map to EFO traits
         (
-            "STUDY_2",
+            "FINNGEN_R11_STUDY_2",
             "Some other trait",
             "FINNGEN_R11",
             "gwas",
         ),
         # NOTE: Study maps to two EFO traits
         (
-            "STUDY_3",
+            "FINNGEN_R11_STUDY_3",
             "Glucose",
             "FINNGEN_R11",
             "gwas",
@@ -197,7 +201,7 @@ def urlopen_mock(
             case "https://finngen_phenotypes":
                 value = finngen_phenotype_table_mock
             case "https://efo_mappings":
-                value = "\n".join(["\t".join(row) + "\n" for row in efo_mappings_mock])
+                value = "\n".join(["\t".join(row) for row in efo_mappings_mock])
             case _:
                 value = ""
         mock_open = MagicMock()
@@ -235,7 +239,6 @@ def test_finngen_study_index_step(
     """
     with monkeypatch.context() as m:
         m.setattr("gentropy.datasource.finngen.study_index.urlopen", urlopen_mock)
-        m.setattr("gentropy.finngen_studies.urlopen", urlopen_mock)
         output_path = str(tmp_path / "study_index")
         FinnGenStudiesStep(
             session=session,
@@ -252,6 +255,20 @@ def test_finngen_study_index_step(
         assert study_index.df.count() == 3, "Expected 3 rows that come from the input table."
         assert "traitFromSourceMappedIds" in study_index.df.columns, "Expected that EFO terms were joined to the study_index table."
         # fmt: on
+
+
+def test_finngen_study_index_read_efo_curation(
+    monkeypatch: pytest.MonkeyPatch,
+    spark: SparkSession,
+    urlopen_mock: Callable[[str], MagicMock],
+) -> None:
+    """Test reading efo curation."""
+    with monkeypatch.context() as m:
+        m.setattr("gentropy.datasource.finngen.study_index.urlopen", urlopen_mock)
+        efo_df = FinnGenStudyIndex.read_efo_curation(spark, "https://efo_mappings")
+        assert isinstance(efo_df, DataFrame)
+        efo_df.show()
+        assert efo_df.count() == 5
 
 
 def test_finngen_study_index_from_source(
@@ -280,7 +297,7 @@ def test_finngen_study_index_from_source(
         assert study_index.df.count() == 3, "Expect two rows at the study_index, as in the input."
 
         rows = study_index.df.collect()
-        expected_study_ids = ["AB1_ACTINOMYCOSIS", "GLUCOSE", "SOME_OTHER_TRAIT"]
+        expected_study_ids = ["FINNGEN_R11_AB1_ACTINOMYCOSIS", "FINNGEN_R11_GLUCOSE", "FINNGEN_R11_SOME_OTHER_TRAIT"]
         assert "studyId" in study_index.df.columns, "Expect that studyId column exists."
         assert sorted([v["studyId"] for v in rows]) == expected_study_ids, "Expect that studyIds are populated from input."
 
@@ -309,6 +326,42 @@ def test_finngen_study_index_from_source(
         # fmt: on
 
 
+@pytest.mark.parametrize(
+    ["prefix", "expected_output", "xfail"],
+    [
+        pytest.param(
+            "FINNGEN_R11",
+            FinngenPrefixMatch(prefix="FINNGEN_R11", release="R11"),
+            False,
+            id="Correct prefix passed.",
+        ),
+        pytest.param(
+            "FINNGEN_R11_",
+            FinngenPrefixMatch(prefix="FINNGEN_R11", release="R11"),
+            False,
+            id="Underscore is removed from the prefix.",
+        ),
+        pytest.param(
+            "R11",
+            FinngenPrefixMatch(prefix="FINNGEN_R11", release="R11"),
+            True,
+            id="Incorrect prefix raises ValueError.",
+        ),
+    ],
+)
+def test_finngen_validate_release_prefix(
+    prefix: str, expected_output: FinngenPrefixMatch, xfail: bool
+) -> None:
+    """Test validate_release_prefix."""
+    if not xfail:
+        assert FinnGenStudyIndex.validate_release_prefix(prefix) == expected_output, (
+            "Incorrect match object"
+        )
+    else:
+        with pytest.raises(ValueError):
+            FinnGenStudyIndex.validate_release_prefix(prefix)
+
+
 def test_finngen_study_index_add_efos(
     finngen_study_index_mock: StudyIndex,
     efo_mappings_df_mock: DataFrame,
@@ -319,7 +372,7 @@ def test_finngen_study_index_add_efos(
     assert efo_column_name not in finngen_study_index_mock.df.columns
     study_index = FinnGenStudyIndex.join_efo_mapping(
         finngen_study_index_mock,
-        finngen_release_prefix="FINNGEN_R11_",
+        finngen_release="R11",
         efo_curation_mapping=efo_mappings_df_mock,
     )
     # fmt: off
@@ -332,8 +385,8 @@ def test_finngen_study_index_add_efos(
         for row in study_index.df.select(efo_column_name, "studyId").collect()
     }
     expected_efos = {
-        "STUDY_1": ["EFO_0007128"],
-        "STUDY_2": [],
-        "STUDY_3": ["EFO_0002571", "EFO_0004468"],
+        "FINNGEN_R11_STUDY_1": ["EFO_0007128"],
+        "FINNGEN_R11_STUDY_2": [],
+        "FINNGEN_R11_STUDY_3": ["EFO_0002571", "EFO_0004468"],
     }
     assert expected_efos == efos, "Expect that EFOs are correctly assigned."

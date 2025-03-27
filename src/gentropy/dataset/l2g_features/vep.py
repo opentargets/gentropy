@@ -8,10 +8,10 @@ import pyspark.sql.functions as f
 from pyspark.sql import Window
 
 from gentropy.common.spark_helpers import convert_from_wide_to_long
-from gentropy.dataset.gene_index import GeneIndex
 from gentropy.dataset.l2g_features.l2g_feature import L2GFeature
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
 from gentropy.dataset.study_locus import StudyLocus
+from gentropy.dataset.target_index import TargetIndex
 from gentropy.dataset.variant_index import VariantIndex
 
 if TYPE_CHECKING:
@@ -77,50 +77,48 @@ def common_neighbourhood_vep_feature_logic(
     study_loci_to_annotate: StudyLocus | L2GGoldStandard,
     *,
     variant_index: VariantIndex,
-    gene_index: GeneIndex,
+    target_index: TargetIndex,
     feature_name: str,
 ) -> DataFrame:
-    """Extracts variant severity score computed from VEP for any gene, based on what is the mean score for protein coding genes that are nearby the locus.
+    """Extracts variant severity score computed from VEP for any gene, based on what is the max score for protein coding genes that are nearby the locus.
 
     Args:
         study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
         variant_index (VariantIndex): The dataset containing functional consequence information
-        gene_index (GeneIndex): The dataset containing the gene biotype
+        target_index (TargetIndex): The dataset containing the gene biotype
         feature_name (str): The name of the feature
 
     Returns:
         DataFrame: Feature dataset
     """
     local_feature_name = feature_name.replace("Neighbourhood", "")
-    # First compute mean distances to a gene
     local_metric = common_vep_feature_logic(
         study_loci_to_annotate,
         feature_name=local_feature_name,
         variant_index=variant_index,
     )
     return (
-        # Then compute mean distance in the vicinity (feature will be the same for any gene associated with a studyLocus)
-        local_metric.join(
-            # Bring gene classification
-            gene_index.df.select("geneId", "biotype"),
+        local_metric
+        # Compute average score in the vicinity (feature will be the same for any gene associated with a studyLocus)
+        # (non protein coding genes in the vicinity are excluded see #3552)
+        .join(
+            target_index.df.filter(f.col("biotype") == "protein_coding").select(f.col("id").alias("geneId")),
             "geneId",
             "inner",
         )
         .withColumn(
-            "regional_metric",
-            f.coalesce(
-                # Calculate mean based on protein coding genes
-                f.mean(
-                    f.when(
-                        f.col("biotype") == "protein_coding", f.col(local_feature_name)
-                    )
-                ).over(Window.partitionBy("studyLocusId")),
-                # Default to 0 if there are no protein coding genes
-                f.lit(0),
-            ),
+            "regional_max",
+            f.max(local_feature_name).over(Window.partitionBy("studyLocusId")),
         )
-        .withColumn(feature_name, f.col(local_feature_name) - f.col("regional_metric"))
-        .drop("regional_metric", local_feature_name, "biotype")
+        .withColumn(
+            feature_name,
+            f.when(
+                (f.col("regional_max").isNotNull()) & (f.col("regional_max") != 0.0),
+                f.col(local_feature_name)
+                / f.coalesce(f.col("regional_max"), f.lit(0.0)),
+            ).otherwise(f.lit(0.0)),
+        )
+        .drop("regional_max", local_feature_name)
     )
 
 
@@ -163,7 +161,7 @@ class VepMaximumFeature(L2GFeature):
 class VepMaximumNeighbourhoodFeature(L2GFeature):
     """Maximum functional consequence score among all variants in a credible set for a studyLocus/gene relative to the mean VEP score across all protein coding genes in the vicinity."""
 
-    feature_dependency_type = [VariantIndex, GeneIndex]
+    feature_dependency_type = [VariantIndex, TargetIndex]
     feature_name = "vepMaximumNeighbourhood"
 
     @classmethod
@@ -241,7 +239,7 @@ class VepMeanNeighbourhoodFeature(L2GFeature):
     The mean severity score is weighted by the posterior probability of each variant.
     """
 
-    feature_dependency_type = [VariantIndex, GeneIndex]
+    feature_dependency_type = [VariantIndex, TargetIndex]
     feature_name = "vepMeanNeighbourhood"
 
     @classmethod

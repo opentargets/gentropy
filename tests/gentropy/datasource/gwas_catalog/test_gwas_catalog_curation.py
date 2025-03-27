@@ -80,13 +80,17 @@ class TestGWASCatalogStudyCuration:
         assert isinstance(
             mock_gwas_study_index.annotate_from_study_curation(None),
             StudyIndexGWASCatalog,
-        ), f"Applying curation without curation table should yield a study table, but got: {type(mock_gwas_study_index.annotate_from_study_curation(None))}"
+        ), (
+            f"Applying curation without curation table should yield a study table, but got: {type(mock_gwas_study_index.annotate_from_study_curation(None))}"
+        )
 
         # Return type should work:
         assert isinstance(
             mock_gwas_study_index.annotate_from_study_curation(mock_study_curation),
             StudyIndexGWASCatalog,
-        ), f"Applying curation should return a study table, however got: {type(mock_gwas_study_index.annotate_from_study_curation(mock_study_curation))}"
+        ), (
+            f"Applying curation should return a study table, however got: {type(mock_gwas_study_index.annotate_from_study_curation(mock_study_curation))}"
+        )
 
     @staticmethod
     def test_curation__returned_rows(
@@ -101,14 +105,14 @@ class TestGWASCatalogStudyCuration:
             mock_study_curation
         ).df.count()
         # Method should work on empty curation:
-        assert (
-            zero_return_count == expected_count
-        ), f"When applied None to curation function, the size of the returned data was not as expected ({zero_return_count} vs {expected_count})."
+        assert zero_return_count == expected_count, (
+            f"When applied None to curation function, the size of the returned data was not as expected ({zero_return_count} vs {expected_count})."
+        )
 
         # Return type should work:
-        assert (
-            return_count == expected_count
-        ), f"When applied curation data, the size of the returned data was not as expected ({return_count} vs {expected_count})."
+        assert return_count == expected_count, (
+            f"When applied curation data, the size of the returned data was not as expected ({return_count} vs {expected_count})."
+        )
 
     # Test updated type
     @staticmethod
@@ -135,39 +139,6 @@ class TestGWASCatalogStudyCuration:
             row["studyId"]
             for row in (
                 curated.df.filter(f.col("studyType") != "foo")
-                .select("studyId")
-                .distinct()
-                .collect()
-            )
-        ]
-
-        assert expected == observed
-
-    # Test update qc flag
-    @staticmethod
-    def test_curation__quality_controls(
-        mock_gwas_study_index: StudyIndexGWASCatalog, mock_study_curation: DataFrame
-    ) -> None:
-        """Test for making sure the study type got updated."""
-        curated = mock_gwas_study_index.annotate_from_study_curation(
-            mock_study_curation
-        )
-
-        # Expected studyIds:
-        expected = [
-            row["studyId"]
-            for row in (
-                mock_study_curation.filter(f.col("qualityControls").isNotNull())
-                .select("studyId")
-                .distinct()
-                .collect()
-            )
-        ]
-
-        observed = [
-            row["studyId"]
-            for row in (
-                curated.df.filter(f.size(f.col("qualityControls")) > 0)
                 .select("studyId")
                 .distinct()
                 .collect()

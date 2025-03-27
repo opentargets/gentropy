@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 from functools import reduce
-from typing import TYPE_CHECKING, Type
+from typing import TYPE_CHECKING
 
+import pyspark.sql.functions as f
+from pyspark.sql import Window
 from typing_extensions import Self
 
 from gentropy.common.spark_helpers import convert_from_long_to_wide
@@ -37,6 +39,8 @@ class L2GFeatureMatrix:
         self.fixed_cols = ["studyLocusId", "geneId"]
         if self.with_gold_standard:
             self.fixed_cols.append("goldStandardSet")
+        if "traitFromSourceMappedId" in _df.columns:
+            self.fixed_cols.append("traitFromSourceMappedId")
 
         self.features_list = features_list or [
             col for col in _df.columns if col not in self.fixed_cols
@@ -51,7 +55,7 @@ class L2GFeatureMatrix:
 
     @classmethod
     def from_features_list(
-        cls: Type[L2GFeatureMatrix],
+        cls: type[L2GFeatureMatrix],
         study_loci_to_annotate: StudyLocus | L2GGoldStandard,
         features_list: list[str],
         features_input_loader: L2GFeatureInputLoader,
@@ -128,18 +132,35 @@ class L2GFeatureMatrix:
         }
 
     def fill_na(
-        self: L2GFeatureMatrix, value: float = 0.0, subset: list[str] | None = None
+        self: L2GFeatureMatrix, na_value: float = 0.0, subset: list[str] | None = None
     ) -> L2GFeatureMatrix:
         """Fill missing values in a column with a given value.
 
+        For features that correspond to gene attributes, missing values are imputed using the mean of the column.
+
         Args:
-            value (float): Value to replace missing values with. Defaults to 0.0.
+            na_value (float): Value to replace missing values with. Defaults to 0.0.
             subset (list[str] | None): Subset of columns to consider. Defaults to None.
 
         Returns:
             L2GFeatureMatrix: L2G feature matrix dataset
         """
-        self._df = self._df.fillna(value, subset=subset)
+        cols_to_impute = [
+            "proteinGeneCount500kb",
+            "geneCount500kb",
+        ]
+        for col in cols_to_impute:
+            if col not in self._df.columns:
+                continue
+            else:
+                self._df = self._df.withColumn(
+                    col,
+                    f.when(
+                        f.col(col).isNull(),
+                        f.mean(f.col(col)).over(Window.partitionBy("studyLocusId")),
+                    ).otherwise(f.col(col)),
+                )
+        self._df = self._df.fillna(na_value, subset=subset)
         return self
 
     def select_features(

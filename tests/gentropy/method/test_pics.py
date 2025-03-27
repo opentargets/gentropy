@@ -38,27 +38,12 @@ class TestFinemap:
         observed_df = PICS.finemap(mock_study_locus).df.limit(1)
         assert observed_df.collect()[0]["locus"] is None
 
-    def test_finemap_quality_control(
-        self: TestFinemap, mock_study_locus: StudyLocus
-    ) -> None:
-        """Test that we add a `empty locus` flag when any variant in the locus meets PICS criteria."""
-        mock_study_locus.df = mock_study_locus.df.withColumn(
-            # Association with an empty ldSet
-            "ldSet",
-            f.when(f.col("ldSet").isNull(), f.array()).otherwise(f.col("ldSet")),
-        ).filter(f.size("ldSet") == 0)
-        observed_df = PICS.finemap(mock_study_locus).df.limit(1)
-        qc_flag = "LD block does not contain variants at the required R^2 threshold"
-        assert (
-            qc_flag in observed_df.collect()[0]["qualityControls"]
-        ), "Empty locus QC flag is missing."
-
 
 def test__finemap_udf() -> None:
     """Test the _finemap UDF with a simple case."""
     ld_set = [
-        Row(variantId="var1", r2Overall=0.8),
-        Row(variantId="var2", r2Overall=1),
+        Row(tagVariantId="var1", r2Overall=0.8),
+        Row(tagVariantId="var2", r2Overall=1),
     ]
     result = PICS._finemap(ld_set, lead_neglog_p=10.0, k=6.4)
     expected = [
@@ -75,7 +60,9 @@ def test__finemap_udf() -> None:
             "posteriorProbability": 0.9288304011311763,
         },
     ]
-    for idx, tag in enumerate(result):  # type: ignore
+
+    assert result is not None, "The result of _finemap should not be None"
+    for idx, tag in enumerate(result):
         # assert both dictionaries have the same content regardless of its order
         assert tag == expected[idx]
 

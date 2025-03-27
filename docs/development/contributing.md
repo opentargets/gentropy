@@ -18,11 +18,13 @@ For Google Cloud configuration:
 
 Check that you have the `make` utility installed, and if not (which is unlikely), install it using your system package manager.
 
-Check that you have `java` installed. To be able to use all features including hail support use java 11.
+!!! note "Java support"
+
+    Check that you have `java` installed. To be able to use all features including hail support use java 11 (for handling multiple java versions, consider using [`sdkman`](https://sdkman.io/)).
 
 ## Environment configuration
 
-Run `make setup-dev` to install/update the necessary packages and activate the development environment. You need to do this every time you open a new shell.
+Run `make setup-dev` to install/update the necessary packages (including required python version for development) and activate the development environment. You need to do it just once.
 
 It is recommended to use VS Code as an IDE for development.
 
@@ -30,15 +32,15 @@ It is recommended to use VS Code as an IDE for development.
 
 All gentropy steps can be invoked after successful environment configuration by running
 
-```python
-poetry run gentropy step=<step_name>
+```bash
+uv run gentropy step=<step_name>
 ```
 
 1. Create a new step config in the `src/gentropy/config.py` that inherits from `StepConfig` class.
 
 2. Register new step configuration to `ConfigStore`.
 
-3. Create a step class that holds the business logic in new file in the `src/gentropy`.
+3. Create a step class that holds the business logic in new file in the `src/gentropy/{your_step_name}.py`.
 
 ## Contributing checklist
 
@@ -78,3 +80,31 @@ For more details on each of these steps, see the sections below.
 ### Airflow dags
 
 - Upstream of version 2.0.0 airflow orchestration layer was moved to the [orchestration repository](https://github.com/opentargets/orchestration)
+
+### Support for python versions
+
+As of version 2.1.X gentropy supports multiple python versions. To ensure compatibility with all supported versions, unit tests are run for each of the minor python release from 3.10 to 3.12. Make sure your changes are compatible with all supported versions.
+
+### Development process
+
+The development follows simplified Git Flow process that includes usage of
+
+- `dev` (development branch)
+- `feature` branches
+- `main` (production branch)
+
+The development starts with creating new `feature` branch based on the `dev` branch. Once the feature is ready, the Pull Request for the `dev` branch is created and CI/CD Checks are performed to ensure that the code is compliant with the project conventions. Once the PR is approved, the feature branch is merged into the `dev` branch.
+
+#### Development releases
+
+One can create the dev release tagged by `vX.Y.Z-dev.V` tag. This release will not trigger the CI/CD pipeline to publish the package to the PyPi repository. The release is done by triggering the `Release` GitHub action.
+
+#### Production releases
+
+Once per week, the `Trigger PR for release` github action creates a Pull Request from `dev` to `main` branch, when the PR is approved, the `Release` GitHub action is triggered to create a production release tagged by `vX.Y.Z` tag. This release triggers the CI/CD pipeline to publish the package to the _TestPyPi_ repository. If it is successful, then the actual deployment to the _PyPI_ repository is done. The deployment to the PyPi repository must be verified by the gentropy maintainer.
+
+Below you can find a simplified diagram of the development process.
+
+<div align="center">
+  <img width="800" height="400" src="../../assets/imgs/development-flow.png" alt="development process">
+</div>

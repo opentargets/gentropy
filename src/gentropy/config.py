@@ -2,7 +2,7 @@
 
 import os
 from dataclasses import dataclass, field
-from typing import Any, ClassVar, List, TypedDict
+from typing import Any, ClassVar, TypedDict
 
 from hail import __file__ as hail_location
 from hydra.core.config_store import ConfigStore
@@ -18,6 +18,7 @@ class SessionConfig:
     spark_uri: str = "local[*]"
     hail_home: str = os.path.dirname(hail_location)
     extended_spark_conf: dict[str, str] | None = field(default_factory=dict[str, str])
+    output_partitions: int = 200
     _target_: str = "gentropy.common.session.Session"
 
 
@@ -26,7 +27,7 @@ class StepConfig:
     """Base step configuration."""
 
     session: SessionConfig
-    defaults: List[Any] = field(
+    defaults: list[Any] = field(
         default_factory=lambda: [{"session": "base_session"}, "_self_"]
     )
 
@@ -38,19 +39,8 @@ class ColocalisationConfig(StepConfig):
     credible_set_path: str = MISSING
     coloc_path: str = MISSING
     colocalisation_method: str = MISSING
-    priorc1: float = MISSING
-    priorc2: float = MISSING
-    priorc12: float = MISSING
+    colocalisation_method_params: dict[str, Any] = field(default_factory=dict[str, Any])
     _target_: str = "gentropy.colocalisation.ColocalisationStep"
-
-
-@dataclass
-class GeneIndexConfig(StepConfig):
-    """Gene index step configuration."""
-
-    target_path: str = MISSING
-    gene_index_path: str = MISSING
-    _target_: str = "gentropy.gene_index.GeneIndexStep"
 
 
 @dataclass
@@ -59,6 +49,7 @@ class BiosampleIndexConfig(StepConfig):
 
     cell_ontology_input_path: str = MISSING
     uberon_input_path: str = MISSING
+    efo_input_path: str = MISSING
     biosample_index_path: str = MISSING
     _target_: str = "gentropy.biosample_index.BiosampleIndexStep"
 
@@ -69,44 +60,36 @@ class GWASCatalogStudyCurationConfig(StepConfig):
 
     catalog_study_files: list[str] = MISSING
     catalog_ancestry_files: list[str] = MISSING
-    catalog_sumstats_lut: str = MISSING
     gwas_catalog_study_curation_out: str = MISSING
     gwas_catalog_study_curation_file: str = MISSING
     _target_: str = "gentropy.gwas_catalog_study_curation.GWASCatalogStudyCurationStep"
 
 
 @dataclass
-class GWASCatalogStudyInclusionConfig(StepConfig):
-    """GWAS Catalog study inclusion step configuration."""
+class GWASCatalogStudyIndexGenerationStep(StepConfig):
+    """GWAS Catalog study index generation."""
 
     catalog_study_files: list[str] = MISSING
     catalog_ancestry_files: list[str] = MISSING
-    catalog_associations_file: str = MISSING
-    gwas_catalog_study_curation_file: str = MISSING
-    variant_annotation_path: str = MISSING
-    harmonised_study_file: str = MISSING
-    criteria: str = MISSING
-    inclusion_list_path: str = MISSING
-    exclusion_list_path: str = MISSING
+    study_index_path: str = MISSING
+    gwas_catalog_study_curation_file: str | None = None
+    sumstats_qc_path: str | None = None
     _target_: str = (
-        "gentropy.gwas_catalog_study_inclusion.GWASCatalogStudyInclusionGenerator"
+        "gentropy.gwas_catalog_study_index.GWASCatalogStudyIndexGenerationStep"
     )
 
 
 @dataclass
-class GWASCatalogIngestionConfig(StepConfig):
+class GWASCatalogTopHitIngestionConfig(StepConfig):
     """GWAS Catalog ingestion step configuration."""
 
     catalog_study_files: list[str] = MISSING
     catalog_ancestry_files: list[str] = MISSING
-    catalog_sumstats_lut: str = MISSING
     catalog_associations_file: str = MISSING
     variant_annotation_path: str = MISSING
     catalog_studies_out: str = MISSING
     catalog_associations_out: str = MISSING
-    gwas_catalog_study_curation_file: str | None = None
-    inclusion_list_path: str | None = None
-    _target_: str = "gentropy.gwas_catalog_ingestion.GWASCatalogIngestionStep"
+    _target_: str = "gentropy.gwas_catalog_top_hits.GWASCatalogTopHitIngestionStep"
 
 
 @dataclass
@@ -118,6 +101,17 @@ class GWASCatalogSumstatsPreprocessConfig(StepConfig):
     _target_: str = (
         "gentropy.gwas_catalog_sumstat_preprocess.GWASCatalogSumstatsPreprocessStep"
     )
+
+
+@dataclass
+class FoldXVariantAnnotationConfig(StepConfig):
+    """Step to ingest FoldX amino acid variation data."""
+
+    foldx_dataset_path: str = MISSING
+    plddt_threshold: float = 0.7
+    annotation_path: str = MISSING
+
+    _target_: str = "gentropy.foldx_ingestion.FoldXIngestionStep"
 
 
 @dataclass
@@ -154,7 +148,8 @@ class FinngenStudiesConfig(StepConfig):
     )
     finngen_summary_stats_url_suffix: str = ".gz"
     efo_curation_mapping_url: str = "https://raw.githubusercontent.com/opentargets/curation/24.09.1/mappings/disease/manual_string.tsv"
-    sample_size: int = 453733  # https://www.finngen.fi/en/access_results#:~:text=Total%20sample%20size%3A%C2%A0453%2C733%C2%A0(254%2C618%C2%A0females%20and%C2%A0199%2C115%20males)
+    # https://www.finngen.fi/en/access_results#:~:text=Total%20sample%20size%3A%C2%A0453%2C733%C2%A0(254%2C618%C2%A0females%20and%C2%A0199%2C115%20males)
+    sample_size: int = 453733
     _target_: str = "gentropy.finngen_studies.FinnGenStudiesStep"
 
 
@@ -171,13 +166,14 @@ class FinngenFinemappingConfig(StepConfig):
         "gs://finngen-public-data-r11/finemap/full/susie/*.snp.bgz"
     )
     finngen_susie_finemapping_cs_summary_files: str = (
-        "gs://finngen-public-data-r11/finemap/summary/*.cred.summary.tsv"
+        "gs://finngen-public-data-r11/finemap/summary/*SUSIE.cred.summary.tsv"
     )
     finngen_finemapping_out: str = MISSING
+    finngen_finemapping_lead_pvalue_threshold: float = 1e-5
+    finngen_release_prefix: str = "FINNGEN_R11"
     _target_: str = (
         "gentropy.finngen_finemapping_ingestion.FinnGenFinemappingIngestionStep"
     )
-    finngen_finemapping_lead_pvalue_threshold: float = 1e-5
 
 
 @dataclass
@@ -206,7 +202,6 @@ class LDIndexConfig(StepConfig):
             "nfe",  # Non-Finnish European
         ]
     )
-    use_version_from_input: bool = False
     _target_: str = "gentropy.gnomad_ingestion.LDIndexStep"
 
 
@@ -229,6 +224,7 @@ class LocusToGeneConfig(StepConfig):
     credible_set_path: str = MISSING
     feature_matrix_path: str = MISSING
     predictions_path: str | None = None
+    l2g_threshold: float | None = 0.05
     variant_index_path: str | None = None
     model_path: str | None = None
     gold_standard_curation_path: str | None = None
@@ -266,18 +262,30 @@ class LocusToGeneConfig(StepConfig):
             "vepMaximumNeighbourhood",
             "vepMean",
             "vepMeanNeighbourhood",
+            # other
+            "geneCount500kb",
+            "proteinGeneCount500kb",
+            "credibleSetConfidence",
         ]
     )
     hyperparameters: dict[str, Any] = field(
         default_factory=lambda: {
             "n_estimators": 100,
-            "max_depth": 5,
-            "loss": "log_loss",
+            "max_depth": 3,
+            "ccp_alpha": 0,
+            "learning_rate": 0.1,
+            "min_samples_leaf": 1,
+            "min_samples_split": 5,
+            "subsample": 0.7,
         }
     )
     wandb_run_name: str | None = None
-    hf_hub_repo_id: str | None = "opentargets/locus_to_gene"
+    hf_hub_repo_id: str | None = None
+    hf_model_commit_message: str | None = None
+    hf_model_version: str | None = None
     download_from_hub: bool = True
+    cross_validate: bool = True
+    explain_predictions: bool | None = False
     _target_: str = "gentropy.l2g.LocusToGeneStep"
 
 
@@ -298,7 +306,7 @@ class LocusToGeneFeatureMatrixConfig(StepConfig):
     variant_index_path: str | None = None
     colocalisation_path: str | None = None
     study_index_path: str | None = None
-    gene_index_path: str | None = None
+    target_index_path: str | None = None
     feature_matrix_path: str = MISSING
     features_list: list[str] = field(
         default_factory=lambda: [
@@ -333,6 +341,11 @@ class LocusToGeneFeatureMatrixConfig(StepConfig):
             "vepMaximumNeighbourhood",
             "vepMean",
             "vepMeanNeighbourhood",
+            # other
+            "geneCount500kb",
+            "proteinGeneCount500kb",
+            "credibleSetConfidence",
+            "isProteinCoding",
         ]
     )
     _target_: str = "gentropy.l2g.LocusToGeneFeatureMatrixStep"
@@ -383,7 +396,9 @@ class GnomadVariantConfig(StepConfig):
         }
     )
     variant_annotation_path: str = MISSING
-    gnomad_genomes_path: str = "gs://gcp-public-data--gnomad/release/4.0/ht/genomes/gnomad.genomes.v4.0.sites.ht/"
+    gnomad_genomes_path: str = (
+        "gs://gcp-public-data--gnomad/release/4.1/ht/joint/gnomad.joint.v4.1.sites.ht/"
+    )
     gnomad_variant_populations: list[str] = field(
         default_factory=lambda: [
             "afr",  # African-American
@@ -398,7 +413,6 @@ class GnomadVariantConfig(StepConfig):
             "remaining",  # Other
         ]
     )
-    use_version_from_input: bool = False
     _target_: str = "gentropy.gnomad_ingestion.GnomadVariantIndexStep"
 
 
@@ -421,8 +435,17 @@ class PanUKBBConfig(StepConfig):
             "EUR",  # European
         ]
     )
-    use_version_from_input: bool = False
     _target_: str = "gentropy.pan_ukb_ingestion.PanUKBBVariantIndexStep"
+
+
+@dataclass
+class LOFIngestionConfig(StepConfig):
+    """Step configuration for the ingestion of Loss-of-Function variant data generated by OTAR2075."""
+
+    lof_curation_dataset_path: str = MISSING
+    lof_curation_variant_annotations_path: str = MISSING
+
+    _target_: str = "gentropy.lof_curation_ingestion.LOFIngestionStep"
 
 
 @dataclass
@@ -436,10 +459,14 @@ class VariantIndexConfig(StepConfig):
         label: str
         score: float
 
-    session: SessionConfig = SessionConfig()
+    session: Any = field(
+        default_factory=lambda: {
+            "start_hail": False,
+        }
+    )
     vep_output_json_path: str = MISSING
     variant_index_path: str = MISSING
-    gnomad_variant_annotations_path: str | None = None
+    variant_annotations_path: list[str] | None = None
     hash_threshold: int = 300
     consequence_to_pathogenicity_score: ClassVar[
         list[_ConsequenceToPathogenicityScoreMap]
@@ -472,6 +499,11 @@ class VariantIndexConfig(StepConfig):
             "label": "splice_polypyrimidine_tract_variant",
             "score": 0.33,
         },
+        {
+            "id": "SO_0001626",
+            "label": "incomplete_terminal_codon_variant",
+            "score": 0.33,
+        },
         {"id": "SO_0001819", "label": "synonymous_variant", "score": 0.33},
         {
             "id": "SO_0002170",
@@ -495,7 +527,9 @@ class VariantIndexConfig(StepConfig):
             "score": 0.0,
         },
         {"id": "SO_0001620", "label": "mature_miRNA_variant", "score": 0.0},
+        {"id": "SO_0001060", "label": "intergenic_variant", "score": 0.0},
     ]
+    amino_acid_change_annotations: list[str] = MISSING
 
     _target_: str = "gentropy.variant_index.VariantIndexStep"
 
@@ -504,9 +538,10 @@ class VariantIndexConfig(StepConfig):
 class ConvertToVcfStepConfig(StepConfig):
     """Variant to VCF step configuration."""
 
-    source_path: str = MISSING
-    source_format: str = MISSING
-    vcf_path: str = MISSING
+    source_paths: list[str] = MISSING
+    source_formats: list[str] = MISSING
+    output_path: str = MISSING
+    partition_size: int = 2000
     _target_: str = "gentropy.variant_index.ConvertToVcfStep"
 
 
@@ -587,16 +622,18 @@ class SummaryStatisticsQCStepConfig(StepConfig):
 
 
 @dataclass
-class CredibleSetQCConfig(StepConfig):
+class CredibleSetQCStepConfig(StepConfig):
     """Credible set quality control step configuration."""
 
     credible_sets_path: str = MISSING
-    study_index_path: str = MISSING
-    ld_index_path: str = MISSING
     output_path: str = MISSING
     p_value_threshold: float = 1e-5
     purity_min_r2: float = 0.01
-    ld_min_r2: float = 0.8
+    clump: bool = False
+    ld_index_path: str | None = None
+    study_index_path: str | None = None
+    ld_min_r2: float | None = 0.8
+    n_partitions: int | None = 200
     _target_: str = "gentropy.credible_set_qc.CredibleSetQCStep"
 
 
@@ -618,6 +655,29 @@ class StudyValidationStepConfig(StepConfig):
 
 
 @dataclass
+class LocusToGeneEvidenceStepConfig(StepConfig):
+    """Configuration of the locus to gene evidence step."""
+
+    locus_to_gene_predictions_path: str = MISSING
+    credible_set_path: str = MISSING
+    study_index_path: str = MISSING
+    evidence_output_path: str = MISSING
+    locus_to_gene_threshold: float = 0.05
+    _target_: str = "gentropy.l2g.LocusToGeneEvidenceStep"
+
+
+@dataclass
+class LocusToGeneAssociationsStepConfig(StepConfig):
+    """Configuration of the locus to gene association step."""
+
+    evidence_input_path: str = MISSING
+    disease_index_path: str = MISSING
+    direct_associations_output_path: str = MISSING
+    indirect_associations_output_path: str = MISSING
+    _target_: str = "gentropy.l2g.LocusToGeneAssociationsStep"
+
+
+@dataclass
 class StudyLocusValidationStepConfig(StepConfig):
     """Configuration of the study index validation step.
 
@@ -626,9 +686,11 @@ class StudyLocusValidationStepConfig(StepConfig):
 
     study_index_path: str = MISSING
     study_locus_path: list[str] = MISSING
+    target_index_path: str = MISSING
     valid_study_locus_path: str = MISSING
     invalid_study_locus_path: str = MISSING
     invalid_qc_reasons: list[str] = MISSING
+    trans_qtl_threshold: int = MISSING
     _target_: str = "gentropy.study_locus_validation.StudyLocusValidationStep"
 
 
@@ -637,7 +699,7 @@ class Config:
     """Application configuration."""
 
     # this is unfortunately verbose due to @dataclass limitations
-    defaults: List[Any] = field(default_factory=lambda: ["_self_", {"step": MISSING}])
+    defaults: list[Any] = field(default_factory=lambda: ["_self_", {"step": MISSING}])
     step: StepConfig = MISSING
     datasets: dict[str, str] = field(default_factory=dict)
 
@@ -649,7 +711,6 @@ def register_config() -> None:
     cs.store(group="step/session", name="base_session", node=SessionConfig)
     cs.store(group="step", name="colocalisation", node=ColocalisationConfig)
     cs.store(group="step", name="eqtl_catalogue", node=EqtlCatalogueConfig)
-    cs.store(group="step", name="gene_index", node=GeneIndexConfig)
     cs.store(group="step", name="biosample_index", node=BiosampleIndexConfig)
     cs.store(
         group="step",
@@ -658,16 +719,18 @@ def register_config() -> None:
     )
     cs.store(
         group="step",
-        name="gwas_catalog_study_inclusion",
-        node=GWASCatalogStudyInclusionConfig,
-    )
-    cs.store(
-        group="step", name="gwas_catalog_ingestion", node=GWASCatalogIngestionConfig
+        name="gwas_catalog_study_index",
+        node=GWASCatalogStudyIndexGenerationStep,
     )
     cs.store(
         group="step",
         name="gwas_catalog_sumstat_preprocess",
         node=GWASCatalogSumstatsPreprocessConfig,
+    )
+    cs.store(
+        group="step",
+        name="gwas_catalog_top_hit_ingestion",
+        node=GWASCatalogTopHitIngestionConfig,
     )
     cs.store(group="step", name="ld_based_clumping", node=LDBasedClumpingConfig)
     cs.store(group="step", name="ld_index", node=LDIndexConfig)
@@ -688,6 +751,7 @@ def register_config() -> None:
     cs.store(group="step", name="pics", node=PICSConfig)
     cs.store(group="step", name="gnomad_variants", node=GnomadVariantConfig)
     cs.store(group="step", name="ukb_ppp_eur_sumstat_preprocess", node=UkbPppEurConfig)
+    cs.store(group="step", name="lof_curation_ingestion", node=LOFIngestionConfig)
     cs.store(group="step", name="variant_index", node=VariantIndexConfig)
     cs.store(group="step", name="variant_to_vcf", node=ConvertToVcfStepConfig)
     cs.store(
@@ -710,4 +774,16 @@ def register_config() -> None:
         name="study_validation",
         node=StudyValidationStepConfig,
     )
+    cs.store(
+        group="step",
+        name="locus_to_gene_evidence",
+        node=LocusToGeneEvidenceStepConfig,
+    )
+    cs.store(
+        group="step",
+        name="locus_to_gene_associations",
+        node=LocusToGeneAssociationsStepConfig,
+    )
     cs.store(group="step", name="finngen_ukb_meta_ingestion", node=FinngenUkbMetaConfig)
+    cs.store(group="step", name="credible_set_qc", node=CredibleSetQCStepConfig)
+    cs.store(group="step", name="foldx_integration", node=FoldXVariantAnnotationConfig)

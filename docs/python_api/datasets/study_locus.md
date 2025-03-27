@@ -6,6 +6,10 @@ title: Study Locus
 
 ---
 
+::: gentropy.dataset.study_locus.FinemappingMethod
+
+---
+
 ::: gentropy.dataset.study_locus.StudyLocusQualityCheck
 
 ---

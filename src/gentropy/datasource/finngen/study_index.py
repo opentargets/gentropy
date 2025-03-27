@@ -3,12 +3,20 @@
 from __future__ import annotations
 
 import re
+from typing import TypedDict
 from urllib.request import urlopen
 
 import pyspark.sql.functions as f
 from pyspark.sql import DataFrame, SparkSession
 
 from gentropy.dataset.study_index import StudyIndex
+
+
+class FinngenPrefixMatch(TypedDict):
+    """Class to store the output of the validate_release_prefix."""
+
+    prefix: str
+    release: str
 
 
 class FinnGenStudyIndex:
@@ -26,10 +34,56 @@ class FinnGenStudyIndex:
     """
 
     @staticmethod
+    def validate_release_prefix(release_prefix: str) -> FinngenPrefixMatch:
+        """Validate release prefix passed to finngen StudyIndex.
+
+        Args:
+            release_prefix (str): Finngen release prefix, should be a string like FINNGEN_R*.
+
+        Returns:
+            FinngenPrefixMatch: Object containing valid prefix and release strings.
+
+        Raises:
+            ValueError: when incorrect release prefix is provided.
+
+        This method ensures that the trailing underscore is removed from prefix.
+        """
+        pattern = re.compile(r"FINNGEN_(?P<release>R\d+){1}_?")
+        pattern_match = pattern.match(release_prefix)
+        if not pattern_match:
+            raise ValueError(
+                f"Invalid FinnGen release prefix: {release_prefix}, use the format FINNGEN_R*"
+            )
+        release = pattern_match.group("release").upper()
+        if release_prefix.endswith("_"):
+            release_prefix = release_prefix[:-1]
+        return FinngenPrefixMatch(prefix=release_prefix, release=release)
+
+    @staticmethod
+    def read_efo_curation(session: SparkSession, url: str) -> DataFrame:
+        """Read efo curation from provided url.
+
+        Args:
+            session (SparkSession): Session to use when reading the mapping file.
+            url (str): Url to the mapping file. The file provided should be a tsv file.
+
+        Returns:
+            DataFrame: DataFrame with EFO mappings.
+
+        Example of the file can be found in https://raw.githubusercontent.com/opentargets/curation/refs/heads/master/mappings/disease/manual_string.tsv.
+        """
+        csv_data = urlopen(url).readlines()
+        csv_rows = [row.decode("utf8") for row in csv_data]
+        rdd = session.sparkContext.parallelize(csv_rows)
+        # NOTE: type annotations for spark.read.csv miss the fact that the first param can be [RDD[str]]
+        efo_curation_mapping_df = session.read.csv(rdd, header=True, sep="\t")
+        return efo_curation_mapping_df
+
+    @staticmethod
     def join_efo_mapping(
         study_index: StudyIndex,
         efo_curation_mapping: DataFrame,
-        finngen_release_prefix: str,
+        finngen_release: str,
     ) -> StudyIndex:
         """Add EFO mapping to the Finngen study index table.
 
@@ -44,24 +98,11 @@ class FinnGenStudyIndex:
         Args:
             study_index (StudyIndex): Study index table.
             efo_curation_mapping (DataFrame): Dataframe with EFO mappings.
-            finngen_release_prefix (str): FinnGen release prefix.
+            finngen_release (str): FinnGen release.
 
         Returns:
             StudyIndex: Study index table with added EFO mappings.
-
-        Raises:
-            ValueError: when incorrect release prefix is provided.
         """
-        finngen_release_prefix_regex = re.compile(r"FINNGEN_(?P<release>R\d+){1}_?")
-        finngen_release_prefix_match = finngen_release_prefix_regex.match(
-            finngen_release_prefix
-        )
-        if not finngen_release_prefix_match:
-            raise ValueError(
-                f"Invalid FinnGen release prefix: {finngen_release_prefix}, use the format FINNGEN_R*"
-            )
-        finngen_release = finngen_release_prefix_match.group("release").upper()
-
         efo_mappings = (
             efo_curation_mapping.withColumn("STUDY", f.upper(f.col("STUDY")))
             .filter(f.col("STUDY").contains("FINNGEN"))
@@ -109,9 +150,12 @@ class FinnGenStudyIndex:
         json_data = urlopen(finngen_phenotype_table_url).read().decode("utf-8")
         rdd = spark.sparkContext.parallelize([json_data])
         raw_df = spark.read.json(rdd)
+
         return StudyIndex(
             _df=raw_df.select(
-                f.concat(f.col("phenocode")).alias("studyId"),
+                f.concat(
+                    f.concat_ws("_", f.lit(finngen_release_prefix), f.col("phenocode"))
+                ).alias("studyId"),
                 f.col("phenostring").alias("traitFromSource"),
                 f.col("num_cases").cast("integer").alias("nCases"),
                 f.col("num_controls").cast("integer").alias("nControls"),
@@ -121,7 +165,7 @@ class FinnGenStudyIndex:
                 f.lit(finngen_release_prefix).alias("projectId"),
                 f.lit("gwas").alias("studyType"),
                 f.lit(True).alias("hasSumstats"),
-                f.lit("453,733 (254,618 females and 199,115 males)").alias(
+                f.lit("500,348 (282,064 females and 218,284 males)").alias(
                     "initialSampleSize"
                 ),
                 f.array(

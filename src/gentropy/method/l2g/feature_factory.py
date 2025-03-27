@@ -1,8 +1,10 @@
+# isort: skip_file
 """Factory that computes features based on an input list."""
 
 from __future__ import annotations
 
-from typing import Any, Iterator, Mapping
+from typing import Any
+from collections.abc import Iterator, Mapping
 
 from gentropy.dataset.l2g_features.colocalisation import (
     EQtlColocClppMaximumFeature,
@@ -29,6 +31,12 @@ from gentropy.dataset.l2g_features.distance import (
     DistanceTssMeanNeighbourhoodFeature,
 )
 from gentropy.dataset.l2g_features.l2g_feature import L2GFeature
+from gentropy.dataset.l2g_features.other import (
+    CredibleSetConfidenceFeature,
+    GeneCountFeature,
+    ProteinGeneCountFeature,
+    ProteinCodingFeature,
+)
 from gentropy.dataset.l2g_features.vep import (
     VepMaximumFeature,
     VepMaximumNeighbourhoodFeature,
@@ -119,6 +127,10 @@ class FeatureFactory:
         "vepMeanNeighbourhood": VepMeanNeighbourhoodFeature,
         "vepMaximum": VepMaximumFeature,
         "vepMaximumNeighbourhood": VepMaximumNeighbourhoodFeature,
+        "geneCount500kb": GeneCountFeature,
+        "proteinGeneCount500kb": ProteinGeneCountFeature,
+        "isProteinCoding": ProteinCodingFeature,
+        "credibleSetConfidence": CredibleSetConfidenceFeature,
     }
 
     def __init__(

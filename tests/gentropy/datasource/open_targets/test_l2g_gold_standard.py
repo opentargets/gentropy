@@ -66,9 +66,9 @@ class TestExpandGoldStandardWithNegatives:
         self: TestExpandGoldStandardWithNegatives, spark: SparkSession
     ) -> None:
         """Test expanding positive set with negative set coincides with expected results."""
-        assert (
-            self.observed_df.collect() == self.expected_expanded_gs.collect()
-        ), "GS expansion is not as expected."
+        assert self.observed_df.collect() == self.expected_expanded_gs.collect(), (
+            "GS expansion is not as expected."
+        )
 
     def test_expand_gold_standard_with_negatives_same_positives(
         self: TestExpandGoldStandardWithNegatives, spark: SparkSession
@@ -161,13 +161,15 @@ def test_build_feature_matrix(
     mock_study_locus: StudyLocus,
     mock_colocalisation: Colocalisation,
     mock_study_index: StudyIndex,
+    mock_variant_index: VariantIndex,
 ) -> None:
-    """Test building feature matrix with the eQtlColocH4Maximum feature."""
-    features_list = ["eQtlColocH4Maximum"]
+    """Test building feature matrix with the eQtlColocH4Maximum and isProteinCoding features."""
+    features_list = ["eQtlColocH4Maximum", "isProteinCoding"]
     loader = L2GFeatureInputLoader(
         colocalisation=mock_colocalisation,
         study_index=mock_study_index,
         study_locus=mock_study_locus,
+        variant_index=mock_variant_index,
     )
     fm = mock_study_locus.build_feature_matrix(features_list, loader)
     assert isinstance(

@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 
 
 def test_variant_index_creation(mock_variant_index: VariantIndex) -> None:
-    """Test gene index creation with mock gene index."""
+    """Test variant index creation with mock variant index."""
     assert isinstance(mock_variant_index, VariantIndex)
 
 
@@ -24,14 +24,22 @@ class TestVariantIndex:
 
     MOCK_ANNOTATION_DATA = [
         ("v1", "c1", 2, "T", "A", ["rs5"], "really bad consequence"),
-        ("v4", "c1", 5, "T", "A", ["rs6"], "mild consequence"),
+        (
+            "v4_long",
+            "c1",
+            5,
+            "T",
+            "A",
+            ["rs6"],
+            "mild consequence",
+        ),  # should be hashed automatically
     ]
 
     MOCK_DATA = [
         ("v1", "c1", 2, "T", "A", ["rs1"]),
         ("v2", "c1", 3, "T", "A", ["rs2", "rs3"]),
         ("v3", "c1", 4, "T", "A", None),
-        ("v4", "c1", 5, "T", "A", None),
+        ("v4_long", "c1", 5, "T", "A", None),  # should be hashed automatically
     ]
 
     MOCK_SCHEMA = t.StructType(
@@ -69,7 +77,7 @@ class TestVariantIndex:
         self.df = spark.createDataFrame(self.MOCK_DATA, schema=self.MOCK_SCHEMA)
         # Loading variant index:
         self.variant_index = VariantIndex(
-            _df=self.df, _schema=VariantIndex.get_schema()
+            _df=self.df, _schema=VariantIndex.get_schema(), id_threshold=2
         )
 
         # Loading annotation variant index:
@@ -78,6 +86,7 @@ class TestVariantIndex:
                 self.MOCK_ANNOTATION_DATA, schema=self.MOCK_ANNOTATION_SCHEMA
             ),
             _schema=VariantIndex.get_schema(),
+            id_threshold=2,
         )
 
     def test_init_type(self: TestVariantIndex) -> None:
@@ -130,6 +139,13 @@ class TestVariantIndex:
             .df.filter(f.size("rsIds") > 1)
             .count()
             == 2
+        )
+
+    def test_variantid_column_hashed(self: TestVariantIndex) -> None:
+        """Make sure the variantId column is hashed during initialisation. Threshold is set to 2, so var_4_long should be hashed."""
+        assert (
+            self.variant_index.df.filter(f.col("variantId").startswith("OTVAR")).count()
+            != 0
         )
 
     @pytest.mark.parametrize(

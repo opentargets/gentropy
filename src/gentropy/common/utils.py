@@ -50,7 +50,7 @@ def calculate_confidence_interval(
         |pvalue_mantissa|pvalue_exponent|beta|standard_error|betaConfidenceIntervalLower|betaConfidenceIntervalUpper|
         +---------------+---------------+----+--------------+---------------------------+---------------------------+
         |            2.5|            -10| 0.5|           0.2|        0.10799999999999998|                      0.892|
-        |            3.0|             -5| 1.0|          null|         0.5303663900832607|         1.4696336099167393|
+        |            3.0|             -5| 1.0|          NULL|         0.5303663900832607|         1.4696336099167393|
         |            1.5|             -8|-0.2|           0.1|                     -0.396|       -0.00400000000000...|
         +---------------+---------------+----+--------------+---------------------------+---------------------------+
         <BLANKLINE>
@@ -98,9 +98,9 @@ def convert_odds_ratio_to_beta(
         |beta|oddsRatio|standardError|               beta|standardError|
         +----+---------+-------------+-------------------+-------------+
         | 0.1|      1.1|          0.1|                0.1|          0.1|
-        |null|      1.1|          0.1|0.09531017980432493|         null|
-        | 0.1|     null|          0.1|                0.1|          0.1|
-        | 0.1|      1.1|         null|                0.1|         null|
+        |NULL|      1.1|          0.1|0.09531017980432493|         NULL|
+        | 0.1|     NULL|          0.1|                0.1|          0.1|
+        | 0.1|      1.1|         NULL|                0.1|         NULL|
         +----+---------+-------------+-------------------+-------------+
         <BLANKLINE>
 
@@ -315,3 +315,59 @@ def copy_to_gcs(source_path: str, destination_blob: str) -> None:
     bucket = client.bucket(bucket_name=urlparse(destination_blob).hostname)
     blob = bucket.blob(blob_name=urlparse(destination_blob).path.lstrip("/"))
     blob.upload_from_filename(source_path)
+
+
+def extract_chromosome(variant_id: Column) -> Column:
+    """Extract chromosome from variant ID.
+
+    This function extracts the chromosome from a variant ID. The variantId is expected to be in the format `chromosome_position_ref_alt`.
+    The function does not convert the GENCODE to Ensembl chromosome notation.
+    See https://genome.ucsc.edu/FAQ/FAQgenes.html#:~:text=maps%20only%20once.-,The%20differences,-Some%20of%20our
+
+    Args:
+        variant_id (Column): Variant ID
+
+    Returns:
+        Column: Chromosome
+
+    Examples:
+        >>> d = [("chr1_12345_A_T",),("15_KI270850v1_alt_48777_C_T",),]
+        >>> df = spark.createDataFrame(d).toDF("variantId")
+        >>> df.withColumn("chromosome", extract_chromosome(f.col("variantId"))).show(truncate=False)
+        +---------------------------+-----------------+
+        |variantId                  |chromosome       |
+        +---------------------------+-----------------+
+        |chr1_12345_A_T             |chr1             |
+        |15_KI270850v1_alt_48777_C_T|15_KI270850v1_alt|
+        +---------------------------+-----------------+
+        <BLANKLINE>
+
+    """
+    return f.regexp_extract(variant_id, r"^(.*)_\d+_.*$", 1)
+
+
+def extract_position(variant_id: Column) -> Column:
+    """Extract position from variant ID.
+
+    This function extracts the position from a variant ID. The variantId is expected to be in the format `chromosome_position_ref_alt`.
+
+    Args:
+        variant_id (Column): Variant ID
+
+    Returns:
+        Column: Position
+
+    Examples:
+        >>> d = [("chr1_12345_A_T",),("15_KI270850v1_alt_48777_C_T",),]
+        >>> df = spark.createDataFrame(d).toDF("variantId")
+        >>> df.withColumn("position", extract_position(f.col("variantId"))).show(truncate=False)
+        +---------------------------+--------+
+        |variantId                  |position|
+        +---------------------------+--------+
+        |chr1_12345_A_T             |12345   |
+        |15_KI270850v1_alt_48777_C_T|48777   |
+        +---------------------------+--------+
+        <BLANKLINE>
+
+    """
+    return f.regexp_extract(variant_id, r"^.*_(\d+)_.*$", 1)

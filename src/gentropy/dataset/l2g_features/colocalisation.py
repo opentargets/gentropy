@@ -13,6 +13,8 @@ from gentropy.dataset.l2g_features.l2g_feature import L2GFeature
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
 from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import StudyLocus
+from gentropy.dataset.target_index import TargetIndex
+from gentropy.dataset.variant_index import VariantIndex
 
 if TYPE_CHECKING:
     from pyspark.sql import DataFrame
@@ -68,6 +70,54 @@ def common_colocalisation_feature_logic(
     )
 
 
+def extend_missing_colocalisation_to_neighbourhood_genes(
+    feature_name: str,
+    local_features: DataFrame,
+    variant_index: VariantIndex,
+    target_index: TargetIndex,
+    study_locus: StudyLocus,
+) -> DataFrame:
+    """This function creates an artificial dataset of features that represents the missing colocalisation to the neighbourhood genes.
+
+    Args:
+        feature_name (str): The name of the feature to extend
+        local_features (DataFrame): The dataframe of features to extend
+        variant_index (VariantIndex): Variant index containing all variant/gene relationships
+        target_index (TargetIndex): Target index to fetch the gene information
+        study_locus (StudyLocus): Study locus to traverse between colocalisation and variant index
+
+    Returns:
+        DataFrame: Dataframe of features that include genes in the neighbourhood not present in the colocalisation results. For these genes, the feature value is set to 0.
+    """
+    coding_variant_gene_lut = (
+        variant_index.df.select(
+            "variantId", f.explode("transcriptConsequences").alias("tc")
+        )
+        .select(f.col("tc.targetId").alias("geneId"), "variantId")
+        .join(target_index.df.select(f.col("id").alias("geneId"), "biotype"), "geneId", "left")
+        .filter(f.col("biotype") == "protein_coding")
+        .drop("biotype")
+        .distinct()
+    )
+    local_features_w_variant = local_features.join(
+        study_locus.df.select("studyLocusId", "variantId"), "studyLocusId"
+    )
+    return (
+        # Get the genes that are not present in the colocalisation results
+        coding_variant_gene_lut.join(
+            local_features_w_variant, ["variantId", "geneId"], "left_anti"
+        )
+        # We now link the missing variant/gene to the study locus from the original dataframe
+        .join(
+            local_features_w_variant.select("studyLocusId", "variantId").distinct(),
+            "variantId",
+        )
+        .drop("variantId")
+        # Fill the information for missing genes with 0
+        .withColumn(feature_name, f.lit(0.0))
+    )
+
+
 def common_neighbourhood_colocalisation_feature_logic(
     study_loci_to_annotate: StudyLocus | L2GGoldStandard,
     colocalisation_method: str,
@@ -77,7 +127,9 @@ def common_neighbourhood_colocalisation_feature_logic(
     *,
     colocalisation: Colocalisation,
     study_index: StudyIndex,
+    target_index: TargetIndex,
     study_locus: StudyLocus,
+    variant_index: VariantIndex,
 ) -> DataFrame:
     """Wrapper to call the logic that creates a type of colocalisation features.
 
@@ -89,7 +141,9 @@ def common_neighbourhood_colocalisation_feature_logic(
         qtl_types (list[str] | str): The types of QTL to filter the data by
         colocalisation (Colocalisation): Dataset with the colocalisation results
         study_index (StudyIndex): Study index to fetch study type and gene
+        target_index (TargetIndex): Target index to add gene type
         study_locus (StudyLocus): Study locus to traverse between colocalisation and study index
+        variant_index (VariantIndex): Variant index to annotate all overlapping genes
 
     Returns:
         DataFrame: Feature annotation in long format with the columns: studyLocusId, geneId, featureName, featureValue
@@ -106,14 +160,36 @@ def common_neighbourhood_colocalisation_feature_logic(
         study_index=study_index,
         study_locus=study_locus,
     )
+    extended_local_max = local_max.unionByName(
+        extend_missing_colocalisation_to_neighbourhood_genes(
+            local_feature_name,
+            local_max,
+            variant_index,
+            target_index,
+            study_locus,
+        )
+    )
     return (
-        # Then compute maximum score in the vicinity (feature will be the same for any gene associated with a studyLocus)
-        local_max.withColumn(
-            "regional_maximum",
+        extended_local_max.join(
+            # Compute average score in the vicinity (feature will be the same for any gene associated with a studyLocus)
+            # (non protein coding genes in the vicinity are excluded see #3552)
+            target_index.df.filter(f.col("biotype") == "protein_coding").select(f.col("id").alias("geneId")),
+            "geneId",
+            "inner",
+        )
+        .withColumn(
+            "regional_max",
             f.max(local_feature_name).over(Window.partitionBy("studyLocusId")),
         )
-        .withColumn(feature_name, f.col("regional_maximum") - f.col(local_feature_name))
-        .drop("regional_maximum", local_feature_name)
+        .withColumn(
+            feature_name,
+            f.when(
+                (f.col("regional_max").isNotNull()) & (f.col("regional_max") != 0.0),
+                f.col(local_feature_name)
+                / f.coalesce(f.col("regional_max"), f.lit(0.0)),
+            ).otherwise(f.lit(0.0)),
+        )
+        .drop("regional_max", local_feature_name)
     )
 
 
@@ -140,7 +216,7 @@ class EQtlColocClppMaximumFeature(L2GFeature):
         """
         colocalisation_method = "ECaviar"
         colocalisation_metric = "clpp"
-        qtl_type = "eqtl"
+        qtl_type = ["eqtl", "sceqtl"]
 
         return cls(
             _df=convert_from_wide_to_long(
@@ -163,7 +239,13 @@ class EQtlColocClppMaximumFeature(L2GFeature):
 class EQtlColocClppMaximumNeighbourhoodFeature(L2GFeature):
     """Max CLPP for each (study, locus) aggregating over all eQTLs."""
 
-    feature_dependency_type = [Colocalisation, StudyIndex, StudyLocus]
+    feature_dependency_type = [
+        Colocalisation,
+        StudyIndex,
+        TargetIndex,
+        StudyLocus,
+        VariantIndex,
+    ]
     feature_name = "eQtlColocClppMaximumNeighbourhood"
 
     @classmethod
@@ -183,7 +265,7 @@ class EQtlColocClppMaximumNeighbourhoodFeature(L2GFeature):
         """
         colocalisation_method = "ECaviar"
         colocalisation_metric = "clpp"
-        qtl_type = "eqtl"
+        qtl_type = ["eqtl", "sceqtl"]
 
         return cls(
             _df=convert_from_wide_to_long(
@@ -248,7 +330,13 @@ class PQtlColocClppMaximumFeature(L2GFeature):
 class PQtlColocClppMaximumNeighbourhoodFeature(L2GFeature):
     """Max CLPP for each (study, locus, gene) aggregating over all pQTLs."""
 
-    feature_dependency_type = [Colocalisation, StudyIndex, StudyLocus]
+    feature_dependency_type = [
+        Colocalisation,
+        StudyIndex,
+        TargetIndex,
+        StudyLocus,
+        VariantIndex,
+    ]
     feature_name = "pQtlColocClppMaximumNeighbourhood"
 
     @classmethod
@@ -310,7 +398,7 @@ class SQtlColocClppMaximumFeature(L2GFeature):
         """
         colocalisation_method = "ECaviar"
         colocalisation_metric = "clpp"
-        qtl_types = ["sqtl", "tuqtl"]
+        qtl_types = ["sqtl", "tuqtl", "scsqtl", "sctuqtl"]
         return cls(
             _df=convert_from_wide_to_long(
                 common_colocalisation_feature_logic(
@@ -332,7 +420,13 @@ class SQtlColocClppMaximumFeature(L2GFeature):
 class SQtlColocClppMaximumNeighbourhoodFeature(L2GFeature):
     """Max CLPP for each (study, locus, gene) aggregating over all sQTLs."""
 
-    feature_dependency_type = [Colocalisation, StudyIndex, StudyLocus]
+    feature_dependency_type = [
+        Colocalisation,
+        StudyIndex,
+        TargetIndex,
+        StudyLocus,
+        VariantIndex,
+    ]
     feature_name = "sQtlColocClppMaximumNeighbourhood"
 
     @classmethod
@@ -352,7 +446,7 @@ class SQtlColocClppMaximumNeighbourhoodFeature(L2GFeature):
         """
         colocalisation_method = "ECaviar"
         colocalisation_metric = "clpp"
-        qtl_types = ["sqtl", "tuqtl"]
+        qtl_types = ["sqtl", "tuqtl", "scsqtl", "sctuqtl"]
         return cls(
             _df=convert_from_wide_to_long(
                 common_neighbourhood_colocalisation_feature_logic(
@@ -394,7 +488,7 @@ class EQtlColocH4MaximumFeature(L2GFeature):
         """
         colocalisation_method = "Coloc"
         colocalisation_metric = "h4"
-        qtl_type = "eqtl"
+        qtl_type = ["eqtl", "sceqtl"]
         return cls(
             _df=convert_from_wide_to_long(
                 common_colocalisation_feature_logic(
@@ -416,7 +510,13 @@ class EQtlColocH4MaximumFeature(L2GFeature):
 class EQtlColocH4MaximumNeighbourhoodFeature(L2GFeature):
     """Max H4 for each (study, locus) aggregating over all eQTLs."""
 
-    feature_dependency_type = [Colocalisation, StudyIndex, StudyLocus]
+    feature_dependency_type = [
+        Colocalisation,
+        StudyIndex,
+        TargetIndex,
+        StudyLocus,
+        VariantIndex,
+    ]
     feature_name = "eQtlColocH4MaximumNeighbourhood"
 
     @classmethod
@@ -436,7 +536,7 @@ class EQtlColocH4MaximumNeighbourhoodFeature(L2GFeature):
         """
         colocalisation_method = "Coloc"
         colocalisation_metric = "h4"
-        qtl_type = "eqtl"
+        qtl_type = ["eqtl", "sceqtl"]
         return cls(
             _df=convert_from_wide_to_long(
                 common_neighbourhood_colocalisation_feature_logic(
@@ -500,7 +600,13 @@ class PQtlColocH4MaximumFeature(L2GFeature):
 class PQtlColocH4MaximumNeighbourhoodFeature(L2GFeature):
     """Max H4 for each (study, locus) aggregating over all pQTLs."""
 
-    feature_dependency_type = [Colocalisation, StudyIndex, StudyLocus]
+    feature_dependency_type = [
+        Colocalisation,
+        StudyIndex,
+        TargetIndex,
+        StudyLocus,
+        VariantIndex,
+    ]
     feature_name = "pQtlColocH4MaximumNeighbourhood"
 
     @classmethod
@@ -562,7 +668,7 @@ class SQtlColocH4MaximumFeature(L2GFeature):
         """
         colocalisation_method = "Coloc"
         colocalisation_metric = "h4"
-        qtl_types = ["sqtl", "tuqtl"]
+        qtl_types = ["sqtl", "tuqtl", "scsqtl", "sctuqtl"]
         return cls(
             _df=convert_from_wide_to_long(
                 common_colocalisation_feature_logic(
@@ -584,7 +690,13 @@ class SQtlColocH4MaximumFeature(L2GFeature):
 class SQtlColocH4MaximumNeighbourhoodFeature(L2GFeature):
     """Max H4 for each (study, locus) aggregating over all sQTLs."""
 
-    feature_dependency_type = [Colocalisation, StudyIndex, StudyLocus]
+    feature_dependency_type = [
+        Colocalisation,
+        StudyIndex,
+        TargetIndex,
+        StudyLocus,
+        VariantIndex,
+    ]
     feature_name = "sQtlColocH4MaximumNeighbourhood"
 
     @classmethod
@@ -604,7 +716,7 @@ class SQtlColocH4MaximumNeighbourhoodFeature(L2GFeature):
         """
         colocalisation_method = "Coloc"
         colocalisation_metric = "h4"
-        qtl_types = ["sqtl", "tuqtl"]
+        qtl_types = ["sqtl", "tuqtl", "scsqtl", "sctuqtl"]
         return cls(
             _df=convert_from_wide_to_long(
                 common_neighbourhood_colocalisation_feature_logic(

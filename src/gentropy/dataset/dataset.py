@@ -8,8 +8,9 @@ from enum import Enum
 from functools import reduce
 from typing import TYPE_CHECKING, Any
 
-import pyspark.sql.functions as f
-from pyspark.sql.types import DoubleType
+from pyspark.sql import DataFrame
+from pyspark.sql import functions as f
+from pyspark.sql import types as t
 from pyspark.sql.window import Window
 from typing_extensions import Self
 
@@ -18,7 +19,7 @@ from gentropy.common.schemas import SchemaValidationError, compare_struct_schema
 if TYPE_CHECKING:
     from enum import Enum
 
-    from pyspark.sql import Column, DataFrame
+    from pyspark.sql import Column
     from pyspark.sql.types import StructType
 
     from gentropy.common.session import Session
@@ -26,17 +27,34 @@ if TYPE_CHECKING:
 
 @dataclass
 class Dataset(ABC):
-    """Open Targets Gentropy Dataset.
+    """Open Targets Gentropy Dataset Interface.
 
-    `Dataset` is a wrapper around a Spark DataFrame with a predefined schema. Schemas for each child dataset are described in the `schemas` module.
+    The `Dataset` interface is a wrapper around a Spark DataFrame with a predefined schema.
+    Class allows for overwriting the schema with `_schema` parameter.
+    If the `_schema` is not provided, the schema is inferred from the Dataset.get_schema specific
+    method which must be implemented by the child classes.
     """
 
     _df: DataFrame
-    _schema: StructType
+    _schema: StructType | None = None
 
     def __post_init__(self: Dataset) -> None:
-        """Post init."""
-        self.validate_schema()
+        """Post init.
+
+        Raises:
+            TypeError: If the type of the _df or _schema is not valid
+        """
+        match self._df:
+            case DataFrame():
+                pass
+            case _:
+                raise TypeError(f"Invalid type for _df: {type(self._df)}")
+
+        match self._schema:
+            case None | t.StructType():
+                self.validate_schema()
+            case _:
+                raise TypeError(f"Invalid type for _schema: {type(self._schema)}")
 
     @property
     def df(self: Dataset) -> DataFrame:
@@ -64,7 +82,31 @@ class Dataset(ABC):
         Returns:
             StructType: Dataframe expected schema
         """
-        return self._schema
+        return self._schema or self.get_schema()
+
+    @classmethod
+    def _process_class_params(
+        cls, params: dict[str, Any]
+    ) -> tuple[dict[str, Any], dict[str, Any]]:
+        """Separate class initialization parameters from spark session parameters.
+
+        Args:
+            params (dict[str, Any]): Combined parameters dictionary
+
+        Returns:
+            tuple[dict[str, Any], dict[str, Any]]: (class_params, spark_params)
+        """
+        # Get all field names from the class (including parent classes)
+        class_field_names = {
+            field.name
+            for cls_ in cls.__mro__
+            if hasattr(cls_, "__dataclass_fields__")
+            for field in cls_.__dataclass_fields__.values()
+        }
+        # Separate parameters
+        class_params = {k: v for k, v in params.items() if k in class_field_names}
+        spark_params = {k: v for k, v in params.items() if k not in class_field_names}
+        return class_params, spark_params
 
     @classmethod
     @abstractmethod
@@ -120,23 +162,29 @@ class Dataset(ABC):
             ValueError: Parquet file is empty
         """
         schema = cls.get_schema()
-        df = session.load_data(path, format="parquet", schema=schema, **kwargs)
+
+        # Separate class params from spark params
+        class_params, spark_params = cls._process_class_params(kwargs)
+
+        df = session.load_data(path, format="parquet", schema=schema, **spark_params)
         if df.isEmpty():
             raise ValueError(f"Parquet file is empty: {path}")
-        return cls(_df=df, _schema=schema)
+        return cls(_df=df, _schema=schema, **class_params)
 
     def filter(self: Self, condition: Column) -> Self:
         """Creates a new instance of a Dataset with the DataFrame filtered by the condition.
+
+        Preserves all attributes from the original instance.
 
         Args:
             condition (Column): Condition to filter the DataFrame
 
         Returns:
-            Self: Filtered Dataset
+            Self: Filtered Dataset with preserved attributes
         """
-        df = self._df.filter(condition)
-        class_constructor = self.__class__
-        return class_constructor(_df=df, _schema=class_constructor.get_schema())
+        filtered_df = self._df.filter(condition)
+        attrs = {k: v for k, v in self.__dict__.items() if k != "_df"}
+        return self.__class__(_df=filtered_df, **attrs)
 
     def validate_schema(self: Dataset) -> None:
         """Validate DataFrame schema against expected class schema.
@@ -144,7 +192,7 @@ class Dataset(ABC):
         Raises:
             SchemaValidationError: If the DataFrame schema does not match the expected schema
         """
-        expected_schema = self._schema
+        expected_schema = self.schema
         observed_schema = self._df.schema
 
         # Unexpected fields in dataset
@@ -216,7 +264,7 @@ class Dataset(ABC):
         if len(cols) == 0:
             return self
         inf_strings = ("Inf", "+Inf", "-Inf", "Infinity", "+Infinity", "-Infinity")
-        inf_values = [f.lit(v).cast(DoubleType()) for v in inf_strings]
+        inf_values = [f.lit(v).cast(t.DoubleType()) for v in inf_strings]
         conditions = [f.col(c).isin(inf_values) for c in cols]
         # reduce individual filter expressions with or statement
         # to col("beta").isin([lit(Inf)]) | col("beta").isin([lit(Inf)])...
@@ -294,7 +342,9 @@ class Dataset(ABC):
 
     @staticmethod
     def flag_duplicates(test_column: Column) -> Column:
-        """Return True for duplicated values in column.
+        """Return True for rows, where the value was already seen in column.
+
+        This implementation allows keeping the first occurrence of the value.
 
         Args:
             test_column (Column): Column to check for duplicates
@@ -303,12 +353,7 @@ class Dataset(ABC):
             Column: Column with a boolean flag for duplicates
         """
         return (
-            f.count(test_column).over(
-                Window.partitionBy(test_column).rowsBetween(
-                    Window.unboundedPreceding, Window.unboundedFollowing
-                )
-            )
-            > 1
+            f.row_number().over(Window.partitionBy(test_column).orderBy(f.rand())) > 1
         )
 
     @staticmethod
@@ -321,7 +366,10 @@ class Dataset(ABC):
         Returns:
             Column: column with a unique identifier
         """
-        hashable_columns = [f.when(f.col(column).cast("string").isNull(), f.lit("None"))
-                                 .otherwise(f.col(column).cast("string"))
-                                 for column in uniqueness_defining_columns]
+        hashable_columns = [
+            f.when(f.col(column).cast("string").isNull(), f.lit("None")).otherwise(
+                f.col(column).cast("string")
+            )
+            for column in uniqueness_defining_columns
+        ]
         return f.md5(f.concat(*hashable_columns))

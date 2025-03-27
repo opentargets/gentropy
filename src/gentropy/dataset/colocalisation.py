@@ -61,8 +61,13 @@ class Colocalisation(Dataset):
         from gentropy.colocalisation import ColocalisationStep
 
         valid_qtls = list(
-            set(EqtlCatalogueStudyIndex.method_to_study_type_mapping.values())
-        )
+            set(EqtlCatalogueStudyIndex.method_to_qtl_type_mapping.values())
+        ) + [
+            f"sc{qtl}"
+            for qtl in set(
+                EqtlCatalogueStudyIndex.method_to_qtl_type_mapping.values()
+            )
+        ]
 
         if filter_by_qtls:
             filter_by_qtls = (
@@ -83,7 +88,7 @@ class Colocalisation(Dataset):
 
         method_colocalisation_metric = ColocalisationStep._get_colocalisation_class(
             filter_by_colocalisation_method
-        ).METHOD_METRIC  # type: ignore
+        ).METHOD_METRIC
 
         coloc_filtering_expr = [
             f.col("rightGeneId").isNotNull(),

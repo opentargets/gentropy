@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from gentropy.common.session import Session
 from gentropy.common.types import LD_Population, VariantPopulation
-from gentropy.common.version_engine import VersionEngine
 from gentropy.config import GnomadVariantConfig, LDIndexConfig
 from gentropy.datasource.gnomad.ld import GnomADLDMatrix
 from gentropy.datasource.gnomad.variants import GnomADVariants
@@ -26,10 +25,10 @@ class LDIndexStep:
         min_r2: float = LDIndexConfig().min_r2,
         ld_matrix_template: str = LDIndexConfig().ld_matrix_template,
         ld_index_raw_template: str = LDIndexConfig().ld_index_raw_template,
-        ld_populations: list[LD_Population | str] = LDIndexConfig().ld_populations,
+        ld_populations: list[LD_Population |
+                             str] = LDIndexConfig().ld_populations,
         liftover_ht_path: str = LDIndexConfig().liftover_ht_path,
         grch37_to_grch38_chain_path: str = LDIndexConfig().grch37_to_grch38_chain_path,
-        use_version_from_input: bool = LDIndexConfig().use_version_from_input,
     ) -> None:
         """Run step.
 
@@ -42,17 +41,9 @@ class LDIndexStep:
             ld_populations (list[LD_Population | str]): Population names derived from the ld file paths
             liftover_ht_path (str): Path to the liftover ht file
             grch37_to_grch38_chain_path (str): Path to the chain file used to lift over the coordinates.
-            use_version_from_input (bool): Append version derived from input ld_matrix_template to the output ld_index_out. Defaults to False.
 
-        In case use_version_from_input is set to True,
-        data source version inferred from ld_matrix_temolate is appended as the last path segment to the output path.
         Default values are provided in LDIndexConfig.
         """
-        if use_version_from_input:
-            # amend data source version to output path
-            ld_index_out = VersionEngine("gnomad").amend_version(
-                ld_matrix_template, ld_index_out
-            )
         (
             GnomADLDMatrix(
                 ld_matrix_template=ld_matrix_template,
@@ -84,7 +75,6 @@ class GnomadVariantIndexStep:
         gnomad_variant_populations: list[
             VariantPopulation | str
         ] = GnomadVariantConfig().gnomad_variant_populations,
-        use_version_from_input: bool = GnomadVariantConfig().use_version_from_input,
     ) -> None:
         """Run Variant Annotation step.
 
@@ -93,18 +83,12 @@ class GnomadVariantIndexStep:
             variant_annotation_path (str): Path to resulting dataset.
             gnomad_genomes_path (str): Path to gnomAD genomes hail table, e.g. `gs://gcp-public-data--gnomad/release/4.0/ht/genomes/gnomad.genomes.v4.0.sites.ht/`.
             gnomad_variant_populations (list[VariantPopulation | str]): List of populations to include.
-            use_version_from_input (bool): Append version derived from input gnomad_genomes_path to the output variant_annotation_path. Defaults to False.
 
-        In case use_version_from_input is set to True,
-        data source version inferred from gnomad_genomes_path is appended as the last path segment to the output path.
         All defaults are stored in the GnomadVariantConfig.
         """
         # amend data source version to output path
-        if use_version_from_input:
-            variant_annotation_path = VersionEngine("gnomad").amend_version(
-                gnomad_genomes_path, variant_annotation_path
-            )
-
+        session.logger.info("Gnomad variant annotation path:")
+        session.logger.info(variant_annotation_path)
         # Parse variant info from source.
         (
             GnomADVariants(
@@ -114,6 +98,8 @@ class GnomadVariantIndexStep:
             # Convert data to variant index:
             .as_variant_index()
             # Write file:
-            .df.write.mode(session.write_mode)
+            .df.repartitionByRange("chromosome", "position")
+            .sortWithinPartitions("chromosome", "position")
+            .write.mode(session.write_mode)
             .parquet(variant_annotation_path)
         )

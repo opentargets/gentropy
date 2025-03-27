@@ -1,12 +1,12 @@
 default_language_version:
-  python: python3.10
+  python: python3.11
 ci:
   autoupdate_commit_msg: "chore: pre-commit autoupdate"
   autofix_commit_msg: "chore: pre-commit auto fixes [...]"
-  skip: [poetry-lock]
+  skip: [uv-lock]
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.6.7
+    rev: v0.11.2
     hooks:
       - id: ruff
         args:
@@ -15,7 +15,7 @@ repos:
         files: ^((gentropy|utils|tests)/.+)?[^/]+\.py$
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.6.0
+    rev: v5.0.0
     hooks:
       - id: trailing-whitespace
       - id: end-of-file-fixer
@@ -34,7 +34,7 @@ repos:
       - id: debug-statements
       - id: check-docstring-first
   - repo: https://github.com/adrienverge/yamllint.git
-    rev: v1.35.1
+    rev: v1.37.0
     hooks:
       - id: yamllint
 
@@ -46,7 +46,7 @@ repos:
       - id: python-check-blanket-noqa
 
   - repo: https://github.com/hadialqattan/pycln
-    rev: v2.4.0
+    rev: v2.5.0
     hooks:
       - id: pycln
         args: [--all]
@@ -58,14 +58,14 @@ repos:
         exclude: "CHANGELOG.md"
 
   - repo: https://github.com/alessandrojcm/commitlint-pre-commit-hook
-    rev: v9.18.0
+    rev: v9.22.0
     hooks:
       - id: commitlint
         additional_dependencies: ["@commitlint/config-conventional@18.6.3"]
         stages: [commit-msg]
 
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: "v1.11.2"
+    rev: "v1.15.0"
     hooks:
       - id: mypy
         args:
@@ -98,13 +98,11 @@ repos:
       - id: beautysh
 
   - repo: https://github.com/jsh9/pydoclint
-    rev: 0.5.8
+    rev: 0.6.2
     hooks:
       - id: pydoclint
-
-  - repo: https://github.com/python-poetry/poetry
-    rev: "1.8.0"
+  - repo: https://github.com/astral-sh/uv-pre-commit
+    rev: 0.6.9
     hooks:
-      - id: poetry-check
-      - id: poetry-lock
-        args: ["--no-update"]
+      - id: uv-lock
+        args: [--check]

@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import json
+import logging
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Type
+from typing import TYPE_CHECKING, Any
 
+import pandas as pd
 import skops.io as sio
 from pandas import DataFrame as pd_dataframe
 from pandas import to_numeric as pd_to_numeric
@@ -14,9 +17,9 @@ from skops import hub_utils
 
 from gentropy.common.session import Session
 from gentropy.common.utils import copy_to_gcs
+from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
 
 if TYPE_CHECKING:
-    from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
     from gentropy.dataset.l2g_prediction import L2GPrediction
 
 
@@ -25,7 +28,18 @@ class LocusToGeneModel:
     """Wrapper for the Locus to Gene classifier."""
 
     model: Any = GradientBoostingClassifier(random_state=42)
-    hyperparameters: dict[str, Any] | None = None
+    features_list: list[str] = field(default_factory=list)
+    hyperparameters: dict[str, Any] = field(
+        default_factory=lambda: {
+            "n_estimators": 100,
+            "max_depth": 10,
+            "ccp_alpha": 0,
+            "learning_rate": 0.1,
+            "min_samples_leaf": 5,
+            "min_samples_split": 5,
+            "subsample": 1,
+        }
+    )
     training_data: L2GFeatureMatrix | None = None
     label_encoder: dict[str, int] = field(
         default_factory=lambda: {
@@ -36,17 +50,23 @@ class LocusToGeneModel:
 
     def __post_init__(self: LocusToGeneModel) -> None:
         """Post-initialisation to fit the estimator with the provided params."""
-        if self.hyperparameters:
-            self.model.set_params(**self.hyperparameters_dict)
+        self.model.set_params(**self.hyperparameters_dict)
 
     @classmethod
     def load_from_disk(
-        cls: Type[LocusToGeneModel], path: str | Path
+        cls: type[LocusToGeneModel],
+        session: Session,
+        path: str,
+        model_name: str = "classifier.skops",
+        **kwargs: Any,
     ) -> LocusToGeneModel:
         """Load a fitted model from disk.
 
         Args:
-            path (str | Path): Path to the model
+            session (Session): Session object that loads the training data
+            path (str): Path to the directory containing model and metadata
+            model_name (str): Name of the persisted model to load. Defaults to "classifier.skops".
+            **kwargs(Any): Keyword arguments to pass to the constructor
 
         Returns:
             LocusToGeneModel: L2G model loaded from disk
@@ -54,31 +74,97 @@ class LocusToGeneModel:
         Raises:
             ValueError: If the model has not been fitted yet
         """
-        loaded_model = sio.load(path, trusted=sio.get_untrusted_types(file=path))
+        model_path = (Path(path) / model_name).as_posix()
+        if model_path.startswith("gs://"):
+            path = model_path.removeprefix("gs://")
+            bucket_name = path.split("/")[0]
+            blob_name = "/".join(path.split("/")[1:])
+            from google.cloud import storage
+
+            client = storage.Client()
+            bucket = storage.Bucket(client=client, name=bucket_name)
+            blob = storage.Blob(name=blob_name, bucket=bucket)
+            data = blob.download_as_string(client=client)
+            loaded_model = sio.loads(data, trusted=sio.get_untrusted_types(data=data))
+        else:
+            loaded_model = sio.load(
+                model_path, trusted=sio.get_untrusted_types(file=model_path)
+            )
+            try:
+                # Try loading the training data if it is in the model directory
+                training_data = L2GFeatureMatrix(
+                    _df=session.spark.createDataFrame(
+                        # Parquet is read with Pandas to easily read local files
+                        pd.read_parquet(
+                            (Path(path) / "training_data.parquet").as_posix()
+                        )
+                    ),
+                    features_list=kwargs.get("features_list"),
+                )
+            except Exception as e:
+                logging.error("Training data set to none. Error: %s", e)
+                training_data = None
+
         if not loaded_model._is_fitted():
             raise ValueError("Model has not been fitted yet.")
-        return cls(model=loaded_model)
+        return cls(model=loaded_model, training_data=training_data, **kwargs)
 
     @classmethod
     def load_from_hub(
-        cls: Type[LocusToGeneModel],
-        model_id: str,
+        cls: type[LocusToGeneModel],
+        session: Session,
+        hf_model_id: str,
+        hf_model_version: str | None = None,
         hf_token: str | None = None,
-        model_name: str = "classifier.skops",
     ) -> LocusToGeneModel:
         """Load a model from the Hugging Face Hub. This will download the model from the hub and load it from disk.
 
         Args:
-            model_id (str): Model ID on the Hugging Face Hub
+            session (Session): Session object to load the training data
+            hf_model_id (str): Model ID on the Hugging Face Hub
+            hf_model_version (str | None): Tag, branch, or commit hash to download the model from the Hub. If None, the latest commit is downloaded.
             hf_token (str | None): Hugging Face Hub token to download the model (only required if private)
-            model_name (str): Name of the persisted model to load. Defaults to "classifier.skops".
 
         Returns:
             LocusToGeneModel: L2G model loaded from the Hugging Face Hub
         """
-        local_path = Path(model_id)
-        hub_utils.download(repo_id=model_id, dst=local_path, token=hf_token)
-        return cls.load_from_disk(Path(local_path) / model_name)
+
+        def get_features_list_from_metadata() -> list[str]:
+            """Get the features list (in the right order) from the metadata JSON file downloaded from the Hub.
+
+            Returns:
+                list[str]: Features list
+            """
+            import json
+
+            model_config_path = str(Path(local_path) / "config.json")
+            with open(model_config_path) as f:
+                model_config = json.load(f)
+            return [
+                column
+                for column in model_config["sklearn"]["columns"]
+                if column
+                not in [
+                    "studyLocusId",
+                    "geneId",
+                    "traitFromSourceMappedId",
+                    "goldStandardSet",
+                ]
+            ]
+
+        local_path = hf_model_id
+        hub_utils.download(
+            repo_id=hf_model_id,
+            dst=local_path,
+            token=hf_token,
+            revision=hf_model_version,
+        )
+        features_list = get_features_list_from_metadata()
+        return cls.load_from_disk(
+            session,
+            local_path,
+            features_list=features_list,
+        )
 
     @property
     def hyperparameters_dict(self) -> dict[str, Any]:
@@ -126,6 +212,7 @@ class LocusToGeneModel:
         return L2GPrediction(
             _df=session.spark.createDataFrame(feature_matrix_pdf.filter(output_cols)),
             _schema=L2GPrediction.get_schema(),
+            model=self,
         )
 
     def save(self: LocusToGeneModel, path: str) -> None:
@@ -146,7 +233,26 @@ class LocusToGeneModel:
             sio.dump(self.model, local_path)
             copy_to_gcs(local_path, path)
         else:
+            # create directory if path does not exist
+            Path(path).parent.mkdir(parents=True, exist_ok=True)
             sio.dump(self.model, path)
+
+    @staticmethod
+    def load_feature_matrix_from_wandb(wandb_run_name: str) -> pd.DataFrame:
+        """Loads dataset of feature matrix used during a wandb run.
+
+        Args:
+            wandb_run_name (str): Name of the wandb run to load the feature matrix from
+
+        Returns:
+            pd.DataFrame: Feature matrix used during the wandb run
+        """
+        with open(wandb_run_name) as f:
+            raw_data = json.load(f)
+
+        data = raw_data["data"]
+        columns = raw_data["columns"]
+        return pd.DataFrame(data, columns=columns)
 
     def _create_hugging_face_model_card(
         self: LocusToGeneModel,
@@ -164,7 +270,6 @@ class LocusToGeneModel:
 
         - Distance: (from credible set variants to gene)
         - Molecular QTL Colocalization
-        - Chromatin Interaction: (e.g., promoter-capture Hi-C)
         - Variant Pathogenicity: (from VEP)
 
         More information at: https://opentargets.github.io/gentropy/python_api/methods/l2g/_l2g/
@@ -203,7 +308,7 @@ class LocusToGeneModel:
         repo_id: str = "opentargets/locus_to_gene",
         local_repo: str = "locus_to_gene",
     ) -> None:
-        """Share the model on Hugging Face Hub.
+        """Share the model and training dataset on Hugging Face Hub.
 
         Args:
             model_path (str): The path to the L2G model file.
@@ -227,6 +332,7 @@ class LocusToGeneModel:
                 data=data,
             )
             self._create_hugging_face_model_card(local_repo)
+            data.to_parquet(f"{local_repo}/training_data.parquet")
             hub_utils.push(
                 repo_id=repo_id,
                 source=local_repo,

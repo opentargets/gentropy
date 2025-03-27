@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Type
+from typing import TYPE_CHECKING
 
 import pyspark.sql.functions as f
 from pyspark.sql import Window
@@ -74,7 +74,7 @@ class L2GGoldStandard(Dataset):
 
     @classmethod
     def process_gene_interactions(
-        cls: Type[L2GGoldStandard], interactions: DataFrame
+        cls: type[L2GGoldStandard], interactions: DataFrame
     ) -> DataFrame:
         """Extract top scoring gene-gene interaction from the interactions dataset of the Platform.
 
@@ -132,10 +132,11 @@ class L2GGoldStandard(Dataset):
                 on=["studyId", "variantId", "geneId"],
                 how="inner",
             )
+            .filter(f.col("isProteinCoding") == 1)
             .drop("studyId", "variantId")
             .distinct(),
             with_gold_standard=True,
-        )
+        ).fill_na()
 
     def filter_unique_associations(
         self: L2GGoldStandard,

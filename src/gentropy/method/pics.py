@@ -8,7 +8,11 @@ import pyspark.sql.functions as f
 import pyspark.sql.types as t
 from scipy.stats import norm
 
-from gentropy.dataset.study_locus import StudyLocus, StudyLocusQualityCheck
+from gentropy.dataset.study_locus import (
+    FinemappingMethod,
+    StudyLocus,
+    StudyLocusQualityCheck,
+)
 
 if TYPE_CHECKING:
     from pyspark.sql import Row
@@ -160,6 +164,10 @@ class PICS:
                 # If PICS cannot be calculated, we drop the variant from the credible set
                 continue
 
+            # Chaing chema:
+            if "tagVariantId" in tag_dict:
+                tag_dict["variantId"] = tag_dict.pop("tagVariantId")
+
             pics_snp_mu = PICS._pics_mu(lead_neglog_p, tag_dict["r2Overall"])
             pics_snp_std = PICS._pics_standard_deviation(
                 lead_neglog_p, tag_dict["r2Overall"], k
@@ -209,14 +217,11 @@ class PICS:
         """
         # Finemapping method is an optional column:
         finemapping_method_expression = (
-            f.lit("pics")
+            f.lit(FinemappingMethod.PICS.value)
             if "finemappingMethod" not in associations.df.columns
-            else f.coalesce(f.col("finemappingMethod"), f.lit("pics"))
-        )
-
-        # Flagging expression for loci that do not qualify for PICS:
-        non_picsable_expr = (
-            f.size(f.filter(f.col("ldSet"), lambda x: x.r2Overall >= 0.5)) == 0
+            else f.coalesce(
+                f.col("finemappingMethod"), f.lit(FinemappingMethod.PICS.value)
+            )
         )
 
         # Registering the UDF to be used in the pipeline:
@@ -261,13 +266,13 @@ class PICS:
                         ),
                     ),
                 )
-                # Flagging loci that do not qualify for PICS:
+                # Flagging all PICS loci with OUT_OF_SAMPLE_LD flag:
                 .withColumn(
                     "qualityControls",
                     StudyLocus.update_quality_flag(
                         f.col("qualityControls"),
-                        non_picsable_expr,
-                        StudyLocusQualityCheck.NOT_QUALIFYING_LD_BLOCK,
+                        f.lit(True),
+                        StudyLocusQualityCheck.OUT_OF_SAMPLE_LD,
                     ),
                 )
                 .withColumn(
