@@ -253,7 +253,7 @@ class Coloc(ColocalisationMethodInterface):
             priorc1 (float): Prior on variant being causal for trait 1. Defaults to 1e-4.
             priorc2 (float): Prior on variant being causal for trait 2. Defaults to 1e-4.
             priorc12 (float): Prior on variant being causal for traits 1 and 2. Defaults to 1e-5.
-            overlap_size_cutoff (int): Minimum number of overlapping variants bfore filtering. Defaults to 0.
+            overlap_size_cutoff (int): Minimum number of overlapping variants before filtering. Defaults to 0.
             posterior_cutoff (float): Minimum overlapping Posterior probability cutoff for small overlaps. Defaults to 0.0.
 
         Returns:
