@@ -227,26 +227,18 @@ class chemblDrugEnrichment:
         return chembl_evidence_max
 
     @staticmethod
-    def drug_enrichemnt_from_score(table_with_score: DataFrame,
-        score_column: str,
-        study_locus: StudyLocus,
-        study_index: StudyIndex,
+    def drug_enrichemnt_from_evidence(evid: DataFrame,
         disease_index_orig: DataFrame,
         chembl_orig: DataFrame,
         indirect_assoc_score_thr: float = 0.5,
-        min_score_evidence: float = 0.0,
         efo_ancestors_to_remove: list[str] | None = None) -> pd.DataFrame:
         """Run chembl drug enrichment from scores.
 
         Args:
-            table_with_score (DataFrame): Table with score
-            score_column (str): Column name with score
-            study_locus (StudyLocus): Study locus dataset
-            study_index (StudyIndex): Study index dataset
+            evid (DataFrame): Evidence table
             disease_index_orig (DataFrame): The original disease index (not epxloded)
             chembl_orig (DataFrame): Chembl evidence
             indirect_assoc_score_thr (float): Minimum score to keep in indirect associations
-            min_score_evidence (float): Minimum score to keep
             efo_ancestors_to_remove (list[str] | None): List of EFO IDs to remove
         Returns:
             pd.DataFrame: Drug enrichment table.
@@ -257,16 +249,6 @@ class chemblDrugEnrichment:
             efo_to_remove=None
 
         chembl=chemblDrugEnrichment.process_chembl_evidence(chembl_orig, efo_to_remove)
-
-        evid=chemblDrugEnrichment.to_disease_target_evidence(
-            table_with_score=table_with_score,
-            score_column=score_column,
-            datasource_id="score_to_enrichment",
-            study_locus=study_locus,
-            study_index=study_index,
-            min_score=min_score_evidence,
-            datatype_id="GWAS",
-        )
 
         evid_indirect=chemblDrugEnrichment.evidence_to_indirect_assosiations(
             evid,
