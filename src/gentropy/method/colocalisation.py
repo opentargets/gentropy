@@ -99,7 +99,7 @@ class ColocalisationMethodInterface(Protocol):
 class ECaviar(ColocalisationMethodInterface):
     """ECaviar-based colocalisation analysis.
 
-    It extends [CAVIAR](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5142122/#bib18) framework to explicitly estimate the posterior probability that the same variant is causal in 2 studies while accounting for the uncertainty of LD. eCAVIAR computes the colocalization posterior probability (**CLPP**) by utilizing the marginal posterior probabilities. This framework allows for **multiple variants to be causal** in a single locus.
+    It extends [CAVIAR](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5142122/#bib18) framework to explicitly estimate the posterior probability that the same variant is causal in 2 studies while accounting for the uncertainty of LD. eCAVIAR computes the colocalization posterior probability (**CLPP**) by utilizing the marginal posterior probabilities. This framework allows for **multiple variants to be causal** in a single locus.
     """
 
     METHOD_NAME: str = "eCAVIAR"
@@ -253,8 +253,8 @@ class Coloc(ColocalisationMethodInterface):
             priorc1 (float): Prior on variant being causal for trait 1. Defaults to 1e-4.
             priorc2 (float): Prior on variant being causal for trait 2. Defaults to 1e-4.
             priorc12 (float): Prior on variant being causal for traits 1 and 2. Defaults to 1e-5.
-            overlap_size_cutoff (int): Minimum number of overlapping variants bfore filtering. Defaults to 5.
-            posterior_cutoff (float): Minimum overlapping Posterior probability cutoff for small overlaps. Defaults to 0.1.
+            overlap_size_cutoff (int): Minimum number of overlapping variants bfore filtering. Defaults to 0.
+            posterior_cutoff (float): Minimum overlapping Posterior probability cutoff for small overlaps. Defaults to 0.0.
 
         Returns:
             Colocalisation: Colocalisation results
@@ -263,8 +263,8 @@ class Coloc(ColocalisationMethodInterface):
             TypeError: When passed incorrect prior argument types.
         """
         # Get kwargs for overlap size and posterior cutoff
-        overlap_size_cutoff = kwargs.get("overlap_size_cutoff") or 5
-        posterior_cutoff = kwargs.get("posterior_cutoff") or 0.1
+        overlap_size_cutoff = kwargs.get("overlap_size_cutoff") or 0
+        posterior_cutoff = kwargs.get("posterior_cutoff") or 0.0
         # Ensure priors are always present, even if not passed
         priorc1 = kwargs.get("priorc1") or 1e-4
         priorc2 = kwargs.get("priorc2") or 1e-4

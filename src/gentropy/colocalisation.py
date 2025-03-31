@@ -46,8 +46,8 @@ class ColocalisationStep:
             priorc1 (float): Prior on variant being causal for trait 1. Defaults to 1e-4. For coloc method only.
             priorc2 (float): Prior on variant being causal for trait 2. Defaults to 1e-4. For coloc method only.
             priorc12 (float): Prior on variant being causal for both traits. Defaults to 1e-5. For coloc method only.
-            overlap_size_cutoff (int): Minimum number of overlapping variants bfore filtering. Defaults to 5.
-            posterior_cutoff (float): Minimum overlapping Posterior probability cutoff for small overlaps. Defaults to 0.1.
+            overlap_size_cutoff (int): Minimum number of overlapping variants bfore filtering. Defaults to 0.
+            posterior_cutoff (float): Minimum overlapping Posterior probability cutoff for small overlaps. Defaults to 0.0.
         """
         colocalisation_method = colocalisation_method.lower()
         colocalisation_class = self._get_colocalisation_class(colocalisation_method)
