@@ -270,7 +270,9 @@ def test_coloc_semantic(
         _schema=StudyLocusOverlap.get_schema(),
     )
 
-    observed_coloc_df = Coloc.colocalise(observed_overlap).df
+    observed_coloc_df = Coloc.colocalise(
+        observed_overlap, overlap_size_cutoff=5, posterior_cutoff=0.1
+    ).df
 
     # Define schema for the expected DataFrame
     result_schema = StructType(
