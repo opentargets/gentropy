@@ -255,7 +255,9 @@ class chemblDrugEnrichment:
             disease_index_orig,
             use_max=True,
             efo_to_remove=efo_to_remove,
-        )
+        ).cache()
+
+        evid_indirect_count=evid_indirect.count()
 
         joined_data = (
             evid_indirect
@@ -308,6 +310,7 @@ class chemblDrugEnrichment:
                 "no_evid-high_clinphase":X_negG,
                 "yes_evid-low_clinphase":N_G - X_G,
                 "yes_evid-high_clinphase":X_G,
+                "total_indirect_assoc": evid_indirect_count,
             })
 
         return pd.DataFrame(results)
