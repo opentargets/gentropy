@@ -21,12 +21,13 @@ WORKDIR /app
 # Copy project configuration and source code
 COPY ./pyproject.toml .
 COPY ./src src
+COPY ./uv.lock uv.lock
 
 # Create an empty README file (required by some package managers)
 RUN touch README.md
 
 # Synchronize dependencies using UV (installs requirements from pyproject.toml)
-RUN uv sync
+RUN uv sync --frozen
 
 # Install the package (and its dependencies) into a virtual environment
 RUN uv pip install .
