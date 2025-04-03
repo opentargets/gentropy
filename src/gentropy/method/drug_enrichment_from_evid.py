@@ -257,7 +257,7 @@ class chemblDrugEnrichment:
             efo_to_remove=efo_to_remove,
         ).cache()
 
-        evid_indirect_count=evid_indirect.count()
+        evid_indirect_count=evid_indirect.filter(f.col("indirect_assoc_score") >= indirect_assoc_score_thr).count()
 
         joined_data = (
             evid_indirect
@@ -269,7 +269,7 @@ class chemblDrugEnrichment:
             )
 
         df = joined_data.withColumn(
-        "geneticSupport", f.when(f.col("indirect_assoc_score") > indirect_assoc_score_thr, True).otherwise(False)
+        "geneticSupport", f.when(f.col("indirect_assoc_score") >= indirect_assoc_score_thr, True).otherwise(False)
         ).cache()
 
         phases=[2,3,4]
