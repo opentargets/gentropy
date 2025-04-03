@@ -829,8 +829,8 @@ class StudyLocus(Dataset):
 
     def find_overlaps(
         self: StudyLocus,
-        intra_study_overlap: bool = False,
         molecular_qtl_only: bool = False,
+        intra_study_overlap: bool = False,
     ) -> StudyLocusOverlap:
         """Calculate overlapping study-locus.
 
@@ -838,8 +838,8 @@ class StudyLocus(Dataset):
         appearing on the right side.
 
         Args:
-            intra_study_overlap (bool): If True, finds intra-study overlaps for credible set deduplication. Default is False.
             molecular_qtl_only (bool): If True, does not find overlaps for GWAS vs GWAS. Default is False.
+            intra_study_overlap (bool): If True, finds intra-study overlaps for credible set deduplication. Default is False.
 
         Returns:
             StudyLocusOverlap: Pairs of overlapping study-locus with aligned tags.
