@@ -241,6 +241,7 @@ class LocusToGeneConfig(StepConfig):
     model_path: str | None = None
     gold_standard_curation_path: str | None = None
     gene_interactions_path: str | None = None
+    target_index_path: str | None = None
     interval_path: str | None = None
     features_list: list[str] = field(
         default_factory=lambda: [
