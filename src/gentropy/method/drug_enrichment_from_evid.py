@@ -227,11 +227,13 @@ class chemblDrugEnrichment:
         return chembl_evidence_max
 
     @staticmethod
-    def drug_enrichemnt_from_evidence(evid: DataFrame,
+    def drug_enrichemnt_from_evidence(
+        evid: DataFrame,
         disease_index_orig: DataFrame,
         chembl_orig: DataFrame,
         indirect_assoc_score_thr: float = 0.5,
-        efo_ancestors_to_remove: list[str] | None = None) -> pd.DataFrame:
+        efo_ancestors_to_remove: list[str] | None = None,
+    ) -> pd.DataFrame:
         """Run chembl drug enrichment from scores.
 
         Args:
@@ -244,37 +246,42 @@ class chemblDrugEnrichment:
             pd.DataFrame: Drug enrichment table.
         """
         if efo_ancestors_to_remove is not None:
-            efo_to_remove=chemblDrugEnrichment.selecting_all_decendands_based_on_efo_list(disease_index_orig=disease_index_orig, efo_ids=efo_ancestors_to_remove)
+            efo_to_remove = (
+                chemblDrugEnrichment.selecting_all_decendands_based_on_efo_list(
+                    disease_index_orig=disease_index_orig,
+                    efo_ids=efo_ancestors_to_remove,
+                )
+            )
         else:
-            efo_to_remove=None
+            efo_to_remove = None
 
-        chembl=chemblDrugEnrichment.process_chembl_evidence(chembl_orig, efo_to_remove)
+        chembl = chemblDrugEnrichment.process_chembl_evidence(
+            chembl_orig, efo_to_remove
+        )
 
-        evid_indirect=chemblDrugEnrichment.evidence_to_indirect_assosiations(
+        evid_indirect = chemblDrugEnrichment.evidence_to_indirect_assosiations(
             evid,
             disease_index_orig,
             use_max=True,
             efo_to_remove=efo_to_remove,
         ).cache()
 
-        evid_indirect_count=evid_indirect.filter(f.col("indirect_assoc_score") >= indirect_assoc_score_thr).count()
+        evid_indirect_count = evid_indirect.filter(
+            f.col("indirect_assoc_score") >= indirect_assoc_score_thr
+        ).count()
 
-        joined_data = (
-            evid_indirect
-            .join(
-                chembl,
-                ["targetId", "diseaseId"],
-                "right"
-            )
-            )
+        joined_data = evid_indirect.join(chembl, ["targetId", "diseaseId"], "right")
 
         df = joined_data.withColumn(
-        "geneticSupport", f.when(f.col("indirect_assoc_score") >= indirect_assoc_score_thr, True).otherwise(False)
+            "geneticSupport",
+            f.when(
+                f.col("indirect_assoc_score") >= indirect_assoc_score_thr, True
+            ).otherwise(False),
         ).cache()
 
-        phases=[2,3,4]
+        phases = [2, 3, 4]
         results = []
-        z=1.96 # 95% confidence interval
+        z = 1.96  # 95% confidence interval
 
         for phase in phases:
             # Calculate N_G and N_negG
@@ -282,35 +289,119 @@ class chemblDrugEnrichment:
             N_negG = df.filter(~f.col("geneticSupport")).count()
 
             # Calculate X_G and X_negG
-            X_G = df.filter((f.col("geneticSupport")) & (f.col("maxClinicalPhase") >= phase)).count()
-            X_negG = df.filter(~(f.col("geneticSupport")) & (f.col("maxClinicalPhase") >= phase)).count()
+            X_G = df.filter(
+                (f.col("geneticSupport")) & (f.col("maxClinicalPhase") >= phase)
+            ).count()
+            X_negG = df.filter(
+                ~(f.col("geneticSupport")) & (f.col("maxClinicalPhase") >= phase)
+            ).count()
 
             # Create the contingency table
-            contingency_table = [[N_negG - X_negG, X_negG],[N_G - X_G, X_G],]
+            contingency_table = [
+                [N_negG - X_negG, X_negG],
+                [N_G - X_G, X_G],
+            ]
 
             # Perform Fisher's Exact Test
             odds_ratio, p_value = fisher_exact(contingency_table)
 
             # Calculate confidence interval for odds ratio
             ln_or = np.log(odds_ratio)
-            se_ln_or = np.sqrt(1/contingency_table[0][0] + 1/contingency_table[0][1] + 1/contingency_table[1][0] + 1/contingency_table[1][1])
+            se_ln_or = np.sqrt(
+                1 / contingency_table[0][0]
+                + 1 / contingency_table[0][1]
+                + 1 / contingency_table[1][0]
+                + 1 / contingency_table[1][1]
+            )
             ci_ln_low = ln_or - z * se_ln_or
             ci_ln_high = ln_or + z * se_ln_or
             ci_low = np.exp(ci_ln_low)
             ci_high = np.exp(ci_ln_high)
 
             # Store results
-            results.append({
-                "clinicalPhase": str(phase) + "+",
-                "odds_ratio": odds_ratio,
-                "p_value": p_value,
-                "ci_low": ci_low,
-                "ci_high": ci_high,
-                "no_evid-low_clinphase":N_negG - X_negG,
-                "no_evid-high_clinphase":X_negG,
-                "yes_evid-low_clinphase":N_G - X_G,
-                "yes_evid-high_clinphase":X_G,
-                "total_indirect_assoc": evid_indirect_count,
-            })
+            results.append(
+                {
+                    "clinicalPhase": str(phase) + "+",
+                    "odds_ratio": odds_ratio,
+                    "p_value": p_value,
+                    "ci_low": ci_low,
+                    "ci_high": ci_high,
+                    "no_evid-low_clinphase": N_negG - X_negG,
+                    "no_evid-high_clinphase": X_negG,
+                    "yes_evid-low_clinphase": N_G - X_G,
+                    "yes_evid-high_clinphase": X_G,
+                    "total_indirect_assoc": evid_indirect_count,
+                }
+            )
+
+        return pd.DataFrame(results)
+
+    @staticmethod
+    def studyLocusId_based_evidence_table_vs_training_set(
+        table_with_score: DataFrame,
+        training_set: DataFrame,
+        score_column: str,
+        min_score: float,
+        name_of_the_evidence: str,
+    ) -> pd.DataFrame:
+        """Stats for stydyLocusId based evidence vs training set.
+
+        Calucalte sensitivity, specificity, PPV, FDR and balanced accuracy
+        for tables with studyLocusIds that will allow to combine it with training set directly.
+
+        Args:
+            table_with_score (DataFrame): Table with scores to make an evidence and studyLocusId
+            training_set (DataFrame): Training set with studyLocusId and goldStandardSet
+            score_column (str): Column name with scores in table_with_score
+            min_score (float): Minimum score threshold
+            name_of_the_evidence (str): Name of the evidence
+        Returns:
+            pd.DataFrame: List of dataframes and dictionary with stats
+        """
+        df = (
+            table_with_score.withColumn(
+                "significant_score",
+                f.when(f.col(score_column) >= min_score, 1).otherwise(0),
+            )
+            .select("studyLocusId", "geneId", "significant_score")
+            .join(training_set, on=["studyLocusId", "geneId"], how="right")
+            .fillna({"significant_score": 0})
+        ).cache()
+
+        TP = df.filter(
+            (f.col("significant_score") == 1) & (f.col("goldStandardSet") == "positive")
+        ).count()
+        TN = df.filter(
+            (f.col("significant_score") == 0) & (f.col("goldStandardSet") == "negative")
+        ).count()
+        FP = df.filter(
+            (f.col("significant_score") == 1) & (f.col("goldStandardSet") == "negative")
+        ).count()
+        FN = df.filter(
+            (f.col("significant_score") == 0) & (f.col("goldStandardSet") == "positive")
+        ).count()
+
+        results = []
+
+        sensitivity = TP / (TP + FN)
+        ppv = TP / (TP + FP)
+        specificity = TN / (FP + TN)
+        fdr = 1 - ppv
+        balanced_accuracy = (sensitivity + specificity) / 2
+
+        results.append(
+            {
+                "Evidence": name_of_the_evidence,
+                "TP": TP,
+                "TN": TN,
+                "FP": FP,
+                "FN": FN,
+                "Sensitivity (recall)": sensitivity,
+                "Specificity (selectivity)": specificity,
+                "PPV (precision)": ppv,
+                "FDR": fdr,
+                "Balanced_accuracy": balanced_accuracy,
+            }
+        )
 
         return pd.DataFrame(results)
