@@ -29,7 +29,6 @@ class ColocalisationStep:
         credible_set_path: str,
         coloc_path: str,
         colocalisation_method: str,
-        molecular_qtl_only: bool = False,
         colocalisation_method_params: dict[str, Any] | None = None,
     ) -> None:
         """Run Colocalisation step.
@@ -41,7 +40,6 @@ class ColocalisationStep:
             credible_set_path (str): Input credible sets path.
             coloc_path (str): Output Colocalisation path.
             colocalisation_method (str): Colocalisation method.
-            molecular_qtl_only (bool): If true, only molecular QTLs are overlapped with GWAS instead of GWAS vs GWAS. Defaults to False.
             colocalisation_method_params (dict[str, Any] | None): Keyword arguments passed to the colocalise method of Colocalisation class. Defaults to None
 
         Keyword Args:
@@ -66,7 +64,7 @@ class ColocalisationStep:
             )
 
         # Transform
-        overlaps = credible_set.find_overlaps(molecular_qtl_only=molecular_qtl_only)
+        overlaps = credible_set.find_overlaps()
 
         # Make a partial caller to ensure that colocalisation_method_params are added to the call only when dict is not empty
         coloc = colocalisation_class.colocalise
