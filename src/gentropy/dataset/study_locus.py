@@ -524,7 +524,8 @@ class StudyLocus(Dataset):
                 f.col("left.chromosome") == f.col("right.chromosome"),
                 f.col("left.tagVariantId") == f.col("right.tagVariantId"),
                 f.col("left.studyType") == "gwas",
-                f.col("right.studyId").isin(restrict_to_studyIds),
+                (f.col("right.studyId").isin(restrict_to_studyIds))
+                & (f.col("left.studyLocusId") != f.col("right.studyLocusId")),
             ]
         else:
             join_condition = [
