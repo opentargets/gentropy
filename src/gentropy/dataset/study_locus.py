@@ -494,7 +494,7 @@ class StudyLocus(Dataset):
 
         Args:
             credset_to_overlap (DataFrame): DataFrame containing at least `studyLocusId`, `studyType`, `chromosome` and `tagVariantId` columns.
-            restrict_to_studyIds (list[str] | None): List of studyIds to restrict finding overlaps on the right side. Default is empty list.
+            restrict_to_studyIds (list[str] | None): List of studyIds to restrict finding overlaps on the right side. Default is None.
             qtl_study_overlap (bool): When True, finds overlaps with just molecular-QTLs on the right-hand side. Default is False.
 
         Returns:
@@ -523,7 +523,7 @@ class StudyLocus(Dataset):
             join_condition = [
                 f.col("left.chromosome") == f.col("right.chromosome"),
                 f.col("left.tagVariantId") == f.col("right.tagVariantId"),
-                f.col("left.studyType") == "gwas",
+                f.col("left.studyType") == f.lit("gwas"),
                 (f.col("right.studyId").isin(restrict_to_studyIds))
                 & (f.col("left.studyLocusId") != f.col("right.studyLocusId")),
             ]
@@ -840,7 +840,7 @@ class StudyLocus(Dataset):
         appearing on the right side.
 
         Args:
-            restrict_to_studyIds (list[str] | None): List of studyIds to restrict finding overlaps to on the right-side. Default is empty list.
+            restrict_to_studyIds (list[str] | None): List of studyIds to restrict finding overlaps to on the right-side. Default is None.
             qtl_study_overlap (bool): If True, finds overlaps with just molecular-QTLs on right-hand side. Default is False.
 
         Returns:
