@@ -494,7 +494,7 @@ class StudyLocus(Dataset):
 
         Args:
             credset_to_overlap (DataFrame): DataFrame containing at least `studyLocusId`, `studyType`, `chromosome` and `tagVariantId` columns.
-            restrict_to_studyIds (list[str] | None): List of studyIds to restrict finding overlaps on the right side. Default is empty list.
+            restrict_to_studyIds (list[str] | None): List of studyIds to restrict finding overlaps on the right side. Default is None.
             qtl_study_overlap (bool): When True, finds overlaps with just molecular-QTLs on the right-hand side. Default is False.
 
         Returns:
