@@ -231,7 +231,7 @@ ignore = [
   # be ignored anymore without warnings.
   # https://github.com/astral-sh/ruff/issues/7491
   # "PLC1901", # Lots of false positives
-
+  # "DOC502", # Docstring has extraneous exception, - Required to skip if we use assert in the code to raise exceptions
   # False positives https://github.com/astral-sh/ruff/issues/5386
   "PLC0208", # Use a sequence type instead of a `set` when iterating over values
   "PLR0911", # Too many return statements ({returns} > {max_returns})
@@ -267,3 +267,4 @@ allow-init-docstring = true
 arg-type-hints-in-docstring = true
 skip-checking-short-docstrings = false
 check-class-attributes = false
+disable = ["DOC502"]
