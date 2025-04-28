@@ -25,7 +25,7 @@ jobs:
       id-token: write
       contents: write
     steps:
-      - uses: actions/create-github-app-token@v1
+      - uses: actions/create-github-app-token@v2
         id: trigger-token
         with:
           app-id: ${{ vars.TRIGGER_WORKFLOW_GH_APP_ID}}
