@@ -27,7 +27,7 @@ jobs:
           java-version: "11"
           distribution: "temurin"
       - name: Install uv
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@v6
       - name: Load cached venv
         id: cached-uv-dependencies
         uses: actions/cache@v4
