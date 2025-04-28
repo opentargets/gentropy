@@ -267,4 +267,4 @@ allow-init-docstring = true
 arg-type-hints-in-docstring = true
 skip-checking-short-docstrings = false
 check-class-attributes = false
-disable = ["DOC502"]
+should-declare-assert-error-if-assert-statement-exists = true # make sure that assert Raises are captured in docstrings
