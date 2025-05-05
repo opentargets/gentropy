@@ -25,6 +25,7 @@ if TYPE_CHECKING:
     from pyspark.sql.types import StructType
 
     from gentropy.dataset.biosample_index import BiosampleIndex
+    from gentropy.dataset.summary_statistics_qc import SummaryStatisticsQC
     from gentropy.dataset.target_index import TargetIndex
 
 
@@ -194,7 +195,6 @@ class StudyIndex(Dataset):
         total_sample_count = f.aggregate(
             aggregated_counts, f.lit(0.0), lambda total, pop: total + pop.sampleSize
         ).alias("sampleSize")
-
         # Calculating relative sample size for each LD population:
         return f.transform(
             aggregated_counts,
@@ -415,7 +415,9 @@ class StudyIndex(Dataset):
         Returns:
             StudyIndex: with flagged studies if geneId could not be validated.
         """
-        gene_set = target_index.df.select(f.col("id").alias("geneId"), f.lit(True).alias("isIdFound"))
+        gene_set = target_index.df.select(
+            f.col("id").alias("geneId"), f.lit(True).alias("isIdFound")
+        )
 
         # As the geneId is not a mandatory field of study index, we return if the column is not there:
         if "geneId" not in self.df.columns:
@@ -494,7 +496,7 @@ class StudyIndex(Dataset):
 
     def annotate_sumstats_qc(
         self: StudyIndex,
-        sumstats_qc: DataFrame,
+        sumstats_qc: SummaryStatisticsQC,
         threshold_mean_beta: float = 0.05,
         threshold_mean_diff_pz: float = 0.05,
         threshold_se_diff_pz: float = 0.05,
@@ -505,7 +507,7 @@ class StudyIndex(Dataset):
         """Annotate summary stats QC information.
 
         Args:
-            sumstats_qc (DataFrame): containing summary statistics-based quality controls.
+            sumstats_qc (SummaryStatisticQC): Dataset containing summary statistics-based quality controls.
             threshold_mean_beta (float): Threshold for mean beta check. Defaults to 0.05.
             threshold_mean_diff_pz (float): Threshold for mean diff PZ check. Defaults to 0.05.
             threshold_se_diff_pz (float): Threshold for SE diff PZ check. Defaults to 0.05.
@@ -515,14 +517,19 @@ class StudyIndex(Dataset):
 
         Returns:
             StudyIndex: Updated study index with QC information
+
+        Examples:
+            >>>
+
         """
         # convert all columns in sumstats_qc dataframe in array of structs grouped by studyId
-        cols = [c for c in sumstats_qc.columns if c != "studyId"]
+        cols = [c for c in sumstats_qc.df.columns if c != "studyId"]
 
         studies = self.df
+        qc = sumstats_qc.df
 
         melted_df = convert_from_wide_to_long(
-            sumstats_qc,
+            qc,
             id_vars=["studyId"],
             value_vars=cols,
             var_name="QCCheckName",

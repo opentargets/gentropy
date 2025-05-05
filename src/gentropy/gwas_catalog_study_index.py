@@ -5,6 +5,7 @@ from __future__ import annotations
 from pyspark.sql.types import DoubleType, LongType, StringType, StructField, StructType
 
 from gentropy.common.session import Session
+from gentropy.dataset.summary_statistics_qc import SummaryStatisticsQC
 from gentropy.datasource.gwas_catalog.study_index import StudyIndexGWASCatalogParser
 from gentropy.datasource.gwas_catalog.study_index_ot_curation import (
     StudyIndexGWASCatalogOTCuration,
@@ -75,22 +76,12 @@ class GWASCatalogStudyIndexGenerationStep:
 
         # Annotate with sumstats QC if provided:
         if sumstats_qc_path:
-            schema = StructType(
-                [
-                    StructField("studyId", StringType(), True),
-                    StructField("mean_beta", DoubleType(), True),
-                    StructField("mean_diff_pz", DoubleType(), True),
-                    StructField("se_diff_pz", DoubleType(), True),
-                    StructField("gc_lambda", DoubleType(), True),
-                    StructField("n_variants", LongType(), True),
-                    StructField("n_variants_sig", LongType(), True),
-                ]
+            sumstats_qc = SummaryStatisticsQC.from_parquet(
+                session=session,
+                path=sumstats_qc_path,
+                recursiveFileLookup=True,
             )
-            sumstats_qc = session.spark.read.schema(schema).parquet(
-                sumstats_qc_path, recursiveFileLookup=True
-            )
-            study_index_with_qc = study_index.annotate_sumstats_qc(sumstats_qc)
-
+            study_index_with_qc = study_index.annotate_sumstats_qc(sumstats_qc.df)
             # Write the study
             study_index_with_qc.df.write.mode(session.write_mode).parquet(
                 study_index_path

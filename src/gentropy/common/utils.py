@@ -219,6 +219,9 @@ def split_pvalue(pvalue: float) -> tuple[float, int]:
 
         >>> split_pvalue(0.123)
         (1.23, -1)
+
+        >>> split_pvalue(0.99)
+        (9.9, -1)
     """
     if pvalue < 0.0 or pvalue > 1.0:
         raise ValueError("P-value must be between 0 and 1")
