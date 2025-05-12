@@ -94,7 +94,11 @@ def extend_missing_colocalisation_to_neighbourhood_genes(
             "variantId", f.explode("transcriptConsequences").alias("tc")
         )
         .select(f.col("tc.targetId").alias("geneId"), "variantId")
-        .join(target_index.df.select(f.col("id").alias("geneId"), "biotype"), "geneId", "left")
+        .join(
+            target_index.df.select(f.col("id").alias("geneId"), "biotype"),
+            "geneId",
+            "left",
+        )
         .filter(f.col("biotype") == "protein_coding")
         .drop("biotype")
         .distinct()
@@ -173,7 +177,9 @@ def common_neighbourhood_colocalisation_feature_logic(
         extended_local_max.join(
             # Compute average score in the vicinity (feature will be the same for any gene associated with a studyLocus)
             # (non protein coding genes in the vicinity are excluded see #3552)
-            target_index.df.filter(f.col("biotype") == "protein_coding").select(f.col("id").alias("geneId")),
+            target_index.df.filter(f.col("biotype") == "protein_coding").select(
+                f.col("id").alias("geneId")
+            ),
             "geneId",
             "inner",
         )
