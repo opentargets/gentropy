@@ -437,24 +437,28 @@ class TestCommonColocalisationFeatureLogic:
                         "variantId": "var1",
                         "studyId": "study1",  # this is a GWAS
                         "chromosome": "1",
+                        "isTransQtl": False,
                     },
                     {
                         "studyLocusId": "2",
                         "variantId": "var1",
                         "studyId": "study2",  # this is a QTL (same gene)
                         "chromosome": "1",
+                        "isTransQtl": False,
                     },
                     {
                         "studyLocusId": "3",
                         "variantId": "var1",
                         "studyId": "study3",  # this is another QTL (same gene)
                         "chromosome": "1",
+                        "isTransQtl": False,
                     },
                     {
                         "studyLocusId": "4",
                         "variantId": "var1",
                         "studyId": "study4",  # this is another QTL (diff gene)
                         "chromosome": "1",
+                        "isTransQtl": False,
                     },
                 ]
             ),
