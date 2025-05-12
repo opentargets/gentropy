@@ -73,6 +73,7 @@ class LocusToGeneFeatureMatrixStep:
             if colocalisation_path
             else None
         )
+
         target_index = (
             TargetIndex.from_parquet(
                 session, target_index_path, recursiveFileLookup=True
