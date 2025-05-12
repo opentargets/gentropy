@@ -53,7 +53,10 @@ def common_colocalisation_feature_logic(
     )
     return (
         study_loci_to_annotate.df.join(
-            colocalisation.extract_maximum_coloc_probability_per_region_and_gene(
+            # Remove colocalisation with trans QTLs
+            colocalisation.drop_trans_effects(study_locus)
+            # Extract maximum colocalisation probability per region and gene
+            .extract_maximum_coloc_probability_per_region_and_gene(
                 study_locus,
                 study_index,
                 filter_by_colocalisation_method=colocalisation_method,
