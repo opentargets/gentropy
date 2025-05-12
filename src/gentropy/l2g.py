@@ -74,20 +74,6 @@ class LocusToGeneFeatureMatrixStep:
             else None
         )
 
-        if coloc is not None:
-            df = credible_set.df.select("studyLocusId", "isTransQtl")
-            df1 = coloc.df.join(
-                df, df.studyLocusId == coloc.df.rightStudyLocusId, how="inner"
-            )
-            df1 = df1.filter(
-                (~f.col("isTransQtl")) | (f.col("isTransQtl").isNull())
-            ).drop("studyLocusId", "isTransQtl")
-
-            coloc = Colocalisation(
-                _df=df1,
-                _schema=Colocalisation.get_schema(),
-            )
-
         target_index = (
             TargetIndex.from_parquet(
                 session, target_index_path, recursiveFileLookup=True
