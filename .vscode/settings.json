@@ -28,5 +28,14 @@
   },
   "yaml.extension.recommendations": false,
   "workbench.remoteIndicator.showExtensionRecommendations": false,
-  "extensions.ignoreRecommendations": true
+  "extensions.ignoreRecommendations": true,
+  "python.analysis.typeCheckingMode": "standard",
+  "cSpell.words": [
+    "diffpval",
+    "gentropy",
+    "neglogpval",
+    "pheno",
+    "pval",
+    "sumstat"
+  ]
 }
