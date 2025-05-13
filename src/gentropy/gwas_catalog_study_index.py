@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from pyspark.sql.types import DoubleType, LongType, StringType, StructField, StructType
-
 from gentropy.common.session import Session
 from gentropy.dataset.summary_statistics_qc import SummaryStatisticsQC
 from gentropy.datasource.gwas_catalog.study_index import StudyIndexGWASCatalogParser
