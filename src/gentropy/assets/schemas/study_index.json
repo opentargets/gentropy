@@ -271,13 +271,13 @@
           "type": "struct",
           "fields": [
             {
-              "name": "qcFlag",
+              "name": "QCCheckName",
               "type": "string",
               "nullable": false,
               "metadata": {}
             },
             {
-              "name": "value",
+              "name": "QCCheckValue",
               "type": "float",
               "nullable": false,
               "metadata": {}
