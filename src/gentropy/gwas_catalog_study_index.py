@@ -79,7 +79,7 @@ class GWASCatalogStudyIndexGenerationStep:
                 path=sumstats_qc_path,
                 recursiveFileLookup=True,
             )
-            study_index_with_qc = study_index.annotate_sumstats_qc(sumstats_qc.df)
+            study_index_with_qc = study_index.annotate_sumstats_qc(sumstats_qc)
             # Write the study
             study_index_with_qc.df.write.mode(session.write_mode).parquet(
                 study_index_path

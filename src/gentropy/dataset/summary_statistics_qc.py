@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from functools import reduce
+from typing import TYPE_CHECKING, Concatenate
 
 from gentropy.common.schemas import parse_spark_schema
 from gentropy.dataset.dataset import Dataset
@@ -16,7 +18,27 @@ from gentropy.method.sumstat_quality_controls import (
 )
 
 if TYPE_CHECKING:
+    from pyspark.sql import DataFrame
     from pyspark.sql.types import StructType
+
+
+@dataclass
+class QCTest:
+    """Container class for QC tests."""
+
+    columns: list[str]
+    function: Callable[Concatenate[DataFrame, ...], DataFrame]
+
+    def call_test(self, df: DataFrame) -> DataFrame:
+        """Call the QC test function.
+
+        Args:
+            df (DataFrame): The input DataFrame.
+
+        Returns:
+            DataFrame: The output DataFrame with the QC test results.
+        """
+        return self.function(df).select("studyId", *self.columns)
 
 
 @dataclass
@@ -58,12 +80,13 @@ class SummaryStatisticsQC(Dataset):
 
         Args:
             gwas (SummaryStatistics): The instance of the SummaryStatistics class.
-            pval_threshold (float): The threshold for the p-value.
+            pval_threshold (float): The p-value threshold for the QC. Default is 1e-8.
 
         Returns:
             SummaryStatisticsQC: Dataset with quality control metrics for the summary statistics.
 
         Examples:
+            >>> from pyspark.sql import functions as f
             >>> s = 'studyId STRING, variantId STRING, chromosome STRING, position INT, beta DOUBLE, standardError DOUBLE, pValueMantissa FLOAT, pValueExponent INTEGER'
             >>> v1 = [("S1", "1_10000_A_T", "1", 10000, 1.0, 0.2, 9.9, -20), ("S1", "X_10001_C_T", "X", 10001, -0.1, 0.2, 1.0, -1)]
             >>> v2 = [("S2", "1_10001_C_T", "1", 10001, 0.028, 0.2, 1.0, -1), ("S2", "1_10002_G_C", "1", 10002, 0.5, 0.1, 1.0, -1)]
@@ -82,7 +105,7 @@ class SummaryStatisticsQC(Dataset):
             ** This method outputs one value per study, mean beta, mean diff pz, se diff pz, gc lambda, n variants and n variants sig**
 
             >>> stats = SummaryStatistics(df)
-            >>> qc = get_quality_control_metrics(stats)
+            >>> qc = SummaryStatisticsQC.from_summary_statistics(stats)
             >>> isinstance(qc, SummaryStatisticsQC)
             True
             >>> mean_beta = f.round("mean_beta", 2).alias("mean_beta")
@@ -98,15 +121,19 @@ class SummaryStatisticsQC(Dataset):
             +-------+---------+------------+----------+---------+----------+--------------+
             <BLANKLINE>
         """
-        gwas_for_qc = gwas.df
-        qc1 = mean_beta_check(gwas_for_qc)
-        qc2 = p_z_test(gwas_for_qc)
-        qc4 = gc_lambda_check(gwas_for_qc)
-        qc5 = number_of_variants(gwas_for_qc, pval_threshold)
-        df = (
-            qc1.join(qc2, on="studyId", how="outer")
-            .join(qc4, on="studyId", how="outer")
-            .join(qc5, on="studyId", how="outer")
+        n_variants: Callable[[DataFrame], DataFrame] = lambda df: number_of_variants(
+            df, pval_threshold
+        )
+        QC_TESTS = [
+            QCTest(["mean_beta"], mean_beta_check),
+            QCTest(["mean_diff_pz", "se_diff_pz"], p_z_test),
+            QCTest(["gc_lambda"], gc_lambda_check),
+            QCTest(["n_variants", "n_variants_sig"], n_variants),
+        ]
+
+        qc = reduce(
+            lambda qc1, qc2: qc1.join(qc2, on="studyId", how="outer"),
+            [test.call_test(gwas.df) for test in QC_TESTS],
         )
 
-        return cls(_df=df)
+        return cls(_df=qc)

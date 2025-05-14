@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import importlib.resources as pkg_resources
 import json
+from collections.abc import Callable
 from dataclasses import dataclass
-from enum import Enum
+from enum import StrEnum
 from itertools import chain
 from typing import TYPE_CHECKING
 
@@ -15,9 +16,7 @@ from pyspark.sql.window import Window
 
 from gentropy.assets import data
 from gentropy.common.schemas import parse_spark_schema
-from gentropy.common.spark_helpers import (
-    convert_from_wide_to_long,
-)
+from gentropy.common.spark_helpers import convert_from_wide_to_long, filter_array_struct
 from gentropy.dataset.dataset import Dataset
 
 if TYPE_CHECKING:
@@ -29,7 +28,20 @@ if TYPE_CHECKING:
     from gentropy.dataset.target_index import TargetIndex
 
 
-class StudyQualityCheck(Enum):
+class StudyAnalysisFlag(StrEnum):
+    """Enum type hosting the expected analysis flags derived from the study curation."""
+
+    MULTIVARIATE_ANALYSIS = "Multivariate analysis"
+    EXWAS = "ExWAS"
+    NON_ADDITIVE = "Non-additive model"
+    WGS_WAS = "wgsGWAS"
+    METABOLITE = "Metabolite"
+    GXG = "GxG"
+    GxE = "GxE"
+    CASE_CASE_STUDY = "Case-case study"
+
+
+class StudyQualityCheck(StrEnum):
     """Study quality control options listing concerns on the quality of the study.
 
     Attributes:
@@ -61,6 +73,7 @@ class StudyQualityCheck(Enum):
     SMALL_NUMBER_OF_SNPS = (
         "The number of SNPs in the study is below the expected threshold"
     )
+    CASE_CASE_STUDY_DESIGN = "Case case study design"
 
 
 @dataclass
@@ -507,7 +520,7 @@ class StudyIndex(Dataset):
         """Annotate summary stats QC information.
 
         Args:
-            sumstats_qc (SummaryStatisticQC): Dataset containing summary statistics-based quality controls.
+            sumstats_qc (SummaryStatisticsQC): Dataset containing summary statistics-based quality controls.
             threshold_mean_beta (float): Threshold for mean beta check. Defaults to 0.05.
             threshold_mean_diff_pz (float): Threshold for mean diff PZ check. Defaults to 0.05.
             threshold_se_diff_pz (float): Threshold for SE diff PZ check. Defaults to 0.05.
@@ -517,42 +530,34 @@ class StudyIndex(Dataset):
 
         Returns:
             StudyIndex: Updated study index with QC information
-
-        Examples:
-            >>>
-
         """
         # convert all columns in sumstats_qc dataframe in array of structs grouped by studyId
-        cols = [c for c in sumstats_qc.df.columns if c != "studyId"]
+        qc_check_cols = [c for c in sumstats_qc.df.columns if c != "studyId"]
 
         studies = self.df
-        qc = sumstats_qc.df
 
-        melted_df = convert_from_wide_to_long(
-            qc,
+        # Prepare the QC flags format for the study index:
+        melted_qc = convert_from_wide_to_long(
+            sumstats_qc.df,
             id_vars=["studyId"],
-            value_vars=cols,
+            value_vars=qc_check_cols,
             var_name="QCCheckName",
             value_name="QCCheckValue",
         )
-
+        qc_struct = f.struct(f.col("QCCheckName"), f.col("QCCheckValue"))
         qc_df = (
-            melted_df.groupBy("studyId")
-            .agg(
-                f.map_from_entries(
-                    f.collect_list(
-                        f.struct(f.col("QCCheckName"), f.col("QCCheckValue"))
-                    )
-                ).alias("sumStatQCValues")
-            )
+            melted_qc.groupBy("studyId")
+            .agg(f.collect_list(qc_struct).alias("sumStatQCValues"))
             .select("studyId", "sumstatQCValues")
+            .withColumn("hasSumstats", f.lit(True))
+        )
+        extract_qc_value: Callable[[str], Column] = lambda x: filter_array_struct(
+            "sumStatQCValues", "QCCheckName", x, "QCCheckValue"
         )
 
         df = (
             studies.drop("sumStatQCValues", "hasSumstats")
-            .join(
-                qc_df.withColumn("hasSumstats", f.lit(True)), how="left", on="studyId"
-            )
+            .join(qc_df, how="left", on="studyId")
             .withColumn("hasSumstats", f.coalesce(f.col("hasSumstats"), f.lit(False)))
             .withColumn(
                 "qualityControls",
@@ -566,7 +571,7 @@ class StudyIndex(Dataset):
                 "qualityControls",
                 StudyIndex.update_quality_flag(
                     f.col("qualityControls"),
-                    ~(f.abs(f.col("sumstatQCValues.mean_beta")) <= threshold_mean_beta),
+                    ~(f.abs(extract_qc_value("mean_beta")) <= threshold_mean_beta),
                     StudyQualityCheck.FAILED_MEAN_BETA_CHECK,
                 ),
             )
@@ -576,10 +581,10 @@ class StudyIndex(Dataset):
                     f.col("qualityControls"),
                     ~(
                         (
-                            f.abs(f.col("sumstatQCValues.mean_diff_pz"))
+                            f.abs(extract_qc_value("mean_diff_pz"))
                             <= threshold_mean_diff_pz
                         )
-                        & (f.col("sumstatQCValues.se_diff_pz") <= threshold_se_diff_pz)
+                        & (extract_qc_value("se_diff_pz") <= threshold_se_diff_pz)
                     ),
                     StudyQualityCheck.FAILED_PZ_CHECK,
                 ),
@@ -589,11 +594,8 @@ class StudyIndex(Dataset):
                 StudyIndex.update_quality_flag(
                     f.col("qualityControls"),
                     ~(
-                        (f.col("sumstatQCValues.gc_lambda") <= threshold_max_gc_lambda)
-                        & (
-                            f.col("sumstatQCValues.gc_lambda")
-                            >= threshold_min_gc_lambda
-                        )
+                        (extract_qc_value("gc_lambda") <= threshold_max_gc_lambda)
+                        & (extract_qc_value("gc_lambda") >= threshold_min_gc_lambda)
                     ),
                     StudyQualityCheck.FAILED_GC_LAMBDA_CHECK,
                 ),
@@ -602,7 +604,7 @@ class StudyIndex(Dataset):
                 "qualityControls",
                 StudyIndex.update_quality_flag(
                     f.col("qualityControls"),
-                    (f.col("sumstatQCValues.n_variants") < threshold_min_n_variants),
+                    extract_qc_value("n_variants") < threshold_min_n_variants,
                     StudyQualityCheck.SMALL_NUMBER_OF_SNPS,
                 ),
             )
@@ -613,6 +615,25 @@ class StudyIndex(Dataset):
             _df=df,
             _schema=StudyIndex.get_schema(),
         )
+
+    def validate_analysis_flags(self: StudyIndex) -> StudyIndex:
+        """Validating analysis flags in the study index dataset.
+
+        This method checks the analysis flags and reports the the outcome of predicates to the quality control column.
+
+        Returns:
+            StudyIndex: with qualityControls column flagged based on analysisFlags.
+        """
+        predicate = f.array_contains("analysisFlags", StudyAnalysisFlag.CASE_CASE_STUDY)
+        df = self.df.withColumn(
+            "qualityControls",
+            StudyIndex.update_quality_flag(
+                f.col("qualityControls"),
+                predicate,
+                StudyQualityCheck.CASE_CASE_STUDY_DESIGN,
+            ),
+        )
+        return StudyIndex(_df=df, _schema=StudyIndex.get_schema())
 
     def deconvolute_studies(self: StudyIndex) -> StudyIndex:
         """Deconvolute the study index dataset.

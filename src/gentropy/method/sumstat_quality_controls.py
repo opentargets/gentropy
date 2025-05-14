@@ -186,7 +186,7 @@ def p_z_test(gwas_for_qc: DataFrame) -> DataFrame:
     Note:
         The algorithm does following things:
         1. recalculates the negative logarithm of p-value from the square z-score
-        2. calculates the difference between the sum of logarithms derived form reported p-value mantissa and exponent and value recalculated from z-score.
+        2. calculates the mean and se difference between the sum of logarithms derived form reported p-value mantissa and exponent and value recalculated from z-score.
 
     Warning:
          The function requires the calculation of the **chi-squared survival function** to obtain the p-value from the z-score.
