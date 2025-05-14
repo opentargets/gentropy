@@ -624,7 +624,9 @@ class StudyIndex(Dataset):
         Returns:
             StudyIndex: with qualityControls column flagged based on analysisFlags.
         """
-        predicate = f.array_contains("analysisFlags", StudyAnalysisFlag.CASE_CASE_STUDY)
+        predicate = f.array_contains(
+            "analysisFlags", StudyAnalysisFlag.CASE_CASE_STUDY.value
+        )
         df = self.df.withColumn(
             "qualityControls",
             StudyIndex.update_quality_flag(
