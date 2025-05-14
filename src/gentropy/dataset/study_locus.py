@@ -646,7 +646,6 @@ class StudyLocus(Dataset):
 
         Examples:
             >>> spark.createDataFrame([([1.0, 0.5, 0.25, 0.0],)]).toDF("logBF").select(f.round(StudyLocus.calculate_credible_set_log10bf(f.col("logBF"), 4), 7).alias("credibleSetlog10BF")).show()
-
             +------------------+
             |credibleSetlog10BF|
             +------------------+
