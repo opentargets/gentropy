@@ -31,11 +31,14 @@
   "extensions.ignoreRecommendations": true,
   "python.analysis.typeCheckingMode": "standard",
   "cSpell.words": [
+    "biosample",
     "diffpval",
+    "GCST",
     "gentropy",
     "neglogpval",
     "pheno",
     "pval",
-    "sumstat"
+    "sumstat",
+    "sumstats"
   ]
 }
