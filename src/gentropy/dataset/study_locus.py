@@ -632,27 +632,34 @@ class StudyLocus(Dataset):
         )
 
     @classmethod
-    def calculate_credible_set_log10bf(cls: type[StudyLocus], logbfs: Column) -> Column:
+    def calculate_credible_set_log10bf(
+        cls: type[StudyLocus], logbfs: Column, num_variants_region: int = 500
+    ) -> Column:
         """Calculate Bayes factor for the entire credible set. The Bayes factor is calculated as the logsumexp of the logBF values of the variants in the locus.
 
         Args:
             logbfs (Column): Array column with the logBF values of the variants in the locus.
+            num_variants_region (int): Number of variants in the region for calculation of priors. Default: 500.
 
         Returns:
             Column: log10 Bayes factor for the entire credible set.
 
         Examples:
-            >>> spark.createDataFrame([([0.2, 0.1, 0.05, 0.0],)]).toDF("logBF").select(f.round(StudyLocus.calculate_credible_set_log10bf(f.col("logBF")), 7).alias("credibleSetlog10BF")).show()
+            >>> spark.createDataFrame([([1.0, 0.5, 0.25, 0.0],)]).toDF("logBF").select(f.round(StudyLocus.calculate_credible_set_log10bf(f.col("logBF"), 4), 7).alias("credibleSetlog10BF")).show()
+
             +------------------+
             |credibleSetlog10BF|
             +------------------+
-            |         0.6412604|
+            |         0.2208288|
             +------------------+
             <BLANKLINE>
         """
         # log10=log/log(10)=log*0.43429448190325176
         logsumexp_udf = f.udf(
-            lambda x: (get_logsum(x) * 0.43429448190325176), FloatType()
+            lambda x: (
+                get_logsum(x + np.log(1 / num_variants_region)) * 0.43429448190325176
+            ),
+            FloatType(),
         )
         return logsumexp_udf(logbfs).cast("double").alias("credibleSetlog10BF")
 
