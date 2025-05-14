@@ -6,7 +6,7 @@ import importlib.resources as pkg_resources
 import json
 from collections.abc import Callable
 from dataclasses import dataclass
-from enum import StrEnum
+from enum import Enum
 from itertools import chain
 from typing import TYPE_CHECKING
 
@@ -28,7 +28,7 @@ if TYPE_CHECKING:
     from gentropy.dataset.target_index import TargetIndex
 
 
-class StudyAnalysisFlag(StrEnum):
+class StudyAnalysisFlag(Enum):
     """Enum type hosting the expected analysis flags derived from the study curation."""
 
     MULTIVARIATE_ANALYSIS = "Multivariate analysis"
@@ -41,7 +41,7 @@ class StudyAnalysisFlag(StrEnum):
     CASE_CASE_STUDY = "Case-case study"
 
 
-class StudyQualityCheck(StrEnum):
+class StudyQualityCheck(Enum):
     """Study quality control options listing concerns on the quality of the study.
 
     Attributes:
