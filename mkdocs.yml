@@ -4,7 +4,6 @@ nav:
   - Home: index.md
   - Installation: installation.md
   - ... | howto/**
-  - Roadmap: roadmap.md
   - ... | development/**
   - ... | python_api/**
 
