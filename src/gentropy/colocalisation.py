@@ -40,7 +40,7 @@ class ColocalisationStep:
         Args:
             session (Session): Session object.
             credible_set_path (str): Input credible sets path.
-            coloc_path (str): Output Colocalisation path.
+            coloc_path (str): Output path.
             colocalisation_method (str): Colocalisation method.
             restrict_to_studyIds (list[str] | None): List of study IDs to restrict the colocalisation to. Defaults to None.
             qtl_study_overlap (bool): If True, restrict to QTL studies on the right. Defaults to False.
@@ -81,7 +81,7 @@ class ColocalisationStep:
         # Load
         colocalisation_results.df.coalesce(session.output_partitions).write.mode(
             session.write_mode
-        ).parquet(f"{coloc_path}/{colocalisation_method.lower()}")
+        ).parquet(coloc_path)
 
     @classmethod
     def _get_colocalisation_class(
