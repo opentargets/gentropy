@@ -15,4 +15,15 @@ There are several checks included:
 
 5. Number of SNPs and number of significant SNPs.
 
-:::gentropy.method.sumstat_quality_controls.SummaryStatisticsQC
+## Summary Statistics QC checks
+
+:::gentropy.method.sumstat_quality_controls.gc_lambda_check
+:::gentropy.method.sumstat_quality_controls.p_z_test
+:::gentropy.method.sumstat_quality_controls.mean_beta_check
+:::gentropy.method.sumstat_quality_controls.sumstat_n_eff_check
+:::gentropy.method.sumstat_quality_controls.number_of_variants
+
+## Helper functions
+
+:::gentropy.common.utils.neglogpval_from_z2
+:::gentropy.method.sumstat_quality_controls.genotypic_variance
