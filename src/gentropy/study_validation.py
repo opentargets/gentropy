@@ -69,6 +69,7 @@ class StudyValidationStep:
             .validate_biosample(
                 biosample_index
             )  # Flagging QTL studies with invalid biosamples
+            .validate_analysis_flags()  # Flagging studies with case case design
         ).persist()  # we will need this for 2 types of outputs
 
         study_index_with_qc.valid_rows(invalid_qc_reasons, invalid=True).df.coalesce(

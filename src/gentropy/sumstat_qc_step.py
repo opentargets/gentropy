@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from gentropy.common.session import Session
 from gentropy.dataset.summary_statistics import SummaryStatistics
-from gentropy.method.sumstat_quality_controls import SummaryStatisticsQC
+from gentropy.dataset.summary_statistics_qc import SummaryStatisticsQC
 
 
 class SummaryStatisticsQCStep:
@@ -29,9 +29,11 @@ class SummaryStatisticsQCStep:
         gwas = SummaryStatistics.from_parquet(session, path=gwas_path)
 
         (
-            SummaryStatisticsQC.get_quality_control_metrics(
-                gwas=gwas, pval_threshold=pval_threshold
+            SummaryStatisticsQC.from_summary_statistics(
+                gwas=gwas,
+                pval_threshold=pval_threshold,
             )
+            .df.repartition(1)
             .write.mode(session.write_mode)
             .parquet(output_path)
         )
