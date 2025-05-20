@@ -133,3 +133,63 @@ def test_extract_maximum_coloc_probability_per_region_and_gene(
     expected_cols = ["studyLocusId", "geneId", "h4"]
     for col in expected_cols:
         assert col in res_df.columns, f"Column {col} not found in result DataFrame."
+
+
+def test_drop_trans_effects(spark: SparkSession) -> None:
+    """Test filtering out trans effects from QTLs."""
+    sample_study_locus = StudyLocus(
+        _df=spark.createDataFrame(
+            [
+                (
+                    "1",
+                    "var1",
+                    "eqtl1",
+                    True,  # trans effect
+                ),
+                (
+                    "2",
+                    "var2",
+                    "eqtl2",
+                    False,  # cis effect
+                ),
+                (
+                    "3",
+                    "var3",
+                    "eqtl3",
+                    None,  # null case
+                ),
+            ],
+            ["studyLocusId", "variantId", "studyId", "isTransQtl"],
+        ),
+        _schema=StudyLocus.get_schema(),
+    )
+
+    sample_colocalisation = Colocalisation(
+        _df=spark.createDataFrame(
+            [
+                ("gwas1", "1", "eqtl", "X", "COLOC", 1, 0.9),  # should be filtered out
+                ("gwas2", "2", "eqtl", "X", "COLOC", 1, 0.8),  # should remain
+                ("gwas3", "3", "eqtl", "X", "COLOC", 1, 0.7),  # should remain
+            ],
+            [
+                "leftStudyLocusId",
+                "rightStudyLocusId",
+                "rightStudyType",
+                "chromosome",
+                "colocalisationMethod",
+                "numberColocalisingVariants",
+                "h4",
+            ],
+        ),
+        _schema=Colocalisation.get_schema(),
+    )
+    expected_ids = ["gwas2", "gwas3"]
+
+    filtered_coloc = sample_colocalisation.drop_trans_effects(sample_study_locus)
+
+    result_ids = (
+        filtered_coloc.df.select("leftStudyLocusId")
+        .toPandas()["leftStudyLocusId"]
+        .tolist()
+    )
+    assert result_ids == expected_ids, "Expected ids do not match result ids"

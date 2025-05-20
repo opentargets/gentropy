@@ -282,6 +282,8 @@ class TestColocalisationStep:
         coloc_dataset = Colocalisation.from_parquet(
             session, self.coloc_path, recursiveFileLookup=True
         )
+
+        assert not (Path(self.coloc_path) / coloc_method.lower()).exists()
         for column, expected_values in expected_data.items():
             values = [c[column] for c in coloc_dataset.df.collect()]
             for v, e in zip(values, expected_values):

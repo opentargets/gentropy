@@ -333,11 +333,43 @@ class Dataset(ABC):
 
         Returns:
             Column: Array column with the updated list of qc flags.
+
+
+        Examples:
+            >>> s = "study STRING, qualityControls ARRAY<STRING>, condition BOOLEAN"
+            >>> d =  [("S1", ["qc1"], True), ("S2", ["qc3"], False)]
+            >>> df = spark.createDataFrame(d, s)
+            >>> df.show()
+            +-----+---------------+---------+
+            |study|qualityControls|condition|
+            +-----+---------------+---------+
+            |   S1|          [qc1]|     true|
+            |   S2|          [qc3]|    false|
+            +-----+---------------+---------+
+            <BLANKLINE>
+
+            >>> class QC(Enum):
+            ...     QC1 = "qc1"
+            ...     QC2 = "qc2"
+            ...     QC3 = "qc3"
+
+            >>> condition = f.col("condition")
+            >>> new_qc = Dataset.update_quality_flag(f.col("qualityControls"), condition, QC.QC2)
+            >>> df.withColumn("qualityControls", new_qc).show()
+            +-----+---------------+---------+
+            |study|qualityControls|condition|
+            +-----+---------------+---------+
+            |   S1|     [qc1, qc2]|     true|
+            |   S2|          [qc3]|    false|
+            +-----+---------------+---------+
+            <BLANKLINE>
         """
         qc = f.when(qc.isNull(), f.array()).otherwise(qc)
         return f.when(
             flag_condition,
-            f.array_union(qc, f.array(f.lit(flag_text.value))),
+            f.array_sort(
+                f.array_distinct(f.array_union(qc, f.array(f.lit(flag_text.value))))
+            ),
         ).otherwise(qc)
 
     @staticmethod
