@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-from pyspark.sql.types import DoubleType, LongType, StringType, StructField, StructType
-
 from gentropy.common.session import Session
+from gentropy.dataset.summary_statistics_qc import SummaryStatisticsQC
 from gentropy.datasource.gwas_catalog.study_index import StudyIndexGWASCatalogParser
 from gentropy.datasource.gwas_catalog.study_index_ot_curation import (
     StudyIndexGWASCatalogOTCuration,
@@ -22,7 +21,7 @@ class GWASCatalogStudyIndexGenerationStep:
     This step provides several optional arguments to add additional information to the study index:
 
     - gwas_catalog_study_curation_file: csv file or URL containing the curation table. If provided it annotates the study index with the additional curation information performed by the Open Targets team.
-    - sumstats_qc_path: Path to the summary statistics QC table. If provided it annotates the study index with the summary statistics QC information in the `sumStatQCValues` columns (e.g. `n_variants`, `n_variants_sig` etc.).
+    - sumstats_qc_path: Path to the summary statistics QC table. If provided it annotates the study index with the summary statistics QC information in the `sumstatQCValues` columns (e.g. `n_variants`, `n_variants_sig` etc.).
     """
 
     def __init__(
@@ -75,22 +74,12 @@ class GWASCatalogStudyIndexGenerationStep:
 
         # Annotate with sumstats QC if provided:
         if sumstats_qc_path:
-            schema = StructType(
-                [
-                    StructField("studyId", StringType(), True),
-                    StructField("mean_beta", DoubleType(), True),
-                    StructField("mean_diff_pz", DoubleType(), True),
-                    StructField("se_diff_pz", DoubleType(), True),
-                    StructField("gc_lambda", DoubleType(), True),
-                    StructField("n_variants", LongType(), True),
-                    StructField("n_variants_sig", LongType(), True),
-                ]
-            )
-            sumstats_qc = session.spark.read.schema(schema).parquet(
-                sumstats_qc_path, recursiveFileLookup=True
+            sumstats_qc = SummaryStatisticsQC.from_parquet(
+                session=session,
+                path=sumstats_qc_path,
+                recursiveFileLookup=True,
             )
             study_index_with_qc = study_index.annotate_sumstats_qc(sumstats_qc)
-
             # Write the study
             study_index_with_qc.df.write.mode(session.write_mode).parquet(
                 study_index_path

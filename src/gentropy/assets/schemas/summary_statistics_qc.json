@@ -1,0 +1,27 @@
+{
+  "fields": [
+    { "metadata": {}, "name": "studyId", "nullable": true, "type": "string" },
+    { "metadata": {}, "name": "mean_beta", "nullable": true, "type": "double" },
+    {
+      "metadata": {},
+      "name": "mean_diff_pz",
+      "nullable": true,
+      "type": "double"
+    },
+    {
+      "metadata": {},
+      "name": "se_diff_pz",
+      "nullable": true,
+      "type": "double"
+    },
+    { "metadata": {}, "name": "gc_lambda", "nullable": true, "type": "double" },
+    { "metadata": {}, "name": "n_variants", "nullable": true, "type": "long" },
+    {
+      "metadata": {},
+      "name": "n_variants_sig",
+      "nullable": true,
+      "type": "long"
+    }
+  ],
+  "type": "struct"
+}
