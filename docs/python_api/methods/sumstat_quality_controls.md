@@ -25,5 +25,5 @@ There are several checks included:
 
 ## Helper functions
 
-:::gentropy.method.sumstat_quality_controls.neglogpval_from_z2
+:::gentropy.common.utils.neglogpval_from_z2
 :::gentropy.method.sumstat_quality_controls.genotypic_variance

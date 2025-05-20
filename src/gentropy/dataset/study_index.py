@@ -73,7 +73,7 @@ class StudyQualityCheck(Enum):
     SMALL_NUMBER_OF_SNPS = (
         "The number of SNPs in the study is below the expected threshold"
     )
-    CASE_CASE_STUDY_DESIGN = "Case case study design"
+    CASE_CASE_STUDY_DESIGN = "Case-case study design"
 
 
 @dataclass

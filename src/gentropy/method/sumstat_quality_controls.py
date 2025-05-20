@@ -3,20 +3,19 @@
 This module contains methods for quality control of GWAS summary statistics.
 The list of methods includes:
 
-    - : This is the mean beta check. The mean beta should be close to 0.
+    - mean_beta_check : This is the mean beta check. The mean beta should be close to 0.
 
-    - sumstat_qc_pz_check: This is the PZ check. It runs a linear regression between reported p-values and p-values inferred from z-scores.
+    - pz_test: This is the PZ check. It runs a linear regression between reported p-values and p-values inferred from z-scores.
 
     - sumstat_n_eff_check: This is the effective sample size check. It estimates the ratio between the effective sample size and the expected one and checks its distribution.
 
     - gc_lambda_check: This is the genomic control lambda check.
 
-    - number_of_snps: This function calculates the number of SNPs and the number of SNPs with a p-value less than 5e-8.
+    - number_of_variants: This function calculates the number of SNPs and the number of SNPs with a p-value less than 5e-8.
 """
 
 from __future__ import annotations
 
-import numpy as np
 import pyspark.sql.functions as f
 import pyspark.sql.types as t
 from pyspark.sql import Column, DataFrame
@@ -24,24 +23,7 @@ from pyspark.sql.functions import row_number
 from pyspark.sql.window import Window
 from scipy.stats import chi2
 
-
-def neglogpval_from_z2(z2: float) -> float:
-    """Calculate negative log10 of p-value from squared Z-score following chi2 distribution.
-
-    **The Z-score^2 is equal to the chi2 with 1 degree of freedom.**
-
-    Args:
-        z2 (float): Z-score squared.
-
-    Returns:
-        float:  negative log of p-value.
-
-    Examples:
-        >>> round(neglogpval_from_z2(1.0),2)
-        0.5
-    """
-    logpval = -np.log10(chi2.sf((z2), 1))
-    return float(logpval)
+from gentropy.common.utils import neglogpval_from_z2
 
 
 def genotypic_variance(af: Column) -> Column:

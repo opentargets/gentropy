@@ -10,6 +10,7 @@ import hail as hl
 import numpy as np
 from pyspark.sql import functions as f
 from pyspark.sql import types as t
+from scipy.stats import chi2
 
 from gentropy.common.spark_helpers import pvalue_to_zscore
 
@@ -374,3 +375,22 @@ def extract_position(variant_id: Column) -> Column:
 
     """
     return f.regexp_extract(variant_id, r"^.*_(\d+)_.*$", 1)
+
+
+def neglogpval_from_z2(z2: float) -> float:
+    """Calculate negative log10 of p-value from squared Z-score following chi2 distribution.
+
+    **The Z-score^2 is equal to the chi2 with 1 degree of freedom.**
+
+    Args:
+        z2 (float): Z-score squared.
+
+    Returns:
+        float:  negative log of p-value.
+
+    Examples:
+        >>> round(neglogpval_from_z2(1.0),2)
+        0.5
+    """
+    logpval = -np.log10(chi2.sf((z2), 1))
+    return float(logpval)

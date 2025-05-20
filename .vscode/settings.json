@@ -35,6 +35,7 @@
     "diffpval",
     "GCST",
     "gentropy",
+    "logpval",
     "neglogpval",
     "pheno",
     "pval",
