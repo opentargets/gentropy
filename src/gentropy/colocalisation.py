@@ -38,7 +38,7 @@ class ColocalisationStep:
         Args:
             session (Session): Session object.
             credible_set_path (str): Input credible sets path.
-            coloc_path (str): Output Colocalisation path.
+            coloc_path (str): Output output path.
             colocalisation_method (str): Colocalisation method.
             colocalisation_method_params (dict[str, Any] | None): Keyword arguments passed to the colocalise method of Colocalisation class. Defaults to None
 
@@ -74,7 +74,7 @@ class ColocalisationStep:
         # Load
         colocalisation_results.df.coalesce(session.output_partitions).write.mode(
             session.write_mode
-        ).parquet(f"{coloc_path}/{colocalisation_method.lower()}")
+        ).parquet(coloc_path)
 
     @classmethod
     def _get_colocalisation_class(
