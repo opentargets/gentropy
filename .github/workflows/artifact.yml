@@ -76,16 +76,6 @@ jobs:
           tags: "${{ env.GAR_LOCATION }}/${{ env.REPOSITORY }}/gentropy:${{ env.TAG }}"
           context: .
 
-      - name: Build and push VEP image
-        if: steps.docker-tag.outcome == 'success'
-        uses: docker/build-push-action@v6
-        with:
-          platforms: linux/amd64
-          push: true
-          tags: "${{ env.GAR_LOCATION }}/${{ env.REPOSITORY }}/custom_ensembl_vep:${{ env.TAG }}"
-          context: .
-          file: "src/vep/Dockerfile"
-
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
