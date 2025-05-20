@@ -266,10 +266,25 @@
     {
       "name": "sumstatQCValues",
       "type": {
-        "type": "map",
-        "keyType": "string",
-        "valueType": "float",
-        "valueContainsNull": true
+        "type": "array",
+        "elementType": {
+          "type": "struct",
+          "fields": [
+            {
+              "name": "QCCheckName",
+              "type": "string",
+              "nullable": false,
+              "metadata": {}
+            },
+            {
+              "name": "QCCheckValue",
+              "type": "float",
+              "nullable": false,
+              "metadata": {}
+            }
+          ]
+        },
+        "containsNull": true
       },
       "nullable": true,
       "metadata": {}
