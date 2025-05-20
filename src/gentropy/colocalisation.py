@@ -38,7 +38,7 @@ class ColocalisationStep:
         Args:
             session (Session): Session object.
             credible_set_path (str): Input credible sets path.
-            coloc_path (str): Output output path.
+            coloc_path (str): Output path.
             colocalisation_method (str): Colocalisation method.
             colocalisation_method_params (dict[str, Any] | None): Keyword arguments passed to the colocalise method of Colocalisation class. Defaults to None
 
