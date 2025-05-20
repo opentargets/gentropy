@@ -103,6 +103,8 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION_DEFAULT }}
       - uses: astral-sh/setup-uv@v6
+        with:
+          activate-environment: true
       - run: uv sync --group docs
       - name: Publish docs
         run: uv run mkdocs gh-deploy --force

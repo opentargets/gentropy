@@ -92,6 +92,8 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION_DEFAULT }}
       - name: Install uv
         uses: astral-sh/setup-uv@v6
+        with:
+          activate-environment: true
 
       - name: Build and push spark cluster dependencies
         run: make build
