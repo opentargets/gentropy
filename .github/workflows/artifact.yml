@@ -75,7 +75,7 @@ jobs:
           push: true
           tags: "${{ env.GAR_LOCATION }}/${{ env.REPOSITORY }}/gentropy:${{ env.TAG }}"
           context: .
-
+      # VEP image is defined in the https://github.com/opentargets/vep-image
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
