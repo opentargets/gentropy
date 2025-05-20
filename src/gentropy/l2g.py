@@ -92,6 +92,21 @@ class LocusToGeneFeatureMatrixStep:
         fm = credible_set.filter(f.col("studyType") == "gwas").build_feature_matrix(
             features_list, features_input_loader
         )
+
+        if target_index is not None:
+            target_index_df = target_index.df.select("id", "biotype").withColumnRenamed(
+                "id", "geneId"
+            )
+
+            target_index_df = target_index_df.withColumn(
+                "isProteinCoding",
+                f.when(f.col("biotype") == "protein_coding", 1).otherwise(0),
+            ).drop("biotype")
+
+            fm._df = fm._df.drop("isProteinCoding").join(
+                target_index_df, on="geneId", how="inner"
+            )
+
         fm._df.coalesce(session.output_partitions).write.mode(
             session.write_mode
         ).parquet(feature_matrix_path)
