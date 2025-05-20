@@ -56,6 +56,7 @@ class StudyQualityCheck(Enum):
         FAILED_PZ_CHECK (str): Flagging if the PZ QC check values are not within the expected range.
         FAILED_GC_LAMBDA_CHECK (str): Flagging if the GC lambda value is not within the expected range.
         SMALL_NUMBER_OF_SNPS (str): Flagging if the number of SNPs in the study is below the expected threshold.
+        CASE_CASE_STUDY_DESIGN (str): Flagging if the study design is case-case.
     """
 
     UNRESOLVED_TARGET = "Target/gene identifier could not match to reference"
