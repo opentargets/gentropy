@@ -547,16 +547,16 @@ class StudyIndex(Dataset):
         qc_struct = f.struct(f.col("QCCheckName"), f.col("QCCheckValue"))
         qc_df = (
             melted_qc.groupBy("studyId")
-            .agg(f.collect_list(qc_struct).alias("sumStatQCValues"))
+            .agg(f.collect_list(qc_struct).alias("sumstatQCValues"))
             .select("studyId", "sumstatQCValues")
             .withColumn("hasSumstats", f.lit(True))
         )
         extract_qc_value: Callable[[str], Column] = lambda x: filter_array_struct(
-            "sumStatQCValues", "QCCheckName", x, "QCCheckValue"
+            "sumstatQCValues", "QCCheckName", x, "QCCheckValue"
         )
 
         df = (
-            studies.drop("sumStatQCValues", "hasSumstats")
+            studies.drop("sumstatQCValues", "hasSumstats")
             .join(qc_df, how="left", on="studyId")
             .withColumn("hasSumstats", f.coalesce(f.col("hasSumstats"), f.lit(False)))
             .withColumn(
