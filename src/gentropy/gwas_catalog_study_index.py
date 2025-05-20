@@ -21,7 +21,7 @@ class GWASCatalogStudyIndexGenerationStep:
     This step provides several optional arguments to add additional information to the study index:
 
     - gwas_catalog_study_curation_file: csv file or URL containing the curation table. If provided it annotates the study index with the additional curation information performed by the Open Targets team.
-    - sumstats_qc_path: Path to the summary statistics QC table. If provided it annotates the study index with the summary statistics QC information in the `sumStatQCValues` columns (e.g. `n_variants`, `n_variants_sig` etc.).
+    - sumstats_qc_path: Path to the summary statistics QC table. If provided it annotates the study index with the summary statistics QC information in the `sumstatQCValues` columns (e.g. `n_variants`, `n_variants_sig` etc.).
     """
 
     def __init__(
