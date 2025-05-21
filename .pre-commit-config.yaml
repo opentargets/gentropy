@@ -6,7 +6,7 @@ ci:
   skip: [uv-lock]
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.11.2
+    rev: v0.11.10
     hooks:
       - id: ruff
         args:
@@ -34,7 +34,7 @@ repos:
       - id: debug-statements
       - id: check-docstring-first
   - repo: https://github.com/adrienverge/yamllint.git
-    rev: v1.37.0
+    rev: v1.37.1
     hooks:
       - id: yamllint
 
@@ -98,11 +98,11 @@ repos:
       - id: beautysh
 
   - repo: https://github.com/jsh9/pydoclint
-    rev: 0.6.2
+    rev: 0.6.7
     hooks:
       - id: pydoclint
   - repo: https://github.com/astral-sh/uv-pre-commit
-    rev: 0.6.9
+    rev: 0.7.5
     hooks:
       - id: uv-lock
         args: [--check]

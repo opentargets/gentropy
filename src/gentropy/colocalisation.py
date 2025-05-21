@@ -38,7 +38,7 @@ class ColocalisationStep:
         Args:
             session (Session): Session object.
             credible_set_path (str): Input credible sets path.
-            coloc_path (str): Output Colocalisation path.
+            coloc_path (str): Output path.
             colocalisation_method (str): Colocalisation method.
             colocalisation_method_params (dict[str, Any] | None): Keyword arguments passed to the colocalise method of Colocalisation class. Defaults to None
 
@@ -46,6 +46,8 @@ class ColocalisationStep:
             priorc1 (float): Prior on variant being causal for trait 1. Defaults to 1e-4. For coloc method only.
             priorc2 (float): Prior on variant being causal for trait 2. Defaults to 1e-4. For coloc method only.
             priorc12 (float): Prior on variant being causal for both traits. Defaults to 1e-5. For coloc method only.
+            overlap_size_cutoff (int): Minimum number of overlapping variants bfore filtering. Defaults to 0.
+            posterior_cutoff (float): Minimum overlapping Posterior probability cutoff for small overlaps. Defaults to 0.0.
         """
         colocalisation_method = colocalisation_method.lower()
         colocalisation_class = self._get_colocalisation_class(colocalisation_method)
@@ -72,7 +74,7 @@ class ColocalisationStep:
         # Load
         colocalisation_results.df.coalesce(session.output_partitions).write.mode(
             session.write_mode
-        ).parquet(f"{coloc_path}/{colocalisation_method.lower()}")
+        ).parquet(coloc_path)
 
     @classmethod
     def _get_colocalisation_class(

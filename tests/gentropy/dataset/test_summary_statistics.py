@@ -4,9 +4,12 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+import numpy as np
+import pytest
 from pyspark.sql import types as t
 
 from gentropy.common.genomic_region import GenomicRegion
+from gentropy.common.session import Session
 from gentropy.dataset.study_locus import StudyLocus
 from gentropy.dataset.summary_statistics import SummaryStatistics
 
@@ -95,4 +98,41 @@ def test_summary_statistics__exclude_region__correctness(
     assert filtered_sumstas.df.count() == 8
 
 
-# Look for medium size summary statistics -
+def test_summary_statistics__sanity_filter_remove_inf_values(session: Session) -> None:
+    """Sanity filter remove inf value from standardError field."""
+    data = [
+        (
+            "GCST012234",
+            "10_73856419_C_A",
+            10,
+            73856419,
+            np.Infinity,
+            1,
+            3.1324,
+            -650,
+            None,
+            0.4671,
+        ),
+        (
+            "GCST012234",
+            "14_98074714_G_C",
+            14,
+            98074714,
+            6.697,
+            2,
+            5.4275,
+            -2890,
+            None,
+            0.4671,
+        ),
+    ]
+    input_df = session.spark.createDataFrame(
+        data=data, schema=SummaryStatistics.get_schema()
+    )
+    summary_stats = SummaryStatistics(
+        _df=input_df, _schema=SummaryStatistics.get_schema()
+    )
+    stats_after_filter = summary_stats.sanity_filter().df.collect()
+    assert input_df.count() == 2
+    assert len(stats_after_filter) == 1
+    assert stats_after_filter[0]["beta"] - 6.697 == pytest.approx(0)
