@@ -3,77 +3,54 @@
 from __future__ import annotations
 
 import pyspark.sql.functions as f
-from pyspark.sql import SparkSession
+from pyspark.sql import Column, DataFrame, SparkSession
 
+from gentropy.dataset.variant_index import VariantIndex
 from gentropy.datasource.finngen_ukb_meta.summary_stats import (
     FinngenUkbMetaSummaryStats,
 )
 from gentropy.datasource.ukb_ppp_eur.summary_stats import UkbPppEurSummaryStats
 
 
-def prepare_va(session: SparkSession, variant_annotation_path: str, tmp_variant_annotation_path: str) -> None:
-    """Prepare the Variant Annotation dataset for efficient per-chromosome joins.
+class VariantFlipper:
+    def __init__(self, vi: VariantIndex):
+        self.vi = vi
 
-    Args:
-        session (SparkSession): The Spark session to be used for reading and writing data.
-        variant_annotation_path (str): The path to the input variant annotation dataset.
-        tmp_variant_annotation_path (str): The path to store the temporary output for the repartitioned annotation dataset.
-    """
-    va_df = (
-        session
-        .spark
-        .read
-        .parquet(variant_annotation_path)
-    )
-    va_df_direct = (
-        va_df.
-        select(
-            f.col("chromosome").alias("vaChromosome"),
-            f.col("variantId"),
-            f.concat_ws(
-                "_",
-                f.col("chromosome"),
-                f.col("position"),
-                f.col("referenceAllele"),
-                f.col("alternateAllele")
-            ).alias("summary_stats_id"),
-            f.lit("direct").alias("direction")
-        )
-    )
-    va_df_flip = (
-        va_df.
-        select(
-            f.col("chromosome").alias("vaChromosome"),
-            f.col("variantId"),
-            f.concat_ws(
-                "_",
-                f.col("chromosome"),
-                f.col("position"),
-                f.col("alternateAllele"),
-                f.col("referenceAllele")
-            ).alias("summary_stats_id"),
-            f.lit("flip").alias("direction")
-        )
-    )
-    (
-        va_df_direct.union(va_df_flip)
-        .coalesce(1)
-        .repartition("vaChromosome")
-        .write
-        .partitionBy("vaChromosome")
-        .mode("overwrite")
-        .parquet(tmp_variant_annotation_path)
-    )
+    @property
+    def flipped(self) -> Column:
+        """Get the flipped variant."""
+        return f.concat_ws(
+            "_",
+            f.col("chromosome"),
+            f.col("position"),
+            f.col("alternateAllele"),
+            f.col("referenceAllele"),
+        ).alias("flipped")
+
+    @property
+    def direct(self) -> Column:
+        """Get the direct variant."""
+        return f.concat_ws(
+            "_",
+            f.col("chromosome"),
+            f.col("position"),
+            f.col("referenceAllele"),
+            f.col("alternateAllele"),
+        ).alias("flipped")
+
+    def variant_direction(self) -> DataFrame:
+        """Get the variant direction dataset."""
+        return self.vi.df.select(f.col("position"), f.struct(self.direct, self.flipped))
 
 
 def process_summary_stats_per_chromosome(
-        session: SparkSession,
-        ingestion_class: type[UkbPppEurSummaryStats] | type[FinngenUkbMetaSummaryStats],
-        raw_summary_stats_path: str,
-        tmp_variant_annotation_path: str,
-        summary_stats_output_path: str,
-        study_index_path: str,
-    ) -> None:
+    session: SparkSession,
+    ingestion_class: type[UkbPppEurSummaryStats] | type[FinngenUkbMetaSummaryStats],
+    raw_summary_stats_path: str,
+    tmp_variant_annotation_path: str,
+    summary_stats_output_path: str,
+    study_index_path: str,
+) -> None:
     """Processes summary statistics for each chromosome, partitioning and writing results.
 
     Args:
@@ -98,11 +75,9 @@ def process_summary_stats_per_chromosome(
                 chromosome=str(chromosome),
                 study_index_path=study_index_path,
             )
-            .df
-            .coalesce(1)
+            .df.coalesce(1)
             .repartition("studyId", "chromosome")
-            .write
-            .partitionBy("studyId", "chromosome")
+            .write.partitionBy("studyId", "chromosome")
             .mode(write_mode)
             .parquet(summary_stats_output_path)
         )

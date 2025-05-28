@@ -1,0 +1,51 @@
+{
+    "fields": [
+        {
+            "metadata": { },
+            "name": "chromosome",
+            "nullable": false,
+            "type": "integer"
+        },
+        {
+            "metadata": { },
+            "name": "position",
+            "nullable": false,
+            "type": "integer"
+        },
+        {
+            "metadata": { },
+            "name": "referenceAllele",
+            "nullable": false,
+            "type": "string"
+        },
+        {
+            "metadata": { },
+            "name": "alternateAllele",
+            "nullable": false,
+            "type": "string"
+        },
+        {
+            "metadata": { },
+            "name": "variantDirection",
+            "nullable": false,
+            "type": {
+                "fields": [
+                    {
+                        "metadata": { },
+                        "name": "direct",
+                        "nullable": false,
+                        "type": "string"
+                    },
+                    {
+                        "metadata": { },
+                        "name": "flipped",
+                        "nullable": false,
+                        "type": "string"
+                    }
+                ],
+                "type": "struct"
+            }
+        }
+
+    ]
+}
