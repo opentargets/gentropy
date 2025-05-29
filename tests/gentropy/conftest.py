@@ -552,7 +552,7 @@ def sample_ukbiobank_studies(spark: SparkSession) -> DataFrame:
 
 
 @pytest.fixture()
-def study_locus_sample_for_colocalisation(spark: SparkSession) -> DataFrame:
+def study_locus_sample_for_colocalisation(spark: SparkSession) -> StudyLocus:
     """Sample study locus data for colocalisation."""
     return StudyLocus(
         _df=spark.read.parquet("tests/gentropy/data_samples/coloc_test.parquet"),
@@ -698,8 +698,8 @@ def mock_l2g_gold_standard(spark: SparkSession) -> L2GGoldStandard:
             expr="cast(id as string)",
         )
         .withColumnSpec(
-            "traitFromSourceMappedId",
-            expr="cast(id as string)",
+            "diseaseIds",
+            expr="array(cast(rand() as string))",
         )
         .withColumnSpec(
             "goldStandardSet",

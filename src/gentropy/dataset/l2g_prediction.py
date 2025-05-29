@@ -73,18 +73,36 @@ class L2GPrediction(Dataset):
             L2GPrediction: L2G scores for a set of credible sets.
 
         Raises:
-            AttributeError: If `features_list` is not provided and the model is not downloaded from the Hub.
+            ValueError:
+                If `hf_token` is not provided when downloading the model from the Hub.
+                If `hf_model_version` is not provided when downloading the model from the Hub.
+                If `model_path` is not provided when the model is referenced from path.
+                If `features_list` is not provided and the model is referenced from path.
+
+
         """
         # Load the model
         if download_from_hub:
             # Model ID defaults to "opentargets/locus_to_gene" and it assumes the name of the classifier is "classifier.skops".
+            if not hf_token:
+                raise ValueError(
+                    "hf_token is required to download the model from the Hub"
+                )
+            if not hf_model_version:
+                raise ValueError(
+                    "hf_model_version is required to download the model from the Hub"
+                )
             model_id = model_path or "opentargets/locus_to_gene"
             l2g_model = LocusToGeneModel.load_from_hub(
                 session, model_id, hf_model_version, hf_token
             )
-        elif model_path:
+        else:
+            if not model_path:
+                raise ValueError(
+                    "model_path is required if the model is not downloaded from the Hub"
+                )
             if not features_list:
-                raise AttributeError(
+                raise ValueError(
                     "features_list is required if the model is not downloaded from the Hub"
                 )
             l2g_model = LocusToGeneModel.load_from_disk(
