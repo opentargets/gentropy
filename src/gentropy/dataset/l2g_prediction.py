@@ -75,7 +75,6 @@ class L2GPrediction(Dataset):
         Raises:
             ValueError:
                 If `hf_token` is not provided when downloading the model from the Hub.
-                If `hf_model_version` is not provided when downloading the model from the Hub.
                 If `model_path` is not provided when the model is referenced from path.
                 If `features_list` is not provided and the model is referenced from path.
 
@@ -87,10 +86,6 @@ class L2GPrediction(Dataset):
             if not hf_token:
                 raise ValueError(
                     "hf_token is required to download the model from the Hub"
-                )
-            if not hf_model_version:
-                raise ValueError(
-                    "hf_model_version is required to download the model from the Hub"
                 )
             model_id = model_path or "opentargets/locus_to_gene"
             l2g_model = LocusToGeneModel.load_from_hub(
