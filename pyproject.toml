@@ -106,6 +106,7 @@ changelog_file = "CHANGELOG.md"
 
 [tool.semantic-release.changelog]
 exclude_commit_patterns = ["chore\\(release\\):"]
+template_dir = "templates"
 
 [build-system]
 requires = ["hatchling"]
