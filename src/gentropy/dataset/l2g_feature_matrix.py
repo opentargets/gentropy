@@ -182,6 +182,8 @@ class L2GFeatureMatrix:
         """
         if features_list := features_list or self.features_list:
             # cast to float every feature in the features_list
+            print(f"fixed cols: {self.fixed_cols}")
+            print(f"WE HAVE: {self._df.columns}")
             return L2GFeatureMatrix(
                 _df=self._df.selectExpr(
                     self.fixed_cols
