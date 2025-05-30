@@ -5,10 +5,14 @@ from __future__ import annotations
 import importlib.resources as pkg_resources
 import json
 from collections import defaultdict
+from typing import TYPE_CHECKING
 
 from pyspark.sql.types import ArrayType, StructType
 
 from gentropy.assets import schemas
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
 
 
 class SchemaValidationError(Exception):

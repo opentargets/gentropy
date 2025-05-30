@@ -6,15 +6,23 @@ from functools import reduce
 from typing import TYPE_CHECKING
 
 import pyspark.sql.functions as f
+from loguru import logger
 from pyspark.sql import Window
+from pyspark.sql import types as t
 from typing_extensions import Self
 
+from gentropy.common.exceptions import L2GFeatureError
+from gentropy.common.schemas import parse_spark_schema
 from gentropy.common.spark_helpers import convert_from_long_to_wide
-from gentropy.dataset import Dataset
+from gentropy.dataset.dataset import Dataset
+from gentropy.dataset.l2g_features.namespace import L2GFeatureName
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
 from gentropy.method.l2g.feature_factory import FeatureFactory, L2GFeatureInputLoader
 
 if TYPE_CHECKING:
+    from collections.abc import Collection
+    from typing import ClassVar
+
     from pyspark.sql import DataFrame
 
     from gentropy.dataset.study_locus import StudyLocus
@@ -23,39 +31,25 @@ if TYPE_CHECKING:
 class L2GFeatureMatrix(Dataset):
     """Dataset with features for Locus to Gene prediction."""
 
-    def __init__(
-        self,
-        _df: DataFrame,
-        features_list: list[str] | None = None,
-        with_gold_standard: bool = False,
-    ) -> None:
-        """Post-initialisation to set the features list. If not provided, all columns except the fixed ones are used.
-
-        Args:
-            _df (DataFrame): Feature matrix dataset
-            features_list (list[str] | None): List of features to use. If None, all possible features are used.
-            with_gold_standard (bool): Whether to include the gold standard set in the feature matrix.
-        """
-        self.with_gold_standard = with_gold_standard
-        self.fixed_cols = ["studyLocusId", "geneId"]
-        if self.with_gold_standard:
-            self.fixed_cols.append("goldStandardSet")
-        if "traitFromSourceMappedId" in _df.columns:
-            self.fixed_cols.append("traitFromSourceMappedId")
-
-        self.features_list = features_list or [
-            col for col in _df.columns if col not in self.fixed_cols
-        ]
-        self._df = _df.selectExpr(
-            self.fixed_cols
-            + [
-                f"CAST({feature} AS FLOAT) AS {feature}"
-                for feature in self.features_list
-            ]
-        )
+    _requestable_feature_names: ClassVar[Collection[L2GFeatureName]] = set(
+        map(str, L2GFeatureName)
+    )
 
     @classmethod
-    def from_features_list(
+    def get_schema(cls) -> t.StructType:
+        """Provide the schema for the l2GFeatureMatrix dataset.
+
+        Returns:
+            StructType: The schema of the BiosampleIndex dataset.
+        """
+        schema = parse_spark_schema("l2g_feature_matrix.json")
+
+        for name in cls._requestable_feature_names:
+            schema = schema.add(name, t.FloatType(), nullable=True)
+        return schema
+
+    @classmethod
+    def build(
         cls: type[L2GFeatureMatrix],
         study_loci_to_annotate: StudyLocus | L2GGoldStandard,
         features_list: list[str],
@@ -71,14 +65,38 @@ class L2GFeatureMatrix(Dataset):
         Returns:
             L2GFeatureMatrix: L2G feature matrix dataset
         """
+        
+            def generate_features(
+        self: FeatureFactory,
+        features_input_loader: L2GFeatureInputLoader,
+    ) -> L2GFeatureMatrix:
+        """Generates a feature matrix by reading an object with instructions on how to create the features.
+
+        Args:
+            features_input_loader (L2GFeatureInputLoader): object with required features dependencies.
+
+        Returns:
+            list[L2GFeature]: list of computed features.
+
+        Raises:
+            ValueError: If feature not found.
+        """
+        computed_features = []
+        for feature in self.features_list:
+            feature = self.compute_feature(feature, features_input_loader)
+            computed_features.append()
+        return computed_features
+
+        features = FeatureFactory(
+            study_loci_to_annotate, features_list
+        ).generate_features(features_input_loader)
+
         features_long_df = reduce(
             lambda x, y: x.unionByName(y, allowMissingColumns=True),
             [
                 # Compute all features and merge them into a single dataframe
                 feature.df
-                for feature in FeatureFactory(
-                    study_loci_to_annotate, features_list
-                ).generate_features(features_input_loader)
+                for feature in features
             ],
         )
         if isinstance(study_loci_to_annotate, L2GGoldStandard):

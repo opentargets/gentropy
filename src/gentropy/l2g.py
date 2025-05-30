@@ -97,10 +97,12 @@ class LocusToGeneFeatureMatrixStep:
             target_index=target_index,
         )
 
-        fm = credible_set.filter(f.col("studyType") == "gwas").build_feature_matrix(
-            features_list, features_input_loader
+        gwas_credible_sets = credible_set.filter(f.col("studyType") == "gwas")
+        fm = L2GFeatureMatrix.from_features_list(
+            gwas_credible_sets, features_list, features_input_loader
         )
-        fm._df.coalesce(session.output_partitions).write.mode(
+
+        fm.df.coalesce(session.output_partitions).write.mode(
             session.write_mode
         ).parquet(feature_matrix_path)
 

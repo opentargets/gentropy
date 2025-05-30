@@ -7,7 +7,7 @@ import sys
 from collections.abc import Callable, Iterable
 from functools import reduce, wraps
 from itertools import chain
-from typing import TYPE_CHECKING, Any, Optional, TypeVar
+from typing import TYPE_CHECKING, Any, Optional, TypeVar, overload
 
 import pyspark.sql.functions as f
 import pyspark.sql.types as t
@@ -18,6 +18,8 @@ from pyspark.sql import Column, Row, Window
 from scipy.stats import norm
 
 if TYPE_CHECKING:
+    from collections.abc import Collection
+
     from pyspark.sql import DataFrame, WindowSpec
 
 
@@ -912,3 +914,49 @@ def clean_strings_from_symbols(source: Column) -> Column:
     """
     characters_to_replace = r"[^a-z0-9-_]+"
     return f.regexp_replace(f.lower(source), characters_to_replace, "_")
+
+
+def remove_fields_from_struct(
+    struct: t.StructType, field_names: str | list[str]
+) -> t.StructType:
+    """Remove fields from the StructType.
+
+    This method removes the fields from the provided StructType s and creates
+    a new StructType with limited fields. In case any of the name in the `field_names` is
+    not found in the struct, it is skipped.
+
+    Args:
+        struct (t.StructType): struct type to base the output sturct on.
+        field_names (Collection[str]): Sequence of field names to remove from the provided struct.
+
+    Returns:
+        t.StructType: copy of the initial struct with requested fields removed.
+
+    Examples:
+        >>> struct = t.StructType([t.StructField("A", t.StringType()), t.StructField("B", t.IntegerType())])
+        >>> remove_fields_from_struct(struct, ["A"])
+        StructType([StructField('B', IntegerType(), True)])
+
+        >>> struct = t.StructType([t.StructField("A", t.StringType()), t.StructField("B", t.IntegerType())])
+        >>> remove_fields_from_struct(struct, "A")
+        StructType([StructField('B', IntegerType(), True)])
+
+        >>> struct = t.StructType([t.StructField("B", t.IntegerType())])
+        >>> remove_fields_from_struct(struct, [1])
+        Traceback (most recent call last):
+            ...
+        TypeError: To remove fields from struct, must provide list of column names.
+
+    """
+    match field_names:
+        case str():
+            field_names = [field_names]
+        case [*fields] if all(isinstance(f, str) for f in fields):
+            pass
+        case _:
+            raise TypeError(
+                "To remove fields from struct, must provide list of column names."
+            )
+
+    new_struct_fields = [f for f in struct.fields if f.name not in field_names]
+    return t.StructType(new_struct_fields)

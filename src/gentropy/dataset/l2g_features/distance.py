@@ -2,21 +2,26 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, TypedDict
 
 import pyspark.sql.functions as f
 from pyspark.sql import Window
 
 from gentropy.common.spark_helpers import convert_from_wide_to_long
 from gentropy.dataset.l2g_features.l2g_feature import L2GFeature
-from gentropy.dataset.l2g_features.namespace import L2GDistanceFeatureName
+from gentropy.dataset.l2g_features.namespace import L2GFeatureName
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
 from gentropy.dataset.study_locus import StudyLocus
 from gentropy.dataset.target_index import TargetIndex
 from gentropy.dataset.variant_index import VariantIndex
 
 if TYPE_CHECKING:
+    from collections.abc import Mapping
+
     from pyspark.sql import DataFrame
+
+    from gentropy.dataset.dataset import Dataset
+    from gentropy.dataset.dataset_manager import DatasetDerivative, DatasetName
 
 
 def common_distance_feature_logic(
@@ -145,14 +150,14 @@ def common_neighbourhood_distance_feature_logic(
 class DistanceTssMeanFeature(L2GFeature):
     """Average distance of all tagging variants to gene TSS."""
 
-    feature_dependency_type = VariantIndex
-    feature_name = L2GDistanceFeatureName.DISTANCE_TSS_MEAN.value
+    dependency_names = ["variant_index"]
+    feature_name = L2GFeatureName.DISTANCE_TSS_MEAN
 
     @classmethod
     def compute(
         cls: type[DistanceTssMeanFeature],
         study_loci_to_annotate: StudyLocus | L2GGoldStandard,
-        feature_dependency: dict[str, Any],
+        feature_dependency: Mapping[DatasetName, VariantIndex],
     ) -> DistanceTssMeanFeature:
         """Computes the feature.
 
@@ -188,14 +193,14 @@ class DistanceTssMeanFeature(L2GFeature):
 class DistanceTssMeanNeighbourhoodFeature(L2GFeature):
     """Minimum mean distance to TSS for all genes in the vicinity of a studyLocus."""
 
-    feature_dependency_type = [VariantIndex, TargetIndex]
-    feature_name = L2GDistanceFeatureName.DISTANCE_TSS_MEAN_NEIGHBOURHOOD.value
+    dependency_names = ["variant_index", "target_index"]
+    feature_name = L2GFeatureName.DISTANCE_TSS_MEAN_NEIGHBOURHOOD
 
     @classmethod
     def compute(
         cls: type[DistanceTssMeanNeighbourhoodFeature],
         study_loci_to_annotate: StudyLocus | L2GGoldStandard,
-        feature_dependency: dict[str, Any],
+        feature_dependency: Mapping[DatasetName],
     ) -> DistanceTssMeanNeighbourhoodFeature:
         """Computes the feature.
 
@@ -227,7 +232,7 @@ class DistanceSentinelTssFeature(L2GFeature):
     """Distance of the sentinel variant to gene TSS. This is not weighted by the causal probability."""
 
     feature_dependency_type = VariantIndex
-    feature_name = L2GDistanceFeatureName.DISTANCE_SENTINEL_TSS.value
+    feature_name = L2GFeatureName.DISTANCE_SENTINEL_TSS
 
     @classmethod
     def compute(
@@ -265,7 +270,7 @@ class DistanceSentinelTssNeighbourhoodFeature(L2GFeature):
     """Distance between the sentinel variant and a gene TSS as a relation of the distnace with all the genes in the vicinity of a studyLocus. This is not weighted by the causal probability."""
 
     feature_dependency_type = [VariantIndex, TargetIndex]
-    feature_name = L2GDistanceFeatureName.DISTANCE_SENTINEL_TSS_NEIGHBOURHOOD.value
+    feature_name = L2GFeatureName.DISTANCE_SENTINEL_TSS_NEIGHBOURHOOD
 
     @classmethod
     def compute(
@@ -303,7 +308,7 @@ class DistanceFootprintMeanFeature(L2GFeature):
     """Average distance of all tagging variants to the footprint of a gene."""
 
     feature_dependency_type = VariantIndex
-    feature_name = L2GDistanceFeatureName.DISTANCE_TSS_MEAN.value
+    feature_name = L2GFeatureName.DISTANCE_TSS_MEAN
 
     @classmethod
     def compute(
@@ -346,7 +351,7 @@ class DistanceFootprintMeanNeighbourhoodFeature(L2GFeature):
     """Minimum mean distance to footprint for all genes in the vicinity of a studyLocus."""
 
     feature_dependency_type = [VariantIndex, TargetIndex]
-    feature_name = L2GDistanceFeatureName.DISTANCE_FOOTPRINT_MEAN_NEIGHBOURHOOD.value
+    feature_name = L2GFeatureName.DISTANCE_FOOTPRINT_MEAN_NEIGHBOURHOOD
 
     @classmethod
     def compute(
@@ -384,13 +389,13 @@ class DistanceSentinelFootprintFeature(L2GFeature):
     """Distance between the sentinel variant and the footprint of a gene."""
 
     feature_dependency_type = VariantIndex
-    feature_name = L2GDistanceFeatureName.DISTANCE_SENTINEL_FOOTPRINT.value
+    feature_name = L2GFeatureName.DISTANCE_SENTINEL_FOOTPRINT
 
     @classmethod
     def compute(
         cls: type[DistanceSentinelFootprintFeature],
         study_loci_to_annotate: StudyLocus | L2GGoldStandard,
-        feature_dependency: dict[str, Any],
+        feature_dependency: dict[str, Dataset],
     ) -> DistanceSentinelFootprintFeature:
         """Computes the feature.
 
@@ -421,10 +426,8 @@ class DistanceSentinelFootprintFeature(L2GFeature):
 class DistanceSentinelFootprintNeighbourhoodFeature(L2GFeature):
     """Distance between the sentinel variant and a gene footprint as a relation of the distnace with all the genes in the vicinity of a studyLocus. This is not weighted by the causal probability."""
 
-    feature_dependency_type = [VariantIndex, TargetIndex]
-    feature_name = (
-        L2GDistanceFeatureName.DISTANCE_SENTINEL_FOOTPRINT_NEIGHBOURHOOD.value
-    )
+    dependency_names = ["variant_index", "target_index"]
+    feature_name = L2GFeatureName.DISTANCE_SENTINEL_FOOTPRINT_NEIGHBOURHOOD
 
     @classmethod
     def compute(
