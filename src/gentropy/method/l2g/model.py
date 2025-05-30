@@ -12,6 +12,7 @@ import pandas as pd
 import skops.io as sio
 from pandas import DataFrame as pd_dataframe
 from pandas import to_numeric as pd_to_numeric
+from pyspark import SparkFiles
 from sklearn.ensemble import GradientBoostingClassifier
 from skops import hub_utils
 
@@ -75,6 +76,7 @@ class LocusToGeneModel:
             ValueError: If the model has not been fitted yet
         """
         model_path = (Path(path) / model_name).as_posix()
+        training_data_file = "training_data.parquet"
         if model_path.startswith("gs://"):
             path = model_path.removeprefix("gs://")
             bucket_name = path.split("/")[0]
@@ -90,20 +92,17 @@ class LocusToGeneModel:
             loaded_model = sio.load(
                 model_path, trusted=sio.get_untrusted_types(file=model_path)
             )
-            try:
-                # Try loading the training data if it is in the model directory
-                training_data = L2GFeatureMatrix(
-                    _df=session.spark.createDataFrame(
-                        # Parquet is read with Pandas to easily read local files
-                        pd.read_parquet(
-                            (Path(path) / "training_data.parquet").as_posix()
-                        )
-                    ),
-                    features_list=kwargs.get("features_list"),
-                )
-            except Exception as e:
-                logging.error("Training data set to none. Error: %s", e)
-                training_data = None
+        try:
+            session.spark.sparkContext.addFile(
+                (Path(path) / training_data_file).as_posix()
+            )
+            training_data = L2GFeatureMatrix(
+                _df=session.spark.read.parquet(SparkFiles.get(training_data_file)),
+                features_list=kwargs.get("features_list"),
+            )
+        except Exception as e:
+            logging.error("Training data set to none. Error: %s", e)
+            training_data = None
 
         if not loaded_model._is_fitted():
             raise ValueError("Model has not been fitted yet.")
