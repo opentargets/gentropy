@@ -147,6 +147,7 @@ class LocusToGeneModel:
                 not in [
                     "studyLocusId",
                     "geneId",
+                    "diseaseIds",
                     "traitFromSourceMappedId",
                     "goldStandardSet",
                 ]
