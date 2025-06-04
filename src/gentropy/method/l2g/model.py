@@ -12,7 +12,6 @@ import pandas as pd
 import skops.io as sio
 from pandas import DataFrame as pd_dataframe
 from pandas import to_numeric as pd_to_numeric
-from pyspark import SparkFiles
 from sklearn.ensemble import GradientBoostingClassifier
 from skops import hub_utils
 
@@ -89,12 +88,12 @@ class LocusToGeneModel:
             blob = storage.Blob(name=blob_name, bucket=bucket)
             data = blob.download_as_string(client=client)
             loaded_model = sio.loads(data, trusted=sio.get_untrusted_types(data=data))
+            training_data = None
 
         else:
             loaded_model = sio.load(
                 model_path, trusted=sio.get_untrusted_types(file=model_path)
             )
-        try:
             training_path = (Path(path) / training_data_file).as_posix()
             session.logger.info(
                 f"Adding training data file to Spark context from {training_path}"
@@ -103,14 +102,18 @@ class LocusToGeneModel:
             # Listing the context files:
             all_files = sorted(session.spark.sparkContext.listFiles)
             session.logger.info(f"Files in Spark context: {all_files}")
-            training_data = L2GFeatureMatrix(
-                _df=session.spark.read.parquet(all_files[0]),
-                features_list=kwargs.get("features_list"),
-            )
-
-        except Exception as e:
-            logging.error("Training data set to none. Error: %s", e)
-            training_data = None
+            try:
+                df = session.spark.read.parquet(all_files[0])
+            except Exception:
+                session.logger.error("Could not find the file on hdfs.")
+                df = None
+            if df:
+                training_data = L2GFeatureMatrix(
+                    _df=df,
+                    features_list=kwargs.get("features_list"),
+                )
+            else:
+                training_data = None
 
         if not loaded_model._is_fitted():
             raise ValueError("Model has not been fitted yet.")
