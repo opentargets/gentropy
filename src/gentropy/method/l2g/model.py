@@ -76,6 +76,7 @@ class LocusToGeneModel:
             ValueError: If the model has not been fitted yet
         """
         model_path = (Path(path) / model_name).as_posix()
+        session.logger.info(f"Loading model from {model_path}")
         training_data_file = "training_data.parquet"
         if model_path.startswith("gs://"):
             path = model_path.removeprefix("gs://")
@@ -88,14 +89,20 @@ class LocusToGeneModel:
             blob = storage.Blob(name=blob_name, bucket=bucket)
             data = blob.download_as_string(client=client)
             loaded_model = sio.loads(data, trusted=sio.get_untrusted_types(data=data))
+
         else:
             loaded_model = sio.load(
                 model_path, trusted=sio.get_untrusted_types(file=model_path)
             )
         try:
-            session.spark.sparkContext.addFile(
-                (Path(path) / training_data_file).as_posix()
+            training_path = (Path(path) / training_data_file).as_posix()
+            session.logger.info(
+                f"Adding training data file to Spark context from {training_path}"
             )
+            session.spark.sparkContext.addFile(training_path)
+            # Listing the context files:
+            all_files = sorted(session.spark.sparkContext.listFiles)
+            session.logger.info(f"Files in Spark context: {all_files}")
             training_data = L2GFeatureMatrix(
                 _df=session.spark.read.parquet(SparkFiles.get(training_data_file)),
                 features_list=kwargs.get("features_list"),
