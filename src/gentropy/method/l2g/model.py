@@ -104,9 +104,10 @@ class LocusToGeneModel:
             all_files = sorted(session.spark.sparkContext.listFiles)
             session.logger.info(f"Files in Spark context: {all_files}")
             training_data = L2GFeatureMatrix(
-                _df=session.spark.read.parquet(SparkFiles.get(training_data_file)),
+                _df=session.spark.read.parquet(all_files[0]),
                 features_list=kwargs.get("features_list"),
             )
+
         except Exception as e:
             logging.error("Training data set to none. Error: %s", e)
             training_data = None
