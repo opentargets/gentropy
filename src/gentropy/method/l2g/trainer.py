@@ -304,24 +304,14 @@ class LocusToGeneTrainer:
 
         X = data_df[self.features_list].apply(pd.to_numeric).values
         y = data_df[self.label_col].apply(pd.to_numeric).values
-        if "traitFromSourceMappedId" in data_df.columns:
-            gene_trait_groups = (
-                data_df["traitFromSourceMappedId"].astype(str)
-                + "_"
-                + data_df["geneId"].astype(str)
-            )  # Group identifier has to be a single string
-        else:
-            gene_trait_groups = (
-                data_df["diseaseIds"].astype(str) + "_" + data_df["geneId"].astype(str)
-            )
-            # Group identifier has to be a single string
+        gene_groups = data_df["geneId"].astype(str)
 
         # Create hold-out test set separating EFO/Gene pairs between train/test
         train_test_split = GroupShuffleSplit(n_splits=1, test_size=0.2, random_state=42)
-        for train_idx, test_idx in train_test_split.split(X, y, gene_trait_groups):
+        for train_idx, test_idx in train_test_split.split(X, y, gene_groups):
             self.x_train, self.x_test = X[train_idx], X[test_idx]
             self.y_train, self.y_test = y[train_idx], y[test_idx]
-            self.groups_train = gene_trait_groups[train_idx]
+            self.groups_train = gene_groups[train_idx]
 
         # Cross-validation
         if cross_validate:
