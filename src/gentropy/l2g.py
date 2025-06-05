@@ -194,7 +194,7 @@ class LocusToGeneStep:
             session, credible_set_path, recursiveFileLookup=True
         )
         self.feature_matrix = L2GFeatureMatrix(
-            _df=session.load_data(feature_matrix_path).drop("diseaseId"),
+            _df=session.load_data(feature_matrix_path).drop("diseaseIds"),
         )
 
         if run_mode == "predict":
@@ -252,7 +252,9 @@ class LocusToGeneStep:
             wandb_key = access_gcp_secret("wandb-key", "open-targets-genetics-dev")
             wandb_login(key=wandb_key)
 
-        gs_df = self.session.spark.read.json(self.gold_standard_curation_path)
+        gs_df = self.session.spark.read.json(self.gold_standard_curation_path).drop(
+            "diseaseIds"
+        )
         gold_standard = L2GGoldStandard(_df=gs_df)
         feature_matrix_slice = (
             gold_standard.build_feature_matrix(self.feature_matrix, self.credible_set)
