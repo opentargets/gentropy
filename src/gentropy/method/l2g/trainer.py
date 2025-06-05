@@ -275,10 +275,11 @@ class LocusToGeneTrainer:
 
     def train(
         self: LocusToGeneTrainer,
-        wandb_run_name: str | None = None,
-        cross_validate: bool = True,
+        cross_validate: bool,
         n_splits: int = 5,
         hyperparameter_grid: dict[str, Any] | None = None,
+        *,
+        wb_config: WBConfig | None = None,
     ) -> LocusToGeneModel:
         """Train the Locus to Gene model.
 
@@ -289,10 +290,10 @@ class LocusToGeneTrainer:
             4. Evaluate once on test set
 
         Args:
-            wandb_run_name (str | None): Name of the W&B run. Unless this is provided, the model will not be logged to W&B.
             cross_validate (bool): Whether to run cross-validation. Defaults to True.
             n_splits(int): Number of folds the data is splitted in. The model is trained and evaluated `k - 1` times. Defaults to 5.
             hyperparameter_grid (dict[str, Any] | None): Hyperparameter grid to sweep over. Defaults to None.
+            wb_config (WBConfig | None): Weights and bias configuration. Unless this is provided, the model will not be logged to W&B.
 
         Returns:
             LocusToGeneModel: Fitted model
@@ -315,7 +316,6 @@ class LocusToGeneTrainer:
 
         # Cross-validation
         if cross_validate:
-            wandb_run_name = f"{wandb_run_name}-cv" if wandb_run_name else None
             self.cross_validate(
                 wandb_run_name=wandb_run_name,
                 parameter_grid=hyperparameter_grid,

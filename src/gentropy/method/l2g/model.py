@@ -103,7 +103,9 @@ class LocusToGeneModel:
             all_files = sorted(session.spark.sparkContext.listFiles)
             session.logger.info(f"Files in Spark context: {all_files}")
             try:
-                df = session.spark.read.parquet(all_files[0])
+                df = pd.read_parquet(all_files[0])
+                df.to_csv("training_data.csv", index=False, header=True)
+                session.spark.sparkContext.addFile("training_data.csv")
             except Exception:
                 session.logger.error("Could not find the file on hdfs.")
                 df = None

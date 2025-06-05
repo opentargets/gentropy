@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Any
 
 import pyspark.sql.functions as f
@@ -108,6 +109,98 @@ class LocusToGeneFeatureMatrixStep:
         fm._df.coalesce(session.output_partitions).write.mode(
             session.write_mode
         ).parquet(feature_matrix_path)
+
+
+class WBConfig:
+    """Configuration for W&B integration."""
+
+    def __init__(self, run_name: str | None) -> None:
+        """Initialise the W&B configuration."""
+        if not run_name:
+            raise ValueError("wandb_run_name must be provided for training.")
+        self.run_name = run_name
+        self.holdout_name = f"{run_name}-holdout"
+        self.cv_name = f"{run_name}-cv"
+
+    def login(self) -> None:
+        """Login to the Weights and Biases service."""
+        wandb_key = access_gcp_secret("wandb-key", "open-targets-genetics-dev")
+        wandb_login(key=wandb_key)
+
+
+class LocusToGeneTrainingStep:
+    """Locus to gene training step."""
+
+    def __init__(
+        self,
+        session: Session,
+        hyperparameters: dict[str, Any],
+        cross_validate: bool,
+        credible_set_path: str,
+        feature_matrix_path: str,
+        model_path: str,
+        gold_standard_curation_path: str,
+        features_list: list[str],
+        *,
+        store_training_results_in_wandb: bool = True,
+        wandb_run_name: str | None = None,
+    ) -> None:
+        """Run L2G training."""
+        #
+        # W&B configuration
+        #
+        wbc = None
+        if store_training_results_in_wandb:
+            try:
+                wbc = WBConfig(wandb_run_name)
+                wbc.login()
+            except Exception:
+                session.logger.error("Failed to initialize Weights and Biases.")
+                store_training_results_in_wandb = False
+
+        #
+        #  Read the datasets
+        #
+        feature_matrix = L2GFeatureMatrix(_df=session.load_data(feature_matrix_path))
+        gold_standard = L2GGoldStandard.from_path(session, gold_standard_curation_path)
+        credible_set = StudyLocus.from_parquet(session, credible_set_path)
+        feature_matrix_slice = (
+            gold_standard.build_feature_matrix(feature_matrix, credible_set)
+            .select_features(features_list)
+            .persist()
+        )
+
+        #
+        # Instantiate classifier and train model
+        #
+        l2g_model = LocusToGeneModel(
+            model=GradientBoostingClassifier(random_state=42, loss="log_loss"),
+            hyperparameters=hyperparameters,
+            features_list=features_list,
+        )
+
+        #
+        # Run the training
+        #
+        trained_model = LocusToGeneTrainer(
+            model=l2g_model, feature_matrix=feature_matrix_slice
+        ).train(wandb_run_name=self.wandb_run_name, cross_validate=self.cross_validate)
+
+        # Export the model
+        if trained_model.training_data and trained_model.model and self.model_path:
+            trained_model.save(self.model_path)
+            if self.hf_hub_repo_id and self.hf_model_commit_message:
+                hf_hub_token = access_gcp_secret(
+                    "hfhub-key", "open-targets-genetics-dev"
+                )
+                trained_model.export_to_hugging_face_hub(
+                    # we upload the model saved in the filesystem
+                    self.model_path.split("/")[-1],
+                    hf_hub_token,
+                    data=trained_model.training_data._df.toPandas(),
+                    repo_id=self.hf_hub_repo_id,
+                    commit_message=self.hf_model_commit_message,
+                )
 
 
 class LocusToGeneStep:
