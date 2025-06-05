@@ -252,9 +252,8 @@ class LocusToGeneStep:
             wandb_key = access_gcp_secret("wandb-key", "open-targets-genetics-dev")
             wandb_login(key=wandb_key)
 
-        gold_standard = L2GGoldStandard.from_path(
-            self.session, self.gold_standard_curation_path
-        )
+        gs_df = self.session.spark.read.json(self.gold_standard_curation_path)
+        gold_standard = L2GGoldStandard(_df=gs_df)
         feature_matrix_slice = (
             gold_standard.build_feature_matrix(self.feature_matrix, self.credible_set)
             .select_features(self.features_list)
