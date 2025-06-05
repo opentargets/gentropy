@@ -16,16 +16,6 @@
     { "metadata": {}, "name": "geneId", "nullable": false, "type": "string" },
     {
       "metadata": {},
-      "name": "diseaseIds",
-      "nullable": true,
-      "type": {
-        "containsNull": false,
-        "elementType": "string",
-        "type": "array"
-      }
-    },
-    {
-      "metadata": {},
       "name": "goldStandardSet",
       "nullable": false,
       "type": "string"
