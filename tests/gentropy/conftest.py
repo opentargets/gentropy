@@ -697,10 +697,10 @@ def mock_l2g_gold_standard(spark: SparkSession) -> L2GGoldStandard:
             "geneId",
             expr="cast(id as string)",
         )
-        .withColumnSpec(
-            "diseaseIds",
-            expr="array(cast(rand() as string))",
-        )
+        # .withColumnSpec(
+        #     "diseaseIds",
+        #     expr="array(cast(rand() as string))",
+        # )
         .withColumnSpec(
             "goldStandardSet",
             values=[

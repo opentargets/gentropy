@@ -12,7 +12,6 @@ import pandas as pd
 import skops.io as sio
 from pandas import DataFrame as pd_dataframe
 from pandas import to_numeric as pd_to_numeric
-from pyspark import SparkFiles
 from sklearn.ensemble import GradientBoostingClassifier
 from skops import hub_utils
 
@@ -93,11 +92,11 @@ class LocusToGeneModel:
                 model_path, trusted=sio.get_untrusted_types(file=model_path)
             )
         try:
-            session.spark.sparkContext.addFile(
-                (Path(path) / training_data_file).as_posix()
-            )
+            full_training_data_path = Path(path) / training_data_file
             training_data = L2GFeatureMatrix(
-                _df=session.spark.read.parquet(SparkFiles.get(training_data_file)),
+                _df=session.spark.createDataFrame(
+                    pd.read_parquet(full_training_data_path)
+                ),
                 features_list=kwargs.get("features_list"),
             )
         except Exception as e:

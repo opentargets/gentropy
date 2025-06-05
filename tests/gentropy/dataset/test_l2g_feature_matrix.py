@@ -86,7 +86,7 @@ class TestFromFeaturesList:
         """Setup fixture."""
         self.sample_gold_standard = L2GGoldStandard(
             _df=spark.createDataFrame(
-                [("1", "var1", "gwas1", "g1", ["efo1"], "positive", None)],
+                [("1", "var1", "gwas1", "g1", "positive", None)],
                 L2GGoldStandard.get_schema(),
             ),
         )
