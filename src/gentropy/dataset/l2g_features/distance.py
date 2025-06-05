@@ -51,13 +51,13 @@ def common_distance_feature_logic(
             f.col("variantInLocus.posteriorProbability").alias("posteriorProbability"),
         )
         distance_score_expr = (
-            f.lit(genomic_window) - f.col(distance_type) + f.lit(1)
+            f.lit(genomic_window) - f.abs(distance_type) + f.lit(1)
         ) * f.col("posteriorProbability")
         agg_expr = f.sum(f.col("distance_score"))
     elif "Sentinel" in feature_name:
         df = study_loci_to_annotate.df.select("studyLocusId", "variantId")
         # For minimum distances we calculate the unweighted distance between the sentinel (lead) and the gene.
-        distance_score_expr = f.lit(genomic_window) - f.col(distance_type) + f.lit(1)
+        distance_score_expr = f.lit(genomic_window) - f.abs(distance_type) + f.lit(1)
         agg_expr = f.first(f.col("distance_score"))
     return (
         df.join(
