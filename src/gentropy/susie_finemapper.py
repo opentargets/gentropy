@@ -156,7 +156,6 @@ class SusieFineMapperStep:
                 ).parquet(study_locus_output)
             if result_logging["log"] is not None:
                 # Write log
-                result_logging["log"]
                 result_logging["log"].to_csv(log_output, index=False, sep="\t")
 
     @staticmethod
