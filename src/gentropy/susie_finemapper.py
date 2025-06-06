@@ -151,7 +151,7 @@ class SusieFineMapperStep:
                         StudyLocusQualityCheck.OUT_OF_SAMPLE_LD,
                     ),
                 )
-                df.repartition(session.output_partitions).write.mode(
+                df.coalesce(session.output_partitions).write.mode(
                     session.write_mode
                 ).parquet(study_locus_output)
             if result_logging["log"] is not None:

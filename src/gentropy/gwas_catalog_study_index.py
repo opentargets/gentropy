@@ -85,6 +85,6 @@ class GWASCatalogStudyIndexGenerationStep:
                 study_index_path
             )
         else:
-            study_index.df.repartition(session.output_partitions).write.mode(
+            study_index.df.coalesce(session.output_partitions).write.mode(
                 session.write_mode
             ).parquet(study_index_path)
