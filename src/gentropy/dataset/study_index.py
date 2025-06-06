@@ -392,6 +392,7 @@ class StudyIndex(Dataset):
                         StudyQualityCheck.UNRESOLVED_DISEASE,
                     ),
                 )
+                # Added to avoid Spark optimisation (see: https://github.com/opentargets/issues/issues/3906#issuecomment-2949299965)
                 .persist()
             ),
             _schema=StudyIndex.get_schema(),
@@ -790,6 +791,7 @@ class StudyIndex(Dataset):
                 .withColumn("rank", f.row_number().over(study_id_window))
                 .filter(f.col("rank") == 1)
                 .drop(*columns_to_drop)
+                # Added to avoid Spark optimisation (see: https://github.com/opentargets/issues/issues/3906#issuecomment-2949299965)
                 .persist()
             ),
             _schema=StudyIndex.get_schema(),
