@@ -392,6 +392,7 @@ class StudyIndex(Dataset):
                         StudyQualityCheck.UNRESOLVED_DISEASE,
                     ),
                 )
+                .persist()
             ),
             _schema=StudyIndex.get_schema(),
         )
@@ -789,6 +790,7 @@ class StudyIndex(Dataset):
                 .withColumn("rank", f.row_number().over(study_id_window))
                 .filter(f.col("rank") == 1)
                 .drop(*columns_to_drop)
+                .persist()
             ),
             _schema=StudyIndex.get_schema(),
         )
