@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import sys
+
 from gentropy.common.session import Session
 from gentropy.dataset.summary_statistics import SummaryStatistics
 from gentropy.dataset.summary_statistics_qc import SummaryStatisticsQC
@@ -26,7 +28,12 @@ class SummaryStatisticsQCStep:
             pval_threshold (float): P-value threshold for the QC. Default is 1e-8.
 
         """
-        gwas = SummaryStatistics.from_parquet(session, path=gwas_path)
+        try:
+            session.logger.info("Reading summary statistics from path")
+            gwas = SummaryStatistics.from_parquet(session, path=gwas_path)
+        except ValueError:
+            session.logger.error("Empty summary statistics file")
+            sys.exit(1)
 
         (
             SummaryStatisticsQC.from_summary_statistics(
