@@ -695,6 +695,16 @@ class StudyLocusValidationStepConfig(StepConfig):
 
 
 @dataclass
+class IntervalConfig(StepConfig):
+    """Interval step configuration."""
+
+    target_index_path: str = MISSING
+    interval_source: str = MISSING
+    interval_index_path: str = MISSING
+    _target_: str = "gentropy.intervals.IntervalIndexStep"
+
+
+@dataclass
 class Config:
     """Application configuration."""
 
@@ -787,3 +797,4 @@ def register_config() -> None:
     cs.store(group="step", name="finngen_ukb_meta_ingestion", node=FinngenUkbMetaConfig)
     cs.store(group="step", name="credible_set_qc", node=CredibleSetQCStepConfig)
     cs.store(group="step", name="foldx_integration", node=FoldXVariantAnnotationConfig)
+    cs.store(group="step", name="interval_index", node=IntervalConfig)
