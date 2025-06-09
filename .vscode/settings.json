@@ -36,9 +36,11 @@
     "GCST",
     "gentropy",
     "logpval",
+    "neglog",
     "neglogpval",
     "pheno",
     "pval",
+    "pvalue",
     "sumstat",
     "sumstats"
   ]
