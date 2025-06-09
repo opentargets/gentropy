@@ -10,7 +10,12 @@ import pyspark.sql.functions as f
 import pyspark.sql.types as t
 
 from gentropy.common.spark_helpers import neglog_pvalue_to_mantissa_and_exponent
-from gentropy.common.utils import convert_odds_ratio_to_beta, parse_pvalue
+from gentropy.common.utils import (
+    chi2_from_pvalue,
+    convert_odds_ratio_to_beta,
+    parse_pvalue,
+    stderr_from_pvalue,
+)
 from gentropy.dataset.summary_statistics import SummaryStatistics
 
 if TYPE_CHECKING:
@@ -150,37 +155,52 @@ class GWASCatalogSummaryStatistics(SummaryStatistics):
 
         # Processing columns of interest:
         processed_sumstats_df = (
-            sumstats_df
-            # Dropping rows which doesn't have proper position:
-            .select(
-                "studyId",
-                # Adding variant identifier:
-                f.concat_ws(
-                    "_",
-                    chromosome,
-                    position,
-                    ref_allele,
-                    alt_allele,
-                ).alias("variantId"),
-                chromosome.alias("chromosome"),
-                position.alias("position"),
-                # Parsing p-value mantissa and exponent:
-                *p_value_expression,
-                # Converting/calculating effect and confidence interval:
-                *convert_odds_ratio_to_beta(
-                    beta_expression,
-                    odds_ratio_expression,
-                    standard_error,
-                ),
-                allele_frequency.alias("effectAlleleFrequencyFromSource"),
-                sample_size.alias("sampleSize"),
+            (
+                sumstats_df
+                # Dropping rows which doesn't have proper position:
+                .select(
+                    "studyId",
+                    # Adding variant identifier:
+                    f.concat_ws(
+                        "_",
+                        chromosome,
+                        position,
+                        ref_allele,
+                        alt_allele,
+                    ).alias("variantId"),
+                    chromosome.alias("chromosome"),
+                    position.alias("position"),
+                    # Parsing p-value mantissa and exponent:
+                    *p_value_expression,
+                    # Converting/calculating effect and confidence interval:
+                    *convert_odds_ratio_to_beta(
+                        beta_expression,
+                        odds_ratio_expression,
+                        standard_error,
+                    ),
+                    allele_frequency.alias("effectAlleleFrequencyFromSource"),
+                    sample_size.alias("sampleSize"),
+                )
             )
-            .filter(
-                # Dropping associations where no harmonized position is available:
-                f.col("position").isNotNull()
-                &
-                # We are not interested in associations with zero effect:
-                (f.col("beta") != 0)
+            # Dropping associations where no harmonized position is available:
+            .filter(f.col("position").isNotNull())
+            # We are not interested in associations empty beta values:
+            .filter(f.col("beta").isNotNull())
+            # We are not interested in associations with zero effect:
+            .filter(f.col("beta") != 0)
+        )
+
+        # NOTE! In case the standard error is empty, recompute it from p-value and beta.
+        # If we leave the standard error empty for all fields, we will cause the sanity filter
+        # to skip all rows.
+        # Make sure the beta is non empty before computation.
+        computed_chi2 = chi2_from_pvalue(
+            f.col("pValueMantissa"), f.col("pValueExponent")
+        )
+        computed_stderr = stderr_from_pvalue(computed_chi2, f.col("beta"))
+        processed_sumstats_df = (
+            processed_sumstats_df.withColumn(
+                "standardError", f.coalesce(f.col("standardError"), computed_stderr)
             )
             .orderBy(f.col("chromosome"), f.col("position"))
             # median study size is 200Mb, max is 2.6Gb

@@ -12,7 +12,7 @@ from pyspark.sql import functions as f
 from pyspark.sql import types as t
 from scipy.stats import chi2
 
-from gentropy.common.spark_helpers import pvalue_to_zscore
+from gentropy.common.spark_helpers import calculate_neglog_pvalue, pvalue_to_zscore
 
 if TYPE_CHECKING:
     from hail.table import Table
@@ -394,3 +394,104 @@ def neglogpval_from_z2(z2: float) -> float:
     """
     logpval = -np.log10(chi2.sf((z2), 1))
     return float(logpval)
+
+
+def chi2_from_pvalue(p_value_mantissa: Column, p_value_exponent: Column) -> Column:
+    """Calculate chi2 from p-value.
+
+    This function calculates the chi2 value from the p-value mantissa and exponent.
+    In case the p-value is very small (exponent < -300), it uses an approximation based on a linear regression model.
+    The approximation is based on the formula: -5.367 * neglog_pval + 4.596, where neglog_pval is the negative log10 of the p-value mantissa.
+
+
+    Args:
+        p_value_mantissa (Column): Mantissa of the p-value (float)
+        p_value_exponent (Column): Exponent of the p-value (integer)
+
+    Returns:
+        Column: Chi2 value (float)
+
+    Examples:
+        >>> data = [(5.0, -8), (9.0, -300), (9.0, -301)]
+        >>> schema = "pValueMantissa FLOAT, pValueExponent INT"
+        >>> df = spark.createDataFrame(data, schema)
+        >>> df.show()
+        +--------------+--------------+
+        |pValueMantissa|pValueExponent|
+        +--------------+--------------+
+        |           5.0|            -8|
+        |           9.0|          -300|
+        |           9.0|          -301|
+        +--------------+--------------+
+        <BLANKLINE>
+
+        >>> mantissa = f.col("pValueMantissa")
+        >>> exponent = f.col("pValueExponent")
+        >>> chi2 = f.round(chi2_from_pvalue(mantissa, exponent), 2).alias("chi2")
+        >>> df2 = df.select(mantissa, exponent, chi2)
+        >>> df2.show()
+        +--------------+--------------+-------+
+        |pValueMantissa|pValueExponent|   chi2|
+        +--------------+--------------+-------+
+        |           5.0|            -8|  29.72|
+        |           9.0|          -300|1369.48|
+        |           9.0|          -301|1373.64|
+        +--------------+--------------+-------+
+        <BLANKLINE>
+    """
+    neglog_pval = calculate_neglog_pvalue(p_value_mantissa, p_value_exponent)
+    p_value = p_value_mantissa * f.pow(10, p_value_exponent)
+    neglog_approximation_intercept = f.lit(-5.367)
+    neglog_approximation_coeff = f.lit(4.596)
+    neglog_approx = (
+        neglog_pval * neglog_approximation_coeff + neglog_approximation_intercept
+    ).cast(t.DoubleType())
+    chi2_udf = f.udf(lambda x: float(chi2.isf(x, df=1)), t.FloatType())
+
+    return (
+        f.when(p_value_exponent < f.lit(-300), neglog_approx)
+        .otherwise(chi2_udf(p_value))
+        .alias("chi2")
+    )
+
+
+def stderr_from_pvalue(chi2_col: Column, beta: Column) -> Column:
+    """Calculate standard error from chi2 and beta.
+
+    This function calculates the standard error from the chi2 value and beta.
+
+    Args:
+        chi2_col (Column): Chi2 value (float)
+        beta (Column): Beta value (float)
+
+    Returns:
+        Column: Standard error (float)
+
+    Examples:
+        >>> data = [(29.72, 3.0), (3.84, 1.0)]
+        >>> schema = "chi2 FLOAT, beta FLOAT"
+        >>> df = spark.createDataFrame(data, schema)
+        >>> df.show()
+        +-----+----+
+        | chi2|beta|
+        +-----+----+
+        |29.72| 3.0|
+        | 3.84| 1.0|
+        +-----+----+
+        <BLANKLINE>
+
+        >>> chi2_col = f.col("chi2")
+        >>> beta = f.col("beta")
+        >>> standard_error = f.round(stderr_from_pvalue(chi2_col, beta), 2).alias("standardError")
+        >>> df2 = df.select(chi2_col, beta, standard_error)
+        >>> df2.show()
+        +-----+----+-------------+
+        | chi2|beta|standardError|
+        +-----+----+-------------+
+        |29.72| 3.0|         0.55|
+        | 3.84| 1.0|         0.51|
+        +-----+----+-------------+
+        <BLANKLINE>
+
+    """
+    return (f.abs(beta) / f.sqrt(chi2_col)).alias("standardError")
