@@ -182,6 +182,8 @@ class GWASCatalogSummaryStatistics(SummaryStatistics):
                     sample_size.alias("sampleSize"),
                 )
             )
+            # Make sure the former select statement are executed before the filtering.
+            .persist()
             # Dropping associations where no harmonized position is available:
             .filter(f.col("position").isNotNull())
             # We are not interested in associations empty beta values:
