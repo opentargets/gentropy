@@ -47,16 +47,14 @@ class IntervalsEpiraction:
     @classmethod
     def parse(
         cls: type[IntervalsEpiraction],
-        spark: SparkSession,
         raw_epiraction_df: DataFrame,
-        target_index_path: str,
+        target_index: TargetIndex,
     ) -> Intervals:
         """Parse EPIraction dataset.
 
         Args:
-            spark (SparkSession): Spark session
             raw_epiraction_df (DataFrame): Raw EPIraction dataset
-            target_index_path (str): Target index
+            target_index (TargetIndex): Target index
 
         Returns:
             Intervals: Intervals dataset
@@ -109,7 +107,6 @@ class IntervalsEpiraction:
             )
         )
 
-        target_index = TargetIndex.from_parquet(spark, target_index_path)
         parsed_epiraction_df = parsed_epiraction_df.join(
             target_index._df.select(f.col("id").alias("geneId")),
             on="geneId",

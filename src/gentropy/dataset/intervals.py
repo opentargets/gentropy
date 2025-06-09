@@ -15,7 +15,6 @@ if TYPE_CHECKING:
     from pyspark.sql.types import StructType
 
 
-
 @dataclass
 class Intervals(Dataset):
     """Intervals dataset links genes to genomic regions based on genome interaction studies."""
@@ -54,6 +53,7 @@ class Intervals(Dataset):
             ValueError: If the source name is not recognised
         """
         from gentropy.datasource.intervals.andersson import IntervalsAndersson
+        from gentropy.datasource.intervals.epiraction import IntervalsEpiraction
         from gentropy.datasource.intervals.javierre import IntervalsJavierre
         from gentropy.datasource.intervals.jung import IntervalsJung
         from gentropy.datasource.intervals.thurman import IntervalsThurman
@@ -63,6 +63,7 @@ class Intervals(Dataset):
             "javierre": IntervalsJavierre,
             "jung": IntervalsJung,
             "thurman": IntervalsThurman,
+            "epiraction": IntervalsEpiraction,
         }
 
         if source_name not in source_to_class:
