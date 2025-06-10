@@ -432,9 +432,15 @@ def neglogpval_from_z2(z2: float) -> float:
     Examples:
         >>> round(neglogpval_from_z2(1.0),2)
         0.5
+
+        >>> round(neglogpval_from_z2(2000),2)
+        436.02
     """
-    logpval = -np.log10(chi2.sf((z2), 1))
-    return float(logpval)
+    if z2 <= 1400:
+        logpval = -np.log10(chi2.sf((z2), 1))
+        return float(logpval)
+    else:
+        return 1.4190 + 0.2173 * z2
 
 
 def chi2_from_pvalue(p_value_mantissa: Column, p_value_exponent: Column) -> Column:
