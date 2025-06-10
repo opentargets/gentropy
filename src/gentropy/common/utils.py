@@ -568,10 +568,9 @@ def se_from_ci(ci_upper: Column, ci_lower: Column) -> Column:
         >>> standard_error = f.round(se_from_ci(ci_upper, ci_lower), 2).alias("standardError")
         >>> df2 = df.select(ci_upper, ci_lower, standard_error)
         >>> df2.show()
+        +--------+--------+-------------+
         |ci_upper|ci_lower|standardError|
         +--------+--------+-------------+
-        |     0.5|     0.1|         0.20|
-        |     1.0|     0.5|         0.25|
         |     0.5|     0.1|         0.41|
         |     1.0|     0.5|         0.18|
         +--------+--------+-------------+
