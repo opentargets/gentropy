@@ -89,6 +89,8 @@ class GnomADVariants:
                             ].AF,
                         )
                     ),
+                    # Extract rsids:
+                    rsIds=ht.rsid,
                     # Extract cross references to GnomAD:
                     dbXrefs=hl.array(
                         [
