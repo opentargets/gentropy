@@ -76,7 +76,6 @@ class GWASCatalogSummaryStatistics(SummaryStatistics):
             GWASCatalogSummaryStatistics: Summary statistics object.
         """
         sumstats_df = spark.read.csv(sumstats_file, sep="\t", header=True)
-        sumstats_df.printSchema()
         sumstats_df = sumstats_df.withColumn(
             # Parsing GWAS Catalog study identifier from filename:
             "studyId",

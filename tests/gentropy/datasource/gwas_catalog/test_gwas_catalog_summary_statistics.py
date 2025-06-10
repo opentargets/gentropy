@@ -143,5 +143,4 @@ class TestGWASCatalogSummaryStatistics:
 
         # case 4 - position 1026833 - standard error is calculated from ci
         data = sumstat.df.filter(f.col("position") == 1026833)
-        data.show()
         assert data.count() == 1
