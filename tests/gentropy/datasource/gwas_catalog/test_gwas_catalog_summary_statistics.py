@@ -123,33 +123,25 @@ class TestGWASCatalogSummaryStatistics:
         sumstat = GWASCatalogSummaryStatistics.from_gwas_harmonized_summary_stats(
             spark, test_dataset_path
         )
-        # case 1 - position 1026830 - computed standard error from beta and p-value
-        assert (
-            sumstat.df.filter(f.col("position") == 1026830)
-            .filter(f.col("standardError").isNotNull())
-            .count()
-            == 1
+        # case 1 - position 1026830 - skipped row, since we can not recompute the standard error without ci
+        data = sumstat.df.filter(f.col("position") == 1026830).filter(
+            f.col("standardError").isNull()
         )
+        assert data.count() == 1
 
-        # case 2 - position 1026831 - skipped, since beta is None
-        assert (
-            sumstat.df.filter(f.col("position") == 1026831)
-            .filter(f.col("standardError").isNotNull())
-            .count()
-            == 0
-        )
+        # case 2 - position 1026831 - skipped, since beta is None, standard error is None
+        data = sumstat.df.filter(f.col("position") == 1026831)
+        assert data.count() == 0
 
         # case 3 - position 1026832 - standard error is retained from the source (0.2)
-        assert sumstat.df.filter(f.col("position") == 1026832).filter(
-            f.col("standardError").isNotNull()
-        ).select(f.round(f.col("standardError"), 1)).collect() == [
-            Row(standardError=0.2)
-        ]
-
-        # case 4 - position 1026833 - standard error is calculated from odds ratio
-        assert (
-            sumstat.df.filter(f.col("position") == 1026833)
+        data = (
+            sumstat.df.filter(f.col("position") == 1026832)
             .filter(f.col("standardError").isNotNull())
-            .count()
-            == 1
+            .select(f.round(f.col("standardError"), 1))
         )
+        assert data.collect() == [Row(standardError=0.2)]
+
+        # case 4 - position 1026833 - standard error is calculated from ci
+        data = sumstat.df.filter(f.col("position") == 1026833)
+        data.show()
+        assert data.count() == 1

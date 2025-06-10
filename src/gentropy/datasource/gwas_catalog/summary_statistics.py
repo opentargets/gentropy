@@ -11,10 +11,8 @@ import pyspark.sql.types as t
 
 from gentropy.common.spark_helpers import neglog_pvalue_to_mantissa_and_exponent
 from gentropy.common.utils import (
-    chi2_from_pvalue,
-    convert_odds_ratio_to_beta,
+    normalise_gwas_statistics,
     parse_pvalue,
-    stderr_from_pvalue,
 )
 from gentropy.dataset.summary_statistics import SummaryStatistics
 
@@ -77,7 +75,9 @@ class GWASCatalogSummaryStatistics(SummaryStatistics):
         Returns:
             GWASCatalogSummaryStatistics: Summary statistics object.
         """
-        sumstats_df = spark.read.csv(sumstats_file, sep="\t", header=True).withColumn(
+        sumstats_df = spark.read.csv(sumstats_file, sep="\t", header=True)
+        sumstats_df.printSchema()
+        sumstats_df = sumstats_df.withColumn(
             # Parsing GWAS Catalog study identifier from filename:
             "studyId",
             f.lit(filename_to_study_identifier(sumstats_file)),
@@ -134,7 +134,7 @@ class GWASCatalogSummaryStatistics(SummaryStatistics):
             else f.lit(None)
         ).cast(t.DoubleType())
 
-        # We might have odds ratio or hazard ratio, wich are basically the same:
+        # We might have odds ratio or hazard ratio, which are basically the same:
         odds_ratio_expression = (
             f.col("hm_odds_ratio")
             if "hm_odds_ratio" in sumstats_df.columns
@@ -153,34 +153,42 @@ class GWASCatalogSummaryStatistics(SummaryStatistics):
             else f.lit(None)
         ).cast(t.DoubleType())
 
+        ci_upper = (
+            f.col("ci_upper") if "ci_upper" in sumstats_df.columns else f.lit(None)
+        ).cast(t.DoubleType())
+
+        ci_lower = (
+            f.col("ci_lower") if "ci_lower" in sumstats_df.columns else f.lit(None)
+        ).cast(t.DoubleType())
+
         # Processing columns of interest:
         processed_sumstats_df = (
-            (
-                sumstats_df
-                # Dropping rows which doesn't have proper position:
-                .select(
-                    "studyId",
-                    # Adding variant identifier:
-                    f.concat_ws(
-                        "_",
-                        chromosome,
-                        position,
-                        ref_allele,
-                        alt_allele,
-                    ).alias("variantId"),
-                    chromosome.alias("chromosome"),
-                    position.alias("position"),
-                    # Parsing p-value mantissa and exponent:
-                    *p_value_expression,
-                    # Converting/calculating effect and confidence interval:
-                    *convert_odds_ratio_to_beta(
-                        beta_expression,
-                        odds_ratio_expression,
-                        standard_error,
-                    ),
-                    allele_frequency.alias("effectAlleleFrequencyFromSource"),
-                    sample_size.alias("sampleSize"),
-                )
+            sumstats_df
+            # Dropping rows which doesn't have proper position:
+            .select(
+                "studyId",
+                # Adding variant identifier:
+                f.concat_ws(
+                    "_",
+                    chromosome,
+                    position,
+                    ref_allele,
+                    alt_allele,
+                ).alias("variantId"),
+                chromosome.alias("chromosome"),
+                position.alias("position"),
+                # Parsing p-value mantissa and exponent:
+                *p_value_expression,
+                # Converting/calculating effect and confidence interval:
+                *normalise_gwas_statistics(
+                    beta_expression,
+                    odds_ratio_expression,
+                    standard_error,
+                    ci_upper,
+                    ci_lower,
+                ),
+                allele_frequency.alias("effectAlleleFrequencyFromSource"),
+                sample_size.alias("sampleSize"),
             )
             # Make sure the former select statement are executed before the filtering.
             .persist()
@@ -190,20 +198,6 @@ class GWASCatalogSummaryStatistics(SummaryStatistics):
             .filter(f.col("beta").isNotNull())
             # We are not interested in associations with zero effect:
             .filter(f.col("beta") != 0)
-        )
-
-        # NOTE! In case the standard error is empty, recompute it from p-value and beta.
-        # If we leave the standard error empty for all fields, we will cause the sanity filter
-        # to skip all rows.
-        # Make sure the beta is non empty before computation.
-        computed_chi2 = chi2_from_pvalue(
-            f.col("pValueMantissa"), f.col("pValueExponent")
-        )
-        computed_stderr = stderr_from_pvalue(computed_chi2, f.col("beta"))
-        processed_sumstats_df = (
-            processed_sumstats_df.withColumn(
-                "standardError", f.coalesce(f.col("standardError"), computed_stderr)
-            )
             .orderBy(f.col("chromosome"), f.col("position"))
             # median study size is 200Mb, max is 2.6Gb
             .repartition(20)

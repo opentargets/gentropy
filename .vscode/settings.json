@@ -38,6 +38,7 @@
     "logpval",
     "neglog",
     "neglogpval",
+    "normalise",
     "pheno",
     "pval",
     "pvalue",
