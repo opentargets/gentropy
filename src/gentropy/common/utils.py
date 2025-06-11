@@ -79,8 +79,12 @@ def calculate_confidence_interval(
     return (ci_lower, ci_upper)
 
 
-def convert_odds_ratio_to_beta(
-    beta: Column, odds_ratio: Column, standard_error: Column
+def normalise_gwas_statistics(
+    beta: Column,
+    odds_ratio: Column,
+    standard_error: Column,
+    ci_upper: Column,
+    ci_lower: Column,
 ) -> list[Column]:
     """Harmonizes effect and standard error to beta.
 
@@ -88,28 +92,65 @@ def convert_odds_ratio_to_beta(
         beta (Column): Effect in beta
         odds_ratio (Column): Effect in odds ratio
         standard_error (Column): Standard error of the effect
+        ci_upper (Column): Upper bound of the confidence interval
+        ci_lower (Column): Lower bound of the confidence interval
 
     Returns:
         list[Column]: beta, standard error
 
     Examples:
-        >>> df = spark.createDataFrame([{"beta": 0.1, "oddsRatio": 1.1, "standardError": 0.1}, {"beta": None, "oddsRatio": 1.1, "standardError": 0.1}, {"beta": 0.1, "oddsRatio": None, "standardError": 0.1}, {"beta": 0.1, "oddsRatio": 1.1, "standardError": None}])
-        >>> df.select("*", *convert_odds_ratio_to_beta(f.col("beta"), f.col("oddsRatio"), f.col("standardError"))).show()
-        +----+---------+-------------+-------------------+-------------+
-        |beta|oddsRatio|standardError|               beta|standardError|
-        +----+---------+-------------+-------------------+-------------+
-        | 0.1|      1.1|          0.1|                0.1|          0.1|
-        |NULL|      1.1|          0.1|0.09531017980432493|         NULL|
-        | 0.1|     NULL|          0.1|                0.1|          0.1|
-        | 0.1|      1.1|         NULL|                0.1|         NULL|
-        +----+---------+-------------+-------------------+-------------+
+        >>>
+        >>> x1 = (0.1, 1.1, 0.1, None, None) # keep beta, keep std error
+        >>> x2 = (None, 1.1, 0.1, None, None) # convert odds ratio to beta, keep std error
+        >>> x3 = (None, 1.1, None, 1.30, 0.90) # convert odds ratio to beta, convert ci to standard error
+        >>> x4 = (0.1, 1.1, None, 1.30, 0.90) # keep beta, convert ci to standard error
+        >>> data = [x1, x2, x3, x4]
+
+        >>> schema = "beta FLOAT, oddsRatio FLOAT, standardError FLOAT, ci_upper FLOAT, ci_lower FLOAT"
+        >>> df = spark.createDataFrame(data, schema)
+        >>> df.show()
+        +----+---------+-------------+--------+--------+
+        |beta|oddsRatio|standardError|ci_upper|ci_lower|
+        +----+---------+-------------+--------+--------+
+        | 0.1|      1.1|          0.1|    NULL|    NULL|
+        |NULL|      1.1|          0.1|    NULL|    NULL|
+        |NULL|      1.1|         NULL|     1.3|     0.9|
+        | 0.1|      1.1|         NULL|     1.3|     0.9|
+        +----+---------+-------------+--------+--------+
         <BLANKLINE>
 
+
+        >>> beta = f.col("beta")
+        >>> odds_ratio = f.col("oddsRatio")
+        >>> se = f.col("standardError")
+        >>> ci_upper = f.col("ci_upper")
+        >>> ci_lower = f.col("ci_lower")
+        >>> cols = normalise_gwas_statistics(beta, odds_ratio, se, ci_upper, ci_lower)
+        >>> beta_computed = f.round(cols[0], 2).alias("beta")
+        >>> standard_error_computed = f.round(cols[1], 2).alias("standardError")
+        >>> df.select(beta_computed, standard_error_computed).show()
+        +----+-------------+
+        |beta|standardError|
+        +----+-------------+
+        | 0.1|          0.1|
+        | 0.1|         NULL|
+        | 0.1|         0.09|
+        | 0.1|         0.09|
+        +----+-------------+
+        <BLANKLINE>
     """
     # We keep standard error when effect is given in beta, otherwise drop.
-    standard_error = f.when(
-        standard_error.isNotNull() & beta.isNotNull(), standard_error
-    ).alias("standardError")
+    # In case the beta is not present, but we have the odds ratio, we assume that
+    # we can calculate the standard error from the confidence interval.
+    standard_error = (
+        f.when(standard_error.isNotNull() & beta.isNotNull(), standard_error)
+        .when(
+            odds_ratio.isNotNull() & ci_lower.isNotNull() & ci_upper.isNotNull(),
+            se_from_ci(ci_upper, ci_lower),
+        )
+        .otherwise(f.lit(None))
+        .alias("standardError")
+    )
 
     # Odds ratio is converted to beta:
     beta = (
@@ -495,3 +536,44 @@ def stderr_from_pvalue(chi2_col: Column, beta: Column) -> Column:
 
     """
     return (f.abs(beta) / f.sqrt(chi2_col)).alias("standardError")
+
+
+def se_from_ci(ci_upper: Column, ci_lower: Column) -> Column:
+    """Calculate standard error from confidence interval.
+
+    This function calculates the standard error from the confidence interval upper and lower bounds.
+
+    Args:
+        ci_upper (Column): Upper bound of the confidence interval (float)
+        ci_lower (Column): Lower bound of the confidence interval (float)
+
+    Returns:
+        Column: Standard error (float)
+
+    Examples:
+        >>> data = [(0.5, 0.1), (1.0, 0.5)]
+        >>> schema = "ci_upper FLOAT, ci_lower FLOAT"
+        >>> df = spark.createDataFrame(data, schema)
+        >>> df.show()
+        +--------+--------+
+        |ci_upper|ci_lower|
+        +--------+--------+
+        |     0.5|     0.1|
+        |     1.0|     0.5|
+        +--------+--------+
+        <BLANKLINE>
+
+        >>> ci_upper = f.col("ci_upper")
+        >>> ci_lower = f.col("ci_lower")
+        >>> standard_error = f.round(se_from_ci(ci_upper, ci_lower), 2).alias("standardError")
+        >>> df2 = df.select(ci_upper, ci_lower, standard_error)
+        >>> df2.show()
+        +--------+--------+-------------+
+        |ci_upper|ci_lower|standardError|
+        +--------+--------+-------------+
+        |     0.5|     0.1|         0.41|
+        |     1.0|     0.5|         0.18|
+        +--------+--------+-------------+
+        <BLANKLINE>
+    """
+    return ((f.log(ci_upper) - f.log(ci_lower)) / (2 * 1.96)).alias("standardError")
