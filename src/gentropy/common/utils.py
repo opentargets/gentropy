@@ -439,7 +439,6 @@ def neglogpval_from_z2(z2: float) -> float:
     MAX_EXACT_Z2 = 1400
     APPROX_A = 1.4190
     APPROX_B = 0.2173
-
     if z2 <= MAX_EXACT_Z2:
         logpval = -np.log10(chi2.sf((z2), 1))
         return float(logpval)
