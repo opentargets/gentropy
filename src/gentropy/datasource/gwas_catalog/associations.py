@@ -17,7 +17,7 @@ from gentropy.common.spark_helpers import (
     get_record_with_maximum_value,
     get_standard_error_from_confidence_interval,
 )
-from gentropy.common.utils import convert_odds_ratio_to_beta, parse_efos
+from gentropy.common.utils import normalise_gwas_statistics, parse_efos
 from gentropy.config import WindowBasedClumpingStepConfig
 from gentropy.dataset.study_locus import StudyLocus, StudyLocusQualityCheck
 
@@ -1073,10 +1073,12 @@ class GWASCatalogCuratedAssociationsParser:
             .select(
                 *df.columns,
                 # Harmonise OR effect to beta:
-                *convert_odds_ratio_to_beta(
+                *normalise_gwas_statistics(
                     f.col("effect_beta"),
                     f.col("effect_odds_ratio"),
                     f.col("standardError"),
+                    f.lit(None),
+                    f.lit(None),
                 ),
             )
         )
