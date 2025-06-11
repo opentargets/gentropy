@@ -19,7 +19,7 @@ from sklearn.metrics import (
     recall_score,
     roc_auc_score,
 )
-from sklearn.model_selection import GroupKFold, GroupShuffleSplit
+from sklearn.model_selection import GroupKFold, train_test_split
 from wandb.data_types import Image, Table
 from wandb.errors.term import termlog as wandb_termlog
 from wandb.sdk.wandb_init import init as wandb_init
@@ -276,6 +276,7 @@ class LocusToGeneTrainer:
     def train(
         self: LocusToGeneTrainer,
         wandb_run_name: str | None = None,
+        test_size: float = 0.15,
         cross_validate: bool = True,
         n_splits: int = 5,
         hyperparameter_grid: dict[str, Any] | None = None,
@@ -290,6 +291,7 @@ class LocusToGeneTrainer:
 
         Args:
             wandb_run_name (str | None): Name of the W&B run. Unless this is provided, the model will not be logged to W&B.
+            test_size (float): Proportion of the test set
             cross_validate (bool): Whether to run cross-validation. Defaults to True.
             n_splits(int): Number of folds the data is splitted in. The model is trained and evaluated `k - 1` times. Defaults to 5.
             hyperparameter_grid (dict[str, Any] | None): Hyperparameter grid to sweep over. Defaults to None.
@@ -302,20 +304,14 @@ class LocusToGeneTrainer:
         # Encode labels in `goldStandardSet` to a numeric value
         data_df[self.label_col] = data_df[self.label_col].map(self.model.label_encoder)
 
-        X = data_df[self.features_list].apply(pd.to_numeric).values
-        y = data_df[self.label_col].apply(pd.to_numeric).values
-        gene_trait_groups = (
-            data_df["traitFromSourceMappedId"].astype(str)
-            + "_"
-            + data_df["geneId"].astype(str)
-        )  # Group identifier has to be a single string
-
-        # Create hold-out test set separating EFO/Gene pairs between train/test
-        train_test_split = GroupShuffleSplit(n_splits=1, test_size=0.2, random_state=42)
-        for train_idx, test_idx in train_test_split.split(X, y, gene_trait_groups):
-            self.x_train, self.x_test = X[train_idx], X[test_idx]
-            self.y_train, self.y_test = y[train_idx], y[test_idx]
-            self.groups_train = gene_trait_groups[train_idx]
+        # Create held-out test set using hierarchical splitting
+        train_df, test_df = LocusToGeneTrainer.hierarchical_split(
+            data_df, test_size=test_size, verbose=True
+        )
+        self.x_train = train_df[self.features_list].apply(pd.to_numeric).values
+        self.y_train = train_df[self.label_col].apply(pd.to_numeric).values
+        self.x_test = test_df[self.features_list].apply(pd.to_numeric).values
+        self.y_test = test_df[self.label_col].apply(pd.to_numeric).values
 
         # Cross-validation
         if cross_validate:
@@ -507,3 +503,108 @@ class LocusToGeneTrainer:
             "weightedRecall": recall_score(y_true, y_pred, average="weighted"),
             "f1": f1_score(y_true, y_pred, average="weighted"),
         }
+
+    @staticmethod
+    def hierarchical_split(
+        data_df: pd.DataFrame,
+        test_size: float = 0.15,
+        verbose: bool = True,
+    ) -> tuple[pd.DataFrame, pd.DataFrame]:
+        """Implements hierarchical splitting strategy to prevent data leakage.
+
+        Strategy:
+        1. Split positives by geneId groups
+        2. Further split by studyLocusId within each gene group
+        3. Augment splits with corresponding negatives based on studyLocusId
+
+        Args:
+            data_df (pd.DataFrame): Input dataframe with goldStandardSet column (1=positive, 0=negative)
+            test_size (float): Proportion of data for test set. Defaults to 0.15
+            verbose (bool): Print splitting statistics
+
+        Returns:
+            tuple[pd.DataFrame, pd.DataFrame]: Training and test dataframes
+        """
+        positives = data_df[data_df["goldStandardSet"] == 1].copy()
+        negatives = data_df[data_df["goldStandardSet"] == 0].copy()
+
+        # 1: Group positives by geneId and split genes between train/test by prioritising larger groups
+        gene_groups = positives.groupby("geneId").size().reset_index(name="count")
+        gene_groups = gene_groups.sort_values("count", ascending=False)
+
+        genes_train, genes_test = train_test_split(
+            gene_groups["geneId"].tolist(),
+            test_size=test_size,
+            shuffle=True,
+        )
+
+        # 2: Split by studyLocusId within each gene group
+        train_study_loci = set()
+        test_study_loci = set()
+        train_gene_positives = positives[positives["geneId"].isin(genes_train)]
+        train_study_loci.update(train_gene_positives["studyLocusId"].unique())
+
+        test_gene_positives = positives[positives["geneId"].isin(genes_test)]
+        test_study_loci.update(test_gene_positives["studyLocusId"].unique())
+
+        # If we have overlapping loci, we assign them to train set
+        overlapping_loci = train_study_loci.intersection(test_study_loci)
+        if overlapping_loci:
+            test_study_loci = test_study_loci - overlapping_loci
+            test_gene_positives = test_gene_positives[
+                ~test_gene_positives["studyLocusId"].isin(overlapping_loci)
+            ]
+
+        # Final positive splits
+        train_positives = positives[positives["studyLocusId"].isin(train_study_loci)]
+        test_positives = positives[positives["studyLocusId"].isin(test_study_loci)]
+
+        if verbose:
+            logging.info(f"Total samples: {len(data_df)}")
+            logging.info(f"Positives: {len(positives)}")
+            logging.info(f"Negatives: {len(negatives)}")
+            logging.info(f"Unique genes in positives: {positives['geneId'].nunique()}")
+            logging.info(
+                f"Unique studyLocusIds in positives: {positives['studyLocusId'].nunique()}"
+            )
+            logging.info("\nGene-level split:")
+            logging.info(f"Genes in train: {len(genes_train)}")
+            logging.info(f"Genes in test: {len(genes_test)}")
+            logging.info("\nStudyLocusId-level split:")
+            logging.info(f"StudyLocusIds in train: {len(train_study_loci)}")
+            logging.info(f"StudyLocusIds in test: {len(test_study_loci)}")
+            logging.info(f"Positive samples in train: {len(train_positives)}")
+            logging.info(f"Positive samples in test: {len(test_positives)}")
+
+        # 3: Expand splits by bringing negatives to the loci
+        train_negatives = negatives[negatives["studyLocusId"].isin(train_study_loci)]
+        test_negatives = negatives[negatives["studyLocusId"].isin(test_study_loci)]
+
+        # 4: Final splits
+        train_df = pd.concat([train_positives, train_negatives], ignore_index=True)
+        test_df = pd.concat([test_positives, test_negatives], ignore_index=True)
+
+        train_genes = set(train_df["geneId"].unique())
+        test_genes = set(test_df["geneId"].unique())
+        train_loci = set(train_df["studyLocusId"].unique())
+        test_loci = set(test_df["studyLocusId"].unique())
+        loci_overlap = train_loci.intersection(test_loci)
+        if loci_overlap:
+            logging.warning(
+                "Data leakage detected! Overlapping studyLocusIds between splits."
+            )
+        if verbose:
+            gene_overlap = train_genes.intersection(test_genes)
+            logging.info("\nFinal split statistics:")
+            logging.info(
+                f"Train set: {len(train_df)} samples ({train_df['goldStandardSet'].sum()} positives)"
+            )
+            logging.info(
+                f"Test set: {len(test_df)} samples ({test_df['goldStandardSet'].sum()} positives)"
+            )
+            logging.info(f"Gene overlap between splits (expected): {len(gene_overlap)}")
+            logging.info(
+                f"StudyLocusId overlap between splits (not expected): {len(loci_overlap)}"
+            )
+
+        return train_df, test_df
