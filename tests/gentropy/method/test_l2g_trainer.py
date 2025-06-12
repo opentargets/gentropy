@@ -59,7 +59,7 @@ def test_train_no_cross_validation(mock_l2g_feature_matrix: L2GFeatureMatrix) ->
 
 
 def test_train_cross_validation(mock_l2g_feature_matrix: L2GFeatureMatrix) -> None:
-    """Test LocusToGeneTrainer.train without cross validation."""
+    """Test LocusToGeneTrainer.train with cross validation."""
     # Mock simple model
     features_list = ["distanceTssMean", "distanceSentinelTssMinimum"]
     l2g_model = LocusToGeneModel(
@@ -72,7 +72,7 @@ def test_train_cross_validation(mock_l2g_feature_matrix: L2GFeatureMatrix) -> No
         feature_matrix=mock_l2g_feature_matrix.fill_na(),
         features_list=features_list,
     )
-    trained_model = trainer.train(wandb_run_name=None, cross_validate=True)
+    trained_model = trainer.train(wandb_run_name=None, cross_validate=True, n_splits=3)
     assert isinstance(trained_model, LocusToGeneModel)
 
 
