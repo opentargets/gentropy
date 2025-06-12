@@ -35,6 +35,7 @@
     "diffpval",
     "GCST",
     "gentropy",
+    "liftover",
     "logpval",
     "neglog",
     "neglogpval",
