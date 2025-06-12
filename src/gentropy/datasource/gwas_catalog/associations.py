@@ -6,18 +6,17 @@ import importlib.resources as pkg_resources
 import json
 from dataclasses import dataclass
 from itertools import chain
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 import pyspark.sql.functions as f
 from pyspark.sql.types import DoubleType, FloatType, IntegerType, StringType
 from pyspark.sql.window import Window
 
 from gentropy.assets import data
-from gentropy.common.spark_helpers import (
-    get_record_with_maximum_value,
-    get_standard_error_from_confidence_interval,
-)
-from gentropy.common.utils import normalise_gwas_statistics, parse_efos
+from gentropy.common.spark_helpers import get_record_with_maximum_value
+from gentropy.common.stats import normalise_gwas_statistics, pval_from_neglogpval
+from gentropy.common.types import PValComponents
+from gentropy.common.utils import parse_efos
 from gentropy.config import WindowBasedClumpingStepConfig
 from gentropy.dataset.study_locus import StudyLocus, StudyLocusQualityCheck
 
@@ -66,20 +65,20 @@ class GWASCatalogCuratedAssociationsParser:
         ).otherwise(position)
 
     @staticmethod
-    def _parse_pvalue(pvalue: Column) -> tuple[Column, Column]:
+    def _split_pvalue_column(pvalue: Column) -> PValComponents:
         """Parse p-value column.
 
         Args:
             pvalue (Column): p-value [string]
 
         Returns:
-            tuple[Column, Column]: p-value mantissa and exponent
+            PValComponents: p-value mantissa and exponent
 
         Example:
             >>> import pyspark.sql.types as t
             >>> d = [("1.0"), ("0.5"), ("1E-20"), ("3E-3"), ("1E-1000")]
             >>> df = spark.createDataFrame(d, t.StringType())
-            >>> df.select('value',*GWASCatalogCuratedAssociationsParser._parse_pvalue(f.col('value'))).show()
+            >>> df.select('value',*GWASCatalogCuratedAssociationsParser._split_pvalue_column(f.col('value'))).show()
             +-------+--------------+--------------+
             |  value|pValueMantissa|pValueExponent|
             +-------+--------------+--------------+
@@ -93,9 +92,12 @@ class GWASCatalogCuratedAssociationsParser:
 
         """
         split = f.split(pvalue, "E")
-        return split.getItem(0).cast("float").alias("pValueMantissa"), f.coalesce(
-            split.getItem(1).cast("integer"), f.lit(1)
-        ).alias("pValueExponent")
+        return PValComponents(
+            mantissa=split.getItem(0).cast("float").alias("pValueMantissa"),
+            exponent=f.coalesce(split.getItem(1).cast("integer"), f.lit(1)).alias(
+                "pValueExponent"
+            ),
+        )
 
     @staticmethod
     def _normalise_pvaluetext(p_value_text: Column) -> Column:
@@ -128,9 +130,11 @@ class GWASCatalogCuratedAssociationsParser:
 
         """
         # GWAS Catalog to p-value mapping
-        json_dict = json.loads(
-            pkg_resources.read_text(data, "gwas_pValueText_map.json", encoding="utf-8")
-        )
+        pkg = pkg_resources.files(data).joinpath("gwas_pValueText_map.json")
+        with pkg.open(encoding="utf-8") as file:
+            json_dict = json.load(file)
+            json_dict = cast(dict[str, str], json_dict)
+
         map_expr = f.create_map(*[f.lit(x) for x in chain(*json_dict.items())])
 
         splitted_col = f.split(f.regexp_replace(p_value_text, r"[\(\)]", ""), ",")
@@ -960,7 +964,7 @@ class GWASCatalogCuratedAssociationsParser:
         - Flagging palindromic alleles.
         - Flagging associations where the effect direction needs to be flipped.
         - Flagging the effect type.
-        - Getting the standard error from the confidence interval text.
+        - Getting the standard error from the beta and neglog p-value or odds ratio confidence intervals.
         - Harmonising both beta and odds ratio.
         - Converting the odds ratio to beta.
 
@@ -974,31 +978,32 @@ class GWASCatalogCuratedAssociationsParser:
             ValueError: If any of the required columns are missing.
 
         Examples:
-            >>> data = [
-            ...    # Flagged as palindromic:
-            ...    ('rs123-T', 'A', 'T', '0.1', '[0.08-0.12] unit increase'),
-            ...    # Not palindromic, beta needs to be flipped:
-            ...    ('rs123-C', 'G', 'T', '0.1', '[0.08-0.12] unit increase'),
-            ...    # Beta is not flipped:
-            ...    ('rs123-T', 'C', 'T', '0.1', '[0.08-0.12] unit increase'),
-            ...    # odds ratio:
-            ...    ('rs123-T', 'C', 'T', '0.1', '[0.08-0.12]'),
-            ...    # odds ratio flipped:
-            ...    ('rs123-C', 'G', 'T', '0.1', '[0.08-0.12]'),
-            ... ]
-            >>> schema = ["STRONGEST SNP-RISK ALLELE", "referenceAllele", "alternateAllele", "OR or BETA", "95% CI (TEXT)"]
-            >>> df = spark.createDataFrame(data, schema)
-            >>> GWASCatalogCuratedAssociationsParser.harmonise_association_effect_to_beta(df).show()
-            +-------------------------+---------------+---------------+----------+--------------------+-------------------+--------------------+
-            |STRONGEST SNP-RISK ALLELE|referenceAllele|alternateAllele|OR or BETA|       95% CI (TEXT)|               beta|       standardError|
-            +-------------------------+---------------+---------------+----------+--------------------+-------------------+--------------------+
-            |                  rs123-T|              A|              T|       0.1|[0.08-0.12] unit ...|               NULL|                NULL|
-            |                  rs123-C|              G|              T|       0.1|[0.08-0.12] unit ...|               -0.1|0.010204081404574064|
-            |                  rs123-T|              C|              T|       0.1|[0.08-0.12] unit ...|                0.1|0.010204081404574064|
-            |                  rs123-T|              C|              T|       0.1|         [0.08-0.12]|-2.3025850929940455|                NULL|
-            |                  rs123-C|              G|              T|       0.1|         [0.08-0.12]|  2.302585092994046|                NULL|
-            +-------------------------+---------------+---------------+----------+--------------------+-------------------+--------------------+
-            <BLANKLINE>
+        ---
+        >>> data = [
+        ...    # Flagged as palindromic:
+        ...    ('rs123-T', 'A', 'T', '0.1', '[0.08-0.12] unit increase', 21.96),
+        ...    # Not palindromic, beta needs to be flipped:
+        ...    ('rs123-C', 'G', 'T', '0.1', '[0.08-0.12] unit increase', 21.96),
+        ...    # Beta is not flipped:
+        ...    ('rs123-T', 'C', 'T', '0.1', '[0.08-0.12] unit increase', 21.96),
+        ...    # odds ratio:
+        ...    ('rs123-T', 'C', 'T', '0.1', '[0.08-0.12]', 21.96),
+        ...    # odds ratio flipped:
+        ...    ('rs123-C', 'G', 'T', '0.1', '[0.08-0.12]', 21.96),
+        ... ]
+        >>> schema = ["STRONGEST SNP-RISK ALLELE", "referenceAllele", "alternateAllele", "OR or BETA", "95% CI (TEXT)", "PVALUE_MLOG"]
+        >>> df = spark.createDataFrame(data, schema)
+        >>> GWASCatalogCuratedAssociationsParser.harmonise_association_effect_to_beta(df).show()
+        +-------------------------+---------------+---------------+----------+--------------------+-----------+-------------------+-------------------+
+        |STRONGEST SNP-RISK ALLELE|referenceAllele|alternateAllele|OR or BETA|       95% CI (TEXT)|PVALUE_MLOG|               beta|      standardError|
+        +-------------------------+---------------+---------------+----------+--------------------+-----------+-------------------+-------------------+
+        |                  rs123-T|              A|              T|       0.1|[0.08-0.12] unit ...|      21.96|               NULL|               NULL|
+        |                  rs123-C|              G|              T|       0.1|[0.08-0.12] unit ...|      21.96|               -0.1|0.01020130187396028|
+        |                  rs123-T|              C|              T|       0.1|[0.08-0.12] unit ...|      21.96|                0.1|0.01020130187396028|
+        |                  rs123-T|              C|              T|       0.1|         [0.08-0.12]|      21.96|-2.3025850929940455|0.23489365624113162|
+        |                  rs123-C|              G|              T|       0.1|         [0.08-0.12]|      21.96|  2.302585092994046|0.23489365624113168|
+        +-------------------------+---------------+---------------+----------+--------------------+-----------+-------------------+-------------------+
+        <BLANKLINE>
         """
         # Testing if all columns are in the dataframe:
         required_columns = [
@@ -1007,6 +1012,7 @@ class GWASCatalogCuratedAssociationsParser:
             "alternateAllele",
             "OR or BETA",
             "95% CI (TEXT)",
+            "PVALUE_MLOG",
         ]
 
         for column in required_columns:
@@ -1014,6 +1020,8 @@ class GWASCatalogCuratedAssociationsParser:
                 raise ValueError(
                     f"Column {column} is required for harmonising effect to beta value."
                 )
+
+        pval_components = pval_from_neglogpval(f.col("PVALUE_MLOG"))
 
         return (
             df.withColumn(
@@ -1035,15 +1043,6 @@ class GWASCatalogCuratedAssociationsParser:
                     # Flag effect type:
                     "effectType": GWASCatalogCuratedAssociationsParser._get_effect_type(
                         f.col("95% CI (TEXT)")
-                    ),
-                    # Get standard error from confidence interval text:
-                    "standardError": get_standard_error_from_confidence_interval(
-                        f.regexp_extract(
-                            "95% CI (TEXT)", r"\[(\d+\.*\d*)-\d+\.*\d*\]", 1
-                        ).cast(FloatType()),
-                        f.regexp_extract(
-                            "95% CI (TEXT)", r"\[\d+\.*\d*-(\d+\.*\d*)\]", 1
-                        ).cast(FloatType()),
                     ),
                 }
             )
@@ -1072,13 +1071,19 @@ class GWASCatalogCuratedAssociationsParser:
             )
             .select(
                 *df.columns,
-                # Harmonise OR effect to beta:
+                # Harmonise beta and standard error:
                 *normalise_gwas_statistics(
-                    f.col("effect_beta"),
-                    f.col("effect_odds_ratio"),
-                    f.col("standardError"),
-                    f.lit(None),
-                    f.lit(None),
+                    beta=f.col("effect_beta"),
+                    odds_ratio=f.col("effect_odds_ratio"),
+                    standard_error=f.lit(None).alias("standardError"),
+                    ci_lower=f.regexp_extract(
+                        "95% CI (TEXT)", r"\[(\d+\.*\d*)-\d+\.*\d*\]", 1
+                    ).cast(FloatType()),
+                    ci_upper=f.regexp_extract(
+                        "95% CI (TEXT)", r"\[\d+\.*\d*-(\d+\.*\d*)\]", 1
+                    ).cast(FloatType()),
+                    mantissa=pval_components.mantissa,
+                    exponent=pval_components.exponent,
                 ),
             )
         )
@@ -1103,8 +1108,11 @@ class GWASCatalogCuratedAssociationsParser:
         Returns:
             StudyLocusGWASCatalog: GWASCatalogAssociations dataset
 
-        pvalue_threshold is keeped in sync with the WindowBasedClumpingStep gwas_significance.
+        pvalue_threshold is kept in sync with the WindowBasedClumpingStep gwas_significance.
         """
+        pvalue_columns = GWASCatalogCuratedAssociationsParser._split_pvalue_column(
+            f.col("P-VALUE")
+        )
         return StudyLocusGWASCatalog(
             _df=gwas_associations.withColumn(
                 # temporary column
@@ -1122,20 +1130,25 @@ class GWASCatalogCuratedAssociationsParser:
                 # Perform all quality control checks:
                 {
                     "qualityControls": GWASCatalogCuratedAssociationsParser._qc_all(
-                        f.array().alias("qualityControls"),
-                        f.col("CHR_ID"),
-                        f.col("CHR_POS").cast(IntegerType()),
-                        f.col("referenceAllele"),
-                        f.col("alternateAllele"),
-                        f.col("STRONGEST SNP-RISK ALLELE"),
-                        *GWASCatalogCuratedAssociationsParser._parse_pvalue(
-                            f.col("P-VALUE")
-                        ),
-                        pvalue_threshold,
+                        qc=f.array().alias("qualityControls"),
+                        chromosome=f.col("CHR_ID"),
+                        position=f.col("CHR_POS").cast(IntegerType()),
+                        reference_allele=f.col("referenceAllele"),
+                        alternate_allele=f.col("alternateAllele"),
+                        strongest_snp_risk_allele=f.col("STRONGEST SNP-RISK ALLELE"),
+                        p_value_mantissa=pvalue_columns.mantissa,
+                        p_value_exponent=pvalue_columns.exponent,
+                        p_value_cutoff=pvalue_threshold,
                     )
                 }
             )
             # Harmonising effect to beta value and flip effect if needed:
+            .withColumns(
+                {
+                    "pValueMantissa": pvalue_columns.mantissa,
+                    "pValueExponent": pvalue_columns.exponent,
+                }
+            )
             .transform(cls.harmonise_association_effect_to_beta)
             .withColumnRenamed("STUDY ACCESSION", "studyId")
             # Adding study-locus id:
@@ -1152,7 +1165,8 @@ class GWASCatalogCuratedAssociationsParser:
                 "position",
                 "studyId",
                 # p-value of the association, string: split into exponent and mantissa.
-                *GWASCatalogCuratedAssociationsParser._parse_pvalue(f.col("P-VALUE")),
+                "pValueMantissa",
+                "pValueExponent",
                 # Capturing phenotype granularity at the association level
                 GWASCatalogCuratedAssociationsParser._concatenate_substudy_description(
                     f.col("DISEASE/TRAIT"),

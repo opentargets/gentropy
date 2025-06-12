@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import re
-import sys
 from collections.abc import Callable, Iterable
 from functools import reduce, wraps
 from itertools import chain
@@ -15,7 +14,6 @@ from pyspark.ml import Pipeline
 from pyspark.ml.feature import MinMaxScaler, VectorAssembler
 from pyspark.ml.functions import vector_to_array
 from pyspark.sql import Column, Row, Window
-from scipy.stats import norm
 
 if TYPE_CHECKING:
     from pyspark.sql import DataFrame, WindowSpec
@@ -41,15 +39,15 @@ def convert_from_wide_to_long(
         DataFrame: Melted dataframe
 
     Examples:
-    >>> df = spark.createDataFrame([("a", 1, 2)], ["id", "feature_1", "feature_2"])
-    >>> convert_from_wide_to_long(df, ["id"], "feature", "value").show()
-    +---+---------+-----+
-    | id|  feature|value|
-    +---+---------+-----+
-    |  a|feature_1|  1.0|
-    |  a|feature_2|  2.0|
-    +---+---------+-----+
-    <BLANKLINE>
+        >>> df = spark.createDataFrame([("a", 1, 2)], ["id", "feature_1", "feature_2"])
+        >>> convert_from_wide_to_long(df, ["id"], "feature", "value").show()
+        +---+---------+-----+
+        | id|  feature|value|
+        +---+---------+-----+
+        |  a|feature_1|  1.0|
+        |  a|feature_2|  2.0|
+        +---+---------+-----+
+        <BLANKLINE>
     """
     if not value_vars:
         value_vars = [c for c in df.columns if c not in id_vars]
@@ -86,52 +84,16 @@ def convert_from_long_to_wide(
         DataFrame: Pivoted dataframe
 
     Examples:
-    >>> df = spark.createDataFrame([("a", "feature_1", 1), ("a", "feature_2", 2)], ["id", "featureName", "featureValue"])
-    >>> convert_from_long_to_wide(df, ["id"], "featureName", "featureValue").show()
-    +---+---------+---------+
-    | id|feature_1|feature_2|
-    +---+---------+---------+
-    |  a|        1|        2|
-    +---+---------+---------+
-    <BLANKLINE>
+        >>> df = spark.createDataFrame([("a", "feature_1", 1), ("a", "feature_2", 2)], ["id", "featureName", "featureValue"])
+        >>> convert_from_long_to_wide(df, ["id"], "featureName", "featureValue").show()
+        +---+---------+---------+
+        | id|feature_1|feature_2|
+        +---+---------+---------+
+        |  a|        1|        2|
+        +---+---------+---------+
+        <BLANKLINE>
     """
     return df.groupBy(id_vars).pivot(var_name).agg(f.first(value_name))
-
-
-def pvalue_to_zscore(pval_col: Column) -> Column:
-    """Convert p-value column to z-score column.
-
-    Args:
-        pval_col (Column): pvalues to be casted to floats.
-
-    Returns:
-        Column: p-values transformed to z-scores
-
-    Examples:
-        >>> d = [{"id": "t1", "pval": "1"}, {"id": "t2", "pval": "0.9"}, {"id": "t3", "pval": "0.05"}, {"id": "t4", "pval": "1e-300"}, {"id": "t5", "pval": "1e-1000"}, {"id": "t6", "pval": "NA"}]
-        >>> df = spark.createDataFrame(d)
-        >>> df.withColumn("zscore", pvalue_to_zscore(f.col("pval"))).show()
-        +---+-------+----------+
-        | id|   pval|    zscore|
-        +---+-------+----------+
-        | t1|      1|       0.0|
-        | t2|    0.9|0.12566137|
-        | t3|   0.05|  1.959964|
-        | t4| 1e-300| 37.537838|
-        | t5|1e-1000| 37.537838|
-        | t6|     NA|      NULL|
-        +---+-------+----------+
-        <BLANKLINE>
-
-    """
-    pvalue_float = pval_col.cast(t.FloatType())
-    pvalue_nozero = f.when(pvalue_float == 0, sys.float_info.min).otherwise(
-        pvalue_float
-    )
-    return f.udf(
-        lambda pv: float(abs(norm.ppf((float(pv)) / 2))) if pv else None,
-        t.FloatType(),
-    )(pvalue_nozero)
 
 
 def nullify_empty_array(column: Column) -> Column:
@@ -144,15 +106,15 @@ def nullify_empty_array(column: Column) -> Column:
         Column: Nullified column when the array is empty.
 
     Examples:
-    >>> df = spark.createDataFrame([[], [1, 2, 3]], "array<int>")
-    >>> df.withColumn("new", nullify_empty_array(df.value)).show()
-    +---------+---------+
-    |    value|      new|
-    +---------+---------+
-    |       []|     NULL|
-    |[1, 2, 3]|[1, 2, 3]|
-    +---------+---------+
-    <BLANKLINE>
+        >>> df = spark.createDataFrame([[], [1, 2, 3]], "array<int>")
+        >>> df.withColumn("new", nullify_empty_array(df.value)).show()
+        +---------+---------+
+        |    value|      new|
+        +---------+---------+
+        |       []|     NULL|
+        |[1, 2, 3]|[1, 2, 3]|
+        +---------+---------+
+        <BLANKLINE>
     """
     return f.when(f.size(column) != 0, column)
 
@@ -226,16 +188,16 @@ def normalise_column(
         DataFrame: The DataFrame with the normalised column.
 
     Examples:
-    >>> df = spark.createDataFrame([5, 50, 1000], "int")
-    >>> df.transform(lambda df: normalise_column(df, "value", "norm_value")).show()
-    +-----+----------+
-    |value|norm_value|
-    +-----+----------+
-    |    5|       0.0|
-    |   50|      0.05|
-    | 1000|       1.0|
-    +-----+----------+
-    <BLANKLINE>
+        >>> df = spark.createDataFrame([5, 50, 1000], "int")
+        >>> df.transform(lambda df: normalise_column(df, "value", "norm_value")).show()
+        +-----+----------+
+        |value|norm_value|
+        +-----+----------+
+        |    5|       0.0|
+        |   50|      0.05|
+        | 1000|       1.0|
+        +-----+----------+
+        <BLANKLINE>
     """
     vec_assembler = VectorAssembler(
         inputCols=[input_col_name], outputCol="feature_vector"
@@ -251,66 +213,6 @@ def normalise_column(
         .select("*", unvector_score)
         .drop("feature_vector", "norm_vector")
     )
-
-
-def neglog_pvalue_to_mantissa_and_exponent(p_value: Column) -> tuple[Column, Column]:
-    """Computing p-value mantissa and exponent based on the negative 10 based logarithm of the p-value.
-
-    Args:
-        p_value (Column): Neg-log p-value (string)
-
-    Returns:
-        tuple[Column, Column]: mantissa and exponent of the p-value
-
-    Examples:
-        >>> (
-        ... spark.createDataFrame([(4.56, 'a'),(2109.23, 'b')], ['negLogPv', 'label'])
-        ... .select('negLogPv',*neglog_pvalue_to_mantissa_and_exponent(f.col('negLogPv')))
-        ... .show()
-        ... )
-        +--------+--------------+--------------+
-        |negLogPv|pValueMantissa|pValueExponent|
-        +--------+--------------+--------------+
-        |    4.56|     2.7542286|            -5|
-        | 2109.23|     5.8884363|         -2110|
-        +--------+--------------+--------------+
-        <BLANKLINE>
-    """
-    exponent: Column = f.ceil(p_value)
-    mantissa: Column = f.pow(f.lit(10), (exponent - p_value))
-
-    return (
-        mantissa.cast(t.FloatType()).alias("pValueMantissa"),
-        (-1 * exponent).cast(t.IntegerType()).alias("pValueExponent"),
-    )
-
-
-def calculate_neglog_pvalue(
-    p_value_mantissa: Column, p_value_exponent: Column
-) -> Column:
-    """Compute the negative log p-value.
-
-    Args:
-        p_value_mantissa (Column): P-value mantissa
-        p_value_exponent (Column): P-value exponent
-
-    Returns:
-        Column: Negative log p-value
-
-    Examples:
-        >>> d = [(1, 1), (5, -2), (1, -1000)]
-        >>> df = spark.createDataFrame(d).toDF("p_value_mantissa", "p_value_exponent")
-        >>> df.withColumn("neg_log_p", calculate_neglog_pvalue(f.col("p_value_mantissa"), f.col("p_value_exponent"))).show()
-        +----------------+----------------+------------------+
-        |p_value_mantissa|p_value_exponent|         neg_log_p|
-        +----------------+----------------+------------------+
-        |               1|               1|              -1.0|
-        |               5|              -2|1.3010299956639813|
-        |               1|           -1000|            1000.0|
-        +----------------+----------------+------------------+
-        <BLANKLINE>
-    """
-    return -1 * (f.log10(p_value_mantissa) + p_value_exponent)
 
 
 def string2camelcase(col_name: str) -> str:
@@ -395,34 +297,34 @@ def order_array_of_structs_by_two_fields(
         Column: Sorted column
 
     Examples:
-    >>> data = [(1.0, 45, 'First'), (0.5, 232, 'Third'), (0.5, 233, 'Fourth'), (1.0, 125, 'Second'),]
-    >>> (
-    ...    spark.createDataFrame(data, ['col1', 'col2', 'ranking'])
-    ...    .groupBy(f.lit('c'))
-    ...    .agg(f.collect_list(f.struct('col1','col2', 'ranking')).alias('list'))
-    ...    .select(order_array_of_structs_by_two_fields('list', 'col1', 'col2').alias('sorted_list'))
-    ...    .show(truncate=False)
-    ... )
-    +-----------------------------------------------------------------------------+
-    |sorted_list                                                                  |
-    +-----------------------------------------------------------------------------+
-    |[{1.0, 45, First}, {1.0, 125, Second}, {0.5, 232, Third}, {0.5, 233, Fourth}]|
-    +-----------------------------------------------------------------------------+
-    <BLANKLINE>
-    >>> data = [(1.0, 45, 'First'), (1.0, 45, 'Second'), (0.5, 233, 'Fourth'), (1.0, 125, 'Third'),]
-    >>> (
-    ...    spark.createDataFrame(data, ['col1', 'col2', 'ranking'])
-    ...    .groupBy(f.lit('c'))
-    ...    .agg(f.collect_list(f.struct('col1','col2', 'ranking')).alias('list'))
-    ...    .select(order_array_of_structs_by_two_fields('list', 'col1', 'col2').alias('sorted_list'))
-    ...    .show(truncate=False)
-    ... )
-    +----------------------------------------------------------------------------+
-    |sorted_list                                                                 |
-    +----------------------------------------------------------------------------+
-    |[{1.0, 45, First}, {1.0, 45, Second}, {1.0, 125, Third}, {0.5, 233, Fourth}]|
-    +----------------------------------------------------------------------------+
-    <BLANKLINE>
+        >>> data = [(1.0, 45, 'First'), (0.5, 232, 'Third'), (0.5, 233, 'Fourth'), (1.0, 125, 'Second'),]
+        >>> (
+        ...    spark.createDataFrame(data, ['col1', 'col2', 'ranking'])
+        ...    .groupBy(f.lit('c'))
+        ...    .agg(f.collect_list(f.struct('col1','col2', 'ranking')).alias('list'))
+        ...    .select(order_array_of_structs_by_two_fields('list', 'col1', 'col2').alias('sorted_list'))
+        ...    .show(truncate=False)
+        ... )
+        +-----------------------------------------------------------------------------+
+        |sorted_list                                                                  |
+        +-----------------------------------------------------------------------------+
+        |[{1.0, 45, First}, {1.0, 125, Second}, {0.5, 232, Third}, {0.5, 233, Fourth}]|
+        +-----------------------------------------------------------------------------+
+        <BLANKLINE>
+        >>> data = [(1.0, 45, 'First'), (1.0, 45, 'Second'), (0.5, 233, 'Fourth'), (1.0, 125, 'Third'),]
+        >>> (
+        ...    spark.createDataFrame(data, ['col1', 'col2', 'ranking'])
+        ...    .groupBy(f.lit('c'))
+        ...    .agg(f.collect_list(f.struct('col1','col2', 'ranking')).alias('list'))
+        ...    .select(order_array_of_structs_by_two_fields('list', 'col1', 'col2').alias('sorted_list'))
+        ...    .show(truncate=False)
+        ... )
+        +----------------------------------------------------------------------------+
+        |sorted_list                                                                 |
+        +----------------------------------------------------------------------------+
+        |[{1.0, 45, First}, {1.0, 45, Second}, {1.0, 125, Third}, {0.5, 233, Fourth}]|
+        +----------------------------------------------------------------------------+
+        <BLANKLINE>
     """
     return f.expr(
         f"""
@@ -547,7 +449,7 @@ def enforce_schema(
 ) -> Callable[..., Any]:
     """A function to enforce the schema of a function output follows expectation.
 
-    Behaviour:
+    Behavior:
         - Fields that are not present in the expected schema will be dropped.
         - Expected but missing fields will be added with Null values.
         - Fields with incorrect data types will be casted to the expected data type.
@@ -759,37 +661,6 @@ def create_empty_column_if_not_exists(
     return f.lit(None).cast(col_schema).alias(col_name)
 
 
-def get_standard_error_from_confidence_interval(lower: Column, upper: Column) -> Column:
-    """Compute the standard error from the confidence interval.
-
-    Args:
-        lower (Column): The lower bound of the confidence interval.
-        upper (Column): The upper bound of the confidence interval.
-
-    Returns:
-        Column: The standard error.
-
-    Examples:
-        >>> data = [(0.5, 1.5), (None, 2.5), (None, None)]
-        >>> (
-        ...    spark.createDataFrame(data, ['lower', 'upper'])
-        ...    .select(
-        ...        get_standard_error_from_confidence_interval(f.col('lower'), f.col('upper')).alias('standard_error')
-        ...    )
-        ...    .show()
-        ... )
-        +-------------------+
-        |     standard_error|
-        +-------------------+
-        |0.25510204081632654|
-        |               NULL|
-        |               NULL|
-        +-------------------+
-        <BLANKLINE>
-    """
-    return (upper - lower) / (2 * 1.96)
-
-
 def get_nested_struct_schema(dtype: t.DataType) -> t.StructType:
     """Get the bottom StructType from a nested ArrayType type.
 
@@ -889,7 +760,7 @@ def calculate_harmonic_sum(input_array: Column) -> Column:
 
 
 def clean_strings_from_symbols(source: Column) -> Column:
-    """To make strings URL-safe and consitent by lower-casing and replace special characters with underscores.
+    """To make strings URL-safe and consistent by lower-casing and replace special characters with underscores.
 
     Args:
         source (Column): Source string
@@ -944,6 +815,7 @@ def filter_array_struct(
         Column: The value_column from the struct from the same array element as the matched key_column.
 
     Examples:
+    ---
     >>> data = [([{"a": 1, "b": 2.0, "c": "c", "d": True}, {"a": 3, "b": 4.0, "c": "c", "d": False}], "c")]
     >>> schema = 'col array<struct<a:int,b:float,c:string, d:boolean>>, col2 string'
     >>> df = spark.createDataFrame(data, schema)
@@ -1054,8 +926,6 @@ def filter_array_struct(
     |  1|
     +---+
     <BLANKLINE>
-
-
     """
     if not isinstance(key, Column):
         key = f.lit(key)

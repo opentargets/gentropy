@@ -4,8 +4,11 @@ import pyspark.sql.functions as f
 import pyspark.sql.types as t
 from pyspark.sql import DataFrame, SparkSession
 
-from gentropy.common.spark_helpers import neglog_pvalue_to_mantissa_and_exponent
-from gentropy.common.utils import chi2_from_pvalue, stderr_from_pvalue
+from gentropy.common.stats import (
+    chi2_from_pvalue,
+    pval_from_neglogpval,
+    stderr_from_chi2_and_effect_size,
+)
 
 
 def harmonise_summary_stats(
@@ -163,9 +166,7 @@ def harmonise_summary_stats(
         f.col("beta"),
         f.col(colname_position).cast(t.IntegerType()).alias("position"),
         # Parse p-value into mantissa and exponent.
-        *neglog_pvalue_to_mantissa_and_exponent(
-            f.col(colname_mlog10p).cast(t.DoubleType())
-        ),
+        *pval_from_neglogpval(f.col(colname_mlog10p).cast(t.DoubleType())),
         # Add standard error and sample size information.
         f.col(colname_se).cast("double").alias("standardError"),
     ]
@@ -187,7 +188,7 @@ def harmonise_summary_stats(
     # to skip all rows.
     # Make sure the beta is non empty before computation.
     computed_chi2 = chi2_from_pvalue(f.col("pValueMantissa"), f.col("pValueExponent"))
-    computed_stderr = stderr_from_pvalue(computed_chi2, f.col("beta"))
+    computed_stderr = stderr_from_chi2_and_effect_size(computed_chi2, f.col("beta"))
     df = df.withColumn(
         "standardError", f.coalesce(f.col("standardError"), computed_stderr)
     ).orderBy(f.col("chromosome"), f.col("position"))
