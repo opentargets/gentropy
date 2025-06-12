@@ -560,21 +560,22 @@ class LocusToGeneTrainer:
         test_positives = positives[positives["studyLocusId"].isin(test_study_loci)]
 
         if verbose:
-            logging.info(f"Total samples: {len(data_df)}")
-            logging.info(f"Positives: {len(positives)}")
-            logging.info(f"Negatives: {len(negatives)}")
-            logging.info(f"Unique genes in positives: {positives['geneId'].nunique()}")
+            logging.info("Total samples: %d", len(data_df))
+            logging.info("Positives: %d", len(positives))
+            logging.info("Negatives: %d", len(negatives))
+            logging.info("Unique genes in positives: %d", positives["geneId"].nunique())
             logging.info(
-                f"Unique studyLocusIds in positives: {positives['studyLocusId'].nunique()}"
+                "Unique studyLocusIds in positives: %d",
+                positives["studyLocusId"].nunique(),
             )
             logging.info("\nGene-level split:")
-            logging.info(f"Genes in train: {len(genes_train)}")
-            logging.info(f"Genes in test: {len(genes_test)}")
+            logging.info("Genes in train: %d", len(genes_train))
+            logging.info("Genes in test: %d", len(genes_test))
             logging.info("\nStudyLocusId-level split:")
-            logging.info(f"StudyLocusIds in train: {len(train_study_loci)}")
-            logging.info(f"StudyLocusIds in test: {len(test_study_loci)}")
-            logging.info(f"Positive samples in train: {len(train_positives)}")
-            logging.info(f"Positive samples in test: {len(test_positives)}")
+            logging.info("StudyLocusIds in train: %d", len(train_study_loci))
+            logging.info("StudyLocusIds in test: %d", len(test_study_loci))
+            logging.info("Positive samples in train: %d", len(train_positives))
+            logging.info("Positive samples in test: %d", len(test_positives))
 
         # 3: Expand splits by bringing negatives to the loci
         train_negatives = negatives[negatives["studyLocusId"].isin(train_study_loci)]
@@ -597,14 +598,21 @@ class LocusToGeneTrainer:
             gene_overlap = train_genes.intersection(test_genes)
             logging.info("\nFinal split statistics:")
             logging.info(
-                f"Train set: {len(train_df)} samples ({train_df['goldStandardSet'].sum()} positives)"
+                "Train set: %d samples (%d positives)",
+                len(train_df),
+                train_df["goldStandardSet"].sum(),
             )
             logging.info(
-                f"Test set: {len(test_df)} samples ({test_df['goldStandardSet'].sum()} positives)"
+                "Test set: %d samples (%d positives)",
+                len(test_df),
+                test_df["goldStandardSet"].sum(),
             )
-            logging.info(f"Gene overlap between splits (expected): {len(gene_overlap)}")
             logging.info(
-                f"StudyLocusId overlap between splits (not expected): {len(loci_overlap)}"
+                "Gene overlap between splits (expected): %d", len(gene_overlap)
+            )
+            logging.info(
+                "StudyLocusId overlap between splits (not expected): %d",
+                len(loci_overlap),
             )
 
         return train_df, test_df
