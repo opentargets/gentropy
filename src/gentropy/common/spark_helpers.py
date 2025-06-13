@@ -39,15 +39,15 @@ def convert_from_wide_to_long(
         DataFrame: Melted dataframe
 
     Examples:
-    >>> df = spark.createDataFrame([("a", 1, 2)], ["id", "feature_1", "feature_2"])
-    >>> convert_from_wide_to_long(df, ["id"], "feature", "value").show()
-    +---+---------+-----+
-    | id|  feature|value|
-    +---+---------+-----+
-    |  a|feature_1|  1.0|
-    |  a|feature_2|  2.0|
-    +---+---------+-----+
-    <BLANKLINE>
+        >>> df = spark.createDataFrame([("a", 1, 2)], ["id", "feature_1", "feature_2"])
+        >>> convert_from_wide_to_long(df, ["id"], "feature", "value").show()
+        +---+---------+-----+
+        | id|  feature|value|
+        +---+---------+-----+
+        |  a|feature_1|  1.0|
+        |  a|feature_2|  2.0|
+        +---+---------+-----+
+        <BLANKLINE>
     """
     if not value_vars:
         value_vars = [c for c in df.columns if c not in id_vars]
@@ -84,14 +84,14 @@ def convert_from_long_to_wide(
         DataFrame: Pivoted dataframe
 
     Examples:
-    >>> df = spark.createDataFrame([("a", "feature_1", 1), ("a", "feature_2", 2)], ["id", "featureName", "featureValue"])
-    >>> convert_from_long_to_wide(df, ["id"], "featureName", "featureValue").show()
-    +---+---------+---------+
-    | id|feature_1|feature_2|
-    +---+---------+---------+
-    |  a|        1|        2|
-    +---+---------+---------+
-    <BLANKLINE>
+        >>> df = spark.createDataFrame([("a", "feature_1", 1), ("a", "feature_2", 2)], ["id", "featureName", "featureValue"])
+        >>> convert_from_long_to_wide(df, ["id"], "featureName", "featureValue").show()
+        +---+---------+---------+
+        | id|feature_1|feature_2|
+        +---+---------+---------+
+        |  a|        1|        2|
+        +---+---------+---------+
+        <BLANKLINE>
     """
     return df.groupBy(id_vars).pivot(var_name).agg(f.first(value_name))
 
@@ -106,15 +106,15 @@ def nullify_empty_array(column: Column) -> Column:
         Column: Nullified column when the array is empty.
 
     Examples:
-    >>> df = spark.createDataFrame([[], [1, 2, 3]], "array<int>")
-    >>> df.withColumn("new", nullify_empty_array(df.value)).show()
-    +---------+---------+
-    |    value|      new|
-    +---------+---------+
-    |       []|     NULL|
-    |[1, 2, 3]|[1, 2, 3]|
-    +---------+---------+
-    <BLANKLINE>
+        >>> df = spark.createDataFrame([[], [1, 2, 3]], "array<int>")
+        >>> df.withColumn("new", nullify_empty_array(df.value)).show()
+        +---------+---------+
+        |    value|      new|
+        +---------+---------+
+        |       []|     NULL|
+        |[1, 2, 3]|[1, 2, 3]|
+        +---------+---------+
+        <BLANKLINE>
     """
     return f.when(f.size(column) != 0, column)
 
@@ -188,16 +188,16 @@ def normalise_column(
         DataFrame: The DataFrame with the normalised column.
 
     Examples:
-    >>> df = spark.createDataFrame([5, 50, 1000], "int")
-    >>> df.transform(lambda df: normalise_column(df, "value", "norm_value")).show()
-    +-----+----------+
-    |value|norm_value|
-    +-----+----------+
-    |    5|       0.0|
-    |   50|      0.05|
-    | 1000|       1.0|
-    +-----+----------+
-    <BLANKLINE>
+        >>> df = spark.createDataFrame([5, 50, 1000], "int")
+        >>> df.transform(lambda df: normalise_column(df, "value", "norm_value")).show()
+        +-----+----------+
+        |value|norm_value|
+        +-----+----------+
+        |    5|       0.0|
+        |   50|      0.05|
+        | 1000|       1.0|
+        +-----+----------+
+        <BLANKLINE>
     """
     vec_assembler = VectorAssembler(
         inputCols=[input_col_name], outputCol="feature_vector"
@@ -297,34 +297,34 @@ def order_array_of_structs_by_two_fields(
         Column: Sorted column
 
     Examples:
-    >>> data = [(1.0, 45, 'First'), (0.5, 232, 'Third'), (0.5, 233, 'Fourth'), (1.0, 125, 'Second'),]
-    >>> (
-    ...    spark.createDataFrame(data, ['col1', 'col2', 'ranking'])
-    ...    .groupBy(f.lit('c'))
-    ...    .agg(f.collect_list(f.struct('col1','col2', 'ranking')).alias('list'))
-    ...    .select(order_array_of_structs_by_two_fields('list', 'col1', 'col2').alias('sorted_list'))
-    ...    .show(truncate=False)
-    ... )
-    +-----------------------------------------------------------------------------+
-    |sorted_list                                                                  |
-    +-----------------------------------------------------------------------------+
-    |[{1.0, 45, First}, {1.0, 125, Second}, {0.5, 232, Third}, {0.5, 233, Fourth}]|
-    +-----------------------------------------------------------------------------+
-    <BLANKLINE>
-    >>> data = [(1.0, 45, 'First'), (1.0, 45, 'Second'), (0.5, 233, 'Fourth'), (1.0, 125, 'Third'),]
-    >>> (
-    ...    spark.createDataFrame(data, ['col1', 'col2', 'ranking'])
-    ...    .groupBy(f.lit('c'))
-    ...    .agg(f.collect_list(f.struct('col1','col2', 'ranking')).alias('list'))
-    ...    .select(order_array_of_structs_by_two_fields('list', 'col1', 'col2').alias('sorted_list'))
-    ...    .show(truncate=False)
-    ... )
-    +----------------------------------------------------------------------------+
-    |sorted_list                                                                 |
-    +----------------------------------------------------------------------------+
-    |[{1.0, 45, First}, {1.0, 45, Second}, {1.0, 125, Third}, {0.5, 233, Fourth}]|
-    +----------------------------------------------------------------------------+
-    <BLANKLINE>
+        >>> data = [(1.0, 45, 'First'), (0.5, 232, 'Third'), (0.5, 233, 'Fourth'), (1.0, 125, 'Second'),]
+        >>> (
+        ...    spark.createDataFrame(data, ['col1', 'col2', 'ranking'])
+        ...    .groupBy(f.lit('c'))
+        ...    .agg(f.collect_list(f.struct('col1','col2', 'ranking')).alias('list'))
+        ...    .select(order_array_of_structs_by_two_fields('list', 'col1', 'col2').alias('sorted_list'))
+        ...    .show(truncate=False)
+        ... )
+        +-----------------------------------------------------------------------------+
+        |sorted_list                                                                  |
+        +-----------------------------------------------------------------------------+
+        |[{1.0, 45, First}, {1.0, 125, Second}, {0.5, 232, Third}, {0.5, 233, Fourth}]|
+        +-----------------------------------------------------------------------------+
+        <BLANKLINE>
+        >>> data = [(1.0, 45, 'First'), (1.0, 45, 'Second'), (0.5, 233, 'Fourth'), (1.0, 125, 'Third'),]
+        >>> (
+        ...    spark.createDataFrame(data, ['col1', 'col2', 'ranking'])
+        ...    .groupBy(f.lit('c'))
+        ...    .agg(f.collect_list(f.struct('col1','col2', 'ranking')).alias('list'))
+        ...    .select(order_array_of_structs_by_two_fields('list', 'col1', 'col2').alias('sorted_list'))
+        ...    .show(truncate=False)
+        ... )
+        +----------------------------------------------------------------------------+
+        |sorted_list                                                                 |
+        +----------------------------------------------------------------------------+
+        |[{1.0, 45, First}, {1.0, 45, Second}, {1.0, 125, Third}, {0.5, 233, Fourth}]|
+        +----------------------------------------------------------------------------+
+        <BLANKLINE>
     """
     return f.expr(
         f"""
@@ -449,7 +449,7 @@ def enforce_schema(
 ) -> Callable[..., Any]:
     """A function to enforce the schema of a function output follows expectation.
 
-    Behaviour:
+    Behavior:
         - Fields that are not present in the expected schema will be dropped.
         - Expected but missing fields will be added with Null values.
         - Fields with incorrect data types will be casted to the expected data type.
@@ -815,116 +815,116 @@ def filter_array_struct(
         Column: The value_column from the struct from the same array element as the matched key_column.
 
     Examples:
-    >>> data = [([{"a": 1, "b": 2.0, "c": "c", "d": True}, {"a": 3, "b": 4.0, "c": "c", "d": False}], "c")]
-    >>> schema = 'col array<struct<a:int,b:float,c:string, d:boolean>>, col2 string'
-    >>> df = spark.createDataFrame(data, schema)
-    >>> df.show(truncate=False)
-    +---------------------------------------+----+
-    |col                                    |col2|
-    +---------------------------------------+----+
-    |[{1, 2.0, c, true}, {3, 4.0, c, false}]|c   |
-    +---------------------------------------+----+
-    <BLANKLINE>
+        >>> data = [([{"a": 1, "b": 2.0, "c": "c", "d": True}, {"a": 3, "b": 4.0, "c": "c", "d": False}], "c")]
+        >>> schema = 'col array<struct<a:int,b:float,c:string, d:boolean>>, col2 string'
+        >>> df = spark.createDataFrame(data, schema)
+        >>> df.show(truncate=False)
+        +---------------------------------------+----+
+        |col                                    |col2|
+        +---------------------------------------+----+
+        |[{1, 2.0, c, true}, {3, 4.0, c, false}]|c   |
+        +---------------------------------------+----+
+        <BLANKLINE>
 
-    >>> df.printSchema()
-    root
-     |-- col: array (nullable = true)
-     |    |-- element: struct (containsNull = true)
-     |    |    |-- a: integer (nullable = true)
-     |    |    |-- b: float (nullable = true)
-     |    |    |-- c: string (nullable = true)
-     |    |    |-- d: boolean (nullable = true)
-     |-- col2: string (nullable = true)
-    <BLANKLINE>
+        >>> df.printSchema()
+        root
+        |-- col: array (nullable = true)
+        |    |-- element: struct (containsNull = true)
+        |    |    |-- a: integer (nullable = true)
+        |    |    |-- b: float (nullable = true)
+        |    |    |-- c: string (nullable = true)
+        |    |    |-- d: boolean (nullable = true)
+        |-- col2: string (nullable = true)
+        <BLANKLINE>
 
-    ** Key can be an int **
+        ** Key can be an int **
 
-    >>> array_struct = "col"
-    >>> key_column = "a"
-    >>> key = 1
-    >>> value_column = "b"
-    >>> result = df.select(filter_array_struct(array_struct, key_column, key, value_column))
-    >>> result.show()
-    +---+
-    |  b|
-    +---+
-    |2.0|
-    +---+
-    <BLANKLINE>
+        >>> array_struct = "col"
+        >>> key_column = "a"
+        >>> key = 1
+        >>> value_column = "b"
+        >>> result = df.select(filter_array_struct(array_struct, key_column, key, value_column))
+        >>> result.show()
+        +---+
+        |  b|
+        +---+
+        |2.0|
+        +---+
+        <BLANKLINE>
 
-    ** Key can be a float **
+        ** Key can be a float **
 
-    >>> key_column = "b"
-    >>> key = 2.0
-    >>> value_column = "a"
-    >>> result = df.select(filter_array_struct(array_struct, key_column, key, value_column))
-    >>> result.show()
-    +---+
-    |  a|
-    +---+
-    |  1|
-    +---+
-    <BLANKLINE>
+        >>> key_column = "b"
+        >>> key = 2.0
+        >>> value_column = "a"
+        >>> result = df.select(filter_array_struct(array_struct, key_column, key, value_column))
+        >>> result.show()
+        +---+
+        |  a|
+        +---+
+        |  1|
+        +---+
+        <BLANKLINE>
 
-    ** Key can be a string **
+        ** Key can be a string **
 
-    >>> key_column = "c"
-    >>> key = "c"
-    >>> value_column = "a"
-    >>> result = df.select(filter_array_struct(array_struct, key_column, key, value_column))
+        >>> key_column = "c"
+        >>> key = "c"
+        >>> value_column = "a"
+        >>> result = df.select(filter_array_struct(array_struct, key_column, key, value_column))
 
-    The first match will be returned, even array have multiple matches to the key.
+        The first match will be returned, even array have multiple matches to the key.
 
-    >>> result.show()
-    +---+
-    |  a|
-    +---+
-    |  1|
-    +---+
-    <BLANKLINE>
+        >>> result.show()
+        +---+
+        |  a|
+        +---+
+        |  1|
+        +---+
+        <BLANKLINE>
 
-    ** Key can be a boolean **
+        ** Key can be a boolean **
 
-    >>> key_column = "d"
-    >>> key = True
-    >>> value_column = "a"
-    >>> result = df.select(filter_array_struct(array_struct, key_column, key, value_column))
-    >>> result.show()
-    +---+
-    |  a|
-    +---+
-    |  1|
-    +---+
-    <BLANKLINE>
+        >>> key_column = "d"
+        >>> key = True
+        >>> value_column = "a"
+        >>> result = df.select(filter_array_struct(array_struct, key_column, key, value_column))
+        >>> result.show()
+        +---+
+        |  a|
+        +---+
+        |  1|
+        +---+
+        <BLANKLINE>
 
-    ** Key can be a column**
+        ** Key can be a column**
 
-    >>> array_struct = f.col("col")
-    >>> key_column = "c"
-    >>> key = f.col("col2")
-    >>> value_column = "b"
-    >>> result = df.select(filter_array_struct(array_struct, key_column, key, value_column))
-    >>> result.show()
-    +---+
-    |  b|
-    +---+
-    |2.0|
-    +---+
-    <BLANKLINE>
+        >>> array_struct = f.col("col")
+        >>> key_column = "c"
+        >>> key = f.col("col2")
+        >>> value_column = "b"
+        >>> result = df.select(filter_array_struct(array_struct, key_column, key, value_column))
+        >>> result.show()
+        +---+
+        |  b|
+        +---+
+        |2.0|
+        +---+
+        <BLANKLINE>
 
-    ** All paramters are columns **
-    >>> array_struct = f.col("col")
-    >>> key_column = f.col("c")
-    >>> key = f.col("col2")
-    >>> value_column = f.col("a")
-    >>> result = df.select(filter_array_struct(array_struct, key_column, key, value_column))
-    >>> result.show()
-    +---+
-    |  a|
-    +---+
-    |  1|
-    +---+
-    <BLANKLINE>
+        ** All paramters are columns **
+        >>> array_struct = f.col("col")
+        >>> key_column = f.col("c")
+        >>> key = f.col("col2")
+        >>> value_column = f.col("a")
+        >>> result = df.select(filter_array_struct(array_struct, key_column, key, value_column))
+        >>> result.show()
+        +---+
+        |  a|
+        +---+
+        |  1|
+        +---+
+        <BLANKLINE>
 
 
     """

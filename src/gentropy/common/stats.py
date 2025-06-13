@@ -31,7 +31,7 @@ def get_logsum(arr: NDArray[np.float64]) -> float:
     Returns:
         float: logsumexp of the input array
 
-    Example:
+    Examples:
         >>> l = [0.2, 0.1, 0.05, 0]
         >>> round(get_logsum(l), 6)
         1.476557
@@ -560,8 +560,8 @@ def zscore_from_pvalue(pval_col: Column) -> Column:
         Column: p-values transformed to z-scores
 
     Examples:
-        >>> data = [(1.0,), (0.9,), (0.05,), (1e-300,), (1e-1000,), (None,)]
-        >>> schema = "pval DOUBLE"
+        >>> data = [("1.0",), ("0.9",), ("0.05",), ("1e-300",), ("1e-1000",), (None,)]
+        >>> schema = "pval STRING"
         >>> df = spark.createDataFrame(data, schema)
         >>> df.show()
         +--------+
