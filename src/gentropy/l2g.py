@@ -231,10 +231,16 @@ class LocusToGeneStep:
             case {**extra} if not extra:
                 # Schema is the same as L2GGoldStandard - load the GS
                 # NOTE: match to empty dict will be non-selective
-                # see https://stackoverflow.com/questions/75389166/how-to-match-an-empty-dictionary
-                logging.info("Successfully parsed gold standard.")
+                # see https://stackoverflow.com/questions/75389166/how-to-match-an-empty-dictionary                logging.info("Successfully parsed gold standard.")
                 return L2GGoldStandard(
                     _df=gold_standard,
+                    _schema=L2GGoldStandard.get_schema(),
+                )
+            case {"missing_mandatory_columns": [], "unexpected_columns": extra_columns}:
+                # All mandatory columns present, extra columns are allowed but not passed to the L2GGoldStandard object
+                logging.info("Successfully parsed gold standard with extra columns.")
+                return L2GGoldStandard(
+                    _df=gold_standard.drop(extra_columns),
                     _schema=L2GGoldStandard.get_schema(),
                 )
             case {
