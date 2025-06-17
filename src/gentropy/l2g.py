@@ -236,7 +236,7 @@ class LocusToGeneStep:
                     _df=gold_standard,
                     _schema=L2GGoldStandard.get_schema(),
                 )
-            case {"missing_mandatory_columns": [], "unexpected_columns": extra_columns}:
+            case {"unexpected_columns": extra_columns}:
                 # All mandatory columns present, extra columns are allowed but not passed to the L2GGoldStandard object
                 logging.info("Successfully parsed gold standard with extra columns.")
                 return L2GGoldStandard(
