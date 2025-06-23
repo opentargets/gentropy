@@ -48,6 +48,7 @@ class L2GGoldStandard(Dataset):
 
         Returns:
             L2GGoldStandard: L2G Gold Standard dataset
+
         """
         from gentropy.datasource.open_targets.l2g_gold_standard import (
             OpenTargetsL2GGoldStandard,
@@ -104,39 +105,6 @@ class L2GGoldStandard(Dataset):
             "targetB as geneIdB",
             "scoring as score",
         )
-
-    def build_feature_matrix(
-        self: L2GGoldStandard,
-        full_feature_matrix: L2GFeatureMatrix,
-        credible_set: StudyLocus,
-    ) -> L2GFeatureMatrix:
-        """Return a feature matrix for study loci in the gold standard.
-
-        Args:
-            full_feature_matrix (L2GFeatureMatrix): Feature matrix for all study loci to join on
-            credible_set (StudyLocus): Full credible sets to annotate the feature matrix with variant and study IDs and perform the join
-
-        Returns:
-            L2GFeatureMatrix: Feature matrix for study loci in the gold standard
-        """
-        from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
-
-        return L2GFeatureMatrix(
-            _df=full_feature_matrix._df.join(
-                credible_set.df.select("studyLocusId", "variantId", "studyId"),
-                "studyLocusId",
-                "left",
-            )
-            .join(
-                f.broadcast(self.df.drop("studyLocusId", "sources")),
-                on=["studyId", "variantId", "geneId"],
-                how="inner",
-            )
-            .filter(f.col("isProteinCoding") == 1)
-            .drop("studyId", "variantId")
-            .distinct(),
-            with_gold_standard=True,
-        ).fill_na()
 
     def filter_unique_associations(
         self: L2GGoldStandard,
@@ -235,3 +203,36 @@ class L2GGoldStandard(Dataset):
             .distinct()
         )
         return L2GGoldStandard(_df=df, _schema=self.get_schema())
+
+    def build_feature_matrix(
+        self: L2GGoldStandard,
+        full_feature_matrix: L2GFeatureMatrix,
+        credible_set: StudyLocus,
+    ) -> L2GFeatureMatrix:
+        """Return a feature matrix for study loci in the gold standard.
+
+        Args:
+            full_feature_matrix (L2GFeatureMatrix): Feature matrix for all study loci to join on
+            credible_set (StudyLocus): Full credible sets to annotate the feature matrix with variant and study IDs and perform the join
+
+        Returns:
+            L2GFeatureMatrix: Feature matrix for study loci in the gold standard
+        """
+        from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
+
+        return L2GFeatureMatrix(
+            _df=full_feature_matrix._df.join(
+                credible_set.df.select("studyLocusId", "variantId", "studyId"),
+                "studyLocusId",
+                "left",
+            )
+            .join(
+                f.broadcast(self.df.drop("studyLocusId", "sources")),
+                on=["studyId", "variantId", "geneId"],
+                how="inner",
+            )
+            .filter(f.col("isProteinCoding") == 1)
+            .drop("studyId", "variantId")
+            .distinct(),
+            with_gold_standard=True,
+        ).fill_na()

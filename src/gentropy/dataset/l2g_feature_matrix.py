@@ -41,6 +41,8 @@ class L2GFeatureMatrix:
             self.fixed_cols.append("goldStandardSet")
         if "traitFromSourceMappedId" in _df.columns:
             self.fixed_cols.append("traitFromSourceMappedId")
+        if "diseaseIds" in _df.columns:
+            self.fixed_cols.append("diseaseIds")
 
         self.features_list = features_list or [
             col for col in _df.columns if col not in self.fixed_cols

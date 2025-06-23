@@ -275,10 +275,11 @@ class LocusToGeneTrainer:
 
     def train(
         self: LocusToGeneTrainer,
-        wandb_run_name: str | None = None,
-        cross_validate: bool = True,
+        cross_validate: bool,
         n_splits: int = 5,
         hyperparameter_grid: dict[str, Any] | None = None,
+        *,
+        wb_config: WBConfig | None = None,
     ) -> LocusToGeneModel:
         """Train the Locus to Gene model.
 
@@ -289,10 +290,10 @@ class LocusToGeneTrainer:
             4. Evaluate once on test set
 
         Args:
-            wandb_run_name (str | None): Name of the W&B run. Unless this is provided, the model will not be logged to W&B.
             cross_validate (bool): Whether to run cross-validation. Defaults to True.
             n_splits(int): Number of folds the data is splitted in. The model is trained and evaluated `k - 1` times. Defaults to 5.
             hyperparameter_grid (dict[str, Any] | None): Hyperparameter grid to sweep over. Defaults to None.
+            wb_config (WBConfig | None): Weights and bias configuration. Unless this is provided, the model will not be logged to W&B.
 
         Returns:
             LocusToGeneModel: Fitted model
@@ -304,22 +305,17 @@ class LocusToGeneTrainer:
 
         X = data_df[self.features_list].apply(pd.to_numeric).values
         y = data_df[self.label_col].apply(pd.to_numeric).values
-        gene_trait_groups = (
-            data_df["traitFromSourceMappedId"].astype(str)
-            + "_"
-            + data_df["geneId"].astype(str)
-        )  # Group identifier has to be a single string
+        gene_groups = data_df["geneId"].astype(str)
 
         # Create hold-out test set separating EFO/Gene pairs between train/test
         train_test_split = GroupShuffleSplit(n_splits=1, test_size=0.2, random_state=42)
-        for train_idx, test_idx in train_test_split.split(X, y, gene_trait_groups):
+        for train_idx, test_idx in train_test_split.split(X, y, gene_groups):
             self.x_train, self.x_test = X[train_idx], X[test_idx]
             self.y_train, self.y_test = y[train_idx], y[test_idx]
-            self.groups_train = gene_trait_groups[train_idx]
+            self.groups_train = gene_groups[train_idx]
 
         # Cross-validation
         if cross_validate:
-            wandb_run_name = f"{wandb_run_name}-cv" if wandb_run_name else None
             self.cross_validate(
                 wandb_run_name=wandb_run_name,
                 parameter_grid=hyperparameter_grid,

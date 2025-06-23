@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
@@ -23,6 +24,13 @@ if TYPE_CHECKING:
     from pyspark.sql.types import StructType
 
     from gentropy.common.session import Session
+
+
+class ReaderType(str, Enum):
+    """Enum for reader types."""
+
+    PARQUET = "parquet"
+    JSON = "json"
 
 
 @dataclass
@@ -405,3 +413,53 @@ class Dataset(ABC):
             for column in uniqueness_defining_columns
         ]
         return f.md5(f.concat(*hashable_columns))
+
+    @staticmethod
+    def infer_reader(path: str) -> ReaderType:
+        """Infer the reader type based on the file extension provided in the path.
+
+        Warning:
+            The default reader type is parquet if no extension is provided.
+
+        Note:
+            This method supports only JSON and Parquet file formats.
+
+        Args:
+            path (str): Path to the dataset
+        Returns:
+            ReaderType: Reader type inferred from the file extension
+
+        Example:
+            >>> Dataset.infer_reader("data.json")
+            <ReaderType.JSON: 'json'>
+            >>> Dataset.infer_reader("data.parquet")
+            <ReaderType.PARQUET: 'parquet'>
+            >>> Dataset.infer_reader("data")
+            <ReaderType.PARQUET: 'parquet'>
+        """
+        pattern = re.compile(r".*\.(json|parquet)(.*)?")
+        _match = pattern.match(path)
+        if _match:
+            ext = _match.group(1).lower()
+            if ext == "json":
+                return ReaderType.JSON
+        # Fall back to parquet if no other extension is matched.
+        return ReaderType.PARQUET
+
+    @classmethod
+    def from_path(cls: type[Self], session: Session, path: str) -> Self:
+        """Initialise L2GTrainingSet from a path.
+
+        Args:
+            session (Session): Spark session
+            path (str): Path to the dataset
+
+        Returns:
+            Self: Dataset
+        """
+        reader = cls.infer_reader(path)
+        match reader:
+            case ReaderType.PARQUET:
+                return cls.from_parquet(session, path)
+            case ReaderType.JSON:
+                return cls(session.load_data(path, ReaderType.JSON.value))

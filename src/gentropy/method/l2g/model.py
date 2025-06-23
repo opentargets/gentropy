@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import logging
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -75,6 +74,8 @@ class LocusToGeneModel:
             ValueError: If the model has not been fitted yet
         """
         model_path = (Path(path) / model_name).as_posix()
+        session.logger.info(f"Loading model from {model_path}")
+        training_data_file = "training_data.parquet"
         if model_path.startswith("gs://"):
             path = model_path.removeprefix("gs://")
             bucket_name = path.split("/")[0]
@@ -86,23 +87,33 @@ class LocusToGeneModel:
             blob = storage.Blob(name=blob_name, bucket=bucket)
             data = blob.download_as_string(client=client)
             loaded_model = sio.loads(data, trusted=sio.get_untrusted_types(data=data))
+            training_data = None
+
         else:
             loaded_model = sio.load(
                 model_path, trusted=sio.get_untrusted_types(file=model_path)
             )
+            training_path = (Path(path) / training_data_file).as_posix()
+            session.logger.info(
+                f"Adding training data file to Spark context from {training_path}"
+            )
+            session.spark.sparkContext.addFile(training_path)
+            # Listing the context files:
+            all_files = sorted(session.spark.sparkContext.listFiles)
+            session.logger.info(f"Files in Spark context: {all_files}")
             try:
-                # Try loading the training data if it is in the model directory
+                df = pd.read_parquet(all_files[0])
+                df.to_csv("training_data.csv", index=False, header=True)
+                session.spark.sparkContext.addFile("training_data.csv")
+            except Exception:
+                session.logger.error("Could not find the file on hdfs.")
+                df = None
+            if df:
                 training_data = L2GFeatureMatrix(
-                    _df=session.spark.createDataFrame(
-                        # Parquet is read with Pandas to easily read local files
-                        pd.read_parquet(
-                            (Path(path) / "training_data.parquet").as_posix()
-                        )
-                    ),
+                    _df=df,
                     features_list=kwargs.get("features_list"),
                 )
-            except Exception as e:
-                logging.error("Training data set to none. Error: %s", e)
+            else:
                 training_data = None
 
         if not loaded_model._is_fitted():
@@ -147,6 +158,7 @@ class LocusToGeneModel:
                 not in [
                     "studyLocusId",
                     "geneId",
+                    "diseaseIds",
                     "traitFromSourceMappedId",
                     "goldStandardSet",
                 ]

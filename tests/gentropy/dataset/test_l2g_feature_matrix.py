@@ -34,7 +34,7 @@ def test_select_features_inheritance(mock_l2g_feature_matrix: L2GFeatureMatrix) 
         features_list=["distanceTssMean"]
     )
     assert new_instance.features_list == ["distanceTssMean"]
-    # Because the feature matrix contains the gold standard flag information, the new fixed colums should be the same
+    # Because the feature matrix contains the gold standard flag information, the new fixed columns should be the same
     assert "goldStandardSet" in new_instance.fixed_cols
 
 
@@ -86,10 +86,9 @@ class TestFromFeaturesList:
         """Setup fixture."""
         self.sample_gold_standard = L2GGoldStandard(
             _df=spark.createDataFrame(
-                [(1, "var1", "gwas1", "g1", "efo1", "positive", ["a_source"])],
+                [("1", "var1", "gwas1", "g1", ["efo1"], "positive", None)],
                 L2GGoldStandard.get_schema(),
             ),
-            _schema=L2GGoldStandard.get_schema(),
         )
         self.sample_study_locus = StudyLocus(
             _df=spark.createDataFrame(
