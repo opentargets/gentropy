@@ -217,6 +217,18 @@ class LDBasedClumpingConfig(StepConfig):
 
 
 @dataclass
+class IntervalConfig(StepConfig):
+    """Interval step configuration."""
+
+    variant_index_path: str = MISSING
+    target_index_path: str = MISSING
+    liftover_chain_file_path: str = MISSING
+    interval_sources: dict[str, str] = MISSING
+    interval_index_path: str = MISSING
+    _target_: str = "gentropy.intervals.IntervalStep"
+
+
+@dataclass
 class LocusToGeneConfig(StepConfig):
     """Locus to gene step configuration."""
 
@@ -229,6 +241,8 @@ class LocusToGeneConfig(StepConfig):
     model_path: str | None = None
     gold_standard_curation_path: str | None = None
     gene_interactions_path: str | None = None
+    target_index_path: str | None = None
+    interval_path: str | None = None
     features_list: list[str] = field(
         default_factory=lambda: [
             # max CLPP for each (study, locus, gene) aggregating over a specific qtl type
@@ -262,6 +276,13 @@ class LocusToGeneConfig(StepConfig):
             "vepMaximumNeighbourhood",
             "vepMean",
             "vepMeanNeighbourhood",
+            # intervals
+            "pchicMean",
+            "pchicMeanNeighbourhood",
+            "enhTssCorrelationMean",
+            "enhTssCorrelationMeanNeighbourhood",
+            "dhsPmtrCorrelationMean",
+            "dhsPmtrCorrelationMeanNeighbourhood",
             # other
             "geneCount500kb",
             "proteinGeneCount500kb",
@@ -307,6 +328,7 @@ class LocusToGeneFeatureMatrixConfig(StepConfig):
     colocalisation_path: str | None = None
     study_index_path: str | None = None
     target_index_path: str | None = None
+    interval_path: str | None = None
     feature_matrix_path: str = MISSING
     features_list: list[str] = field(
         default_factory=lambda: [
@@ -341,6 +363,13 @@ class LocusToGeneFeatureMatrixConfig(StepConfig):
             "vepMaximumNeighbourhood",
             "vepMean",
             "vepMeanNeighbourhood",
+            # intervals
+            "pchicMean",
+            "pchicMeanNeighbourhood",
+            "enhTssCorrelationMean",
+            "enhTssCorrelationMeanNeighbourhood",
+            "dhsPmtrCorrelationMean",
+            "dhsPmtrCorrelationMeanNeighbourhood",
             # other
             "geneCount500kb",
             "proteinGeneCount500kb",
@@ -787,3 +816,4 @@ def register_config() -> None:
     cs.store(group="step", name="finngen_ukb_meta_ingestion", node=FinngenUkbMetaConfig)
     cs.store(group="step", name="credible_set_qc", node=CredibleSetQCStepConfig)
     cs.store(group="step", name="foldx_integration", node=FoldXVariantAnnotationConfig)
+    cs.store(group="step", name="interval_index", node=IntervalConfig)
