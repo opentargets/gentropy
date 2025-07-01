@@ -182,7 +182,7 @@ def test_l2g_feature_constructor_with_schema_mismatch(
 
 
 def test_calculate_feature_missingness_rate(
-    spark: SparkSession, mock_l2g_feature_matrix: L2GFeatureMatrix
+    mock_l2g_feature_matrix: L2GFeatureMatrix,
 ) -> None:
     """Test L2GFeatureMatrix.calculate_feature_missingness_rate."""
     expected_missingness = {"distanceTssMean": 0.0, "distanceSentinelTssMinimum": 0.125}
