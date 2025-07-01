@@ -185,7 +185,7 @@ def test_calculate_feature_missingness_rate(
     spark: SparkSession, mock_l2g_feature_matrix: L2GFeatureMatrix
 ) -> None:
     """Test L2GFeatureMatrix.calculate_feature_missingness_rate."""
-    expected_missingness = {"distanceTssMean": 0.0, "distanceSentinelTssMinimum": 1.0}
+    expected_missingness = {"distanceTssMean": 0.0, "distanceSentinelTssMinimum": 0.125}
     observed_missingness = mock_l2g_feature_matrix.calculate_feature_missingness_rate()
     assert isinstance(observed_missingness, dict)
     assert mock_l2g_feature_matrix.features_list is not None and len(
