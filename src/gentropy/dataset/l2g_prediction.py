@@ -111,7 +111,7 @@ class L2GPrediction(Dataset):
         study_locus: StudyLocus,
         study_index: StudyIndex,
         l2g_threshold: float = 0.05,
-    ) -> DataFrame:
+    ) -> DataFrame | None:
         """Convert locus to gene predictions to disease target evidence.
 
         Args:
@@ -120,10 +120,15 @@ class L2GPrediction(Dataset):
             l2g_threshold (float): Threshold to consider a gene as a target. Defaults to 0.05.
 
         Returns:
-            DataFrame: Disease target evidence
+            DataFrame | None: Disease target evidence
         """
         datasource_id = "gwas_credible_sets"
         datatype_id = "genetic_association"
+
+        # A set of optional columns need to be in the input datasets:
+        for c in ["diseaseIds", "pubmedId"]:
+            if c not in study_index.df.columns:
+                return None
 
         return (
             self.df.filter(f.col("score") >= l2g_threshold)
@@ -133,7 +138,11 @@ class L2GPrediction(Dataset):
                 how="inner",
             )
             .join(
-                study_index.df.select("studyId", "diseaseIds"),
+                study_index.df.select(
+                    "studyId",
+                    "diseaseIds",
+                    f.array(f.col("pubmedId")).alias("literature"),
+                ),
                 on="studyId",
                 how="inner",
             )
@@ -144,6 +153,7 @@ class L2GPrediction(Dataset):
                 f.explode(f.col("diseaseIds")).alias("diseaseFromSourceMappedId"),
                 f.col("score").alias("resourceScore"),
                 "studyLocusId",
+                "literature",
             )
         )
 
