@@ -33,12 +33,12 @@ class FinnGenStudyIndex:
     Some fields are also populated as constants, such as study type and the initial sample size.
     """
 
-    CONSTANTS = [
-        f.lit("gwas").alias("studyType"),
-        f.lit(True).alias("hasSumstats"),
-        f.lit("500,348 (282,064 females and 218,284 males)").alias("initialSampleSize"),
-        f.lit("36653562").alias("pubmedId"),
-    ]
+    CONSTANTS = {
+        "studyType": "gwas",
+        "hasSumstats": True,
+        "initialSampleSize": "500,348 (282,064 females and 218,284 males)",
+        "pubmedId": "36653562",
+    }
 
     @staticmethod
     def validate_release_prefix(release_prefix: str) -> FinngenPrefixMatch:
@@ -183,7 +183,7 @@ class FinnGenStudyIndex:
                     f.lit(finngen_summary_stats_url_suffix),
                 ).alias("summarystatsLocation"),
                 f.lit(finngen_release_prefix).alias("projectId"),
-                *cls.CONSTANTS,
+                *[f.lit(value).alias(key) for key, value in cls.CONSTANTS.items()],
             ).withColumn(
                 "ldPopulationStructure",
                 StudyIndex.aggregate_and_map_ancestries(f.col("discoverySamples")),
