@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING
 import pyspark.sql.functions as f
 import shap
 from pyspark.sql import DataFrame
-from pyspark.sql.types import StructType
+from pyspark.sql.types import StringType, StructType
 
 from gentropy.common.schemas import parse_spark_schema
 from gentropy.common.session import Session
@@ -22,7 +22,6 @@ from gentropy.method.l2g.model import LocusToGeneModel
 
 if TYPE_CHECKING:
     from pandas import DataFrame as pd_dataframe
-    from pyspark.sql.types import StructType
 
 
 @dataclass
@@ -121,14 +120,24 @@ class L2GPrediction(Dataset):
 
         Returns:
             DataFrame | None: Disease target evidence
+
+        Raises:
+            ValueError: if `diseaseIds` column is missing.
         """
         datasource_id = "gwas_credible_sets"
         datatype_id = "genetic_association"
 
         # A set of optional columns need to be in the input datasets:
-        for c in ["diseaseIds", "pubmedId"]:
-            if c not in study_index.df.columns:
-                return None
+        if "diseaseIds" not in study_index.df.columns:
+            raise ValueError(
+                "DisaseIds column has to be in the study index to generate disase/target evidence."
+            )
+
+        # PubmedId is an optional column in the study index, so we need to make sure it's there:
+        if "pubmedId" not in study_index.df.columns:
+            study_index = StudyIndex(
+                study_index.df.withColumn("pubmedId", f.lit(None).cast(StringType()))
+            )
 
         return (
             self.df.filter(f.col("score") >= l2g_threshold)
@@ -141,7 +150,10 @@ class L2GPrediction(Dataset):
                 study_index.df.select(
                     "studyId",
                     "diseaseIds",
-                    f.array(f.col("pubmedId")).alias("literature"),
+                    # Only store pubmed id if provided from source:
+                    f.when(
+                        f.col("pubmedId").isNotNull(), f.array(f.col("pubmedId"))
+                    ).alias("literature"),
                 ),
                 on="studyId",
                 how="inner",

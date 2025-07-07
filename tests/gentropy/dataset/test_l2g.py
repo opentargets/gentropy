@@ -231,11 +231,21 @@ class TestEvidenceGeneration:
         )
 
         # Study index is missing an optional column, which is required for evidence generation.
-        self.study_index2 = StudyIndex(
+        self.study_index_no_disease = StudyIndex(
             spark.createDataFrame(
                 self.STUDY_DATA,
                 "studyId STRING, projectId STRING, studyType STRING, diseaseIds STRING, pubmedId STRING",
             ).drop("diseaseIds")
+        )
+
+        # Study index is missing an optional column, which is NOT required for evidence generation.
+        self.study_index_no_pubmed = StudyIndex(
+            spark.createDataFrame(
+                self.STUDY_DATA,
+                "studyId STRING, projectId STRING, studyType STRING, diseaseIds STRING, pubmedId STRING",
+            )
+            .withColumn("diseaseIds", f.split("diseaseIds", ","))
+            .drop("pubmedId")
         )
 
         self.study_locus = StudyLocus(
@@ -263,16 +273,28 @@ class TestEvidenceGeneration:
             l2g_threshold=2.0,
         )
 
-        # Optional column is missing, so no evidence is generated:
+        # Optional column is missing, but evidence is generated:
         self.evidence3 = self.l2g.to_disease_target_evidence(
-            study_index=self.study_index2, study_locus=self.study_locus
+            study_index=self.study_index_no_pubmed, study_locus=self.study_locus
+        )
+
+    def test_missing_optional_columns(self: TestEvidenceGeneration) -> None:
+        """Test behaviour if optional columns are missing."""
+        with pytest.raises(ValueError) as excinfo:
+            self.l2g.to_disease_target_evidence(
+                study_index=self.study_index_no_disease,
+                study_locus=self.study_locus,
+            )
+        assert (
+            "DisaseIds column has to be in the study index to generate disase/target evidence."
+            in str(excinfo.value)
         )
 
     def test_evidence_type(self: TestEvidenceGeneration) -> None:
         """Test return type of the evidence generation process."""
         assert isinstance(self.evidence1, DataFrame)
         assert isinstance(self.evidence2, DataFrame)
-        assert self.evidence3 is None
+        assert isinstance(self.evidence3, DataFrame)
 
     def test_evidence_length(self: TestEvidenceGeneration) -> None:
         """Test the length of the returned evidence table."""
