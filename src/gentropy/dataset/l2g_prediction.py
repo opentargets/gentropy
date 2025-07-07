@@ -110,7 +110,7 @@ class L2GPrediction(Dataset):
         study_locus: StudyLocus,
         study_index: StudyIndex,
         l2g_threshold: float = 0.05,
-    ) -> DataFrame | None:
+    ) -> DataFrame:
         """Convert locus to gene predictions to disease target evidence.
 
         Args:
@@ -119,7 +119,7 @@ class L2GPrediction(Dataset):
             l2g_threshold (float): Threshold to consider a gene as a target. Defaults to 0.05.
 
         Returns:
-            DataFrame | None: Disease target evidence
+            DataFrame: Disease target evidence
 
         Raises:
             ValueError: if `diseaseIds` column is missing.
