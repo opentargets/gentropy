@@ -419,7 +419,7 @@ class LocusToGeneEvidenceStep:
         # Reading the study index
         study_index = StudyIndex.from_parquet(session, study_index_path)
 
-        # Generate evidence and save file - if there's any evidence:
+        # Generate evidence and save file:
         (
             locus_to_gene_prediction.to_disease_target_evidence(
                 credible_sets, study_index, locus_to_gene_threshold
