@@ -11,7 +11,7 @@ from gentropy.dataset.intervals import Intervals
 if TYPE_CHECKING:
     from pyspark.sql import DataFrame, SparkSession
 
-    from gentropy.common.Liftover import LiftOverSpark
+    from gentropy.common.genomic_region import LiftOverSpark
     from gentropy.dataset.target_index import TargetIndex
 
 

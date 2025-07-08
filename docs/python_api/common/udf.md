@@ -1,5 +1,5 @@
 ---
-title: User Defined Pandas Functions
+title: udf
 ---
 
 :::gentropy.common.udf

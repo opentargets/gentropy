@@ -12,7 +12,7 @@ from pyspark.sql.types import ArrayType, FloatType, LongType, StringType
 
 from gentropy.common.genomic_region import GenomicRegion, KnownGenomicRegions
 from gentropy.common.schemas import parse_spark_schema
-from gentropy.common.spark_helpers import (
+from gentropy.common.spark import (
     create_empty_column_if_not_exists,
     get_struct_field_schema,
     order_array_of_structs_by_field,

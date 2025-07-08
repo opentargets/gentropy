@@ -11,7 +11,7 @@ import pyspark.sql.types as t
 
 from gentropy.common.stats import (
     normalise_gwas_statistics,
-    pval_from_neglogpval,
+    pvalue_from_neglogpval,
     split_pvalue_column,
 )
 from gentropy.dataset.summary_statistics import SummaryStatistics
@@ -108,7 +108,7 @@ class GWASCatalogSummaryStatistics(SummaryStatistics):
         p_value_expression = (
             split_pvalue_column(f.col("p_value"))
             if "p_value" in sumstats_df.columns
-            else pval_from_neglogpval(f.col("neg_log_10_p_value"))
+            else pvalue_from_neglogpval(f.col("neg_log_10_p_value"))
         )
 
         # The effect allele frequency is an optional column, we have to test if it is there:

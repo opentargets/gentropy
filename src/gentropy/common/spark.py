@@ -815,117 +815,116 @@ def filter_array_struct(
         Column: The value_column from the struct from the same array element as the matched key_column.
 
     Examples:
-    ---
-    >>> data = [([{"a": 1, "b": 2.0, "c": "c", "d": True}, {"a": 3, "b": 4.0, "c": "c", "d": False}], "c")]
-    >>> schema = 'col array<struct<a:int,b:float,c:string, d:boolean>>, col2 string'
-    >>> df = spark.createDataFrame(data, schema)
-    >>> df.show(truncate=False)
-    +---------------------------------------+----+
-    |col                                    |col2|
-    +---------------------------------------+----+
-    |[{1, 2.0, c, true}, {3, 4.0, c, false}]|c   |
-    +---------------------------------------+----+
-    <BLANKLINE>
+        >>> data = [([{"a": 1, "b": 2.0, "c": "c", "d": True}, {"a": 3, "b": 4.0, "c": "c", "d": False}], "c")]
+        >>> schema = 'col array<struct<a:int,b:float,c:string, d:boolean>>, col2 string'
+        >>> df = spark.createDataFrame(data, schema)
+        >>> df.show(truncate=False)
+        +---------------------------------------+----+
+        |col                                    |col2|
+        +---------------------------------------+----+
+        |[{1, 2.0, c, true}, {3, 4.0, c, false}]|c   |
+        +---------------------------------------+----+
+        <BLANKLINE>
 
-    >>> df.printSchema()
-    root
-     |-- col: array (nullable = true)
-     |    |-- element: struct (containsNull = true)
-     |    |    |-- a: integer (nullable = true)
-     |    |    |-- b: float (nullable = true)
-     |    |    |-- c: string (nullable = true)
-     |    |    |-- d: boolean (nullable = true)
-     |-- col2: string (nullable = true)
-    <BLANKLINE>
+        >>> df.printSchema()
+        root
+         |-- col: array (nullable = true)
+         |    |-- element: struct (containsNull = true)
+         |    |    |-- a: integer (nullable = true)
+         |    |    |-- b: float (nullable = true)
+         |    |    |-- c: string (nullable = true)
+         |    |    |-- d: boolean (nullable = true)
+         |-- col2: string (nullable = true)
+        <BLANKLINE>
 
-    ** Key can be an int **
+        ** Key can be an int **
 
-    >>> array_struct = "col"
-    >>> key_column = "a"
-    >>> key = 1
-    >>> value_column = "b"
-    >>> result = df.select(filter_array_struct(array_struct, key_column, key, value_column))
-    >>> result.show()
-    +---+
-    |  b|
-    +---+
-    |2.0|
-    +---+
-    <BLANKLINE>
+        >>> array_struct = "col"
+        >>> key_column = "a"
+        >>> key = 1
+        >>> value_column = "b"
+        >>> result = df.select(filter_array_struct(array_struct, key_column, key, value_column))
+        >>> result.show()
+        +---+
+        |  b|
+        +---+
+        |2.0|
+        +---+
+        <BLANKLINE>
 
-    ** Key can be a float **
+        ** Key can be a float **
 
-    >>> key_column = "b"
-    >>> key = 2.0
-    >>> value_column = "a"
-    >>> result = df.select(filter_array_struct(array_struct, key_column, key, value_column))
-    >>> result.show()
-    +---+
-    |  a|
-    +---+
-    |  1|
-    +---+
-    <BLANKLINE>
+        >>> key_column = "b"
+        >>> key = 2.0
+        >>> value_column = "a"
+        >>> result = df.select(filter_array_struct(array_struct, key_column, key, value_column))
+        >>> result.show()
+        +---+
+        |  a|
+        +---+
+        |  1|
+        +---+
+        <BLANKLINE>
 
-    ** Key can be a string **
+        ** Key can be a string **
 
-    >>> key_column = "c"
-    >>> key = "c"
-    >>> value_column = "a"
-    >>> result = df.select(filter_array_struct(array_struct, key_column, key, value_column))
+        >>> key_column = "c"
+        >>> key = "c"
+        >>> value_column = "a"
+        >>> result = df.select(filter_array_struct(array_struct, key_column, key, value_column))
 
-    The first match will be returned, even array have multiple matches to the key.
+        The first match will be returned, even if array have multiple matches to the key.
 
-    >>> result.show()
-    +---+
-    |  a|
-    +---+
-    |  1|
-    +---+
-    <BLANKLINE>
+        >>> result.show()
+        +---+
+        |  a|
+        +---+
+        |  1|
+        +---+
+        <BLANKLINE>
 
-    ** Key can be a boolean **
+        ** Key can be a boolean **
 
-    >>> key_column = "d"
-    >>> key = True
-    >>> value_column = "a"
-    >>> result = df.select(filter_array_struct(array_struct, key_column, key, value_column))
-    >>> result.show()
-    +---+
-    |  a|
-    +---+
-    |  1|
-    +---+
-    <BLANKLINE>
+        >>> key_column = "d"
+        >>> key = True
+        >>> value_column = "a"
+        >>> result = df.select(filter_array_struct(array_struct, key_column, key, value_column))
+        >>> result.show()
+        +---+
+        |  a|
+        +---+
+        |  1|
+        +---+
+        <BLANKLINE>
 
-    ** Key can be a column**
+        ** Key can be a column**
 
-    >>> array_struct = f.col("col")
-    >>> key_column = "c"
-    >>> key = f.col("col2")
-    >>> value_column = "b"
-    >>> result = df.select(filter_array_struct(array_struct, key_column, key, value_column))
-    >>> result.show()
-    +---+
-    |  b|
-    +---+
-    |2.0|
-    +---+
-    <BLANKLINE>
+        >>> array_struct = f.col("col")
+        >>> key_column = "c"
+        >>> key = f.col("col2")
+        >>> value_column = "b"
+        >>> result = df.select(filter_array_struct(array_struct, key_column, key, value_column))
+        >>> result.show()
+        +---+
+        |  b|
+        +---+
+        |2.0|
+        +---+
+        <BLANKLINE>
 
-    ** All paramters are columns **
-    >>> array_struct = f.col("col")
-    >>> key_column = f.col("c")
-    >>> key = f.col("col2")
-    >>> value_column = f.col("a")
-    >>> result = df.select(filter_array_struct(array_struct, key_column, key, value_column))
-    >>> result.show()
-    +---+
-    |  a|
-    +---+
-    |  1|
-    +---+
-    <BLANKLINE>
+        ** All paramters are columns **
+        >>> array_struct = f.col("col")
+        >>> key_column = f.col("c")
+        >>> key = f.col("col2")
+        >>> value_column = f.col("a")
+        >>> result = df.select(filter_array_struct(array_struct, key_column, key, value_column))
+        >>> result.show()
+        +---+
+        |  a|
+        +---+
+        |  1|
+        +---+
+        <BLANKLINE>
     """
     if not isinstance(key, Column):
         key = f.lit(key)
