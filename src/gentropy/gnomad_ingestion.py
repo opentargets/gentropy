@@ -6,7 +6,10 @@ from gentropy.common.session import Session
 from gentropy.common.types import LD_Population, VariantPopulation
 from gentropy.config import GnomadVariantConfig, LDIndexConfig
 from gentropy.datasource.gnomad.ld import GnomADLDMatrix
-from gentropy.datasource.gnomad.variants import GnomADVariants
+from gentropy.datasource.gnomad.variants import (
+    GnomADVariantFrequencies,
+    GnomADVariantRsIds,
+)
 
 
 class LDIndexStep:
@@ -25,8 +28,7 @@ class LDIndexStep:
         min_r2: float = LDIndexConfig().min_r2,
         ld_matrix_template: str = LDIndexConfig().ld_matrix_template,
         ld_index_raw_template: str = LDIndexConfig().ld_index_raw_template,
-        ld_populations: list[LD_Population |
-                             str] = LDIndexConfig().ld_populations,
+        ld_populations: list[LD_Population | str] = LDIndexConfig().ld_populations,
         liftover_ht_path: str = LDIndexConfig().liftover_ht_path,
         grch37_to_grch38_chain_path: str = LDIndexConfig().grch37_to_grch38_chain_path,
     ) -> None:
@@ -72,6 +74,7 @@ class GnomadVariantIndexStep:
         session: Session,
         variant_annotation_path: str = GnomadVariantConfig().variant_annotation_path,
         gnomad_genomes_path: str = GnomadVariantConfig().gnomad_genomes_path,
+        gnomad_joint_path: str = GnomadVariantConfig().gnomad_joint_path,
         gnomad_variant_populations: list[
             VariantPopulation | str
         ] = GnomadVariantConfig().gnomad_variant_populations,
@@ -80,24 +83,29 @@ class GnomadVariantIndexStep:
 
         Args:
             session (Session): Session object.
-            variant_annotation_path (str): Path to resulting dataset.
-            gnomad_genomes_path (str): Path to gnomAD genomes hail table, e.g. `gs://gcp-public-data--gnomad/release/4.0/ht/genomes/gnomad.genomes.v4.0.sites.ht/`.
-            gnomad_variant_populations (list[VariantPopulation | str]): List of populations to include.
+            variant_annotation_path (str): Output path for the variant annotation dataset.
+            gnomad_genomes_path (str): Path to the gnomAD genomes hail table.
+            gnomad_joint_path (str): Path to the gnomAD joint hail table.
+            gnomad_variant_populations (list[VariantPopulation | str]): List of populations to include in the annotation.
 
         All defaults are stored in the GnomadVariantConfig.
         """
         # amend data source version to output path
         session.logger.info("Gnomad variant annotation path:")
         session.logger.info(variant_annotation_path)
+
+        gnomad_rsids = GnomADVariantRsIds(
+            gnomad_genomes_path=gnomad_genomes_path,
+        ).as_variant_index()
+
+        gnomad_allele_frequencies = GnomADVariantFrequencies(
+            gnomad_joint_path=gnomad_joint_path,
+            gnomad_variant_populations=gnomad_variant_populations,
+        ).as_variant_index()
+
         # Parse variant info from source.
         (
-            GnomADVariants(
-                gnomad_genomes_path=gnomad_genomes_path,
-                gnomad_variant_populations=gnomad_variant_populations,
-            )
-            # Convert data to variant index:
-            .as_variant_index()
-            # Write file:
+            gnomad_allele_frequencies.add_annotation(gnomad_rsids)
             .df.repartitionByRange("chromosome", "position")
             .sortWithinPartitions("chromosome", "position")
             .write.mode(session.write_mode)
