@@ -10,8 +10,9 @@ import hail as hl
 import numpy as np
 from pyspark.sql import functions as f
 from pyspark.sql import types as t
+from scipy.stats import chi2
 
-from gentropy.common.spark_helpers import pvalue_to_zscore
+from gentropy.common.spark_helpers import calculate_neglog_pvalue, pvalue_to_zscore
 
 if TYPE_CHECKING:
     from hail.table import Table
@@ -78,8 +79,12 @@ def calculate_confidence_interval(
     return (ci_lower, ci_upper)
 
 
-def convert_odds_ratio_to_beta(
-    beta: Column, odds_ratio: Column, standard_error: Column
+def normalise_gwas_statistics(
+    beta: Column,
+    odds_ratio: Column,
+    standard_error: Column,
+    ci_upper: Column,
+    ci_lower: Column,
 ) -> list[Column]:
     """Harmonizes effect and standard error to beta.
 
@@ -87,28 +92,65 @@ def convert_odds_ratio_to_beta(
         beta (Column): Effect in beta
         odds_ratio (Column): Effect in odds ratio
         standard_error (Column): Standard error of the effect
+        ci_upper (Column): Upper bound of the confidence interval
+        ci_lower (Column): Lower bound of the confidence interval
 
     Returns:
         list[Column]: beta, standard error
 
     Examples:
-        >>> df = spark.createDataFrame([{"beta": 0.1, "oddsRatio": 1.1, "standardError": 0.1}, {"beta": None, "oddsRatio": 1.1, "standardError": 0.1}, {"beta": 0.1, "oddsRatio": None, "standardError": 0.1}, {"beta": 0.1, "oddsRatio": 1.1, "standardError": None}])
-        >>> df.select("*", *convert_odds_ratio_to_beta(f.col("beta"), f.col("oddsRatio"), f.col("standardError"))).show()
-        +----+---------+-------------+-------------------+-------------+
-        |beta|oddsRatio|standardError|               beta|standardError|
-        +----+---------+-------------+-------------------+-------------+
-        | 0.1|      1.1|          0.1|                0.1|          0.1|
-        |NULL|      1.1|          0.1|0.09531017980432493|         NULL|
-        | 0.1|     NULL|          0.1|                0.1|          0.1|
-        | 0.1|      1.1|         NULL|                0.1|         NULL|
-        +----+---------+-------------+-------------------+-------------+
+        >>>
+        >>> x1 = (0.1, 1.1, 0.1, None, None) # keep beta, keep std error
+        >>> x2 = (None, 1.1, 0.1, None, None) # convert odds ratio to beta, keep std error
+        >>> x3 = (None, 1.1, None, 1.30, 0.90) # convert odds ratio to beta, convert ci to standard error
+        >>> x4 = (0.1, 1.1, None, 1.30, 0.90) # keep beta, convert ci to standard error
+        >>> data = [x1, x2, x3, x4]
+
+        >>> schema = "beta FLOAT, oddsRatio FLOAT, standardError FLOAT, ci_upper FLOAT, ci_lower FLOAT"
+        >>> df = spark.createDataFrame(data, schema)
+        >>> df.show()
+        +----+---------+-------------+--------+--------+
+        |beta|oddsRatio|standardError|ci_upper|ci_lower|
+        +----+---------+-------------+--------+--------+
+        | 0.1|      1.1|          0.1|    NULL|    NULL|
+        |NULL|      1.1|          0.1|    NULL|    NULL|
+        |NULL|      1.1|         NULL|     1.3|     0.9|
+        | 0.1|      1.1|         NULL|     1.3|     0.9|
+        +----+---------+-------------+--------+--------+
         <BLANKLINE>
 
+
+        >>> beta = f.col("beta")
+        >>> odds_ratio = f.col("oddsRatio")
+        >>> se = f.col("standardError")
+        >>> ci_upper = f.col("ci_upper")
+        >>> ci_lower = f.col("ci_lower")
+        >>> cols = normalise_gwas_statistics(beta, odds_ratio, se, ci_upper, ci_lower)
+        >>> beta_computed = f.round(cols[0], 2).alias("beta")
+        >>> standard_error_computed = f.round(cols[1], 2).alias("standardError")
+        >>> df.select(beta_computed, standard_error_computed).show()
+        +----+-------------+
+        |beta|standardError|
+        +----+-------------+
+        | 0.1|          0.1|
+        | 0.1|         NULL|
+        | 0.1|         0.09|
+        | 0.1|         0.09|
+        +----+-------------+
+        <BLANKLINE>
     """
     # We keep standard error when effect is given in beta, otherwise drop.
-    standard_error = f.when(
-        standard_error.isNotNull() & beta.isNotNull(), standard_error
-    ).alias("standardError")
+    # In case the beta is not present, but we have the odds ratio, we assume that
+    # we can calculate the standard error from the confidence interval.
+    standard_error = (
+        f.when(standard_error.isNotNull() & beta.isNotNull(), standard_error)
+        .when(
+            odds_ratio.isNotNull() & ci_lower.isNotNull() & ci_upper.isNotNull(),
+            se_from_ci(ci_upper, ci_lower),
+        )
+        .otherwise(f.lit(None))
+        .alias("standardError")
+    )
 
     # Odds ratio is converted to beta:
     beta = (
@@ -219,6 +261,9 @@ def split_pvalue(pvalue: float) -> tuple[float, int]:
 
         >>> split_pvalue(0.123)
         (1.23, -1)
+
+        >>> split_pvalue(0.99)
+        (9.9, -1)
     """
     if pvalue < 0.0 or pvalue > 1.0:
         raise ValueError("P-value must be between 0 and 1")
@@ -371,3 +416,173 @@ def extract_position(variant_id: Column) -> Column:
 
     """
     return f.regexp_extract(variant_id, r"^.*_(\d+)_.*$", 1)
+
+
+def neglogpval_from_z2(z2: float) -> float:
+    """Calculate negative log10 of p-value from squared Z-score following chi2 distribution.
+
+    **The Z-score^2 is equal to the chi2 with 1 degree of freedom.**
+
+    Args:
+        z2 (float): Z-score squared.
+
+    Returns:
+        float:  negative log of p-value.
+
+    Examples:
+        >>> round(neglogpval_from_z2(1.0),2)
+        0.5
+
+        >>> round(neglogpval_from_z2(2000),2)
+        436.02
+    """
+    MAX_EXACT_Z2 = 1400
+    APPROX_A = 1.4190
+    APPROX_B = 0.2173
+    if z2 <= MAX_EXACT_Z2:
+        logpval = -np.log10(chi2.sf((z2), 1))
+        return float(logpval)
+    else:
+        return APPROX_A + APPROX_B * z2
+
+
+def chi2_from_pvalue(p_value_mantissa: Column, p_value_exponent: Column) -> Column:
+    """Calculate chi2 from p-value.
+
+    This function calculates the chi2 value from the p-value mantissa and exponent.
+    In case the p-value is very small (exponent < -300), it uses an approximation based on a linear regression model.
+    The approximation is based on the formula: -5.367 * neglog_pval + 4.596, where neglog_pval is the negative log10 of the p-value mantissa.
+
+
+    Args:
+        p_value_mantissa (Column): Mantissa of the p-value (float)
+        p_value_exponent (Column): Exponent of the p-value (integer)
+
+    Returns:
+        Column: Chi2 value (float)
+
+    Examples:
+        >>> data = [(5.0, -8), (9.0, -300), (9.0, -301)]
+        >>> schema = "pValueMantissa FLOAT, pValueExponent INT"
+        >>> df = spark.createDataFrame(data, schema)
+        >>> df.show()
+        +--------------+--------------+
+        |pValueMantissa|pValueExponent|
+        +--------------+--------------+
+        |           5.0|            -8|
+        |           9.0|          -300|
+        |           9.0|          -301|
+        +--------------+--------------+
+        <BLANKLINE>
+
+        >>> mantissa = f.col("pValueMantissa")
+        >>> exponent = f.col("pValueExponent")
+        >>> chi2 = f.round(chi2_from_pvalue(mantissa, exponent), 2).alias("chi2")
+        >>> df2 = df.select(mantissa, exponent, chi2)
+        >>> df2.show()
+        +--------------+--------------+-------+
+        |pValueMantissa|pValueExponent|   chi2|
+        +--------------+--------------+-------+
+        |           5.0|            -8|  29.72|
+        |           9.0|          -300|1369.48|
+        |           9.0|          -301|1373.64|
+        +--------------+--------------+-------+
+        <BLANKLINE>
+    """
+    neglog_pval = calculate_neglog_pvalue(p_value_mantissa, p_value_exponent)
+    p_value = p_value_mantissa * f.pow(10, p_value_exponent)
+    neglog_approximation_intercept = f.lit(-5.367)
+    neglog_approximation_coeff = f.lit(4.596)
+    neglog_approx = (
+        neglog_pval * neglog_approximation_coeff + neglog_approximation_intercept
+    ).cast(t.DoubleType())
+    chi2_udf = f.udf(lambda x: float(chi2.isf(x, df=1)), t.FloatType())
+
+    return (
+        f.when(p_value_exponent < f.lit(-300), neglog_approx)
+        .otherwise(chi2_udf(p_value))
+        .alias("chi2")
+    )
+
+
+def stderr_from_pvalue(chi2_col: Column, beta: Column) -> Column:
+    """Calculate standard error from chi2 and beta.
+
+    This function calculates the standard error from the chi2 value and beta.
+
+    Args:
+        chi2_col (Column): Chi2 value (float)
+        beta (Column): Beta value (float)
+
+    Returns:
+        Column: Standard error (float)
+
+    Examples:
+        >>> data = [(29.72, 3.0), (3.84, 1.0)]
+        >>> schema = "chi2 FLOAT, beta FLOAT"
+        >>> df = spark.createDataFrame(data, schema)
+        >>> df.show()
+        +-----+----+
+        | chi2|beta|
+        +-----+----+
+        |29.72| 3.0|
+        | 3.84| 1.0|
+        +-----+----+
+        <BLANKLINE>
+
+        >>> chi2_col = f.col("chi2")
+        >>> beta = f.col("beta")
+        >>> standard_error = f.round(stderr_from_pvalue(chi2_col, beta), 2).alias("standardError")
+        >>> df2 = df.select(chi2_col, beta, standard_error)
+        >>> df2.show()
+        +-----+----+-------------+
+        | chi2|beta|standardError|
+        +-----+----+-------------+
+        |29.72| 3.0|         0.55|
+        | 3.84| 1.0|         0.51|
+        +-----+----+-------------+
+        <BLANKLINE>
+
+    """
+    return (f.abs(beta) / f.sqrt(chi2_col)).alias("standardError")
+
+
+def se_from_ci(ci_upper: Column, ci_lower: Column) -> Column:
+    """Calculate standard error from confidence interval.
+
+    This function calculates the standard error from the confidence interval upper and lower bounds.
+
+    Args:
+        ci_upper (Column): Upper bound of the confidence interval (float)
+        ci_lower (Column): Lower bound of the confidence interval (float)
+
+    Returns:
+        Column: Standard error (float)
+
+    Examples:
+        >>> data = [(0.5, 0.1), (1.0, 0.5)]
+        >>> schema = "ci_upper FLOAT, ci_lower FLOAT"
+        >>> df = spark.createDataFrame(data, schema)
+        >>> df.show()
+        +--------+--------+
+        |ci_upper|ci_lower|
+        +--------+--------+
+        |     0.5|     0.1|
+        |     1.0|     0.5|
+        +--------+--------+
+        <BLANKLINE>
+
+        >>> ci_upper = f.col("ci_upper")
+        >>> ci_lower = f.col("ci_lower")
+        >>> standard_error = f.round(se_from_ci(ci_upper, ci_lower), 2).alias("standardError")
+        >>> df2 = df.select(ci_upper, ci_lower, standard_error)
+        >>> df2.show()
+        +--------+--------+-------------+
+        |ci_upper|ci_lower|standardError|
+        +--------+--------+-------------+
+        |     0.5|     0.1|         0.41|
+        |     1.0|     0.5|         0.18|
+        +--------+--------+-------------+
+        <BLANKLINE>
+    """
+    return ((f.log(ci_upper) - f.log(ci_lower)) / (2 * 1.96)).alias("standardError")

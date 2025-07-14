@@ -64,9 +64,7 @@ class Colocalisation(Dataset):
             set(EqtlCatalogueStudyIndex.method_to_qtl_type_mapping.values())
         ) + [
             f"sc{qtl}"
-            for qtl in set(
-                EqtlCatalogueStudyIndex.method_to_qtl_type_mapping.values()
-            )
+            for qtl in set(EqtlCatalogueStudyIndex.method_to_qtl_type_mapping.values())
         ]
 
         if filter_by_qtls:
@@ -174,4 +172,28 @@ class Colocalisation(Dataset):
                     for col in metadata_cols
                 ],
             ).join(coloc_df, f"{colocalisation_side}StudyLocusId", "right")
+        )
+
+    def drop_trans_effects(
+        self: Colocalisation, study_locus: StudyLocus
+    ) -> Colocalisation:
+        """Filters the colocalisation dataset to only include cis effects from QTLs (right study locus).
+
+        Args:
+            study_locus (StudyLocus): Dataset containing study loci that has metadata about the type of credible set
+
+        Returns:
+            Colocalisation: Colocalisation dataset filtered to only include cis effects from QTLs (right study locus)
+        """
+        cis_study_loci = study_locus.filter(
+            (~f.col("isTransQtl")) | (f.col("isTransQtl").isNull())
+        ).df.select("studyLocusId")
+        filtered_coloc = self.df.join(
+            cis_study_loci,
+            self.df.rightStudyLocusId == cis_study_loci.studyLocusId,
+            "inner",
+        ).drop("studyLocusId")
+        return Colocalisation(
+            _df=filtered_coloc,
+            _schema=self.get_schema(),
         )
