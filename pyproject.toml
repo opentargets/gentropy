@@ -20,7 +20,7 @@ dependencies = [
   "scikit-learn (>=1.6.1, <1.7.0)",
   "pandas[gcp,parquet] (>=2.2.3, <2.3.0)",
   "skops (>=0.11.0, <0.12.0)",
-  "shap (>=0.46, <0.47)",
+  "shap (>=0.46, <0.48)",
   "matplotlib (>=3.10.0, <3.11.0)",
   "google-cloud-secret-manager (>=2.12.6, <2.24.0)",
   "google-cloud-storage (>=2.14.0, <3.2.0)",
@@ -106,6 +106,7 @@ changelog_file = "CHANGELOG.md"
 
 [tool.semantic-release.changelog]
 exclude_commit_patterns = ["chore\\(release\\):"]
+template_dir = "templates"
 
 [build-system]
 requires = ["hatchling"]
@@ -231,7 +232,7 @@ ignore = [
   # be ignored anymore without warnings.
   # https://github.com/astral-sh/ruff/issues/7491
   # "PLC1901", # Lots of false positives
-
+  # "DOC502", # Docstring has extraneous exception, - Required to skip if we use assert in the code to raise exceptions
   # False positives https://github.com/astral-sh/ruff/issues/5386
   "PLC0208", # Use a sequence type instead of a `set` when iterating over values
   "PLR0911", # Too many return statements ({returns} > {max_returns})
@@ -267,3 +268,4 @@ allow-init-docstring = true
 arg-type-hints-in-docstring = true
 skip-checking-short-docstrings = false
 check-class-attributes = false
+should-declare-assert-error-if-assert-statement-exists = true # make sure that assert Raises are captured in docstrings

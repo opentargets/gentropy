@@ -15,7 +15,7 @@ from pyspark.sql.types import StructType
 from gentropy.common.schemas import SchemaValidationError
 
 if TYPE_CHECKING:
-    from _pytest.fixtures import FixtureRequest
+    from pytest import FixtureRequest
 
     from gentropy.dataset.l2g_prediction import L2GPrediction
     from gentropy.dataset.target_index import TargetIndex
@@ -62,6 +62,11 @@ def test_schema_columns_camelcase(schema_json: str) -> None:
     """
     if schema_json == "vep_json_output.json":
         pytest.skip("VEP schema is exempt from camelCase check.")
+
+    if schema_json == "summary_statistics_qc.json":
+        pytest.skip(
+            "Summary statistics QC schema is exempt from camelCase check for backward compatibility."
+        )
 
     core_schema = json.loads(Path(SCHEMA_DIR, schema_json).read_text(encoding="utf-8"))
     schema = StructType.fromJson(core_schema)

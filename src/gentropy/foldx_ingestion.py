@@ -26,7 +26,7 @@ class FoldXIngestionStep:
         Args:
             session (Session): Session object.
             foldx_dataset_path (str): path to the FoldX dataset.
-            plddt_threshold (float): plddt threshold to filter amio acids in the structural model.
+            plddt_threshold (float): plddt threshold to filter amino acids in the structural model.
             annotation_path (str): path of the output dataset.
         """
         fold_x_data = session.spark.read.parquet(foldx_dataset_path)

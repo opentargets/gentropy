@@ -5,6 +5,7 @@ import pyspark.sql.types as t
 from pyspark.sql import DataFrame, SparkSession
 
 from gentropy.common.spark_helpers import neglog_pvalue_to_mantissa_and_exponent
+from gentropy.common.utils import chi2_from_pvalue, stderr_from_pvalue
 
 
 def harmonise_summary_stats(
@@ -52,25 +53,19 @@ def harmonise_summary_stats(
     """
     # Read the precomputed variant annotation dataset.
     va_df = (
-        spark
-        .read
-        .parquet(tmp_variant_annotation_path)
+        spark.read.parquet(tmp_variant_annotation_path)
         .filter(f.col("vaChromosome") == ("X" if chromosome == "23" else chromosome))
         .persist()
     )
 
     # Read and process the summary stats dataset.
     df = (
-        spark
-        .read
-        .parquet(raw_summary_stats_path)
+        spark.read.parquet(raw_summary_stats_path)
         .filter(f.col("chromosome") == chromosome)
         # Harmonise, 1: Rename chromosome 23 to X.
         .withColumn(
             "chromosome",
-            f.when(
-                f.col("chromosome") == "23", "X"
-            ).otherwise(f.col("chromosome"))
+            f.when(f.col("chromosome") == "23", "X").otherwise(f.col("chromosome")),
         )
     )
     if colname_info:
@@ -79,11 +74,11 @@ def harmonise_summary_stats(
     if colname_a1freq:
         # Harmonise, 3: Filter out low frequency rows.
         df = (
-            df
-            .withColumn(
+            df.withColumn(
                 "MAF",
-                f.when(f.col(colname_a1freq) < 0.5, f.col(colname_a1freq))
-                .otherwise(1 - f.col(colname_a1freq))
+                f.when(f.col(colname_a1freq) < 0.5, f.col(colname_a1freq)).otherwise(
+                    1 - f.col(colname_a1freq)
+                ),
             )
             .filter(f.col("MAF") >= 0.0001)
             .drop("MAF")
@@ -100,25 +95,25 @@ def harmonise_summary_stats(
             f.when(
                 (f.length(colname_allele0) == 1) & (f.length(colname_allele1) == 1),
                 f.when(
-                    ((f.col(colname_allele0) == "A") & (f.col(colname_allele1) == "T")) |
-                    ((f.col(colname_allele0) == "T") & (f.col(colname_allele1) == "A")) |
-                    ((f.col(colname_allele0) == "G") & (f.col(colname_allele1) == "C")) |
-                    ((f.col(colname_allele0) == "C") & (f.col(colname_allele1) == "G")),
-                    "snp_c"
-                )
-                .otherwise(
-                    "snp_n"
-                )
-            )
-            .otherwise(
-                "indel"
-            )
+                    ((f.col(colname_allele0) == "A") & (f.col(colname_allele1) == "T"))
+                    | (
+                        (f.col(colname_allele0) == "T")
+                        & (f.col(colname_allele1) == "A")
+                    )
+                    | (
+                        (f.col(colname_allele0) == "G")
+                        & (f.col(colname_allele1) == "C")
+                    )
+                    | (
+                        (f.col(colname_allele0) == "C")
+                        & (f.col(colname_allele1) == "G")
+                    ),
+                    "snp_c",
+                ).otherwise("snp_n"),
+            ).otherwise("indel"),
         )
         # Harmonise, 5: Create variant ID for joining the variant annotation dataset.
-        .withColumn(
-            colname_position,
-            f.col(colname_position).cast("integer")
-        )
+        .withColumn(colname_position, f.col(colname_position).cast("integer"))
         .withColumn(
             "summary_stats_id",
             f.concat_ws(
@@ -126,40 +121,37 @@ def harmonise_summary_stats(
                 f.col("chromosome"),
                 f.col(colname_position),
                 f.col(colname_allele0),
-                f.col(colname_allele1)
-            )
+                f.col(colname_allele1),
+            ),
         )
     )
     # Harmonise, 6: Join with the Variant Annotation dataset.
     df = (
-        df
-        .join(va_df, (df["chromosome"] == va_df["vaChromosome"]) & (df["summary_stats_id"] == va_df["summary_stats_id"]), "inner")
+        df.join(
+            va_df,
+            (df["chromosome"] == va_df["vaChromosome"])
+            & (df["summary_stats_id"] == va_df["summary_stats_id"]),
+            "inner",
+        )
         .drop("vaChromosome", "summary_stats_id")
         .withColumn(
             "beta",
             f.when(
-                f.col("direction") == "direct",
-                f.col(colname_beta).cast("double")
-            ).otherwise(-f.col(colname_beta).cast("double"))
+                f.col("direction") == "direct", f.col(colname_beta).cast("double")
+            ).otherwise(-f.col(colname_beta).cast("double")),
         )
     )
     if colname_a1freq:
-        df = (
-            df
-            .withColumn(
-                "effectAlleleFrequencyFromSource",
-                f.when(
-                    f.col("direction") == "direct",
-                    f.col(colname_a1freq).cast("float")
-                )
-                .otherwise(1 - f.col(colname_a1freq).cast("float"))
-            )
+        df = df.withColumn(
+            "effectAlleleFrequencyFromSource",
+            f.when(
+                f.col("direction") == "direct", f.col(colname_a1freq).cast("float")
+            ).otherwise(1 - f.col(colname_a1freq).cast("float")),
         )
     df = (
         # Harmonise, 7: Drop bad quality variants.
-        df
-        .filter(
-            ~ ((f.col("variant_type") == "snp_c") & (f.col("direction") == "flip"))
+        df.filter(
+            ~((f.col("variant_type") == "snp_c") & (f.col("direction") == "flip"))
         )
     )
 
@@ -171,21 +163,34 @@ def harmonise_summary_stats(
         f.col("beta"),
         f.col(colname_position).cast(t.IntegerType()).alias("position"),
         # Parse p-value into mantissa and exponent.
-        *neglog_pvalue_to_mantissa_and_exponent(f.col(colname_mlog10p).cast(t.DoubleType())),
+        *neglog_pvalue_to_mantissa_and_exponent(
+            f.col(colname_mlog10p).cast(t.DoubleType())
+        ),
         # Add standard error and sample size information.
         f.col(colname_se).cast("double").alias("standardError"),
     ]
     if colname_n:
         select_expr.append(f.col(colname_n).cast("integer").alias("sampleSize"))
+
     df = (
-        df
-        .select(*select_expr)
+        df.select(*select_expr)
+        # Dropping associations where no harmonized position is available:
+        .filter(f.col("position").isNotNull())
+        # We are not interested in associations empty beta values:
+        .filter(f.col("beta").isNotNull())
+        # We are not interested in associations with zero effect:
+        .filter(f.col("beta") != 0)
         # Drop rows which don't have proper position or beta value.
-        .filter(
-            f.col("position").cast(t.IntegerType()).isNotNull()
-            & (f.col("beta") != 0)
-        )
     )
+    # NOTE! In case the standard error is empty, recompute it from p-value and beta.
+    # If we leave the standard error empty for all fields, we will cause the sanity filter
+    # to skip all rows.
+    # Make sure the beta is non empty before computation.
+    computed_chi2 = chi2_from_pvalue(f.col("pValueMantissa"), f.col("pValueExponent"))
+    computed_stderr = stderr_from_pvalue(computed_chi2, f.col("beta"))
+    df = df.withColumn(
+        "standardError", f.coalesce(f.col("standardError"), computed_stderr)
+    ).orderBy(f.col("chromosome"), f.col("position"))
 
     # Return the dataframe.
     return df

@@ -99,7 +99,7 @@ class ColocalisationMethodInterface(Protocol):
 class ECaviar(ColocalisationMethodInterface):
     """ECaviar-based colocalisation analysis.
 
-    It extends [CAVIAR](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5142122/#bib18) framework to explicitly estimate the posterior probability that the same variant is causal in 2 studies while accounting for the uncertainty of LD. eCAVIAR computes the colocalization posterior probability (**CLPP**) by utilizing the marginal posterior probabilities. This framework allows for **multiple variants to be causal** in a single locus.
+    It extends [CAVIAR](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5142122/#bib18) framework to explicitly estimate the posterior probability that the same variant is causal in 2 studies while accounting for the uncertainty of LD. eCAVIAR computes the colocalization posterior probability (**CLPP**) by utilizing the marginal posterior probabilities. This framework allows for **multiple variants to be causal** in a single locus.
     """
 
     METHOD_NAME: str = "eCAVIAR"
@@ -215,8 +215,6 @@ class Coloc(ColocalisationMethodInterface):
     METHOD_NAME: str = "COLOC"
     METHOD_METRIC: str = "h4"
     PSEUDOCOUNT: float = 1e-10
-    OVERLAP_SIZE_CUTOFF: int = 5
-    POSTERIOR_CUTOFF: float = 0.1
 
     @staticmethod
     def _get_posteriors(all_bfs: NDArray[np.float64]) -> DenseVector:
@@ -241,18 +239,20 @@ class Coloc(ColocalisationMethodInterface):
     def colocalise(
         cls: type[Coloc],
         overlapping_signals: StudyLocusOverlap,
-        **kwargs: float,
+        **kwargs: Any,
     ) -> Colocalisation:
         """Calculate bayesian colocalisation based on overlapping signals.
 
         Args:
             overlapping_signals (StudyLocusOverlap): overlapping peaks
-            **kwargs (float): Additional parameters passed to the colocalise method.
+            **kwargs (Any): Additional parameters passed to the colocalise method.
 
         Keyword Args:
             priorc1 (float): Prior on variant being causal for trait 1. Defaults to 1e-4.
             priorc2 (float): Prior on variant being causal for trait 2. Defaults to 1e-4.
             priorc12 (float): Prior on variant being causal for traits 1 and 2. Defaults to 1e-5.
+            overlap_size_cutoff (int): Minimum number of overlapping variants before filtering. Defaults to 0.
+            posterior_cutoff (float): Minimum overlapping Posterior probability cutoff for small overlaps. Defaults to 0.0.
 
         Returns:
             Colocalisation: Colocalisation results
@@ -260,6 +260,9 @@ class Coloc(ColocalisationMethodInterface):
         Raises:
             TypeError: When passed incorrect prior argument types.
         """
+        # Get kwargs for overlap size and posterior cutoff
+        overlap_size_cutoff = kwargs.get("overlap_size_cutoff") or 0
+        posterior_cutoff = kwargs.get("posterior_cutoff") or 0.0
         # Ensure priors are always present, even if not passed
         priorc1 = kwargs.get("priorc1") or 1e-4
         priorc2 = kwargs.get("priorc2") or 1e-4
@@ -362,8 +365,8 @@ class Coloc(ColocalisationMethodInterface):
                             # row["0"] = left PP, row["1"] = right PP, row["tagVariantSourceList"]
                             lambda row: f.when(
                                 (row["tagVariantSourceList"] == "both")
-                                & (row["0"] > Coloc.POSTERIOR_CUTOFF)
-                                & (row["1"] > Coloc.POSTERIOR_CUTOFF),
+                                & (row["0"] > posterior_cutoff)
+                                & (row["1"] > posterior_cutoff),
                                 1.0,
                             ).otherwise(0.0),
                         ),
@@ -373,7 +376,7 @@ class Coloc(ColocalisationMethodInterface):
                     > 0,  # True if sum of these 1.0's > 0
                 )
                 .filter(
-                    (f.col("numberColocalisingVariants") > Coloc.OVERLAP_SIZE_CUTOFF)
+                    (f.col("numberColocalisingVariants") > overlap_size_cutoff)
                     | (f.col("anySnpBothSidesHigh"))
                 )
                 .withColumn(

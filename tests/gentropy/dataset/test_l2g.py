@@ -4,15 +4,20 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+import pytest
+from pyspark.sql import DataFrame
+from pyspark.sql import functions as f
 from pyspark.sql.types import FloatType
 
 from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
 from gentropy.dataset.l2g_prediction import L2GPrediction
+from gentropy.dataset.study_index import StudyIndex
+from gentropy.dataset.study_locus import StudyLocus
 from gentropy.dataset.study_locus_overlap import StudyLocusOverlap
 
 if TYPE_CHECKING:
-    from pyspark.sql import DataFrame, SparkSession
+    from pyspark.sql import SparkSession
 
 
 def test_feature_matrix(mock_l2g_feature_matrix: L2GFeatureMatrix) -> None:
@@ -177,10 +182,10 @@ def test_l2g_feature_constructor_with_schema_mismatch(
 
 
 def test_calculate_feature_missingness_rate(
-    spark: SparkSession, mock_l2g_feature_matrix: L2GFeatureMatrix
+    mock_l2g_feature_matrix: L2GFeatureMatrix,
 ) -> None:
     """Test L2GFeatureMatrix.calculate_feature_missingness_rate."""
-    expected_missingness = {"distanceTssMean": 0.0, "distanceSentinelTssMinimum": 1.0}
+    expected_missingness = {"distanceTssMean": 0.0, "distanceSentinelTssMinimum": 0.125}
     observed_missingness = mock_l2g_feature_matrix.calculate_feature_missingness_rate()
     assert isinstance(observed_missingness, dict)
     assert mock_l2g_feature_matrix.features_list is not None and len(
@@ -191,3 +196,118 @@ def test_calculate_feature_missingness_rate(
     assert observed_missingness == expected_missingness, (
         "Missingness rate is incorrect."
     )
+
+
+class TestEvidenceGeneration:
+    """Test evidence generation from L2G dataset."""
+
+    EVIDENCE_COLUMNS = [
+        "datatypeId",
+        "datasourceId",
+        "targetFromSourceId",
+        "diseaseFromSourceMappedId",
+        "resourceScore",
+        "studyLocusId",
+        "literature",
+    ]
+
+    L2G_DATA = [("1", "gene1", 0.8), ("1", "gene2", 0.01)]
+
+    STUDYLOCUS_DATA = [("1", "v1", "s1"), ("2", "v2", "s1")]
+
+    STUDY_DATA = [
+        ("s1", "p1", "gwas", "EFO_1,EFO_2", "22"),
+        ("s2", "p1", "gwas", "EFO_1", "234"),
+    ]
+
+    @pytest.fixture(autouse=True)
+    def _setup(self: TestEvidenceGeneration, spark: SparkSession) -> None:
+        """Setup fixture."""
+        self.study_index = StudyIndex(
+            spark.createDataFrame(
+                self.STUDY_DATA,
+                "studyId STRING, projectId STRING, studyType STRING, diseaseIds STRING, pubmedId STRING",
+            ).withColumn("diseaseIds", f.split("diseaseIds", ","))
+        )
+
+        # Study index is missing an optional column, which is required for evidence generation.
+        self.study_index_no_disease = StudyIndex(
+            spark.createDataFrame(
+                self.STUDY_DATA,
+                "studyId STRING, projectId STRING, studyType STRING, diseaseIds STRING, pubmedId STRING",
+            ).drop("diseaseIds")
+        )
+
+        # Study index is missing an optional column, which is NOT required for evidence generation.
+        self.study_index_no_pubmed = StudyIndex(
+            spark.createDataFrame(
+                self.STUDY_DATA,
+                "studyId STRING, projectId STRING, studyType STRING, diseaseIds STRING, pubmedId STRING",
+            )
+            .withColumn("diseaseIds", f.split("diseaseIds", ","))
+            .drop("pubmedId")
+        )
+
+        self.study_locus = StudyLocus(
+            spark.createDataFrame(
+                self.STUDYLOCUS_DATA,
+                "studyLocusId STRING, variantId STRING, studyId STRING",
+            )
+        )
+
+        self.l2g = L2GPrediction(
+            spark.createDataFrame(
+                self.L2G_DATA, "studyLocusId STRING, geneId STRING, score DOUBLE"
+            )
+        )
+
+        # Evidence with one disease target evidence:
+        self.evidence1 = self.l2g.to_disease_target_evidence(
+            study_index=self.study_index, study_locus=self.study_locus
+        )
+
+        # Data with no evidence, because the l2g cutoff is too high:
+        self.evidence2 = self.l2g.to_disease_target_evidence(
+            study_index=self.study_index,
+            study_locus=self.study_locus,
+            l2g_threshold=2.0,
+        )
+
+        # Optional column is missing, but evidence is generated:
+        self.evidence3 = self.l2g.to_disease_target_evidence(
+            study_index=self.study_index_no_pubmed, study_locus=self.study_locus
+        )
+
+    def test_missing_optional_columns(self: TestEvidenceGeneration) -> None:
+        """Test behaviour if optional columns are missing."""
+        with pytest.raises(ValueError) as excinfo:
+            self.l2g.to_disease_target_evidence(
+                study_index=self.study_index_no_disease,
+                study_locus=self.study_locus,
+            )
+        assert (
+            "DisaseIds column has to be in the study index to generate disase/target evidence."
+            in str(excinfo.value)
+        )
+
+    def test_evidence_type(self: TestEvidenceGeneration) -> None:
+        """Test return type of the evidence generation process."""
+        assert isinstance(self.evidence1, DataFrame)
+        assert isinstance(self.evidence2, DataFrame)
+        assert isinstance(self.evidence3, DataFrame)
+
+    def test_evidence_length(self: TestEvidenceGeneration) -> None:
+        """Test the length of the returned evidence table."""
+        assert self.evidence1 is not None
+        assert self.evidence2 is not None
+        assert self.evidence1.count() >= 1
+        assert self.evidence2.count() == 0
+
+    def test_evidence_columns(self: TestEvidenceGeneration) -> None:
+        """Test if the expected columns are in the returned dataset."""
+        # Assert returned columns:
+        if self.evidence1 is not None:
+            for column in self.EVIDENCE_COLUMNS:
+                assert column in self.evidence1.columns, (
+                    f'Column "{column}" is missing from evidence dataset.'
+                )

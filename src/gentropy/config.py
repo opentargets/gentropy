@@ -280,8 +280,8 @@ class LocusToGeneConfig(StepConfig):
         }
     )
     wandb_run_name: str | None = None
-    hf_hub_repo_id: str | None = "opentargets/locus_to_gene"
-    hf_model_commit_message: str | None = "chore: update model"
+    hf_hub_repo_id: str | None = None
+    hf_model_commit_message: str | None = None
     hf_model_version: str | None = None
     download_from_hub: bool = True
     cross_validate: bool = True
@@ -396,7 +396,8 @@ class GnomadVariantConfig(StepConfig):
         }
     )
     variant_annotation_path: str = MISSING
-    gnomad_genomes_path: str = (
+    gnomad_genomes_path: str = "gs://gcp-public-data--gnomad/release/4.1/ht/genomes/gnomad.genomes.v4.1.sites.ht/"
+    gnomad_joint_path: str = (
         "gs://gcp-public-data--gnomad/release/4.1/ht/joint/gnomad.joint.v4.1.sites.ht/"
     )
     gnomad_variant_populations: list[str] = field(
