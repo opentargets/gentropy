@@ -13,10 +13,10 @@ from pyspark.sql.types import DoubleType, FloatType, IntegerType, StringType
 from pyspark.sql.window import Window
 
 from gentropy.assets import data
-from gentropy.common.spark_helpers import get_record_with_maximum_value
-from gentropy.common.stats import normalise_gwas_statistics, pval_from_neglogpval
+from gentropy.common.processing import parse_efos
+from gentropy.common.spark import get_record_with_maximum_value
+from gentropy.common.stats import normalise_gwas_statistics, pvalue_from_neglogpval
 from gentropy.common.types import PValComponents
-from gentropy.common.utils import parse_efos
 from gentropy.config import WindowBasedClumpingStepConfig
 from gentropy.dataset.study_locus import StudyLocus, StudyLocusQualityCheck
 
@@ -1021,7 +1021,7 @@ class GWASCatalogCuratedAssociationsParser:
                     f"Column {column} is required for harmonising effect to beta value."
                 )
 
-        pval_components = pval_from_neglogpval(f.col("PVALUE_MLOG"))
+        pval_components = pvalue_from_neglogpval(f.col("PVALUE_MLOG"))
 
         return (
             df.withColumn(

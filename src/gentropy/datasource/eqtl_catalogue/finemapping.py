@@ -16,7 +16,7 @@ from pyspark.sql.types import (
 )
 
 from gentropy.common.session import Session
-from gentropy.common.spark_helpers import clean_strings_from_symbols
+from gentropy.common.spark import clean_strings_from_symbols
 from gentropy.common.stats import split_pvalue_column
 from gentropy.dataset.study_locus import FinemappingMethod, StudyLocus
 from gentropy.datasource.eqtl_catalogue.study_index import EqtlCatalogueStudyIndex

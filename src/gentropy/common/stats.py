@@ -307,7 +307,6 @@ def normalise_gwas_statistics(
         GWASEffect: named tuple with standardError and beta columns.
 
     Examples:
-        >>>
         >>> x1 = (0.1, 1.1, 0.1, None, None, 9.0, -100) # keep beta, keep std error
         >>> x2 = (None, 1.1, 0.1, None, None, 9.0, -100) # convert odds ratio to beta, keep std error
         >>> x3 = (None, 1.1, None, 1.30, 0.90, None, None) # convert odds ratio to beta, convert ci to standard error
@@ -390,7 +389,7 @@ def normalise_gwas_statistics(
     return GWASEffect(standard_error=standard_error, beta=beta)
 
 
-def pval_from_neglogpval(p_value: Column) -> PValComponents:
+def pvalue_from_neglogpval(p_value: Column) -> PValComponents:
     """Computing p-value mantissa and exponent based on the negative 10 based logarithm of the p-value.
 
     Args:
@@ -402,7 +401,7 @@ def pval_from_neglogpval(p_value: Column) -> PValComponents:
     Examples:
         >>> (
         ... spark.createDataFrame([(4.56, 'a'),(2109.23, 'b')], ['negLogPv', 'label'])
-        ... .select('negLogPv',*pval_from_neglogpval(f.col('negLogPv')))
+        ... .select('negLogPv',*pvalue_from_neglogpval(f.col('negLogPv')))
         ... .show()
         ... )
         +--------+--------------+--------------+

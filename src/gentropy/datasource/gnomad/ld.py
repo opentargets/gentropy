@@ -12,9 +12,9 @@ import pyspark.sql.functions as f
 from hail.linalg import BlockMatrix
 from pyspark.sql import Window
 
-from gentropy.common.spark_helpers import get_top_ranked_in_window, get_value_from_row
+from gentropy.common.genomic_region import liftover_loci
+from gentropy.common.spark import get_top_ranked_in_window, get_value_from_row
 from gentropy.common.types import LD_Population
-from gentropy.common.utils import liftover_loci
 from gentropy.config import LDIndexConfig
 from gentropy.dataset.ld_index import LDIndex
 

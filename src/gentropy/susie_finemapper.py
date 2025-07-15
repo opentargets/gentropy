@@ -21,8 +21,8 @@ from pyspark.sql.types import (
 )
 
 from gentropy.common.session import Session
-from gentropy.common.spark_helpers import order_array_of_structs_by_field
-from gentropy.common.stats import pval_from_neglogpval
+from gentropy.common.spark import order_array_of_structs_by_field
+from gentropy.common.stats import pvalue_from_neglogpval
 from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import (
     FinemappingMethod,
@@ -383,7 +383,7 @@ class SusieFineMapperStep:
 
         cred_sets = cred_sets.join(df_spark, on="credibleSetIndex")
 
-        mantissa, exponent = pval_from_neglogpval(cred_sets.neglogpval)
+        mantissa, exponent = pvalue_from_neglogpval(cred_sets.neglogpval)
         cred_sets = cred_sets.withColumn("pValueMantissa", mantissa)
         cred_sets = cred_sets.withColumn("pValueExponent", exponent)
         cred_sets = cred_sets.withColumn(
