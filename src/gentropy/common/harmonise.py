@@ -7,7 +7,7 @@ from pyspark.sql import DataFrame, SparkSession
 from gentropy.common.stats import (
     chi2_from_pvalue,
     pval_from_neglogpval,
-    stderr_from_pvalue,
+    stderr_from_chi2_and_effect_size,
 )
 
 
@@ -188,7 +188,7 @@ def harmonise_summary_stats(
     # to skip all rows.
     # Make sure the beta is non empty before computation.
     computed_chi2 = chi2_from_pvalue(f.col("pValueMantissa"), f.col("pValueExponent"))
-    computed_stderr = stderr_from_pvalue(computed_chi2, f.col("beta"))
+    computed_stderr = stderr_from_chi2_and_effect_size(computed_chi2, f.col("beta"))
     df = df.withColumn(
         "standardError", f.coalesce(f.col("standardError"), computed_stderr)
     ).orderBy(f.col("chromosome"), f.col("position"))

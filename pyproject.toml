@@ -98,6 +98,7 @@ prerelease = true
 prerelease_token = "rc"
 
 [tool.semantic_release.publish]
+filterwarnings = "ignore::PandasAPIOnSparkAdviceWarning"
 dist_glob_patterns = ["dist/*"]
 upload_to_vcs_release = true
 

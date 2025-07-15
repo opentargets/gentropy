@@ -6,7 +6,7 @@ import importlib.resources as pkg_resources
 import json
 from dataclasses import dataclass
 from itertools import chain
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 import pyspark.sql.functions as f
 from pyspark.sql.types import DoubleType, FloatType, IntegerType, StringType
@@ -130,9 +130,11 @@ class GWASCatalogCuratedAssociationsParser:
 
         """
         # GWAS Catalog to p-value mapping
-        json_dict = json.loads(
-            pkg_resources.read_text(data, "gwas_pValueText_map.json", encoding="utf-8")
-        )
+        pkg = pkg_resources.files(data).joinpath("gwas_pValueText_map.json")
+        with pkg.open(encoding="utf-8") as file:
+            json_dict = json.load(file)
+            json_dict = cast(dict[str, str], json_dict)
+
         map_expr = f.create_map(*[f.lit(x) for x in chain(*json_dict.items())])
 
         splitted_col = f.split(f.regexp_replace(p_value_text, r"[\(\)]", ""), ",")

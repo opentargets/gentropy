@@ -8,7 +8,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum
 from itertools import chain
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from pyspark.sql import functions as f
 from pyspark.sql.types import ArrayType, StringType, StructType
@@ -136,11 +136,12 @@ class StudyIndex(Dataset):
             Column: Struct column with the mapped LD population label and the sample size.
         """
         # Loading ancestry label to LD population label:
-        json_dict = json.loads(
-            pkg_resources.read_text(
-                data, "gwas_population_2_LD_panel_map.json", encoding="utf-8"
-            )
-        )
+
+        pkg = pkg_resources.files(data).joinpath("gwas_population_2_LD_panel_map.json")
+        with pkg.open(encoding="utf-8") as file:
+            json_dict = json.load(file)
+            json_dict = cast(dict[str, str], json_dict)
+
         map_expr = f.create_map(*[f.lit(x) for x in chain(*json_dict.items())])
 
         return f.struct(

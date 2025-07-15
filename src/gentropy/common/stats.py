@@ -178,7 +178,7 @@ def ci(
 
     # Compute missing standard error:
     standard_error = f.when(
-        standard_error.isNull(), f.abs(beta) / f.abs(zscore_from_pvalue(pvalue))
+        standard_error.isNull(), f.abs(beta) / f.abs(zscore_from_pvalue(pvalue, beta))
     ).otherwise(standard_error)
 
     # Calculate upper and lower confidence interval:
@@ -373,7 +373,7 @@ def normalise_gwas_statistics(
         f.when(standard_error.isNotNull(), standard_error)
         .when(
             standard_error.isNull() & mantissa.isNotNull() & exponent.isNotNull(),
-            stderr_from_pvalue(chi2, beta),
+            stderr_from_chi2_and_effect_size(chi2, beta),
         )
         .when(
             odds_ratio.isNotNull() & ci_lower.isNotNull() & ci_upper.isNotNull(),
@@ -467,7 +467,7 @@ def split_pvalue_column(pv: Column) -> PValComponents:
     )
 
 
-def stderr_from_pvalue(chi2_col: Column, beta: Column) -> Column:
+def stderr_from_chi2_and_effect_size(chi2_col: Column, beta: Column) -> Column:
     """Calculate standard error from chi2 and beta.
 
     This function calculates the standard error from the chi2 value and beta.
@@ -494,7 +494,7 @@ def stderr_from_pvalue(chi2_col: Column, beta: Column) -> Column:
 
         >>> chi2_col = f.col("chi2")
         >>> beta = f.col("beta")
-        >>> standard_error = f.round(stderr_from_pvalue(chi2_col, beta), 2).alias("standardError")
+        >>> standard_error = f.round(stderr_from_chi2_and_effect_size(chi2_col, beta), 2).alias("standardError")
         >>> df2 = df.select(chi2_col, beta, standard_error)
         >>> df2.show()
         +-----+----+-------------+
@@ -550,45 +550,51 @@ def stderr_from_ci(ci_upper: Column, ci_lower: Column) -> Column:
     return ((f.log(ci_upper) - f.log(ci_lower)) / (2 * 1.96)).alias("standardError")
 
 
-def zscore_from_pvalue(pval_col: Column) -> Column:
+def zscore_from_pvalue(pval_col: Column, beta: Column) -> Column:
     """Convert p-value column to z-score column.
 
     Args:
         pval_col (Column): p-value
+        beta (Column): Effect size in beta - used to derive the sign of the z-score.
 
     Returns:
         Column: p-values transformed to z-scores
 
     Examples:
-        >>> data = [("1.0",), ("0.9",), ("0.05",), ("1e-300",), ("1e-1000",), (None,)]
-        >>> schema = "pval STRING"
+        >>> data = [("1.0", -1.0), ("0.9", -1.0), ("0.05", 1.0), ("1e-300", 1.0), ("1e-1000", None), (None, 1.0)]
+        >>> schema = "pval STRING, beta FLOAT"
         >>> df = spark.createDataFrame(data, schema)
         >>> df.show()
-        +--------+
-        |    pval|
-        +--------+
-        |     1.0|
-        |     0.9|
-        |    0.05|
-        |1.0E-300|
-        |     0.0|
-        |    NULL|
-        +--------+
+        +-------+----+
+        |   pval|beta|
+        +-------+----+
+        |    1.0|-1.0|
+        |    0.9|-1.0|
+        |   0.05| 1.0|
+        | 1e-300| 1.0|
+        |1e-1000|NULL|
+        |   NULL| 1.0|
+        +-------+----+
         <BLANKLINE>
 
-        >>> df.withColumn("zscore", zscore_from_pvalue(f.col("pval"))).show()
-        +--------+-------------------+
-        |    pval|             zscore|
-        +--------+-------------------+
-        |     1.0|                0.0|
-        |     0.9|0.12566134685507405|
-        |    0.05|  1.959963984540055|
-        |1.0E-300| 37.065787880772135|
-        |     0.0|  37.53138248632944|
-        |    NULL|               NULL|
-        +--------+-------------------+
+        >>> df.withColumn("zscore", zscore_from_pvalue(f.col("pval"), f.col("beta"))).show()
+        +-------+----+--------------------+
+        |   pval|beta|              zscore|
+        +-------+----+--------------------+
+        |    1.0|-1.0|                -0.0|
+        |    0.9|-1.0|-0.12566134685507405|
+        |   0.05| 1.0|   1.959963984540055|
+        | 1e-300| 1.0|  37.065787880772135|
+        |1e-1000|NULL|   67.75421020128564|
+        |   NULL| 1.0|                NULL|
+        +-------+----+--------------------+
         <BLANKLINE>
 
     """
     mantissa, exponent = split_pvalue_column(pval_col)
-    return f.sqrt(chi2_from_pvalue(mantissa, exponent)).alias("zscore")
+    sign = (
+        f.when(beta > 0, f.lit(1))
+        .when(beta < 0, f.lit(-1))
+        .when(beta.isNull(), f.lit(1))
+    )
+    return (sign * f.sqrt(chi2_from_pvalue(mantissa, exponent))).alias("zscore")

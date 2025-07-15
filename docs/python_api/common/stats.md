@@ -12,6 +12,6 @@ title: Statistic helper functions
 :::gentropy.common.stats.normalise_gwas_statistics
 :::gentropy.common.stats.pval_from_neglogpval
 :::gentropy.common.stats.split_pvalue_column
-:::gentropy.common.stats.stderr_from_pvalue
+:::gentropy.common.stats.stderr_from_chi2_and_effect_size
 :::gentropy.common.stats.stderr_from_ci
 :::gentropy.common.stats.zscore_from_pvalue
