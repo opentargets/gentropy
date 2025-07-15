@@ -11,7 +11,7 @@ from pyspark.sql import Column
 from pyspark.sql import functions as f
 from pyspark.sql import types as t
 
-from gentropy.common.types import PValComponents
+from gentropy.common.types import GWASEffect, PValComponents
 from gentropy.common.udf import chi2_inverse_survival_function, chi2_survival_function
 
 if TYPE_CHECKING:
@@ -276,33 +276,35 @@ def normalise_gwas_statistics(
     ci_lower: Column,
     mantissa: Column,
     exponent: Column,
-) -> list[Column]:
+) -> GWASEffect:
     """Normalise beta and standard error from given values.
 
     This function attempts to harmonise Effect and Standard Error given various inputs.
 
     Note:
-        effect (Beta) harmonisation:
+        Effect (Beta) harmonisation:
         - If beta is not null, it is kept as is.
-        - If beta is null, but odds ratio is not null, odds ratio are converted to beta
+        - If beta is null, but odds ratio is not null, odds ratio is converted to beta
 
     Note:
-        Standard Error harmonisation:
+        Effect Standard Error (std(beta)) harmonisation
+        **Prefer calculation from p-value and beta, if available, as the confidence interval is usually rounded and may lead to loss of precision**:
         - If standard error is not null, it is kept as is.
-        - If standard error is null, but beta is not null and mantissa and exponent are not null, standard error is calculated from p-value.
+        - If standard error is null, but beta, pval-mantissa, pval-exponent are not null, convert pval components and beta to standard error
+        - If standard error is null, but ci-upper and ci-lower are not null and they come from odds ratio, convert them to standard error.
 
 
     Args:
-        beta (Column): Effect in beta
-        odds_ratio (Column): Effect in odds ratio
-        standard_error (Column): Standard error of the effect
-        ci_upper (Column): Upper bound of the confidence interval
-        ci_lower (Column): Lower bound of the confidence interval
-        mantissa (Column): Mantissa of the p-value
-        exponent (Column): Exponent of the p-value
+        beta (Column): Effect in beta.
+        odds_ratio (Column): Effect in odds ratio.
+        standard_error (Column): Standard error of the effect.
+        ci_upper (Column): Upper bound of the confidence interval.
+        ci_lower (Column): Lower bound of the confidence interval.
+        mantissa (Column): Mantissa of the p-value.
+        exponent (Column): Exponent of the p-value.
 
     Returns:
-        list[Column]: beta, standard error
+        GWASEffect: named tuple with standardError and beta columns.
 
     Examples:
         >>>
@@ -312,7 +314,8 @@ def normalise_gwas_statistics(
         >>> x4 = (0.1, 1.1, None, 1.30, 0.90, None, None) # keep beta, convert ci to standard error
         >>> x5 = (None, 1.1, None, 1.30, 0.90, 9.0, -100) # convert beta to odds ratio, convert p-value and beta to standard error
         >>> x6 = (0.1, None, None, None, None, 9.0, -100) # keep beta, convert p-value and beta to standard error
-        >>> data = [x1, x2, x3, x4, x5, x6]
+        >>> x7 = (None, None, None, 1.3, 0.9, 9.0, -100) # keep beta NULL, without beta we do not want to compute the standard error
+        >>> data = [x1, x2, x3, x4, x5, x6, x7]
 
         >>> schema = "beta FLOAT, oddsRatio FLOAT, standardError FLOAT, ci_upper FLOAT, ci_lower FLOAT, mantissa FLOAT, exp INT"
         >>> df = spark.createDataFrame(data, schema)
@@ -326,6 +329,7 @@ def normalise_gwas_statistics(
         | 0.1|      1.1|         NULL|     1.3|     0.9|    NULL|NULL|
         |NULL|      1.1|         NULL|     1.3|     0.9|     9.0|-100|
         | 0.1|     NULL|         NULL|    NULL|    NULL|     9.0|-100|
+        |NULL|     NULL|         NULL|     1.3|     0.9|     9.0|-100|
         +----+---------+-------------+--------+--------+--------+----+
         <BLANKLINE>
 
@@ -339,8 +343,8 @@ def normalise_gwas_statistics(
         >>> cols = normalise_gwas_statistics(
         ...     beta, odds_ratio, se, ci_upper, ci_lower, mantissa, exponent
         ... )
-        >>> beta_computed = f.round(cols[0], 2).alias("beta")
-        >>> standard_error_computed = f.round(cols[1], 2).alias("standardError")
+        >>> beta_computed = f.round(cols.beta, 2).alias("beta")
+        >>> standard_error_computed = f.round(cols.standard_error, 2).alias("standardError")
         >>> df.select(beta_computed, standard_error_computed).show()
         +----+-------------+
         |beta|standardError|
@@ -351,12 +355,10 @@ def normalise_gwas_statistics(
         | 0.1|         0.09|
         | 0.1|          0.0|
         | 0.1|          0.0|
+        |NULL|         NULL|
         +----+-------------+
         <BLANKLINE>
     """
-    # (1) beta is not null, keep it
-    # (2) beta is null, but odds ratio is not null, convert odds ratio to beta
-    # (3) beta is null, odds ratio is null, return null
     beta = (
         f.when(beta.isNotNull(), beta)
         .when(odds_ratio.isNotNull(), f.log(odds_ratio))
@@ -365,25 +367,27 @@ def normalise_gwas_statistics(
     )
     chi2 = chi2_from_pvalue(mantissa, exponent)
 
-    # (1) standard error is not null, keep it
-    # (2) standard error is null, but beta is not null and mantissa and exponent are not null, calculate standard error from p-value
-    # (3) standard error is null, but odds ratio and ci_upper and ci_lower are not null, calculate standard error from confidence interval
-    # (4) return null
     standard_error = (
         f.when(standard_error.isNotNull(), standard_error)
         .when(
-            standard_error.isNull() & mantissa.isNotNull() & exponent.isNotNull(),
+            standard_error.isNull()
+            & mantissa.isNotNull()
+            & exponent.isNotNull()
+            & beta.isNotNull(),
             stderr_from_chi2_and_effect_size(chi2, beta),
         )
         .when(
-            odds_ratio.isNotNull() & ci_lower.isNotNull() & ci_upper.isNotNull(),
+            standard_error.isNull()
+            & ci_lower.isNotNull()
+            & ci_upper.isNotNull()
+            & odds_ratio.isNotNull(),
             stderr_from_ci(ci_upper, ci_lower),
         )
         .otherwise(f.lit(None))
         .alias("standardError")
     )
 
-    return [beta, standard_error]
+    return GWASEffect(standard_error=standard_error, beta=beta)
 
 
 def pval_from_neglogpval(p_value: Column) -> PValComponents:
@@ -509,7 +513,9 @@ def stderr_from_chi2_and_effect_size(chi2_col: Column, beta: Column) -> Column:
     return (f.abs(beta) / f.sqrt(chi2_col)).alias("standardError")
 
 
-def stderr_from_ci(ci_upper: Column, ci_lower: Column) -> Column:
+def stderr_from_ci(
+    ci_upper: Column, ci_lower: Column, odds_ratio_based: bool = True
+) -> Column:
     """Calculate standard error from confidence interval.
 
     This function calculates the standard error from the confidence interval upper and lower bounds.
@@ -517,9 +523,15 @@ def stderr_from_ci(ci_upper: Column, ci_lower: Column) -> Column:
     Args:
         ci_upper (Column): Upper bound of the confidence interval (float)
         ci_lower (Column): Lower bound of the confidence interval (float)
+        odds_ratio_based (bool): If True, the function assumes that the confidence interval is based on odds ratio.
+            use log difference (default), else it assumes that the confidence interval is based on beta.
 
     Returns:
         Column: Standard error (float)
+
+    Note:
+        Absolute value of the log difference is used to ensure that the standard error is always positive, even if the ci bounds are inverted.
+
 
     Examples:
         >>> data = [(0.5, 0.1), (1.0, 0.5)]
@@ -547,7 +559,11 @@ def stderr_from_ci(ci_upper: Column, ci_lower: Column) -> Column:
         +--------+--------+-------------+
         <BLANKLINE>
     """
-    return ((f.log(ci_upper) - f.log(ci_lower)) / (2 * 1.96)).alias("standardError")
+    if odds_ratio_based:
+        return (f.abs(f.log(ci_upper) - f.log(ci_lower)) / (2 * 1.96)).alias(
+            "standardError"
+        )
+    return (f.abs(ci_upper - ci_lower) / (2 * 1.96)).alias("standardError")
 
 
 def zscore_from_pvalue(pval_col: Column, beta: Column) -> Column:

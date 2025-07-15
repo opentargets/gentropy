@@ -24,9 +24,21 @@ class PValComponents(NamedTuple):
     """Components of p-value.
 
     Attributes:
-        pValueMantissa (Column): Mantissa of the p-value.
-        pValueExponent (Column): Exponent of the p-value.
+        mantissa (Column): Mantissa of the p-value.
+        exponent (Column): Exponent of the p-value.
     """
 
     mantissa: Column
     exponent: Column
+
+
+class GWASEffect(NamedTuple):
+    """Components of GWAS effect.
+
+    Attributes:
+        beta (Column): Effect.
+        standard_error (Column): Effect standard error.
+    """
+
+    beta: Column
+    standard_error: Column
