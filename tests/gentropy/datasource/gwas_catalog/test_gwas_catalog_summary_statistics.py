@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 
 import pyspark.sql.functions as f
 import pytest
+from pyspark.sql import Row
 
 from gentropy.dataset.summary_statistics import SummaryStatistics
 from gentropy.datasource.gwas_catalog.summary_statistics import (
@@ -112,3 +113,34 @@ class TestGWASCatalogSummaryStatistics:
             test_dataset_instance.df.filter(f.col("studyId").startswith("GCST")).count()
             == test_dataset_instance.df.count()
         )
+
+    def test_rescue_standard_error(
+        self: TestGWASCatalogSummaryStatistics, spark: SparkSession
+    ) -> None:
+        """Test rescue standard error."""
+        # The new format has standard error, but the old format does not.
+        test_dataset_path = "tests/gentropy/data_samples/empty_stderr_GCST01.h.tsv"
+        sumstat = GWASCatalogSummaryStatistics.from_gwas_harmonized_summary_stats(
+            spark, test_dataset_path
+        )
+        # case 1 - position 1026830 - skipped row, since we can not recompute the standard error without ci
+        data = sumstat.df.filter(f.col("position") == 1026830).filter(
+            f.col("standardError").isNull()
+        )
+        assert data.count() == 1
+
+        # case 2 - position 1026831 - skipped, since beta is None, standard error is None
+        data = sumstat.df.filter(f.col("position") == 1026831)
+        assert data.count() == 0
+
+        # case 3 - position 1026832 - standard error is retained from the source (0.2)
+        data = (
+            sumstat.df.filter(f.col("position") == 1026832)
+            .filter(f.col("standardError").isNotNull())
+            .select(f.round(f.col("standardError"), 1))
+        )
+        assert data.collect() == [Row(standardError=0.2)]
+
+        # case 4 - position 1026833 - standard error is calculated from ci
+        data = sumstat.df.filter(f.col("position") == 1026833)
+        assert data.count() == 1

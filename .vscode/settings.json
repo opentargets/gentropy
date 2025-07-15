@@ -28,5 +28,21 @@
   },
   "yaml.extension.recommendations": false,
   "workbench.remoteIndicator.showExtensionRecommendations": false,
-  "extensions.ignoreRecommendations": true
+  "extensions.ignoreRecommendations": true,
+  "python.analysis.typeCheckingMode": "standard",
+  "cSpell.words": [
+    "biosample",
+    "diffpval",
+    "GCST",
+    "gentropy",
+    "logpval",
+    "neglog",
+    "neglogpval",
+    "normalise",
+    "pheno",
+    "pval",
+    "pvalue",
+    "sumstat",
+    "sumstats"
+  ]
 }

@@ -141,7 +141,7 @@ class SusieFineMapperStep:
         if result_logging is not None:
             if result_logging["study_locus"] is not None:
                 # Write result
-                df = result_logging["study_locus"].df
+                df: DataFrame = result_logging["study_locus"].df
                 df = df.withColumn("qualityControls", f.lit(None))
                 df = df.withColumn(
                     "qualityControls",
@@ -151,7 +151,9 @@ class SusieFineMapperStep:
                         StudyLocusQualityCheck.OUT_OF_SAMPLE_LD,
                     ),
                 )
-                df.write.mode(session.write_mode).parquet(study_locus_output)
+                df.coalesce(session.output_partitions).write.mode(
+                    session.write_mode
+                ).parquet(study_locus_output)
             if result_logging["log"] is not None:
                 # Write log
                 result_logging["log"].to_csv(log_output, index=False, sep="\t")

@@ -8,6 +8,7 @@ import pyspark.sql.functions as f
 import pytest
 from pyspark.sql.types import (
     ArrayType,
+    BooleanType,
     DoubleType,
     IntegerType,
     StringType,
@@ -27,9 +28,7 @@ if TYPE_CHECKING:
     from pyspark.sql import SparkSession
 
 
-def test_select_features_inheritance(
-    spark: SparkSession, mock_l2g_feature_matrix: L2GFeatureMatrix
-) -> None:
+def test_select_features_inheritance(mock_l2g_feature_matrix: L2GFeatureMatrix) -> None:
     """Test L2GFeatureMatrix.select_features method inherits the instance attributes in the new instance."""
     new_instance = mock_l2g_feature_matrix.select_features(
         features_list=["distanceTssMean"]
@@ -105,6 +104,7 @@ class TestFromFeaturesList:
                             {"variantId": "var1", "posteriorProbability": 0.8},
                             {"variantId": "var12", "posteriorProbability": 0.2},
                         ],
+                        False,
                     ),
                     (
                         "2",
@@ -115,6 +115,7 @@ class TestFromFeaturesList:
                         [
                             {"variantId": "var2", "posteriorProbability": 1.0},
                         ],
+                        False,
                     ),
                 ],
                 schema=StructType(
@@ -138,6 +139,7 @@ class TestFromFeaturesList:
                             ),
                             True,
                         ),
+                        StructField("isTransQtl", BooleanType(), True),
                     ]
                 ),
             ),

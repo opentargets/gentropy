@@ -10,7 +10,10 @@ import pyspark.sql.functions as f
 import pyspark.sql.types as t
 
 from gentropy.common.spark_helpers import neglog_pvalue_to_mantissa_and_exponent
-from gentropy.common.utils import convert_odds_ratio_to_beta, parse_pvalue
+from gentropy.common.utils import (
+    normalise_gwas_statistics,
+    parse_pvalue,
+)
 from gentropy.dataset.summary_statistics import SummaryStatistics
 
 if TYPE_CHECKING:
@@ -72,7 +75,8 @@ class GWASCatalogSummaryStatistics(SummaryStatistics):
         Returns:
             GWASCatalogSummaryStatistics: Summary statistics object.
         """
-        sumstats_df = spark.read.csv(sumstats_file, sep="\t", header=True).withColumn(
+        sumstats_df = spark.read.csv(sumstats_file, sep="\t", header=True)
+        sumstats_df = sumstats_df.withColumn(
             # Parsing GWAS Catalog study identifier from filename:
             "studyId",
             f.lit(filename_to_study_identifier(sumstats_file)),
@@ -129,7 +133,7 @@ class GWASCatalogSummaryStatistics(SummaryStatistics):
             else f.lit(None)
         ).cast(t.DoubleType())
 
-        # We might have odds ratio or hazard ratio, wich are basically the same:
+        # We might have odds ratio or hazard ratio, which are basically the same:
         odds_ratio_expression = (
             f.col("hm_odds_ratio")
             if "hm_odds_ratio" in sumstats_df.columns
@@ -146,6 +150,14 @@ class GWASCatalogSummaryStatistics(SummaryStatistics):
             f.col("standard_error")
             if "standard_error" in sumstats_df.columns
             else f.lit(None)
+        ).cast(t.DoubleType())
+
+        ci_upper = (
+            f.col("ci_upper") if "ci_upper" in sumstats_df.columns else f.lit(None)
+        ).cast(t.DoubleType())
+
+        ci_lower = (
+            f.col("ci_lower") if "ci_lower" in sumstats_df.columns else f.lit(None)
         ).cast(t.DoubleType())
 
         # Processing columns of interest:
@@ -167,21 +179,24 @@ class GWASCatalogSummaryStatistics(SummaryStatistics):
                 # Parsing p-value mantissa and exponent:
                 *p_value_expression,
                 # Converting/calculating effect and confidence interval:
-                *convert_odds_ratio_to_beta(
+                *normalise_gwas_statistics(
                     beta_expression,
                     odds_ratio_expression,
                     standard_error,
+                    ci_upper,
+                    ci_lower,
                 ),
                 allele_frequency.alias("effectAlleleFrequencyFromSource"),
                 sample_size.alias("sampleSize"),
             )
-            .filter(
-                # Dropping associations where no harmonized position is available:
-                f.col("position").isNotNull()
-                &
-                # We are not interested in associations with zero effect:
-                (f.col("beta") != 0)
-            )
+            # Make sure the former select statement are executed before the filtering.
+            .persist()
+            # Dropping associations where no harmonized position is available:
+            .filter(f.col("position").isNotNull())
+            # We are not interested in associations empty beta values:
+            .filter(f.col("beta").isNotNull())
+            # We are not interested in associations with zero effect:
+            .filter(f.col("beta") != 0)
             .orderBy(f.col("chromosome"), f.col("position"))
             # median study size is 200Mb, max is 2.6Gb
             .repartition(20)
