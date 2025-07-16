@@ -827,7 +827,7 @@ def filter_array_struct(
         <BLANKLINE>
 
         >>> df.printSchema()
-         root
+        root
          |-- col: array (nullable = true)
          |    |-- element: struct (containsNull = true)
          |    |    |-- a: integer (nullable = true)
