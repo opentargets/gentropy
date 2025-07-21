@@ -937,7 +937,7 @@ dependencies = [
     { name = "omegaconf" },
     { name = "pandas", extra = ["gcp", "parquet"] },
     { name = "pyliftover" },
-    { name = "pyspark" },
+    { name = "pyspark", extra = ["pandas-on-spark"] },
     { name = "scikit-learn" },
     { name = "scipy" },
     { name = "shap" },
@@ -995,7 +995,7 @@ requires-dist = [
     { name = "omegaconf", specifier = ">=2.3.0,<2.4.0" },
     { name = "pandas", extras = ["gcp", "parquet"], specifier = ">=2.2.3,<2.3.0" },
     { name = "pyliftover", specifier = ">=0.4.1,<0.5.0" },
-    { name = "pyspark", specifier = ">=3.5.0,<3.6" },
+    { name = "pyspark", extras = ["pandas-on-spark"], specifier = ">=3.5.0,<3.6" },
     { name = "scikit-learn", specifier = ">=1.6.1,<1.7.0" },
     { name = "scipy", specifier = ">=1.11.4,<1.16.0" },
     { name = "shap", specifier = ">=0.46,<0.48" },
@@ -3074,6 +3074,13 @@ dependencies = [
     { name = "py4j" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/4e/18/6bb8c4e857122fc898f32336cb6e9e98415a7802c2a3738e907b4bd60953/pyspark-3.5.4.tar.gz", hash = "sha256:1c2926d63020902163f58222466adf6f8016f6c43c1f319b8e7a71dbaa05fc51", size = 317313656 }
+
+[package.optional-dependencies]
+pandas-on-spark = [
+    { name = "numpy" },
+    { name = "pandas" },
+    { name = "pyarrow" },
+]
 
 [[package]]
 name = "pytest"
