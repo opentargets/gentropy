@@ -312,7 +312,7 @@ class LocusToGeneStep:
                 self.feature_matrix,
                 model_path=self.model_path,
                 features_list=self.features_list,
-                hf_token=access_gcp_secret("hfhub-key", "open-targets-genetics-dev"),
+                hf_token=self._get_hf_token(),
                 hf_model_version=self.hf_model_version,
                 download_from_hub=self.download_from_hub,
             )
@@ -327,6 +327,11 @@ class LocusToGeneStep:
             self.session.write_mode
         ).parquet(self.predictions_path)
         self.session.logger.info("L2G predictions saved successfully.")
+
+    def _get_hf_token(self) -> str | None:
+        if self.download_from_hub:
+            return access_gcp_secret("hfhub-key", "open-targets-genetics-dev")
+        return None
 
     def run_train(self) -> None:
         """Run the training step.
