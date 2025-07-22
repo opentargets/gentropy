@@ -40,6 +40,7 @@ class LocusToGeneFeatureMatrixStep:
         study_index_path: str | None = None,
         target_index_path: str | None = None,
         feature_matrix_path: str,
+        append_null_features: bool = False,
     ) -> None:
         """Initialise the step and run the logic based on mode.
 
@@ -90,7 +91,9 @@ class LocusToGeneFeatureMatrixStep:
         )
 
         fm = credible_set.filter(f.col("studyType") == "gwas").build_feature_matrix(
-            features_list, features_input_loader
+            features_list,
+            features_input_loader,
+            append_null_features=append_null_features,
         )
 
         if target_index is not None:
