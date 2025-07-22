@@ -171,6 +171,17 @@ class FinngenFinemappingConfig(StepConfig):
     finngen_finemapping_out: str = MISSING
     finngen_finemapping_lead_pvalue_threshold: float = 1e-5
     finngen_release_prefix: str = "FINNGEN_R11"
+    ld_matrix_paths: dict[str, str] = field(
+        default_factory=lambda: {
+            "pan_ukbb_bm_path": "gs://panukbb-ld-matrixes/UKBB.{POP}.ldadj",
+            "ukbb_annotation_path": "gs://panukbb-ld-matrixes/UKBB.{POP}.aligned.parquet",
+            "ld_matrix_template": "gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.{POP}.common.adj.ld.bm",
+            "ld_index_raw_template": "gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.{POP}.common.ld.variant_indices.ht",
+            "liftover_ht_path": "gs://gcp-public-data--gnomad/release/2.1.1/liftover_grch38/ht/genomes/gnomad.genomes.r2.1.1.sites.liftover_grch38.ht",
+            "grch37_to_grch38_chain_path": "gs://hail-common/references/grch37_to_grch38.over.chain.gz",
+        }
+    )
+
     _target_: str = (
         "gentropy.finngen_finemapping_ingestion.FinnGenFinemappingIngestionStep"
     )

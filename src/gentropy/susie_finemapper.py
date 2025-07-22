@@ -49,6 +49,7 @@ class SusieFineMapperStep:
         study_index_path: str,
         study_locus_manifest_path: str,
         study_locus_index: int,
+        ld_matrix_paths: dict,
         max_causal_snps: int = 10,
         lead_pval_threshold: float = 1e-5,
         purity_mean_r2_threshold: float = 0,
@@ -77,6 +78,7 @@ class SusieFineMapperStep:
             study_index_path (str): path to the study index
             study_locus_manifest_path (str): Path to the CSV manifest containing all study locus input and output locations. Should contain two columns: study_locus_input and study_locus_output
             study_locus_index (int): Index (0-based) of the locus in the manifest to process in this call
+            ld_matrix_paths (dict): Dictionary with paths to LD matrices
             max_causal_snps (int): Maximum number of causal variants in locus, default is 10
             lead_pval_threshold (float): p-value threshold for the lead variant from CS, default is 1e-5
             purity_mean_r2_threshold (float): threshold for purity mean r2 qc metrics for filtering credible sets, default is 0
@@ -119,6 +121,7 @@ class SusieFineMapperStep:
             session=session,
             study_locus_row=study_locus,
             study_index=study_index,
+            ld_matrix_paths=ld_matrix_paths,
             max_causal_snps=max_causal_snps,
             purity_mean_r2_threshold=purity_mean_r2_threshold,
             purity_min_r2_threshold=purity_min_r2_threshold,
@@ -693,6 +696,7 @@ class SusieFineMapperStep:
         session: Session,
         study_locus_row: Row,
         study_index: StudyIndex,
+        ld_matrix_paths: dict,
         max_causal_snps: int = 10,
         susie_est_tausq: bool = False,
         run_carma: bool = False,
@@ -715,6 +719,7 @@ class SusieFineMapperStep:
             session (Session): Spark session
             study_locus_row (Row): StudyLocus row with collected locus
             study_index (StudyIndex): StudyIndex object
+            ld_matrix_paths (dict): Dictionary with paths to LD matrices
             max_causal_snps (int): maximum number of causal variants
             susie_est_tausq (bool): estimate tau squared, default is False
             run_carma (bool): run CARMA, default is False
@@ -920,7 +925,10 @@ class SusieFineMapperStep:
         gwas_df = gwas_df.join(unique_variants, on="variantId", how="left_semi")
 
         ld_index = LDMatrixInterface.get_locus_index_boundaries(
-            study_locus_row=study_locus_row, ancestry=major_population, session=session
+            ld_matrix_paths=ld_matrix_paths,
+            study_locus_row=study_locus_row,
+            ancestry=major_population,
+            session=session,
         )
 
         # Remove ALL duplicated variants from ld_index DataFrame - we don't know which is correct
@@ -959,7 +967,9 @@ class SusieFineMapperStep:
                 logging.warning("No overlapping variants in the LD Index")
                 return None
             gnomad_ld = LDMatrixInterface.get_numpy_matrix(
-                gwas_index, ancestry=major_population
+                ld_matrix_paths=ld_matrix_paths,
+                locus_index=gwas_index,
+                ancestry=major_population
             )
 
             # Module to remove NANs from the LD matrix
@@ -1022,7 +1032,9 @@ class SusieFineMapperStep:
                 return None
             gwas_index = ld_index
             gnomad_ld = LDMatrixInterface.get_numpy_matrix(
-                gwas_index, ancestry=major_population
+                ld_matrix_paths=ld_matrix_paths,
+                locus_index=gwas_index,
+                ancestry=major_population
             )
 
             # Module to remove NANs from the LD matrix
