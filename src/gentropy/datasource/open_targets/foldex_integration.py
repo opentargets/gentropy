@@ -6,7 +6,7 @@ import pyspark.sql.functions as f
 from pyspark.sql import Column, DataFrame
 from pyspark.sql import types as t
 
-from gentropy.common.spark_helpers import enforce_schema
+from gentropy.common.spark import enforce_schema
 from gentropy.dataset.amino_acid_variants import AminoAcidVariants
 from gentropy.dataset.variant_index import VariantEffectNormaliser
 
@@ -63,11 +63,7 @@ class OpenTargetsFoldX:
                 )
                 # Collapse all predictors for a single array object to avoid variant explosions:
                 .groupBy("uniprotAccession", "aminoAcidChange")
-                .agg(
-                    f.collect_set(f.col("foldx_prediction")).alias(
-                        "variantEffect"
-                    )
-                )
+                .agg(f.collect_set(f.col("foldx_prediction")).alias("variantEffect"))
                 # Normalise FoldX free energy changes:
                 .withColumn(
                     "variantEffect",

@@ -5,11 +5,21 @@ hide:
   - toc
 ---
 
-# Installation
+## Requirements
 
-!!! note Python compatibility
+To install gentropy one needs to have pre installed:
 
-    In the early stages of development, we are using Python version 3.10. We recommend using [pyenv](https://github.com/pyenv/pyenv) or similar tools to manage your local Python version. We intend to support more Python versions in the future.
+- Python >=3.10, <3.13
+- PySpark >=3.5.0, <3.6
+- Java 11, 17 (for hail support Java 11 is recommended, see [troubleshooting](development/troubleshooting.md) for more details)
+
+## Installation
+
+To install Gentropy we recoomend using [uv](https://docs.astral.sh/uv/), which is a tool for managing Python environments and dependencies.
+
+```bash
+uv add gentropy
+```
 
 ## Pypi
 
@@ -22,11 +32,5 @@ pip install gentropy
 ## Source
 
 Alternatively, you can install Open Targets Gentropy from source. Check the [contributing](development/contributing.md) section for more information.
-
-## Uninstall
-
-```bash
-pip uninstall gentropy -y
-```
 
 For any issues with the installation, check the [troubleshooting section](development/troubleshooting.md).
