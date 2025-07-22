@@ -2,8 +2,6 @@
 title: Troubleshooting
 ---
 
-# Troubleshooting
-
 ## BLAS/LAPACK
 
 If you see errors related to BLAS/LAPACK libraries, see [this StackOverflow post](https://stackoverflow.com/questions/69954587/no-blas-lapack-libraries-found-when-installing-scipy) for guidance.
@@ -19,6 +17,10 @@ To add new dependencies or update existing ones, you need to update the `pyproje
 ## Java
 
 Officially, PySpark requires Java version 8, or 11, 17. To support hail (gentropy dependency) it is recommended to use Java 11.
+
+### setting Java with sdkman
+
+sdkman is a tool for managing parallel versions of multiple java SDK on most Unix based systems. It can be used to install and manage Java versions. See [sdkman documentation](https://sdkman.io/) for more information.
 
 ## Pre-commit
 

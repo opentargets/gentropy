@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any
 
 import pyspark.sql.functions as f
 
-from gentropy.common.spark_helpers import convert_from_wide_to_long
+from gentropy.common.spark import convert_from_wide_to_long
 from gentropy.dataset.l2g_features.l2g_feature import L2GFeature
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
 from gentropy.dataset.study_locus import CredibleSetConfidenceClasses, StudyLocus

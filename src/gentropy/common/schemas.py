@@ -5,6 +5,7 @@ from __future__ import annotations
 import importlib.resources as pkg_resources
 import json
 from collections import defaultdict
+from typing import cast
 
 from pyspark.sql.types import ArrayType, StructType
 
@@ -48,9 +49,10 @@ def parse_spark_schema(schema_json: str) -> StructType:
     Returns:
         StructType: Spark schema
     """
-    core_schema = json.loads(
-        pkg_resources.read_text(schemas, schema_json, encoding="utf-8")
-    )
+    pkg = pkg_resources.files(schemas).joinpath(schema_json)
+    with pkg.open(encoding="utf-8") as schema:
+        core_schema = json.load(schema)
+
     return StructType.fromJson(core_schema)
 
 
@@ -91,18 +93,24 @@ def compare_array_schemas(
 
     # If element type is a struct, resolve nesting:
     elif (observed_type == "struct") and (expected_type == "struct"):
+        observed_inner_type = cast(StructType, observed_schema.elementType)
+        expected_inner_type = cast(StructType, expected_schema.elementType)
+
         schema_issues = compare_struct_schemas(
-            observed_schema.elementType,
-            expected_schema.elementType,
+            observed_inner_type,
+            expected_inner_type,
             f"{parent_field_name}[].",
             schema_issues,
         )
 
     # If element type is an array, resolve nesting:
     elif (observed_type == "array") and (expected_type == "array"):
+        observed_inner_type = cast(ArrayType, observed_schema.elementType)
+        expected_inner_type = cast(ArrayType, expected_schema.elementType)
+
         schema_issues = compare_array_schemas(
-            observed_schema.elementType,
-            expected_schema.elementType,
+            observed_inner_type,
+            expected_inner_type,
             parent_field_name,
             schema_issues,
         )
@@ -194,6 +202,8 @@ def compare_struct_schemas(
 
         # If column is a struct, resolve nesting:
         if observed_type_name == "struct":
+            observed_type = cast(StructType, observed_type)
+            expected_type = cast(StructType, expected_type)
             schema_issues = compare_struct_schemas(
                 observed_type,
                 expected_type,
@@ -202,6 +212,8 @@ def compare_struct_schemas(
             )
         # If column is an array, resolve nesting:
         elif observed_type_name == "array":
+            observed_type = cast(ArrayType, observed_type)
+            expected_type = cast(ArrayType, expected_type)
             schema_issues = compare_array_schemas(
                 observed_type,
                 expected_type,

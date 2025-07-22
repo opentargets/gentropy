@@ -9,7 +9,7 @@ import pyspark.sql.functions as f
 import pyspark.sql.types as t
 from pyspark.sql.window import Window
 
-from gentropy.common.spark_helpers import calculate_neglog_pvalue
+from gentropy.common.stats import neglogpval_from_pvalue
 from gentropy.dataset.study_locus import StudyLocus
 from gentropy.dataset.summary_statistics import SummaryStatistics
 
@@ -69,7 +69,7 @@ class LocusBreakerClumping:
                 # Calculating the neglog p-value for easier sorting:
                 .df.withColumn(
                     "negLogPValue",
-                    calculate_neglog_pvalue(
+                    neglogpval_from_pvalue(
                         f.col("pValueMantissa"), f.col("pValueExponent")
                     ),
                 )

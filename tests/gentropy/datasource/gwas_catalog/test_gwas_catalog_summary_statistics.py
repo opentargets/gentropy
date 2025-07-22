@@ -112,3 +112,45 @@ class TestGWASCatalogSummaryStatistics:
             test_dataset_instance.df.filter(f.col("studyId").startswith("GCST")).count()
             == test_dataset_instance.df.count()
         )
+
+    @pytest.mark.parametrize(
+        ["position", "expStdErr"],
+        [
+            pytest.param(
+                1026830, 0.14826, id="Do not rescue, when se (1.48260) exists"
+            ),
+            pytest.param(
+                1026831, 0.18344, id="Rescue se from p-value (5e-8) and beta (1.0)"
+            ),
+            pytest.param(
+                1026832,
+                0.18344,
+                id="Rescue se from p-value (5e-8) and OR (euler's number)",
+            ),
+        ],
+    )
+    def test_rescue_standard_error(
+        self: TestGWASCatalogSummaryStatistics,
+        spark: SparkSession,
+        position: int,
+        expStdErr: float,
+    ) -> None:
+        """Test rescue standard error from GWAS summary statistics based on what we have.
+
+        The test above assumes that the p-value is always 0.5 and beta (if present) is 1.0.
+        """
+        # The new format has standard error, but the old format does not.
+        test_dataset_path = "tests/gentropy/data_samples/empty_stderr_GCST01.h.tsv"
+        sumstat = GWASCatalogSummaryStatistics.from_gwas_harmonized_summary_stats(
+            spark, test_dataset_path
+        )
+
+        def get_stderr(pos: int) -> float | None:
+            """Extract standard error from a row."""
+            rows = sumstat.df.filter(f.col("position") == pos).collect()
+            assert len(rows) == 1, "Expected exactly one row for position"
+            if not rows:
+                return None
+            return rows[0]["standardError"]
+
+        assert get_stderr(position) == pytest.approx(expStdErr, abs=1e-5)

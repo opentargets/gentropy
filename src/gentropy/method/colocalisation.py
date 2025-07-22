@@ -11,7 +11,7 @@ import pyspark.sql.types as t
 from pyspark.ml.linalg import DenseVector, Vectors, VectorUDT
 from pyspark.sql.types import DoubleType
 
-from gentropy.common.utils import get_logsum
+from gentropy.common.stats import get_logsum
 from gentropy.dataset.colocalisation import Colocalisation
 
 if TYPE_CHECKING:
