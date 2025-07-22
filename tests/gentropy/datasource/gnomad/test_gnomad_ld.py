@@ -7,10 +7,12 @@ from typing import Any
 
 import hail as hl
 import pytest
-from pyspark.sql import DataFrame, SparkSession
+from pyspark.sql import DataFrame, SparkSession, Row
 from pyspark.sql import functions as f
 
 from gentropy.datasource.gnomad.ld import GnomADLDMatrix
+from unittest.mock import patch, MagicMock
+
 
 
 @pytest.mark.parametrize(
@@ -184,4 +186,41 @@ class TestGnomADLDMatrixSlice:
             gnomad_ancestry=test_ld_population,
             start_index=self.slice_start_index,
             end_index=self.slice_end_index,
+        )
+
+
+class TestGnomADLDMatrixGetLocusBoundaries:
+    @patch("gentropy.datasource.gnomad.ld.hl.read_table")
+    @patch("gentropy.datasource.gnomad.ld.GnomADLDMatrix._filter_liftover_by_locus")
+    def test_filter_liftover_integration(self, mock_filter_liftover, mock_read_table):
+        """Test that _filter_liftover_by_locus is properly integrated with get_locus_index_boundaries."""
+        from gentropy.datasource.gnomad.ld import GnomADLDMatrix
+
+        # Setup
+        study_locus_row = Row(chromosome="1", locusStart=1000000, locusEnd=2000000)
+
+        mock_liftover_ht = MagicMock()
+        mock_liftover_ht.join = MagicMock()
+        mock_filter_liftover.return_value = mock_liftover_ht
+        mock_read_table.return_value = MagicMock()
+
+        ld_matrix = GnomADLDMatrix(
+            ld_index_raw_template="test_path_{POP}",
+            liftover_ht_path="test_liftover_path",
+        )
+
+        # Execute
+        result = ld_matrix.get_locus_index_boundaries(
+            study_locus_row, major_population="test_pop"
+        )
+
+        # Verify
+        mock_read_table.assert_any_call("test_liftover_path")
+        mock_read_table.assert_any_call("test_path_test_pop")
+        assert mock_read_table.call_count == 2
+
+        mock_filter_liftover.assert_called_once_with("chr1", 1000000, 2000000)
+        mock_liftover_ht.join.assert_called_once_with(
+            mock_read_table.return_value,
+            how="inner",
         )
