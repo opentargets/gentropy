@@ -161,23 +161,36 @@ class PanUKBBLDMatrix:
             np.ndarray: LD block matrix for the locus
         """
         idx = [row["idx"] for row in locus_index.select("idx").collect()]
+        half_matrix = self._load_hail_block_matrix(idx, ancestry)
+        outer_allele_order = self._get_outer_allele_order(locus_index)
+        ld_matrix = self._construct_ld_matrix(half_matrix, outer_allele_order)
+        return ld_matrix
 
-        half_matrix = (
+    def _load_hail_block_matrix(
+        self: PanUKBBLDMatrix,
+        idx: list[int],
+        ancestry: str,
+    ) -> np.ndarray:
+        return (
             BlockMatrix.read(self.pan_ukbb_bm_path.format(POP=ancestry))
             .filter(idx, idx)
             .to_numpy()
         )
 
+    def _get_outer_allele_order(
+        self: PanUKBBLDMatrix, locus_index: DataFrame
+    ) -> np.ndarray:
         alleleOrder = [
             row["alleleOrder"] for row in locus_index.select("alleleOrder").collect()
         ]
         outer_allele_order = np.outer(alleleOrder, alleleOrder)
         np.fill_diagonal(outer_allele_order, 1)
+        return outer_allele_order
 
+    def _construct_ld_matrix(self, half_matrix, outer_allele_order):
         ld_matrix = (half_matrix + half_matrix.T) - np.diag(np.diag(half_matrix))
         ld_matrix = ld_matrix * outer_allele_order
         np.fill_diagonal(ld_matrix, 1)
-
         return ld_matrix
 
     def get_locus_index_boundaries(
