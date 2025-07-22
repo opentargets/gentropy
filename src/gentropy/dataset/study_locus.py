@@ -12,13 +12,12 @@ from pyspark.sql.types import ArrayType, FloatType, LongType, StringType
 
 from gentropy.common.genomic_region import GenomicRegion, KnownGenomicRegions
 from gentropy.common.schemas import parse_spark_schema
-from gentropy.common.spark_helpers import (
-    calculate_neglog_pvalue,
+from gentropy.common.spark import (
     create_empty_column_if_not_exists,
     get_struct_field_schema,
     order_array_of_structs_by_field,
 )
-from gentropy.common.utils import get_logsum
+from gentropy.common.stats import get_logsum, neglogpval_from_pvalue
 from gentropy.config import WindowBasedClumpingStepConfig
 from gentropy.dataset.dataset import Dataset
 from gentropy.dataset.study_index import StudyQualityCheck
@@ -425,7 +424,7 @@ class StudyLocus(Dataset):
         """
         return StudyLocus.update_quality_flag(
             quality_controls_column,
-            calculate_neglog_pvalue(p_value_mantissa, p_value_exponent)
+            neglogpval_from_pvalue(p_value_mantissa, p_value_exponent)
             < f.lit(-np.log10(pvalue_cutoff)),
             StudyLocusQualityCheck.SUBSIGNIFICANT_FLAG,
         )
@@ -892,7 +891,7 @@ class StudyLocus(Dataset):
         Returns:
             Column: Negative log p-value
         """
-        return calculate_neglog_pvalue(
+        return neglogpval_from_pvalue(
             self.df.pValueMantissa,
             self.df.pValueExponent,
         )
