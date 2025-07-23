@@ -853,6 +853,7 @@ class TestStudyLocusWindowClumping:
 
 
 class TestStudyLocusBuildFeatureMatrix:
+    """Collection of tests related to building feature matrix from study locus."""
     def test_build_feature_matrix(
         self: TestStudyLocusBuildFeatureMatrix,
         mock_study_locus: StudyLocus,

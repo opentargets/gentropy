@@ -1,9 +1,10 @@
 """Test suite for the PanUKBBLDMatrix class in the gentropy package."""
 
-import numpy as np
-import pytest
-from pyspark.sql import DataFrame
 from unittest.mock import MagicMock, patch
+
+import pytest
+import numpy as np
+from pyspark.sql import DataFrame
 
 from gentropy.datasource.pan_ukbb_ld.ld import PanUKBBLDMatrix
 

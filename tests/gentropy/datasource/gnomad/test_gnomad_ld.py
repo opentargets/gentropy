@@ -14,7 +14,6 @@ from pyspark.sql import functions as f
 from gentropy.datasource.gnomad.ld import GnomADLDMatrix
 
 
-
 @pytest.mark.parametrize(
     ("observed", "expected"),
     [

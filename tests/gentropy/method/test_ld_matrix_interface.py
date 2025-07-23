@@ -46,7 +46,7 @@ class TestLDMatrixInterfacePanUKBB:
         mock_study_locus_row = MagicMock()
 
         # Exectue
-        result = LDMatrixInterface.get_locus_index_boundaries(
+        LDMatrixInterface.get_locus_index_boundaries(
             ld_matrix_paths=default_ld_matrix_paths,
             session=session,
             study_locus_row=mock_study_locus_row,
@@ -68,7 +68,7 @@ class TestLDMatrixInterfacePanUKBB:
         mock_study_locus_row = MagicMock()
 
         # Exectue
-        result = LDMatrixInterface.get_locus_index_boundaries(
+        LDMatrixInterface.get_locus_index_boundaries(
             ld_matrix_paths=override_ld_matrix_paths,
             session=session,
             study_locus_row=mock_study_locus_row,
@@ -98,7 +98,7 @@ class TestLDMatrixInterfacePanUKBB:
         mock_get_outer_allele_order.return_value = MagicMock()
 
         # Exectue
-        result = LDMatrixInterface.get_numpy_matrix(
+        LDMatrixInterface.get_numpy_matrix(
             ld_matrix_paths=default_ld_matrix_paths,
             locus_index=mock_locus_index,
             ancestry="nfe",
@@ -127,7 +127,7 @@ class TestLDMatrixInterfacePanUKBB:
         mock_get_outer_allele_order.return_value = MagicMock()
 
         # Exectue
-        result = LDMatrixInterface.get_numpy_matrix(
+        LDMatrixInterface.get_numpy_matrix(
             ld_matrix_paths=override_ld_matrix_paths,
             locus_index=mock_locus_index,
             ancestry="nfe",
@@ -153,7 +153,7 @@ class TestLDMatrixInterfaceGnomAD:
         mock_filter_liftover.return_value = MagicMock()
 
         # Exectue
-        result = LDMatrixInterface.get_locus_index_boundaries(
+        LDMatrixInterface.get_locus_index_boundaries(
             ld_matrix_paths=default_ld_matrix_paths,
             session=session,
             study_locus_row=mock_study_locus_row,
@@ -177,7 +177,7 @@ class TestLDMatrixInterfaceGnomAD:
         mock_filter_liftover.return_value = MagicMock()
 
         # Exectue
-        result = LDMatrixInterface.get_locus_index_boundaries(
+        LDMatrixInterface.get_locus_index_boundaries(
             ld_matrix_paths=override_ld_matrix_paths,
             session=session,
             study_locus_row=mock_study_locus_row,
@@ -201,7 +201,7 @@ class TestLDMatrixInterfaceGnomAD:
         mock_block_matrix_read.return_value = MagicMock()
 
         # Exectue
-        result = LDMatrixInterface.get_numpy_matrix(
+        LDMatrixInterface.get_numpy_matrix(
             ld_matrix_paths=default_ld_matrix_paths,
             locus_index=mock_locus_index,
             ancestry="eas",
@@ -224,7 +224,7 @@ class TestLDMatrixInterfaceGnomAD:
         mock_block_matrix_read.return_value = MagicMock()
 
         # Exectue
-        result = LDMatrixInterface.get_numpy_matrix(
+        LDMatrixInterface.get_numpy_matrix(
             ld_matrix_paths=override_ld_matrix_paths,
             locus_index=mock_locus_index,
             ancestry="eas",
