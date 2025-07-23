@@ -1,11 +1,16 @@
+"""Test suite for the LDMatrixInterface class in the gentropy package."""
+
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import patch, MagicMock
-from gentropy.method.ld_matrix_interface import LDMatrixInterface
+
 from gentropy.common.session import Session
+from gentropy.method.ld_matrix_interface import LDMatrixInterface
 
 
 @pytest.fixture
 def default_ld_matrix_paths():
+    """Default LD matrix paths for testing."""
     return {
         "pan_ukbb_bm_path": "gs://panukbb-ld-matrixes/UKBB.{POP}.ldadj",
         "ukbb_annotation_path": "gs://panukbb-ld-matrixes/UKBB.{POP}.aligned.parquet",
@@ -18,6 +23,7 @@ def default_ld_matrix_paths():
 
 @pytest.fixture
 def override_ld_matrix_paths():
+    """Override LD matrix paths for testing."""
     return {
         "pan_ukbb_bm_path": "/path/to/local/UKBB.{POP}.ldadj",
         "ukbb_annotation_path": "/path/to/local/UKBB.{POP}.aligned.parquet",
@@ -29,10 +35,12 @@ def override_ld_matrix_paths():
 
 
 class TestLDMatrixInterfacePanUKBB:
+    """Test PanUKBB LD methods for locus boundaries."""
     @patch("pyspark.sql.DataFrameReader.parquet")
     def test_get_locus_index_boundaries_panukbb_default(
         self, mock_parquet_reader, default_ld_matrix_paths
     ):
+        """Test getting locus index boundaries for PanUKBB with default paths."""
         # Setup
         session = Session()
         mock_study_locus_row = MagicMock()
@@ -54,6 +62,7 @@ class TestLDMatrixInterfacePanUKBB:
     def test_get_locus_index_boundaries_panukbb_override(
         self, mock_parquet_reader, override_ld_matrix_paths
     ):
+        """Test getting locus index boundaries for PanUKBB with overridden paths."""
         # Setup
         session = Session()
         mock_study_locus_row = MagicMock()
@@ -81,6 +90,7 @@ class TestLDMatrixInterfacePanUKBB:
         mock_block_matrix_read,
         default_ld_matrix_paths,
     ):
+        """Test getting numpy matrix for PanUKBB with default paths."""
         # Setup
         mock_locus_index = MagicMock()
         mock_block_matrix_read.return_value = MagicMock()
@@ -109,6 +119,7 @@ class TestLDMatrixInterfacePanUKBB:
         mock_block_matrix_read,
         override_ld_matrix_paths,
     ):
+        """Test getting numpy matrix for PanUKBB with overridden paths."""
         # Setup
         mock_locus_index = MagicMock()
         mock_block_matrix_read.return_value = MagicMock()
@@ -129,11 +140,13 @@ class TestLDMatrixInterfacePanUKBB:
 
 
 class TestLDMatrixInterfaceGnomAD:
+    """Test GnomAD LD methods for locus boundaries."""
     @patch("hail.read_table")
     @patch("gentropy.datasource.gnomad.ld.GnomADLDMatrix._filter_liftover_by_locus")
     def test_get_locus_index_boundaries_gnomad_default(
         self, mock_filter_liftover, mock_read_table, default_ld_matrix_paths
     ):
+        """Test getting locus index boundaries for GnomAD with default paths."""
         # Setup
         session = Session()
         mock_study_locus_row = MagicMock()
@@ -157,6 +170,7 @@ class TestLDMatrixInterfaceGnomAD:
     def test_get_locus_index_boundaries_gnomad_override(
         self, mock_filter_liftover, mock_read_table, override_ld_matrix_paths
     ):
+        """Test getting locus index boundaries for GnomAD with overridden paths."""
         # Setup
         session = Session()
         mock_study_locus_row = MagicMock()
@@ -181,6 +195,7 @@ class TestLDMatrixInterfaceGnomAD:
         mock_block_matrix_read,
         default_ld_matrix_paths,
     ):
+        """Test getting numpy matrix for GnomAD with default paths."""
         # Setup
         mock_locus_index = MagicMock()
         mock_block_matrix_read.return_value = MagicMock()
@@ -203,6 +218,7 @@ class TestLDMatrixInterfaceGnomAD:
         mock_block_matrix_read,
         override_ld_matrix_paths,
     ):
+        """Test getting numpy matrix for GnomAD with overridden paths."""
         # Setup
         mock_locus_index = MagicMock()
         mock_block_matrix_read.return_value = MagicMock()

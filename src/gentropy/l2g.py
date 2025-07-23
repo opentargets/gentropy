@@ -53,6 +53,7 @@ class LocusToGeneFeatureMatrixStep:
             study_index_path (str | None): Path to the study index dataset
             target_index_path (str | None): Path to the target index dataset
             feature_matrix_path (str): Path to the L2G feature matrix output dataset
+            append_null_features (bool): Whether to append null features to the feature matrix. Defaults to False.
         """
         credible_set = StudyLocus.from_parquet(
             session, credible_set_path, recursiveFileLookup=True

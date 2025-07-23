@@ -83,6 +83,7 @@ class LDMatrixInterface:
         """Extract the LD block matrix for a locus.
 
         Args:
+            ld_matrix_paths (dict): Dictionary with paths to LD matrix files
             locus_index (DataFrame): hail matrix variant index table
             ancestry (str): major ancestry label eg. `nfe`
 

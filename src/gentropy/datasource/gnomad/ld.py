@@ -530,7 +530,7 @@ class GnomADLDMatrix:
 
         liftover_ht = hl.read_table(self.liftover_ht_path)
         liftover_ht = self._filter_liftover_by_locus(
-            chromosome, start, end
+            liftover_ht, chromosome, start, end
         )
 
         hail_index = hl.read_table(
@@ -543,7 +543,13 @@ class GnomADLDMatrix:
 
         return joined_index
 
-    def _filter_liftover_by_locus(self, chromosome, start, end):
+    def _filter_liftover_by_locus(
+        self,
+        liftover_ht: hl.Table,
+        chromosome: str,
+        start: int,
+        end: int
+        ) -> hl.Table:
         liftover_ht = (
             liftover_ht.filter(
                 (liftover_ht.locus.contig == chromosome)

@@ -1,10 +1,11 @@
-import pytest
+"""Test suite for the PanUKBBLDMatrix class in the gentropy package."""
+
 import numpy as np
-from unittest.mock import patch, MagicMock
+import pytest
 from pyspark.sql import DataFrame
+from unittest.mock import MagicMock, patch
 
 from gentropy.datasource.pan_ukbb_ld.ld import PanUKBBLDMatrix
-
 
 @pytest.fixture
 def mock_locus_index():
@@ -35,6 +36,7 @@ def half_matrix():
 
 
 class TestGetNumpyMatrix:
+    """"Test suite for the get_numpy_matrix method of PanUKBBLDMatrix."""
     def test_load_hail_block_matrix(self):
         """Test _load_hail_block_matrix correctly reads and filters block matrices."""
         # Create a mock BlockMatrix
@@ -98,11 +100,6 @@ class TestGetNumpyMatrix:
         outer_allele_order = np.array([[1, -1, 1], [-1, 1, -1], [1, -1, 1]])
 
         result = matrix._construct_ld_matrix(half_matrix, outer_allele_order)
-
-        # Expected symmetric matrix before allele order is applied: (half_matrix + half_matrix.T) - diag(diag(half_matrix))
-        expected_symmetric = np.array(
-            [[1.0, 0.7, 0.3], [0.7, 1.0, 0.5], [0.3, 0.5, 1.0]]
-        )
 
         # Expected after applying allele order
         expected_final = np.array(

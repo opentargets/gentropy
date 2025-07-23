@@ -116,7 +116,7 @@ class TestFromFeaturesList:
             target_index=self.sample_target_index,
         )
         with pytest.raises(ValueError) as excinfo:
-            fm = L2GFeatureMatrix.from_features_list(
+            L2GFeatureMatrix.from_features_list(
                 self.sample_study_locus, features_list, loader
             )
         assert "Feature foo not found." in str(excinfo.value)
