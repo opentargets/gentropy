@@ -64,6 +64,7 @@ class SusieFineMapperStep:
         imputed_r2_threshold: float = 0.9,
         ld_score_threshold: float = 5,
         ld_min_r2: float = 0.8,
+        ignore_qc: bool = False,
     ) -> None:
         """Run fine-mapping on a studyLocusId from a collected studyLocus table.
 
@@ -93,6 +94,7 @@ class SusieFineMapperStep:
             imputed_r2_threshold (float): imputed R2 threshold, default is 0.9
             ld_score_threshold (float): LD score threshold ofr imputation, default is 5
             ld_min_r2 (float): Threshold to filter CS by leads in high LD, default is 0.8
+            ignore_qc (bool): run SuSiE regardless of QC flags, default is False
         """
         # Read locus manifest.
         study_locus_manifest = pd.read_csv(study_locus_manifest_path)
@@ -137,6 +139,7 @@ class SusieFineMapperStep:
             ld_score_threshold=ld_score_threshold,
             ld_min_r2=ld_min_r2,
             log_output=log_output,
+            ignore_qc=ignore_qc,
         )
 
         if result_logging is not None:
@@ -712,6 +715,7 @@ class SusieFineMapperStep:
         cs_lbf_thr: float = 2,
         ld_min_r2: float = 0.9,
         log_output: str = "",
+        ignore_qc: bool = False,
     ) -> dict[str, Any] | None:
         """Susie fine-mapper function that uses study-locus row with collected locus, chromosome and position as inputs.
 
@@ -735,6 +739,7 @@ class SusieFineMapperStep:
             cs_lbf_thr (float): credible set logBF threshold for filtering credible sets, default is 2
             ld_min_r2 (float): Threshold to fillter CS by leads in high LD, default is 0.9
             log_output (str): path to the log output
+            ignore_qc (bool): run SuSiE regardless of QC flags, default is False
 
         Returns:
             dict[str, Any] | None: dictionary with study locus, number of GWAS variants, number of LD variants, number of variants after merge, number of outliers, number of imputed variants, number of variants to fine-map, or None
@@ -804,7 +809,8 @@ class SusieFineMapperStep:
                     path_out=log_output,
                 )
             logging.warning("Study type is not GWAS or non gwas catalog pqtl")
-            return None
+            if not ignore_qc:
+                return None
 
         # Desision tree - ancestry
         if major_population not in ["nfe", "csa", "afr"]:
@@ -816,7 +822,8 @@ class SusieFineMapperStep:
                     path_out=log_output,
                 )
             logging.warning("Major ancestry is not nfe, csa or afr")
-            return None
+            if not ignore_qc:
+                return None
 
         # Desision tree - hasSumstats
         if not study_index_df.select("hasSumstats").collect()[0]["hasSumstats"]:
@@ -828,7 +835,8 @@ class SusieFineMapperStep:
                     path_out=log_output,
                 )
             logging.warning("No sumstats found for the studyId")
-            return None
+            if not ignore_qc:
+                return None
 
         # Desision tree - qulityControls
         keys_reasons = [
@@ -865,7 +873,8 @@ class SusieFineMapperStep:
                     path_out=log_output,
                 )
             logging.warning("Quality control check failed for this study")
-            return None
+            if not ignore_qc:
+                return None
 
         # Desision tree - analysisFlags
         study_index_df = study_index_df.drop("FailedQC")
@@ -897,7 +906,8 @@ class SusieFineMapperStep:
                     path_out=log_output,
                 )
             logging.warning("Analysis Flags check failed for this study")
-            return None
+            if not ignore_qc:
+                return None
 
         gwas_df = session.spark.createDataFrame(
             [study_locus_row], StudyLocus.get_schema()
@@ -1111,7 +1121,8 @@ class SusieFineMapperStep:
                     path_out=log_output,
                 )
             logging.warning("More than 15000 variants after joining GWAS and LD index")
-            return None
+            if not ignore_qc:
+                return None
 
         out = SusieFineMapperStep.susie_finemapper_from_prepared_dataframes(
             GWAS_df=gwas_df,

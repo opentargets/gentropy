@@ -621,6 +621,7 @@ class FinemapperConfig(StepConfig):
     imputed_r2_threshold: float = MISSING
     ld_score_threshold: float = MISSING
     ld_min_r2: float = MISSING
+    ignore_qc: bool = False
     _target_: str = "gentropy.susie_finemapper.SusieFineMapperStep"
 
 
