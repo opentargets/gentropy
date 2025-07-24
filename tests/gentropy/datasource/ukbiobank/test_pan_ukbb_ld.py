@@ -64,7 +64,7 @@ class TestGetNumpyMatrix:
             result: NDArray[Any] = matrix._load_hail_block_matrix([1, 2], "EUR")
 
             # Verify BlockMatrix.read was called with correct path
-            from gentropy.datasource.pan_ukbb_ld.ld import BlockMatrix
+            from hail.linalg import BlockMatrix
 
             BlockMatrix.read.assert_called_once_with("test_path_EUR")
 
