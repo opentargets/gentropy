@@ -1,20 +1,23 @@
 """Test suite for the PanUKBBLDMatrix class in the gentropy package."""
 
+from typing import Any
 from unittest.mock import MagicMock, patch
 
-import pytest
 import numpy as np
+import pytest
+from numpy._typing._array_like import NDArray
 from pyspark.sql import DataFrame
 
 from gentropy.datasource.pan_ukbb_ld.ld import PanUKBBLDMatrix
 
+
 @pytest.fixture
-def mock_locus_index():
+def mock_locus_index() -> MagicMock:
     """Create a mock locus index DataFrame for testing."""
-    mock_df = MagicMock(spec=DataFrame)
+    mock_df: MagicMock = MagicMock(spec=DataFrame)
 
     # Configure the mock DataFrame's select and collect methods
-    mock_select = MagicMock(spec=DataFrame)
+    mock_select: MagicMock = MagicMock(spec=DataFrame)
     mock_df.select.return_value = mock_select
 
     # Mock rows with "idx" and "alleleOrder" columns
@@ -31,19 +34,20 @@ def mock_locus_index():
 
 
 @pytest.fixture
-def half_matrix():
+def half_matrix() -> NDArray[Any]:
     """Create a test half matrix."""
     return np.array([[1.0, 0.7, 0.3], [0.0, 1.0, 0.5], [0.0, 0.0, 1.0]])
 
 
 class TestGetNumpyMatrix:
-    """"Test suite for the get_numpy_matrix method of PanUKBBLDMatrix."""
-    def test_load_hail_block_matrix(self):
+    """Test suite for the get_numpy_matrix method of PanUKBBLDMatrix."""
+
+    def test_load_hail_block_matrix(self) -> None:
         """Test _load_hail_block_matrix correctly reads and filters block matrices."""
         # Create a mock BlockMatrix
-        mock_block_matrix = MagicMock()
-        mock_filtered = MagicMock()
-        mock_numpy = np.array([[1.0, 0.5], [0.5, 1.0]])
+        mock_block_matrix: MagicMock = MagicMock()
+        mock_filtered: MagicMock = MagicMock()
+        mock_numpy: NDArray[Any] = np.array([[1.0, 0.5], [0.5, 1.0]])
 
         # Configure mocks
         mock_block_matrix.filter.return_value = mock_filtered
@@ -54,8 +58,10 @@ class TestGetNumpyMatrix:
             "gentropy.datasource.pan_ukbb_ld.ld.BlockMatrix.read",
             return_value=mock_block_matrix,
         ):
-            matrix = PanUKBBLDMatrix(pan_ukbb_bm_path="test_path_{POP}")
-            result = matrix._load_hail_block_matrix([1, 2], "EUR")
+            matrix: PanUKBBLDMatrix = PanUKBBLDMatrix(
+                pan_ukbb_bm_path="test_path_{POP}"
+            )
+            result: NDArray[Any] = matrix._load_hail_block_matrix([1, 2], "EUR")
 
             # Verify BlockMatrix.read was called with correct path
             from gentropy.datasource.pan_ukbb_ld.ld import BlockMatrix
@@ -69,41 +75,49 @@ class TestGetNumpyMatrix:
             mock_filtered.to_numpy.assert_called_once()
             assert result is mock_numpy
 
-    def test_get_outer_allele_order(self, mock_locus_index):
+    def test_get_outer_allele_order(self, mock_locus_index: MagicMock) -> None:
         """Test _get_outer_allele_order correctly computes outer product of allele orders."""
-        matrix = PanUKBBLDMatrix()
+        matrix: PanUKBBLDMatrix = PanUKBBLDMatrix()
 
         # Create a proper mock for the select result
-        mock_allele_order_select = MagicMock()
+        mock_allele_order_select: MagicMock = MagicMock()
         mock_locus_index.select.return_value = mock_allele_order_select
 
         # Create simple dictionaries that will work with row["alleleOrder"]
-        mock_rows = [{"alleleOrder": 1}, {"alleleOrder": -1}, {"alleleOrder": 1}]
+        mock_rows = [
+            {"alleleOrder": 1},
+            {"alleleOrder": -1},
+            {"alleleOrder": 1},
+        ]
 
         # Configure collect to return our mock rows
         mock_allele_order_select.collect.return_value = mock_rows
 
-        result = matrix._get_outer_allele_order(mock_locus_index)
+        result: NDArray[Any] = matrix._get_outer_allele_order(mock_locus_index)
 
         # Verify select was called with "alleleOrder"
         mock_locus_index.select.assert_called_once_with("alleleOrder")
 
         # Expected outer product of [1, -1, 1]
-        expected = np.array([[1, -1, 1], [-1, 1, -1], [1, -1, 1]])
+        expected: NDArray[Any] = np.array([[1, -1, 1], [-1, 1, -1], [1, -1, 1]])
 
         assert np.array_equal(result, expected)
 
-    def test_construct_ld_matrix(self, half_matrix):
+    def test_construct_ld_matrix(self, half_matrix: NDArray[Any]) -> None:
         """Test _construct_ld_matrix correctly builds a symmetric matrix and applies allele order."""
-        matrix = PanUKBBLDMatrix()
+        matrix: PanUKBBLDMatrix = PanUKBBLDMatrix()
 
         # Create test outer_allele_order
-        outer_allele_order = np.array([[1, -1, 1], [-1, 1, -1], [1, -1, 1]])
+        outer_allele_order: NDArray[Any] = np.array(
+            [[1, -1, 1], [-1, 1, -1], [1, -1, 1]]
+        )
 
-        result = matrix._construct_ld_matrix(half_matrix, outer_allele_order)
+        result: NDArray[Any] = matrix._construct_ld_matrix(
+            half_matrix, outer_allele_order
+        )
 
         # Expected after applying allele order
-        expected_final = np.array(
+        expected_final: NDArray[Any] = np.array(
             [[1.0, -0.7, 0.3], [-0.7, 1.0, -0.5], [0.3, -0.5, 1.0]]
         )
 
@@ -113,16 +127,22 @@ class TestGetNumpyMatrix:
         # Verify result matches expected
         assert np.allclose(result, expected_final)
 
-    def test_get_numpy_matrix_integrates_methods(self, mock_locus_index):
+    def test_get_numpy_matrix_integrates_methods(
+        self, mock_locus_index: MagicMock
+    ) -> None:
         """Test get_numpy_matrix correctly integrates the other methods."""
-        matrix = PanUKBBLDMatrix()
+        matrix: PanUKBBLDMatrix = PanUKBBLDMatrix()
 
         # Set up mock return values
-        mock_half_matrix = np.array([[1.0, 0.7, 0.3], [0.0, 1.0, 0.5], [0.0, 0.0, 1.0]])
+        mock_half_matrix: NDArray[Any] = np.array(
+            [[1.0, 0.7, 0.3], [0.0, 1.0, 0.5], [0.0, 0.0, 1.0]]
+        )
 
-        mock_outer_allele_order = np.array([[1, -1, 1], [-1, 1, -1], [1, -1, 1]])
+        mock_outer_allele_order: NDArray[Any] = np.array(
+            [[1, -1, 1], [-1, 1, -1], [1, -1, 1]]
+        )
 
-        mock_final_matrix = np.array(
+        mock_final_matrix: NDArray[Any] = np.array(
             [[1.0, -0.7, 0.3], [-0.7, 1.0, -0.5], [0.3, -0.5, 1.0]]
         )
 
@@ -138,9 +158,8 @@ class TestGetNumpyMatrix:
                 matrix, "_construct_ld_matrix", return_value=mock_final_matrix
             ) as mock_construct,
         ):
-
             # Create a mock for the select result with proper row objects
-            mock_idx_select = MagicMock()
+            mock_idx_select: MagicMock = MagicMock()
             mock_locus_index.select.return_value = mock_idx_select
 
             # Create proper row objects with idx values that will be extracted
@@ -150,7 +169,7 @@ class TestGetNumpyMatrix:
             mock_idx_select.collect.return_value = mock_rows
 
             # Call the method
-            result = matrix.get_numpy_matrix(mock_locus_index, "EUR")
+            result: NDArray[Any] = matrix.get_numpy_matrix(mock_locus_index, "EUR")
 
             # Verify each method was called with correct arguments
             mock_locus_index.select.assert_called_with("idx")

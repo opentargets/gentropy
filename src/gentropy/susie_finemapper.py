@@ -49,7 +49,7 @@ class SusieFineMapperStep:
         study_index_path: str,
         study_locus_manifest_path: str,
         study_locus_index: int,
-        ld_matrix_paths: dict,
+        ld_matrix_paths: dict[str, str],
         max_causal_snps: int = 10,
         lead_pval_threshold: float = 1e-5,
         purity_mean_r2_threshold: float = 0,
@@ -79,7 +79,7 @@ class SusieFineMapperStep:
             study_index_path (str): path to the study index
             study_locus_manifest_path (str): Path to the CSV manifest containing all study locus input and output locations. Should contain two columns: study_locus_input and study_locus_output
             study_locus_index (int): Index (0-based) of the locus in the manifest to process in this call
-            ld_matrix_paths (dict): Dictionary with paths to LD matrices
+            ld_matrix_paths (dict[str, str]): Dictionary with paths to LD matrices
             max_causal_snps (int): Maximum number of causal variants in locus, default is 10
             lead_pval_threshold (float): p-value threshold for the lead variant from CS, default is 1e-5
             purity_mean_r2_threshold (float): threshold for purity mean r2 qc metrics for filtering credible sets, default is 0
@@ -699,7 +699,7 @@ class SusieFineMapperStep:
         session: Session,
         study_locus_row: Row,
         study_index: StudyIndex,
-        ld_matrix_paths: dict,
+        ld_matrix_paths: dict[str, str],
         max_causal_snps: int = 10,
         susie_est_tausq: bool = False,
         run_carma: bool = False,
@@ -723,7 +723,7 @@ class SusieFineMapperStep:
             session (Session): Spark session
             study_locus_row (Row): StudyLocus row with collected locus
             study_index (StudyIndex): StudyIndex object
-            ld_matrix_paths (dict): Dictionary with paths to LD matrices
+            ld_matrix_paths (dict[str, str]): Dictionary with paths to LD matrices
             max_causal_snps (int): maximum number of causal variants
             susie_est_tausq (bool): estimate tau squared, default is False
             run_carma (bool): run CARMA, default is False

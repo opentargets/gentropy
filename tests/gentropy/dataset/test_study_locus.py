@@ -854,6 +854,7 @@ class TestStudyLocusWindowClumping:
 
 class TestStudyLocusBuildFeatureMatrix:
     """Collection of tests related to building feature matrix from study locus."""
+
     def test_build_feature_matrix(
         self: TestStudyLocusBuildFeatureMatrix,
         mock_study_locus: StudyLocus,
@@ -890,9 +891,9 @@ class TestStudyLocusBuildFeatureMatrix:
             features_list, loader, append_null_features=False
         )
 
-        assert isinstance(
-            fm, L2GFeatureMatrix
-        ), "Feature matrix should be of type L2GFeatureMatrix"
+        assert isinstance(fm, L2GFeatureMatrix), (
+            "Feature matrix should be of type L2GFeatureMatrix"
+        )
         assert "eQtlColocH4Maximum" in fm._df.columns
         assert "eQtlColocH4Maximum" in fm.features_list
         assert "pQtlColocH4Maximum" not in fm._df.columns
@@ -914,9 +915,9 @@ class TestStudyLocusBuildFeatureMatrix:
         fm = mock_study_locus.build_feature_matrix(
             features_list, loader, append_null_features=True
         )
-        assert isinstance(
-            fm, L2GFeatureMatrix
-        ), "Feature matrix should be of type L2GFeatureMatrix"
+        assert isinstance(fm, L2GFeatureMatrix), (
+            "Feature matrix should be of type L2GFeatureMatrix"
+        )
         assert "eQtlColocH4Maximum" in fm._df.columns
         assert "eQtlColocH4Maximum" in fm.features_list
         assert "pQtlColocH4Maximum" in fm._df.columns
@@ -1362,4 +1363,3 @@ class TestTransQtlFlagging:
             )
         except SchemaValidationError:
             pytest.fail("Failed to validate the schema when adding isTransQtl flag")
-

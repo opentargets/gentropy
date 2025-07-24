@@ -187,7 +187,11 @@ class PanUKBBLDMatrix:
         np.fill_diagonal(outer_allele_order, 1)
         return outer_allele_order
 
-    def _construct_ld_matrix(self, half_matrix, outer_allele_order):
+    def _construct_ld_matrix(
+        self: PanUKBBLDMatrix,
+        half_matrix: np.ndarray,
+        outer_allele_order: np.ndarray,
+    ) -> np.ndarray:
         ld_matrix = (half_matrix + half_matrix.T) - np.diag(np.diag(half_matrix))
         ld_matrix = ld_matrix * outer_allele_order
         np.fill_diagonal(ld_matrix, 1)

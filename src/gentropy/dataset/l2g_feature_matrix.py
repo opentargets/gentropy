@@ -220,4 +220,3 @@ class L2GFeatureMatrix:
             self.features_list.extend(null_features)
 
         return self
-

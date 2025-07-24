@@ -190,9 +190,12 @@ class TestGnomADLDMatrixSlice:
 
 class TestGnomADLDMatrixGetLocusBoundaries:
     """Test GnomAD LD methods for locus boundaries."""
+
     @patch("gentropy.datasource.gnomad.ld.hl.read_table")
     @patch("gentropy.datasource.gnomad.ld.GnomADLDMatrix._filter_liftover_by_locus")
-    def test_filter_liftover_integration(self, mock_filter_liftover, mock_read_table):
+    def test_filter_liftover_integration(
+        self, mock_filter_liftover: MagicMock, mock_read_table: MagicMock
+    ) -> None:
         """Test that _filter_liftover_by_locus is properly integrated with get_locus_index_boundaries."""
         from gentropy.datasource.gnomad.ld import GnomADLDMatrix
 
@@ -220,7 +223,9 @@ class TestGnomADLDMatrixGetLocusBoundaries:
         mock_read_table.assert_any_call("test_path_test_pop")
         assert mock_read_table.call_count == 2
 
-        mock_filter_liftover.assert_called_once_with(mock_table, "chr1", 1000000, 2000000)
+        mock_filter_liftover.assert_called_once_with(
+            mock_table, "chr1", 1000000, 2000000
+        )
         mock_liftover_ht.join.assert_called_once_with(
             mock_read_table.return_value,
             how="inner",

@@ -78,9 +78,9 @@ class TestFromFeaturesList:
             self.sample_study_locus, features_list, loader
         ).append_null_features(features_list)
         for feature in features_list:
-            assert (
-                feature in fm._df.columns
-            ), f"Feature {feature} not found in feature matrix."
+            assert feature in fm._df.columns, (
+                f"Feature {feature} not found in feature matrix."
+            )
 
     def test_append_missing_columns_null(
         self: TestFromFeaturesList,
@@ -97,12 +97,12 @@ class TestFromFeaturesList:
             self.sample_study_locus, features_list, loader
         ).append_null_features(features_list)
         for feature in features_list:
-            assert (
-                feature in fm._df.columns
-            ), f"Feature {feature} not found in feature matrix."
-            assert (
-                feature in fm.features_list
-            ), f"Feature {feature} not found in feature matrix features list."
+            assert feature in fm._df.columns, (
+                f"Feature {feature} not found in feature matrix."
+            )
+            assert feature in fm.features_list, (
+                f"Feature {feature} not found in feature matrix features list."
+            )
 
     def test_study_locus_incorrect_feature_name(
         self: TestFromFeaturesList,

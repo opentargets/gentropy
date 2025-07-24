@@ -26,7 +26,7 @@ class LDMatrixInterface:
 
     @staticmethod
     def get_locus_index_boundaries(
-        ld_matrix_paths: dict,
+        ld_matrix_paths: dict[str, str],
         session: Session,
         study_locus_row: Row,
         ancestry: str = "nfe",
@@ -34,7 +34,7 @@ class LDMatrixInterface:
         """Extract hail matrix index from StudyLocus rows.
 
         Args:
-            ld_matrix_paths (dict): Dictionary with paths to LD matrices
+            ld_matrix_paths (dict[str, str]): Dictionary with paths to LD matrices
             session (Session): Session object
             study_locus_row (Row): Study-locus row
             ancestry (str): Major population to extract from gnomad matrix, default is "nfe"
@@ -76,14 +76,14 @@ class LDMatrixInterface:
 
     @staticmethod
     def get_numpy_matrix(
-        ld_matrix_paths: dict,
+        ld_matrix_paths: dict[str, str],
         locus_index: DataFrame,
         ancestry: str = "nfe",
     ) -> np.ndarray:
         """Extract the LD block matrix for a locus.
 
         Args:
-            ld_matrix_paths (dict): Dictionary with paths to LD matrix files
+            ld_matrix_paths (dict[str, str]): Dictionary with paths to LD matrix files
             locus_index (DataFrame): hail matrix variant index table
             ancestry (str): major ancestry label eg. `nfe`
 
