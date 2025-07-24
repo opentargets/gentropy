@@ -32,6 +32,12 @@
     },
     {
       "metadata": {},
+      "name": "distanceToTSS",
+      "nullable": true,
+      "type": "double"
+    },
+    {
+      "metadata": {},
       "name": "resourceScore",
       "nullable": true,
       "type": {
@@ -89,6 +95,18 @@
     {
       "metadata": {},
       "name": "biosampleId",
+      "nullable": true,
+      "type": "string"
+    },
+    {
+      "metadata": {},
+      "name": "studyId",
+      "nullable": true,
+      "type": "string"
+    },
+    {
+      "metadata": {},
+      "name": "intervalId",
       "nullable": true,
       "type": "string"
     }
