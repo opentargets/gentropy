@@ -57,16 +57,13 @@ class TestGetNumpyMatrix:
         with patch(
             "gentropy.datasource.pan_ukbb_ld.ld.BlockMatrix.read",
             return_value=mock_block_matrix,
-        ):
+        ) as mock_read:
             matrix: PanUKBBLDMatrix = PanUKBBLDMatrix(
                 pan_ukbb_bm_path="test_path_{POP}"
             )
             result: NDArray[Any] = matrix._load_hail_block_matrix([1, 2], "EUR")
 
-            # Verify BlockMatrix.read was called with correct path
-            from hail.linalg import BlockMatrix
-
-            BlockMatrix.read.assert_called_once_with("test_path_EUR")
+            mock_read.assert_called_once_with("test_path_EUR")
 
             # Verify filter was called with correct indices
             mock_block_matrix.filter.assert_called_once_with([1, 2], [1, 2])
