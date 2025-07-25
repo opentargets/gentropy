@@ -3,17 +3,17 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from gentropy.common.session import Session
+from gentropy import Session
 
 if TYPE_CHECKING:
-    from gentropy.dataset.summary_statistics import SummaryStatistics
+    from gentropy import SummaryStatistics
 
 
 def create_from_parquet(session: Session) -> SummaryStatistics:
     """Create a dataset from a path with parquet files."""
     # --8<-- [start:create_from_parquet_import]
     # Create a SummaryStatistics object by loading data from the specified path
-    from gentropy.dataset.summary_statistics import SummaryStatistics
+    from gentropy import SummaryStatistics
 
     # --8<-- [end:create_from_parquet_import]
 
@@ -43,7 +43,7 @@ def create_from_pandas() -> SummaryStatistics:
     # --8<-- [start:create_from_pandas_import]
     import pyspark.pandas as ps
 
-    from gentropy.dataset.summary_statistics import SummaryStatistics
+    from gentropy import SummaryStatistics
 
     # --8<-- [end:create_from_pandas_import]
 
@@ -53,8 +53,6 @@ def create_from_pandas() -> SummaryStatistics:
 
     # Create a SummaryStatistics object specifying the data and schema
     custom_summary_stats_df = custom_summary_stats_pandas_df.to_spark()
-    custom_summary_stats = SummaryStatistics(
-        _df=custom_summary_stats_df, _schema=SummaryStatistics.get_schema()
-    )
+    custom_summary_stats = SummaryStatistics(_df=custom_summary_stats_df)
     # --8<-- [end:create_from_pandas]
     return custom_summary_stats

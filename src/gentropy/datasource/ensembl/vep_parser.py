@@ -9,7 +9,7 @@ from pyspark.sql import functions as f
 from pyspark.sql import types as t
 
 from gentropy.common.schemas import parse_spark_schema
-from gentropy.common.spark_helpers import (
+from gentropy.common.spark import (
     enforce_schema,
     get_nested_struct_schema,
     map_column_by_dictionary,

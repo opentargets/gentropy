@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 import pyspark.sql.functions as f
 import pyspark.sql.types as t
 
-from gentropy.common.utils import parse_pvalue
+from gentropy.common.stats import split_pvalue_column
 from gentropy.dataset.summary_statistics import SummaryStatistics
 
 if TYPE_CHECKING:
@@ -73,7 +73,7 @@ class EqtlCatalogueSummaryStats:
                 f.col("chromosome"),
                 f.col("position").cast(t.IntegerType()),
                 # Parse p-value into mantissa and exponent.
-                *parse_pvalue(f.col("pvalue")),
+                *split_pvalue_column(f.col("pvalue")),
                 # Add beta, standard error, and allele frequency information.
                 f.col("beta").cast("double"),
                 f.col("se").cast("double").alias("standardError"),

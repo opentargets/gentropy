@@ -8,7 +8,7 @@ We have seen how to create and transform a `Dataset` instance. This section guid
 
 The `df` attribute of a Dataset instance is key to interacting with and inspecting the stored data.
 
-!!! info "By accessing the df attribute, you can apply any method that you would typically use on a PySpark DataFrame. See the [PySpark documentation](https://spark.apache.org/docs/3.1.1/api/python/reference/pyspark.sql.html#dataframe-apis) for more information."
+!!! info "By accessing the df attribute, you can apply any method that you would typically use on a PySpark DataFrame. See the [PySpark documentation](https://spark.apache.org/docs/3.5.2/api/python/reference/pyspark.sql/dataframe.html) for more information."
 
 ### View data samples
 

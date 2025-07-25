@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from gentropy.dataset.summary_statistics import SummaryStatistics
+from gentropy import SummaryStatistics
 
 if TYPE_CHECKING:
     from pyspark.sql.types import StructType

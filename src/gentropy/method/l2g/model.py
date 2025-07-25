@@ -16,8 +16,8 @@ from sklearn.ensemble import GradientBoostingClassifier
 from skops import hub_utils
 
 from gentropy.common.session import Session
-from gentropy.common.utils import copy_to_gcs
 from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
+from gentropy.external.gcs import copy_to_gcs
 
 if TYPE_CHECKING:
     from gentropy.dataset.l2g_prediction import L2GPrediction

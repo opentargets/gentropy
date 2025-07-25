@@ -33,7 +33,9 @@ def test_qc_all(sample_gwas_catalog_associations: DataFrame) -> None:
                 f.lit("A").alias("referenceAllele"),
                 f.lit("T").alias("referenceAllele"),
                 f.col("STRONGEST SNP-RISK ALLELE"),
-                *GWASCatalogCuratedAssociationsParser._parse_pvalue(f.col("P-VALUE")),
+                *GWASCatalogCuratedAssociationsParser._split_pvalue_column(
+                    f.col("P-VALUE")
+                ),
                 5e-8,
             ),
         ),

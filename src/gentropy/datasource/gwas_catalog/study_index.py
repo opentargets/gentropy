@@ -9,8 +9,8 @@ import pyspark.sql.functions as f
 import pyspark.sql.types as t
 from pyspark.sql.types import ArrayType, StringType
 
-from gentropy.common.spark_helpers import column2camel_case
-from gentropy.common.utils import parse_efos
+from gentropy.common.processing import parse_efos
+from gentropy.common.spark import column2camel_case
 from gentropy.dataset.study_index import StudyIndex, StudyQualityCheck
 
 if TYPE_CHECKING:

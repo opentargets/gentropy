@@ -13,7 +13,7 @@ from pyspark.sql.types import StringType, StructType
 
 from gentropy.common.schemas import parse_spark_schema
 from gentropy.common.session import Session
-from gentropy.common.spark_helpers import pivot_df
+from gentropy.common.spark import pivot_df
 from gentropy.dataset.dataset import Dataset
 from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
 from gentropy.dataset.study_index import StudyIndex

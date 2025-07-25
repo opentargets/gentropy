@@ -11,7 +11,7 @@ import pandas as pd
 import pytest
 from pyspark.sql import DataFrame, SparkSession
 
-from gentropy.common.Liftover import LiftOverSpark
+from gentropy.common.genomic_region import LiftOverSpark
 from gentropy.common.session import Session
 from gentropy.dataset.biosample_index import BiosampleIndex
 from gentropy.dataset.colocalisation import Colocalisation

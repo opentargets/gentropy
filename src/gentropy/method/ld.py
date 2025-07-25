@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 from pyspark.sql import functions as f
 
-from gentropy.common.spark_helpers import order_array_of_structs_by_field
+from gentropy.common.spark import order_array_of_structs_by_field
 from gentropy.dataset.study_locus import StudyLocus, StudyLocusQualityCheck
 
 if TYPE_CHECKING:

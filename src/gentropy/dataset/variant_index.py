@@ -10,7 +10,7 @@ import pyspark.sql.types as t
 from pyspark.sql.window import Window
 
 from gentropy.common.schemas import parse_spark_schema
-from gentropy.common.spark_helpers import (
+from gentropy.common.spark import (
     get_nested_struct_schema,
     rename_all_columns,
     safe_array_union,

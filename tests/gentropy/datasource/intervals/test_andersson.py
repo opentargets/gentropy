@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 from pyspark.sql import DataFrame, SparkSession
 
-from gentropy.common.Liftover import LiftOverSpark
+from gentropy.common.genomic_region import LiftOverSpark
 from gentropy.dataset.intervals import Intervals
 from gentropy.dataset.target_index import TargetIndex
 from gentropy.datasource.intervals.andersson import IntervalsAndersson

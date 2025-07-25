@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 import pyspark.sql.functions as f
 
-from gentropy.common.spark_helpers import (
+from gentropy.common.spark import (
     create_empty_column_if_not_exists,
     safe_array_union,
 )

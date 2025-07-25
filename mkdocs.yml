@@ -40,7 +40,9 @@ markdown_extensions:
   - pymdownx.snippets:
       base_path: "docs"
       dedent_subsections: true
-  - pymdownx.highlight
+  - pymdownx.highlight:
+      pygments_lang_class: true
+
   - pymdownx.superfences
   - toc:
       permalink: true

@@ -9,7 +9,7 @@ import pyspark.sql.functions as f
 
 from gentropy.common.genomic_region import GenomicRegion
 from gentropy.common.schemas import parse_spark_schema
-from gentropy.common.utils import split_pvalue
+from gentropy.common.stats import split_pvalue
 from gentropy.config import LocusBreakerClumpingConfig, WindowBasedClumpingStepConfig
 from gentropy.dataset.dataset import Dataset
 
