@@ -32,14 +32,32 @@
   "python.analysis.typeCheckingMode": "standard",
   "cSpell.words": [
     "biosample",
+    "colocalisation",
     "diffpval",
+    "eqtl",
     "GCST",
     "gentropy",
+    "gnomad",
+    "harmonisation",
+    "harmonise",
+    "liftover",
     "logpval",
+    "logsum",
+    "neglog",
     "neglogpval",
+    "neighbourhood",
+    "normalise",
     "pheno",
+    "pqtl",
     "pval",
+    "pvalue",
+    "sceqtl",
+    "scsqtl",
+    "sctuqtl",
+    "sqtl",
+    "studylocus",
     "sumstat",
-    "sumstats"
+    "sumstats",
+    "tuqtl"
   ]
 }

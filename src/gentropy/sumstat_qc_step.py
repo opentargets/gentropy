@@ -24,7 +24,6 @@ class SummaryStatisticsQCStep:
             gwas_path (str): Path to the GWAS summary statistics.
             output_path (str): Output path for the QC results.
             pval_threshold (float): P-value threshold for the QC. Default is 1e-8.
-
         """
         gwas = SummaryStatistics.from_parquet(session, path=gwas_path)
 

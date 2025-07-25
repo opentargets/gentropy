@@ -2,7 +2,7 @@
 Title: Run step in CLI
 ---
 
-# Run step in CLI
+## Run step in CLI
 
 To run a step in the command line interface (CLI), you need to know the step's name. To list what steps are avaiable in your current environment, simply run `gentropy` with no arguments. This will list all the steps:
 

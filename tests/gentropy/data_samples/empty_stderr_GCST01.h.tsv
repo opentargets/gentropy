@@ -1,0 +1,4 @@
+chromosome	base_pair_location	effect_allele	other_allele	beta	standard_error	effect_allele_frequency	p_value	rsid	rs_id	n	hm_coordinate_conversion	hm_code	variant_id	odds_ratio	ci_upper	ci_lower
+1	1026830	G	A	0.1	0.148260	0.457324308218342	0.000646772	rs3128121	rs3128126	16378	lo	10	1_1026831_A_G	NA	NA	NA
+1	1026831	G	A	1.0	NA	0.457324308218342	0.00000005	rs3128126	rs3128126	16378	lo	10	1_1026830_A_G	NA	NA	NA
+1	1026832	G	A	NA	NA	0.457324308218342	0.00000005	rs3128121	rs3128126	16378	lo	10	1_1026831_A_G	2.71828	1.3495424	0.6404576
