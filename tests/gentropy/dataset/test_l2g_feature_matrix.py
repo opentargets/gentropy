@@ -63,6 +63,64 @@ class TestFromFeaturesList:
                 f"Feature {feature} not found in feature matrix."
             )
 
+    def test_append_missing_columns_no_null(
+        self: TestFromFeaturesList,
+    ) -> None:
+        """Test appending feature matrix when there are NO null columns wanted by feature_list."""
+        features_list = ["eQtlColocH4Maximum", "geneCount500kb"]
+        loader = L2GFeatureInputLoader(
+            colocalisation=self.sample_colocalisation,
+            study_index=self.sample_study_index,
+            study_locus=self.sample_study_locus,
+            target_index=self.sample_target_index,
+        )
+        fm = L2GFeatureMatrix.from_features_list(
+            self.sample_study_locus, features_list, loader
+        ).append_null_features(features_list)
+        for feature in features_list:
+            assert feature in fm._df.columns, (
+                f"Feature {feature} not found in feature matrix."
+            )
+
+    def test_append_missing_columns_null(
+        self: TestFromFeaturesList,
+    ) -> None:
+        """Test appending feature matrix when there ARE null columns wanted by feature_list."""
+        features_list = ["eQtlColocH4Maximum", "geneCount500kb", "pQtlColocH4Maximum"]
+        loader = L2GFeatureInputLoader(
+            colocalisation=self.sample_colocalisation,
+            study_index=self.sample_study_index,
+            study_locus=self.sample_study_locus,
+            target_index=self.sample_target_index,
+        )
+        fm = L2GFeatureMatrix.from_features_list(
+            self.sample_study_locus, features_list, loader
+        ).append_null_features(features_list)
+        for feature in features_list:
+            assert feature in fm._df.columns, (
+                f"Feature {feature} not found in feature matrix."
+            )
+            assert feature in fm.features_list, (
+                f"Feature {feature} not found in feature matrix features list."
+            )
+
+    def test_study_locus_incorrect_feature_name(
+        self: TestFromFeaturesList,
+    ) -> None:
+        """Test appending feature matrix when there ARE null columns wanted by feature_list."""
+        features_list = ["eQtlColocH4Maximum", "geneCount500kb", "foo"]
+        loader = L2GFeatureInputLoader(
+            colocalisation=self.sample_colocalisation,
+            study_index=self.sample_study_index,
+            study_locus=self.sample_study_locus,
+            target_index=self.sample_target_index,
+        )
+        with pytest.raises(ValueError) as excinfo:
+            L2GFeatureMatrix.from_features_list(
+                self.sample_study_locus, features_list, loader
+            )
+        assert "Feature foo not found." in str(excinfo.value)
+
     def test_gold_standard(
         self: TestFromFeaturesList,
     ) -> None:

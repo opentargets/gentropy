@@ -201,3 +201,22 @@ class L2GFeatureMatrix:
         """
         self._df = self._df.persist()
         return self
+
+    def append_null_features(self, features_list: list[str]) -> L2GFeatureMatrix:
+        """Add features from the list that are not already in the dataframe as null columns filled with 0.0.
+
+        Args:
+            features_list (list[str]): List of features to check and add if missing
+
+        Returns:
+            L2GFeatureMatrix: Updated feature matrix with additional features
+        """
+        null_features = [
+            feature for feature in features_list if feature not in self._df.columns
+        ]
+        if null_features:
+            for feature in null_features:
+                self._df = self._df.withColumn(feature, f.lit(0.0))
+            self.features_list.extend(null_features)
+
+        return self

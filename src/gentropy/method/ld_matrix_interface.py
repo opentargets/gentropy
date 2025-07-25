@@ -26,6 +26,7 @@ class LDMatrixInterface:
 
     @staticmethod
     def get_locus_index_boundaries(
+        ld_matrix_paths: dict[str, str],
         session: Session,
         study_locus_row: Row,
         ancestry: str = "nfe",
@@ -33,6 +34,7 @@ class LDMatrixInterface:
         """Extract hail matrix index from StudyLocus rows.
 
         Args:
+            ld_matrix_paths (dict[str, str]): Dictionary with paths to LD matrices
             session (Session): Session object
             study_locus_row (Row): Study-locus row
             ancestry (str): Major population to extract from gnomad matrix, default is "nfe"
@@ -42,14 +44,16 @@ class LDMatrixInterface:
 
         """
         if ancestry in ("nfe", "csa", "afr"):
-            joined_index = PanUKBBLDMatrix().get_locus_index_boundaries(
+            joined_index = PanUKBBLDMatrix(ukbb_annotation_path=ld_matrix_paths["ukbb_annotation_path"]).get_locus_index_boundaries(
                 session=session,
                 study_locus_row=study_locus_row,
                 ancestry=LDMatrixInterface.ancestry_map.get(ancestry, ancestry),
             )
         else:
             joined_index = (
-                GnomADLDMatrix()
+                GnomADLDMatrix(liftover_ht_path=ld_matrix_paths["liftover_ht_path"],
+                ld_index_raw_template=ld_matrix_paths["ld_index_raw_template"]
+                )
                 .get_locus_index_boundaries(
                     study_locus_row=study_locus_row,
                     major_population=ancestry,
@@ -72,12 +76,14 @@ class LDMatrixInterface:
 
     @staticmethod
     def get_numpy_matrix(
+        ld_matrix_paths: dict[str, str],
         locus_index: DataFrame,
         ancestry: str = "nfe",
     ) -> np.ndarray:
         """Extract the LD block matrix for a locus.
 
         Args:
+            ld_matrix_paths (dict[str, str]): Dictionary with paths to LD matrix files
             locus_index (DataFrame): hail matrix variant index table
             ancestry (str): major ancestry label eg. `nfe`
 
@@ -89,12 +95,12 @@ class LDMatrixInterface:
             "csa",
             "nfe",
         ):
-            block_matrix = PanUKBBLDMatrix().get_numpy_matrix(
+            block_matrix = PanUKBBLDMatrix(pan_ukbb_bm_path=ld_matrix_paths["pan_ukbb_bm_path"]).get_numpy_matrix(
                 locus_index=locus_index,
                 ancestry=LDMatrixInterface.ancestry_map.get(ancestry, ancestry),
             )
         else:
-            block_matrix = GnomADLDMatrix.get_numpy_matrix(
+            block_matrix = GnomADLDMatrix(ld_matrix_template=ld_matrix_paths["ld_matrix_template"]).get_numpy_matrix(
                 locus_index=locus_index, gnomad_ancestry=ancestry
             )
 
