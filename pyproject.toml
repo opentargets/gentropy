@@ -8,17 +8,17 @@ license = "Apache-2.0"
 readme = "README.md"
 requires-python = ">=3.10, <3.13"
 dependencies = [
-  "pyspark (>=3.5.0, <3.6)",
+  "pyspark[pandas_on_spark] (>=3.5.0, <3.6)",
   "hail (>=0.2.133, <0.3.0)",
   "scipy (>=1.11.4, <1.16.0)",
   "hydra-core (>=1.3.2, <1.4.0)",
   "pyliftover (>=0.4.1, <0.5.0)",
   "numpy (>=1.26.4, <2.3.0)",
-  "wandb (>=0.19.4, <0.20.0)",
+  "wandb (>=0.19.4, <0.22.0)",
   "omegaconf (>=2.3.0, <2.4.0)",
   "typing-extensions (>=4.12.2, <4.13.0)",
   "scikit-learn (>=1.6.1, <1.7.0)",
-  "pandas[gcp,parquet] (>=2.2.3, <2.3.0)",
+  "pandas[gcp,parquet] (>=2.2.3, <2.4.0)",
   "skops (>=0.11.0, <0.12.0)",
   "shap (>=0.46, <0.48)",
   "matplotlib (>=3.10.0, <3.11.0)",
@@ -129,6 +129,10 @@ addopts = "-n auto --doctest-modules --cov=src/ --cov-report=xml --cache-clear"
 pythonpath = ["."]
 testpaths = ["tests/gentropy", "src/gentropy"]
 markers = ["step_test"]
+filterwarnings = [
+  "ignore:.*it is preferred to specify type hints for pandas UDF.*:UserWarning"
+
+]
 
 # Semi-strict mode for mypy
 [tool.mypy]
