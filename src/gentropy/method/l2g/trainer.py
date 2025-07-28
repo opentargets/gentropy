@@ -423,6 +423,7 @@ class LocusToGeneTrainer:
             else:
                 self.log_to_terminal(eval_id=f"Fold {fold_index+1}", metrics=metrics)
 
+        # Split training data hierarchically for this fold
         gkf = GroupKFold(n_splits=n_splits)
         cv_splits = list(gkf.split(self.x_train, self.y_train, self.groups_train))
 
