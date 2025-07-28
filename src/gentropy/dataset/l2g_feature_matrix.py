@@ -9,7 +9,7 @@ import pyspark.sql.functions as f
 from pyspark.sql import Window
 from typing_extensions import Self
 
-from gentropy.common.spark_helpers import convert_from_long_to_wide
+from gentropy.common.spark import convert_from_long_to_wide
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
 from gentropy.method.l2g.feature_factory import FeatureFactory, L2GFeatureInputLoader
 

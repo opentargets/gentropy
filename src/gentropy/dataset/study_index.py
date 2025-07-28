@@ -8,7 +8,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum
 from itertools import chain
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from pyspark.sql import functions as f
 from pyspark.sql.types import ArrayType, StringType, StructType
@@ -16,7 +16,7 @@ from pyspark.sql.window import Window
 
 from gentropy.assets import data
 from gentropy.common.schemas import parse_spark_schema
-from gentropy.common.spark_helpers import convert_from_wide_to_long, filter_array_struct
+from gentropy.common.spark import convert_from_wide_to_long, filter_array_struct
 from gentropy.dataset.dataset import Dataset
 
 if TYPE_CHECKING:
@@ -136,11 +136,12 @@ class StudyIndex(Dataset):
             Column: Struct column with the mapped LD population label and the sample size.
         """
         # Loading ancestry label to LD population label:
-        json_dict = json.loads(
-            pkg_resources.read_text(
-                data, "gwas_population_2_LD_panel_map.json", encoding="utf-8"
-            )
-        )
+
+        pkg = pkg_resources.files(data).joinpath("gwas_population_2_LD_panel_map.json")
+        with pkg.open(encoding="utf-8") as file:
+            json_dict = json.load(file)
+            json_dict = cast(dict[str, str], json_dict)
+
         map_expr = f.create_map(*[f.lit(x) for x in chain(*json_dict.items())])
 
         return f.struct(
@@ -392,6 +393,8 @@ class StudyIndex(Dataset):
                         StudyQualityCheck.UNRESOLVED_DISEASE,
                     ),
                 )
+                # Added to avoid Spark optimisation (see: https://github.com/opentargets/issues/issues/3906#issuecomment-2949299965)
+                .persist()
             ),
             _schema=StudyIndex.get_schema(),
         )
@@ -789,6 +792,8 @@ class StudyIndex(Dataset):
                 .withColumn("rank", f.row_number().over(study_id_window))
                 .filter(f.col("rank") == 1)
                 .drop(*columns_to_drop)
+                # Added to avoid Spark optimisation (see: https://github.com/opentargets/issues/issues/3906#issuecomment-2949299965)
+                .persist()
             ),
             _schema=StudyIndex.get_schema(),
         )

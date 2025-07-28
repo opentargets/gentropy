@@ -81,8 +81,10 @@ class GWASCatalogStudyIndexGenerationStep:
             )
             study_index_with_qc = study_index.annotate_sumstats_qc(sumstats_qc)
             # Write the study
-            study_index_with_qc.df.write.mode(session.write_mode).parquet(
-                study_index_path
-            )
+            study_index_with_qc.df.coalesce(session.output_partitions).write.mode(
+                session.write_mode
+            ).parquet(study_index_path)
         else:
-            study_index.df.write.mode(session.write_mode).parquet(study_index_path)
+            study_index.df.coalesce(session.output_partitions).write.mode(
+                session.write_mode
+            ).parquet(study_index_path)

@@ -11,8 +11,7 @@ from wandb.sdk.wandb_login import login as wandb_login
 
 from gentropy.common.schemas import compare_struct_schemas
 from gentropy.common.session import Session
-from gentropy.common.spark_helpers import calculate_harmonic_sum
-from gentropy.common.utils import access_gcp_secret
+from gentropy.common.spark import calculate_harmonic_sum
 from gentropy.dataset.colocalisation import Colocalisation
 from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
@@ -21,6 +20,7 @@ from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import StudyLocus
 from gentropy.dataset.target_index import TargetIndex
 from gentropy.dataset.variant_index import VariantIndex
+from gentropy.external.gcs import access_gcp_secret
 from gentropy.method.l2g.feature_factory import L2GFeatureInputLoader
 from gentropy.method.l2g.model import LocusToGeneModel
 from gentropy.method.l2g.trainer import LocusToGeneTrainer
@@ -92,6 +92,21 @@ class LocusToGeneFeatureMatrixStep:
         fm = credible_set.filter(f.col("studyType") == "gwas").build_feature_matrix(
             features_list, features_input_loader
         )
+
+        if target_index is not None:
+            target_index_df = target_index.df.select("id", "biotype").withColumnRenamed(
+                "id", "geneId"
+            )
+
+            target_index_df = target_index_df.withColumn(
+                "isProteinCoding",
+                f.when(f.col("biotype") == "protein_coding", 1).otherwise(0),
+            ).drop("biotype")
+
+            fm._df = fm._df.drop("isProteinCoding").join(
+                target_index_df, on="geneId", how="inner"
+            )
+
         fm._df.coalesce(session.output_partitions).write.mode(
             session.write_mode
         ).parquet(feature_matrix_path)

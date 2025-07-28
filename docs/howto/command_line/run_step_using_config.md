@@ -2,7 +2,7 @@
 Title: Run step using config
 ---
 
-# Run step using YAML config
+## Run step using YAML config
 
 It's possible to parametrise the functionality of a step using a YAML configuration file. This is useful when you want to run a step multiple times with different parameters or simply to avoid having to specify the same parameters every time you run a step.
 

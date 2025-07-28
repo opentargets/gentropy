@@ -12,9 +12,9 @@ import pyspark.sql.functions as f
 from hail.linalg import BlockMatrix
 from pyspark.sql import Window
 
-from gentropy.common.spark_helpers import get_top_ranked_in_window, get_value_from_row
+from gentropy.common.genomic_region import liftover_loci
+from gentropy.common.spark import get_top_ranked_in_window, get_value_from_row
 from gentropy.common.types import LD_Population
-from gentropy.common.utils import _liftover_loci
 from gentropy.config import LDIndexConfig
 from gentropy.dataset.ld_index import LDIndex
 
@@ -169,9 +169,7 @@ class GnomADLDMatrix:
         Returns:
             DataFrame: Look up table between variants in build hg38 and their coordinates in the LD Matrix
         """
-        ld_index_38 = _liftover_loci(
-            ld_index_raw, grch37_to_grch38_chain_path, "GRCh38"
-        )
+        ld_index_38 = liftover_loci(ld_index_raw, grch37_to_grch38_chain_path, "GRCh38")
 
         return (
             ld_index_38.to_spark()

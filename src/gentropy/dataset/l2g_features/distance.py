@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any
 import pyspark.sql.functions as f
 from pyspark.sql import Window
 
-from gentropy.common.spark_helpers import convert_from_wide_to_long
+from gentropy.common.spark import convert_from_wide_to_long
 from gentropy.dataset.l2g_features.l2g_feature import L2GFeature
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
 from gentropy.dataset.study_locus import StudyLocus
@@ -51,13 +51,13 @@ def common_distance_feature_logic(
             f.col("variantInLocus.posteriorProbability").alias("posteriorProbability"),
         )
         distance_score_expr = (
-            f.lit(genomic_window) - f.col(distance_type) + f.lit(1)
+            f.lit(genomic_window) - f.abs(distance_type) + f.lit(1)
         ) * f.col("posteriorProbability")
         agg_expr = f.sum(f.col("distance_score"))
     elif "Sentinel" in feature_name:
         df = study_loci_to_annotate.df.select("studyLocusId", "variantId")
         # For minimum distances we calculate the unweighted distance between the sentinel (lead) and the gene.
-        distance_score_expr = f.lit(genomic_window) - f.col(distance_type) + f.lit(1)
+        distance_score_expr = f.lit(genomic_window) - f.abs(distance_type) + f.lit(1)
         agg_expr = f.first(f.col("distance_score"))
     return (
         df.join(
@@ -113,7 +113,9 @@ def common_neighbourhood_distance_feature_logic(
     return (
         # Then compute mean distance in the vicinity (feature will be the same for any gene associated with a studyLocus)
         local_metric.join(
-            target_index.df.filter(f.col("biotype") == "protein_coding").select(f.col("id").alias("geneId")),
+            target_index.df.filter(f.col("biotype") == "protein_coding").select(
+                f.col("id").alias("geneId")
+            ),
             "geneId",
             "inner",
         )
