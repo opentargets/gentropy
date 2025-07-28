@@ -7,7 +7,7 @@ from pyspark.sql import Column, SparkSession
 from pyspark.sql import functions as f
 from pyspark.sql import types as t
 
-from gentropy.common.spark_helpers import (
+from gentropy.common.spark import (
     enforce_schema,
     order_array_of_structs_by_field,
 )

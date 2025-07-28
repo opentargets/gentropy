@@ -9,10 +9,10 @@ from typing import TYPE_CHECKING
 import pyspark.sql.functions as f
 import pyspark.sql.types as t
 
-from gentropy.common.spark_helpers import neglog_pvalue_to_mantissa_and_exponent
-from gentropy.common.utils import (
+from gentropy.common.stats import (
     normalise_gwas_statistics,
-    parse_pvalue,
+    pvalue_from_neglogpval,
+    split_pvalue_column,
 )
 from gentropy.dataset.summary_statistics import SummaryStatistics
 
@@ -106,9 +106,9 @@ class GWASCatalogSummaryStatistics(SummaryStatistics):
 
         # Parsing p-value (get a tuple with mantissa and exponent):
         p_value_expression = (
-            parse_pvalue(f.col("p_value"))
+            split_pvalue_column(f.col("p_value"))
             if "p_value" in sumstats_df.columns
-            else neglog_pvalue_to_mantissa_and_exponent(f.col("neg_log_10_p_value"))
+            else pvalue_from_neglogpval(f.col("neg_log_10_p_value"))
         )
 
         # The effect allele frequency is an optional column, we have to test if it is there:
@@ -180,11 +180,13 @@ class GWASCatalogSummaryStatistics(SummaryStatistics):
                 *p_value_expression,
                 # Converting/calculating effect and confidence interval:
                 *normalise_gwas_statistics(
-                    beta_expression,
-                    odds_ratio_expression,
-                    standard_error,
-                    ci_upper,
-                    ci_lower,
+                    beta=beta_expression,
+                    odds_ratio=odds_ratio_expression,
+                    standard_error=standard_error,
+                    ci_upper=ci_upper,
+                    ci_lower=ci_lower,
+                    mantissa=p_value_expression.mantissa,
+                    exponent=p_value_expression.exponent,
                 ),
                 allele_frequency.alias("effectAlleleFrequencyFromSource"),
                 sample_size.alias("sampleSize"),

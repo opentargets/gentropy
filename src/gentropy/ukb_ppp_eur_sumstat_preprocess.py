@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from gentropy.common.per_chromosome import (
+from gentropy.common.processing import (
     prepare_va,
     process_summary_stats_per_chromosome,
 )
