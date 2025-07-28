@@ -2,7 +2,7 @@
   "type": "struct",
   "fields": [
     {
-      "name": "#chr",
+      "name": "chr",
       "type": "string",
       "nullable": true,
       "metadata": {}
