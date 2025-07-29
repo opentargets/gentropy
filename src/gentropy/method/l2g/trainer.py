@@ -19,7 +19,7 @@ from sklearn.metrics import (
     recall_score,
     roc_auc_score,
 )
-from sklearn.model_selection import GroupKFold, train_test_split
+from sklearn.model_selection import train_test_split
 from wandb.data_types import Image, Table
 from wandb.errors.term import termlog as wandb_termlog
 from wandb.sdk.wandb_init import init as wandb_init
@@ -63,6 +63,8 @@ class LocusToGeneTrainer:
     # Initialise vars
     features_list: list[str] | None = None
     label_col: str = "goldStandardSet"
+    train_df: pd.DataFrame | None = None
+    test_df: pd.DataFrame | None = None
     x_train: np.ndarray | None = None
     y_train: np.ndarray | None = None
     x_test: np.ndarray | None = None
@@ -305,13 +307,13 @@ class LocusToGeneTrainer:
         data_df[self.label_col] = data_df[self.label_col].map(self.model.label_encoder)
 
         # Create held-out test set using hierarchical splitting
-        train_df, test_df = LocusToGeneTrainer.hierarchical_split(
+        self.train_df, self.test_df = LocusToGeneTrainer.hierarchical_split(
             data_df, test_size=test_size, verbose=True
         )
-        self.x_train = train_df[self.features_list].apply(pd.to_numeric).values
-        self.y_train = train_df[self.label_col].apply(pd.to_numeric).values
-        self.x_test = test_df[self.features_list].apply(pd.to_numeric).values
-        self.y_test = test_df[self.label_col].apply(pd.to_numeric).values
+        self.x_train = self.train_df[self.features_list].apply(pd.to_numeric).values
+        self.y_train = self.train_df[self.label_col].apply(pd.to_numeric).values
+        self.x_test = self.test_df[self.features_list].apply(pd.to_numeric).values
+        self.y_test = self.test_df[self.label_col].apply(pd.to_numeric).values
 
         # Cross-validation
         if cross_validate:
@@ -346,6 +348,7 @@ class LocusToGeneTrainer:
         wandb_run_name: str | None = None,
         parameter_grid: dict[str, Any] | None = None,
         n_splits: int = 5,
+        random_state: int = 42,
     ) -> None:
         """Log results of cross validation and hyperparameter tuning with W&B Sweeps. Metrics for every combination of hyperparameters will be logged to W&B for comparison.
 
@@ -353,6 +356,7 @@ class LocusToGeneTrainer:
             wandb_run_name (str | None): Name of the W&B run. Unless this is provided, the model will not be logged to W&B.
             parameter_grid (dict[str, Any] | None): Dictionary containing the hyperparameters to sweep over. The keys are the hyperparameter names, and the values are dictionaries containing the values to sweep over.
             n_splits (int): Number of folds the data is splitted in. The model is trained and evaluated `k - 1` times. Defaults to 5.
+            random_state (int): Random seed for reproducibility. Defaults to 42.
         """
         # If no grid is provided, use default ones set in the model
         parameter_grid = parameter_grid or {
@@ -362,6 +366,8 @@ class LocusToGeneTrainer:
 
         def cross_validate_single_fold(
             fold_index: int,
+            fold_train_df: pd.DataFrame,
+            fold_val_df: pd.DataFrame,
             sweep_id: str | None,
             sweep_run_name: str | None,
             config: dict[str, Any] | None,
@@ -369,31 +375,22 @@ class LocusToGeneTrainer:
             """Run cross-validation for a single fold.
 
             Args:
-                fold_index (int): Index of the fold to run
+                fold_index (int): Index of the fold
+                fold_train_df (pd.DataFrame): Training data for the fold
+                fold_val_df (pd.DataFrame): Validation data for the fold
                 sweep_id (str | None): ID of the sweep, if logging to W&B is enabled
                 sweep_run_name (str | None): Name of the sweep run, if logging to W&B is enabled
                 config (dict[str, Any] | None): Configuration from the sweep, if logging to W&B is enabled
-
-            Raises:
-                ValueError: If training data is not set
             """
             reset_wandb_env()
-            train_idx, val_idx = cv_splits[fold_index]
-
-            if (
-                self.x_train is None
-                or self.y_train is None
-                or self.groups_train is None
-            ):
-                raise ValueError("Training data not set")
 
             x_fold_train, x_fold_val = (
-                self.x_train[train_idx],
-                self.x_train[val_idx],
+                fold_train_df[self.features_list].values,
+                fold_val_df[self.features_list].values,
             )
             y_fold_train, y_fold_val = (
-                self.y_train[train_idx],
-                self.y_train[val_idx],
+                fold_train_df[self.label_col].values,
+                fold_val_df[self.label_col].values,
             )
 
             fold_model = clone(self.model.model)
@@ -418,14 +415,10 @@ class LocusToGeneTrainer:
                     reinit=True,
                 )
                 run.log(metrics)
-                wandb_termlog(f"Logged metrics for fold {fold_index + 1}.")
+                wandb_termlog(f"Logged metrics for fold {fold_index}.")
                 run.finish()
             else:
-                self.log_to_terminal(eval_id=f"Fold {fold_index+1}", metrics=metrics)
-
-        # Split training data hierarchically for this fold
-        gkf = GroupKFold(n_splits=n_splits)
-        cv_splits = list(gkf.split(self.x_train, self.y_train, self.groups_train))
+                self.log_to_terminal(eval_id=f"Fold {fold_index}", metrics=metrics)
 
         def run_all_folds() -> None:
             """Run cross-validation for all folds."""
@@ -451,10 +444,18 @@ class LocusToGeneTrainer:
                 wandb_termlog(f"Sweep URL: {sweep_url}")
                 wandb_termlog(f"Sweep Group URL: {sweep_group_url}")
 
-            # Run all folds
-            for fold_index in range(len(cv_splits)):
+            # Split training data hierarchically for this fold and run all folds
+            for fold_index in range(n_splits):
+                fold_seed = random_state + fold_index
+                fold_train_df, fold_val_df = LocusToGeneTrainer.hierarchical_split(
+                    self.train_df,
+                    verbose=False,
+                    random_state=fold_seed,
+                )
                 cross_validate_single_fold(
-                    fold_index=fold_index,
+                    fold_index=fold_index + 1,
+                    fold_train_df=fold_train_df,
+                    fold_val_df=fold_val_df,
                     sweep_id=sweep_id,
                     sweep_run_name=f"{wandb_run_name}-fold{fold_index + 1}"
                     if wandb_run_name
@@ -510,6 +511,7 @@ class LocusToGeneTrainer:
         data_df: pd.DataFrame,
         test_size: float = 0.15,
         verbose: bool = True,
+        random_state: int = 42,
     ) -> tuple[pd.DataFrame, pd.DataFrame]:
         """Implements hierarchical splitting strategy to prevent data leakage.
 
@@ -522,6 +524,7 @@ class LocusToGeneTrainer:
             data_df (pd.DataFrame): Input dataframe with goldStandardSet column (1=positive, 0=negative)
             test_size (float): Proportion of data for test set. Defaults to 0.15
             verbose (bool): Print splitting statistics
+            random_state (int): Random seed for reproducibility. Defaults to 42
 
         Returns:
             tuple[pd.DataFrame, pd.DataFrame]: Training and test dataframes
@@ -537,6 +540,7 @@ class LocusToGeneTrainer:
             gene_groups["geneId"].tolist(),
             test_size=test_size,
             shuffle=True,
+            random_state=random_state,
         )
 
         # 2: Split by studyLocusId within each gene group
