@@ -58,7 +58,7 @@ class IntervalsE2G:
             raw_e2g_df.withColumn(
                 "studyId", f.regexp_extract(f.col("file_path"), r"([^/]+)\.bed\.gz$", 1)
             )
-            .withColumn("chromosome", f.regexp_replace("#chr", "^chr", ""))
+            .withColumn("chromosome", f.regexp_replace("chr", "^chr", ""))
             .withColumnRenamed("TargetGeneEnsemblID", "geneId")
             .withColumnRenamed("CellType", "biosampleName")
             .withColumnRenamed("Score", "score")
