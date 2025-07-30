@@ -38,12 +38,14 @@ class IntervalsE2G:
     def parse(
         cls: type[IntervalsE2G],
         raw_e2g_df: DataFrame,
+        biosample_mapping: DataFrame,
         target_index: TargetIndex,
     ) -> Intervals:
         """Parse E2G dataset.
 
         Args:
             raw_e2g_df (DataFrame): Raw E2G dataset
+            biosample_mapping (DataFrame): DataFrame mapping biosample names to IDs
             target_index (TargetIndex): Target index
 
         Returns:
@@ -63,7 +65,6 @@ class IntervalsE2G:
             .withColumnRenamed("CellType", "biosampleName")
             .withColumnRenamed("Score", "score")
             .withColumnRenamed("class", "intervalType")
-            .withColumnRenamed("TargetGeneTSS", "distanceToTSS")
             .withColumn(
                 "resourceScore",
                 f.array(
@@ -78,6 +79,22 @@ class IntervalsE2G:
                         f.col("`3DContact.Feature`").cast("float").alias("value"),
                     ),
                 ),
+            )
+            .withColumn("start", f.col("start").cast("long"))
+            .withColumn("end", f.col("end").cast("long"))
+            .withColumn("TSS", f.col("TargetGeneTSS").cast("long"))
+            .withColumn("midpoint", ((f.col("start") + f.col("end")) / 2).cast("long"))
+            .withColumn("distanceToTss", f.abs(f.col("midpoint") - f.col("TSS")))
+            .withColumn(
+                "intervalId",
+                f.sha1(
+                    f.concat_ws("_", "chromosome", "start", "end", "geneId", "studyId")
+                ),
+            )
+            .join(
+                biosample_mapping.select("biosampleName", "biosampleId"),
+                on="biosampleName",
+                how="left",
             )
         )
 
@@ -105,6 +122,8 @@ class IntervalsE2G:
                     f.lit(dataset_name).alias("datasourceId"),
                     f.lit(pmid).alias("pmid"),
                     f.col("studyId"),
+                    f.col("biosampleId"),
+                    f.col("intervalId"),
                 )
             ),
             _schema=Intervals.get_schema(),
