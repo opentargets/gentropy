@@ -154,11 +154,80 @@ def mock_study_index_data(spark: SparkSession) -> DataFrame:
     return data_spec.build()
 
 
+def mock_study_index_data_no_pqtl(spark: SparkSession) -> DataFrame:
+    """Mock study index dataset without pQtl studies."""
+    study_types_no_pqtl = [
+        study_type
+        for study_type in StudyIndex.VALID_TYPES
+        if study_type not in ["pqtl", "scpqtl"]
+    ]
+    si_schema = StudyIndex.get_schema()
+
+    data_spec = (
+        dg.DataGenerator(
+            spark,
+            rows=400,
+            partitions=4,
+            randomSeedMethod="hash_fieldname",
+        )
+        .withSchema(si_schema)
+        .withColumnSpec(
+            "studyId",
+            expr="cast(id as string)",
+        )
+        .withColumnSpec(
+            "traitFromSourceMappedIds",
+            expr="array(cast(rand() AS string))",
+            percentNulls=0.1,
+        )
+        .withColumnSpec(
+            "backgroundTraitFromSourceMappedIds",
+            expr="array(cast(rand() AS string))",
+            percentNulls=0.1,
+        )
+        .withColumnSpec(
+            "discoverySamples",
+            expr='array(named_struct("sampleSize", cast(rand() as string), "ancestry", cast(rand() as string)))',
+            percentNulls=0.1,
+        )
+        .withColumnSpec(
+            "replicationSamples",
+            expr='array(named_struct("sampleSize", cast(rand() as string), "ancestry", cast(rand() as string)))',
+            percentNulls=0.1,
+        )
+        .withColumnSpec(
+            "geneId",
+            expr="cast(id as string)",
+        )
+        .withColumnSpec("pubmedId", percentNulls=0.1)
+        .withColumnSpec("publicationFirstAuthor", percentNulls=0.1)
+        .withColumnSpec("publicationDate", percentNulls=0.1)
+        .withColumnSpec("publicationJournal", percentNulls=0.1)
+        .withColumnSpec("publicationTitle", percentNulls=0.1)
+        .withColumnSpec("initialSampleSize", percentNulls=0.1)
+        .withColumnSpec("nCases", percentNulls=0.1)
+        .withColumnSpec("nControls", percentNulls=0.1)
+        .withColumnSpec("nSamples", percentNulls=0.1)
+        .withColumnSpec("summarystatsLocation", percentNulls=0.1)
+        .withColumnSpec("studyType", percentNulls=0.0, values=study_types_no_pqtl)
+    )
+    return data_spec.build()
+
+
 @pytest.fixture()
 def mock_study_index(spark: SparkSession) -> StudyIndex:
     """Mock StudyIndex dataset."""
     return StudyIndex(
         _df=mock_study_index_data(spark),
+        _schema=StudyIndex.get_schema(),
+    )
+
+
+@pytest.fixture()
+def mock_study_index_no_pqtl(spark: SparkSession) -> StudyIndex:
+    """Mock StudyIndex dataset."""
+    return StudyIndex(
+        _df=mock_study_index_data_no_pqtl(spark),
         _schema=StudyIndex.get_schema(),
     )
 
