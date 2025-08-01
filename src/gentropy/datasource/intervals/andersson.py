@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import importlib.resources as pkg_resources
 import json
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 import pyspark.sql.functions as f
 import pyspark.sql.types as t
@@ -14,7 +14,7 @@ from gentropy.dataset.intervals import Intervals
 if TYPE_CHECKING:
     from pyspark.sql import DataFrame, SparkSession
 
-    from gentropy.common.Liftover import LiftOverSpark
+    from gentropy.common.genomic_region import LiftOverSpark
     from gentropy.dataset.target_index import TargetIndex
 
 
@@ -32,11 +32,12 @@ class IntervalsAndersson:
         Returns:
             DataFrame: Raw Andersson et al. dataframe
         """
-        input_schema = t.StructType.fromJson(
-            json.loads(
-                pkg_resources.read_text(schemas, "andersson2014.json", encoding="utf-8")
-            )
-        )
+        pkg = pkg_resources.files(schemas).joinpath("andersson2014.json")
+        with pkg.open(encoding="utf-8") as file:
+            json_dict = json.load(file)
+            json_dict = cast(dict[str, str], json_dict)
+
+        input_schema = t.StructType.fromJson(json_dict)
         return (
             spark.read.option("delimiter", "\t")
             .option("mode", "DROPMALFORMED")

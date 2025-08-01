@@ -11,8 +11,7 @@ from wandb.sdk.wandb_login import login as wandb_login
 
 from gentropy.common.schemas import compare_struct_schemas
 from gentropy.common.session import Session
-from gentropy.common.spark_helpers import calculate_harmonic_sum
-from gentropy.common.utils import access_gcp_secret
+from gentropy.common.spark import calculate_harmonic_sum
 from gentropy.dataset.colocalisation import Colocalisation
 from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
@@ -21,6 +20,7 @@ from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import StudyLocus
 from gentropy.dataset.target_index import TargetIndex
 from gentropy.dataset.variant_index import VariantIndex
+from gentropy.external.gcs import access_gcp_secret
 from gentropy.method.l2g.feature_factory import L2GFeatureInputLoader
 from gentropy.method.l2g.model import LocusToGeneModel
 from gentropy.method.l2g.trainer import LocusToGeneTrainer
@@ -40,6 +40,7 @@ class LocusToGeneFeatureMatrixStep:
         study_index_path: str | None = None,
         target_index_path: str | None = None,
         feature_matrix_path: str,
+        append_null_features: bool = False,
     ) -> None:
         """Initialise the step and run the logic based on mode.
 
@@ -52,6 +53,7 @@ class LocusToGeneFeatureMatrixStep:
             study_index_path (str | None): Path to the study index dataset
             target_index_path (str | None): Path to the target index dataset
             feature_matrix_path (str): Path to the L2G feature matrix output dataset
+            append_null_features (bool): Whether to append null features to the feature matrix. Defaults to False.
         """
         credible_set = StudyLocus.from_parquet(
             session, credible_set_path, recursiveFileLookup=True
@@ -90,7 +92,9 @@ class LocusToGeneFeatureMatrixStep:
         )
 
         fm = credible_set.filter(f.col("studyType") == "gwas").build_feature_matrix(
-            features_list, features_input_loader
+            features_list,
+            features_input_loader,
+            append_null_features=append_null_features,
         )
 
         if target_index is not None:
@@ -312,7 +316,7 @@ class LocusToGeneStep:
                 self.feature_matrix,
                 model_path=self.model_path,
                 features_list=self.features_list,
-                hf_token=access_gcp_secret("hfhub-key", "open-targets-genetics-dev"),
+                hf_token=self._get_hf_token(),
                 hf_model_version=self.hf_model_version,
                 download_from_hub=self.download_from_hub,
             )
@@ -327,6 +331,11 @@ class LocusToGeneStep:
             self.session.write_mode
         ).parquet(self.predictions_path)
         self.session.logger.info("L2G predictions saved successfully.")
+
+    def _get_hf_token(self) -> str | None:
+        if self.download_from_hub:
+            return access_gcp_secret("hfhub-key", "open-targets-genetics-dev")
+        return None
 
     def run_train(self) -> None:
         """Run the training step.

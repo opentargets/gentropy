@@ -9,7 +9,7 @@ import pyspark.sql.types as t
 from pyspark.sql import SparkSession
 from pyspark.sql.types import StringType, StructField, StructType
 
-from gentropy.common.utils import parse_pvalue
+from gentropy.common.stats import split_pvalue_column
 from gentropy.dataset.summary_statistics import SummaryStatistics
 
 
@@ -74,7 +74,7 @@ class FinnGenSummaryStats:
                 f.col("#chrom").alias("chromosome"),
                 f.col("pos").cast(t.IntegerType()).alias("position"),
                 # Parse p-value into mantissa and exponent.
-                *parse_pvalue(f.col("pval")),
+                *split_pvalue_column(f.col("pval")),
                 # Add beta, standard error, and allele frequency information.
                 f.col("beta").cast("double"),
                 f.col("sebeta").cast("double").alias("standardError"),
