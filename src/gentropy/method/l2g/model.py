@@ -12,8 +12,8 @@ import pandas as pd
 import skops.io as sio
 from pandas import DataFrame as pd_dataframe
 from pandas import to_numeric as pd_to_numeric
-from sklearn.ensemble import GradientBoostingClassifier
 from skops import hub_utils
+from xgboost import XGBClassifier
 
 from gentropy.common.session import Session
 from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
@@ -27,7 +27,7 @@ if TYPE_CHECKING:
 class LocusToGeneModel:
     """Wrapper for the Locus to Gene classifier."""
 
-    model: Any = GradientBoostingClassifier(random_state=42)
+    model: Any = XGBClassifier(random_state=42, eval_metric="aucpr")
     features_list: list[str] = field(default_factory=list)
     hyperparameters: dict[str, Any] = field(
         default_factory=lambda: {
