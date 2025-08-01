@@ -7,7 +7,7 @@ from dataclasses import dataclass
 import pyspark.sql.functions as f
 from pyspark.sql import SparkSession
 
-from gentropy.common.harmonise import harmonise_summary_stats
+from gentropy.common.processing import harmonise_summary_stats
 from gentropy.dataset.summary_statistics import SummaryStatistics
 
 

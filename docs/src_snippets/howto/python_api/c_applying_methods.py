@@ -1,8 +1,7 @@
 """Docs to apply a method on a dataset."""
 from __future__ import annotations
 
-from gentropy.dataset.study_locus import StudyLocus
-from gentropy.dataset.summary_statistics import SummaryStatistics
+from gentropy import StudyLocus, SummaryStatistics
 
 
 def apply_class_method_pics(study_locus_ld_annotated: StudyLocus) -> StudyLocus:
