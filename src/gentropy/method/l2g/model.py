@@ -12,6 +12,7 @@ import pandas as pd
 import skops.io as sio
 from pandas import DataFrame as pd_dataframe
 from pandas import to_numeric as pd_to_numeric
+from sklearn.ensemble import GradientBoostingClassifier
 from skops import hub_utils
 from xgboost import XGBClassifier
 
@@ -105,7 +106,12 @@ class LocusToGeneModel:
                 logging.error("Training data set to none. Error: %s", e)
                 training_data = None
 
-        if not loaded_model._is_fitted():
+        if (
+            isinstance(loaded_model, GradientBoostingClassifier)
+            and not loaded_model._is_fitted()
+        ) or (
+            isinstance(loaded_model, XGBClassifier) and not loaded_model.get_booster()
+        ):
             raise ValueError("Model has not been fitted yet.")
         return cls(model=loaded_model, training_data=training_data, **kwargs)
 
