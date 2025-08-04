@@ -287,7 +287,6 @@ class LocusToGeneConfig(StepConfig):
     download_from_hub: bool = True
     cross_validate: bool = True
     explain_predictions: bool | None = False
-    append_null_features: bool = False
     _target_: str = "gentropy.l2g.LocusToGeneStep"
 
 
@@ -350,6 +349,7 @@ class LocusToGeneFeatureMatrixConfig(StepConfig):
             "isProteinCoding",
         ]
     )
+    append_null_features: bool = False
     _target_: str = "gentropy.l2g.LocusToGeneFeatureMatrixStep"
 
 
