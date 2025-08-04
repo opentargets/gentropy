@@ -62,14 +62,12 @@ class LocusToGeneTrainer:
 
     # Initialise vars
     features_list: list[str] | None = None
-    label_col: str = "goldStandardSet"
     train_df: pd.DataFrame | None = None
     test_df: pd.DataFrame | None = None
     x_train: np.ndarray | None = None
     y_train: np.ndarray | None = None
     x_test: np.ndarray | None = None
     y_test: np.ndarray | None = None
-    groups_train: np.ndarray | None = None
     run: Run | None = None
     wandb_l2g_project_name: str = "gentropy-locus-to-gene"
 
@@ -306,12 +304,16 @@ class LocusToGeneTrainer:
             test_size=test_size,
             verbose=True,
             label_encoder=self.model.label_encoder,
-            label_col=self.label_col,
+            label_col=self.feature_matrix.label_col,
         )
         self.x_train = self.train_df[self.features_list].apply(pd.to_numeric).values
-        self.y_train = self.train_df[self.label_col].apply(pd.to_numeric).values
+        self.y_train = (
+            self.train_df[self.feature_matrix.label_col].apply(pd.to_numeric).values
+        )
         self.x_test = self.test_df[self.features_list].apply(pd.to_numeric).values
-        self.y_test = self.test_df[self.label_col].apply(pd.to_numeric).values
+        self.y_test = (
+            self.test_df[self.feature_matrix.label_col].apply(pd.to_numeric).values
+        )
 
         # Cross-validation
         if cross_validate:
@@ -387,8 +389,8 @@ class LocusToGeneTrainer:
                 fold_val_df[self.features_list].values,
             )
             y_fold_train, y_fold_val = (
-                fold_train_df[self.label_col].values,
-                fold_val_df[self.label_col].values,
+                fold_train_df[self.feature_matrix.label_col].values,
+                fold_val_df[self.feature_matrix.label_col].values,
             )
 
             fold_model = clone(self.model.model)

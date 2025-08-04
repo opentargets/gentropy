@@ -332,16 +332,14 @@ class LocusToGeneModel:
             Path(local_repo).mkdir(exist_ok=True)
 
             # Create train/test split
-
             train_df, test_df = feature_matrix.generate_train_test_split(
                 test_size=test_size,
                 verbose=True,
                 label_encoder=self.label_encoder,
-                label_col=self.label_col,
+                label_col=feature_matrix.label_col,
             )
             train_df.to_parquet(f"{local_repo}/train.parquet")
             test_df.to_parquet(f"{local_repo}/test.parquet")
-            feature_matrix.to_parquet(f"{local_repo}/full_dataset.parquet")
 
             # Initialize hub with the training data as example
             hub_utils.init(

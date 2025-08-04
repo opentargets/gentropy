@@ -28,6 +28,7 @@ class L2GFeatureMatrix:
         _df: DataFrame,
         features_list: list[str] | None = None,
         with_gold_standard: bool = False,
+        label_col: str = "goldStandardSet",
     ) -> None:
         """Post-initialisation to set the features list. If not provided, all columns except the fixed ones are used.
 
@@ -35,11 +36,14 @@ class L2GFeatureMatrix:
             _df (DataFrame): Feature matrix dataset
             features_list (list[str] | None): List of features to use. If None, all possible features are used.
             with_gold_standard (bool): Whether to include the gold standard set in the feature matrix.
+            label_col (str): The target column when the feature matrix represents the gold standard
+
         """
         self.with_gold_standard = with_gold_standard
         self.fixed_cols = ["studyLocusId", "geneId"]
         if self.with_gold_standard:
-            self.fixed_cols.append("goldStandardSet")
+            self.label_col = label_col
+            self.fixed_cols.append(label_col)
         if "traitFromSourceMappedId" in _df.columns:
             self.fixed_cols.append("traitFromSourceMappedId")
 
