@@ -303,20 +303,25 @@ class LocusToGeneModel:
         self: LocusToGeneModel,
         model_path: str,
         hf_hub_token: str,
-        data: pd_dataframe,
+        feature_matrix: L2GFeatureMatrix,
         commit_message: str,
         repo_id: str = "opentargets/locus_to_gene",
         local_repo: str = "locus_to_gene",
+        test_size: float = 0.15,
     ) -> None:
         """Share the model and training dataset on Hugging Face Hub.
+
+        This will save both the trained model and the train/test splits used for
+        training to enable full reproducibility.
 
         Args:
             model_path (str): The path to the L2G model file.
             hf_hub_token (str): Hugging Face Hub token
-            data (pd_dataframe): Data used to train the model. This is used to have an example input for the model and to store the column order.
+            feature_matrix (L2GFeatureMatrix): Data used to train the model. This is used to have an example input for the model and to store the column order.
             commit_message (str): Commit message for the push
             repo_id (str): The Hugging Face Hub repo id where the model will be stored.
             local_repo (str): Path to the folder where the contents of the model repo + the documentation are located. This is used to push the model to the Hugging Face Hub.
+            test_size (float): Proportion of data to include in the test split. Defaults to 0.15
 
         Raises:
             RuntimeError: If the push to the Hugging Face Hub fails
@@ -324,15 +329,29 @@ class LocusToGeneModel:
         from sklearn import __version__ as sklearn_version
 
         try:
+            Path(local_repo).mkdir(exist_ok=True)
+
+            # Create train/test split
+
+            train_df, test_df = feature_matrix.generate_train_test_split(
+                test_size=test_size,
+                verbose=True,
+                label_encoder=self.label_encoder,
+                label_col=self.label_col,
+            )
+            train_df.to_parquet(f"{local_repo}/train.parquet")
+            test_df.to_parquet(f"{local_repo}/test.parquet")
+            feature_matrix.to_parquet(f"{local_repo}/full_dataset.parquet")
+
+            # Initialize hub with the training data as example
             hub_utils.init(
                 model=model_path,
                 requirements=[f"scikit-learn={sklearn_version}"],
                 dst=local_repo,
                 task="tabular-classification",
-                data=data,
+                data=train_df,
             )
             self._create_hugging_face_model_card(local_repo)
-            data.to_parquet(f"{local_repo}/training_data.parquet")
             hub_utils.push(
                 repo_id=repo_id,
                 source=local_repo,

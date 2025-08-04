@@ -301,14 +301,12 @@ class LocusToGeneTrainer:
         Returns:
             LocusToGeneModel: Fitted model
         """
-        data_df = self.feature_matrix._df.toPandas()
-
-        # Encode labels in `goldStandardSet` to a numeric value
-        data_df[self.label_col] = data_df[self.label_col].map(self.model.label_encoder)
-
         # Create held-out test set using hierarchical splitting
-        self.train_df, self.test_df = LocusToGeneTrainer.hierarchical_split(
-            data_df, test_size=test_size, verbose=True
+        self.train_df, self.test_df = self.feature_matrix.generate_train_test_split(
+            test_size=test_size,
+            verbose=True,
+            label_encoder=self.model.label_encoder,
+            label_col=self.label_col,
         )
         self.x_train = self.train_df[self.features_list].apply(pd.to_numeric).values
         self.y_train = self.train_df[self.label_col].apply(pd.to_numeric).values

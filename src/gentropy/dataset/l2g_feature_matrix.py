@@ -6,6 +6,7 @@ from functools import reduce
 from typing import TYPE_CHECKING
 
 import pyspark.sql.functions as f
+from pandas import DataFrame as pd_dataframe
 from pyspark.sql import Window
 from typing_extensions import Self
 
@@ -220,3 +221,33 @@ class L2GFeatureMatrix:
             self.features_list.extend(null_features)
 
         return self
+
+    def generate_train_test_split(
+        self,
+        test_size: float,
+        verbose: bool,
+        label_encoder: dict[str, int],
+        label_col: str,
+    ) -> tuple[pd_dataframe, pd_dataframe]:
+        """Generate train and test splits for the feature matrix.
+
+        Args:
+            test_size (float): Proportion of the test set
+            verbose (bool): Whether to print verbose output
+            label_encoder (dict[str, int]): Label encoder for the gold standard set
+            label_col (str): Column name for the gold standard set
+
+        Returns:
+            tuple[pd_dataframe, pd_dataframe]: Train and test splits
+        """
+        from gentropy.method.l2g.trainer import LocusToGeneTrainer
+
+        data_df = self._df.toPandas()
+
+        # Encode labels in `goldStandardSet` to a numeric value
+        data_df[label_col] = data_df[label_col].map(label_encoder)
+
+        # Generate train, held out sets
+        return LocusToGeneTrainer.hierarchical_split(
+            data_df, test_size=test_size, verbose=verbose
+        )
