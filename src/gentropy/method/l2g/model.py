@@ -94,9 +94,16 @@ class LocusToGeneModel:
                 # Try loading the training data if it is in the model directory
                 training_data = L2GFeatureMatrix(
                     _df=session.spark.createDataFrame(
-                        # Parquet is read with Pandas to easily read local files
-                        pd.read_parquet(
-                            (Path(path) / "training_data.parquet").as_posix()
+                        # Parquets are read with Pandas to easily read local files
+                        pd.concat(
+                            [
+                                pd.read_parquet(
+                                    (Path(path) / "train.parquet").as_posix()
+                                ),
+                                pd.read_parquet(
+                                    (Path(path) / "test.parquet").as_posix()
+                                ),
+                            ]
                         )
                     ),
                     features_list=kwargs.get("features_list"),
@@ -307,7 +314,7 @@ class LocusToGeneModel:
         Raises:
             RuntimeError: If the push to the Hugging Face Hub fails
         """
-        from sklearn import __version__ as sklearn_version
+        from xgboost import __version__ as xgboost_version
 
         try:
             Path(local_repo).mkdir(exist_ok=True)
@@ -325,7 +332,7 @@ class LocusToGeneModel:
             # Initialize hub with the training data as example
             hub_utils.init(
                 model=model_path,
-                requirements=[f"scikit-learn={sklearn_version}"],
+                requirements=[f"xgboost={xgboost_version}"],
                 dst=local_repo,
                 task="tabular-classification",
                 data=train_df,
