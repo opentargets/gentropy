@@ -323,8 +323,6 @@ class LocusToGeneModel:
         from xgboost import __version__ as xgboost_version
 
         try:
-            Path(local_repo).mkdir(exist_ok=True)
-
             # Create train/test split
             train_df, test_df = feature_matrix.generate_train_test_split(
                 test_size=test_size,
@@ -332,8 +330,6 @@ class LocusToGeneModel:
                 label_encoder=self.label_encoder,
                 label_col=feature_matrix.label_col,
             )
-            train_df.to_parquet(f"{local_repo}/train.parquet")
-            test_df.to_parquet(f"{local_repo}/test.parquet")
 
             # Initialize hub with the training data as example
             hub_utils.init(
@@ -343,6 +339,8 @@ class LocusToGeneModel:
                 task="tabular-classification",
                 data=train_df,
             )
+            train_df.to_parquet(f"{local_repo}/train.parquet")
+            test_df.to_parquet(f"{local_repo}/test.parquet")
             self._create_hugging_face_model_card(local_repo)
             hub_utils.push(
                 repo_id=repo_id,
