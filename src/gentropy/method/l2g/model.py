@@ -135,8 +135,6 @@ class LocusToGeneModel:
             Returns:
                 list[str]: Features list
             """
-            import json
-
             model_config_path = str(Path(local_path) / "config.json")
             with open(model_config_path) as f:
                 model_config = json.load(f)
@@ -236,23 +234,6 @@ class LocusToGeneModel:
             # create directory if path does not exist
             Path(path).parent.mkdir(parents=True, exist_ok=True)
             sio.dump(self.model, path)
-
-    @staticmethod
-    def load_feature_matrix_from_wandb(wandb_run_name: str) -> pd.DataFrame:
-        """Loads dataset of feature matrix used during a wandb run.
-
-        Args:
-            wandb_run_name (str): Name of the wandb run to load the feature matrix from
-
-        Returns:
-            pd.DataFrame: Feature matrix used during the wandb run
-        """
-        with open(wandb_run_name) as f:
-            raw_data = json.load(f)
-
-        data = raw_data["data"]
-        columns = raw_data["columns"]
-        return pd.DataFrame(data, columns=columns)
 
     def _create_hugging_face_model_card(
         self: LocusToGeneModel,

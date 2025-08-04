@@ -20,7 +20,7 @@ from sklearn.metrics import (
     roc_auc_score,
 )
 from sklearn.model_selection import train_test_split
-from wandb.data_types import Image, Table
+from wandb.data_types import Image
 from wandb.errors.term import termlog as wandb_termlog
 from wandb.sdk.wandb_init import init as wandb_init
 from wandb.sdk.wandb_setup import _setup
@@ -225,10 +225,6 @@ class LocusToGeneTrainer:
             y_true=self.y_test, y_pred=y_predicted, y_pred_proba=y_probas
         )
         self.run.log(metrics)
-        # Track gold standards and their features
-        self.run.log(
-            {"featureMatrix": Table(dataframe=self.feature_matrix._df.toPandas())}
-        )
         # Log feature missingness
         self.run.log(
             {
