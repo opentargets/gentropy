@@ -69,7 +69,6 @@ class LocusToGeneTrainer:
     y_train: np.ndarray | None = None
     x_test: np.ndarray | None = None
     y_test: np.ndarray | None = None
-    groups_train: np.ndarray | None = None
     run: Run | None = None
     wandb_l2g_project_name: str = "gentropy-locus-to-gene"
 
