@@ -314,7 +314,7 @@ class LocusToGeneModel:
         Raises:
             RuntimeError: If the push to the Hugging Face Hub fails
         """
-        from xgboost import __version__ as xgboost_version
+        from sklearn import __version__ as sklearn_version
 
         try:
             # Create train/test split
@@ -328,7 +328,7 @@ class LocusToGeneModel:
             # Initialize hub with the training data as example
             hub_utils.init(
                 model=model_path,
-                requirements=[f"xgboost={xgboost_version}"],
+                requirements=[f"sklearn={sklearn_version}"],
                 dst=local_repo,
                 task="tabular-classification",
                 data=train_df,
