@@ -32,13 +32,14 @@ class LocusToGeneModel:
     features_list: list[str] = field(default_factory=list)
     hyperparameters: dict[str, Any] = field(
         default_factory=lambda: {
-            "n_estimators": 100,
-            "max_depth": 10,
-            "ccp_alpha": 0,
-            "learning_rate": 0.1,
-            "min_samples_leaf": 5,
-            "min_samples_split": 5,
-            "subsample": 1,
+            "max_depth": 5,
+            "reg_alpha": 1,  # L1 regularization
+            "reg_lambda": 1.0,  # L2 regularization
+            "subsample": 0.8,
+            "colsample_bytree": 0.8,
+            "eta": 0.05,
+            "min_child_weight": 10,
+            "scale_pos_weight": 0.8,
         }
     )
     training_data: L2GFeatureMatrix | None = None
