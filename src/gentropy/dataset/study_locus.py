@@ -918,23 +918,38 @@ class StudyLocus(Dataset):
         self: StudyLocus,
         features_list: list[str],
         features_input_loader: L2GFeatureInputLoader,
+        append_null_features: bool = False,
     ) -> L2GFeatureMatrix:
         """Returns the feature matrix for a StudyLocus.
 
         Args:
             features_list (list[str]): List of features to include in the feature matrix.
             features_input_loader (L2GFeatureInputLoader): Feature input loader to use.
+            append_null_features (bool): If True, appends null features to the feature matrix. Default is False. Usefull with small datasets that may have all null features, that are anyway required by the model.
 
         Returns:
             L2GFeatureMatrix: Feature matrix for this study-locus.
         """
         from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
 
-        return L2GFeatureMatrix.from_features_list(
-            self,
-            features_list,
-            features_input_loader,
-        ).fill_na()
+        if append_null_features:
+            feature_matrix = (
+                L2GFeatureMatrix.from_features_list(
+                    self,
+                    features_list,
+                    features_input_loader,
+                )
+                .append_null_features(features_list)
+                .fill_na()
+            )
+        else:
+            feature_matrix = L2GFeatureMatrix.from_features_list(
+                self,
+                features_list,
+                features_input_loader,
+            ).fill_na()
+
+        return feature_matrix
 
     def annotate_credible_sets(self: StudyLocus) -> StudyLocus:
         """Annotate study-locus dataset with credible set flags.
