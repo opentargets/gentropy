@@ -50,7 +50,7 @@ docs = [
   "mkdocs-awesome-pages-plugin >=2.9.2, <3.0.0",
   "mkdocs-exclude >=1.0.2, <1.1.0",
   "mkdocs-git-committers-plugin-2 >=2.2.3, <2.6.0",
-  "lxml >=5.1.0, <5.4.0",
+  "lxml >=5.1.0, <6.1.0",
   "pymdown-extensions >=10.7, <10.13",
 ]
 test = [
@@ -63,7 +63,7 @@ test = [
 ]
 
 dev = [
-  "ipython >=8.19.0, <8.31.0",
+  "ipython >=8.19.0, <8.38.0",
   "ipykernel >=6.28.0, <6.30.0",
   "pydoclint >=0.3.8,<0.6.0",
   "prettier >=0.0.7, <0.1.0",
