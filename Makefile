@@ -62,7 +62,7 @@ create-dev-cluster: sync-cluster-init-script sync-gentropy-cli-script ## Spin up
 	gcloud dataproc clusters create "ot-genetics-dev-${CLEAN_PACKAGE_VERSION}-$(USER_SAFE)" \
 		--image-version 2.2 \
 		--region ${REGION} \
-		--master-machine-type n1-standard-2 \
+		--master-machine-type n1-highmem-8 \
 		--metadata="GENTROPY_REF=${REF}" \
 		--initialization-actions=${BUCKET_NAME}/install_dependencies_on_cluster.sh \
 		--secondary-worker-type spot \

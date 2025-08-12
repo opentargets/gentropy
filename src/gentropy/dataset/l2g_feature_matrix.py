@@ -253,5 +253,5 @@ class L2GFeatureMatrix:
 
         # Generate train, held out sets
         return LocusToGeneTrainer.hierarchical_split(
-            data_df, test_size=test_size, verbose=verbose
+            data_df, test_size=test_size, verbose=verbose, random_state=777
         )
