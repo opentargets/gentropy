@@ -171,7 +171,6 @@ class FinngenFinemappingConfig(StepConfig):
     finngen_finemapping_out: str = MISSING
     finngen_finemapping_lead_pvalue_threshold: float = 1e-5
     finngen_release_prefix: str = "FINNGEN_R11"
-
     _target_: str = (
         "gentropy.finngen_finemapping_ingestion.FinnGenFinemappingIngestionStep"
     )
@@ -287,7 +286,6 @@ class LocusToGeneConfig(StepConfig):
     download_from_hub: bool = True
     cross_validate: bool = True
     explain_predictions: bool | None = False
-    append_null_features: bool = False
     _target_: str = "gentropy.l2g.LocusToGeneStep"
 
 
@@ -547,7 +545,15 @@ class ConvertToVcfStepConfig(StepConfig):
     partition_size: int = 2000
     _target_: str = "gentropy.variant_index.ConvertToVcfStep"
 
+@dataclass
+class IntervalE2GStepConfig(StepConfig):
+    """Interval E2G step configuration."""
 
+    target_index_path: str = MISSING
+    interval_source: str = MISSING
+    interval_e2g_path: str = MISSING
+
+    _target_: str = "gentropy.variant_index.IntervalE2GStep"
 @dataclass
 class LocusBreakerClumpingConfig(StepConfig):
     """Locus breaker clumping step configuration."""
@@ -597,16 +603,6 @@ class FinemapperConfig(StepConfig):
     study_index_path: str = MISSING
     study_locus_manifest_path: str = MISSING
     study_locus_index: int = MISSING
-    ld_matrix_paths: dict[str, str] = field(
-        default_factory=lambda: {
-            "pan_ukbb_bm_path": "gs://panukbb-ld-matrixes/UKBB.{POP}.ldadj",
-            "ukbb_annotation_path": "gs://panukbb-ld-matrixes/UKBB.{POP}.aligned.parquet",
-            "ld_matrix_template": "gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.{POP}.common.adj.ld.bm",
-            "ld_index_raw_template": "gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.{POP}.common.ld.variant_indices.ht",
-            "liftover_ht_path": "gs://gcp-public-data--gnomad/release/2.1.1/liftover_grch38/ht/genomes/gnomad.genomes.r2.1.1.sites.liftover_grch38.ht",
-            "grch37_to_grch38_chain_path": "gs://hail-common/references/grch37_to_grch38.over.chain.gz",
-        }
-    )
     max_causal_snps: int = MISSING
     lead_pval_threshold: float = MISSING
     purity_mean_r2_threshold: float = MISSING
@@ -621,7 +617,6 @@ class FinemapperConfig(StepConfig):
     imputed_r2_threshold: float = MISSING
     ld_score_threshold: float = MISSING
     ld_min_r2: float = MISSING
-    ignore_qc: bool = False
     _target_: str = "gentropy.susie_finemapper.SusieFineMapperStep"
 
 
@@ -706,17 +701,6 @@ class StudyLocusValidationStepConfig(StepConfig):
     invalid_qc_reasons: list[str] = MISSING
     trans_qtl_threshold: int = MISSING
     _target_: str = "gentropy.study_locus_validation.StudyLocusValidationStep"
-
-
-@dataclass
-class IntervalConfig(StepConfig):
-    """Interval step configuration."""
-
-    target_index_path: str = MISSING
-    interval_source: str = MISSING
-    interval_index_path: str = MISSING
-    _target_: str = "gentropy.intervals.IntervalIndexStep"
-
 
 @dataclass
 class Config:
@@ -811,4 +795,4 @@ def register_config() -> None:
     cs.store(group="step", name="finngen_ukb_meta_ingestion", node=FinngenUkbMetaConfig)
     cs.store(group="step", name="credible_set_qc", node=CredibleSetQCStepConfig)
     cs.store(group="step", name="foldx_integration", node=FoldXVariantAnnotationConfig)
-    cs.store(group="step", name="interval_index", node=IntervalConfig)
+    cs.store(group="step", name="interval_e2g", node=IntervalE2GStepConfig)
