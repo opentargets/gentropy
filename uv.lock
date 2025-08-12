@@ -993,7 +993,7 @@ requires-dist = [
     { name = "matplotlib", specifier = ">=3.10.0,<3.11.0" },
     { name = "numpy", specifier = ">=1.26.4,<2.3.0" },
     { name = "omegaconf", specifier = ">=2.3.0,<2.4.0" },
-    { name = "pandas", extras = ["gcp", "parquet"], specifier = ">=2.2.3,<2.3.0" },
+    { name = "pandas", extras = ["gcp", "parquet"], specifier = ">=2.2.3,<2.4.0" },
     { name = "pyliftover", specifier = ">=0.4.1,<0.5.0" },
     { name = "pyspark", extras = ["pandas-on-spark"], specifier = ">=3.5.0,<3.6" },
     { name = "scikit-learn", specifier = ">=1.6.1,<1.7.0" },
@@ -1001,7 +1001,7 @@ requires-dist = [
     { name = "shap", specifier = ">=0.46,<0.48" },
     { name = "skops", specifier = ">=0.11.0,<0.12.0" },
     { name = "typing-extensions", specifier = ">=4.12.2,<4.13.0" },
-    { name = "wandb", specifier = ">=0.19.4,<0.20.0" },
+    { name = "wandb", specifier = ">=0.19.4,<0.22.0" },
 ]
 
 [package.metadata.requires-dev]

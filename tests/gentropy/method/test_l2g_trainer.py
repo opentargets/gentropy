@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import numpy as np
+import pandas as pd
 from sklearn.ensemble import GradientBoostingClassifier
 
 from gentropy.method.l2g.model import LocusToGeneModel
@@ -58,7 +59,7 @@ def test_train_no_cross_validation(mock_l2g_feature_matrix: L2GFeatureMatrix) ->
 
 
 def test_train_cross_validation(mock_l2g_feature_matrix: L2GFeatureMatrix) -> None:
-    """Test LocusToGeneTrainer.train without cross validation."""
+    """Test LocusToGeneTrainer.train with cross validation."""
     # Mock simple model
     features_list = ["distanceTssMean", "distanceSentinelTssMinimum"]
     l2g_model = LocusToGeneModel(
@@ -71,5 +72,44 @@ def test_train_cross_validation(mock_l2g_feature_matrix: L2GFeatureMatrix) -> No
         feature_matrix=mock_l2g_feature_matrix.fill_na(),
         features_list=features_list,
     )
-    trained_model = trainer.train(wandb_run_name=None, cross_validate=True)
+    trained_model = trainer.train(wandb_run_name=None, cross_validate=True, n_splits=3)
     assert isinstance(trained_model, LocusToGeneModel)
+
+
+def test_hierarchical_split() -> None:
+    """Test LocusToGeneTrainer.hierarchical_split function."""
+    df = pd.DataFrame(
+        {
+            "geneId": ["G1", "G1", "G1", "G2", "G2", "G3", "G4", "G4"],
+            "studyLocusId": ["L1", "L1", "L2", "L2", "L3", "L3", "L4", "L4"],
+            "goldStandardSet": [1, 0, 1, 1, 0, 1, 0, 0],
+            "feature1": [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8],
+        }
+    )
+
+    train_df, test_df = LocusToGeneTrainer.hierarchical_split(
+        df, test_size=0.15, verbose=False
+    )
+
+    # Check split sizes
+    assert (
+        len(train_df[train_df["geneId"] == "G4"])
+        & len(test_df[test_df["geneId"] == "G4"])
+        == 0
+    ), (
+        "G4 should not be applied to any split because it is not assigned to any positive studyLocus"
+    )
+    assert len(train_df) + len(test_df) != len(df)
+    assert (
+        len(set(train_df["studyLocusId"]).intersection(set(test_df["studyLocusId"])))
+        == 0
+    ), "Data leakage detected! Overlapping studyLocusIds between splits."
+    assert len(set(train_df["geneId"]).intersection(set(test_df["geneId"]))) > 0, (
+        "G1 is not present in both splits"
+    )
+    assert len(train_df[train_df["goldStandardSet"] == 0]) > 0, (
+        "No negatives in train_df"
+    )
+    assert len(test_df[test_df["goldStandardSet"] == 0]) > 0, "No negatives in test_df"
+    assert train_df.shape[1] == df.shape[1], "Columns are missing in train_df"
+    assert test_df.shape[1] == df.shape[1], "Columns are missing in test_df"
