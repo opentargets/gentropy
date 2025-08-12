@@ -16,13 +16,13 @@ dependencies = [
   "numpy (>=1.26.4, <2.3.0)",
   "wandb (>=0.19.4, <0.22.0)",
   "omegaconf (>=2.3.0, <2.4.0)",
-  "typing-extensions (>=4.12.2, <4.13.0)",
-  "scikit-learn (>=1.6.1, <1.7.0)",
+  "typing-extensions (>=4.12.2, <4.15.0)",
+  "scikit-learn (>=1.6.1, <1.8.0)",
   "pandas[gcp,parquet] (>=2.2.3, <2.4.0)",
   "skops (>=0.11.0, <0.12.0)",
-  "shap (>=0.46, <0.48)",
+  "shap (>=0.46, <0.49)",
   "matplotlib (>=3.10.0, <3.11.0)",
-  "google-cloud-secret-manager (>=2.12.6, <2.24.0)",
+  "google-cloud-secret-manager (>=2.12.6, <2.25.0)",
   "google-cloud-storage (>=2.14.0, <3.3.0)",
 ]
 classifiers = [
@@ -42,16 +42,16 @@ gentropy = "gentropy.cli:main"
 [dependency-groups]
 docs = [
   "mkdocs >=1.5.3, <1.6.0",
-  "mkdocstrings-python >=1.12.2, <1.13.0",
+  "mkdocstrings-python >=1.12.2, <1.17.0",
   "mkdocs-material",
   "mkdocs-section-index >=0.3.4, <0.4.0",
   "mkdocs-git-revision-date-localized-plugin >=1.2.2, <1.4.0",
   "mkdocs-autolinks-plugin >=0.7.1, <0.8.0",
   "mkdocs-awesome-pages-plugin >=2.9.2, <3.0.0",
   "mkdocs-exclude >=1.0.2, <1.1.0",
-  "mkdocs-git-committers-plugin-2 >=2.2.3, <2.5.0",
-  "lxml >=5.1.0, <5.4.0",
-  "pymdown-extensions >=10.7, <10.13",
+  "mkdocs-git-committers-plugin-2 >=2.2.3, <2.6.0",
+  "lxml >=5.1.0, <6.1.0",
+  "pymdown-extensions >=10.7, <10.17",
 ]
 test = [
   "pytest-cov >=4.1,<7.0",
@@ -59,13 +59,13 @@ test = [
   "dbldatagen >=0.3.1,<0.5.0",
   "pyparsing >=3.1.1, <3.3.0",
   "pytest >=7.4.4,<9.0.0",
-  "pytest-xdist >=3.5.0, <3.7.0",
+  "pytest-xdist >=3.5.0, <3.9.0",
 ]
 
 dev = [
-  "ipython >=8.19.0, <8.31.0",
-  "ipykernel >=6.28.0, <6.30.0",
-  "pydoclint >=0.3.8,<0.6.0",
+  "ipython >=8.19.0, <8.38.0",
+  "pydoclint >=0.3.8,<0.7.0",
+  "ipykernel >=6.28.0, <6.31.0",
   "prettier >=0.0.7, <0.1.0",
   "deptry >=0.22.0, <0.23.0",
   "yamllint >=1.33.0, <1.36.0",
@@ -75,7 +75,7 @@ dev = [
   "interrogate >=1.7.0, <1.8.0",
   "isort >=5.13.2, <5.14.0",
   "darglint >=1.8.1, <1.9.0",
-  "ruff >=0.8.1, <0.9.0",
+  "ruff >=0.8.1, <0.13.0",
 ]
 [tool.semantic_release]
 logging_use_named_masks = true

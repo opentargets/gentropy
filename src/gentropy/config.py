@@ -348,6 +348,7 @@ class LocusToGeneFeatureMatrixConfig(StepConfig):
             "isProteinCoding",
         ]
     )
+    append_null_features: bool = False
     _target_: str = "gentropy.l2g.LocusToGeneFeatureMatrixStep"
 
 
