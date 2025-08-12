@@ -528,9 +528,6 @@ class LocusToGeneTrainer:
 
         Returns:
             tuple[pd.DataFrame, pd.DataFrame]: Training and test dataframes
-
-        Raises:
-            ValueError: If overlap between train and test set is too large
         """
         positives = data_df[data_df["goldStandardSet"] == 1].copy()
         negatives = data_df[data_df["goldStandardSet"] == 0].copy()
@@ -557,13 +554,16 @@ class LocusToGeneTrainer:
 
         # If we have overlapping loci, we assign them to train set after controlling that the overlap is not too large
         overlapping_loci = train_study_loci.intersection(test_study_loci)
-        if overlapping_loci and len(overlapping_loci) / len(test_study_loci) < 0.1:
+        if overlapping_loci:
             test_study_loci = test_study_loci - overlapping_loci
             test_gene_positives = test_gene_positives[
                 ~test_gene_positives["studyLocusId"].isin(overlapping_loci)
             ]
-        else:
-            raise ValueError("Abundant overlap between train and test sets")
+        if len(overlapping_loci) / len(test_study_loci) > 0.1:
+            logging.warning(
+                "Abundant overlap between train and test sets: %d",
+                len(overlapping_loci),
+            )
 
         # Final positive splits
         train_positives = positives[positives["studyLocusId"].isin(train_study_loci)]
