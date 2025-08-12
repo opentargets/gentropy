@@ -51,7 +51,7 @@ docs = [
   "mkdocs-exclude >=1.0.2, <1.1.0",
   "mkdocs-git-committers-plugin-2 >=2.2.3, <2.6.0",
   "lxml >=5.1.0, <6.1.0",
-  "pymdown-extensions >=10.7, <10.13",
+  "pymdown-extensions >=10.7, <10.17",
 ]
 test = [
   "pytest-cov >=4.1,<7.0",
