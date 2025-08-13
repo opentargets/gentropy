@@ -66,7 +66,7 @@ create-dev-cluster: sync-cluster-init-script sync-gentropy-cli-script ## Spin up
 		--metadata="GENTROPY_REF=${REF}" \
 		--initialization-actions=${BUCKET_NAME}/install_dependencies_on_cluster.sh \
 		--secondary-worker-type spot \
-		--worker-machine-type n1-standard-8 \
+		--worker-machine-type n1-standard-16 \
 		--public-ip-address \
 		--worker-boot-disk-size 500 \
 		--autoscaling-policy="projects/${PROJECT_ID}/regions/${REGION}/autoscalingPolicies/otg-etl" \
