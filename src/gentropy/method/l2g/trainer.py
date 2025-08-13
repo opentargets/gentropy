@@ -548,13 +548,18 @@ class LocusToGeneTrainer:
         test_gene_positives = positives[positives["geneId"].isin(genes_test)]
         test_study_loci.update(test_gene_positives["studyLocusId"].unique())
 
-        # If we have overlapping loci, we assign them to train set
+        # If we have overlapping loci, we assign them to train set after controlling that the overlap is not too large
         overlapping_loci = train_study_loci.intersection(test_study_loci)
         if overlapping_loci:
             test_study_loci = test_study_loci - overlapping_loci
             test_gene_positives = test_gene_positives[
                 ~test_gene_positives["studyLocusId"].isin(overlapping_loci)
             ]
+        if len(overlapping_loci) / len(test_study_loci) > 0.1:
+            logging.warning(
+                "Abundant overlap between train and test sets: %d",
+                len(overlapping_loci),
+            )
 
         # Final positive splits
         train_positives = positives[positives["studyLocusId"].isin(train_study_loci)]
