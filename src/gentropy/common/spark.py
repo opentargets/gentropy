@@ -6,7 +6,7 @@ import re
 from collections.abc import Callable, Iterable
 from functools import reduce, wraps
 from itertools import chain
-from typing import TYPE_CHECKING, Any, Optional, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar
 
 import pyspark.sql.functions as f
 import pyspark.sql.types as t
@@ -24,7 +24,7 @@ def convert_from_wide_to_long(
     id_vars: Iterable[str],
     var_name: str,
     value_name: str,
-    value_vars: Optional[Iterable[str]] = None,
+    value_vars: Iterable[str] | None = None,
 ) -> DataFrame:
     """Converts a dataframe from wide to long format.
 
