@@ -14,6 +14,7 @@ from pandas import DataFrame as pd_dataframe
 from pandas import to_numeric as pd_to_numeric
 from sklearn.ensemble import GradientBoostingClassifier
 from skops import hub_utils
+from xgboost import XGBClassifier
 
 from gentropy.common.session import Session
 from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
@@ -27,17 +28,18 @@ if TYPE_CHECKING:
 class LocusToGeneModel:
     """Wrapper for the Locus to Gene classifier."""
 
-    model: Any = GradientBoostingClassifier(random_state=42)
+    model: Any = XGBClassifier(random_state=42, eval_metric="aucpr")
     features_list: list[str] = field(default_factory=list)
     hyperparameters: dict[str, Any] = field(
         default_factory=lambda: {
-            "n_estimators": 100,
-            "max_depth": 10,
-            "ccp_alpha": 0,
-            "learning_rate": 0.1,
-            "min_samples_leaf": 5,
-            "min_samples_split": 5,
-            "subsample": 1,
+            "max_depth": 5,
+            "reg_alpha": 1,  # L1 regularization
+            "reg_lambda": 1.0,  # L2 regularization
+            "subsample": 0.8,
+            "colsample_bytree": 0.8,
+            "eta": 0.05,
+            "min_child_weight": 10,
+            "scale_pos_weight": 0.8,
         }
     )
     training_data: L2GFeatureMatrix | None = None
@@ -112,7 +114,12 @@ class LocusToGeneModel:
                 logging.error("Training data set to none. Error: %s", e)
                 training_data = None
 
-        if not loaded_model._is_fitted():
+        if (
+            isinstance(loaded_model, GradientBoostingClassifier)
+            and not loaded_model._is_fitted()
+        ) or (
+            isinstance(loaded_model, XGBClassifier) and not loaded_model.get_booster()
+        ):
             raise ValueError("Model has not been fitted yet.")
         return cls(model=loaded_model, training_data=training_data, **kwargs)
 

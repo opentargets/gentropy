@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
-from sklearn.ensemble import GradientBoostingClassifier
+from xgboost import XGBClassifier
 
 from gentropy.method.l2g.model import LocusToGeneModel
 from gentropy.method.l2g.trainer import LocusToGeneTrainer
@@ -45,8 +45,8 @@ def test_train_no_cross_validation(mock_l2g_feature_matrix: L2GFeatureMatrix) ->
     # Mock simple model
     features_list = ["distanceTssMean", "distanceSentinelTssMinimum"]
     l2g_model = LocusToGeneModel(
-        model=GradientBoostingClassifier(),
-        hyperparameters={"random_state": 42, "loss": "log_loss"},
+        model=XGBClassifier(),
+        hyperparameters={"max_depth": 5},
         features_list=features_list,
     )
     trainer = LocusToGeneTrainer(
@@ -63,8 +63,8 @@ def test_train_cross_validation(mock_l2g_feature_matrix: L2GFeatureMatrix) -> No
     # Mock simple model
     features_list = ["distanceTssMean", "distanceSentinelTssMinimum"]
     l2g_model = LocusToGeneModel(
-        model=GradientBoostingClassifier(),
-        hyperparameters={"random_state": 42, "loss": "log_loss"},
+        model=XGBClassifier(),
+        hyperparameters={"max_depth": 5},
         features_list=features_list,
     )
     trainer = LocusToGeneTrainer(
