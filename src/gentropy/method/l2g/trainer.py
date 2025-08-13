@@ -507,7 +507,7 @@ class LocusToGeneTrainer:
         data_df: pd.DataFrame,
         test_size: float = 0.15,
         verbose: bool = True,
-        random_state: int = 42,
+        random_state: int = 777,
     ) -> tuple[pd.DataFrame, pd.DataFrame]:
         """Implements hierarchical splitting strategy to prevent data leakage.
 
@@ -520,7 +520,7 @@ class LocusToGeneTrainer:
             data_df (pd.DataFrame): Input dataframe with goldStandardSet column (1=positive, 0=negative)
             test_size (float): Proportion of data for test set. Defaults to 0.15
             verbose (bool): Print splitting statistics
-            random_state (int): Random seed for reproducibility. Defaults to 42
+            random_state (int): Random seed for reproducibility. Defaults to 777
 
         Returns:
             tuple[pd.DataFrame, pd.DataFrame]: Training and test dataframes
