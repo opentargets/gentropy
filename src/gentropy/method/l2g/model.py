@@ -301,7 +301,6 @@ class LocusToGeneModel:
         feature_matrix: L2GFeatureMatrix,
         commit_message: str,
         repo_id: str = "opentargets/locus_to_gene",
-        local_repo: str = "locus_to_gene",
         test_size: float = 0.15,
     ) -> None:
         """Share the model and training dataset on Hugging Face Hub.
@@ -315,45 +314,53 @@ class LocusToGeneModel:
             feature_matrix (L2GFeatureMatrix): Data used to train the model. This is used to have an example input for the model and to store the column order.
             commit_message (str): Commit message for the push
             repo_id (str): The Hugging Face Hub repo id where the model will be stored.
-            local_repo (str): Path to the folder where the contents of the model repo + the documentation are located. This is used to push the model to the Hugging Face Hub.
             test_size (float): Proportion of data to include in the test split. Defaults to 0.15
 
         Raises:
             RuntimeError: If the push to the Hugging Face Hub fails
         """
-        from xgboost import __version__ as xgboost_version
+        import tempfile
+        from pathlib import Path
 
-        try:
-            # Create train/test split
-            train_df, test_df = feature_matrix.generate_train_test_split(
-                test_size=test_size,
-                verbose=True,
-                label_encoder=self.label_encoder,
-                label_col=feature_matrix.label_col,
-            )
+        from sklearn import __version__ as sklearn_version
 
-            # Initialize hub with the training data as example
-            hub_utils.init(
-                model=model_path,
-                requirements=[f"xgboost={xgboost_version}"],
-                dst=local_repo,
-                task="tabular-classification",
-                data=train_df,
-            )
-            train_df.to_parquet(f"{local_repo}/train.parquet")
-            test_df.to_parquet(f"{local_repo}/test.parquet")
-            self._create_hugging_face_model_card(local_repo)
-            hub_utils.push(
-                repo_id=repo_id,
-                source=local_repo,
-                token=hf_hub_token,
-                commit_message=commit_message,
-                create_remote=True,
-            )
-        except Exception as e:
-            # remove the local repo if the push fails
-            if Path(local_repo).exists():
-                for p in Path(local_repo).glob("*"):
-                    p.unlink()
-                Path(local_repo).rmdir()
-            raise RuntimeError from e
+        # Create a temporary directory for all operations
+        with tempfile.TemporaryDirectory(prefix="l2g_hf_hub_") as temp_dir:
+            temp_dir_path = Path(temp_dir)
+
+            try:
+                # Create train/test split
+                train_df, test_df = feature_matrix.generate_train_test_split(
+                    test_size=test_size,
+                    verbose=True,
+                    label_encoder=self.label_encoder,
+                    label_col=feature_matrix.label_col,
+                )
+
+                # Initialize hub with the training data as example
+                hub_utils.init(
+                    model=model_path,
+                    requirements=[f"sklearn={sklearn_version}"],
+                    dst=str(temp_dir_path),
+                    task="tabular-classification",
+                    data=train_df,
+                )
+
+                # Save train/test splits
+                train_df.to_parquet(temp_dir_path / "train.parquet")
+                test_df.to_parquet(temp_dir_path / "test.parquet")
+
+                # Create model card
+                self._create_hugging_face_model_card(str(temp_dir_path))
+
+                # Push to Hugging Face Hub
+                hub_utils.push(
+                    repo_id=repo_id,
+                    source=str(temp_dir_path),
+                    token=hf_hub_token,
+                    commit_message=commit_message,
+                    create_remote=True,
+                )
+
+            except Exception as e:
+                raise RuntimeError(f"Failed to push to Hugging Face Hub: {e}") from e
