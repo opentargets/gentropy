@@ -274,9 +274,10 @@ class LocusToGeneConfig(StepConfig):
             "max_depth": 3,
             "ccp_alpha": 0,
             "learning_rate": 0.1,
-            "min_samples_leaf": 1,
-            "min_samples_split": 5,
-            "subsample": 0.7,
+            "min_samples_leaf": 10,
+            "min_samples_split": 10,
+            "subsample": 1.0,
+            "tol": 0.001,
         }
     )
     wandb_run_name: str | None = None
