@@ -34,7 +34,9 @@ On Ubuntu, this can be done using `sudo apt remove node nodejs npm`, followed by
 
 ## MacOS
 
-Some functions on MacOS may throw a java error:
+- To run L2G trainer on MacOS you need to install `libomp` using `brew install libomp`.
+
+- Some functions on MacOS may throw a java error:
 
 `python3.10/site-packages/py4j/protocol.py:326: Py4JJavaError`
 

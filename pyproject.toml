@@ -24,6 +24,7 @@ dependencies = [
   "matplotlib (>=3.10.0, <3.11.0)",
   "google-cloud-secret-manager (>=2.12.6, <2.25.0)",
   "google-cloud-storage (>=2.14.0, <3.3.0)",
+  "xgboost>=3.0.3",
 ]
 classifiers = [
   "Programming Language :: Python :: 3.10",
@@ -42,16 +43,16 @@ gentropy = "gentropy.cli:main"
 [dependency-groups]
 docs = [
   "mkdocs >=1.5.3, <1.6.0",
-  "mkdocstrings-python >=1.12.2, <1.13.0",
+  "mkdocstrings-python >=1.12.2, <1.17.0",
   "mkdocs-material",
   "mkdocs-section-index >=0.3.4, <0.4.0",
-  "mkdocs-git-revision-date-localized-plugin >=1.2.2, <1.4.0",
+  "mkdocs-git-revision-date-localized-plugin >=1.2.2, <1.5.0",
   "mkdocs-autolinks-plugin >=0.7.1, <0.8.0",
   "mkdocs-awesome-pages-plugin >=2.9.2, <3.0.0",
   "mkdocs-exclude >=1.0.2, <1.1.0",
   "mkdocs-git-committers-plugin-2 >=2.2.3, <2.6.0",
   "lxml >=5.1.0, <6.1.0",
-  "pymdown-extensions >=10.7, <10.13",
+  "pymdown-extensions >=10.7, <10.17",
 ]
 test = [
   "pytest-cov >=4.1,<7.0",
@@ -71,7 +72,7 @@ dev = [
   "yamllint >=1.33.0, <1.36.0",
   "pre-commit >=4.0.0, <4.4.0",
   "mypy >=1.13, <1.14",
-  "pep8-naming >=0.14.1, <0.15.0",
+  "pep8-naming >=0.14.1, <0.16.0",
   "interrogate >=1.7.0, <1.8.0",
   "isort >=5.13.2, <5.14.0",
   "darglint >=1.8.1, <1.9.0",
