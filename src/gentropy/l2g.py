@@ -382,7 +382,7 @@ class LocusToGeneStep:
                     # we upload the model saved in the filesystem
                     self.model_path.split("/")[-1],
                     hf_hub_token,
-                    data=trained_model.training_data._df.toPandas(),
+                    feature_matrix=trained_model.training_data,
                     repo_id=self.hf_hub_repo_id,
                     commit_message=self.hf_model_commit_message,
                 )
