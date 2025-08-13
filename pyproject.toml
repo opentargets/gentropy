@@ -206,7 +206,6 @@ select = [
   "S317",    # suspicious-xml-sax-usage
   "S318",    # suspicious-xml-mini-dom-usage
   "S319",    # suspicious-xml-pull-dom-usage
-  "S320",    # suspicious-xmle-tree-usage
   "S601",    # paramiko-call
   "S602",    # subprocess-popen-with-shell-equals-true
   "S604",    # call-with-shell-equals-true
@@ -232,12 +231,13 @@ select = [
 ignore = [
   "E501", # line too long
   "E731", # do not assign a lambda expression, use a def
+  "PLC0415", # `import` should be at the top-level of a file
 
   # Ignore ignored, as the rule is now back in preview/nursery, which cannot
   # be ignored anymore without warnings.
   # https://github.com/astral-sh/ruff/issues/7491
   # "PLC1901", # Lots of false positives
-  # "DOC502", # Docstring has extraneous exception, - Required to skip if we use assert in the code to raise exceptions
+  "DOC502", # Docstring has extraneous exception - required when we use assert, pydoclint expects AssertionError in Raises
   # False positives https://github.com/astral-sh/ruff/issues/5386
   "PLC0208", # Use a sequence type instead of a `set` when iterating over values
   "PLR0911", # Too many return statements ({returns} > {max_returns})
@@ -266,7 +266,7 @@ convention = "google"
 
 [tool.pydoclint]
 style = 'google'
-exclude = '\.git|\.venv|__init__.py|tests|docs'
+exclude = '\\.git|\\.venv|__init__.py|tests|docs'
 require-return-section-when-returning-nothing = false
 check-return-types = true
 allow-init-docstring = true
@@ -274,3 +274,4 @@ arg-type-hints-in-docstring = true
 skip-checking-short-docstrings = false
 check-class-attributes = false
 should-declare-assert-error-if-assert-statement-exists = true # make sure that assert Raises are captured in docstrings
+skip-checking-raises = true
