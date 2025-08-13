@@ -33,7 +33,7 @@ def convert_from_wide_to_long(
         id_vars (Iterable[str]): List of fixed columns to keep
         var_name (str): Name of the column containing the variable names
         value_name (str): Name of the column containing the values
-        value_vars (Optional[Iterable[str]]): List of columns to melt. Defaults to None.
+        value_vars (Iterable[str] | None): List of columns to melt. Defaults to None.
 
     Returns:
         DataFrame: Melted dataframe
