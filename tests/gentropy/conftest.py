@@ -734,10 +734,12 @@ def mock_l2g_feature_matrix(spark: SparkSession) -> L2GFeatureMatrix:
                 ("3", "gene3", "trait2", 300.0, 30.0, "positive"),
                 ("4", "gene4", "trait2", 400.0, 40.0, "positive"),
                 # Multiple samples for "negative" class
+                ("4", "gene3", "trait2", 450.0, 45.0, "negative"),
                 ("5", "gene5", "trait1", 500.0, 50.0, "negative"),
                 ("6", "gene6", "trait1", 600.0, 60.0, "negative"),
                 ("7", "gene7", "trait2", 700.0, 70.0, "negative"),
                 ("8", "gene8", "trait2", 800.0, 80.0, "negative"),
+                ("1", "gene3", "trait1", 1000.0, 100.0, "negative"),
             ],
             "studyLocusId STRING, geneId STRING, traitFromSourceMappedId STRING, distanceTssMean FLOAT, distanceSentinelTssMinimum FLOAT, goldStandardSet STRING",
         ),
