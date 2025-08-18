@@ -358,7 +358,7 @@ class LocusToGeneStep:
 
         # Instantiate classifier and train model
         l2g_model = LocusToGeneModel(
-            model=XGBClassifier(random_state=42, eval_metric="aucpr"),
+            model=XGBClassifier(random_state=777, eval_metric="aucpr"),
             hyperparameters=self.hyperparameters,
             features_list=self.features_list,
         )
