@@ -7,7 +7,7 @@ env:
   GCP_PROJECT_ID: open-targets-genetics-dev
   GCP_REGION: europe-west1
   TAG: "${{ github.ref_name}}"
-  REPO: "{{ github.event.repository.name}}"
+  REPO: "${{ github.event.repository.name}}"
 
 jobs:
   push-to-ghcr-and-gar:
@@ -84,8 +84,8 @@ jobs:
             ghcr.io/${{ github.repository }}:${{ env.TAG }}
             ${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/opentargets/${{ env.REPO }}:latest
             ${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/opentargets/${{ env.REPO }}:${{ env.TAG }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          # cache-from: type=gha
+          # cache-to: type=gha,mode=max
 
       - id: generate-attestations
         name: Generate artifact attestation
