@@ -30,7 +30,7 @@ jobs:
         with:
           app-id: ${{ vars.TRIGGER_WORKFLOW_GH_APP_ID}}
           private-key: ${{ secrets.TRIGGER_WORKFLOW_GH_APP_KEY }}
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
           ref: ${{ github.ref_name }}
@@ -95,7 +95,7 @@ jobs:
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' && needs.release.outputs.released == 'true'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
