@@ -43,7 +43,7 @@ gentropy = "gentropy.cli:main"
 [dependency-groups]
 docs = [
   "mkdocs >=1.5.3, <1.6.0",
-  "mkdocstrings-python >=1.12.2, <1.17.0",
+  "mkdocstrings-python >=1.12.2, <1.19.0",
   "mkdocs-material",
   "mkdocs-section-index >=0.3.4, <0.4.0",
   "mkdocs-git-revision-date-localized-plugin >=1.2.2, <1.5.0",
