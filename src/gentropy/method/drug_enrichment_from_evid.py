@@ -10,7 +10,7 @@ import pyspark.sql.functions as f
 from pyspark.sql import DataFrame
 from scipy.stats import fisher_exact
 
-from gentropy.common.spark_helpers import calculate_harmonic_sum
+from gentropy.common.spark import calculate_harmonic_sum
 from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import StudyLocus
 
@@ -306,13 +306,20 @@ class chemblDrugEnrichment:
             odds_ratio, p_value = fisher_exact(contingency_table)
 
             # Calculate confidence interval for odds ratio
-            ln_or = np.log(odds_ratio)
-            se_ln_or = np.sqrt(
-                1 / contingency_table[0][0]
-                + 1 / contingency_table[0][1]
-                + 1 / contingency_table[1][0]
-                + 1 / contingency_table[1][1]
-            )
+
+            if ~(np.any(np.array(contingency_table) == 0)):
+                ln_or = np.log(odds_ratio)
+                se_ln_or = np.sqrt(
+                    1 / contingency_table[0][0]
+                    + 1 / contingency_table[0][1]
+                    + 1 / contingency_table[1][0]
+                    + 1 / contingency_table[1][1]
+                )
+            else:
+                odds_ratio = 1
+                ln_or = np.log(odds_ratio)
+                se_ln_or = 0
+
             ci_ln_low = ln_or - z * se_ln_or
             ci_ln_high = ln_or + z * se_ln_or
             ci_low = np.exp(ci_ln_low)
