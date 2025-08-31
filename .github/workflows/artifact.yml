@@ -2,88 +2,95 @@ name: Build and Push to Artifact Registry
 
 "on":
   workflow_dispatch:
-  push:
-    branches:
-      - "*"
-    tags:
-      - "v[0-9]+.[0-9]+.[0-9]+-*"
 
 env:
-  PROJECT_ID: open-targets-genetics-dev
-  REGION: europe-west1
-  GAR_LOCATION: europe-west1-docker.pkg.dev/open-targets-genetics-dev
-  REPOSITORY: gentropy-app
-  PYTHON_VERSION_DEFAULT: "3.11.11"
+  GCP_PROJECT_ID: open-targets-genetics-dev
+  GCP_REGION: europe-west1
+  TAG: "${{ github.ref_name}}"
+  REPO: "${{ github.event.repository.name}}"
 
 jobs:
-  build-push-artifact:
-    runs-on: ubuntu-latest
+  push-to-ghcr-and-gar:
+    if: startsWith(github.ref, 'refs/tags/v')
+    name: Build docker image and push to GHCR and GAR
+    runs-on: ubuntu-22.04
+
+    permissions:
+      packages: write
+      contents: read
+      attestations: write
+      id-token: write
+
     steps:
-      - name: "Checkout"
-        uses: "actions/checkout@v3"
+      - id: prepare
+        name: Prepare the action and log details
+        shell: bash
+        env:
+          GITHUB_CONTEXT: ${{ toJson(github) }}
+        run: |
+          TAG=$(echo $TAG | sed 's/^v//')
+          echo "TAG=$TAG" >> $GITHUB_ENV
+          echo "The tag for this build is $TAG"
+          echo "The repo name is: $REPO"
+          echo "Github context:\n$GITHUB_CONTEXT"
 
-      - name: "auth"
-        uses: "google-github-actions/auth@v2"
-        with:
-          credentials_json: "${{ secrets.SERVICE_ACCOUNT_KEY }}"
+      - id: checkout
+        name: Check out repo
+        uses: actions/checkout@v4
 
-      - name: "Set up Cloud SDK"
-        uses: "google-github-actions/setup-gcloud@v2"
-
-      - name: "Use gcloud CLI"
-        run: "gcloud info"
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3.6.0
         with:
           image: tonistiigi/binfmt:qemu-v7.0.0-28
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      - id: auth-ghcr
+        name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: "Docker auth"
-        run: |
-          gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
+      - id: auth-google
+        name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          token_format: access_token
+          project_id: ${{ env.GCP_PROJECT_ID }}
+          service_account: github-actions@open-targets-genetics-dev.iam.gserviceaccount.com
+          workload_identity_provider: projects/234703259993/locations/global/workloadIdentityPools/github/providers/opentargets
+          access_token_lifetime: 300s
 
-      - name: Quick Docker build (gentropy only, AMD64 only, with layer cache)
-        uses: docker/build-push-action@v6
+      - id: auth-gar
+        name: Login to Google Artifact Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.GCP_REGION }}-docker.pkg.dev
+          username: oauth2accesstoken
+          password: ${{ steps.auth-google.outputs.access_token }}
+
+      - id: push
+        name: Build and push Docker image
+        uses: docker/build-push-action@v5
         with:
           platforms: linux/amd64
-          push: true
-          tags: "${{ env.GAR_LOCATION }}/${{ env.REPOSITORY }}/gentropy:${{ github.ref_name }}"
           context: .
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      # skip the `v` at the beginning of the tag for docker image tags
-      - name: Create a docker tag
-        if: github.ref == 'refs/heads/dev' || startsWith(github.ref, 'refs/tags/v')
-        id: docker-tag
-        shell: bash
-        env:
-          TAG: ${{ github.ref_name }}
-        run: |
-          TAG=$(echo $TAG | sed 's/^v//')
-          echo "TAG=$TAG" >> $GITHUB_ENV
-          echo "The tag for this build is $TAG"
-
-      - name: Build and push gentropy image
-        if: steps.docker-tag.outcome == 'success'
-        uses: docker/build-push-action@v6
-        with:
-          platforms: linux/amd64,linux/arm64
           push: true
-          tags: "${{ env.GAR_LOCATION }}/${{ env.REPOSITORY }}/gentropy:${{ env.TAG }}"
-          context: .
+          tags: |
+            ghcr.io/${{ github.repository }}:latest
+            ghcr.io/${{ github.repository }}:${{ env.TAG }}
+            ${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/opentargets/${{ env.REPO }}:latest
+            ${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/opentargets/${{ env.REPO }}:${{ env.TAG }}
+          # cache-from: type=gha
+          # cache-to: type=gha,mode=max
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      - id: generate-attestations
+        name: Generate artifact attestation
+        uses: actions/attest-build-provenance@v1
         with:
-          python-version: ${{ env.PYTHON_VERSION_DEFAULT }}
-      - name: Install uv
-        uses: astral-sh/setup-uv@v6
-        with:
-          activate-environment: true
-
-      - name: Build and push spark cluster dependencies
-        run: make build
+          subject-name: ${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/opentargets/${{ env.REPO }}
+          subject-digest: ${{ steps.push.outputs.digest }}
+          push-to-registry: true
