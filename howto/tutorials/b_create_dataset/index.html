@@ -9,10 +9,10 @@
       
       
       
-        <link rel="prev" href="../c_applying_methods/">
+        <link rel="prev" href="../a_creating_spark_session/">
       
       
-        <link rel="next" href="../../../development/_development/">
+        <link rel="next" href="../c_applying_methods/">
       
       
       <link rel="icon" href="../../../assets/imgs/favicon.png">
@@ -20,7 +20,7 @@
     
     
       
-        <title>Inspect a dataset - Open Targets Gentropy</title>
+        <title>Create a dataset - Open Targets Gentropy</title>
       
     
     
@@ -78,7 +78,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#inspect-data-in-a-dataset" class="md-skip">
+        <a href="#datasets" class="md-skip">
           Skip to content
         </a>
       
@@ -113,7 +113,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Inspect a dataset
+              Create a dataset
             
           </span>
         </div>
@@ -496,7 +496,7 @@
         
   
   <span class="md-ellipsis">
-    Run step in CLI
+    Run step in cli
   </span>
   
 
@@ -517,7 +517,7 @@
         
   
   <span class="md-ellipsis">
-    Run step using YAML config
+    Run step using config
   </span>
   
 
@@ -559,11 +559,11 @@
           
           
           <div class="md-nav__link md-nav__container">
-            <a href="../_python_api/" class="md-nav__link ">
+            <a href="../_tutorials/" class="md-nav__link ">
               
   
   <span class="md-ellipsis">
-    Python api
+    Tutorials
   </span>
   
 
@@ -579,7 +579,7 @@
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_2_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_3_2">
             <span class="md-nav__icon md-icon"></span>
-            Python api
+            Tutorials
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
             
@@ -608,10 +608,28 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../b_create_dataset/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Create a dataset
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   <span class="md-ellipsis">
@@ -620,6 +638,117 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#datasets" class="md-nav__link">
+    <span class="md-ellipsis">
+      Datasets
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Datasets">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#dataset-implementation-pyspark-dataframe" class="md-nav__link">
+    <span class="md-ellipsis">
+      Dataset implementation - pyspark DataFrame
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dataset-schemas-contract-with-the-user" class="md-nav__link">
+    <span class="md-ellipsis">
+      Dataset schemas - contract with the user
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dataset-initialization" class="md-nav__link">
+    <span class="md-ellipsis">
+      Dataset initialization
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Dataset initialization">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#initializing-datasets-from-parquet-files" class="md-nav__link">
+    <span class="md-ellipsis">
+      Initializing datasets from parquet files
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#initializing-datasets-from-pyspark-dataframes" class="md-nav__link">
+    <span class="md-ellipsis">
+      Initializing datasets from pyspark DataFrames
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#initializing-datasets-from-a-data-source" class="md-nav__link">
+    <span class="md-ellipsis">
+      Initializing datasets from a data source
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#initializing-datasets-from-a-pandas-dataframe" class="md-nav__link">
+    <span class="md-ellipsis">
+      Initializing datasets from a pandas DataFrame
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#whats-next" class="md-nav__link">
+    <span class="md-ellipsis">
+      What's next?
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -650,28 +779,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  <span class="md-ellipsis">
-    Inspect a dataset
-  </span>
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../d_inspect_dataset/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -680,75 +791,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#inspect-data-in-a-dataset" class="md-nav__link">
-    <span class="md-ellipsis">
-      Inspect data in a Dataset
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Inspect data in a Dataset">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#view-data-samples" class="md-nav__link">
-    <span class="md-ellipsis">
-      View data samples
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#filter-data" class="md-nav__link">
-    <span class="md-ellipsis">
-      Filter data
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#understand-the-schema" class="md-nav__link">
-    <span class="md-ellipsis">
-      Understand the schema
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#write-a-dataset-to-disk" class="md-nav__link">
-    <span class="md-ellipsis">
-      Write a Dataset to disk
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -967,7 +1009,91 @@
         
   
   <span class="md-ellipsis">
-    Genomic Region
+    genomic_region
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../python_api/common/processing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    processing
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../python_api/common/session/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    session
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../python_api/common/spark/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    spark
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../python_api/common/stats/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    stats
   </span>
   
 
@@ -988,7 +1114,28 @@
         
   
   <span class="md-ellipsis">
-    Literal Types
+    types
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../python_api/common/udf/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    udf
   </span>
   
 
@@ -3381,37 +3528,28 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#inspect-data-in-a-dataset" class="md-nav__link">
+  <a href="#datasets" class="md-nav__link">
     <span class="md-ellipsis">
-      Inspect data in a Dataset
+      Datasets
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Inspect data in a Dataset">
+    <nav class="md-nav" aria-label="Datasets">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#view-data-samples" class="md-nav__link">
+  <a href="#dataset-implementation-pyspark-dataframe" class="md-nav__link">
     <span class="md-ellipsis">
-      View data samples
+      Dataset implementation - pyspark DataFrame
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#filter-data" class="md-nav__link">
+  <a href="#dataset-schemas-contract-with-the-user" class="md-nav__link">
     <span class="md-ellipsis">
-      Filter data
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#understand-the-schema" class="md-nav__link">
-    <span class="md-ellipsis">
-      Understand the schema
+      Dataset schemas - contract with the user
     </span>
   </a>
   
@@ -3423,9 +3561,60 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#write-a-dataset-to-disk" class="md-nav__link">
+  <a href="#dataset-initialization" class="md-nav__link">
     <span class="md-ellipsis">
-      Write a Dataset to disk
+      Dataset initialization
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Dataset initialization">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#initializing-datasets-from-parquet-files" class="md-nav__link">
+    <span class="md-ellipsis">
+      Initializing datasets from parquet files
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#initializing-datasets-from-pyspark-dataframes" class="md-nav__link">
+    <span class="md-ellipsis">
+      Initializing datasets from pyspark DataFrames
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#initializing-datasets-from-a-data-source" class="md-nav__link">
+    <span class="md-ellipsis">
+      Initializing datasets from a data source
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#initializing-datasets-from-a-pandas-dataframe" class="md-nav__link">
+    <span class="md-ellipsis">
+      Initializing datasets from a pandas DataFrame
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#whats-next" class="md-nav__link">
+    <span class="md-ellipsis">
+      What's next?
     </span>
   </a>
   
@@ -3449,41 +3638,78 @@
   
 
 
-  <h1>Inspect a dataset</h1>
+  <h1>Create a dataset</h1>
 
-<p>We have seen how to create and transform a <code>Dataset</code> instance. This section guides you through inspecting your data to ensure its integrity and the success of your transformations.</p>
-<h2 id="inspect-data-in-a-dataset">Inspect data in a <code>Dataset</code><a class="headerlink" href="#inspect-data-in-a-dataset" title="Permanent link">&para;</a></h2>
-<p>The <code>df</code> attribute of a Dataset instance is key to interacting with and inspecting the stored data.</p>
+<h2 id="datasets">Datasets<a class="headerlink" href="#datasets" title="Permanent link">&para;</a></h2>
+<p><strong>Gentropy Datasets</strong> are the most basic concept that allows to represent various abstract data modalities: <em>Variant, Gene, Locus</em>, etc.</p>
+<p>The full list of <code>Dataset</code>s is available in the Python API <a href="../../../python_api/datasets/_datasets/">documentation</a>.</p>
 <div class="admonition info">
-<p class="admonition-title">By accessing the df attribute, you can apply any method that you would typically use on a PySpark DataFrame. See the <a href="https://spark.apache.org/docs/3.1.1/api/python/reference/pyspark.sql.html#dataframe-apis">PySpark documentation</a> for more information.</p>
+<p class="admonition-title">Any instance of Dataset will have 2 common attributes</p>
+<ul>
+<li><strong>df</strong>: the Spark DataFrame that contains the data</li>
+<li><strong>schema</strong>: the definition of the data structure in Spark format</li>
+</ul>
 </div>
-<h3 id="view-data-samples">View data samples<a class="headerlink" href="#view-data-samples" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><span class="c1"># Inspect the first 10 rows of the data</span>
-<span class="n">summary_stats</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">show</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
-</code></pre></div>
-<p>This method displays the first 10 rows of your dataset, giving you a snapshot of your data's structure and content.</p>
-<h3 id="filter-data">Filter data<a class="headerlink" href="#filter-data" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">pyspark.sql.functions</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">f</span>
+<h3 id="dataset-implementation-pyspark-dataframe">Dataset implementation - pyspark DataFrame<a class="headerlink" href="#dataset-implementation-pyspark-dataframe" title="Permanent link">&para;</a></h3>
+<p>Datasets are implemented as Classes that are composed of the <strong>PySpark DataFrames</strong>, this means that the <code>Dataset</code> has a <code>df</code> attribute that references a dataframe with the specific schema.</p>
+<h3 id="dataset-schemas-contract-with-the-user">Dataset schemas - contract with the user<a class="headerlink" href="#dataset-schemas-contract-with-the-user" title="Permanent link">&para;</a></h3>
+<p>Each dataset specifies the <strong>contract that has to be met by the data provided by the package user</strong> in order to run methods implemented in Gentropy.</p>
+<p>The dataset contract is implemented as a pyspark DataFrame schema under <code>schema</code> attribute and includes the table field names, types and allows for specifying if a field is required or optional to construct the dataset. All dataset schemas can be found in the corresponding documentation pages under the <a href="../../../python_api/datasets/_datasets/">Dataset API</a>.</p>
+<h2 id="dataset-initialization">Dataset initialization<a class="headerlink" href="#dataset-initialization" title="Permanent link">&para;</a></h2>
+<p>In this section you'll learn the different ways of how to create a <code>Dataset</code> instances.</p>
+<h3 id="initializing-datasets-from-parquet-files">Initializing datasets from parquet files<a class="headerlink" href="#initializing-datasets-from-parquet-files" title="Permanent link">&para;</a></h3>
+<p>Each dataset has a method to read the <code>parquet</code> files into the <code>Dataset</code> instance with schema validation. This is implemented in the <code>Dataset.from_parquet</code> abstract method.</p>
+<div class="language-python highlight"><pre><span></span><code><span class="c1"># Create a SummaryStatistics object by loading data from the specified path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">gentropy</span><span class="w"> </span><span class="kn">import</span> <span class="n">SummaryStatistics</span>
 
-<span class="c1"># Filter summary statistics to only include associations in chromosome 22</span>
-<span class="n">filtered</span> <span class="o">=</span> <span class="n">summary_stats</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">condition</span><span class="o">=</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;chromosome&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;22&quot;</span><span class="p">)</span>
+<span class="n">path</span> <span class="o">=</span> <span class="s2">&quot;path/to/summary/stats&quot;</span>
+<span class="n">summary_stats</span> <span class="o">=</span> <span class="n">SummaryStatistics</span><span class="o">.</span><span class="n">from_parquet</span><span class="p">(</span><span class="n">session</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
 </code></pre></div>
-<p>This method allows you to filter your data based on specific conditions, such as the value of a column. The application of any filter will create a new instance of the <code>Dataset</code> with the filtered data.</p>
-<h3 id="understand-the-schema">Understand the schema<a class="headerlink" href="#understand-the-schema" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><span class="c1"># Get the Spark schema of any `Dataset` as a `StructType` object</span>
-<span class="n">schema</span> <span class="o">=</span> <span class="n">summary_stats</span><span class="o">.</span><span class="n">get_schema</span><span class="p">()</span>
+<div class="admonition info">
+<p class="admonition-title">Parquet files</p>
+<p>Parquet is a columnar storage format that is widely used in the Spark ecosystem. It is the recommended format for storing large datasets. For more information about parquet, please visit <a href="https://parquet.apache.org/">https://parquet.apache.org/</a>.</p>
+</div>
+<div class="admonition info">
+<p class="admonition-title">Reading multiple files</p>
+<p>If you have multiple parquet files, you can pass a</p>
+<ul>
+<li>directory path like <code>path/to/summary/stats</code> - reading all parquet files from <code>stats</code> directory.</li>
+<li>glob pattern like <code>path/to/summary/stats/*h.parquet</code> - reading all files that ends with <code>.parquet</code> from `stats directory.</li>
+</ul>
+<p>to the <code>from_parquet</code> method. The method will read all the parquet files in the directory and return a <code>Dataset</code> instance.</p>
+</div>
+<h3 id="initializing-datasets-from-pyspark-dataframes">Initializing datasets from pyspark DataFrames<a class="headerlink" href="#initializing-datasets-from-pyspark-dataframes" title="Permanent link">&para;</a></h3>
+<p>Once one already has a pyspark DataFrame, it can be converted to a dataset using the default <code>Dataset</code> constructor. The constructor also validates the schema of the provided DataFrame against the dataset schema.</p>
+<h2 id="initializing-datasets-from-a-data-source">Initializing datasets from a data source<a class="headerlink" href="#initializing-datasets-from-a-data-source" title="Permanent link">&para;</a></h2>
+<p>Alternatively, <code>Dataset</code>s can be created using a <a href="../../../python_api/datasources/_datasources/">data source</a> harmonisation method. For example, to create a <code>SummaryStatistics</code> object from Finngen's raw summary statistics, you can use the <a href="../../../python_api/datasources/finngen/summary_stats/"><code>FinnGen</code></a> data source.</p>
+<div class="language-python highlight"><pre><span></span><code><span class="c1"># Create a SummaryStatistics object by loading raw data from Finngen</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">gentropy.datasource.finngen.summary_stats</span><span class="w"> </span><span class="kn">import</span> <span class="n">FinnGenSummaryStats</span>
 
-<span class="c1"># Inspect the first 10 rows of the data</span>
-<span class="n">summary_stats</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">show</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
+<span class="n">path</span> <span class="o">=</span> <span class="s2">&quot;path/to/finngen/summary/stats&quot;</span>
+<span class="n">summary_stats</span> <span class="o">=</span> <span class="n">FinnGenSummaryStats</span><span class="o">.</span><span class="n">from_source</span><span class="p">(</span><span class="n">session</span><span class="o">.</span><span class="n">spark</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
 </code></pre></div>
-<h2 id="write-a-dataset-to-disk">Write a <code>Dataset</code> to disk<a class="headerlink" href="#write-a-dataset-to-disk" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code><span class="c1"># Write the data to disk in parquet format</span>
-<span class="n">summary_stats</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">write</span><span class="o">.</span><span class="n">parquet</span><span class="p">(</span><span class="s2">&quot;path/to/summary/stats&quot;</span><span class="p">)</span>
+<h2 id="initializing-datasets-from-a-pandas-dataframe">Initializing datasets from a pandas DataFrame<a class="headerlink" href="#initializing-datasets-from-a-pandas-dataframe" title="Permanent link">&para;</a></h2>
+<p>If none of our data sources fit your needs, you can create a <code>Dataset</code> object from your own data. To do so, you need to transform your data to fit the <code>Dataset</code> schema.</p>
+<div class="admonition info">
+<p class="admonition-title">The schema of a Dataset is defined in Spark format</p>
+<p>The Dataset schemas can be found in the documentation of each Dataset. For example, the schema of the <code>SummaryStatistics</code> dataset can be found <a href="../../../python_api/datasets/summary_statistics/">here</a>.</p>
+</div>
+<p>You can also create a <code>Dataset</code> from a pandas DataFrame. This is useful when you want to create a <code>Dataset</code> from a small dataset that fits in memory.</p>
+<div class="language-python highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">pyspark.pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">ps</span>
 
-<span class="c1"># Write the data to disk in csv format</span>
-<span class="n">summary_stats</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">write</span><span class="o">.</span><span class="n">csv</span><span class="p">(</span><span class="s2">&quot;path/to/summary/stats&quot;</span><span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">gentropy</span><span class="w"> </span><span class="kn">import</span> <span class="n">SummaryStatistics</span>
+
+
+<span class="c1"># Load your transformed data into a pandas DataFrame</span>
+<span class="n">path</span> <span class="o">=</span> <span class="s2">&quot;path/to/your/data&quot;</span>
+<span class="n">custom_summary_stats_pandas_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+
+<span class="c1"># Create a SummaryStatistics object specifying the data and schema</span>
+<span class="n">custom_summary_stats_df</span> <span class="o">=</span> <span class="n">custom_summary_stats_pandas_df</span><span class="o">.</span><span class="n">to_spark</span><span class="p">()</span>
+<span class="n">custom_summary_stats</span> <span class="o">=</span> <span class="n">SummaryStatistics</span><span class="p">(</span><span class="n">_df</span><span class="o">=</span><span class="n">custom_summary_stats_df</span><span class="p">)</span>
 </code></pre></div>
-<p>Consider the format's compatibility with your tools, and the partitioning strategy for large datasets to optimize performance.</p>
+<h2 id="whats-next">What's next?<a class="headerlink" href="#whats-next" title="Permanent link">&para;</a></h2>
+<p>In the next section, we will explore how to apply well-established algorithms that transform and analyse genetic data within the Gentropy framework.</p>
 <hr />
 <div class="md-source-file">
   <small>
@@ -3506,7 +3732,7 @@
         <span class="icon twemoji">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1-2.1-2M12.5 7v5.2l4 2.4-1 1L11 13V7h1.5M11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2v1.8Z"/></svg>
         </span>
-        <span class="label"> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2024-02-06T21:30:50+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2024-02-06</span> </span>
+        <span class="label"> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2024-02-05T12:10:08+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2024-02-05</span> </span>
       </li>
       
 
@@ -3519,19 +3745,19 @@
       <li class="contributors-holder">
         <ul class="contributors" data-bi-name="contributors"><li>
             <a
-              href="https://github.com/ireneisdoomed"
-              title="ireneisdoomed"
+              href="https://github.com/DSuveges"
+              title="DSuveges"
               data-bi-name="contributorprofile"
               target="_blank"
-              ><img src="https://avatars.githubusercontent.com/u/45119610?v=4" alt="ireneisdoomed"
+              ><img src="https://avatars.githubusercontent.com/u/7122521?v=4" alt="DSuveges"
             /></a>
           </li><li>
             <a
-              href="https://github.com/web-flow"
-              title="web-flow"
+              href="https://github.com/SzymonSzyszkowski"
+              title="SzymonSzyszkowski"
               data-bi-name="contributorprofile"
               target="_blank"
-              ><img src="https://avatars.githubusercontent.com/u/19864447?v=4" alt="web-flow"
+              ><img src="https://avatars.githubusercontent.com/u/40652902?v=4" alt="SzymonSzyszkowski"
             /></a>
           </li></ul>
       </li>

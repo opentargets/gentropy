@@ -491,7 +491,7 @@
         
   
   <span class="md-ellipsis">
-    Run step in CLI
+    Run step in cli
   </span>
   
 
@@ -512,7 +512,7 @@
         
   
   <span class="md-ellipsis">
-    Run step using YAML config
+    Run step using config
   </span>
   
 
@@ -552,11 +552,11 @@
           
           
           <div class="md-nav__link md-nav__container">
-            <a href="../../../../howto/python_api/_python_api/" class="md-nav__link ">
+            <a href="../../../../howto/tutorials/_tutorials/" class="md-nav__link ">
               
   
   <span class="md-ellipsis">
-    Python api
+    Tutorials
   </span>
   
 
@@ -572,7 +572,7 @@
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_2_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_3_2">
             <span class="md-nav__icon md-icon"></span>
-            Python api
+            Tutorials
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
             
@@ -583,7 +583,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../howto/python_api/a_creating_spark_session/" class="md-nav__link">
+      <a href="../../../../howto/tutorials/a_creating_spark_session/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -604,7 +604,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../howto/python_api/b_create_dataset/" class="md-nav__link">
+      <a href="../../../../howto/tutorials/b_create_dataset/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -625,7 +625,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../howto/python_api/c_applying_methods/" class="md-nav__link">
+      <a href="../../../../howto/tutorials/c_applying_methods/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -646,7 +646,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../howto/python_api/d_inspect_dataset/" class="md-nav__link">
+      <a href="../../../../howto/tutorials/d_inspect_dataset/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -878,7 +878,91 @@
         
   
   <span class="md-ellipsis">
-    Genomic Region
+    genomic_region
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../common/processing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    processing
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../common/session/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    session
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../common/spark/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    spark
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../common/stats/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    stats
   </span>
   
 
@@ -899,7 +983,28 @@
         
   
   <span class="md-ellipsis">
-    Literal Types
+    types
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../common/udf/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    udf
   </span>
   
 
@@ -3839,9 +3944,7 @@
 
               <details class="quote">
                 <summary>Source code in <code>src/gentropy/dataset/l2g_features/distance.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">223</span>
-<span class="normal">224</span>
-<span class="normal">225</span>
+                <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">225</span>
 <span class="normal">226</span>
 <span class="normal">227</span>
 <span class="normal">228</span>
@@ -3874,7 +3977,9 @@
 <span class="normal">255</span>
 <span class="normal">256</span>
 <span class="normal">257</span>
-<span class="normal">258</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">DistanceSentinelTssFeature</span><span class="p">(</span><span class="n">L2GFeature</span><span class="p">):</span>
+<span class="normal">258</span>
+<span class="normal">259</span>
+<span class="normal">260</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">DistanceSentinelTssFeature</span><span class="p">(</span><span class="n">L2GFeature</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Distance of the sentinel variant to gene TSS. This is not weighted by the causal probability.&quot;&quot;&quot;</span>
 
     <span class="n">feature_dependency_type</span> <span class="o">=</span> <span class="n">VariantIndex</span>
@@ -4014,9 +4119,7 @@
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/dataset/l2g_features/distance.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">229</span>
-<span class="normal">230</span>
-<span class="normal">231</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">231</span>
 <span class="normal">232</span>
 <span class="normal">233</span>
 <span class="normal">234</span>
@@ -4043,7 +4146,9 @@
 <span class="normal">255</span>
 <span class="normal">256</span>
 <span class="normal">257</span>
-<span class="normal">258</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
+<span class="normal">258</span>
+<span class="normal">259</span>
+<span class="normal">260</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span>
     <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">DistanceSentinelTssFeature</span><span class="p">],</span>
     <span class="n">study_loci_to_annotate</span><span class="p">:</span> <span class="n">StudyLocus</span> <span class="o">|</span> <span class="n">L2GGoldStandard</span><span class="p">,</span>
@@ -4116,9 +4221,7 @@
 
               <details class="quote">
                 <summary>Source code in <code>src/gentropy/dataset/l2g_features/distance.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">261</span>
-<span class="normal">262</span>
-<span class="normal">263</span>
+                <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">263</span>
 <span class="normal">264</span>
 <span class="normal">265</span>
 <span class="normal">266</span>
@@ -4151,7 +4254,9 @@
 <span class="normal">293</span>
 <span class="normal">294</span>
 <span class="normal">295</span>
-<span class="normal">296</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">DistanceSentinelTssNeighbourhoodFeature</span><span class="p">(</span><span class="n">L2GFeature</span><span class="p">):</span>
+<span class="normal">296</span>
+<span class="normal">297</span>
+<span class="normal">298</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">DistanceSentinelTssNeighbourhoodFeature</span><span class="p">(</span><span class="n">L2GFeature</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Distance between the sentinel variant and a gene TSS as a relation of the distnace with all the genes in the vicinity of a studyLocus. This is not weighted by the causal probability.&quot;&quot;&quot;</span>
 
     <span class="n">feature_dependency_type</span> <span class="o">=</span> <span class="p">[</span><span class="n">VariantIndex</span><span class="p">,</span> <span class="n">TargetIndex</span><span class="p">]</span>
@@ -4291,9 +4396,7 @@
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/dataset/l2g_features/distance.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">267</span>
-<span class="normal">268</span>
-<span class="normal">269</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">269</span>
 <span class="normal">270</span>
 <span class="normal">271</span>
 <span class="normal">272</span>
@@ -4320,7 +4423,9 @@
 <span class="normal">293</span>
 <span class="normal">294</span>
 <span class="normal">295</span>
-<span class="normal">296</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
+<span class="normal">296</span>
+<span class="normal">297</span>
+<span class="normal">298</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span>
     <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">DistanceSentinelTssNeighbourhoodFeature</span><span class="p">],</span>
     <span class="n">study_loci_to_annotate</span><span class="p">:</span> <span class="n">StudyLocus</span> <span class="o">|</span> <span class="n">L2GGoldStandard</span><span class="p">,</span>
@@ -4393,9 +4498,7 @@
 
               <details class="quote">
                 <summary>Source code in <code>src/gentropy/dataset/l2g_features/distance.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">142</span>
-<span class="normal">143</span>
-<span class="normal">144</span>
+                <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">144</span>
 <span class="normal">145</span>
 <span class="normal">146</span>
 <span class="normal">147</span>
@@ -4433,7 +4536,9 @@
 <span class="normal">179</span>
 <span class="normal">180</span>
 <span class="normal">181</span>
-<span class="normal">182</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">DistanceTssMeanFeature</span><span class="p">(</span><span class="n">L2GFeature</span><span class="p">):</span>
+<span class="normal">182</span>
+<span class="normal">183</span>
+<span class="normal">184</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">DistanceTssMeanFeature</span><span class="p">(</span><span class="n">L2GFeature</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Average distance of all tagging variants to gene TSS.&quot;&quot;&quot;</span>
 
     <span class="n">feature_dependency_type</span> <span class="o">=</span> <span class="n">VariantIndex</span>
@@ -4578,9 +4683,7 @@
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/dataset/l2g_features/distance.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">148</span>
-<span class="normal">149</span>
-<span class="normal">150</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">150</span>
 <span class="normal">151</span>
 <span class="normal">152</span>
 <span class="normal">153</span>
@@ -4612,7 +4715,9 @@
 <span class="normal">179</span>
 <span class="normal">180</span>
 <span class="normal">181</span>
-<span class="normal">182</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
+<span class="normal">182</span>
+<span class="normal">183</span>
+<span class="normal">184</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span>
     <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">DistanceTssMeanFeature</span><span class="p">],</span>
     <span class="n">study_loci_to_annotate</span><span class="p">:</span> <span class="n">StudyLocus</span> <span class="o">|</span> <span class="n">L2GGoldStandard</span><span class="p">,</span>
@@ -4690,9 +4795,7 @@
 
               <details class="quote">
                 <summary>Source code in <code>src/gentropy/dataset/l2g_features/distance.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">185</span>
-<span class="normal">186</span>
-<span class="normal">187</span>
+                <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">187</span>
 <span class="normal">188</span>
 <span class="normal">189</span>
 <span class="normal">190</span>
@@ -4725,7 +4828,9 @@
 <span class="normal">217</span>
 <span class="normal">218</span>
 <span class="normal">219</span>
-<span class="normal">220</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">DistanceTssMeanNeighbourhoodFeature</span><span class="p">(</span><span class="n">L2GFeature</span><span class="p">):</span>
+<span class="normal">220</span>
+<span class="normal">221</span>
+<span class="normal">222</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">DistanceTssMeanNeighbourhoodFeature</span><span class="p">(</span><span class="n">L2GFeature</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Minimum mean distance to TSS for all genes in the vicinity of a studyLocus.&quot;&quot;&quot;</span>
 
     <span class="n">feature_dependency_type</span> <span class="o">=</span> <span class="p">[</span><span class="n">VariantIndex</span><span class="p">,</span> <span class="n">TargetIndex</span><span class="p">]</span>
@@ -4865,9 +4970,7 @@
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/dataset/l2g_features/distance.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">191</span>
-<span class="normal">192</span>
-<span class="normal">193</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">193</span>
 <span class="normal">194</span>
 <span class="normal">195</span>
 <span class="normal">196</span>
@@ -4894,7 +4997,9 @@
 <span class="normal">217</span>
 <span class="normal">218</span>
 <span class="normal">219</span>
-<span class="normal">220</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
+<span class="normal">220</span>
+<span class="normal">221</span>
+<span class="normal">222</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span>
     <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">DistanceTssMeanNeighbourhoodFeature</span><span class="p">],</span>
     <span class="n">study_loci_to_annotate</span><span class="p">:</span> <span class="n">StudyLocus</span> <span class="o">|</span> <span class="n">L2GGoldStandard</span><span class="p">,</span>
@@ -4967,9 +5072,7 @@
 
               <details class="quote">
                 <summary>Source code in <code>src/gentropy/dataset/l2g_features/distance.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">380</span>
-<span class="normal">381</span>
-<span class="normal">382</span>
+                <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">382</span>
 <span class="normal">383</span>
 <span class="normal">384</span>
 <span class="normal">385</span>
@@ -5002,7 +5105,9 @@
 <span class="normal">412</span>
 <span class="normal">413</span>
 <span class="normal">414</span>
-<span class="normal">415</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">DistanceSentinelFootprintFeature</span><span class="p">(</span><span class="n">L2GFeature</span><span class="p">):</span>
+<span class="normal">415</span>
+<span class="normal">416</span>
+<span class="normal">417</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">DistanceSentinelFootprintFeature</span><span class="p">(</span><span class="n">L2GFeature</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Distance between the sentinel variant and the footprint of a gene.&quot;&quot;&quot;</span>
 
     <span class="n">feature_dependency_type</span> <span class="o">=</span> <span class="n">VariantIndex</span>
@@ -5142,9 +5247,7 @@
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/dataset/l2g_features/distance.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">386</span>
-<span class="normal">387</span>
-<span class="normal">388</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">388</span>
 <span class="normal">389</span>
 <span class="normal">390</span>
 <span class="normal">391</span>
@@ -5171,7 +5274,9 @@
 <span class="normal">412</span>
 <span class="normal">413</span>
 <span class="normal">414</span>
-<span class="normal">415</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
+<span class="normal">415</span>
+<span class="normal">416</span>
+<span class="normal">417</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span>
     <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">DistanceSentinelFootprintFeature</span><span class="p">],</span>
     <span class="n">study_loci_to_annotate</span><span class="p">:</span> <span class="n">StudyLocus</span> <span class="o">|</span> <span class="n">L2GGoldStandard</span><span class="p">,</span>
@@ -5244,9 +5349,7 @@
 
               <details class="quote">
                 <summary>Source code in <code>src/gentropy/dataset/l2g_features/distance.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">418</span>
-<span class="normal">419</span>
-<span class="normal">420</span>
+                <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">420</span>
 <span class="normal">421</span>
 <span class="normal">422</span>
 <span class="normal">423</span>
@@ -5279,7 +5382,9 @@
 <span class="normal">450</span>
 <span class="normal">451</span>
 <span class="normal">452</span>
-<span class="normal">453</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">DistanceSentinelFootprintNeighbourhoodFeature</span><span class="p">(</span><span class="n">L2GFeature</span><span class="p">):</span>
+<span class="normal">453</span>
+<span class="normal">454</span>
+<span class="normal">455</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">DistanceSentinelFootprintNeighbourhoodFeature</span><span class="p">(</span><span class="n">L2GFeature</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Distance between the sentinel variant and a gene footprint as a relation of the distnace with all the genes in the vicinity of a studyLocus. This is not weighted by the causal probability.&quot;&quot;&quot;</span>
 
     <span class="n">feature_dependency_type</span> <span class="o">=</span> <span class="p">[</span><span class="n">VariantIndex</span><span class="p">,</span> <span class="n">TargetIndex</span><span class="p">]</span>
@@ -5419,9 +5524,7 @@
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/dataset/l2g_features/distance.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">424</span>
-<span class="normal">425</span>
-<span class="normal">426</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">426</span>
 <span class="normal">427</span>
 <span class="normal">428</span>
 <span class="normal">429</span>
@@ -5448,7 +5551,9 @@
 <span class="normal">450</span>
 <span class="normal">451</span>
 <span class="normal">452</span>
-<span class="normal">453</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
+<span class="normal">453</span>
+<span class="normal">454</span>
+<span class="normal">455</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span>
     <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">DistanceSentinelFootprintNeighbourhoodFeature</span><span class="p">],</span>
     <span class="n">study_loci_to_annotate</span><span class="p">:</span> <span class="n">StudyLocus</span> <span class="o">|</span> <span class="n">L2GGoldStandard</span><span class="p">,</span>
@@ -5521,9 +5626,7 @@
 
               <details class="quote">
                 <summary>Source code in <code>src/gentropy/dataset/l2g_features/distance.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">299</span>
-<span class="normal">300</span>
-<span class="normal">301</span>
+                <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">301</span>
 <span class="normal">302</span>
 <span class="normal">303</span>
 <span class="normal">304</span>
@@ -5561,7 +5664,9 @@
 <span class="normal">336</span>
 <span class="normal">337</span>
 <span class="normal">338</span>
-<span class="normal">339</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">DistanceFootprintMeanFeature</span><span class="p">(</span><span class="n">L2GFeature</span><span class="p">):</span>
+<span class="normal">339</span>
+<span class="normal">340</span>
+<span class="normal">341</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">DistanceFootprintMeanFeature</span><span class="p">(</span><span class="n">L2GFeature</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Average distance of all tagging variants to the footprint of a gene.&quot;&quot;&quot;</span>
 
     <span class="n">feature_dependency_type</span> <span class="o">=</span> <span class="n">VariantIndex</span>
@@ -5706,9 +5811,7 @@
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/dataset/l2g_features/distance.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">305</span>
-<span class="normal">306</span>
-<span class="normal">307</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">307</span>
 <span class="normal">308</span>
 <span class="normal">309</span>
 <span class="normal">310</span>
@@ -5740,7 +5843,9 @@
 <span class="normal">336</span>
 <span class="normal">337</span>
 <span class="normal">338</span>
-<span class="normal">339</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
+<span class="normal">339</span>
+<span class="normal">340</span>
+<span class="normal">341</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span>
     <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">DistanceFootprintMeanFeature</span><span class="p">],</span>
     <span class="n">study_loci_to_annotate</span><span class="p">:</span> <span class="n">StudyLocus</span> <span class="o">|</span> <span class="n">L2GGoldStandard</span><span class="p">,</span>
@@ -5818,9 +5923,7 @@
 
               <details class="quote">
                 <summary>Source code in <code>src/gentropy/dataset/l2g_features/distance.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">342</span>
-<span class="normal">343</span>
-<span class="normal">344</span>
+                <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">344</span>
 <span class="normal">345</span>
 <span class="normal">346</span>
 <span class="normal">347</span>
@@ -5853,7 +5956,9 @@
 <span class="normal">374</span>
 <span class="normal">375</span>
 <span class="normal">376</span>
-<span class="normal">377</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">DistanceFootprintMeanNeighbourhoodFeature</span><span class="p">(</span><span class="n">L2GFeature</span><span class="p">):</span>
+<span class="normal">377</span>
+<span class="normal">378</span>
+<span class="normal">379</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">DistanceFootprintMeanNeighbourhoodFeature</span><span class="p">(</span><span class="n">L2GFeature</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Minimum mean distance to footprint for all genes in the vicinity of a studyLocus.&quot;&quot;&quot;</span>
 
     <span class="n">feature_dependency_type</span> <span class="o">=</span> <span class="p">[</span><span class="n">VariantIndex</span><span class="p">,</span> <span class="n">TargetIndex</span><span class="p">]</span>
@@ -5993,9 +6098,7 @@
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/dataset/l2g_features/distance.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">348</span>
-<span class="normal">349</span>
-<span class="normal">350</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">350</span>
 <span class="normal">351</span>
 <span class="normal">352</span>
 <span class="normal">353</span>
@@ -6022,7 +6125,9 @@
 <span class="normal">374</span>
 <span class="normal">375</span>
 <span class="normal">376</span>
-<span class="normal">377</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
+<span class="normal">377</span>
+<span class="normal">378</span>
+<span class="normal">379</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span>
     <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">DistanceFootprintMeanNeighbourhoodFeature</span><span class="p">],</span>
     <span class="n">study_loci_to_annotate</span><span class="p">:</span> <span class="n">StudyLocus</span> <span class="o">|</span> <span class="n">L2GGoldStandard</span><span class="p">,</span>
@@ -6201,7 +6306,7 @@
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/dataset/l2g_features/distance.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">21</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">21</span>
 <span class="normal">22</span>
 <span class="normal">23</span>
 <span class="normal">24</span>
@@ -6473,7 +6578,7 @@
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/dataset/l2g_features/distance.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 82</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 82</span>
 <span class="normal"> 83</span>
 <span class="normal"> 84</span>
 <span class="normal"> 85</span>
@@ -6530,7 +6635,9 @@
 <span class="normal">136</span>
 <span class="normal">137</span>
 <span class="normal">138</span>
-<span class="normal">139</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">common_neighbourhood_distance_feature_logic</span><span class="p">(</span>
+<span class="normal">139</span>
+<span class="normal">140</span>
+<span class="normal">141</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">common_neighbourhood_distance_feature_logic</span><span class="p">(</span>
     <span class="n">study_loci_to_annotate</span><span class="p">:</span> <span class="n">StudyLocus</span> <span class="o">|</span> <span class="n">L2GGoldStandard</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">variant_index</span><span class="p">:</span> <span class="n">VariantIndex</span><span class="p">,</span>
@@ -6564,7 +6671,9 @@
     <span class="k">return</span> <span class="p">(</span>
         <span class="c1"># Then compute mean distance in the vicinity (feature will be the same for any gene associated with a studyLocus)</span>
         <span class="n">local_metric</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
-            <span class="n">target_index</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;biotype&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;protein_coding&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;id&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;geneId&quot;</span><span class="p">)),</span>
+            <span class="n">target_index</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;biotype&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;protein_coding&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">select</span><span class="p">(</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;id&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;geneId&quot;</span><span class="p">)</span>
+            <span class="p">),</span>
             <span class="s2">&quot;geneId&quot;</span><span class="p">,</span>
             <span class="s2">&quot;inner&quot;</span><span class="p">,</span>
         <span class="p">)</span>

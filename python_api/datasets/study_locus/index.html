@@ -491,7 +491,7 @@
         
   
   <span class="md-ellipsis">
-    Run step in CLI
+    Run step in cli
   </span>
   
 
@@ -512,7 +512,7 @@
         
   
   <span class="md-ellipsis">
-    Run step using YAML config
+    Run step using config
   </span>
   
 
@@ -552,11 +552,11 @@
           
           
           <div class="md-nav__link md-nav__container">
-            <a href="../../../howto/python_api/_python_api/" class="md-nav__link ">
+            <a href="../../../howto/tutorials/_tutorials/" class="md-nav__link ">
               
   
   <span class="md-ellipsis">
-    Python api
+    Tutorials
   </span>
   
 
@@ -572,7 +572,7 @@
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_2_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_3_2">
             <span class="md-nav__icon md-icon"></span>
-            Python api
+            Tutorials
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
             
@@ -583,7 +583,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../howto/python_api/a_creating_spark_session/" class="md-nav__link">
+      <a href="../../../howto/tutorials/a_creating_spark_session/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -604,7 +604,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../howto/python_api/b_create_dataset/" class="md-nav__link">
+      <a href="../../../howto/tutorials/b_create_dataset/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -625,7 +625,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../howto/python_api/c_applying_methods/" class="md-nav__link">
+      <a href="../../../howto/tutorials/c_applying_methods/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -646,7 +646,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../howto/python_api/d_inspect_dataset/" class="md-nav__link">
+      <a href="../../../howto/tutorials/d_inspect_dataset/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -878,7 +878,91 @@
         
   
   <span class="md-ellipsis">
-    Genomic Region
+    genomic_region
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../common/processing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    processing
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../common/session/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    session
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../common/spark/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    spark
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../common/stats/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    stats
   </span>
   
 
@@ -899,7 +983,28 @@
         
   
   <span class="md-ellipsis">
-    Literal Types
+    types
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../common/udf/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    udf
   </span>
   
 
@@ -4021,7 +4126,8 @@
 
               <details class="quote">
                 <summary>Source code in <code>src/gentropy/dataset/study_locus.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 153</span>
+                <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 152</span>
+<span class="normal"> 153</span>
 <span class="normal"> 154</span>
 <span class="normal"> 155</span>
 <span class="normal"> 156</span>
@@ -5316,7 +5422,21 @@
 <span class="normal">1445</span>
 <span class="normal">1446</span>
 <span class="normal">1447</span>
-<span class="normal">1448</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
+<span class="normal">1448</span>
+<span class="normal">1449</span>
+<span class="normal">1450</span>
+<span class="normal">1451</span>
+<span class="normal">1452</span>
+<span class="normal">1453</span>
+<span class="normal">1454</span>
+<span class="normal">1455</span>
+<span class="normal">1456</span>
+<span class="normal">1457</span>
+<span class="normal">1458</span>
+<span class="normal">1459</span>
+<span class="normal">1460</span>
+<span class="normal">1461</span>
+<span class="normal">1462</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">StudyLocus</span><span class="p">(</span><span class="n">Dataset</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Study-Locus dataset.</span>
 
@@ -5591,7 +5711,7 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="n">StudyLocus</span><span class="o">.</span><span class="n">update_quality_flag</span><span class="p">(</span>
             <span class="n">quality_controls_column</span><span class="p">,</span>
-            <span class="n">calculate_neglog_pvalue</span><span class="p">(</span><span class="n">p_value_mantissa</span><span class="p">,</span> <span class="n">p_value_exponent</span><span class="p">)</span>
+            <span class="n">neglogpval_from_pvalue</span><span class="p">(</span><span class="n">p_value_mantissa</span><span class="p">,</span> <span class="n">p_value_exponent</span><span class="p">)</span>
             <span class="o">&lt;</span> <span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">pvalue_cutoff</span><span class="p">)),</span>
             <span class="n">StudyLocusQualityCheck</span><span class="o">.</span><span class="n">SUBSIGNIFICANT_FLAG</span><span class="p">,</span>
         <span class="p">)</span>
@@ -6058,7 +6178,7 @@
 <span class="sd">        Returns:</span>
 <span class="sd">            Column: Negative log p-value</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="n">calculate_neglog_pvalue</span><span class="p">(</span>
+        <span class="k">return</span> <span class="n">neglogpval_from_pvalue</span><span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">pValueMantissa</span><span class="p">,</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">pValueExponent</span><span class="p">,</span>
         <span class="p">)</span>
@@ -6067,23 +6187,38 @@
         <span class="bp">self</span><span class="p">:</span> <span class="n">StudyLocus</span><span class="p">,</span>
         <span class="n">features_list</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
         <span class="n">features_input_loader</span><span class="p">:</span> <span class="n">L2GFeatureInputLoader</span><span class="p">,</span>
+        <span class="n">append_null_features</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">L2GFeatureMatrix</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns the feature matrix for a StudyLocus.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            features_list (list[str]): List of features to include in the feature matrix.</span>
 <span class="sd">            features_input_loader (L2GFeatureInputLoader): Feature input loader to use.</span>
+<span class="sd">            append_null_features (bool): If True, appends null features to the feature matrix. Default is False. Usefull with small datasets that may have all null features, that are anyway required by the model.</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            L2GFeatureMatrix: Feature matrix for this study-locus.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="kn">from</span><span class="w"> </span><span class="nn">gentropy.dataset.l2g_feature_matrix</span><span class="w"> </span><span class="kn">import</span> <span class="n">L2GFeatureMatrix</span>
 
-        <span class="k">return</span> <span class="n">L2GFeatureMatrix</span><span class="o">.</span><span class="n">from_features_list</span><span class="p">(</span>
-            <span class="bp">self</span><span class="p">,</span>
-            <span class="n">features_list</span><span class="p">,</span>
-            <span class="n">features_input_loader</span><span class="p">,</span>
-        <span class="p">)</span><span class="o">.</span><span class="n">fill_na</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">append_null_features</span><span class="p">:</span>
+            <span class="n">feature_matrix</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">L2GFeatureMatrix</span><span class="o">.</span><span class="n">from_features_list</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="p">,</span>
+                    <span class="n">features_list</span><span class="p">,</span>
+                    <span class="n">features_input_loader</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="o">.</span><span class="n">append_null_features</span><span class="p">(</span><span class="n">features_list</span><span class="p">)</span>
+                <span class="o">.</span><span class="n">fill_na</span><span class="p">()</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">feature_matrix</span> <span class="o">=</span> <span class="n">L2GFeatureMatrix</span><span class="o">.</span><span class="n">from_features_list</span><span class="p">(</span>
+                <span class="bp">self</span><span class="p">,</span>
+                <span class="n">features_list</span><span class="p">,</span>
+                <span class="n">features_input_loader</span><span class="p">,</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">fill_na</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="n">feature_matrix</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">annotate_credible_sets</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyLocus</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyLocus</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Annotate study-locus dataset with credible set flags.</span>
@@ -6691,21 +6826,7 @@ of their <code>posteriorProbability</code> values is below 0.95 and 0.99, respec
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/dataset/study_locus.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">922</span>
-<span class="normal">923</span>
-<span class="normal">924</span>
-<span class="normal">925</span>
-<span class="normal">926</span>
-<span class="normal">927</span>
-<span class="normal">928</span>
-<span class="normal">929</span>
-<span class="normal">930</span>
-<span class="normal">931</span>
-<span class="normal">932</span>
-<span class="normal">933</span>
-<span class="normal">934</span>
-<span class="normal">935</span>
-<span class="normal">936</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">936</span>
 <span class="normal">937</span>
 <span class="normal">938</span>
 <span class="normal">939</span>
@@ -6744,7 +6865,21 @@ of their <code>posteriorProbability</code> values is below 0.95 and 0.99, respec
 <span class="normal">972</span>
 <span class="normal">973</span>
 <span class="normal">974</span>
-<span class="normal">975</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">annotate_credible_sets</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyLocus</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyLocus</span><span class="p">:</span>
+<span class="normal">975</span>
+<span class="normal">976</span>
+<span class="normal">977</span>
+<span class="normal">978</span>
+<span class="normal">979</span>
+<span class="normal">980</span>
+<span class="normal">981</span>
+<span class="normal">982</span>
+<span class="normal">983</span>
+<span class="normal">984</span>
+<span class="normal">985</span>
+<span class="normal">986</span>
+<span class="normal">987</span>
+<span class="normal">988</span>
+<span class="normal">989</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">annotate_credible_sets</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyLocus</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyLocus</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Annotate study-locus dataset with credible set flags.</span>
 
 <span class="sd">    Sorts the array in the `locus` column elements by their `posteriorProbability` values in descending order and adds</span>
@@ -6905,25 +7040,25 @@ of their <code>posteriorProbability</code> values is below 0.95 and 0.99, respec
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/dataset/study_locus.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1045</span>
-<span class="normal">1046</span>
-<span class="normal">1047</span>
-<span class="normal">1048</span>
-<span class="normal">1049</span>
-<span class="normal">1050</span>
-<span class="normal">1051</span>
-<span class="normal">1052</span>
-<span class="normal">1053</span>
-<span class="normal">1054</span>
-<span class="normal">1055</span>
-<span class="normal">1056</span>
-<span class="normal">1057</span>
-<span class="normal">1058</span>
-<span class="normal">1059</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1059</span>
 <span class="normal">1060</span>
 <span class="normal">1061</span>
 <span class="normal">1062</span>
-<span class="normal">1063</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">annotate_ld</span><span class="p">(</span>
+<span class="normal">1063</span>
+<span class="normal">1064</span>
+<span class="normal">1065</span>
+<span class="normal">1066</span>
+<span class="normal">1067</span>
+<span class="normal">1068</span>
+<span class="normal">1069</span>
+<span class="normal">1070</span>
+<span class="normal">1071</span>
+<span class="normal">1072</span>
+<span class="normal">1073</span>
+<span class="normal">1074</span>
+<span class="normal">1075</span>
+<span class="normal">1076</span>
+<span class="normal">1077</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">annotate_ld</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">:</span> <span class="n">StudyLocus</span><span class="p">,</span>
     <span class="n">study_index</span><span class="p">:</span> <span class="n">StudyIndex</span><span class="p">,</span>
     <span class="n">ld_index</span><span class="p">:</span> <span class="n">LDIndex</span><span class="p">,</span>
@@ -7033,21 +7168,7 @@ of their <code>posteriorProbability</code> values is below 0.95 and 0.99, respec
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/dataset/study_locus.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 977</span>
-<span class="normal"> 978</span>
-<span class="normal"> 979</span>
-<span class="normal"> 980</span>
-<span class="normal"> 981</span>
-<span class="normal"> 982</span>
-<span class="normal"> 983</span>
-<span class="normal"> 984</span>
-<span class="normal"> 985</span>
-<span class="normal"> 986</span>
-<span class="normal"> 987</span>
-<span class="normal"> 988</span>
-<span class="normal"> 989</span>
-<span class="normal"> 990</span>
-<span class="normal"> 991</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 991</span>
 <span class="normal"> 992</span>
 <span class="normal"> 993</span>
 <span class="normal"> 994</span>
@@ -7099,7 +7220,21 @@ of their <code>posteriorProbability</code> values is below 0.95 and 0.99, respec
 <span class="normal">1040</span>
 <span class="normal">1041</span>
 <span class="normal">1042</span>
-<span class="normal">1043</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">annotate_locus_statistics</span><span class="p">(</span>
+<span class="normal">1043</span>
+<span class="normal">1044</span>
+<span class="normal">1045</span>
+<span class="normal">1046</span>
+<span class="normal">1047</span>
+<span class="normal">1048</span>
+<span class="normal">1049</span>
+<span class="normal">1050</span>
+<span class="normal">1051</span>
+<span class="normal">1052</span>
+<span class="normal">1053</span>
+<span class="normal">1054</span>
+<span class="normal">1055</span>
+<span class="normal">1056</span>
+<span class="normal">1057</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">annotate_locus_statistics</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">:</span> <span class="n">StudyLocus</span><span class="p">,</span>
     <span class="n">summary_statistics</span><span class="p">:</span> <span class="n">SummaryStatistics</span><span class="p">,</span>
     <span class="n">collect_locus_distance</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -7241,21 +7376,7 @@ of their <code>posteriorProbability</code> values is below 0.95 and 0.99, respec
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/dataset/study_locus.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1297</span>
-<span class="normal">1298</span>
-<span class="normal">1299</span>
-<span class="normal">1300</span>
-<span class="normal">1301</span>
-<span class="normal">1302</span>
-<span class="normal">1303</span>
-<span class="normal">1304</span>
-<span class="normal">1305</span>
-<span class="normal">1306</span>
-<span class="normal">1307</span>
-<span class="normal">1308</span>
-<span class="normal">1309</span>
-<span class="normal">1310</span>
-<span class="normal">1311</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1311</span>
 <span class="normal">1312</span>
 <span class="normal">1313</span>
 <span class="normal">1314</span>
@@ -7304,7 +7425,21 @@ of their <code>posteriorProbability</code> values is below 0.95 and 0.99, respec
 <span class="normal">1357</span>
 <span class="normal">1358</span>
 <span class="normal">1359</span>
-<span class="normal">1360</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">annotate_locus_statistics_boundaries</span><span class="p">(</span>
+<span class="normal">1360</span>
+<span class="normal">1361</span>
+<span class="normal">1362</span>
+<span class="normal">1363</span>
+<span class="normal">1364</span>
+<span class="normal">1365</span>
+<span class="normal">1366</span>
+<span class="normal">1367</span>
+<span class="normal">1368</span>
+<span class="normal">1369</span>
+<span class="normal">1370</span>
+<span class="normal">1371</span>
+<span class="normal">1372</span>
+<span class="normal">1373</span>
+<span class="normal">1374</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">annotate_locus_statistics_boundaries</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">:</span> <span class="n">StudyLocus</span><span class="p">,</span>
     <span class="n">summary_statistics</span><span class="p">:</span> <span class="n">SummaryStatistics</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyLocus</span><span class="p">:</span>
@@ -7443,7 +7578,8 @@ of their <code>posteriorProbability</code> values is below 0.95 and 0.99, respec
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/dataset/study_locus.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">232</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">231</span>
+<span class="normal">232</span>
 <span class="normal">233</span>
 <span class="normal">234</span>
 <span class="normal">235</span>
@@ -7458,8 +7594,7 @@ of their <code>posteriorProbability</code> values is below 0.95 and 0.99, respec
 <span class="normal">244</span>
 <span class="normal">245</span>
 <span class="normal">246</span>
-<span class="normal">247</span>
-<span class="normal">248</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">annotate_study_type</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyLocus</span><span class="p">,</span> <span class="n">study_index</span><span class="p">:</span> <span class="n">StudyIndex</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyLocus</span><span class="p">:</span>
+<span class="normal">247</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">annotate_study_type</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyLocus</span><span class="p">,</span> <span class="n">study_index</span><span class="p">:</span> <span class="n">StudyIndex</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyLocus</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Gets study type from study index and adds it to study locus.</span>
 
 <span class="sd">    Args:</span>
@@ -7520,21 +7655,7 @@ of their <code>posteriorProbability</code> values is below 0.95 and 0.99, respec
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/dataset/study_locus.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1378</span>
-<span class="normal">1379</span>
-<span class="normal">1380</span>
-<span class="normal">1381</span>
-<span class="normal">1382</span>
-<span class="normal">1383</span>
-<span class="normal">1384</span>
-<span class="normal">1385</span>
-<span class="normal">1386</span>
-<span class="normal">1387</span>
-<span class="normal">1388</span>
-<span class="normal">1389</span>
-<span class="normal">1390</span>
-<span class="normal">1391</span>
-<span class="normal">1392</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1392</span>
 <span class="normal">1393</span>
 <span class="normal">1394</span>
 <span class="normal">1395</span>
@@ -7590,7 +7711,21 @@ of their <code>posteriorProbability</code> values is below 0.95 and 0.99, respec
 <span class="normal">1445</span>
 <span class="normal">1446</span>
 <span class="normal">1447</span>
-<span class="normal">1448</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">assign_confidence</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyLocus</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyLocus</span><span class="p">:</span>
+<span class="normal">1448</span>
+<span class="normal">1449</span>
+<span class="normal">1450</span>
+<span class="normal">1451</span>
+<span class="normal">1452</span>
+<span class="normal">1453</span>
+<span class="normal">1454</span>
+<span class="normal">1455</span>
+<span class="normal">1456</span>
+<span class="normal">1457</span>
+<span class="normal">1458</span>
+<span class="normal">1459</span>
+<span class="normal">1460</span>
+<span class="normal">1461</span>
+<span class="normal">1462</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">assign_confidence</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyLocus</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyLocus</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Assign confidence to study locus.</span>
 
 <span class="sd">    Returns:</span>
@@ -7740,7 +7875,7 @@ of their <code>posteriorProbability</code> values is below 0.95 and 0.99, respec
 
 
 <p><span class="doc-section-title">Examples:</span></p>
-    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">df</span> <span class="o">=</span> <span class="n">spark</span><span class="o">.</span><span class="n">createDataFrame</span><span class="p">([(</span><span class="s2">&quot;GCST000001&quot;</span><span class="p">,</span> <span class="s2">&quot;1_1000_A_C&quot;</span><span class="p">,</span> <span class="s2">&quot;SuSiE-inf&quot;</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;GCST000002&quot;</span><span class="p">,</span> <span class="s2">&quot;1_1000_A_C&quot;</span><span class="p">,</span> <span class="s2">&quot;pics&quot;</span><span class="p">)])</span><span class="o">.</span><span class="n">toDF</span><span class="p">(</span><span class="s2">&quot;studyId&quot;</span><span class="p">,</span> <span class="s2">&quot;variantId&quot;</span><span class="p">,</span> <span class="s2">&quot;finemappingMethod&quot;</span><span class="p">)</span>
+    <div class="language-pycon highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">df</span> <span class="o">=</span> <span class="n">spark</span><span class="o">.</span><span class="n">createDataFrame</span><span class="p">([(</span><span class="s2">&quot;GCST000001&quot;</span><span class="p">,</span> <span class="s2">&quot;1_1000_A_C&quot;</span><span class="p">,</span> <span class="s2">&quot;SuSiE-inf&quot;</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;GCST000002&quot;</span><span class="p">,</span> <span class="s2">&quot;1_1000_A_C&quot;</span><span class="p">,</span> <span class="s2">&quot;pics&quot;</span><span class="p">)])</span><span class="o">.</span><span class="n">toDF</span><span class="p">(</span><span class="s2">&quot;studyId&quot;</span><span class="p">,</span> <span class="s2">&quot;variantId&quot;</span><span class="p">,</span> <span class="s2">&quot;finemappingMethod&quot;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">df</span><span class="o">.</span><span class="n">withColumn</span><span class="p">(</span><span class="s2">&quot;study_locus_id&quot;</span><span class="p">,</span> <span class="n">StudyLocus</span><span class="o">.</span><span class="n">assign_study_locus_id</span><span class="p">([</span><span class="s2">&quot;studyId&quot;</span><span class="p">,</span> <span class="s2">&quot;variantId&quot;</span><span class="p">,</span> <span class="s2">&quot;finemappingMethod&quot;</span><span class="p">]))</span><span class="o">.</span><span class="n">show</span><span class="p">(</span><span class="n">truncate</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 <span class="go">+----------+----------+-----------------+--------------------------------+</span>
 <span class="go">|studyId   |variantId |finemappingMethod|study_locus_id                  |</span>
@@ -7752,7 +7887,8 @@ of their <code>posteriorProbability</code> values is below 0.95 and 0.99, respec
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/dataset/study_locus.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">609</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">608</span>
+<span class="normal">609</span>
 <span class="normal">610</span>
 <span class="normal">611</span>
 <span class="normal">612</span>
@@ -7774,8 +7910,7 @@ of their <code>posteriorProbability</code> values is below 0.95 and 0.99, respec
 <span class="normal">628</span>
 <span class="normal">629</span>
 <span class="normal">630</span>
-<span class="normal">631</span>
-<span class="normal">632</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@staticmethod</span>
+<span class="normal">631</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@staticmethod</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">assign_study_locus_id</span><span class="p">(</span><span class="n">uniqueness_defining_columns</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Hashes the provided columns to extract a consistent studyLocusId.</span>
 
@@ -7809,7 +7944,7 @@ of their <code>posteriorProbability</code> values is below 0.95 and 0.99, respec
 
 
 <h3 id="gentropy.dataset.study_locus.StudyLocus.build_feature_matrix" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">build_feature_matrix</span><span class="p">(</span><span class="n">features_list</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">features_input_loader</span><span class="p">:</span> <span class="n">L2GFeatureInputLoader</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">L2GFeatureMatrix</span></code>
+            <code class="highlight language-python"><span class="n">build_feature_matrix</span><span class="p">(</span><span class="n">features_list</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">features_input_loader</span><span class="p">:</span> <span class="n">L2GFeatureInputLoader</span><span class="p">,</span> <span class="n">append_null_features</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">L2GFeatureMatrix</span></code>
 
 <a href="#gentropy.dataset.study_locus.StudyLocus.build_feature_matrix" class="headerlink" title="Permanent link">&para;</a></h3>
 
@@ -7862,6 +7997,22 @@ of their <code>posteriorProbability</code> values is below 0.95 and 0.99, respec
                 <em>required</em>
             </td>
           </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>append_null_features</code>
+            </td>
+            <td>
+                  <code>bool</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If True, appends null features to the feature matrix. Default is False. Usefull with small datasets that may have all null features, that are anyway required by the model.</p>
+              </div>
+            </td>
+            <td>
+                  <code>False</code>
+            </td>
+          </tr>
       </tbody>
     </table>
 
@@ -7890,7 +8041,8 @@ of their <code>posteriorProbability</code> values is below 0.95 and 0.99, respec
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/dataset/study_locus.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">900</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">899</span>
+<span class="normal">900</span>
 <span class="normal">901</span>
 <span class="normal">902</span>
 <span class="normal">903</span>
@@ -7910,27 +8062,56 @@ of their <code>posteriorProbability</code> values is below 0.95 and 0.99, respec
 <span class="normal">917</span>
 <span class="normal">918</span>
 <span class="normal">919</span>
-<span class="normal">920</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">build_feature_matrix</span><span class="p">(</span>
+<span class="normal">920</span>
+<span class="normal">921</span>
+<span class="normal">922</span>
+<span class="normal">923</span>
+<span class="normal">924</span>
+<span class="normal">925</span>
+<span class="normal">926</span>
+<span class="normal">927</span>
+<span class="normal">928</span>
+<span class="normal">929</span>
+<span class="normal">930</span>
+<span class="normal">931</span>
+<span class="normal">932</span>
+<span class="normal">933</span>
+<span class="normal">934</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">build_feature_matrix</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">:</span> <span class="n">StudyLocus</span><span class="p">,</span>
     <span class="n">features_list</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
     <span class="n">features_input_loader</span><span class="p">:</span> <span class="n">L2GFeatureInputLoader</span><span class="p">,</span>
+    <span class="n">append_null_features</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">L2GFeatureMatrix</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Returns the feature matrix for a StudyLocus.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        features_list (list[str]): List of features to include in the feature matrix.</span>
 <span class="sd">        features_input_loader (L2GFeatureInputLoader): Feature input loader to use.</span>
+<span class="sd">        append_null_features (bool): If True, appends null features to the feature matrix. Default is False. Usefull with small datasets that may have all null features, that are anyway required by the model.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        L2GFeatureMatrix: Feature matrix for this study-locus.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">gentropy.dataset.l2g_feature_matrix</span><span class="w"> </span><span class="kn">import</span> <span class="n">L2GFeatureMatrix</span>
 
-    <span class="k">return</span> <span class="n">L2GFeatureMatrix</span><span class="o">.</span><span class="n">from_features_list</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span>
-        <span class="n">features_list</span><span class="p">,</span>
-        <span class="n">features_input_loader</span><span class="p">,</span>
-    <span class="p">)</span><span class="o">.</span><span class="n">fill_na</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">append_null_features</span><span class="p">:</span>
+        <span class="n">feature_matrix</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">L2GFeatureMatrix</span><span class="o">.</span><span class="n">from_features_list</span><span class="p">(</span>
+                <span class="bp">self</span><span class="p">,</span>
+                <span class="n">features_list</span><span class="p">,</span>
+                <span class="n">features_input_loader</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="o">.</span><span class="n">append_null_features</span><span class="p">(</span><span class="n">features_list</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">fill_na</span><span class="p">()</span>
+        <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">feature_matrix</span> <span class="o">=</span> <span class="n">L2GFeatureMatrix</span><span class="o">.</span><span class="n">from_features_list</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">features_list</span><span class="p">,</span>
+            <span class="n">features_input_loader</span><span class="p">,</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">fill_na</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">feature_matrix</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -8026,7 +8207,7 @@ of their <code>posteriorProbability</code> values is below 0.95 and 0.99, respec
 
 
 <p><span class="doc-section-title">Examples:</span></p>
-    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">spark</span><span class="o">.</span><span class="n">createDataFrame</span><span class="p">([([</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.25</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],)])</span><span class="o">.</span><span class="n">toDF</span><span class="p">(</span><span class="s2">&quot;logBF&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">StudyLocus</span><span class="o">.</span><span class="n">calculate_credible_set_log10bf</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;logBF&quot;</span><span class="p">),</span> <span class="mi">4</span><span class="p">),</span> <span class="mi">7</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;credibleSetlog10BF&quot;</span><span class="p">))</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+    <div class="language-pycon highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">spark</span><span class="o">.</span><span class="n">createDataFrame</span><span class="p">([([</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.25</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],)])</span><span class="o">.</span><span class="n">toDF</span><span class="p">(</span><span class="s2">&quot;logBF&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">StudyLocus</span><span class="o">.</span><span class="n">calculate_credible_set_log10bf</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;logBF&quot;</span><span class="p">),</span> <span class="mi">4</span><span class="p">),</span> <span class="mi">7</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;credibleSetlog10BF&quot;</span><span class="p">))</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
 <span class="go">+------------------+</span>
 <span class="go">|credibleSetlog10BF|</span>
 <span class="go">+------------------+</span>
@@ -8036,7 +8217,8 @@ of their <code>posteriorProbability</code> values is below 0.95 and 0.99, respec
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/dataset/study_locus.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">634</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">633</span>
+<span class="normal">634</span>
 <span class="normal">635</span>
 <span class="normal">636</span>
 <span class="normal">637</span>
@@ -8064,8 +8246,7 @@ of their <code>posteriorProbability</code> values is below 0.95 and 0.99, respec
 <span class="normal">659</span>
 <span class="normal">660</span>
 <span class="normal">661</span>
-<span class="normal">662</span>
-<span class="normal">663</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
+<span class="normal">662</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">calculate_credible_set_log10bf</span><span class="p">(</span>
     <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">StudyLocus</span><span class="p">],</span> <span class="n">logbfs</span><span class="p">:</span> <span class="n">Column</span><span class="p">,</span> <span class="n">num_variants_region</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">500</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
@@ -8140,21 +8321,7 @@ of their <code>posteriorProbability</code> values is below 0.95 and 0.99, respec
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/dataset/study_locus.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1065</span>
-<span class="normal">1066</span>
-<span class="normal">1067</span>
-<span class="normal">1068</span>
-<span class="normal">1069</span>
-<span class="normal">1070</span>
-<span class="normal">1071</span>
-<span class="normal">1072</span>
-<span class="normal">1073</span>
-<span class="normal">1074</span>
-<span class="normal">1075</span>
-<span class="normal">1076</span>
-<span class="normal">1077</span>
-<span class="normal">1078</span>
-<span class="normal">1079</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1079</span>
 <span class="normal">1080</span>
 <span class="normal">1081</span>
 <span class="normal">1082</span>
@@ -8177,7 +8344,21 @@ of their <code>posteriorProbability</code> values is below 0.95 and 0.99, respec
 <span class="normal">1099</span>
 <span class="normal">1100</span>
 <span class="normal">1101</span>
-<span class="normal">1102</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">clump</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyLocus</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyLocus</span><span class="p">:</span>
+<span class="normal">1102</span>
+<span class="normal">1103</span>
+<span class="normal">1104</span>
+<span class="normal">1105</span>
+<span class="normal">1106</span>
+<span class="normal">1107</span>
+<span class="normal">1108</span>
+<span class="normal">1109</span>
+<span class="normal">1110</span>
+<span class="normal">1111</span>
+<span class="normal">1112</span>
+<span class="normal">1113</span>
+<span class="normal">1114</span>
+<span class="normal">1115</span>
+<span class="normal">1116</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">clump</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyLocus</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyLocus</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Perform LD clumping of the studyLocus.</span>
 
 <span class="sd">    Evaluates whether a lead variant is linked to a tag (with lowest p-value) in the same studyLocus dataset.</span>
@@ -8306,21 +8487,7 @@ of their <code>posteriorProbability</code> values is below 0.95 and 0.99, respec
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/dataset/study_locus.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1104</span>
-<span class="normal">1105</span>
-<span class="normal">1106</span>
-<span class="normal">1107</span>
-<span class="normal">1108</span>
-<span class="normal">1109</span>
-<span class="normal">1110</span>
-<span class="normal">1111</span>
-<span class="normal">1112</span>
-<span class="normal">1113</span>
-<span class="normal">1114</span>
-<span class="normal">1115</span>
-<span class="normal">1116</span>
-<span class="normal">1117</span>
-<span class="normal">1118</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1118</span>
 <span class="normal">1119</span>
 <span class="normal">1120</span>
 <span class="normal">1121</span>
@@ -8338,7 +8505,21 @@ of their <code>posteriorProbability</code> values is below 0.95 and 0.99, respec
 <span class="normal">1133</span>
 <span class="normal">1134</span>
 <span class="normal">1135</span>
-<span class="normal">1136</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">exclude_region</span><span class="p">(</span>
+<span class="normal">1136</span>
+<span class="normal">1137</span>
+<span class="normal">1138</span>
+<span class="normal">1139</span>
+<span class="normal">1140</span>
+<span class="normal">1141</span>
+<span class="normal">1142</span>
+<span class="normal">1143</span>
+<span class="normal">1144</span>
+<span class="normal">1145</span>
+<span class="normal">1146</span>
+<span class="normal">1147</span>
+<span class="normal">1148</span>
+<span class="normal">1149</span>
+<span class="normal">1150</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">exclude_region</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">:</span> <span class="n">StudyLocus</span><span class="p">,</span> <span class="n">region</span><span class="p">:</span> <span class="n">GenomicRegion</span><span class="p">,</span> <span class="n">exclude_overlap</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyLocus</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Exclude a region from the StudyLocus dataset.</span>
@@ -8446,7 +8627,8 @@ of their <code>posteriorProbability</code> values is below 0.95 and 0.99, respec
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/dataset/study_locus.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">785</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">784</span>
+<span class="normal">785</span>
 <span class="normal">786</span>
 <span class="normal">787</span>
 <span class="normal">788</span>
@@ -8466,8 +8648,7 @@ of their <code>posteriorProbability</code> values is below 0.95 and 0.99, respec
 <span class="normal">802</span>
 <span class="normal">803</span>
 <span class="normal">804</span>
-<span class="normal">805</span>
-<span class="normal">806</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">filter_credible_set</span><span class="p">(</span>
+<span class="normal">805</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">filter_credible_set</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">:</span> <span class="n">StudyLocus</span><span class="p">,</span>
     <span class="n">credible_interval</span><span class="p">:</span> <span class="n">CredibleInterval</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyLocus</span><span class="p">:</span>
@@ -8584,7 +8765,8 @@ of their <code>posteriorProbability</code> values is below 0.95 and 0.99, respec
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/dataset/study_locus.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">808</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">807</span>
+<span class="normal">808</span>
 <span class="normal">809</span>
 <span class="normal">810</span>
 <span class="normal">811</span>
@@ -8600,8 +8782,7 @@ of their <code>posteriorProbability</code> values is below 0.95 and 0.99, respec
 <span class="normal">821</span>
 <span class="normal">822</span>
 <span class="normal">823</span>
-<span class="normal">824</span>
-<span class="normal">825</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@staticmethod</span>
+<span class="normal">824</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@staticmethod</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">filter_ld_set</span><span class="p">(</span><span class="n">ld_set</span><span class="p">:</span> <span class="n">Column</span><span class="p">,</span> <span class="n">r2_threshold</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Filter the LD set by a given R2 threshold.</span>
 
@@ -8696,7 +8877,8 @@ appearing on the right side.</p>
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/dataset/study_locus.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">827</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">826</span>
+<span class="normal">827</span>
 <span class="normal">828</span>
 <span class="normal">829</span>
 <span class="normal">830</span>
@@ -8732,8 +8914,7 @@ appearing on the right side.</p>
 <span class="normal">860</span>
 <span class="normal">861</span>
 <span class="normal">862</span>
-<span class="normal">863</span>
-<span class="normal">864</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">find_overlaps</span><span class="p">(</span>
+<span class="normal">863</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">find_overlaps</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">:</span> <span class="n">StudyLocus</span><span class="p">,</span> <span class="n">intra_study_overlap</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyLocusOverlap</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculate overlapping study-locus.</span>
@@ -8885,7 +9066,8 @@ appearing on the right side.</p>
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/dataset/study_locus.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">692</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">691</span>
+<span class="normal">692</span>
 <span class="normal">693</span>
 <span class="normal">694</span>
 <span class="normal">695</span>
@@ -8975,8 +9157,7 @@ appearing on the right side.</p>
 <span class="normal">779</span>
 <span class="normal">780</span>
 <span class="normal">781</span>
-<span class="normal">782</span>
-<span class="normal">783</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">flag_trans_qtls</span><span class="p">(</span>
+<span class="normal">782</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">flag_trans_qtls</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">:</span> <span class="n">StudyLocus</span><span class="p">,</span>
     <span class="n">study_index</span><span class="p">:</span> <span class="n">StudyIndex</span><span class="p">,</span>
     <span class="n">target_index</span><span class="p">:</span> <span class="n">TargetIndex</span><span class="p">,</span>
@@ -9116,14 +9297,14 @@ appearing on the right side.</p>
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/dataset/study_locus.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">674</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">673</span>
+<span class="normal">674</span>
 <span class="normal">675</span>
 <span class="normal">676</span>
 <span class="normal">677</span>
 <span class="normal">678</span>
 <span class="normal">679</span>
-<span class="normal">680</span>
-<span class="normal">681</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
+<span class="normal">680</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">get_QC_column_name</span><span class="p">(</span><span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">StudyLocus</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Quality control column.</span>
 
@@ -9179,14 +9360,14 @@ appearing on the right side.</p>
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/dataset/study_locus.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">683</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">682</span>
+<span class="normal">683</span>
 <span class="normal">684</span>
 <span class="normal">685</span>
 <span class="normal">686</span>
 <span class="normal">687</span>
 <span class="normal">688</span>
-<span class="normal">689</span>
-<span class="normal">690</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
+<span class="normal">689</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">get_QC_mappings</span><span class="p">(</span><span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">StudyLocus</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Quality control flag to QC column category mappings.</span>
 
@@ -9242,14 +9423,14 @@ appearing on the right side.</p>
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/dataset/study_locus.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">665</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">664</span>
+<span class="normal">665</span>
 <span class="normal">666</span>
 <span class="normal">667</span>
 <span class="normal">668</span>
 <span class="normal">669</span>
 <span class="normal">670</span>
-<span class="normal">671</span>
-<span class="normal">672</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
+<span class="normal">671</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">get_schema</span><span class="p">(</span><span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">StudyLocus</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">StructType</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Provides the schema for the StudyLocus dataset.</span>
 
@@ -9301,7 +9482,8 @@ appearing on the right side.</p>
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/dataset/study_locus.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">889</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">888</span>
+<span class="normal">889</span>
 <span class="normal">890</span>
 <span class="normal">891</span>
 <span class="normal">892</span>
@@ -9309,14 +9491,13 @@ appearing on the right side.</p>
 <span class="normal">894</span>
 <span class="normal">895</span>
 <span class="normal">896</span>
-<span class="normal">897</span>
-<span class="normal">898</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">neglog_pvalue</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyLocus</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
+<span class="normal">897</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">neglog_pvalue</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyLocus</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Returns the negative log p-value.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        Column: Negative log p-value</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="n">calculate_neglog_pvalue</span><span class="p">(</span>
+    <span class="k">return</span> <span class="n">neglogpval_from_pvalue</span><span class="p">(</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">pValueMantissa</span><span class="p">,</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">pValueExponent</span><span class="p">,</span>
     <span class="p">)</span>
@@ -9364,28 +9545,28 @@ appearing on the right side.</p>
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/dataset/study_locus.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1138</span>
-<span class="normal">1139</span>
-<span class="normal">1140</span>
-<span class="normal">1141</span>
-<span class="normal">1142</span>
-<span class="normal">1143</span>
-<span class="normal">1144</span>
-<span class="normal">1145</span>
-<span class="normal">1146</span>
-<span class="normal">1147</span>
-<span class="normal">1148</span>
-<span class="normal">1149</span>
-<span class="normal">1150</span>
-<span class="normal">1151</span>
-<span class="normal">1152</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1152</span>
 <span class="normal">1153</span>
 <span class="normal">1154</span>
 <span class="normal">1155</span>
 <span class="normal">1156</span>
 <span class="normal">1157</span>
 <span class="normal">1158</span>
-<span class="normal">1159</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">qc_MHC_region</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyLocus</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyLocus</span><span class="p">:</span>
+<span class="normal">1159</span>
+<span class="normal">1160</span>
+<span class="normal">1161</span>
+<span class="normal">1162</span>
+<span class="normal">1163</span>
+<span class="normal">1164</span>
+<span class="normal">1165</span>
+<span class="normal">1166</span>
+<span class="normal">1167</span>
+<span class="normal">1168</span>
+<span class="normal">1169</span>
+<span class="normal">1170</span>
+<span class="normal">1171</span>
+<span class="normal">1172</span>
+<span class="normal">1173</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">qc_MHC_region</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyLocus</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyLocus</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Adds qualityControl flag when lead overlaps with MHC region.</span>
 
 <span class="sd">    Returns:</span>
@@ -9498,7 +9679,8 @@ appearing on the right side.</p>
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/dataset/study_locus.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">433</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">432</span>
+<span class="normal">433</span>
 <span class="normal">434</span>
 <span class="normal">435</span>
 <span class="normal">436</span>
@@ -9549,8 +9731,7 @@ appearing on the right side.</p>
 <span class="normal">481</span>
 <span class="normal">482</span>
 <span class="normal">483</span>
-<span class="normal">484</span>
-<span class="normal">485</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">qc_abnormal_pips</span><span class="p">(</span>
+<span class="normal">484</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">qc_abnormal_pips</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">:</span> <span class="n">StudyLocus</span><span class="p">,</span>
     <span class="n">sum_pips_lower_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.99</span><span class="p">,</span>
     <span class="c1"># Set slightly above 1 to account for floating point errors</span>
@@ -9648,21 +9829,7 @@ appearing on the right side.</p>
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/dataset/study_locus.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1199</span>
-<span class="normal">1200</span>
-<span class="normal">1201</span>
-<span class="normal">1202</span>
-<span class="normal">1203</span>
-<span class="normal">1204</span>
-<span class="normal">1205</span>
-<span class="normal">1206</span>
-<span class="normal">1207</span>
-<span class="normal">1208</span>
-<span class="normal">1209</span>
-<span class="normal">1210</span>
-<span class="normal">1211</span>
-<span class="normal">1212</span>
-<span class="normal">1213</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1213</span>
 <span class="normal">1214</span>
 <span class="normal">1215</span>
 <span class="normal">1216</span>
@@ -9724,7 +9891,21 @@ appearing on the right side.</p>
 <span class="normal">1272</span>
 <span class="normal">1273</span>
 <span class="normal">1274</span>
-<span class="normal">1275</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">qc_explained_by_SuSiE</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyLocus</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyLocus</span><span class="p">:</span>
+<span class="normal">1275</span>
+<span class="normal">1276</span>
+<span class="normal">1277</span>
+<span class="normal">1278</span>
+<span class="normal">1279</span>
+<span class="normal">1280</span>
+<span class="normal">1281</span>
+<span class="normal">1282</span>
+<span class="normal">1283</span>
+<span class="normal">1284</span>
+<span class="normal">1285</span>
+<span class="normal">1286</span>
+<span class="normal">1287</span>
+<span class="normal">1288</span>
+<span class="normal">1289</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">qc_explained_by_SuSiE</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyLocus</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyLocus</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Flag associations that are explained by SuSiE associations.</span>
 
 <span class="sd">    Credible sets overlapping in the same region as a SuSiE credible set are flagged as explained by SuSiE.</span>
@@ -9846,21 +10027,7 @@ appearing on the right side.</p>
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/dataset/study_locus.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1161</span>
-<span class="normal">1162</span>
-<span class="normal">1163</span>
-<span class="normal">1164</span>
-<span class="normal">1165</span>
-<span class="normal">1166</span>
-<span class="normal">1167</span>
-<span class="normal">1168</span>
-<span class="normal">1169</span>
-<span class="normal">1170</span>
-<span class="normal">1171</span>
-<span class="normal">1172</span>
-<span class="normal">1173</span>
-<span class="normal">1174</span>
-<span class="normal">1175</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1175</span>
 <span class="normal">1176</span>
 <span class="normal">1177</span>
 <span class="normal">1178</span>
@@ -9882,7 +10049,21 @@ appearing on the right side.</p>
 <span class="normal">1194</span>
 <span class="normal">1195</span>
 <span class="normal">1196</span>
-<span class="normal">1197</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">qc_redundant_top_hits_from_PICS</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyLocus</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyLocus</span><span class="p">:</span>
+<span class="normal">1197</span>
+<span class="normal">1198</span>
+<span class="normal">1199</span>
+<span class="normal">1200</span>
+<span class="normal">1201</span>
+<span class="normal">1202</span>
+<span class="normal">1203</span>
+<span class="normal">1204</span>
+<span class="normal">1205</span>
+<span class="normal">1206</span>
+<span class="normal">1207</span>
+<span class="normal">1208</span>
+<span class="normal">1209</span>
+<span class="normal">1210</span>
+<span class="normal">1211</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">qc_redundant_top_hits_from_PICS</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyLocus</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyLocus</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Flag associations from top hits when the study contains other PICS associations from summary statistics.</span>
 
 <span class="sd">    This flag can be useful to identify top hits that should be explained by other associations in the study derived from the summary statistics.</span>
@@ -9963,7 +10144,8 @@ appearing on the right side.</p>
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/dataset/study_locus.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">866</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">865</span>
+<span class="normal">866</span>
 <span class="normal">867</span>
 <span class="normal">868</span>
 <span class="normal">869</span>
@@ -9983,8 +10165,7 @@ appearing on the right side.</p>
 <span class="normal">883</span>
 <span class="normal">884</span>
 <span class="normal">885</span>
-<span class="normal">886</span>
-<span class="normal">887</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">unique_variants_in_locus</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyLocus</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataFrame</span><span class="p">:</span>
+<span class="normal">886</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">unique_variants_in_locus</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyLocus</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataFrame</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;All unique variants collected in a `StudyLocus` dataframe.</span>
 
 <span class="sd">    Returns:</span>
@@ -10050,7 +10231,8 @@ appearing on the right side.</p>
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/dataset/study_locus.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">250</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">249</span>
+<span class="normal">250</span>
 <span class="normal">251</span>
 <span class="normal">252</span>
 <span class="normal">253</span>
@@ -10075,8 +10257,7 @@ appearing on the right side.</p>
 <span class="normal">272</span>
 <span class="normal">273</span>
 <span class="normal">274</span>
-<span class="normal">275</span>
-<span class="normal">276</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">validate_chromosome_label</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyLocus</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyLocus</span><span class="p">:</span>
+<span class="normal">275</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">validate_chromosome_label</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyLocus</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyLocus</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Flagging study loci, where chromosome is coded not as 1:22, X, Y, Xy and MT.</span>
 
 <span class="sd">    Returns:</span>
@@ -10178,7 +10359,8 @@ appearing on the right side.</p>
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/dataset/study_locus.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">337</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">336</span>
+<span class="normal">337</span>
 <span class="normal">338</span>
 <span class="normal">339</span>
 <span class="normal">340</span>
@@ -10212,8 +10394,7 @@ appearing on the right side.</p>
 <span class="normal">368</span>
 <span class="normal">369</span>
 <span class="normal">370</span>
-<span class="normal">371</span>
-<span class="normal">372</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">validate_lead_pvalue</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyLocus</span><span class="p">,</span> <span class="n">pvalue_cutoff</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyLocus</span><span class="p">:</span>
+<span class="normal">371</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">validate_lead_pvalue</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyLocus</span><span class="p">,</span> <span class="n">pvalue_cutoff</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyLocus</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Flag associations below significant threshold.</span>
 
 <span class="sd">    Args:</span>
@@ -10328,7 +10509,8 @@ appearing on the right side.</p>
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/dataset/study_locus.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">160</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">159</span>
+<span class="normal">160</span>
 <span class="normal">161</span>
 <span class="normal">162</span>
 <span class="normal">163</span>
@@ -10397,8 +10579,7 @@ appearing on the right side.</p>
 <span class="normal">226</span>
 <span class="normal">227</span>
 <span class="normal">228</span>
-<span class="normal">229</span>
-<span class="normal">230</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">validate_study</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyLocus</span><span class="p">,</span> <span class="n">study_index</span><span class="p">:</span> <span class="n">StudyIndex</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyLocus</span><span class="p">:</span>
+<span class="normal">229</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">validate_study</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyLocus</span><span class="p">,</span> <span class="n">study_index</span><span class="p">:</span> <span class="n">StudyIndex</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyLocus</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Flagging study loci if the corresponding study has issues.</span>
 
 <span class="sd">    There are two different potential flags:</span>
@@ -10513,7 +10694,8 @@ appearing on the right side.</p>
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/dataset/study_locus.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">374</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">373</span>
+<span class="normal">374</span>
 <span class="normal">375</span>
 <span class="normal">376</span>
 <span class="normal">377</span>
@@ -10528,8 +10710,7 @@ appearing on the right side.</p>
 <span class="normal">386</span>
 <span class="normal">387</span>
 <span class="normal">388</span>
-<span class="normal">389</span>
-<span class="normal">390</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">validate_unique_study_locus_id</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyLocus</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyLocus</span><span class="p">:</span>
+<span class="normal">389</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">validate_unique_study_locus_id</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyLocus</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyLocus</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Validating the uniqueness of study-locus identifiers and flagging duplicated studyloci.</span>
 
 <span class="sd">    Returns:</span>
@@ -10621,7 +10802,8 @@ appearing on the right side.</p>
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/dataset/study_locus.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">278</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">277</span>
+<span class="normal">278</span>
 <span class="normal">279</span>
 <span class="normal">280</span>
 <span class="normal">281</span>
@@ -10677,8 +10859,7 @@ appearing on the right side.</p>
 <span class="normal">331</span>
 <span class="normal">332</span>
 <span class="normal">333</span>
-<span class="normal">334</span>
-<span class="normal">335</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">validate_variant_identifiers</span><span class="p">(</span>
+<span class="normal">334</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">validate_variant_identifiers</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">:</span> <span class="n">StudyLocus</span><span class="p">,</span> <span class="n">variant_index</span><span class="p">:</span> <span class="n">VariantIndex</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyLocus</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Flagging study loci, where tagging variant identifiers are not found in variant index.</span>
@@ -10811,21 +10992,21 @@ appearing on the right side.</p>
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/dataset/study_locus.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1362</span>
-<span class="normal">1363</span>
-<span class="normal">1364</span>
-<span class="normal">1365</span>
-<span class="normal">1366</span>
-<span class="normal">1367</span>
-<span class="normal">1368</span>
-<span class="normal">1369</span>
-<span class="normal">1370</span>
-<span class="normal">1371</span>
-<span class="normal">1372</span>
-<span class="normal">1373</span>
-<span class="normal">1374</span>
-<span class="normal">1375</span>
-<span class="normal">1376</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">window_based_clumping</span><span class="p">(</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1376</span>
+<span class="normal">1377</span>
+<span class="normal">1378</span>
+<span class="normal">1379</span>
+<span class="normal">1380</span>
+<span class="normal">1381</span>
+<span class="normal">1382</span>
+<span class="normal">1383</span>
+<span class="normal">1384</span>
+<span class="normal">1385</span>
+<span class="normal">1386</span>
+<span class="normal">1387</span>
+<span class="normal">1388</span>
+<span class="normal">1389</span>
+<span class="normal">1390</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">window_based_clumping</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">:</span> <span class="n">StudyLocus</span><span class="p">,</span>
     <span class="n">window_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">WindowBasedClumpingStepConfig</span><span class="p">()</span><span class="o">.</span><span class="n">distance</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyLocus</span><span class="p">:</span>
@@ -10927,7 +11108,8 @@ appearing on the right side.</p>
 
               <details class="quote">
                 <summary>Source code in <code>src/gentropy/dataset/study_locus.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">139</span>
+                <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">138</span>
+<span class="normal">139</span>
 <span class="normal">140</span>
 <span class="normal">141</span>
 <span class="normal">142</span>
@@ -10937,8 +11119,7 @@ appearing on the right side.</p>
 <span class="normal">146</span>
 <span class="normal">147</span>
 <span class="normal">148</span>
-<span class="normal">149</span>
-<span class="normal">150</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">FinemappingMethod</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+<span class="normal">149</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">FinemappingMethod</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Finemapping method enum.</span>
 
 <span class="sd">    Attributes:</span>
@@ -11266,7 +11447,8 @@ appearing on the right side.</p>
 
               <details class="quote">
                 <summary>Source code in <code>src/gentropy/dataset/study_locus.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 63</span>
+                <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 62</span>
+<span class="normal"> 63</span>
 <span class="normal"> 64</span>
 <span class="normal"> 65</span>
 <span class="normal"> 66</span>
@@ -11324,8 +11506,7 @@ appearing on the right side.</p>
 <span class="normal">118</span>
 <span class="normal">119</span>
 <span class="normal">120</span>
-<span class="normal">121</span>
-<span class="normal">122</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">StudyLocusQualityCheck</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+<span class="normal">121</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">StudyLocusQualityCheck</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Study-Locus quality control options listing concerns on the quality of the association.</span>
 
 <span class="sd">    Attributes:</span>
@@ -11471,7 +11652,8 @@ appearing on the right side.</p>
 
               <details class="quote">
                 <summary>Source code in <code>src/gentropy/dataset/study_locus.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">125</span>
+                <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">124</span>
+<span class="normal">125</span>
 <span class="normal">126</span>
 <span class="normal">127</span>
 <span class="normal">128</span>
@@ -11481,8 +11663,7 @@ appearing on the right side.</p>
 <span class="normal">132</span>
 <span class="normal">133</span>
 <span class="normal">134</span>
-<span class="normal">135</span>
-<span class="normal">136</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">CredibleInterval</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+<span class="normal">135</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">CredibleInterval</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Credible interval enum.</span>
 
 <span class="sd">    Interval within which an unobserved parameter value falls with a particular probability.</span>
@@ -11516,7 +11697,7 @@ appearing on the right side.</p>
     </div>
 
 </div><h2 id="schema">Schema<a class="headerlink" href="#schema" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code>root
+<div class="language-text highlight"><pre><span></span><code>root
  |-- studyLocusId: string (nullable = false)
  |-- studyType: string (nullable = true)
  |-- variantId: string (nullable = false)

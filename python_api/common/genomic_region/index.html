@@ -12,7 +12,7 @@
         <link rel="prev" href="../_common/">
       
       
-        <link rel="next" href="../types/">
+        <link rel="next" href="../processing/">
       
       
       <link rel="icon" href="../../../assets/imgs/favicon.png">
@@ -20,7 +20,7 @@
     
     
       
-        <title>Genomic Region - Open Targets Gentropy</title>
+        <title>genomic_region - Open Targets Gentropy</title>
       
     
     
@@ -78,7 +78,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#gentropy.common.genomic_region.KnownGenomicRegions" class="md-skip">
+        <a href="#genomic-region-processing" class="md-skip">
           Skip to content
         </a>
       
@@ -113,7 +113,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Genomic Region
+              genomic_region
             
           </span>
         </div>
@@ -491,7 +491,7 @@
         
   
   <span class="md-ellipsis">
-    Run step in CLI
+    Run step in cli
   </span>
   
 
@@ -512,7 +512,7 @@
         
   
   <span class="md-ellipsis">
-    Run step using YAML config
+    Run step using config
   </span>
   
 
@@ -552,11 +552,11 @@
           
           
           <div class="md-nav__link md-nav__container">
-            <a href="../../../howto/python_api/_python_api/" class="md-nav__link ">
+            <a href="../../../howto/tutorials/_tutorials/" class="md-nav__link ">
               
   
   <span class="md-ellipsis">
-    Python api
+    Tutorials
   </span>
   
 
@@ -572,7 +572,7 @@
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_2_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_3_2">
             <span class="md-nav__icon md-icon"></span>
-            Python api
+            Tutorials
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
             
@@ -583,7 +583,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../howto/python_api/a_creating_spark_session/" class="md-nav__link">
+      <a href="../../../howto/tutorials/a_creating_spark_session/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -604,7 +604,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../howto/python_api/b_create_dataset/" class="md-nav__link">
+      <a href="../../../howto/tutorials/b_create_dataset/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -625,7 +625,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../howto/python_api/c_applying_methods/" class="md-nav__link">
+      <a href="../../../howto/tutorials/c_applying_methods/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -646,7 +646,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../howto/python_api/d_inspect_dataset/" class="md-nav__link">
+      <a href="../../../howto/tutorials/d_inspect_dataset/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -887,7 +887,7 @@
           
   
   <span class="md-ellipsis">
-    Genomic Region
+    genomic_region
   </span>
   
 
@@ -898,7 +898,7 @@
         
   
   <span class="md-ellipsis">
-    Genomic Region
+    genomic_region
   </span>
   
 
@@ -916,6 +916,15 @@
       Table of contents
     </label>
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#genomic-region-processing" class="md-nav__link">
+    <span class="md-ellipsis">
+      Genomic Region processing
+    </span>
+  </a>
+  
+</li>
       
         <li class="md-nav__item">
   <a href="#gentropy.common.genomic_region.KnownGenomicRegions" class="md-nav__link">
@@ -968,6 +977,66 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#liftover" class="md-nav__link">
+    <span class="md-ellipsis">
+      LiftOver
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#gentropy.common.genomic_region.LiftOverSpark" class="md-nav__link">
+    <span class="md-ellipsis">
+      LiftOverSpark
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="LiftOverSpark">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#gentropy.common.genomic_region.LiftOverSpark.__init__" class="md-nav__link">
+    <span class="md-ellipsis">
+      __init__
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gentropy.common.genomic_region.LiftOverSpark.convert_coordinates" class="md-nav__link">
+    <span class="md-ellipsis">
+      convert_coordinates
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gentropy.common.genomic_region.LiftOverSpark.convert_intervals" class="md-nav__link">
+    <span class="md-ellipsis">
+      convert_intervals
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#gentropy.common.genomic_region.liftover_loci" class="md-nav__link">
+    <span class="md-ellipsis">
+      liftover_loci
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -984,11 +1053,116 @@
   
   
     <li class="md-nav__item">
+      <a href="../processing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    processing
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../session/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    session
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../spark/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    spark
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../stats/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    stats
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../types/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
-    Literal Types
+    types
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udf/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    udf
   </span>
   
 
@@ -3381,6 +3555,15 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#genomic-region-processing" class="md-nav__link">
+    <span class="md-ellipsis">
+      Genomic Region processing
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#gentropy.common.genomic_region.KnownGenomicRegions" class="md-nav__link">
     <span class="md-ellipsis">
       KnownGenomicRegions
@@ -3431,6 +3614,66 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#liftover" class="md-nav__link">
+    <span class="md-ellipsis">
+      LiftOver
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#gentropy.common.genomic_region.LiftOverSpark" class="md-nav__link">
+    <span class="md-ellipsis">
+      LiftOverSpark
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="LiftOverSpark">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#gentropy.common.genomic_region.LiftOverSpark.__init__" class="md-nav__link">
+    <span class="md-ellipsis">
+      __init__
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gentropy.common.genomic_region.LiftOverSpark.convert_coordinates" class="md-nav__link">
+    <span class="md-ellipsis">
+      convert_coordinates
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gentropy.common.genomic_region.LiftOverSpark.convert_intervals" class="md-nav__link">
+    <span class="md-ellipsis">
+      convert_intervals
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#gentropy.common.genomic_region.liftover_loci" class="md-nav__link">
+    <span class="md-ellipsis">
+      liftover_loci
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -3449,7 +3692,10 @@
   
 
 
-  <h1>Genomic Region</h1>
+  <h1>genomic_region</h1>
+
+<h2 id="genomic-region-processing">Genomic Region processing<a class="headerlink" href="#genomic-region-processing" title="Permanent link">&para;</a></h2>
+
 
 <div class="doc doc-object doc-class">
 
@@ -3476,10 +3722,10 @@
 
               <details class="quote">
                 <summary>Source code in <code>src/gentropy/common/genomic_region.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">6</span>
-<span class="normal">7</span>
-<span class="normal">8</span>
-<span class="normal">9</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">KnownGenomicRegions</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+                <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">20</span>
+<span class="normal">21</span>
+<span class="normal">22</span>
+<span class="normal">23</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">KnownGenomicRegions</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Known genomic regions in the human genome in string format.&quot;&quot;&quot;</span>
 
     <span class="n">MHC</span> <span class="o">=</span> <span class="s2">&quot;chr6:25726063-33400556&quot;</span>
@@ -3523,74 +3769,13 @@
         <p>Genomic regions of interest.</p>
 
 
-<p><span class="doc-section-title">Attributes:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Type</th>
-          <th>Description</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td><code><span title="gentropy.common.genomic_region.GenomicRegion.chromosome">chromosome</span></code></td>
-            <td>
-                  <code>str</code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Chromosome.</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td><code><span title="gentropy.common.genomic_region.GenomicRegion.start">start</span></code></td>
-            <td>
-                  <code>int</code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Start position.</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td><code><span title="gentropy.common.genomic_region.GenomicRegion.end">end</span></code></td>
-            <td>
-                  <code>int</code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                
-              </div>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
 
 
 
 
               <details class="quote">
                 <summary>Source code in <code>src/gentropy/common/genomic_region.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 12</span>
-<span class="normal"> 13</span>
-<span class="normal"> 14</span>
-<span class="normal"> 15</span>
-<span class="normal"> 16</span>
-<span class="normal"> 17</span>
-<span class="normal"> 18</span>
-<span class="normal"> 19</span>
-<span class="normal"> 20</span>
-<span class="normal"> 21</span>
-<span class="normal"> 22</span>
-<span class="normal"> 23</span>
-<span class="normal"> 24</span>
-<span class="normal"> 25</span>
-<span class="normal"> 26</span>
+                <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 26</span>
 <span class="normal"> 27</span>
 <span class="normal"> 28</span>
 <span class="normal"> 29</span>
@@ -3667,14 +3852,16 @@
 <span class="normal">100</span>
 <span class="normal">101</span>
 <span class="normal">102</span>
-<span class="normal">103</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">GenomicRegion</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Genomic regions of interest.</span>
-
-<span class="sd">    Attributes:</span>
-<span class="sd">        chromosome (str): Chromosome.</span>
-<span class="sd">        start (int): Start position.</span>
-<span class="sd">        end (int):</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="normal">103</span>
+<span class="normal">104</span>
+<span class="normal">105</span>
+<span class="normal">106</span>
+<span class="normal">107</span>
+<span class="normal">108</span>
+<span class="normal">109</span>
+<span class="normal">110</span>
+<span class="normal">111</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">GenomicRegion</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Genomic regions of interest.&quot;&quot;&quot;</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">chromosome</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">start</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">end</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Class constructor.</span>
@@ -3697,7 +3884,7 @@
         <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">chromosome</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">start</span><span class="si">}</span><span class="s2">-</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">end</span><span class="si">}</span><span class="s2">&quot;</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">from_string</span><span class="p">(</span><span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="s2">&quot;GenomicRegion&quot;</span><span class="p">],</span> <span class="n">region</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;GenomicRegion&quot;</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_string</span><span class="p">(</span><span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">GenomicRegion</span><span class="p">],</span> <span class="n">region</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">GenomicRegion</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Parse region string to chr:start-end.</span>
 
 <span class="sd">        Args:</span>
@@ -3744,8 +3931,8 @@
 
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">from_known_genomic_region</span><span class="p">(</span>
-        <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="s2">&quot;GenomicRegion&quot;</span><span class="p">],</span> <span class="n">region</span><span class="p">:</span> <span class="n">KnownGenomicRegions</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;GenomicRegion&quot;</span><span class="p">:</span>
+        <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">GenomicRegion</span><span class="p">],</span> <span class="n">region</span><span class="p">:</span> <span class="n">KnownGenomicRegions</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">GenomicRegion</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Get known genomic region.</span>
 
 <span class="sd">        Args:</span>
@@ -3852,17 +4039,17 @@
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/common/genomic_region.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">21</span>
-<span class="normal">22</span>
-<span class="normal">23</span>
-<span class="normal">24</span>
-<span class="normal">25</span>
-<span class="normal">26</span>
-<span class="normal">27</span>
-<span class="normal">28</span>
-<span class="normal">29</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">29</span>
 <span class="normal">30</span>
-<span class="normal">31</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">chromosome</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">start</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">end</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="normal">31</span>
+<span class="normal">32</span>
+<span class="normal">33</span>
+<span class="normal">34</span>
+<span class="normal">35</span>
+<span class="normal">36</span>
+<span class="normal">37</span>
+<span class="normal">38</span>
+<span class="normal">39</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">chromosome</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">start</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">end</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Class constructor.</span>
 
 <span class="sd">    Args:</span>
@@ -3952,21 +4139,13 @@
 
 
 <p><span class="doc-section-title">Examples:</span></p>
-    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">GenomicRegion</span><span class="o">.</span><span class="n">from_known_genomic_region</span><span class="p">(</span><span class="n">KnownGenomicRegions</span><span class="o">.</span><span class="n">MHC</span><span class="p">))</span>
+    <div class="language-pycon highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">GenomicRegion</span><span class="o">.</span><span class="n">from_known_genomic_region</span><span class="p">(</span><span class="n">KnownGenomicRegions</span><span class="o">.</span><span class="n">MHC</span><span class="p">))</span>
 <span class="go">6:25726063-33400556</span>
 </code></pre></div>
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/common/genomic_region.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 87</span>
-<span class="normal"> 88</span>
-<span class="normal"> 89</span>
-<span class="normal"> 90</span>
-<span class="normal"> 91</span>
-<span class="normal"> 92</span>
-<span class="normal"> 93</span>
-<span class="normal"> 94</span>
-<span class="normal"> 95</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 95</span>
 <span class="normal"> 96</span>
 <span class="normal"> 97</span>
 <span class="normal"> 98</span>
@@ -3974,10 +4153,18 @@
 <span class="normal">100</span>
 <span class="normal">101</span>
 <span class="normal">102</span>
-<span class="normal">103</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
+<span class="normal">103</span>
+<span class="normal">104</span>
+<span class="normal">105</span>
+<span class="normal">106</span>
+<span class="normal">107</span>
+<span class="normal">108</span>
+<span class="normal">109</span>
+<span class="normal">110</span>
+<span class="normal">111</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">from_known_genomic_region</span><span class="p">(</span>
-    <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="s2">&quot;GenomicRegion&quot;</span><span class="p">],</span> <span class="n">region</span><span class="p">:</span> <span class="n">KnownGenomicRegions</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;GenomicRegion&quot;</span><span class="p">:</span>
+    <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">GenomicRegion</span><span class="p">],</span> <span class="n">region</span><span class="p">:</span> <span class="n">KnownGenomicRegions</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">GenomicRegion</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Get known genomic region.</span>
 
 <span class="sd">    Args:</span>
@@ -4093,7 +4280,7 @@
 
 
 <p><span class="doc-section-title">Examples:</span></p>
-    <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">GenomicRegion</span><span class="o">.</span><span class="n">from_string</span><span class="p">(</span><span class="s1">&#39;chr6:28,510,120-33,480,577&#39;</span><span class="p">))</span>
+    <div class="language-pycon highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">GenomicRegion</span><span class="o">.</span><span class="n">from_string</span><span class="p">(</span><span class="s1">&#39;chr6:28,510,120-33,480,577&#39;</span><span class="p">))</span>
 <span class="go">6:28510120-33480577</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">GenomicRegion</span><span class="o">.</span><span class="n">from_string</span><span class="p">(</span><span class="s1">&#39;6:28510120-33480577&#39;</span><span class="p">))</span>
 <span class="go">6:28510120-33480577</span>
@@ -4109,15 +4296,7 @@
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/common/genomic_region.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">41</span>
-<span class="normal">42</span>
-<span class="normal">43</span>
-<span class="normal">44</span>
-<span class="normal">45</span>
-<span class="normal">46</span>
-<span class="normal">47</span>
-<span class="normal">48</span>
-<span class="normal">49</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">49</span>
 <span class="normal">50</span>
 <span class="normal">51</span>
 <span class="normal">52</span>
@@ -4153,8 +4332,16 @@
 <span class="normal">82</span>
 <span class="normal">83</span>
 <span class="normal">84</span>
-<span class="normal">85</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">from_string</span><span class="p">(</span><span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="s2">&quot;GenomicRegion&quot;</span><span class="p">],</span> <span class="n">region</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;GenomicRegion&quot;</span><span class="p">:</span>
+<span class="normal">85</span>
+<span class="normal">86</span>
+<span class="normal">87</span>
+<span class="normal">88</span>
+<span class="normal">89</span>
+<span class="normal">90</span>
+<span class="normal">91</span>
+<span class="normal">92</span>
+<span class="normal">93</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">from_string</span><span class="p">(</span><span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">GenomicRegion</span><span class="p">],</span> <span class="n">region</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">GenomicRegion</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Parse region string to chr:start-end.</span>
 
 <span class="sd">    Args:</span>
@@ -4210,6 +4397,1100 @@
 
     </div>
 
+</div><h2 id="liftover">LiftOver<a class="headerlink" href="#liftover" title="Permanent link">&para;</a></h2>
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="gentropy.common.genomic_region.LiftOverSpark" class="doc doc-heading">
+            <code>gentropy.common.genomic_region.LiftOverSpark</code>
+
+
+<a href="#gentropy.common.genomic_region.LiftOverSpark" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+    <div class="doc doc-contents first">
+
+
+        <p>LiftOver class for mapping genomic coordinates to an other genome build.</p>
+<p>The input is a Spark DataFrame with a chromosome and position column. This classs can
+also map regions, if a start and end positions are provided.</p>
+<p><strong>Logic</strong>:</p>
+<ul>
+<li>The mapping is dropped if the mapped chromosome is not on the same as the source.</li>
+<li>The mapping is dropped if the mapping is ambiguous (more than one mapping is available).</li>
+<li>If regions are provided, the mapping is dropped if the new region is reversed (mapped_start &gt; mapped_end).</li>
+<li>If regions are provided, the mapping is dropped if the difference of the length of the mapped region and original is larger than a threshold.</li>
+<li>When lifting over intervals, only unique coordinates are lifted, they joined back to the original dataframe.</li>
+</ul>
+
+
+
+
+
+
+              <details class="quote">
+                <summary>Source code in <code>src/gentropy/common/genomic_region.py</code></summary>
+                <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">114</span>
+<span class="normal">115</span>
+<span class="normal">116</span>
+<span class="normal">117</span>
+<span class="normal">118</span>
+<span class="normal">119</span>
+<span class="normal">120</span>
+<span class="normal">121</span>
+<span class="normal">122</span>
+<span class="normal">123</span>
+<span class="normal">124</span>
+<span class="normal">125</span>
+<span class="normal">126</span>
+<span class="normal">127</span>
+<span class="normal">128</span>
+<span class="normal">129</span>
+<span class="normal">130</span>
+<span class="normal">131</span>
+<span class="normal">132</span>
+<span class="normal">133</span>
+<span class="normal">134</span>
+<span class="normal">135</span>
+<span class="normal">136</span>
+<span class="normal">137</span>
+<span class="normal">138</span>
+<span class="normal">139</span>
+<span class="normal">140</span>
+<span class="normal">141</span>
+<span class="normal">142</span>
+<span class="normal">143</span>
+<span class="normal">144</span>
+<span class="normal">145</span>
+<span class="normal">146</span>
+<span class="normal">147</span>
+<span class="normal">148</span>
+<span class="normal">149</span>
+<span class="normal">150</span>
+<span class="normal">151</span>
+<span class="normal">152</span>
+<span class="normal">153</span>
+<span class="normal">154</span>
+<span class="normal">155</span>
+<span class="normal">156</span>
+<span class="normal">157</span>
+<span class="normal">158</span>
+<span class="normal">159</span>
+<span class="normal">160</span>
+<span class="normal">161</span>
+<span class="normal">162</span>
+<span class="normal">163</span>
+<span class="normal">164</span>
+<span class="normal">165</span>
+<span class="normal">166</span>
+<span class="normal">167</span>
+<span class="normal">168</span>
+<span class="normal">169</span>
+<span class="normal">170</span>
+<span class="normal">171</span>
+<span class="normal">172</span>
+<span class="normal">173</span>
+<span class="normal">174</span>
+<span class="normal">175</span>
+<span class="normal">176</span>
+<span class="normal">177</span>
+<span class="normal">178</span>
+<span class="normal">179</span>
+<span class="normal">180</span>
+<span class="normal">181</span>
+<span class="normal">182</span>
+<span class="normal">183</span>
+<span class="normal">184</span>
+<span class="normal">185</span>
+<span class="normal">186</span>
+<span class="normal">187</span>
+<span class="normal">188</span>
+<span class="normal">189</span>
+<span class="normal">190</span>
+<span class="normal">191</span>
+<span class="normal">192</span>
+<span class="normal">193</span>
+<span class="normal">194</span>
+<span class="normal">195</span>
+<span class="normal">196</span>
+<span class="normal">197</span>
+<span class="normal">198</span>
+<span class="normal">199</span>
+<span class="normal">200</span>
+<span class="normal">201</span>
+<span class="normal">202</span>
+<span class="normal">203</span>
+<span class="normal">204</span>
+<span class="normal">205</span>
+<span class="normal">206</span>
+<span class="normal">207</span>
+<span class="normal">208</span>
+<span class="normal">209</span>
+<span class="normal">210</span>
+<span class="normal">211</span>
+<span class="normal">212</span>
+<span class="normal">213</span>
+<span class="normal">214</span>
+<span class="normal">215</span>
+<span class="normal">216</span>
+<span class="normal">217</span>
+<span class="normal">218</span>
+<span class="normal">219</span>
+<span class="normal">220</span>
+<span class="normal">221</span>
+<span class="normal">222</span>
+<span class="normal">223</span>
+<span class="normal">224</span>
+<span class="normal">225</span>
+<span class="normal">226</span>
+<span class="normal">227</span>
+<span class="normal">228</span>
+<span class="normal">229</span>
+<span class="normal">230</span>
+<span class="normal">231</span>
+<span class="normal">232</span>
+<span class="normal">233</span>
+<span class="normal">234</span>
+<span class="normal">235</span>
+<span class="normal">236</span>
+<span class="normal">237</span>
+<span class="normal">238</span>
+<span class="normal">239</span>
+<span class="normal">240</span>
+<span class="normal">241</span>
+<span class="normal">242</span>
+<span class="normal">243</span>
+<span class="normal">244</span>
+<span class="normal">245</span>
+<span class="normal">246</span>
+<span class="normal">247</span>
+<span class="normal">248</span>
+<span class="normal">249</span>
+<span class="normal">250</span>
+<span class="normal">251</span>
+<span class="normal">252</span>
+<span class="normal">253</span>
+<span class="normal">254</span>
+<span class="normal">255</span>
+<span class="normal">256</span>
+<span class="normal">257</span>
+<span class="normal">258</span>
+<span class="normal">259</span>
+<span class="normal">260</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">LiftOverSpark</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;LiftOver class for mapping genomic coordinates to an other genome build.</span>
+
+<span class="sd">    The input is a Spark DataFrame with a chromosome and position column. This classs can</span>
+<span class="sd">    also map regions, if a start and end positions are provided.</span>
+
+<span class="sd">    **Logic**:</span>
+
+<span class="sd">    - The mapping is dropped if the mapped chromosome is not on the same as the source.</span>
+<span class="sd">    - The mapping is dropped if the mapping is ambiguous (more than one mapping is available).</span>
+<span class="sd">    - If regions are provided, the mapping is dropped if the new region is reversed (mapped_start &gt; mapped_end).</span>
+<span class="sd">    - If regions are provided, the mapping is dropped if the difference of the length of the mapped region and original is larger than a threshold.</span>
+<span class="sd">    - When lifting over intervals, only unique coordinates are lifted, they joined back to the original dataframe.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">:</span> <span class="n">LiftOverSpark</span><span class="p">,</span> <span class="n">chain_file</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">max_difference</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize the LiftOver object.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            chain_file (str): Path to the chain file</span>
+<span class="sd">            max_difference (int, optional): The maximum tolerated difference in the resulting length. Defaults to 100.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">chain_file</span> <span class="o">=</span> <span class="n">chain_file</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_difference</span> <span class="o">=</span> <span class="n">max_difference</span>
+
+        <span class="c1"># Initializing liftover object by opening the chain file - LiftOver only supports local files:</span>
+        <span class="k">if</span> <span class="n">chain_file</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;gs://&quot;</span><span class="p">):</span>
+            <span class="n">bucket_name</span> <span class="o">=</span> <span class="n">chain_file</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)[</span><span class="mi">2</span><span class="p">]</span>
+            <span class="n">blob_name</span> <span class="o">=</span> <span class="s2">&quot;/&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">chain_file</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)[</span><span class="mi">3</span><span class="p">:])</span>
+            <span class="k">with</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">NamedTemporaryFile</span><span class="p">(</span><span class="n">delete</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="k">as</span> <span class="n">temp_file</span><span class="p">:</span>
+                <span class="n">storage</span><span class="o">.</span><span class="n">Client</span><span class="p">()</span><span class="o">.</span><span class="n">bucket</span><span class="p">(</span><span class="n">bucket_name</span><span class="p">)</span><span class="o">.</span><span class="n">blob</span><span class="p">(</span>
+                    <span class="n">blob_name</span>
+                <span class="p">)</span><span class="o">.</span><span class="n">download_to_filename</span><span class="p">(</span><span class="n">temp_file</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">lo</span> <span class="o">=</span> <span class="n">LiftOver</span><span class="p">(</span><span class="n">temp_file</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">lo</span> <span class="o">=</span> <span class="n">LiftOver</span><span class="p">(</span><span class="n">chain_file</span><span class="p">)</span>
+
+        <span class="c1"># UDF to do map genomic coordinates to liftover coordinates:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">liftover_udf</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">udf</span><span class="p">(</span>
+            <span class="k">lambda</span> <span class="n">chrom</span><span class="p">,</span> <span class="n">pos</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">lo</span><span class="o">.</span><span class="n">convert_coordinate</span><span class="p">(</span><span class="n">chrom</span><span class="p">,</span> <span class="n">pos</span><span class="p">),</span>
+            <span class="n">t</span><span class="o">.</span><span class="n">ArrayType</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">ArrayType</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">StringType</span><span class="p">())),</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">convert_intervals</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">:</span> <span class="n">LiftOverSpark</span><span class="p">,</span>
+        <span class="n">df</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span>
+        <span class="n">chrom_col</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">start_col</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">end_col</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="nb">filter</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Convert genomic intervals to liftover coordinates.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            df (DataFrame): spark Dataframe with chromosome, start and end columns.</span>
+<span class="sd">            chrom_col (str): Name of the chromosome column.</span>
+<span class="sd">            start_col (str): Name of the start column.</span>
+<span class="sd">            end_col (str): Name of the end column.</span>
+<span class="sd">            filter (bool): If True, filter is applied on the mapped data, otherwise return everything. Defaults to True.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            DataFrame: Liftovered intervals</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Lift over start coordinates, changing to 1-based coordinates:</span>
+        <span class="n">start_df</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">df</span><span class="o">.</span><span class="n">withColumn</span><span class="p">(</span><span class="n">start_col</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="n">start_col</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">chrom_col</span><span class="p">,</span> <span class="n">start_col</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">distinct</span><span class="p">()</span>
+        <span class="p">)</span>
+        <span class="n">start_df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">convert_coordinates</span><span class="p">(</span>
+            <span class="n">start_df</span><span class="p">,</span> <span class="n">chrom_col</span><span class="p">,</span> <span class="n">start_col</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">withColumnRenamed</span><span class="p">(</span><span class="s2">&quot;mapped_pos&quot;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;mapped_</span><span class="si">{</span><span class="n">start_col</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Lift over end coordinates:</span>
+        <span class="n">end_df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">chrom_col</span><span class="p">,</span> <span class="n">end_col</span><span class="p">)</span><span class="o">.</span><span class="n">distinct</span><span class="p">()</span>
+        <span class="n">end_df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">convert_coordinates</span><span class="p">(</span><span class="n">end_df</span><span class="p">,</span> <span class="n">chrom_col</span><span class="p">,</span> <span class="n">end_col</span><span class="p">)</span><span class="o">.</span><span class="n">withColumnRenamed</span><span class="p">(</span>
+            <span class="s2">&quot;mapped_pos&quot;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;mapped_</span><span class="si">{</span><span class="n">end_col</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Join dataframe with mappings (we have to account for the +1 position shift of the start coordinates):</span>
+        <span class="n">mapped_df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+            <span class="n">start_df</span><span class="o">.</span><span class="n">withColumn</span><span class="p">(</span><span class="n">start_col</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="n">start_col</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">),</span>
+            <span class="n">on</span><span class="o">=</span><span class="p">[</span><span class="n">chrom_col</span><span class="p">,</span> <span class="n">start_col</span><span class="p">],</span>
+            <span class="n">how</span><span class="o">=</span><span class="s2">&quot;left&quot;</span><span class="p">,</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">end_df</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="p">[</span><span class="n">chrom_col</span><span class="p">,</span> <span class="n">end_col</span><span class="p">],</span> <span class="n">how</span><span class="o">=</span><span class="s2">&quot;left&quot;</span><span class="p">)</span>
+
+        <span class="c1"># The filter option allows to get all the data and filter it afterwards.</span>
+        <span class="k">if</span> <span class="nb">filter</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">(</span>
+                <span class="n">mapped_df</span>
+                <span class="c1"># Select only rows where the start is smaller than the end:</span>
+                <span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+                    <span class="c1"># Drop rows with no mappings:</span>
+                    <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;mapped_</span><span class="si">{</span><span class="n">start_col</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">isNotNull</span><span class="p">()</span>
+                    <span class="o">&amp;</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;mapped_</span><span class="si">{</span><span class="n">end_col</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">isNotNull</span><span class="p">()</span>
+                    <span class="c1"># Drop rows where the start is larger than the end:</span>
+                    <span class="o">&amp;</span> <span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;mapped_</span><span class="si">{</span><span class="n">end_col</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;mapped_</span><span class="si">{</span><span class="n">start_col</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">))</span>
+                    <span class="c1"># Drop rows where the difference of the length of the regions are larger than the threshold:</span>
+                    <span class="o">&amp;</span> <span class="p">(</span>
+                        <span class="n">f</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span>
+                            <span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="n">end_col</span><span class="p">)</span> <span class="o">-</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="n">start_col</span><span class="p">))</span>
+                            <span class="o">-</span> <span class="p">(</span>
+                                <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;mapped_</span><span class="si">{</span><span class="n">end_col</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                                <span class="o">-</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;mapped_</span><span class="si">{</span><span class="n">start_col</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                            <span class="p">)</span>
+                        <span class="p">)</span>
+                        <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_difference</span>
+                    <span class="p">)</span>
+                <span class="p">)</span><span class="o">.</span><span class="n">persist</span><span class="p">()</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">mapped_df</span><span class="o">.</span><span class="n">persist</span><span class="p">()</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">convert_coordinates</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">:</span> <span class="n">LiftOverSpark</span><span class="p">,</span> <span class="n">df</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span> <span class="n">chrom_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">pos_name</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Converts genomic coordinates to coordinates on an other build.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            df (DataFrame): Spark Dataframe with chromosome and position columns.</span>
+<span class="sd">            chrom_name (str): Name of the chromosome column.</span>
+<span class="sd">            pos_name (str): Name of the position column.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            DataFrame: Spark Dataframe with the mapped position column.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">mapped</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">df</span><span class="o">.</span><span class="n">withColumn</span><span class="p">(</span>
+                <span class="s2">&quot;mapped&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">liftover_udf</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="n">chrom_name</span><span class="p">),</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="n">pos_name</span><span class="p">))</span>
+            <span class="p">)</span>
+            <span class="o">.</span><span class="n">filter</span><span class="p">((</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;mapped&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">isNotNull</span><span class="p">())</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;mapped&quot;</span><span class="p">))</span> <span class="o">==</span> <span class="mi">1</span><span class="p">))</span>
+            <span class="c1"># Extracting mapped corrdinates:</span>
+            <span class="o">.</span><span class="n">withColumn</span><span class="p">(</span><span class="s2">&quot;mapped_&quot;</span> <span class="o">+</span> <span class="n">chrom_name</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;mapped&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
+            <span class="o">.</span><span class="n">withColumn</span><span class="p">(</span><span class="s2">&quot;mapped_&quot;</span> <span class="o">+</span> <span class="n">pos_name</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;mapped&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">])</span>
+            <span class="c1"># Drop rows that mapped to the other chromosomes:</span>
+            <span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;mapped_&quot;</span> <span class="o">+</span> <span class="n">chrom_name</span><span class="p">)</span>
+                <span class="o">==</span> <span class="n">f</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="s2">&quot;chr&quot;</span><span class="p">),</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="n">chrom_name</span><span class="p">))</span>
+            <span class="p">)</span>
+            <span class="c1"># Dropping unused columns:</span>
+            <span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="s2">&quot;mapped&quot;</span><span class="p">,</span> <span class="s2">&quot;mapped_&quot;</span> <span class="o">+</span> <span class="n">chrom_name</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">persist</span><span class="p">()</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">mapped</span>
+</code></pre></div></td></tr></table></div>
+              </details>
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="gentropy.common.genomic_region.LiftOverSpark.__init__" class="doc doc-heading">
+            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">chain_file</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">max_difference</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span></code>
+
+<a href="#gentropy.common.genomic_region.LiftOverSpark.__init__" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Initialize the LiftOver object.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>chain_file</code>
+            </td>
+            <td>
+                  <code>str</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to the chain file</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>max_difference</code>
+            </td>
+            <td>
+                  <code>int</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The maximum tolerated difference in the resulting length. Defaults to 100.</p>
+              </div>
+            </td>
+            <td>
+                  <code>100</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+            <details class="quote">
+              <summary>Source code in <code>src/gentropy/common/genomic_region.py</code></summary>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">129</span>
+<span class="normal">130</span>
+<span class="normal">131</span>
+<span class="normal">132</span>
+<span class="normal">133</span>
+<span class="normal">134</span>
+<span class="normal">135</span>
+<span class="normal">136</span>
+<span class="normal">137</span>
+<span class="normal">138</span>
+<span class="normal">139</span>
+<span class="normal">140</span>
+<span class="normal">141</span>
+<span class="normal">142</span>
+<span class="normal">143</span>
+<span class="normal">144</span>
+<span class="normal">145</span>
+<span class="normal">146</span>
+<span class="normal">147</span>
+<span class="normal">148</span>
+<span class="normal">149</span>
+<span class="normal">150</span>
+<span class="normal">151</span>
+<span class="normal">152</span>
+<span class="normal">153</span>
+<span class="normal">154</span>
+<span class="normal">155</span>
+<span class="normal">156</span>
+<span class="normal">157</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+    <span class="bp">self</span><span class="p">:</span> <span class="n">LiftOverSpark</span><span class="p">,</span> <span class="n">chain_file</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">max_difference</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Initialize the LiftOver object.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        chain_file (str): Path to the chain file</span>
+<span class="sd">        max_difference (int, optional): The maximum tolerated difference in the resulting length. Defaults to 100.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">chain_file</span> <span class="o">=</span> <span class="n">chain_file</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">max_difference</span> <span class="o">=</span> <span class="n">max_difference</span>
+
+    <span class="c1"># Initializing liftover object by opening the chain file - LiftOver only supports local files:</span>
+    <span class="k">if</span> <span class="n">chain_file</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;gs://&quot;</span><span class="p">):</span>
+        <span class="n">bucket_name</span> <span class="o">=</span> <span class="n">chain_file</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)[</span><span class="mi">2</span><span class="p">]</span>
+        <span class="n">blob_name</span> <span class="o">=</span> <span class="s2">&quot;/&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">chain_file</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)[</span><span class="mi">3</span><span class="p">:])</span>
+        <span class="k">with</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">NamedTemporaryFile</span><span class="p">(</span><span class="n">delete</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="k">as</span> <span class="n">temp_file</span><span class="p">:</span>
+            <span class="n">storage</span><span class="o">.</span><span class="n">Client</span><span class="p">()</span><span class="o">.</span><span class="n">bucket</span><span class="p">(</span><span class="n">bucket_name</span><span class="p">)</span><span class="o">.</span><span class="n">blob</span><span class="p">(</span>
+                <span class="n">blob_name</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">download_to_filename</span><span class="p">(</span><span class="n">temp_file</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">lo</span> <span class="o">=</span> <span class="n">LiftOver</span><span class="p">(</span><span class="n">temp_file</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lo</span> <span class="o">=</span> <span class="n">LiftOver</span><span class="p">(</span><span class="n">chain_file</span><span class="p">)</span>
+
+    <span class="c1"># UDF to do map genomic coordinates to liftover coordinates:</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">liftover_udf</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">udf</span><span class="p">(</span>
+        <span class="k">lambda</span> <span class="n">chrom</span><span class="p">,</span> <span class="n">pos</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">lo</span><span class="o">.</span><span class="n">convert_coordinate</span><span class="p">(</span><span class="n">chrom</span><span class="p">,</span> <span class="n">pos</span><span class="p">),</span>
+        <span class="n">t</span><span class="o">.</span><span class="n">ArrayType</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">ArrayType</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">StringType</span><span class="p">())),</span>
+    <span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="gentropy.common.genomic_region.LiftOverSpark.convert_coordinates" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">convert_coordinates</span><span class="p">(</span><span class="n">df</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span> <span class="n">chrom_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">pos_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataFrame</span></code>
+
+<a href="#gentropy.common.genomic_region.LiftOverSpark.convert_coordinates" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Converts genomic coordinates to coordinates on an other build.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>df</code>
+            </td>
+            <td>
+                  <code><span title="pyspark.sql.DataFrame">DataFrame</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Spark Dataframe with chromosome and position columns.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>chrom_name</code>
+            </td>
+            <td>
+                  <code>str</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Name of the chromosome column.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>pos_name</code>
+            </td>
+            <td>
+                  <code>str</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Name of the position column.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>DataFrame</code></td>            <td>
+                  <code><span title="pyspark.sql.DataFrame">DataFrame</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Spark Dataframe with the mapped position column.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+            <details class="quote">
+              <summary>Source code in <code>src/gentropy/common/genomic_region.py</code></summary>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">229</span>
+<span class="normal">230</span>
+<span class="normal">231</span>
+<span class="normal">232</span>
+<span class="normal">233</span>
+<span class="normal">234</span>
+<span class="normal">235</span>
+<span class="normal">236</span>
+<span class="normal">237</span>
+<span class="normal">238</span>
+<span class="normal">239</span>
+<span class="normal">240</span>
+<span class="normal">241</span>
+<span class="normal">242</span>
+<span class="normal">243</span>
+<span class="normal">244</span>
+<span class="normal">245</span>
+<span class="normal">246</span>
+<span class="normal">247</span>
+<span class="normal">248</span>
+<span class="normal">249</span>
+<span class="normal">250</span>
+<span class="normal">251</span>
+<span class="normal">252</span>
+<span class="normal">253</span>
+<span class="normal">254</span>
+<span class="normal">255</span>
+<span class="normal">256</span>
+<span class="normal">257</span>
+<span class="normal">258</span>
+<span class="normal">259</span>
+<span class="normal">260</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">convert_coordinates</span><span class="p">(</span>
+    <span class="bp">self</span><span class="p">:</span> <span class="n">LiftOverSpark</span><span class="p">,</span> <span class="n">df</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span> <span class="n">chrom_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">pos_name</span><span class="p">:</span> <span class="nb">str</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Converts genomic coordinates to coordinates on an other build.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        df (DataFrame): Spark Dataframe with chromosome and position columns.</span>
+<span class="sd">        chrom_name (str): Name of the chromosome column.</span>
+<span class="sd">        pos_name (str): Name of the position column.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        DataFrame: Spark Dataframe with the mapped position column.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">mapped</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">df</span><span class="o">.</span><span class="n">withColumn</span><span class="p">(</span>
+            <span class="s2">&quot;mapped&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">liftover_udf</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="n">chrom_name</span><span class="p">),</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="n">pos_name</span><span class="p">))</span>
+        <span class="p">)</span>
+        <span class="o">.</span><span class="n">filter</span><span class="p">((</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;mapped&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">isNotNull</span><span class="p">())</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;mapped&quot;</span><span class="p">))</span> <span class="o">==</span> <span class="mi">1</span><span class="p">))</span>
+        <span class="c1"># Extracting mapped corrdinates:</span>
+        <span class="o">.</span><span class="n">withColumn</span><span class="p">(</span><span class="s2">&quot;mapped_&quot;</span> <span class="o">+</span> <span class="n">chrom_name</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;mapped&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
+        <span class="o">.</span><span class="n">withColumn</span><span class="p">(</span><span class="s2">&quot;mapped_&quot;</span> <span class="o">+</span> <span class="n">pos_name</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;mapped&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">])</span>
+        <span class="c1"># Drop rows that mapped to the other chromosomes:</span>
+        <span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;mapped_&quot;</span> <span class="o">+</span> <span class="n">chrom_name</span><span class="p">)</span>
+            <span class="o">==</span> <span class="n">f</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="s2">&quot;chr&quot;</span><span class="p">),</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="n">chrom_name</span><span class="p">))</span>
+        <span class="p">)</span>
+        <span class="c1"># Dropping unused columns:</span>
+        <span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="s2">&quot;mapped&quot;</span><span class="p">,</span> <span class="s2">&quot;mapped_&quot;</span> <span class="o">+</span> <span class="n">chrom_name</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">persist</span><span class="p">()</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">mapped</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="gentropy.common.genomic_region.LiftOverSpark.convert_intervals" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">convert_intervals</span><span class="p">(</span><span class="n">df</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span> <span class="n">chrom_col</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">start_col</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">end_col</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">filter</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataFrame</span></code>
+
+<a href="#gentropy.common.genomic_region.LiftOverSpark.convert_intervals" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Convert genomic intervals to liftover coordinates.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>df</code>
+            </td>
+            <td>
+                  <code><span title="pyspark.sql.DataFrame">DataFrame</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>spark Dataframe with chromosome, start and end columns.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>chrom_col</code>
+            </td>
+            <td>
+                  <code>str</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Name of the chromosome column.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>start_col</code>
+            </td>
+            <td>
+                  <code>str</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Name of the start column.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>end_col</code>
+            </td>
+            <td>
+                  <code>str</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Name of the end column.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>filter</code>
+            </td>
+            <td>
+                  <code>bool</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If True, filter is applied on the mapped data, otherwise return everything. Defaults to True.</p>
+              </div>
+            </td>
+            <td>
+                  <code>True</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>DataFrame</code></td>            <td>
+                  <code><span title="pyspark.sql.DataFrame">DataFrame</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Liftovered intervals</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+            <details class="quote">
+              <summary>Source code in <code>src/gentropy/common/genomic_region.py</code></summary>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">159</span>
+<span class="normal">160</span>
+<span class="normal">161</span>
+<span class="normal">162</span>
+<span class="normal">163</span>
+<span class="normal">164</span>
+<span class="normal">165</span>
+<span class="normal">166</span>
+<span class="normal">167</span>
+<span class="normal">168</span>
+<span class="normal">169</span>
+<span class="normal">170</span>
+<span class="normal">171</span>
+<span class="normal">172</span>
+<span class="normal">173</span>
+<span class="normal">174</span>
+<span class="normal">175</span>
+<span class="normal">176</span>
+<span class="normal">177</span>
+<span class="normal">178</span>
+<span class="normal">179</span>
+<span class="normal">180</span>
+<span class="normal">181</span>
+<span class="normal">182</span>
+<span class="normal">183</span>
+<span class="normal">184</span>
+<span class="normal">185</span>
+<span class="normal">186</span>
+<span class="normal">187</span>
+<span class="normal">188</span>
+<span class="normal">189</span>
+<span class="normal">190</span>
+<span class="normal">191</span>
+<span class="normal">192</span>
+<span class="normal">193</span>
+<span class="normal">194</span>
+<span class="normal">195</span>
+<span class="normal">196</span>
+<span class="normal">197</span>
+<span class="normal">198</span>
+<span class="normal">199</span>
+<span class="normal">200</span>
+<span class="normal">201</span>
+<span class="normal">202</span>
+<span class="normal">203</span>
+<span class="normal">204</span>
+<span class="normal">205</span>
+<span class="normal">206</span>
+<span class="normal">207</span>
+<span class="normal">208</span>
+<span class="normal">209</span>
+<span class="normal">210</span>
+<span class="normal">211</span>
+<span class="normal">212</span>
+<span class="normal">213</span>
+<span class="normal">214</span>
+<span class="normal">215</span>
+<span class="normal">216</span>
+<span class="normal">217</span>
+<span class="normal">218</span>
+<span class="normal">219</span>
+<span class="normal">220</span>
+<span class="normal">221</span>
+<span class="normal">222</span>
+<span class="normal">223</span>
+<span class="normal">224</span>
+<span class="normal">225</span>
+<span class="normal">226</span>
+<span class="normal">227</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">convert_intervals</span><span class="p">(</span>
+    <span class="bp">self</span><span class="p">:</span> <span class="n">LiftOverSpark</span><span class="p">,</span>
+    <span class="n">df</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span>
+    <span class="n">chrom_col</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">start_col</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">end_col</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="nb">filter</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Convert genomic intervals to liftover coordinates.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        df (DataFrame): spark Dataframe with chromosome, start and end columns.</span>
+<span class="sd">        chrom_col (str): Name of the chromosome column.</span>
+<span class="sd">        start_col (str): Name of the start column.</span>
+<span class="sd">        end_col (str): Name of the end column.</span>
+<span class="sd">        filter (bool): If True, filter is applied on the mapped data, otherwise return everything. Defaults to True.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        DataFrame: Liftovered intervals</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Lift over start coordinates, changing to 1-based coordinates:</span>
+    <span class="n">start_df</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">df</span><span class="o">.</span><span class="n">withColumn</span><span class="p">(</span><span class="n">start_col</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="n">start_col</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">chrom_col</span><span class="p">,</span> <span class="n">start_col</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">distinct</span><span class="p">()</span>
+    <span class="p">)</span>
+    <span class="n">start_df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">convert_coordinates</span><span class="p">(</span>
+        <span class="n">start_df</span><span class="p">,</span> <span class="n">chrom_col</span><span class="p">,</span> <span class="n">start_col</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">withColumnRenamed</span><span class="p">(</span><span class="s2">&quot;mapped_pos&quot;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;mapped_</span><span class="si">{</span><span class="n">start_col</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Lift over end coordinates:</span>
+    <span class="n">end_df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">chrom_col</span><span class="p">,</span> <span class="n">end_col</span><span class="p">)</span><span class="o">.</span><span class="n">distinct</span><span class="p">()</span>
+    <span class="n">end_df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">convert_coordinates</span><span class="p">(</span><span class="n">end_df</span><span class="p">,</span> <span class="n">chrom_col</span><span class="p">,</span> <span class="n">end_col</span><span class="p">)</span><span class="o">.</span><span class="n">withColumnRenamed</span><span class="p">(</span>
+        <span class="s2">&quot;mapped_pos&quot;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;mapped_</span><span class="si">{</span><span class="n">end_col</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="p">)</span>
+
+    <span class="c1"># Join dataframe with mappings (we have to account for the +1 position shift of the start coordinates):</span>
+    <span class="n">mapped_df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+        <span class="n">start_df</span><span class="o">.</span><span class="n">withColumn</span><span class="p">(</span><span class="n">start_col</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="n">start_col</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">),</span>
+        <span class="n">on</span><span class="o">=</span><span class="p">[</span><span class="n">chrom_col</span><span class="p">,</span> <span class="n">start_col</span><span class="p">],</span>
+        <span class="n">how</span><span class="o">=</span><span class="s2">&quot;left&quot;</span><span class="p">,</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">end_df</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="p">[</span><span class="n">chrom_col</span><span class="p">,</span> <span class="n">end_col</span><span class="p">],</span> <span class="n">how</span><span class="o">=</span><span class="s2">&quot;left&quot;</span><span class="p">)</span>
+
+    <span class="c1"># The filter option allows to get all the data and filter it afterwards.</span>
+    <span class="k">if</span> <span class="nb">filter</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="n">mapped_df</span>
+            <span class="c1"># Select only rows where the start is smaller than the end:</span>
+            <span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+                <span class="c1"># Drop rows with no mappings:</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;mapped_</span><span class="si">{</span><span class="n">start_col</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">isNotNull</span><span class="p">()</span>
+                <span class="o">&amp;</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;mapped_</span><span class="si">{</span><span class="n">end_col</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">isNotNull</span><span class="p">()</span>
+                <span class="c1"># Drop rows where the start is larger than the end:</span>
+                <span class="o">&amp;</span> <span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;mapped_</span><span class="si">{</span><span class="n">end_col</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;mapped_</span><span class="si">{</span><span class="n">start_col</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">))</span>
+                <span class="c1"># Drop rows where the difference of the length of the regions are larger than the threshold:</span>
+                <span class="o">&amp;</span> <span class="p">(</span>
+                    <span class="n">f</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span>
+                        <span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="n">end_col</span><span class="p">)</span> <span class="o">-</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="n">start_col</span><span class="p">))</span>
+                        <span class="o">-</span> <span class="p">(</span>
+                            <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;mapped_</span><span class="si">{</span><span class="n">end_col</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                            <span class="o">-</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;mapped_</span><span class="si">{</span><span class="n">start_col</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                        <span class="p">)</span>
+                    <span class="p">)</span>
+                    <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_difference</span>
+                <span class="p">)</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">persist</span><span class="p">()</span>
+        <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">mapped_df</span><span class="o">.</span><span class="n">persist</span><span class="p">()</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="gentropy.common.genomic_region.liftover_loci" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">gentropy</span><span class="o">.</span><span class="n">common</span><span class="o">.</span><span class="n">genomic_region</span><span class="o">.</span><span class="n">liftover_loci</span><span class="p">(</span><span class="n">variant_index</span><span class="p">:</span> <span class="n">Table</span><span class="p">,</span> <span class="n">chain_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">dest_reference_genome</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Table</span></code>
+
+<a href="#gentropy.common.genomic_region.liftover_loci" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+    <div class="doc doc-contents first">
+
+        <p>Liftover a Hail table containing variant information from GRCh37 to GRCh38 or vice versa.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>variant_index</code>
+            </td>
+            <td>
+                  <code><span title="hail.table.Table">Table</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Variants to be lifted over</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>chain_path</code>
+            </td>
+            <td>
+                  <code>str</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to chain file for liftover</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>dest_reference_genome</code>
+            </td>
+            <td>
+                  <code>str</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Destination reference genome. It can be either GRCh37 or GRCh38.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>Table</code></td>            <td>
+                  <code><span title="hail.table.Table">Table</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>LD variant index with coordinates in the new reference genome</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<details class="warning" open>
+  <summary>Warning</summary>
+  <p>This function assumes hail is initialized in Session.</p>
+</details>
+            <details class="quote">
+              <summary>Source code in <code>src/gentropy/common/genomic_region.py</code></summary>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">264</span>
+<span class="normal">265</span>
+<span class="normal">266</span>
+<span class="normal">267</span>
+<span class="normal">268</span>
+<span class="normal">269</span>
+<span class="normal">270</span>
+<span class="normal">271</span>
+<span class="normal">272</span>
+<span class="normal">273</span>
+<span class="normal">274</span>
+<span class="normal">275</span>
+<span class="normal">276</span>
+<span class="normal">277</span>
+<span class="normal">278</span>
+<span class="normal">279</span>
+<span class="normal">280</span>
+<span class="normal">281</span>
+<span class="normal">282</span>
+<span class="normal">283</span>
+<span class="normal">284</span>
+<span class="normal">285</span>
+<span class="normal">286</span>
+<span class="normal">287</span>
+<span class="normal">288</span>
+<span class="normal">289</span>
+<span class="normal">290</span>
+<span class="normal">291</span>
+<span class="normal">292</span>
+<span class="normal">293</span>
+<span class="normal">294</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">liftover_loci</span><span class="p">(</span>
+    <span class="n">variant_index</span><span class="p">:</span> <span class="n">Table</span><span class="p">,</span> <span class="n">chain_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">dest_reference_genome</span><span class="p">:</span> <span class="nb">str</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Table</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Liftover a Hail table containing variant information from GRCh37 to GRCh38 or vice versa.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        variant_index (Table): Variants to be lifted over</span>
+<span class="sd">        chain_path (str): Path to chain file for liftover</span>
+<span class="sd">        dest_reference_genome (str): Destination reference genome. It can be either GRCh37 or GRCh38.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Table: LD variant index with coordinates in the new reference genome</span>
+
+<span class="sd">    Warning:</span>
+<span class="sd">        This function assumes hail is initialized in Session.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">hail</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">hl</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">hl</span><span class="o">.</span><span class="n">get_reference</span><span class="p">(</span><span class="s2">&quot;GRCh37&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">has_liftover</span><span class="p">(</span>
+        <span class="s2">&quot;GRCh38&quot;</span>
+    <span class="p">):</span>  <span class="c1"># True when a chain file has already been registered</span>
+        <span class="n">rg37</span> <span class="o">=</span> <span class="n">hl</span><span class="o">.</span><span class="n">get_reference</span><span class="p">(</span><span class="s2">&quot;GRCh37&quot;</span><span class="p">)</span>
+        <span class="n">rg38</span> <span class="o">=</span> <span class="n">hl</span><span class="o">.</span><span class="n">get_reference</span><span class="p">(</span><span class="s2">&quot;GRCh38&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">dest_reference_genome</span> <span class="o">==</span> <span class="s2">&quot;GRCh38&quot;</span><span class="p">:</span>
+            <span class="n">rg37</span><span class="o">.</span><span class="n">add_liftover</span><span class="p">(</span><span class="n">chain_path</span><span class="p">,</span> <span class="n">rg38</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">dest_reference_genome</span> <span class="o">==</span> <span class="s2">&quot;GRCh37&quot;</span><span class="p">:</span>
+            <span class="n">rg38</span><span class="o">.</span><span class="n">add_liftover</span><span class="p">(</span><span class="n">chain_path</span><span class="p">,</span> <span class="n">rg37</span><span class="p">)</span>
+    <span class="c1"># Dynamically create the new field with transmute</span>
+    <span class="n">new_locus</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;locus_</span><span class="si">{</span><span class="n">dest_reference_genome</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="k">return</span> <span class="n">variant_index</span><span class="o">.</span><span class="n">transmute</span><span class="p">(</span>
+        <span class="o">**</span><span class="p">{</span><span class="n">new_locus</span><span class="p">:</span> <span class="n">hl</span><span class="o">.</span><span class="n">liftover</span><span class="p">(</span><span class="n">variant_index</span><span class="o">.</span><span class="n">locus</span><span class="p">,</span> <span class="n">dest_reference_genome</span><span class="p">)}</span>
+    <span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
 </div>
 <hr />
 <div class="md-source-file">
@@ -4233,7 +5514,7 @@
         <span class="icon twemoji">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1-2.1-2M12.5 7v5.2l4 2.4-1 1L11 13V7h1.5M11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2v1.8Z"/></svg>
         </span>
-        <span class="label"> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2024-09-18T11:35:28+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2024-09-18</span> </span>
+        <span class="label"> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2025-07-08T15:33:12+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2025-07-08</span> </span>
       </li>
       
 
@@ -4245,6 +5526,22 @@
       </li>
       <li class="contributors-holder">
         <ul class="contributors" data-bi-name="contributors"><li>
+            <a
+              href="https://github.com/DSuveges"
+              title="DSuveges"
+              data-bi-name="contributorprofile"
+              target="_blank"
+              ><img src="https://avatars.githubusercontent.com/u/7122521?v=4" alt="DSuveges"
+            /></a>
+          </li><li>
+            <a
+              href="https://github.com/SzymonSzyszkowski"
+              title="SzymonSzyszkowski"
+              data-bi-name="contributorprofile"
+              target="_blank"
+              ><img src="https://avatars.githubusercontent.com/u/40652902?v=4" alt="SzymonSzyszkowski"
+            /></a>
+          </li><li>
             <a
               href="https://github.com/d0choa"
               title="d0choa"

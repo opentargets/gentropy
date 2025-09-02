@@ -9,10 +9,10 @@
       
       
       
-        <link rel="prev" href="../../command_line/run_step_using_config/">
+        <link rel="prev" href="../b_create_dataset/">
       
       
-        <link rel="next" href="../a_creating_spark_session/">
+        <link rel="next" href="../d_inspect_dataset/">
       
       
       <link rel="icon" href="../../../assets/imgs/favicon.png">
@@ -20,7 +20,7 @@
     
     
       
-        <title>Python API - Open Targets Gentropy</title>
+        <title>Applying methods - Open Targets Gentropy</title>
       
     
     
@@ -77,6 +77,11 @@
     <label class="md-overlay" for="__drawer"></label>
     <div data-md-component="skip">
       
+        
+        <a href="#apply-a-class-method" class="md-skip">
+          Skip to content
+        </a>
+      
     </div>
     <div data-md-component="announce">
       
@@ -108,7 +113,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Python API
+              Applying methods
             
           </span>
         </div>
@@ -491,7 +496,7 @@
         
   
   <span class="md-ellipsis">
-    Run step in CLI
+    Run step in cli
   </span>
   
 
@@ -512,7 +517,7 @@
         
   
   <span class="md-ellipsis">
-    Run step using YAML config
+    Run step using config
   </span>
   
 
@@ -554,18 +559,18 @@
           
           
           <div class="md-nav__link md-nav__container">
-            <a href="./" class="md-nav__link md-nav__link--active">
+            <a href="../_tutorials/" class="md-nav__link ">
               
   
   <span class="md-ellipsis">
-    Python api
+    Tutorials
   </span>
   
 
             </a>
             
               
-              <label class="md-nav__link md-nav__link--active" for="__nav_3_2" id="__nav_3_2_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_3_2" id="__nav_3_2_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
@@ -574,7 +579,7 @@
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_2_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_3_2">
             <span class="md-nav__icon md-icon"></span>
-            Python api
+            Tutorials
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
             
@@ -624,10 +629,28 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../c_applying_methods/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Applying methods
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   <span class="md-ellipsis">
@@ -636,6 +659,51 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#apply-a-class-method" class="md-nav__link">
+    <span class="md-ellipsis">
+      Apply a class method
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#apply-a-dataset-instance-method" class="md-nav__link">
+    <span class="md-ellipsis">
+      Apply a Dataset instance method
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#whats-next" class="md-nav__link">
+    <span class="md-ellipsis">
+      What's next?
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -875,7 +943,91 @@
         
   
   <span class="md-ellipsis">
-    Genomic Region
+    genomic_region
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../python_api/common/processing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    processing
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../python_api/common/session/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    session
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../python_api/common/spark/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    spark
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../python_api/common/stats/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    stats
   </span>
   
 
@@ -896,7 +1048,28 @@
         
   
   <span class="md-ellipsis">
-    Literal Types
+    types
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../python_api/common/udf/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    udf
   </span>
   
 
@@ -3282,6 +3455,41 @@
   
   
   
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#apply-a-class-method" class="md-nav__link">
+    <span class="md-ellipsis">
+      Apply a class method
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#apply-a-dataset-instance-method" class="md-nav__link">
+    <span class="md-ellipsis">
+      Apply a Dataset instance method
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#whats-next" class="md-nav__link">
+    <span class="md-ellipsis">
+      What's next?
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
 </nav>
                   </div>
                 </div>
@@ -3298,9 +3506,37 @@
   
 
 
-  <h1>Python api</h1>
+  <h1>Applying methods</h1>
 
-<p>This section explains how to use gentropy in a Python environment providing a foundational understanding on how to perform genetics analyses using the package. This section can be useful for users wishing to use Gentropy in their own projects.</p>
+<p>The available methods implement well established algorithms that transform and analyse data. Methods usually take as input predefined <code>Dataset</code>(s) and produce one or several <code>Dataset</code>(s) as output. This section explains how to apply methods to your data.</p>
+<p>The full list of available methods can be found in the Python API <a href="../../../python_api/methods/_methods/">documentation</a>.</p>
+<h2 id="apply-a-class-method">Apply a class method<a class="headerlink" href="#apply-a-class-method" title="Permanent link">&para;</a></h2>
+<p>Some methods are implemented as class methods. For example, the <code>finemap</code> method is a class method of the <a href="../../../python_api/methods/pics/"><code>PICS</code></a> class. This method performs fine-mapping using the PICS algorithm. These methods usually take as input one or several <code>Dataset</code>(s) and produce one or several <code>Dataset</code>(s) as output.</p>
+<div class="language-python highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">gentropy.method.pics</span><span class="w"> </span><span class="kn">import</span> <span class="n">PICS</span>
+
+<span class="n">finemapped_study_locus</span> <span class="o">=</span> <span class="n">PICS</span><span class="o">.</span><span class="n">finemap</span><span class="p">(</span>
+    <span class="n">study_locus_ld_annotated</span>
+<span class="p">)</span><span class="o">.</span><span class="n">annotate_credible_sets</span><span class="p">()</span>
+</code></pre></div>
+<h2 id="apply-a-dataset-instance-method">Apply a <code>Dataset</code> instance method<a class="headerlink" href="#apply-a-dataset-instance-method" title="Permanent link">&para;</a></h2>
+<p>Some methods are implemented as instance methods of the <code>Dataset</code> class. For example, the <code>window_based_clumping</code> method is an instance method of the <code>SummaryStatistics</code> class. This method performs window-based clumping on summary statistics.</p>
+<div class="language-python highlight"><pre><span></span><code><span class="c1"># Perform window-based clumping on summary statistics</span>
+<span class="c1"># By default, the method uses a 1Mb window and a p-value threshold of 5e-8</span>
+<span class="n">clumped_summary_statistics</span> <span class="o">=</span> <span class="n">summary_stats</span><span class="o">.</span><span class="n">window_based_clumping</span><span class="p">()</span>
+</code></pre></div>
+<div class="admonition info">
+<p class="admonition-title">The <code>window_based_clumping</code> method is also available as a class method</p>
+<p>The <code>window_based_clumping</code> method is also available as a class method of the <code>WindowBasedClumping</code> class. This method performs window-based clumping on summary statistics.</p>
+<div class="language-python highlight"><pre><span></span><code><span class="c1"># Perform window-based clumping on summary statistics</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">gentropy.method.window_based_clumping</span><span class="w"> </span><span class="kn">import</span> <span class="n">WindowBasedClumping</span>
+
+<span class="n">clumped_summary_statistics</span> <span class="o">=</span> <span class="n">WindowBasedClumping</span><span class="o">.</span><span class="n">clump</span><span class="p">(</span>
+    <span class="n">summary_stats</span><span class="p">,</span> <span class="n">distance</span><span class="o">=</span><span class="mi">250_000</span>
+<span class="p">)</span>
+</code></pre></div>
+</div>
+<h2 id="whats-next">What's next?<a class="headerlink" href="#whats-next" title="Permanent link">&para;</a></h2>
+<p>Up next, we'll show you how to inspect your data to ensure its integrity and the success of your transformations.</p>
 <hr />
 <div class="md-source-file">
   <small>
@@ -3336,19 +3572,19 @@
       <li class="contributors-holder">
         <ul class="contributors" data-bi-name="contributors"><li>
             <a
-              href="https://github.com/ireneisdoomed"
-              title="ireneisdoomed"
+              href="https://github.com/DSuveges"
+              title="DSuveges"
               data-bi-name="contributorprofile"
               target="_blank"
-              ><img src="https://avatars.githubusercontent.com/u/45119610?v=4" alt="ireneisdoomed"
+              ><img src="https://avatars.githubusercontent.com/u/7122521?v=4" alt="DSuveges"
             /></a>
           </li><li>
             <a
-              href="https://github.com/web-flow"
-              title="web-flow"
+              href="https://github.com/SzymonSzyszkowski"
+              title="SzymonSzyszkowski"
               data-bi-name="contributorprofile"
               target="_blank"
-              ><img src="https://avatars.githubusercontent.com/u/19864447?v=4" alt="web-flow"
+              ><img src="https://avatars.githubusercontent.com/u/40652902?v=4" alt="SzymonSzyszkowski"
             /></a>
           </li></ul>
       </li>

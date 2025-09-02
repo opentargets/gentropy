@@ -491,7 +491,7 @@
         
   
   <span class="md-ellipsis">
-    Run step in CLI
+    Run step in cli
   </span>
   
 
@@ -512,7 +512,7 @@
         
   
   <span class="md-ellipsis">
-    Run step using YAML config
+    Run step using config
   </span>
   
 
@@ -552,11 +552,11 @@
           
           
           <div class="md-nav__link md-nav__container">
-            <a href="../../../howto/python_api/_python_api/" class="md-nav__link ">
+            <a href="../../../howto/tutorials/_tutorials/" class="md-nav__link ">
               
   
   <span class="md-ellipsis">
-    Python api
+    Tutorials
   </span>
   
 
@@ -572,7 +572,7 @@
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_2_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_3_2">
             <span class="md-nav__icon md-icon"></span>
-            Python api
+            Tutorials
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
             
@@ -583,7 +583,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../howto/python_api/a_creating_spark_session/" class="md-nav__link">
+      <a href="../../../howto/tutorials/a_creating_spark_session/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -604,7 +604,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../howto/python_api/b_create_dataset/" class="md-nav__link">
+      <a href="../../../howto/tutorials/b_create_dataset/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -625,7 +625,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../howto/python_api/c_applying_methods/" class="md-nav__link">
+      <a href="../../../howto/tutorials/c_applying_methods/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -646,7 +646,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../howto/python_api/d_inspect_dataset/" class="md-nav__link">
+      <a href="../../../howto/tutorials/d_inspect_dataset/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -878,7 +878,91 @@
         
   
   <span class="md-ellipsis">
-    Genomic Region
+    genomic_region
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../common/processing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    processing
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../common/session/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    session
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../common/spark/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    spark
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../common/stats/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    stats
   </span>
   
 
@@ -899,7 +983,28 @@
         
   
   <span class="md-ellipsis">
-    Literal Types
+    types
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../common/udf/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    udf
   </span>
   
 
@@ -3618,7 +3723,7 @@
 
               <details class="quote">
                 <summary>Source code in <code>src/gentropy/l2g.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 29</span>
+                <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 29</span>
 <span class="normal"> 30</span>
 <span class="normal"> 31</span>
 <span class="normal"> 32</span>
@@ -3701,7 +3806,11 @@
 <span class="normal">109</span>
 <span class="normal">110</span>
 <span class="normal">111</span>
-<span class="normal">112</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">LocusToGeneFeatureMatrixStep</span><span class="p">:</span>
+<span class="normal">112</span>
+<span class="normal">113</span>
+<span class="normal">114</span>
+<span class="normal">115</span>
+<span class="normal">116</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">LocusToGeneFeatureMatrixStep</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Annotate credible set with functional genomics features.&quot;&quot;&quot;</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
@@ -3715,6 +3824,7 @@
         <span class="n">study_index_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">target_index_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">feature_matrix_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">append_null_features</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialise the step and run the logic based on mode.</span>
 
@@ -3727,6 +3837,7 @@
 <span class="sd">            study_index_path (str | None): Path to the study index dataset</span>
 <span class="sd">            target_index_path (str | None): Path to the target index dataset</span>
 <span class="sd">            feature_matrix_path (str): Path to the L2G feature matrix output dataset</span>
+<span class="sd">            append_null_features (bool): Whether to append null features to the feature matrix. Defaults to False.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">credible_set</span> <span class="o">=</span> <span class="n">StudyLocus</span><span class="o">.</span><span class="n">from_parquet</span><span class="p">(</span>
             <span class="n">session</span><span class="p">,</span> <span class="n">credible_set_path</span><span class="p">,</span> <span class="n">recursiveFileLookup</span><span class="o">=</span><span class="kc">True</span>
@@ -3765,7 +3876,9 @@
         <span class="p">)</span>
 
         <span class="n">fm</span> <span class="o">=</span> <span class="n">credible_set</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;studyType&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;gwas&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">build_feature_matrix</span><span class="p">(</span>
-            <span class="n">features_list</span><span class="p">,</span> <span class="n">features_input_loader</span>
+            <span class="n">features_list</span><span class="p">,</span>
+            <span class="n">features_input_loader</span><span class="p">,</span>
+            <span class="n">append_null_features</span><span class="o">=</span><span class="n">append_null_features</span><span class="p">,</span>
         <span class="p">)</span>
 
         <span class="k">if</span> <span class="n">target_index</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -3804,7 +3917,7 @@
 
 
 <h3 id="gentropy.l2g.LocusToGeneFeatureMatrixStep.__init__" class="doc doc-heading">
-            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">session</span><span class="p">:</span> <span class="n">Session</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">features_list</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">credible_set_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">variant_index_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">colocalisation_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">study_index_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">target_index_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">feature_matrix_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span></code>
+            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">session</span><span class="p">:</span> <span class="n">Session</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">features_list</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">credible_set_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">variant_index_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">colocalisation_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">study_index_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">target_index_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">feature_matrix_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">append_null_features</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span></code>
 
 <a href="#gentropy.l2g.LocusToGeneFeatureMatrixStep.__init__" class="headerlink" title="Permanent link">&para;</a></h3>
 
@@ -3830,7 +3943,7 @@
                 <code>session</code>
             </td>
             <td>
-                  <code><span title="gentropy.common.session.Session">Session</span></code>
+                  <code><a class="autorefs autorefs-internal" title="gentropy.common.session.Session" href="../../common/session/#gentropy.common.session.Session">Session</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3953,12 +4066,28 @@
                 <em>required</em>
             </td>
           </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>append_null_features</code>
+            </td>
+            <td>
+                  <code>bool</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Whether to append null features to the feature matrix. Defaults to False.</p>
+              </div>
+            </td>
+            <td>
+                  <code>False</code>
+            </td>
+          </tr>
       </tbody>
     </table>
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/l2g.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 32</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 32</span>
 <span class="normal"> 33</span>
 <span class="normal"> 34</span>
 <span class="normal"> 35</span>
@@ -4038,7 +4167,11 @@
 <span class="normal">109</span>
 <span class="normal">110</span>
 <span class="normal">111</span>
-<span class="normal">112</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+<span class="normal">112</span>
+<span class="normal">113</span>
+<span class="normal">114</span>
+<span class="normal">115</span>
+<span class="normal">116</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
     <span class="n">session</span><span class="p">:</span> <span class="n">Session</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
@@ -4049,6 +4182,7 @@
     <span class="n">study_index_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">target_index_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">feature_matrix_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">append_null_features</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Initialise the step and run the logic based on mode.</span>
 
@@ -4061,6 +4195,7 @@
 <span class="sd">        study_index_path (str | None): Path to the study index dataset</span>
 <span class="sd">        target_index_path (str | None): Path to the target index dataset</span>
 <span class="sd">        feature_matrix_path (str): Path to the L2G feature matrix output dataset</span>
+<span class="sd">        append_null_features (bool): Whether to append null features to the feature matrix. Defaults to False.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">credible_set</span> <span class="o">=</span> <span class="n">StudyLocus</span><span class="o">.</span><span class="n">from_parquet</span><span class="p">(</span>
         <span class="n">session</span><span class="p">,</span> <span class="n">credible_set_path</span><span class="p">,</span> <span class="n">recursiveFileLookup</span><span class="o">=</span><span class="kc">True</span>
@@ -4099,7 +4234,9 @@
     <span class="p">)</span>
 
     <span class="n">fm</span> <span class="o">=</span> <span class="n">credible_set</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;studyType&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;gwas&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">build_feature_matrix</span><span class="p">(</span>
-        <span class="n">features_list</span><span class="p">,</span> <span class="n">features_input_loader</span>
+        <span class="n">features_list</span><span class="p">,</span>
+        <span class="n">features_input_loader</span><span class="p">,</span>
+        <span class="n">append_null_features</span><span class="o">=</span><span class="n">append_null_features</span><span class="p">,</span>
     <span class="p">)</span>
 
     <span class="k">if</span> <span class="n">target_index</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -4156,11 +4293,7 @@
 
               <details class="quote">
                 <summary>Source code in <code>src/gentropy/l2g.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">115</span>
-<span class="normal">116</span>
-<span class="normal">117</span>
-<span class="normal">118</span>
-<span class="normal">119</span>
+                <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">119</span>
 <span class="normal">120</span>
 <span class="normal">121</span>
 <span class="normal">122</span>
@@ -4428,7 +4561,22 @@
 <span class="normal">384</span>
 <span class="normal">385</span>
 <span class="normal">386</span>
-<span class="normal">387</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">LocusToGeneStep</span><span class="p">:</span>
+<span class="normal">387</span>
+<span class="normal">388</span>
+<span class="normal">389</span>
+<span class="normal">390</span>
+<span class="normal">391</span>
+<span class="normal">392</span>
+<span class="normal">393</span>
+<span class="normal">394</span>
+<span class="normal">395</span>
+<span class="normal">396</span>
+<span class="normal">397</span>
+<span class="normal">398</span>
+<span class="normal">399</span>
+<span class="normal">400</span>
+<span class="normal">401</span>
+<span class="normal">402</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">LocusToGeneStep</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Locus to gene step.&quot;&quot;&quot;</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
@@ -4547,10 +4695,16 @@
             <span class="k">case</span> <span class="p">{</span><span class="o">**</span><span class="n">extra</span><span class="p">}</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">extra</span><span class="p">:</span>
                 <span class="c1"># Schema is the same as L2GGoldStandard - load the GS</span>
                 <span class="c1"># NOTE: match to empty dict will be non-selective</span>
-                <span class="c1"># see https://stackoverflow.com/questions/75389166/how-to-match-an-empty-dictionary</span>
-                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Successfully parsed gold standard.&quot;</span><span class="p">)</span>
+                <span class="c1"># see https://stackoverflow.com/questions/75389166/how-to-match-an-empty-dictionary                logging.info(&quot;Successfully parsed gold standard.&quot;)</span>
                 <span class="k">return</span> <span class="n">L2GGoldStandard</span><span class="p">(</span>
                     <span class="n">_df</span><span class="o">=</span><span class="n">gold_standard</span><span class="p">,</span>
+                    <span class="n">_schema</span><span class="o">=</span><span class="n">L2GGoldStandard</span><span class="o">.</span><span class="n">get_schema</span><span class="p">(),</span>
+                <span class="p">)</span>
+            <span class="k">case</span> <span class="p">{</span><span class="s2">&quot;unexpected_columns&quot;</span><span class="p">:</span> <span class="n">extra_columns</span><span class="p">}:</span>
+                <span class="c1"># All mandatory columns present, extra columns are allowed but not passed to the L2GGoldStandard object</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Successfully parsed gold standard with extra columns.&quot;</span><span class="p">)</span>
+                <span class="k">return</span> <span class="n">L2GGoldStandard</span><span class="p">(</span>
+                    <span class="n">_df</span><span class="o">=</span><span class="n">gold_standard</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="o">*</span><span class="n">extra_columns</span><span class="p">),</span>
                     <span class="n">_schema</span><span class="o">=</span><span class="n">L2GGoldStandard</span><span class="o">.</span><span class="n">get_schema</span><span class="p">(),</span>
                 <span class="p">)</span>
             <span class="k">case</span> <span class="p">{</span>
@@ -4628,7 +4782,7 @@
                 <span class="bp">self</span><span class="o">.</span><span class="n">feature_matrix</span><span class="p">,</span>
                 <span class="n">model_path</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">model_path</span><span class="p">,</span>
                 <span class="n">features_list</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">features_list</span><span class="p">,</span>
-                <span class="n">hf_token</span><span class="o">=</span><span class="n">access_gcp_secret</span><span class="p">(</span><span class="s2">&quot;hfhub-key&quot;</span><span class="p">,</span> <span class="s2">&quot;open-targets-genetics-dev&quot;</span><span class="p">),</span>
+                <span class="n">hf_token</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_hf_token</span><span class="p">(),</span>
                 <span class="n">hf_model_version</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">hf_model_version</span><span class="p">,</span>
                 <span class="n">download_from_hub</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">download_from_hub</span><span class="p">,</span>
             <span class="p">)</span>
@@ -4643,6 +4797,11 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">write_mode</span>
         <span class="p">)</span><span class="o">.</span><span class="n">parquet</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">predictions_path</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;L2G predictions saved successfully.&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_hf_token</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">download_from_hub</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">access_gcp_secret</span><span class="p">(</span><span class="s2">&quot;hfhub-key&quot;</span><span class="p">,</span> <span class="s2">&quot;open-targets-genetics-dev&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">None</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">run_train</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Run the training step.</span>
@@ -4659,7 +4818,7 @@
 
         <span class="c1"># Instantiate classifier and train model</span>
         <span class="n">l2g_model</span> <span class="o">=</span> <span class="n">LocusToGeneModel</span><span class="p">(</span>
-            <span class="n">model</span><span class="o">=</span><span class="n">GradientBoostingClassifier</span><span class="p">(</span><span class="n">random_state</span><span class="o">=</span><span class="mi">42</span><span class="p">,</span> <span class="n">loss</span><span class="o">=</span><span class="s2">&quot;log_loss&quot;</span><span class="p">),</span>
+            <span class="n">model</span><span class="o">=</span><span class="n">XGBClassifier</span><span class="p">(</span><span class="n">random_state</span><span class="o">=</span><span class="mi">777</span><span class="p">,</span> <span class="n">eval_metric</span><span class="o">=</span><span class="s2">&quot;aucpr&quot;</span><span class="p">),</span>
             <span class="n">hyperparameters</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">hyperparameters</span><span class="p">,</span>
             <span class="n">features_list</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">features_list</span><span class="p">,</span>
         <span class="p">)</span>
@@ -4683,7 +4842,7 @@
                     <span class="c1"># we upload the model saved in the filesystem</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">model_path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span>
                     <span class="n">hf_hub_token</span><span class="p">,</span>
-                    <span class="n">data</span><span class="o">=</span><span class="n">trained_model</span><span class="o">.</span><span class="n">training_data</span><span class="o">.</span><span class="n">_df</span><span class="o">.</span><span class="n">toPandas</span><span class="p">(),</span>
+                    <span class="n">feature_matrix</span><span class="o">=</span><span class="n">trained_model</span><span class="o">.</span><span class="n">training_data</span><span class="p">,</span>
                     <span class="n">repo_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">hf_hub_repo_id</span><span class="p">,</span>
                     <span class="n">commit_message</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">hf_model_commit_message</span><span class="p">,</span>
                 <span class="p">)</span>
@@ -4746,7 +4905,7 @@
                 <code>session</code>
             </td>
             <td>
-                  <code><span title="gentropy.common.session.Session">Session</span></code>
+                  <code><a class="autorefs autorefs-internal" title="gentropy.common.session.Session" href="../../common/session/#gentropy.common.session.Session">Session</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5073,11 +5232,7 @@
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/l2g.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">118</span>
-<span class="normal">119</span>
-<span class="normal">120</span>
-<span class="normal">121</span>
-<span class="normal">122</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">122</span>
 <span class="normal">123</span>
 <span class="normal">124</span>
 <span class="normal">125</span>
@@ -5161,7 +5316,11 @@
 <span class="normal">203</span>
 <span class="normal">204</span>
 <span class="normal">205</span>
-<span class="normal">206</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+<span class="normal">206</span>
+<span class="normal">207</span>
+<span class="normal">208</span>
+<span class="normal">209</span>
+<span class="normal">210</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
     <span class="n">session</span><span class="p">:</span> <span class="n">Session</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
@@ -5328,11 +5487,7 @@ parsing OTG gold standard but missing interactions and variant index paths.</p>
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/l2g.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">208</span>
-<span class="normal">209</span>
-<span class="normal">210</span>
-<span class="normal">211</span>
-<span class="normal">212</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">212</span>
 <span class="normal">213</span>
 <span class="normal">214</span>
 <span class="normal">215</span>
@@ -5418,7 +5573,17 @@ parsing OTG gold standard but missing interactions and variant index paths.</p>
 <span class="normal">295</span>
 <span class="normal">296</span>
 <span class="normal">297</span>
-<span class="normal">298</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">prepare_gold_standard</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">L2GGoldStandard</span><span class="p">:</span>
+<span class="normal">298</span>
+<span class="normal">299</span>
+<span class="normal">300</span>
+<span class="normal">301</span>
+<span class="normal">302</span>
+<span class="normal">303</span>
+<span class="normal">304</span>
+<span class="normal">305</span>
+<span class="normal">306</span>
+<span class="normal">307</span>
+<span class="normal">308</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">prepare_gold_standard</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">L2GGoldStandard</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Prepare the gold standard for training.</span>
 
 <span class="sd">    Returns:</span>
@@ -5444,10 +5609,16 @@ parsing OTG gold standard but missing interactions and variant index paths.</p>
         <span class="k">case</span> <span class="p">{</span><span class="o">**</span><span class="n">extra</span><span class="p">}</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">extra</span><span class="p">:</span>
             <span class="c1"># Schema is the same as L2GGoldStandard - load the GS</span>
             <span class="c1"># NOTE: match to empty dict will be non-selective</span>
-            <span class="c1"># see https://stackoverflow.com/questions/75389166/how-to-match-an-empty-dictionary</span>
-            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Successfully parsed gold standard.&quot;</span><span class="p">)</span>
+            <span class="c1"># see https://stackoverflow.com/questions/75389166/how-to-match-an-empty-dictionary                logging.info(&quot;Successfully parsed gold standard.&quot;)</span>
             <span class="k">return</span> <span class="n">L2GGoldStandard</span><span class="p">(</span>
                 <span class="n">_df</span><span class="o">=</span><span class="n">gold_standard</span><span class="p">,</span>
+                <span class="n">_schema</span><span class="o">=</span><span class="n">L2GGoldStandard</span><span class="o">.</span><span class="n">get_schema</span><span class="p">(),</span>
+            <span class="p">)</span>
+        <span class="k">case</span> <span class="p">{</span><span class="s2">&quot;unexpected_columns&quot;</span><span class="p">:</span> <span class="n">extra_columns</span><span class="p">}:</span>
+            <span class="c1"># All mandatory columns present, extra columns are allowed but not passed to the L2GGoldStandard object</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Successfully parsed gold standard with extra columns.&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">L2GGoldStandard</span><span class="p">(</span>
+                <span class="n">_df</span><span class="o">=</span><span class="n">gold_standard</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="o">*</span><span class="n">extra_columns</span><span class="p">),</span>
                 <span class="n">_schema</span><span class="o">=</span><span class="n">L2GGoldStandard</span><span class="o">.</span><span class="n">get_schema</span><span class="p">(),</span>
             <span class="p">)</span>
         <span class="k">case</span> <span class="p">{</span>
@@ -5553,17 +5724,7 @@ parsing OTG gold standard but missing interactions and variant index paths.</p>
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/l2g.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">300</span>
-<span class="normal">301</span>
-<span class="normal">302</span>
-<span class="normal">303</span>
-<span class="normal">304</span>
-<span class="normal">305</span>
-<span class="normal">306</span>
-<span class="normal">307</span>
-<span class="normal">308</span>
-<span class="normal">309</span>
-<span class="normal">310</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">310</span>
 <span class="normal">311</span>
 <span class="normal">312</span>
 <span class="normal">313</span>
@@ -5582,7 +5743,17 @@ parsing OTG gold standard but missing interactions and variant index paths.</p>
 <span class="normal">326</span>
 <span class="normal">327</span>
 <span class="normal">328</span>
-<span class="normal">329</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">run_predict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="normal">329</span>
+<span class="normal">330</span>
+<span class="normal">331</span>
+<span class="normal">332</span>
+<span class="normal">333</span>
+<span class="normal">334</span>
+<span class="normal">335</span>
+<span class="normal">336</span>
+<span class="normal">337</span>
+<span class="normal">338</span>
+<span class="normal">339</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">run_predict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Run the prediction step.</span>
 
 <span class="sd">    Raises:</span>
@@ -5597,7 +5768,7 @@ parsing OTG gold standard but missing interactions and variant index paths.</p>
             <span class="bp">self</span><span class="o">.</span><span class="n">feature_matrix</span><span class="p">,</span>
             <span class="n">model_path</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">model_path</span><span class="p">,</span>
             <span class="n">features_list</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">features_list</span><span class="p">,</span>
-            <span class="n">hf_token</span><span class="o">=</span><span class="n">access_gcp_secret</span><span class="p">(</span><span class="s2">&quot;hfhub-key&quot;</span><span class="p">,</span> <span class="s2">&quot;open-targets-genetics-dev&quot;</span><span class="p">),</span>
+            <span class="n">hf_token</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_hf_token</span><span class="p">(),</span>
             <span class="n">hf_model_version</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">hf_model_version</span><span class="p">,</span>
             <span class="n">download_from_hub</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">download_from_hub</span><span class="p">,</span>
         <span class="p">)</span>
@@ -5656,22 +5827,7 @@ parsing OTG gold standard but missing interactions and variant index paths.</p>
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/l2g.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">331</span>
-<span class="normal">332</span>
-<span class="normal">333</span>
-<span class="normal">334</span>
-<span class="normal">335</span>
-<span class="normal">336</span>
-<span class="normal">337</span>
-<span class="normal">338</span>
-<span class="normal">339</span>
-<span class="normal">340</span>
-<span class="normal">341</span>
-<span class="normal">342</span>
-<span class="normal">343</span>
-<span class="normal">344</span>
-<span class="normal">345</span>
-<span class="normal">346</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">346</span>
 <span class="normal">347</span>
 <span class="normal">348</span>
 <span class="normal">349</span>
@@ -5698,7 +5854,22 @@ parsing OTG gold standard but missing interactions and variant index paths.</p>
 <span class="normal">370</span>
 <span class="normal">371</span>
 <span class="normal">372</span>
-<span class="normal">373</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">run_train</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="normal">373</span>
+<span class="normal">374</span>
+<span class="normal">375</span>
+<span class="normal">376</span>
+<span class="normal">377</span>
+<span class="normal">378</span>
+<span class="normal">379</span>
+<span class="normal">380</span>
+<span class="normal">381</span>
+<span class="normal">382</span>
+<span class="normal">383</span>
+<span class="normal">384</span>
+<span class="normal">385</span>
+<span class="normal">386</span>
+<span class="normal">387</span>
+<span class="normal">388</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">run_train</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Run the training step.</span>
 
 <span class="sd">    Raises:</span>
@@ -5713,7 +5884,7 @@ parsing OTG gold standard but missing interactions and variant index paths.</p>
 
     <span class="c1"># Instantiate classifier and train model</span>
     <span class="n">l2g_model</span> <span class="o">=</span> <span class="n">LocusToGeneModel</span><span class="p">(</span>
-        <span class="n">model</span><span class="o">=</span><span class="n">GradientBoostingClassifier</span><span class="p">(</span><span class="n">random_state</span><span class="o">=</span><span class="mi">42</span><span class="p">,</span> <span class="n">loss</span><span class="o">=</span><span class="s2">&quot;log_loss&quot;</span><span class="p">),</span>
+        <span class="n">model</span><span class="o">=</span><span class="n">XGBClassifier</span><span class="p">(</span><span class="n">random_state</span><span class="o">=</span><span class="mi">777</span><span class="p">,</span> <span class="n">eval_metric</span><span class="o">=</span><span class="s2">&quot;aucpr&quot;</span><span class="p">),</span>
         <span class="n">hyperparameters</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">hyperparameters</span><span class="p">,</span>
         <span class="n">features_list</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">features_list</span><span class="p">,</span>
     <span class="p">)</span>
@@ -5737,7 +5908,7 @@ parsing OTG gold standard but missing interactions and variant index paths.</p>
                 <span class="c1"># we upload the model saved in the filesystem</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">model_path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span>
                 <span class="n">hf_hub_token</span><span class="p">,</span>
-                <span class="n">data</span><span class="o">=</span><span class="n">trained_model</span><span class="o">.</span><span class="n">training_data</span><span class="o">.</span><span class="n">_df</span><span class="o">.</span><span class="n">toPandas</span><span class="p">(),</span>
+                <span class="n">feature_matrix</span><span class="o">=</span><span class="n">trained_model</span><span class="o">.</span><span class="n">training_data</span><span class="p">,</span>
                 <span class="n">repo_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">hf_hub_repo_id</span><span class="p">,</span>
                 <span class="n">commit_message</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">hf_model_commit_message</span><span class="p">,</span>
             <span class="p">)</span>
@@ -5778,22 +5949,7 @@ parsing OTG gold standard but missing interactions and variant index paths.</p>
 
               <details class="quote">
                 <summary>Source code in <code>src/gentropy/l2g.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">390</span>
-<span class="normal">391</span>
-<span class="normal">392</span>
-<span class="normal">393</span>
-<span class="normal">394</span>
-<span class="normal">395</span>
-<span class="normal">396</span>
-<span class="normal">397</span>
-<span class="normal">398</span>
-<span class="normal">399</span>
-<span class="normal">400</span>
-<span class="normal">401</span>
-<span class="normal">402</span>
-<span class="normal">403</span>
-<span class="normal">404</span>
-<span class="normal">405</span>
+                <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">405</span>
 <span class="normal">406</span>
 <span class="normal">407</span>
 <span class="normal">408</span>
@@ -5819,7 +5975,22 @@ parsing OTG gold standard but missing interactions and variant index paths.</p>
 <span class="normal">428</span>
 <span class="normal">429</span>
 <span class="normal">430</span>
-<span class="normal">431</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">LocusToGeneEvidenceStep</span><span class="p">:</span>
+<span class="normal">431</span>
+<span class="normal">432</span>
+<span class="normal">433</span>
+<span class="normal">434</span>
+<span class="normal">435</span>
+<span class="normal">436</span>
+<span class="normal">437</span>
+<span class="normal">438</span>
+<span class="normal">439</span>
+<span class="normal">440</span>
+<span class="normal">441</span>
+<span class="normal">442</span>
+<span class="normal">443</span>
+<span class="normal">444</span>
+<span class="normal">445</span>
+<span class="normal">446</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">LocusToGeneEvidenceStep</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Locus to gene evidence step.&quot;&quot;&quot;</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
@@ -5906,7 +6077,7 @@ parsing OTG gold standard but missing interactions and variant index paths.</p>
                 <code>session</code>
             </td>
             <td>
-                  <code><span title="gentropy.common.session.Session">Session</span></code>
+                  <code><a class="autorefs autorefs-internal" title="gentropy.common.session.Session" href="../../common/session/#gentropy.common.session.Session">Session</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -6002,22 +6173,7 @@ parsing OTG gold standard but missing interactions and variant index paths.</p>
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/l2g.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">393</span>
-<span class="normal">394</span>
-<span class="normal">395</span>
-<span class="normal">396</span>
-<span class="normal">397</span>
-<span class="normal">398</span>
-<span class="normal">399</span>
-<span class="normal">400</span>
-<span class="normal">401</span>
-<span class="normal">402</span>
-<span class="normal">403</span>
-<span class="normal">404</span>
-<span class="normal">405</span>
-<span class="normal">406</span>
-<span class="normal">407</span>
-<span class="normal">408</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">408</span>
 <span class="normal">409</span>
 <span class="normal">410</span>
 <span class="normal">411</span>
@@ -6040,7 +6196,22 @@ parsing OTG gold standard but missing interactions and variant index paths.</p>
 <span class="normal">428</span>
 <span class="normal">429</span>
 <span class="normal">430</span>
-<span class="normal">431</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+<span class="normal">431</span>
+<span class="normal">432</span>
+<span class="normal">433</span>
+<span class="normal">434</span>
+<span class="normal">435</span>
+<span class="normal">436</span>
+<span class="normal">437</span>
+<span class="normal">438</span>
+<span class="normal">439</span>
+<span class="normal">440</span>
+<span class="normal">441</span>
+<span class="normal">442</span>
+<span class="normal">443</span>
+<span class="normal">444</span>
+<span class="normal">445</span>
+<span class="normal">446</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
     <span class="n">session</span><span class="p">:</span> <span class="n">Session</span><span class="p">,</span>
     <span class="n">locus_to_gene_predictions_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
@@ -6116,22 +6287,7 @@ parsing OTG gold standard but missing interactions and variant index paths.</p>
 
               <details class="quote">
                 <summary>Source code in <code>src/gentropy/l2g.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">434</span>
-<span class="normal">435</span>
-<span class="normal">436</span>
-<span class="normal">437</span>
-<span class="normal">438</span>
-<span class="normal">439</span>
-<span class="normal">440</span>
-<span class="normal">441</span>
-<span class="normal">442</span>
-<span class="normal">443</span>
-<span class="normal">444</span>
-<span class="normal">445</span>
-<span class="normal">446</span>
-<span class="normal">447</span>
-<span class="normal">448</span>
-<span class="normal">449</span>
+                <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">449</span>
 <span class="normal">450</span>
 <span class="normal">451</span>
 <span class="normal">452</span>
@@ -6174,7 +6330,22 @@ parsing OTG gold standard but missing interactions and variant index paths.</p>
 <span class="normal">489</span>
 <span class="normal">490</span>
 <span class="normal">491</span>
-<span class="normal">492</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">LocusToGeneAssociationsStep</span><span class="p">:</span>
+<span class="normal">492</span>
+<span class="normal">493</span>
+<span class="normal">494</span>
+<span class="normal">495</span>
+<span class="normal">496</span>
+<span class="normal">497</span>
+<span class="normal">498</span>
+<span class="normal">499</span>
+<span class="normal">500</span>
+<span class="normal">501</span>
+<span class="normal">502</span>
+<span class="normal">503</span>
+<span class="normal">504</span>
+<span class="normal">505</span>
+<span class="normal">506</span>
+<span class="normal">507</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">LocusToGeneAssociationsStep</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Locus to gene associations step.&quot;&quot;&quot;</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
@@ -6278,7 +6449,7 @@ parsing OTG gold standard but missing interactions and variant index paths.</p>
                 <code>session</code>
             </td>
             <td>
-                  <code><span title="gentropy.common.session.Session">Session</span></code>
+                  <code><a class="autorefs autorefs-internal" title="gentropy.common.session.Session" href="../../common/session/#gentropy.common.session.Session">Session</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -6358,22 +6529,7 @@ parsing OTG gold standard but missing interactions and variant index paths.</p>
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/l2g.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">437</span>
-<span class="normal">438</span>
-<span class="normal">439</span>
-<span class="normal">440</span>
-<span class="normal">441</span>
-<span class="normal">442</span>
-<span class="normal">443</span>
-<span class="normal">444</span>
-<span class="normal">445</span>
-<span class="normal">446</span>
-<span class="normal">447</span>
-<span class="normal">448</span>
-<span class="normal">449</span>
-<span class="normal">450</span>
-<span class="normal">451</span>
-<span class="normal">452</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">452</span>
 <span class="normal">453</span>
 <span class="normal">454</span>
 <span class="normal">455</span>
@@ -6413,7 +6569,22 @@ parsing OTG gold standard but missing interactions and variant index paths.</p>
 <span class="normal">489</span>
 <span class="normal">490</span>
 <span class="normal">491</span>
-<span class="normal">492</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+<span class="normal">492</span>
+<span class="normal">493</span>
+<span class="normal">494</span>
+<span class="normal">495</span>
+<span class="normal">496</span>
+<span class="normal">497</span>
+<span class="normal">498</span>
+<span class="normal">499</span>
+<span class="normal">500</span>
+<span class="normal">501</span>
+<span class="normal">502</span>
+<span class="normal">503</span>
+<span class="normal">504</span>
+<span class="normal">505</span>
+<span class="normal">506</span>
+<span class="normal">507</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
     <span class="n">session</span><span class="p">:</span> <span class="n">Session</span><span class="p">,</span>
     <span class="n">evidence_input_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>

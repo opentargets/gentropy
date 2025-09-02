@@ -491,7 +491,7 @@
         
   
   <span class="md-ellipsis">
-    Run step in CLI
+    Run step in cli
   </span>
   
 
@@ -512,7 +512,7 @@
         
   
   <span class="md-ellipsis">
-    Run step using YAML config
+    Run step using config
   </span>
   
 
@@ -552,11 +552,11 @@
           
           
           <div class="md-nav__link md-nav__container">
-            <a href="../../../../howto/python_api/_python_api/" class="md-nav__link ">
+            <a href="../../../../howto/tutorials/_tutorials/" class="md-nav__link ">
               
   
   <span class="md-ellipsis">
-    Python api
+    Tutorials
   </span>
   
 
@@ -572,7 +572,7 @@
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_2_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_3_2">
             <span class="md-nav__icon md-icon"></span>
-            Python api
+            Tutorials
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
             
@@ -583,7 +583,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../howto/python_api/a_creating_spark_session/" class="md-nav__link">
+      <a href="../../../../howto/tutorials/a_creating_spark_session/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -604,7 +604,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../howto/python_api/b_create_dataset/" class="md-nav__link">
+      <a href="../../../../howto/tutorials/b_create_dataset/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -625,7 +625,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../howto/python_api/c_applying_methods/" class="md-nav__link">
+      <a href="../../../../howto/tutorials/c_applying_methods/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -646,7 +646,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../howto/python_api/d_inspect_dataset/" class="md-nav__link">
+      <a href="../../../../howto/tutorials/d_inspect_dataset/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -878,7 +878,91 @@
         
   
   <span class="md-ellipsis">
-    Genomic Region
+    genomic_region
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../common/processing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    processing
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../common/session/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    session
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../common/spark/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    spark
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../common/stats/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    stats
   </span>
   
 
@@ -899,7 +983,28 @@
         
   
   <span class="md-ellipsis">
-    Literal Types
+    types
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../common/udf/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    udf
   </span>
   
 
@@ -3428,7 +3533,7 @@
 
               <details class="quote">
                 <summary>Source code in <code>src/gentropy/datasource/gwas_catalog/summary_statistics.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 56</span>
+                <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 56</span>
 <span class="normal"> 57</span>
 <span class="normal"> 58</span>
 <span class="normal"> 59</span>
@@ -3581,7 +3686,9 @@
 <span class="normal">206</span>
 <span class="normal">207</span>
 <span class="normal">208</span>
-<span class="normal">209</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
+<span class="normal">209</span>
+<span class="normal">210</span>
+<span class="normal">211</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">GWASCatalogSummaryStatistics</span><span class="p">(</span><span class="n">SummaryStatistics</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;GWAS Catalog Summary Statistics reader.&quot;&quot;&quot;</span>
 
@@ -3634,9 +3741,9 @@
 
         <span class="c1"># Parsing p-value (get a tuple with mantissa and exponent):</span>
         <span class="n">p_value_expression</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="n">parse_pvalue</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;p_value&quot;</span><span class="p">))</span>
+            <span class="n">split_pvalue_column</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;p_value&quot;</span><span class="p">))</span>
             <span class="k">if</span> <span class="s2">&quot;p_value&quot;</span> <span class="ow">in</span> <span class="n">sumstats_df</span><span class="o">.</span><span class="n">columns</span>
-            <span class="k">else</span> <span class="n">neglog_pvalue_to_mantissa_and_exponent</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;neg_log_10_p_value&quot;</span><span class="p">))</span>
+            <span class="k">else</span> <span class="n">pvalue_from_neglogpval</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;neg_log_10_p_value&quot;</span><span class="p">))</span>
         <span class="p">)</span>
 
         <span class="c1"># The effect allele frequency is an optional column, we have to test if it is there:</span>
@@ -3708,11 +3815,13 @@
                 <span class="o">*</span><span class="n">p_value_expression</span><span class="p">,</span>
                 <span class="c1"># Converting/calculating effect and confidence interval:</span>
                 <span class="o">*</span><span class="n">normalise_gwas_statistics</span><span class="p">(</span>
-                    <span class="n">beta_expression</span><span class="p">,</span>
-                    <span class="n">odds_ratio_expression</span><span class="p">,</span>
-                    <span class="n">standard_error</span><span class="p">,</span>
-                    <span class="n">ci_upper</span><span class="p">,</span>
-                    <span class="n">ci_lower</span><span class="p">,</span>
+                    <span class="n">beta</span><span class="o">=</span><span class="n">beta_expression</span><span class="p">,</span>
+                    <span class="n">odds_ratio</span><span class="o">=</span><span class="n">odds_ratio_expression</span><span class="p">,</span>
+                    <span class="n">standard_error</span><span class="o">=</span><span class="n">standard_error</span><span class="p">,</span>
+                    <span class="n">ci_upper</span><span class="o">=</span><span class="n">ci_upper</span><span class="p">,</span>
+                    <span class="n">ci_lower</span><span class="o">=</span><span class="n">ci_lower</span><span class="p">,</span>
+                    <span class="n">mantissa</span><span class="o">=</span><span class="n">p_value_expression</span><span class="o">.</span><span class="n">mantissa</span><span class="p">,</span>
+                    <span class="n">exponent</span><span class="o">=</span><span class="n">p_value_expression</span><span class="o">.</span><span class="n">exponent</span><span class="p">,</span>
                 <span class="p">),</span>
                 <span class="n">allele_frequency</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;effectAlleleFrequencyFromSource&quot;</span><span class="p">),</span>
                 <span class="n">sample_size</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;sampleSize&quot;</span><span class="p">),</span>
@@ -3841,7 +3950,7 @@ both formats.</p>
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/datasource/gwas_catalog/summary_statistics.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 60</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 60</span>
 <span class="normal"> 61</span>
 <span class="normal"> 62</span>
 <span class="normal"> 63</span>
@@ -3990,7 +4099,9 @@ both formats.</p>
 <span class="normal">206</span>
 <span class="normal">207</span>
 <span class="normal">208</span>
-<span class="normal">209</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
+<span class="normal">209</span>
+<span class="normal">210</span>
+<span class="normal">211</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">from_gwas_harmonized_summary_stats</span><span class="p">(</span>
     <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">GWASCatalogSummaryStatistics</span><span class="p">],</span>
     <span class="n">spark</span><span class="p">:</span> <span class="n">SparkSession</span><span class="p">,</span>
@@ -4039,9 +4150,9 @@ both formats.</p>
 
     <span class="c1"># Parsing p-value (get a tuple with mantissa and exponent):</span>
     <span class="n">p_value_expression</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">parse_pvalue</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;p_value&quot;</span><span class="p">))</span>
+        <span class="n">split_pvalue_column</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;p_value&quot;</span><span class="p">))</span>
         <span class="k">if</span> <span class="s2">&quot;p_value&quot;</span> <span class="ow">in</span> <span class="n">sumstats_df</span><span class="o">.</span><span class="n">columns</span>
-        <span class="k">else</span> <span class="n">neglog_pvalue_to_mantissa_and_exponent</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;neg_log_10_p_value&quot;</span><span class="p">))</span>
+        <span class="k">else</span> <span class="n">pvalue_from_neglogpval</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;neg_log_10_p_value&quot;</span><span class="p">))</span>
     <span class="p">)</span>
 
     <span class="c1"># The effect allele frequency is an optional column, we have to test if it is there:</span>
@@ -4113,11 +4224,13 @@ both formats.</p>
             <span class="o">*</span><span class="n">p_value_expression</span><span class="p">,</span>
             <span class="c1"># Converting/calculating effect and confidence interval:</span>
             <span class="o">*</span><span class="n">normalise_gwas_statistics</span><span class="p">(</span>
-                <span class="n">beta_expression</span><span class="p">,</span>
-                <span class="n">odds_ratio_expression</span><span class="p">,</span>
-                <span class="n">standard_error</span><span class="p">,</span>
-                <span class="n">ci_upper</span><span class="p">,</span>
-                <span class="n">ci_lower</span><span class="p">,</span>
+                <span class="n">beta</span><span class="o">=</span><span class="n">beta_expression</span><span class="p">,</span>
+                <span class="n">odds_ratio</span><span class="o">=</span><span class="n">odds_ratio_expression</span><span class="p">,</span>
+                <span class="n">standard_error</span><span class="o">=</span><span class="n">standard_error</span><span class="p">,</span>
+                <span class="n">ci_upper</span><span class="o">=</span><span class="n">ci_upper</span><span class="p">,</span>
+                <span class="n">ci_lower</span><span class="o">=</span><span class="n">ci_lower</span><span class="p">,</span>
+                <span class="n">mantissa</span><span class="o">=</span><span class="n">p_value_expression</span><span class="o">.</span><span class="n">mantissa</span><span class="p">,</span>
+                <span class="n">exponent</span><span class="o">=</span><span class="n">p_value_expression</span><span class="o">.</span><span class="n">exponent</span><span class="p">,</span>
             <span class="p">),</span>
             <span class="n">allele_frequency</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;effectAlleleFrequencyFromSource&quot;</span><span class="p">),</span>
             <span class="n">sample_size</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;sampleSize&quot;</span><span class="p">),</span>

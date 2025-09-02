@@ -9,7 +9,7 @@
       
       
       
-        <link rel="prev" href="../_python_api/">
+        <link rel="prev" href="../_tutorials/">
       
       
         <link rel="next" href="../b_create_dataset/">
@@ -496,7 +496,7 @@
         
   
   <span class="md-ellipsis">
-    Run step in CLI
+    Run step in cli
   </span>
   
 
@@ -517,7 +517,7 @@
         
   
   <span class="md-ellipsis">
-    Run step using YAML config
+    Run step using config
   </span>
   
 
@@ -559,11 +559,11 @@
           
           
           <div class="md-nav__link md-nav__container">
-            <a href="../_python_api/" class="md-nav__link ">
+            <a href="../_tutorials/" class="md-nav__link ">
               
   
   <span class="md-ellipsis">
-    Python api
+    Tutorials
   </span>
   
 
@@ -579,7 +579,7 @@
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_2_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_3_2">
             <span class="md-nav__icon md-icon"></span>
-            Python api
+            Tutorials
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
             
@@ -958,7 +958,91 @@
         
   
   <span class="md-ellipsis">
-    Genomic Region
+    genomic_region
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../python_api/common/processing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    processing
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../python_api/common/session/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    session
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../python_api/common/spark/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    spark
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../python_api/common/stats/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    stats
   </span>
   
 
@@ -979,7 +1063,28 @@
         
   
   <span class="md-ellipsis">
-    Literal Types
+    types
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../python_api/common/udf/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    udf
   </span>
   
 
@@ -3436,7 +3541,7 @@
 <p>In this section, we'll guide you through creating a Spark session using Gentropy's Session class. Gentropy uses <em>Apache PySpark</em> as the underlying framework for distributed computing. The Session class provides a convenient way to initialize a Spark session with pre-configured settings.</p>
 <h2 id="creating-a-default-session">Creating a Default Session<a class="headerlink" href="#creating-a-default-session" title="Permanent link">&para;</a></h2>
 <p>To begin your journey with Gentropy, start by creating a default Spark session. This is the simplest way to initialize your environment.</p>
-<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">gentropy.common.session</span><span class="w"> </span><span class="kn">import</span> <span class="n">Session</span>
+<div class="language-python highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">gentropy</span><span class="w"> </span><span class="kn">import</span> <span class="n">Session</span>
 
 <span class="c1"># Create a default Spark Session</span>
 <span class="n">session</span> <span class="o">=</span> <span class="n">Session</span><span class="p">()</span>
@@ -3446,7 +3551,7 @@
 <p>Gentropy allows you to customize the Spark session to suit your specific needs. You can modify various parameters such as memory allocation, number of executors, and more. This flexibility is particularly useful for optimizing performance in steps that are more computationally intensive.</p>
 <h3 id="example-increasing-driver-memory">Example: Increasing Driver Memory<a class="headerlink" href="#example-increasing-driver-memory" title="Permanent link">&para;</a></h3>
 <p>If you require more memory for the Spark driver, you can easily adjust this setting:</p>
-<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">gentropy.common.session</span><span class="w"> </span><span class="kn">import</span> <span class="n">Session</span>
+<div class="language-python highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">gentropy</span><span class="w"> </span><span class="kn">import</span> <span class="n">Session</span>
 
 <span class="c1"># Create a Spark session with increased driver memory</span>
 <span class="n">session</span> <span class="o">=</span> <span class="n">Session</span><span class="p">(</span><span class="n">extended_spark_conf</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;spark.driver.memory&quot;</span><span class="p">:</span> <span class="s2">&quot;4g&quot;</span><span class="p">})</span>
@@ -3489,19 +3594,19 @@
       <li class="contributors-holder">
         <ul class="contributors" data-bi-name="contributors"><li>
             <a
-              href="https://github.com/ireneisdoomed"
-              title="ireneisdoomed"
+              href="https://github.com/DSuveges"
+              title="DSuveges"
               data-bi-name="contributorprofile"
               target="_blank"
-              ><img src="https://avatars.githubusercontent.com/u/45119610?v=4" alt="ireneisdoomed"
+              ><img src="https://avatars.githubusercontent.com/u/7122521?v=4" alt="DSuveges"
             /></a>
           </li><li>
             <a
-              href="https://github.com/web-flow"
-              title="web-flow"
+              href="https://github.com/SzymonSzyszkowski"
+              title="SzymonSzyszkowski"
               data-bi-name="contributorprofile"
               target="_blank"
-              ><img src="https://avatars.githubusercontent.com/u/19864447?v=4" alt="web-flow"
+              ><img src="https://avatars.githubusercontent.com/u/40652902?v=4" alt="SzymonSzyszkowski"
             /></a>
           </li></ul>
       </li>
