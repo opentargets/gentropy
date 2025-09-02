@@ -13,12 +13,12 @@ jobs:
       fail-fast: false
       matrix:
         python-version: ["3.10", "3.11", "3.12"]
-        os: [ubuntu-latest, macos-latest] # macos-latest is arm64
+        os: [ubuntu-latest, ubuntu-22.04-arm] # macos-latest is arm64
         exclude:
           # Run the tests for arm64 just for python3.12
-          - os: macos-latest
+          - os: ubuntu-22.04-arm
             python-version: "3.10"
-          - os: macos-latest
+          - os: ubuntu-22.04-arm
             python-version: "3.11"
     steps:
       - uses: actions/checkout@v4
