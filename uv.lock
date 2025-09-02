@@ -2,12 +2,30 @@ version = 1
 revision = 1
 requires-python = ">=3.10, <3.13"
 resolution-markers = [
-    "python_full_version >= '3.12' and sys_platform == 'linux'",
-    "python_full_version >= '3.12' and sys_platform != 'linux'",
-    "python_full_version == '3.11.*' and sys_platform == 'linux'",
-    "python_full_version == '3.11.*' and sys_platform != 'linux'",
-    "python_full_version < '3.11' and sys_platform == 'linux'",
-    "python_full_version < '3.11' and sys_platform != 'linux'",
+    "python_full_version >= '3.12' and platform_machine == 'arm64' and sys_platform == 'linux'",
+    "python_full_version >= '3.12' and platform_machine == 'aarc64' and sys_platform == 'linux'",
+    "python_full_version >= '3.12' and platform_machine == 'aarch64' and sys_platform == 'linux'",
+    "python_full_version >= '3.12' and platform_machine != 'aarc64' and platform_machine != 'aarch64' and platform_machine != 'arm64' and sys_platform == 'linux'",
+    "python_full_version >= '3.12' and platform_machine == 'arm64' and sys_platform != 'linux'",
+    "python_full_version >= '3.12' and platform_machine == 'aarc64' and sys_platform != 'linux'",
+    "python_full_version >= '3.12' and platform_machine == 'aarch64' and sys_platform != 'linux'",
+    "python_full_version >= '3.12' and platform_machine != 'aarc64' and platform_machine != 'aarch64' and platform_machine != 'arm64' and sys_platform != 'linux'",
+    "python_full_version == '3.11.*' and platform_machine == 'arm64' and sys_platform == 'linux'",
+    "python_full_version == '3.11.*' and platform_machine == 'aarc64' and sys_platform == 'linux'",
+    "python_full_version == '3.11.*' and platform_machine == 'aarch64' and sys_platform == 'linux'",
+    "python_full_version == '3.11.*' and platform_machine != 'aarc64' and platform_machine != 'aarch64' and platform_machine != 'arm64' and sys_platform == 'linux'",
+    "python_full_version == '3.11.*' and platform_machine == 'arm64' and sys_platform != 'linux'",
+    "python_full_version == '3.11.*' and platform_machine == 'aarc64' and sys_platform != 'linux'",
+    "python_full_version == '3.11.*' and platform_machine == 'aarch64' and sys_platform != 'linux'",
+    "python_full_version == '3.11.*' and platform_machine != 'aarc64' and platform_machine != 'aarch64' and platform_machine != 'arm64' and sys_platform != 'linux'",
+    "python_full_version < '3.11' and platform_machine == 'arm64' and sys_platform == 'linux'",
+    "python_full_version < '3.11' and platform_machine == 'aarc64' and sys_platform == 'linux'",
+    "python_full_version < '3.11' and platform_machine == 'aarch64' and sys_platform == 'linux'",
+    "python_full_version < '3.11' and platform_machine != 'aarc64' and platform_machine != 'aarch64' and platform_machine != 'arm64' and sys_platform == 'linux'",
+    "python_full_version < '3.11' and platform_machine == 'arm64' and sys_platform != 'linux'",
+    "python_full_version < '3.11' and platform_machine == 'aarc64' and sys_platform != 'linux'",
+    "python_full_version < '3.11' and platform_machine == 'aarch64' and sys_platform != 'linux'",
+    "python_full_version < '3.11' and platform_machine != 'aarc64' and platform_machine != 'aarch64' and platform_machine != 'arm64' and sys_platform != 'linux'",
 ]
 
 [[package]]
@@ -944,7 +962,7 @@ dependencies = [
     { name = "skops" },
     { name = "typing-extensions" },
     { name = "wandb" },
-    { name = "xgboost", marker = "platform_machine == 'aarc64' or platform_machine == 'arm64'" },
+    { name = "xgboost", marker = "platform_machine == 'aarc64' or platform_machine == 'aarch64' or platform_machine == 'arm64'" },
     { name = "xgboost-cpu", marker = "platform_machine == 'amd64'" },
 ]
 
@@ -1005,6 +1023,7 @@ requires-dist = [
     { name = "typing-extensions", specifier = ">=4.12.2,<4.15.0" },
     { name = "wandb", specifier = ">=0.19.4,<0.22.0" },
     { name = "xgboost", marker = "platform_machine == 'aarc64' or platform_machine == 'arm64'", specifier = ">=3.0.4" },
+    { name = "xgboost", marker = "platform_machine == 'aarch64' or platform_machine == 'arm64'", specifier = ">=3.0.4" },
     { name = "xgboost-cpu", marker = "platform_machine == 'amd64'", specifier = ">=3.0.4" },
 ]
 
@@ -1087,10 +1106,22 @@ name = "google-api-core"
 version = "2.10.2"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
-    "python_full_version >= '3.12' and sys_platform == 'linux'",
-    "python_full_version >= '3.12' and sys_platform != 'linux'",
-    "python_full_version == '3.11.*' and sys_platform == 'linux'",
-    "python_full_version == '3.11.*' and sys_platform != 'linux'",
+    "python_full_version >= '3.12' and platform_machine == 'arm64' and sys_platform == 'linux'",
+    "python_full_version >= '3.12' and platform_machine == 'aarc64' and sys_platform == 'linux'",
+    "python_full_version >= '3.12' and platform_machine == 'aarch64' and sys_platform == 'linux'",
+    "python_full_version >= '3.12' and platform_machine != 'aarc64' and platform_machine != 'aarch64' and platform_machine != 'arm64' and sys_platform == 'linux'",
+    "python_full_version >= '3.12' and platform_machine == 'arm64' and sys_platform != 'linux'",
+    "python_full_version >= '3.12' and platform_machine == 'aarc64' and sys_platform != 'linux'",
+    "python_full_version >= '3.12' and platform_machine == 'aarch64' and sys_platform != 'linux'",
+    "python_full_version >= '3.12' and platform_machine != 'aarc64' and platform_machine != 'aarch64' and platform_machine != 'arm64' and sys_platform != 'linux'",
+    "python_full_version == '3.11.*' and platform_machine == 'arm64' and sys_platform == 'linux'",
+    "python_full_version == '3.11.*' and platform_machine == 'aarc64' and sys_platform == 'linux'",
+    "python_full_version == '3.11.*' and platform_machine == 'aarch64' and sys_platform == 'linux'",
+    "python_full_version == '3.11.*' and platform_machine != 'aarc64' and platform_machine != 'aarch64' and platform_machine != 'arm64' and sys_platform == 'linux'",
+    "python_full_version == '3.11.*' and platform_machine == 'arm64' and sys_platform != 'linux'",
+    "python_full_version == '3.11.*' and platform_machine == 'aarc64' and sys_platform != 'linux'",
+    "python_full_version == '3.11.*' and platform_machine == 'aarch64' and sys_platform != 'linux'",
+    "python_full_version == '3.11.*' and platform_machine != 'aarc64' and platform_machine != 'aarch64' and platform_machine != 'arm64' and sys_platform != 'linux'",
 ]
 dependencies = [
     { name = "google-auth", marker = "python_full_version >= '3.11'" },
@@ -1114,8 +1145,14 @@ name = "google-api-core"
 version = "2.24.0"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
-    "python_full_version < '3.11' and sys_platform == 'linux'",
-    "python_full_version < '3.11' and sys_platform != 'linux'",
+    "python_full_version < '3.11' and platform_machine == 'arm64' and sys_platform == 'linux'",
+    "python_full_version < '3.11' and platform_machine == 'aarc64' and sys_platform == 'linux'",
+    "python_full_version < '3.11' and platform_machine == 'aarch64' and sys_platform == 'linux'",
+    "python_full_version < '3.11' and platform_machine != 'aarc64' and platform_machine != 'aarch64' and platform_machine != 'arm64' and sys_platform == 'linux'",
+    "python_full_version < '3.11' and platform_machine == 'arm64' and sys_platform != 'linux'",
+    "python_full_version < '3.11' and platform_machine == 'aarc64' and sys_platform != 'linux'",
+    "python_full_version < '3.11' and platform_machine == 'aarch64' and sys_platform != 'linux'",
+    "python_full_version < '3.11' and platform_machine != 'aarc64' and platform_machine != 'aarch64' and platform_machine != 'arm64' and sys_platform != 'linux'",
 ]
 dependencies = [
     { name = "google-auth", marker = "python_full_version < '3.11'" },
@@ -4017,9 +4054,9 @@ name = "xgboost"
 version = "3.0.4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "numpy" },
-    { name = "nvidia-nccl-cu12", marker = "platform_machine != 'aarch64' and sys_platform == 'linux'" },
-    { name = "scipy" },
+    { name = "numpy", marker = "platform_machine == 'aarc64' or platform_machine == 'aarch64' or platform_machine == 'arm64'" },
+    { name = "nvidia-nccl-cu12", marker = "(platform_machine == 'aarc64' and sys_platform == 'linux') or (platform_machine == 'arm64' and sys_platform == 'linux')" },
+    { name = "scipy", marker = "platform_machine == 'aarc64' or platform_machine == 'aarch64' or platform_machine == 'arm64'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/47/a8/b64be2bbfa4f1f086c9d7186cac8f9c0d6fe624189327c5ac1d1fbd1d650/xgboost-3.0.4.tar.gz", hash = "sha256:498e79e545a9f85f372c03cdaf55357ddeec88d67a9b0c0608696ce05c681268", size = 1159631 }
 wheels = [
@@ -4033,8 +4070,8 @@ name = "xgboost-cpu"
 version = "3.0.4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "numpy" },
-    { name = "scipy" },
+    { name = "numpy", marker = "platform_machine != 'aarc64' and platform_machine != 'aarch64' and platform_machine != 'arm64'" },
+    { name = "scipy", marker = "platform_machine != 'aarc64' and platform_machine != 'aarch64' and platform_machine != 'arm64'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/b2/01/fa50f1562c09625f576b5a111902f1ff34d3cc232fa4ee4febdf5c6afe74/xgboost_cpu-3.0.4.tar.gz", hash = "sha256:ce38327c12498321e3b608cea21c35c7938bf776a9643359a2059aae0dba1a55", size = 1159935 }
 wheels = [

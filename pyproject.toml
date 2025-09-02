@@ -24,8 +24,9 @@ dependencies = [
   "matplotlib (>=3.10.0, <3.11.0)",
   "google-cloud-secret-manager (>=2.12.6, <2.25.0)",
   "google-cloud-storage (>=2.14.0, <3.4.0)",
-  "xgboost-cpu>=3.0.4 ; platform_machine == 'amd64'",
   "xgboost>=3.0.4 ; platform_machine == 'aarc64' or platform_machine == 'arm64'",
+  "xgboost-cpu>=3.0.4 ; platform_machine == 'amd64'",
+  "xgboost>=3.0.4 ; platform_machine == 'aarch64' or platform_machine == 'arm64'",
 ]
 classifiers = [
   "Programming Language :: Python :: 3.10",
