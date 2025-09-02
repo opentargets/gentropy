@@ -21,10 +21,8 @@ from pyspark.sql.types import (
 )
 
 from gentropy.common.session import Session
-from gentropy.common.spark_helpers import (
-    neglog_pvalue_to_mantissa_and_exponent,
-    order_array_of_structs_by_field,
-)
+from gentropy.common.spark import order_array_of_structs_by_field
+from gentropy.common.stats import pvalue_from_neglogpval
 from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import (
     FinemappingMethod,
@@ -51,6 +49,7 @@ class SusieFineMapperStep:
         study_index_path: str,
         study_locus_manifest_path: str,
         study_locus_index: int,
+        ld_matrix_paths: dict[str, str],
         max_causal_snps: int = 10,
         lead_pval_threshold: float = 1e-5,
         purity_mean_r2_threshold: float = 0,
@@ -65,6 +64,7 @@ class SusieFineMapperStep:
         imputed_r2_threshold: float = 0.9,
         ld_score_threshold: float = 5,
         ld_min_r2: float = 0.8,
+        ignore_qc: bool = False,
     ) -> None:
         """Run fine-mapping on a studyLocusId from a collected studyLocus table.
 
@@ -79,6 +79,7 @@ class SusieFineMapperStep:
             study_index_path (str): path to the study index
             study_locus_manifest_path (str): Path to the CSV manifest containing all study locus input and output locations. Should contain two columns: study_locus_input and study_locus_output
             study_locus_index (int): Index (0-based) of the locus in the manifest to process in this call
+            ld_matrix_paths (dict[str, str]): Dictionary with paths to LD matrices
             max_causal_snps (int): Maximum number of causal variants in locus, default is 10
             lead_pval_threshold (float): p-value threshold for the lead variant from CS, default is 1e-5
             purity_mean_r2_threshold (float): threshold for purity mean r2 qc metrics for filtering credible sets, default is 0
@@ -93,6 +94,7 @@ class SusieFineMapperStep:
             imputed_r2_threshold (float): imputed R2 threshold, default is 0.9
             ld_score_threshold (float): LD score threshold ofr imputation, default is 5
             ld_min_r2 (float): Threshold to filter CS by leads in high LD, default is 0.8
+            ignore_qc (bool): run SuSiE regardless of QC flags, default is False
         """
         # Read locus manifest.
         study_locus_manifest = pd.read_csv(study_locus_manifest_path)
@@ -121,6 +123,7 @@ class SusieFineMapperStep:
             session=session,
             study_locus_row=study_locus,
             study_index=study_index,
+            ld_matrix_paths=ld_matrix_paths,
             max_causal_snps=max_causal_snps,
             purity_mean_r2_threshold=purity_mean_r2_threshold,
             purity_min_r2_threshold=purity_min_r2_threshold,
@@ -136,6 +139,7 @@ class SusieFineMapperStep:
             ld_score_threshold=ld_score_threshold,
             ld_min_r2=ld_min_r2,
             log_output=log_output,
+            ignore_qc=ignore_qc,
         )
 
         if result_logging is not None:
@@ -385,9 +389,7 @@ class SusieFineMapperStep:
 
         cred_sets = cred_sets.join(df_spark, on="credibleSetIndex")
 
-        mantissa, exponent = neglog_pvalue_to_mantissa_and_exponent(
-            cred_sets.neglogpval
-        )
+        mantissa, exponent = pvalue_from_neglogpval(cred_sets.neglogpval)
         cred_sets = cred_sets.withColumn("pValueMantissa", mantissa)
         cred_sets = cred_sets.withColumn("pValueExponent", exponent)
         cred_sets = cred_sets.withColumn(
@@ -697,6 +699,7 @@ class SusieFineMapperStep:
         session: Session,
         study_locus_row: Row,
         study_index: StudyIndex,
+        ld_matrix_paths: dict[str, str],
         max_causal_snps: int = 10,
         susie_est_tausq: bool = False,
         run_carma: bool = False,
@@ -712,6 +715,7 @@ class SusieFineMapperStep:
         cs_lbf_thr: float = 2,
         ld_min_r2: float = 0.9,
         log_output: str = "",
+        ignore_qc: bool = False,
     ) -> dict[str, Any] | None:
         """Susie fine-mapper function that uses study-locus row with collected locus, chromosome and position as inputs.
 
@@ -719,6 +723,7 @@ class SusieFineMapperStep:
             session (Session): Spark session
             study_locus_row (Row): StudyLocus row with collected locus
             study_index (StudyIndex): StudyIndex object
+            ld_matrix_paths (dict[str, str]): Dictionary with paths to LD matrices
             max_causal_snps (int): maximum number of causal variants
             susie_est_tausq (bool): estimate tau squared, default is False
             run_carma (bool): run CARMA, default is False
@@ -734,6 +739,7 @@ class SusieFineMapperStep:
             cs_lbf_thr (float): credible set logBF threshold for filtering credible sets, default is 2
             ld_min_r2 (float): Threshold to fillter CS by leads in high LD, default is 0.9
             log_output (str): path to the log output
+            ignore_qc (bool): run SuSiE regardless of QC flags, default is False
 
         Returns:
             dict[str, Any] | None: dictionary with study locus, number of GWAS variants, number of LD variants, number of variants after merge, number of outliers, number of imputed variants, number of variants to fine-map, or None
@@ -803,7 +809,8 @@ class SusieFineMapperStep:
                     path_out=log_output,
                 )
             logging.warning("Study type is not GWAS or non gwas catalog pqtl")
-            return None
+            if not ignore_qc:
+                return None
 
         # Desision tree - ancestry
         if major_population not in ["nfe", "csa", "afr"]:
@@ -815,7 +822,8 @@ class SusieFineMapperStep:
                     path_out=log_output,
                 )
             logging.warning("Major ancestry is not nfe, csa or afr")
-            return None
+            if not ignore_qc:
+                return None
 
         # Desision tree - hasSumstats
         if not study_index_df.select("hasSumstats").collect()[0]["hasSumstats"]:
@@ -827,7 +835,8 @@ class SusieFineMapperStep:
                     path_out=log_output,
                 )
             logging.warning("No sumstats found for the studyId")
-            return None
+            if not ignore_qc:
+                return None
 
         # Desision tree - qulityControls
         keys_reasons = [
@@ -864,7 +873,8 @@ class SusieFineMapperStep:
                     path_out=log_output,
                 )
             logging.warning("Quality control check failed for this study")
-            return None
+            if not ignore_qc:
+                return None
 
         # Desision tree - analysisFlags
         study_index_df = study_index_df.drop("FailedQC")
@@ -896,7 +906,8 @@ class SusieFineMapperStep:
                     path_out=log_output,
                 )
             logging.warning("Analysis Flags check failed for this study")
-            return None
+            if not ignore_qc:
+                return None
 
         gwas_df = session.spark.createDataFrame(
             [study_locus_row], StudyLocus.get_schema()
@@ -924,7 +935,10 @@ class SusieFineMapperStep:
         gwas_df = gwas_df.join(unique_variants, on="variantId", how="left_semi")
 
         ld_index = LDMatrixInterface.get_locus_index_boundaries(
-            study_locus_row=study_locus_row, ancestry=major_population, session=session
+            ld_matrix_paths=ld_matrix_paths,
+            study_locus_row=study_locus_row,
+            ancestry=major_population,
+            session=session,
         )
 
         # Remove ALL duplicated variants from ld_index DataFrame - we don't know which is correct
@@ -963,7 +977,9 @@ class SusieFineMapperStep:
                 logging.warning("No overlapping variants in the LD Index")
                 return None
             gnomad_ld = LDMatrixInterface.get_numpy_matrix(
-                gwas_index, ancestry=major_population
+                ld_matrix_paths=ld_matrix_paths,
+                locus_index=gwas_index,
+                ancestry=major_population
             )
 
             # Module to remove NANs from the LD matrix
@@ -1026,7 +1042,9 @@ class SusieFineMapperStep:
                 return None
             gwas_index = ld_index
             gnomad_ld = LDMatrixInterface.get_numpy_matrix(
-                gwas_index, ancestry=major_population
+                ld_matrix_paths=ld_matrix_paths,
+                locus_index=gwas_index,
+                ancestry=major_population
             )
 
             # Module to remove NANs from the LD matrix
@@ -1103,7 +1121,8 @@ class SusieFineMapperStep:
                     path_out=log_output,
                 )
             logging.warning("More than 15000 variants after joining GWAS and LD index")
-            return None
+            if not ignore_qc:
+                return None
 
         out = SusieFineMapperStep.susie_finemapper_from_prepared_dataframes(
             GWAS_df=gwas_df,

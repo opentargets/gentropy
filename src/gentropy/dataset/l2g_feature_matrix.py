@@ -6,10 +6,11 @@ from functools import reduce
 from typing import TYPE_CHECKING
 
 import pyspark.sql.functions as f
+from pandas import DataFrame as pd_dataframe
 from pyspark.sql import Window
 from typing_extensions import Self
 
-from gentropy.common.spark_helpers import convert_from_long_to_wide
+from gentropy.common.spark import convert_from_long_to_wide
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
 from gentropy.method.l2g.feature_factory import FeatureFactory, L2GFeatureInputLoader
 
@@ -27,6 +28,7 @@ class L2GFeatureMatrix:
         _df: DataFrame,
         features_list: list[str] | None = None,
         with_gold_standard: bool = False,
+        label_col: str = "goldStandardSet",
     ) -> None:
         """Post-initialisation to set the features list. If not provided, all columns except the fixed ones are used.
 
@@ -34,11 +36,14 @@ class L2GFeatureMatrix:
             _df (DataFrame): Feature matrix dataset
             features_list (list[str] | None): List of features to use. If None, all possible features are used.
             with_gold_standard (bool): Whether to include the gold standard set in the feature matrix.
+            label_col (str): The target column when the feature matrix represents the gold standard
+
         """
         self.with_gold_standard = with_gold_standard
         self.fixed_cols = ["studyLocusId", "geneId"]
         if self.with_gold_standard:
-            self.fixed_cols.append("goldStandardSet")
+            self.label_col = label_col
+            self.fixed_cols.append(label_col)
         if "traitFromSourceMappedId" in _df.columns:
             self.fixed_cols.append("traitFromSourceMappedId")
 
@@ -201,3 +206,52 @@ class L2GFeatureMatrix:
         """
         self._df = self._df.persist()
         return self
+
+    def append_null_features(self, features_list: list[str]) -> L2GFeatureMatrix:
+        """Add features from the list that are not already in the dataframe as null columns filled with 0.0.
+
+        Args:
+            features_list (list[str]): List of features to check and add if missing
+
+        Returns:
+            L2GFeatureMatrix: Updated feature matrix with additional features
+        """
+        null_features = [
+            feature for feature in features_list if feature not in self._df.columns
+        ]
+        if null_features:
+            for feature in null_features:
+                self._df = self._df.withColumn(feature, f.lit(0.0))
+            self.features_list.extend(null_features)
+
+        return self
+
+    def generate_train_test_split(
+        self,
+        test_size: float,
+        verbose: bool,
+        label_encoder: dict[str, int],
+        label_col: str,
+    ) -> tuple[pd_dataframe, pd_dataframe]:
+        """Generate train and test splits for the feature matrix.
+
+        Args:
+            test_size (float): Proportion of the test set
+            verbose (bool): Whether to print verbose output
+            label_encoder (dict[str, int]): Label encoder for the gold standard set
+            label_col (str): Column name for the gold standard set
+
+        Returns:
+            tuple[pd_dataframe, pd_dataframe]: Train and test splits
+        """
+        from gentropy.method.l2g.trainer import LocusToGeneTrainer
+
+        data_df = self._df.toPandas()
+
+        # Encode labels in `goldStandardSet` to a numeric value
+        data_df[label_col] = data_df[label_col].map(label_encoder)
+
+        # Generate train, held out sets
+        return LocusToGeneTrainer.hierarchical_split(
+            data_df, test_size=test_size, verbose=verbose
+        )

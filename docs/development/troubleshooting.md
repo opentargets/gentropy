@@ -2,8 +2,6 @@
 title: Troubleshooting
 ---
 
-# Troubleshooting
-
 ## BLAS/LAPACK
 
 If you see errors related to BLAS/LAPACK libraries, see [this StackOverflow post](https://stackoverflow.com/questions/69954587/no-blas-lapack-libraries-found-when-installing-scipy) for guidance.
@@ -20,6 +18,10 @@ To add new dependencies or update existing ones, you need to update the `pyproje
 
 Officially, PySpark requires Java version 8, or 11, 17. To support hail (gentropy dependency) it is recommended to use Java 11.
 
+### setting Java with sdkman
+
+sdkman is a tool for managing parallel versions of multiple java SDK on most Unix based systems. It can be used to install and manage Java versions. See [sdkman documentation](https://sdkman.io/) for more information.
+
 ## Pre-commit
 
 If you see an error message thrown by pre-commit, which looks like this (`SyntaxError: Unexpected token '?'`), followed by a JavaScript traceback, the issue is likely with your system NodeJS version.
@@ -32,7 +34,9 @@ On Ubuntu, this can be done using `sudo apt remove node nodejs npm`, followed by
 
 ## MacOS
 
-Some functions on MacOS may throw a java error:
+- To run L2G trainer on MacOS you need to install `libomp` using `brew install libomp`.
+
+- Some functions on MacOS may throw a java error:
 
 `python3.10/site-packages/py4j/protocol.py:326: Py4JJavaError`
 

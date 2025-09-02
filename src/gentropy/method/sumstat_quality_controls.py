@@ -23,7 +23,7 @@ from pyspark.sql.functions import row_number
 from pyspark.sql.window import Window
 from scipy.stats import chi2
 
-from gentropy.common.utils import neglogpval_from_z2
+from gentropy.common.stats import neglogpval_from_z2
 
 
 def genotypic_variance(af: Column) -> Column:
@@ -139,6 +139,8 @@ def gc_lambda_check(gwas_for_qc: DataFrame) -> DataFrame:
         <BLANKLINE>
     """
     z_score = f.col("beta") / f.col("standardError")
+    # NOTE! The statistic can be calculated using scipy.stats.chi2.isf(0.5, df=1)
+    # as well, since both functions are equal at the 0.5 quantile.
     stat = chi2.ppf(0.5, df=1)
     qc_c = (
         gwas_for_qc.select("studyId", "beta", "standardError")
@@ -206,12 +208,10 @@ def p_z_test(gwas_for_qc: DataFrame) -> DataFrame:
         +-------+------------+----------+
         <BLANKLINE>
     """
-    neglogpval_from_z2_udf = f.udf(neglogpval_from_z2, t.DoubleType())
-
     qc_c = (
         gwas_for_qc.withColumn("Z2", (f.col("beta") / f.col("standardError")) ** 2)
         .filter(f.col("Z2") <= 100)
-        .withColumn("neglogpValFromZScore", neglogpval_from_z2_udf(f.col("Z2")))
+        .withColumn("neglogpValFromZScore", neglogpval_from_z2(f.col("Z2")))
         .withColumn(
             "neglogpVal", -1 * (f.log10("pValueMantissa") + f.col("pValueExponent"))
         )
@@ -219,7 +219,6 @@ def p_z_test(gwas_for_qc: DataFrame) -> DataFrame:
         .groupBy("studyId")
         .agg(
             f.mean("diffpval").alias("mean_diff_pz"),
-            # FIXME: We actually calculate standard deviation, not standard error
             f.stddev("diffpval").alias("se_diff_pz"),
         )
         .select("studyId", "mean_diff_pz", "se_diff_pz")

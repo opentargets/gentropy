@@ -12,9 +12,9 @@ import pyspark.sql.functions as f
 from hail.linalg import BlockMatrix
 from pyspark.sql import Window
 
-from gentropy.common.spark_helpers import get_top_ranked_in_window, get_value_from_row
+from gentropy.common.genomic_region import liftover_loci
+from gentropy.common.spark import get_top_ranked_in_window, get_value_from_row
 from gentropy.common.types import LD_Population
-from gentropy.common.utils import _liftover_loci
 from gentropy.config import LDIndexConfig
 from gentropy.dataset.ld_index import LDIndex
 
@@ -169,9 +169,7 @@ class GnomADLDMatrix:
         Returns:
             DataFrame: Look up table between variants in build hg38 and their coordinates in the LD Matrix
         """
-        ld_index_38 = _liftover_loci(
-            ld_index_raw, grch37_to_grch38_chain_path, "GRCh38"
-        )
+        ld_index_38 = liftover_loci(ld_index_raw, grch37_to_grch38_chain_path, "GRCh38")
 
         return (
             ld_index_38.to_spark()
@@ -485,8 +483,8 @@ class GnomADLDMatrix:
 
         return joined_index
 
-    @staticmethod
     def get_numpy_matrix(
+        self: GnomADLDMatrix,
         locus_index: DataFrame,
         gnomad_ancestry: str = "nfe",
     ) -> np.ndarray:
@@ -503,7 +501,7 @@ class GnomADLDMatrix:
 
         half_matrix = (
             BlockMatrix.read(
-                GnomADLDMatrix().ld_matrix_template.format(POP=gnomad_ancestry)
+                self.ld_matrix_template.format(POP=gnomad_ancestry)
             )
             .filter(idx, idx)
             .to_numpy()
@@ -531,6 +529,27 @@ class GnomADLDMatrix:
         end = int(study_locus_row["locusEnd"])
 
         liftover_ht = hl.read_table(self.liftover_ht_path)
+        liftover_ht = self._filter_liftover_by_locus(
+            liftover_ht, chromosome, start, end
+        )
+
+        hail_index = hl.read_table(
+            self.ld_index_raw_template.format(POP=major_population)
+        )
+
+        joined_index = (
+            liftover_ht.join(hail_index, how="inner").order_by("idx").to_spark()
+        )
+
+        return joined_index
+
+    def _filter_liftover_by_locus(
+        self,
+        liftover_ht: hl.Table,
+        chromosome: str,
+        start: int,
+        end: int
+        ) -> hl.Table:
         liftover_ht = (
             liftover_ht.filter(
                 (liftover_ht.locus.contig == chromosome)
@@ -543,12 +562,4 @@ class GnomADLDMatrix:
             .naive_coalesce(20)
         )
 
-        hail_index = hl.read_table(
-            self.ld_index_raw_template.format(POP=major_population)
-        )
-
-        joined_index = (
-            liftover_ht.join(hail_index, how="inner").order_by("idx").to_spark()
-        )
-
-        return joined_index
+        return liftover_ht

@@ -1,4 +1,5 @@
 """LDIndex dataset."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -13,7 +14,7 @@ if TYPE_CHECKING:
 
 @dataclass
 class LDIndex(Dataset):
-    """Dataset containing linkage desequilibrium information between variants."""
+    """Dataset containing linkage disequilibrium information between variants."""
 
     @classmethod
     def get_schema(cls: type[LDIndex]) -> StructType:

@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from gentropy.common.Liftover import LiftOverSpark
+from gentropy.common.genomic_region import LiftOverSpark
 from gentropy.common.schemas import parse_spark_schema
 from gentropy.dataset.dataset import Dataset
 from gentropy.dataset.target_index import TargetIndex

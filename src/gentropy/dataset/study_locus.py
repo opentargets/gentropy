@@ -12,13 +12,12 @@ from pyspark.sql.types import ArrayType, FloatType, LongType, StringType
 
 from gentropy.common.genomic_region import GenomicRegion, KnownGenomicRegions
 from gentropy.common.schemas import parse_spark_schema
-from gentropy.common.spark_helpers import (
-    calculate_neglog_pvalue,
+from gentropy.common.spark import (
     create_empty_column_if_not_exists,
     get_struct_field_schema,
     order_array_of_structs_by_field,
 )
-from gentropy.common.utils import get_logsum
+from gentropy.common.stats import get_logsum, neglogpval_from_pvalue
 from gentropy.config import WindowBasedClumpingStepConfig
 from gentropy.dataset.dataset import Dataset
 from gentropy.dataset.study_index import StudyQualityCheck
@@ -425,7 +424,7 @@ class StudyLocus(Dataset):
         """
         return StudyLocus.update_quality_flag(
             quality_controls_column,
-            calculate_neglog_pvalue(p_value_mantissa, p_value_exponent)
+            neglogpval_from_pvalue(p_value_mantissa, p_value_exponent)
             < f.lit(-np.log10(pvalue_cutoff)),
             StudyLocusQualityCheck.SUBSIGNIFICANT_FLAG,
         )
@@ -892,7 +891,7 @@ class StudyLocus(Dataset):
         Returns:
             Column: Negative log p-value
         """
-        return calculate_neglog_pvalue(
+        return neglogpval_from_pvalue(
             self.df.pValueMantissa,
             self.df.pValueExponent,
         )
@@ -901,23 +900,38 @@ class StudyLocus(Dataset):
         self: StudyLocus,
         features_list: list[str],
         features_input_loader: L2GFeatureInputLoader,
+        append_null_features: bool = False,
     ) -> L2GFeatureMatrix:
         """Returns the feature matrix for a StudyLocus.
 
         Args:
             features_list (list[str]): List of features to include in the feature matrix.
             features_input_loader (L2GFeatureInputLoader): Feature input loader to use.
+            append_null_features (bool): If True, appends null features to the feature matrix. Default is False. Usefull with small datasets that may have all null features, that are anyway required by the model.
 
         Returns:
             L2GFeatureMatrix: Feature matrix for this study-locus.
         """
         from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
 
-        return L2GFeatureMatrix.from_features_list(
-            self,
-            features_list,
-            features_input_loader,
-        ).fill_na()
+        if append_null_features:
+            feature_matrix = (
+                L2GFeatureMatrix.from_features_list(
+                    self,
+                    features_list,
+                    features_input_loader,
+                )
+                .append_null_features(features_list)
+                .fill_na()
+            )
+        else:
+            feature_matrix = L2GFeatureMatrix.from_features_list(
+                self,
+                features_list,
+                features_input_loader,
+            ).fill_na()
+
+        return feature_matrix
 
     def annotate_credible_sets(self: StudyLocus) -> StudyLocus:
         """Annotate study-locus dataset with credible set flags.

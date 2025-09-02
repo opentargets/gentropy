@@ -11,8 +11,8 @@ import pyspark.sql.types as t
 from pyspark.sql import SparkSession, Window
 from pyspark.sql.types import DoubleType, StringType, StructField, StructType
 
-from gentropy.common.spark_helpers import get_top_ranked_in_window
-from gentropy.common.utils import parse_pvalue
+from gentropy.common.spark import get_top_ranked_in_window
+from gentropy.common.stats import split_pvalue_column
 from gentropy.dataset.study_locus import FinemappingMethod, StudyLocus
 
 
@@ -315,7 +315,7 @@ class FinnGenFinemapping:
                 f.col("allele1").cast(t.StringType()).alias("ref"),
                 f.col("allele2").cast(t.StringType()).alias("alt"),
                 # Parse p-value into mantissa and exponent.
-                *parse_pvalue(f.col("p")),
+                *split_pvalue_column(f.col("p")),
                 # Add standard error, and allele frequency information.
                 f.col("se").cast("double").alias("standardError"),
                 f.col("maf").cast("float").alias("effectAlleleFrequencyFromSource"),

@@ -11,7 +11,7 @@ import pandas as pd
 import pytest
 from pyspark.sql import DataFrame, SparkSession
 
-from gentropy.common.Liftover import LiftOverSpark
+from gentropy.common.genomic_region import LiftOverSpark
 from gentropy.common.session import Session
 from gentropy.dataset.biosample_index import BiosampleIndex
 from gentropy.dataset.colocalisation import Colocalisation
@@ -154,11 +154,80 @@ def mock_study_index_data(spark: SparkSession) -> DataFrame:
     return data_spec.build()
 
 
+def mock_study_index_data_no_pqtl(spark: SparkSession) -> DataFrame:
+    """Mock study index dataset without pQtl studies."""
+    study_types_no_pqtl = [
+        study_type
+        for study_type in StudyIndex.VALID_TYPES
+        if study_type not in ["pqtl", "scpqtl"]
+    ]
+    si_schema = StudyIndex.get_schema()
+
+    data_spec = (
+        dg.DataGenerator(
+            spark,
+            rows=400,
+            partitions=4,
+            randomSeedMethod="hash_fieldname",
+        )
+        .withSchema(si_schema)
+        .withColumnSpec(
+            "studyId",
+            expr="cast(id as string)",
+        )
+        .withColumnSpec(
+            "traitFromSourceMappedIds",
+            expr="array(cast(rand() AS string))",
+            percentNulls=0.1,
+        )
+        .withColumnSpec(
+            "backgroundTraitFromSourceMappedIds",
+            expr="array(cast(rand() AS string))",
+            percentNulls=0.1,
+        )
+        .withColumnSpec(
+            "discoverySamples",
+            expr='array(named_struct("sampleSize", cast(rand() as string), "ancestry", cast(rand() as string)))',
+            percentNulls=0.1,
+        )
+        .withColumnSpec(
+            "replicationSamples",
+            expr='array(named_struct("sampleSize", cast(rand() as string), "ancestry", cast(rand() as string)))',
+            percentNulls=0.1,
+        )
+        .withColumnSpec(
+            "geneId",
+            expr="cast(id as string)",
+        )
+        .withColumnSpec("pubmedId", percentNulls=0.1)
+        .withColumnSpec("publicationFirstAuthor", percentNulls=0.1)
+        .withColumnSpec("publicationDate", percentNulls=0.1)
+        .withColumnSpec("publicationJournal", percentNulls=0.1)
+        .withColumnSpec("publicationTitle", percentNulls=0.1)
+        .withColumnSpec("initialSampleSize", percentNulls=0.1)
+        .withColumnSpec("nCases", percentNulls=0.1)
+        .withColumnSpec("nControls", percentNulls=0.1)
+        .withColumnSpec("nSamples", percentNulls=0.1)
+        .withColumnSpec("summarystatsLocation", percentNulls=0.1)
+        .withColumnSpec("studyType", percentNulls=0.0, values=study_types_no_pqtl)
+    )
+    return data_spec.build()
+
+
 @pytest.fixture()
 def mock_study_index(spark: SparkSession) -> StudyIndex:
     """Mock StudyIndex dataset."""
     return StudyIndex(
         _df=mock_study_index_data(spark),
+        _schema=StudyIndex.get_schema(),
+    )
+
+
+@pytest.fixture()
+def mock_study_index_no_pqtl(spark: SparkSession) -> StudyIndex:
+    """Mock StudyIndex dataset."""
+    return StudyIndex(
+        _df=mock_study_index_data_no_pqtl(spark),
         _schema=StudyIndex.get_schema(),
     )
 
@@ -655,20 +724,44 @@ def sample_otp_interactions(spark: SparkSession) -> DataFrame:
 
 @pytest.fixture()
 def mock_l2g_feature_matrix(spark: SparkSession) -> L2GFeatureMatrix:
-    """Mock l2g feature matrix dataset with multiple samples from each class."""
+    """Mock l2g feature matrix dataset with balanced classes and sufficient samples for splitting.
+
+    The dataset is designed to ensure that when split using hierarchical_split:
+    - Each split will have both positive and negative examples
+    - There are enough unique genes and loci to allow for proper splitting
+    - The data structure matches what's expected by the hierarchical_split method
+    """
+    # Create a more robust test dataset with:
+    # - 4 unique traits
+    # - 8 unique genes (4 for each class)
+    # - 12 unique study loci (6 for each class)
+    # - Balanced positive/negative samples
     return L2GFeatureMatrix(
         _df=spark.createDataFrame(
             [
-                # Multiple samples for "positive" class
-                ("1", "gene1", "trait1", 100.0, None, "positive"),
-                ("2", "gene2", "trait1", 200.0, 20.0, "positive"),
-                ("3", "gene3", "trait2", 300.0, 30.0, "positive"),
-                ("4", "gene4", "trait2", 400.0, 40.0, "positive"),
-                # Multiple samples for "negative" class
-                ("5", "gene5", "trait1", 500.0, 50.0, "negative"),
-                ("6", "gene6", "trait1", 600.0, 60.0, "negative"),
-                ("7", "gene7", "trait2", 700.0, 70.0, "negative"),
-                ("8", "gene8", "trait2", 800.0, 80.0, "negative"),
+                # Positive class samples
+                # Each positive gene is unique to ensure clean splitting
+                ("loc1", "gene1", "trait1", 100.0, None, "positive"),
+                ("loc2", "gene2", "trait1", 200.0, 20.0, "positive"),
+                ("loc3", "gene3", "trait2", 300.0, 30.0, "positive"),
+                ("loc4", "gene4", "trait2", 400.0, 40.0, "positive"),
+                # Additional positive samples with same genes but different loci
+                ("loc5", "gene1", "trait3", 150.0, 15.0, "positive"),
+                ("loc6", "gene2", "trait4", 250.0, 25.0, "positive"),
+                # Negative class samples
+                # These share studyLocusId with positive samples to test proper negative propagation
+                ("loc1", "gene5", "trait1", 500.0, 50.0, "negative"),
+                ("loc2", "gene6", "trait1", 600.0, 60.0, "negative"),
+                ("loc3", "gene7", "trait2", 700.0, 70.0, "negative"),
+                ("loc4", "gene8", "trait2", 800.0, 80.0, "negative"),
+                # Additional negative samples with unique loci
+                ("loc7", "gene5", "trait3", 550.0, 55.0, "negative"),
+                ("loc8", "gene6", "trait4", 650.0, 65.0, "negative"),
+                # More samples to ensure each class has enough for splitting
+                ("loc9", "gene3", "trait3", 350.0, 35.0, "positive"),
+                ("loc10", "gene4", "trait4", 450.0, 45.0, "positive"),
+                ("loc9", "gene7", "trait3", 750.0, 75.0, "negative"),
+                ("loc10", "gene8", "trait4", 850.0, 85.0, "negative"),
             ],
             "studyLocusId STRING, geneId STRING, traitFromSourceMappedId STRING, distanceTssMean FLOAT, distanceSentinelTssMinimum FLOAT, goldStandardSet STRING",
         ),

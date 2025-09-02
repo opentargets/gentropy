@@ -14,10 +14,11 @@ from pandas import DataFrame as pd_dataframe
 from pandas import to_numeric as pd_to_numeric
 from sklearn.ensemble import GradientBoostingClassifier
 from skops import hub_utils
+from xgboost import XGBClassifier
 
 from gentropy.common.session import Session
-from gentropy.common.utils import copy_to_gcs
 from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
+from gentropy.external.gcs import copy_to_gcs
 
 if TYPE_CHECKING:
     from gentropy.dataset.l2g_prediction import L2GPrediction
@@ -27,17 +28,18 @@ if TYPE_CHECKING:
 class LocusToGeneModel:
     """Wrapper for the Locus to Gene classifier."""
 
-    model: Any = GradientBoostingClassifier(random_state=42)
+    model: Any = XGBClassifier(random_state=42, eval_metric="aucpr")
     features_list: list[str] = field(default_factory=list)
     hyperparameters: dict[str, Any] = field(
         default_factory=lambda: {
-            "n_estimators": 100,
-            "max_depth": 10,
-            "ccp_alpha": 0,
-            "learning_rate": 0.1,
-            "min_samples_leaf": 5,
-            "min_samples_split": 5,
-            "subsample": 1,
+            "max_depth": 5,
+            "reg_alpha": 1,  # L1 regularization
+            "reg_lambda": 1.0,  # L2 regularization
+            "subsample": 0.8,
+            "colsample_bytree": 0.8,
+            "eta": 0.05,
+            "min_child_weight": 10,
+            "scale_pos_weight": 0.8,
         }
     )
     training_data: L2GFeatureMatrix | None = None
@@ -94,9 +96,16 @@ class LocusToGeneModel:
                 # Try loading the training data if it is in the model directory
                 training_data = L2GFeatureMatrix(
                     _df=session.spark.createDataFrame(
-                        # Parquet is read with Pandas to easily read local files
-                        pd.read_parquet(
-                            (Path(path) / "training_data.parquet").as_posix()
+                        # Parquets are read with Pandas to easily read local files
+                        pd.concat(
+                            [
+                                pd.read_parquet(
+                                    (Path(path) / "train.parquet").as_posix()
+                                ),
+                                pd.read_parquet(
+                                    (Path(path) / "test.parquet").as_posix()
+                                ),
+                            ]
                         )
                     ),
                     features_list=kwargs.get("features_list"),
@@ -105,7 +114,12 @@ class LocusToGeneModel:
                 logging.error("Training data set to none. Error: %s", e)
                 training_data = None
 
-        if not loaded_model._is_fitted():
+        if (
+            isinstance(loaded_model, GradientBoostingClassifier)
+            and not loaded_model._is_fitted()
+        ) or (
+            isinstance(loaded_model, XGBClassifier) and not loaded_model.get_booster()
+        ):
             raise ValueError("Model has not been fitted yet.")
         return cls(model=loaded_model, training_data=training_data, **kwargs)
 
@@ -135,8 +149,6 @@ class LocusToGeneModel:
             Returns:
                 list[str]: Features list
             """
-            import json
-
             model_config_path = str(Path(local_path) / "config.json")
             with open(model_config_path) as f:
                 model_config = json.load(f)
@@ -237,23 +249,6 @@ class LocusToGeneModel:
             Path(path).parent.mkdir(parents=True, exist_ok=True)
             sio.dump(self.model, path)
 
-    @staticmethod
-    def load_feature_matrix_from_wandb(wandb_run_name: str) -> pd.DataFrame:
-        """Loads dataset of feature matrix used during a wandb run.
-
-        Args:
-            wandb_run_name (str): Name of the wandb run to load the feature matrix from
-
-        Returns:
-            pd.DataFrame: Feature matrix used during the wandb run
-        """
-        with open(wandb_run_name) as f:
-            raw_data = json.load(f)
-
-        data = raw_data["data"]
-        columns = raw_data["columns"]
-        return pd.DataFrame(data, columns=columns)
-
     def _create_hugging_face_model_card(
         self: LocusToGeneModel,
         local_repo: str,
@@ -303,47 +298,69 @@ class LocusToGeneModel:
         self: LocusToGeneModel,
         model_path: str,
         hf_hub_token: str,
-        data: pd_dataframe,
+        feature_matrix: L2GFeatureMatrix,
         commit_message: str,
         repo_id: str = "opentargets/locus_to_gene",
-        local_repo: str = "locus_to_gene",
+        test_size: float = 0.15,
     ) -> None:
         """Share the model and training dataset on Hugging Face Hub.
+
+        This will save both the trained model and the train/test splits used for
+        training to enable full reproducibility.
 
         Args:
             model_path (str): The path to the L2G model file.
             hf_hub_token (str): Hugging Face Hub token
-            data (pd_dataframe): Data used to train the model. This is used to have an example input for the model and to store the column order.
+            feature_matrix (L2GFeatureMatrix): Data used to train the model. This is used to have an example input for the model and to store the column order.
             commit_message (str): Commit message for the push
             repo_id (str): The Hugging Face Hub repo id where the model will be stored.
-            local_repo (str): Path to the folder where the contents of the model repo + the documentation are located. This is used to push the model to the Hugging Face Hub.
+            test_size (float): Proportion of data to include in the test split. Defaults to 0.15
 
         Raises:
             RuntimeError: If the push to the Hugging Face Hub fails
         """
+        import tempfile
+        from pathlib import Path
+
         from sklearn import __version__ as sklearn_version
 
-        try:
-            hub_utils.init(
-                model=model_path,
-                requirements=[f"scikit-learn={sklearn_version}"],
-                dst=local_repo,
-                task="tabular-classification",
-                data=data,
-            )
-            self._create_hugging_face_model_card(local_repo)
-            data.to_parquet(f"{local_repo}/training_data.parquet")
-            hub_utils.push(
-                repo_id=repo_id,
-                source=local_repo,
-                token=hf_hub_token,
-                commit_message=commit_message,
-                create_remote=True,
-            )
-        except Exception as e:
-            # remove the local repo if the push fails
-            if Path(local_repo).exists():
-                for p in Path(local_repo).glob("*"):
-                    p.unlink()
-                Path(local_repo).rmdir()
-            raise RuntimeError from e
+        # Create a temporary directory for all operations
+        with tempfile.TemporaryDirectory(prefix="l2g_hf_hub_") as temp_dir:
+            temp_dir_path = Path(temp_dir)
+
+            try:
+                # Create train/test split
+                train_df, test_df = feature_matrix.generate_train_test_split(
+                    test_size=test_size,
+                    verbose=True,
+                    label_encoder=self.label_encoder,
+                    label_col=feature_matrix.label_col,
+                )
+
+                # Initialize hub with the training data as example
+                hub_utils.init(
+                    model=model_path,
+                    requirements=[f"sklearn={sklearn_version}"],
+                    dst=str(temp_dir_path),
+                    task="tabular-classification",
+                    data=train_df,
+                )
+
+                # Save train/test splits
+                train_df.to_parquet(temp_dir_path / "train.parquet")
+                test_df.to_parquet(temp_dir_path / "test.parquet")
+
+                # Create model card
+                self._create_hugging_face_model_card(str(temp_dir_path))
+
+                # Push to Hugging Face Hub
+                hub_utils.push(
+                    repo_id=repo_id,
+                    source=str(temp_dir_path),
+                    token=hf_hub_token,
+                    commit_message=commit_message,
+                    create_remote=True,
+                )
+
+            except Exception as e:
+                raise RuntimeError(f"Failed to push to Hugging Face Hub: {e}") from e

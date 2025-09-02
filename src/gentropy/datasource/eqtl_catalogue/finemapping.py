@@ -16,8 +16,8 @@ from pyspark.sql.types import (
 )
 
 from gentropy.common.session import Session
-from gentropy.common.spark_helpers import clean_strings_from_symbols
-from gentropy.common.utils import parse_pvalue
+from gentropy.common.spark import clean_strings_from_symbols
+from gentropy.common.stats import split_pvalue_column
 from gentropy.dataset.study_locus import FinemappingMethod, StudyLocus
 from gentropy.datasource.eqtl_catalogue.study_index import EqtlCatalogueStudyIndex
 
@@ -161,7 +161,7 @@ class EqtlCatalogueFinemapping:
                 f.col("chromosome"),
                 f.col("position"),
                 f.col("pip").alias("posteriorProbability"),
-                *parse_pvalue(f.col("pvalue")),
+                *split_pvalue_column(f.col("pvalue")),
                 f.col("sample_size").alias("nSamples"),
                 f.col("beta"),
                 f.col("se").alias("standardError"),
