@@ -15,7 +15,7 @@ To install gentropy one needs to have pre installed:
 
 ## Installation
 
-To install Gentropy we recoomend using [uv](https://docs.astral.sh/uv/), which is a tool for managing Python environments and dependencies.
+To install Gentropy we recommend using [uv](https://docs.astral.sh/uv/), which is a tool for managing Python environments and dependencies.
 
 ```bash
 uv add gentropy
@@ -34,3 +34,11 @@ pip install gentropy
 Alternatively, you can install Open Targets Gentropy from source. Check the [contributing](development/contributing.md) section for more information.
 
 For any issues with the installation, check the [troubleshooting section](development/troubleshooting.md).
+
+## xgboost
+
+To use gentropy `LocusToGene` model the `xgboost` package is required. To reduce the size of the dependencies gentropy use full `xgboost` package
+only when `xgboost-cpu` is not available:
+
+- `amd64` and `x86_64` will utilize `xgboost-cpu`.
+- `arm64` and `aarch64` will utilize `xgboost`.
