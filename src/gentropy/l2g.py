@@ -6,8 +6,8 @@ import logging
 from typing import Any
 
 import pyspark.sql.functions as f
-from sklearn.ensemble import GradientBoostingClassifier
 from wandb.sdk.wandb_login import login as wandb_login
+from xgboost import XGBClassifier
 
 from gentropy.common.schemas import compare_struct_schemas
 from gentropy.common.session import Session
@@ -235,10 +235,16 @@ class LocusToGeneStep:
             case {**extra} if not extra:
                 # Schema is the same as L2GGoldStandard - load the GS
                 # NOTE: match to empty dict will be non-selective
-                # see https://stackoverflow.com/questions/75389166/how-to-match-an-empty-dictionary
-                logging.info("Successfully parsed gold standard.")
+                # see https://stackoverflow.com/questions/75389166/how-to-match-an-empty-dictionary                logging.info("Successfully parsed gold standard.")
                 return L2GGoldStandard(
                     _df=gold_standard,
+                    _schema=L2GGoldStandard.get_schema(),
+                )
+            case {"unexpected_columns": extra_columns}:
+                # All mandatory columns present, extra columns are allowed but not passed to the L2GGoldStandard object
+                logging.info("Successfully parsed gold standard with extra columns.")
+                return L2GGoldStandard(
+                    _df=gold_standard.drop(*extra_columns),
                     _schema=L2GGoldStandard.get_schema(),
                 )
             case {
@@ -352,7 +358,7 @@ class LocusToGeneStep:
 
         # Instantiate classifier and train model
         l2g_model = LocusToGeneModel(
-            model=GradientBoostingClassifier(random_state=42, loss="log_loss"),
+            model=XGBClassifier(random_state=777, eval_metric="aucpr"),
             hyperparameters=self.hyperparameters,
             features_list=self.features_list,
         )
@@ -376,7 +382,7 @@ class LocusToGeneStep:
                     # we upload the model saved in the filesystem
                     self.model_path.split("/")[-1],
                     hf_hub_token,
-                    data=trained_model.training_data._df.toPandas(),
+                    feature_matrix=trained_model.training_data,
                     repo_id=self.hf_hub_repo_id,
                     commit_message=self.hf_model_commit_message,
                 )

@@ -6,6 +6,7 @@ from functools import reduce
 from typing import TYPE_CHECKING
 
 import pyspark.sql.functions as f
+from pandas import DataFrame as pd_dataframe
 from pyspark.sql import Window
 from typing_extensions import Self
 
@@ -27,6 +28,7 @@ class L2GFeatureMatrix:
         _df: DataFrame,
         features_list: list[str] | None = None,
         with_gold_standard: bool = False,
+        label_col: str = "goldStandardSet",
     ) -> None:
         """Post-initialisation to set the features list. If not provided, all columns except the fixed ones are used.
 
@@ -34,11 +36,14 @@ class L2GFeatureMatrix:
             _df (DataFrame): Feature matrix dataset
             features_list (list[str] | None): List of features to use. If None, all possible features are used.
             with_gold_standard (bool): Whether to include the gold standard set in the feature matrix.
+            label_col (str): The target column when the feature matrix represents the gold standard
+
         """
         self.with_gold_standard = with_gold_standard
         self.fixed_cols = ["studyLocusId", "geneId"]
         if self.with_gold_standard:
-            self.fixed_cols.append("goldStandardSet")
+            self.label_col = label_col
+            self.fixed_cols.append(label_col)
         if "traitFromSourceMappedId" in _df.columns:
             self.fixed_cols.append("traitFromSourceMappedId")
 
@@ -220,3 +225,33 @@ class L2GFeatureMatrix:
             self.features_list.extend(null_features)
 
         return self
+
+    def generate_train_test_split(
+        self,
+        test_size: float,
+        verbose: bool,
+        label_encoder: dict[str, int],
+        label_col: str,
+    ) -> tuple[pd_dataframe, pd_dataframe]:
+        """Generate train and test splits for the feature matrix.
+
+        Args:
+            test_size (float): Proportion of the test set
+            verbose (bool): Whether to print verbose output
+            label_encoder (dict[str, int]): Label encoder for the gold standard set
+            label_col (str): Column name for the gold standard set
+
+        Returns:
+            tuple[pd_dataframe, pd_dataframe]: Train and test splits
+        """
+        from gentropy.method.l2g.trainer import LocusToGeneTrainer
+
+        data_df = self._df.toPandas()
+
+        # Encode labels in `goldStandardSet` to a numeric value
+        data_df[label_col] = data_df[label_col].map(label_encoder)
+
+        # Generate train, held out sets
+        return LocusToGeneTrainer.hierarchical_split(
+            data_df, test_size=test_size, verbose=verbose
+        )
