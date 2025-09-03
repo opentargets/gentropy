@@ -37,7 +37,7 @@ For any issues with the installation, check the [troubleshooting section](develo
 
 ## xgboost
 
-To use gentropy `LocusToGene` model the `xgboost` package is required. To reduce the size of the dependencies gentropy use full `xgboost` package
+To use gentropy `LocusToGene` model the `xgboost` package is required. To reduce the size of the dependencies, gentropy uses the full `xgboost` package
 only when `xgboost-cpu` is not available:
 
 - `amd64` and `x86_64` will utilize `xgboost-cpu`.
