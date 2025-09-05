@@ -8,6 +8,15 @@
 
 
 
+## v2.4.1 (2025-09-05)
+### 📖 Documentation
+
+
+-  fix typo [\@Szymon Szyszkowski](mailto:69353402+project-defiant@users.noreply.github.com)
+
+
+-  update release badge and xgboost instructions [\@project-defiant](mailto:szymonszyszkowski@gmail.com)
+
 ## v2.4.0 (2025-09-02)
 ## v2.4.0-rc.4 (2025-08-18)
 ## v2.4.0-rc.3 (2025-07-30)
