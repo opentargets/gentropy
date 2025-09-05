@@ -454,6 +454,15 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#xgboost" class="md-nav__link">
+    <span class="md-ellipsis">
+      xgboost
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -3503,6 +3512,15 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#xgboost" class="md-nav__link">
+    <span class="md-ellipsis">
+      xgboost
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -3531,7 +3549,7 @@
 <li>Java 11, 17 (for hail support Java 11 is recommended, see <a href="../development/troubleshooting/">troubleshooting</a> for more details)</li>
 </ul>
 <h2 id="installation">Installation<a class="headerlink" href="#installation" title="Permanent link">&para;</a></h2>
-<p>To install Gentropy we recoomend using <a href="https://docs.astral.sh/uv/">uv</a>, which is a tool for managing Python environments and dependencies.</p>
+<p>To install Gentropy we recommend using <a href="https://docs.astral.sh/uv/">uv</a>, which is a tool for managing Python environments and dependencies.</p>
 <div class="language-bash highlight"><pre><span></span><code>uv<span class="w"> </span>add<span class="w"> </span>gentropy
 </code></pre></div>
 <h2 id="pypi">Pypi<a class="headerlink" href="#pypi" title="Permanent link">&para;</a></h2>
@@ -3541,6 +3559,13 @@
 <h2 id="source">Source<a class="headerlink" href="#source" title="Permanent link">&para;</a></h2>
 <p>Alternatively, you can install Open Targets Gentropy from source. Check the <a href="../development/contributing/">contributing</a> section for more information.</p>
 <p>For any issues with the installation, check the <a href="../development/troubleshooting/">troubleshooting section</a>.</p>
+<h2 id="xgboost">xgboost<a class="headerlink" href="#xgboost" title="Permanent link">&para;</a></h2>
+<p>To use gentropy <code>LocusToGene</code> model the <code>xgboost</code> package is required. To reduce the size of the dependencies, gentropy uses the full <code>xgboost</code> package
+only when <code>xgboost-cpu</code> is not available:</p>
+<ul>
+<li><code>amd64</code> and <code>x86_64</code> will utilize <code>xgboost-cpu</code>.</li>
+<li><code>arm64</code> and <code>aarch64</code> will utilize <code>xgboost</code>.</li>
+</ul>
 <hr />
 <div class="md-source-file">
   <small>
@@ -3563,7 +3588,7 @@
         <span class="icon twemoji">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1-2.1-2M12.5 7v5.2l4 2.4-1 1L11 13V7h1.5M11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2v1.8Z"/></svg>
         </span>
-        <span class="label"> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2025-07-08T15:33:12+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2025-07-08</span> </span>
+        <span class="label"> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2025-09-03T15:33:54+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2025-09-03</span> </span>
       </li>
       
 
@@ -3576,11 +3601,19 @@
       <li class="contributors-holder">
         <ul class="contributors" data-bi-name="contributors"><li>
             <a
-              href="https://github.com/DSuveges"
-              title="DSuveges"
+              href="https://github.com/project-defiant"
+              title="project-defiant"
               data-bi-name="contributorprofile"
               target="_blank"
-              ><img src="https://avatars.githubusercontent.com/u/7122521?v=4" alt="DSuveges"
+              ><img src="https://avatars.githubusercontent.com/u/69353402?v=4" alt="project-defiant"
+            /></a>
+          </li><li>
+            <a
+              href="https://github.com/web-flow"
+              title="web-flow"
+              data-bi-name="contributorprofile"
+              target="_blank"
+              ><img src="https://avatars.githubusercontent.com/u/19864447?v=4" alt="web-flow"
             /></a>
           </li><li>
             <a
@@ -3592,19 +3625,19 @@
             /></a>
           </li><li>
             <a
+              href="https://github.com/DSuveges"
+              title="DSuveges"
+              data-bi-name="contributorprofile"
+              target="_blank"
+              ><img src="https://avatars.githubusercontent.com/u/7122521?v=4" alt="DSuveges"
+            /></a>
+          </li><li>
+            <a
               href="https://github.com/d0choa"
               title="d0choa"
               data-bi-name="contributorprofile"
               target="_blank"
               ><img src="https://avatars.githubusercontent.com/u/5097586?v=4" alt="d0choa"
-            /></a>
-          </li><li>
-            <a
-              href="https://github.com/web-flow"
-              title="web-flow"
-              data-bi-name="contributorprofile"
-              target="_blank"
-              ><img src="https://avatars.githubusercontent.com/u/19864447?v=4" alt="web-flow"
             /></a>
           </li><li>
             <a
