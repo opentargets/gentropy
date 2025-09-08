@@ -85,3 +85,6 @@ update-dev-cluster: build ## Reinstalls the package on the dev-cluster
 
 build: clean ## Build Python package with dependencies
 	@uv build
+
+build-docker: ## Build docker container locally
+	docker build -t $(APP_NAME):$(CLEAN_PACKAGE_VERSION) -f Dockerfile .

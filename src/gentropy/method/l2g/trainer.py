@@ -20,7 +20,7 @@ from sklearn.metrics import (
     roc_auc_score,
 )
 from sklearn.model_selection import train_test_split
-from wandb.data_types import Image, Table
+from wandb.data_types import Image
 from wandb.errors.term import termlog as wandb_termlog
 from wandb.sdk.wandb_init import init as wandb_init
 from wandb.sdk.wandb_setup import _setup
@@ -62,14 +62,12 @@ class LocusToGeneTrainer:
 
     # Initialise vars
     features_list: list[str] | None = None
-    label_col: str = "goldStandardSet"
     train_df: pd.DataFrame | None = None
     test_df: pd.DataFrame | None = None
     x_train: np.ndarray | None = None
     y_train: np.ndarray | None = None
     x_test: np.ndarray | None = None
     y_test: np.ndarray | None = None
-    groups_train: np.ndarray | None = None
     run: Run | None = None
     wandb_l2g_project_name: str = "gentropy-locus-to-gene"
 
@@ -227,10 +225,6 @@ class LocusToGeneTrainer:
             y_true=self.y_test, y_pred=y_predicted, y_pred_proba=y_probas
         )
         self.run.log(metrics)
-        # Track gold standards and their features
-        self.run.log(
-            {"featureMatrix": Table(dataframe=self.feature_matrix._df.toPandas())}
-        )
         # Log feature missingness
         self.run.log(
             {
@@ -301,19 +295,21 @@ class LocusToGeneTrainer:
         Returns:
             LocusToGeneModel: Fitted model
         """
-        data_df = self.feature_matrix._df.toPandas()
-
-        # Encode labels in `goldStandardSet` to a numeric value
-        data_df[self.label_col] = data_df[self.label_col].map(self.model.label_encoder)
-
         # Create held-out test set using hierarchical splitting
-        self.train_df, self.test_df = LocusToGeneTrainer.hierarchical_split(
-            data_df, test_size=test_size, verbose=True
+        self.train_df, self.test_df = self.feature_matrix.generate_train_test_split(
+            test_size=test_size,
+            verbose=True,
+            label_encoder=self.model.label_encoder,
+            label_col=self.feature_matrix.label_col,
         )
         self.x_train = self.train_df[self.features_list].apply(pd.to_numeric).values
-        self.y_train = self.train_df[self.label_col].apply(pd.to_numeric).values
+        self.y_train = (
+            self.train_df[self.feature_matrix.label_col].apply(pd.to_numeric).values
+        )
         self.x_test = self.test_df[self.features_list].apply(pd.to_numeric).values
-        self.y_test = self.test_df[self.label_col].apply(pd.to_numeric).values
+        self.y_test = (
+            self.test_df[self.feature_matrix.label_col].apply(pd.to_numeric).values
+        )
 
         # Cross-validation
         if cross_validate:
@@ -389,8 +385,8 @@ class LocusToGeneTrainer:
                 fold_val_df[self.features_list].values,
             )
             y_fold_train, y_fold_val = (
-                fold_train_df[self.label_col].values,
-                fold_val_df[self.label_col].values,
+                fold_train_df[self.feature_matrix.label_col].values,
+                fold_val_df[self.feature_matrix.label_col].values,
             )
 
             fold_model = clone(self.model.model)
@@ -511,7 +507,7 @@ class LocusToGeneTrainer:
         data_df: pd.DataFrame,
         test_size: float = 0.15,
         verbose: bool = True,
-        random_state: int = 42,
+        random_state: int = 777,
     ) -> tuple[pd.DataFrame, pd.DataFrame]:
         """Implements hierarchical splitting strategy to prevent data leakage.
 
@@ -524,7 +520,7 @@ class LocusToGeneTrainer:
             data_df (pd.DataFrame): Input dataframe with goldStandardSet column (1=positive, 0=negative)
             test_size (float): Proportion of data for test set. Defaults to 0.15
             verbose (bool): Print splitting statistics
-            random_state (int): Random seed for reproducibility. Defaults to 42
+            random_state (int): Random seed for reproducibility. Defaults to 777
 
         Returns:
             tuple[pd.DataFrame, pd.DataFrame]: Training and test dataframes

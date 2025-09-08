@@ -6,7 +6,7 @@ ci:
   skip: [uv-lock]
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.11.11
+    rev: v0.12.11
     hooks:
       - id: ruff
         args:
@@ -15,7 +15,7 @@ repos:
         files: ^((gentropy|utils|tests)/.+)?[^/]+\.py$
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v5.0.0
+    rev: v6.0.0
     hooks:
       - id: trailing-whitespace
       - id: end-of-file-fixer
@@ -65,7 +65,7 @@ repos:
         stages: [commit-msg]
 
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: "v1.15.0"
+    rev: "v1.17.1"
     hooks:
       - id: mypy
         args:
@@ -98,11 +98,11 @@ repos:
       - id: beautysh
 
   - repo: https://github.com/jsh9/pydoclint
-    rev: 0.6.7
+    rev: 0.6.11
     hooks:
       - id: pydoclint
   - repo: https://github.com/astral-sh/uv-pre-commit
-    rev: 0.7.8
+    rev: 0.8.14
     hooks:
       - id: uv-lock
         args: [--check]

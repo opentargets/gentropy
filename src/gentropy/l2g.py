@@ -6,8 +6,8 @@ import logging
 from typing import Any
 
 import pyspark.sql.functions as f
-from sklearn.ensemble import GradientBoostingClassifier
 from wandb.sdk.wandb_login import login as wandb_login
+from xgboost import XGBClassifier
 
 from gentropy.common.schemas import compare_struct_schemas
 from gentropy.common.session import Session
@@ -358,7 +358,7 @@ class LocusToGeneStep:
 
         # Instantiate classifier and train model
         l2g_model = LocusToGeneModel(
-            model=GradientBoostingClassifier(random_state=42, loss="log_loss"),
+            model=XGBClassifier(random_state=777, eval_metric="aucpr"),
             hyperparameters=self.hyperparameters,
             features_list=self.features_list,
         )
@@ -382,7 +382,7 @@ class LocusToGeneStep:
                     # we upload the model saved in the filesystem
                     self.model_path.split("/")[-1],
                     hf_hub_token,
-                    data=trained_model.training_data._df.toPandas(),
+                    feature_matrix=trained_model.training_data,
                     repo_id=self.hf_hub_repo_id,
                     commit_message=self.hf_model_commit_message,
                 )
