@@ -5,6 +5,7 @@ from __future__ import annotations
 import pytest
 from pyspark.sql import DataFrame, SparkSession
 
+from gentropy.dataset.biosample_index import BiosampleIndex
 from gentropy.dataset.intervals import Intervals
 from gentropy.dataset.target_index import TargetIndex
 from gentropy.datasource.intervals.e2g import IntervalsE2G
@@ -25,11 +26,15 @@ def test_e2g_intervals_from_source(
     sample_intervals_e2g: DataFrame,
     mock_biosample_mapping: DataFrame,
     mock_target_index: TargetIndex,
+    mock_biosample_index: BiosampleIndex,
 ) -> None:
     """Test E2GIntervals creation with mock data."""
     assert isinstance(
         IntervalsE2G.parse(
-            sample_intervals_e2g, mock_biosample_mapping, mock_target_index
+            sample_intervals_e2g,
+            mock_biosample_mapping,
+            mock_target_index,
+            mock_biosample_index,
         ),
         Intervals,
     )
