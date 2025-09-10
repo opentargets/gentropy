@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from gentropy.common.session import Session
+from gentropy.dataset.biosample_index import BiosampleIndex
 from gentropy.dataset.target_index import TargetIndex
 from gentropy.datasource.intervals.e2g import IntervalsE2G
 from gentropy.datasource.intervals.epiraction import IntervalsEpiraction
@@ -20,6 +21,7 @@ class IntervalE2GStep:
         session: Session,
         target_index_path: str,
         biosample_mapping_path: str,
+        biosample_index_path: str,
         interval_source: str,
         interval_e2g_path: str,
     ) -> None:
@@ -29,6 +31,7 @@ class IntervalE2GStep:
             session (Session): Session object.
             target_index_path (str): Input target index path.
             biosample_mapping_path (str): Input biosample mapping path.
+            biosample_index_path (str): Input biosample index path.
             interval_source (str): Input intervals source path.
             interval_e2g_path (str): Output processed e2g intervals path.
         """
@@ -39,8 +42,11 @@ class IntervalE2GStep:
         biosample_mapping = session.spark.read.option("header", "true").csv(
             biosample_mapping_path
         )
+        biosample_index = BiosampleIndex.from_parquet(session, biosample_index_path)
         data = IntervalsE2G.read(session.spark, interval_source)
-        interval_e2g = IntervalsE2G.parse(data, biosample_mapping, target_index)
+        interval_e2g = IntervalsE2G.parse(
+            data, biosample_mapping, target_index, biosample_index
+        )
 
         interval_e2g.df.write.mode(session.write_mode).parquet(interval_e2g_path)
 
