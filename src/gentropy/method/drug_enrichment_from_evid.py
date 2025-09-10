@@ -10,7 +10,7 @@ import pyspark.sql.functions as f
 from pyspark.sql import DataFrame
 from scipy.stats import fisher_exact
 
-from gentropy.common.spark_helpers import calculate_harmonic_sum
+from gentropy.common.spark import calculate_harmonic_sum
 from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import StudyLocus
 

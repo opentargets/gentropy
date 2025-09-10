@@ -2,4 +2,4 @@
 title: EPIraction.
 ---
 
-::: gentropy.datasource.intervals.epiraction.IntervalsEPIraction
+::: gentropy.datasource.intervals.epiraction.IntervalsEpiraction

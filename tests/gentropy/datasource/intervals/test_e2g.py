@@ -17,6 +17,16 @@ def sample_intervals_e2g(spark: SparkSession) -> DataFrame:
     return IntervalsE2G.read(spark, "tests/gentropy/data_samples/e2g_sample.bed")
 
 
+@pytest.fixture(scope="module")
+def sample_biosample_mapping(spark: SparkSession) -> DataFrame:
+    """Sample E2G biosample mapping."""
+    return spark.read.csv(
+        "tests/gentropy/data_samples/biosample_mapping_sample.tsv",
+        sep="\t",
+        header=True,
+    )
+
+
 def test_read_e2g(sample_intervals_e2g: DataFrame) -> None:
     """Test read E2G data."""
     assert isinstance(sample_intervals_e2g, DataFrame)
@@ -24,7 +34,7 @@ def test_read_e2g(sample_intervals_e2g: DataFrame) -> None:
 
 def test_e2g_intervals_from_source(
     sample_intervals_e2g: DataFrame,
-    mock_biosample_mapping: DataFrame,
+    sample_biosample_mapping: DataFrame,
     mock_target_index: TargetIndex,
     mock_biosample_index: BiosampleIndex,
 ) -> None:
@@ -32,7 +42,7 @@ def test_e2g_intervals_from_source(
     assert isinstance(
         IntervalsE2G.parse(
             sample_intervals_e2g,
-            mock_biosample_mapping,
+            sample_biosample_mapping,
             mock_target_index,
             mock_biosample_index,
         ),
