@@ -29,6 +29,8 @@ class ColocalisationStep:
         credible_set_path: str,
         coloc_path: str,
         colocalisation_method: str,
+        restrict_to_studyIds: list[str] | None = None,
+        qtl_study_overlap: bool = False,
         colocalisation_method_params: dict[str, Any] | None = None,
     ) -> None:
         """Run Colocalisation step.
@@ -40,6 +42,8 @@ class ColocalisationStep:
             credible_set_path (str): Input credible sets path.
             coloc_path (str): Output path.
             colocalisation_method (str): Colocalisation method.
+            restrict_to_studyIds (list[str] | None): List of study IDs to restrict the colocalisation to. Defaults to None.
+            qtl_study_overlap (bool): If True, restrict to QTL studies on the right. Defaults to False.
             colocalisation_method_params (dict[str, Any] | None): Keyword arguments passed to the colocalise method of Colocalisation class. Defaults to None
 
         Keyword Args:
@@ -64,7 +68,10 @@ class ColocalisationStep:
             )
 
         # Transform
-        overlaps = credible_set.find_overlaps()
+        overlaps = credible_set.find_overlaps(
+            restrict_to_studyIds=restrict_to_studyIds,
+            qtl_study_overlap=qtl_study_overlap,
+        )
 
         # Make a partial caller to ensure that colocalisation_method_params are added to the call only when dict is not empty
         coloc = colocalisation_class.colocalise
