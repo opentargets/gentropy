@@ -4,7 +4,6 @@ import os
 from dataclasses import dataclass, field
 from typing import Any, ClassVar, TypedDict
 
-from hail import __file__ as hail_location
 from hydra.core.config_store import ConfigStore
 from omegaconf import MISSING
 
@@ -16,10 +15,21 @@ class SessionConfig:
     start_hail: bool = False
     write_mode: str = "errorifexists"
     spark_uri: str = "local[*]"
-    hail_home: str = os.path.dirname(hail_location)
+    hail_home: str | None = None
     extended_spark_conf: dict[str, str] | None = field(default_factory=dict[str, str])
     output_partitions: int = 200
     _target_: str = "gentropy.common.session.Session"
+
+    def add_hail(self) -> None:
+        """Add Hail to the Python path."""
+        try:
+            from hail import __file__ as hail_location
+        except ImportError as exc:
+            raise ImportError(
+                "Hail is not installed. Please install gentropy with the 'hail' extra: pip install gentropy[hail]"
+            ) from exc
+
+        self.hail_home = hail_location()
 
 
 @dataclass

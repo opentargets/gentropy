@@ -9,23 +9,13 @@ readme = "README.md"
 requires-python = ">=3.10, <3.13"
 dependencies = [
   "pyspark[pandas_on_spark] (>=3.5.0, <3.6)",
-  "hail (>=0.2.133, <0.3.0)",
   "scipy (>=1.11.4, <1.16.0)",
   "hydra-core (>=1.3.2, <1.4.0)",
   "pyliftover (>=0.4.1, <0.5.0)",
   "numpy (>=1.26.4, <2.3.0)",
-  "wandb (>=0.19.4, <0.22.0)",
   "omegaconf (>=2.3.0, <2.4.0)",
   "typing-extensions (>=4.12.2, <4.15.0)",
-  "scikit-learn (>=1.6.1, <1.8.0)",
   "pandas[gcp,parquet] (>=2.2.3, <2.4.0)",
-  "skops (>=0.11.0, <0.14.0)",
-  "shap (>=0.46, <0.49)",
-  "matplotlib (>=3.10.0, <3.11.0)",
-  "google-cloud-secret-manager (>=2.12.6, <2.25.0)",
-  "google-cloud-storage (>=2.14.0, <3.4.0)",
-  "xgboost-cpu>=3.0.4 ; platform_machine == 'amd64' or platform_machine == 'x86_64' ",
-  "xgboost>=3.0.4 ; platform_machine == 'aarch64' or platform_machine == 'arm64'",
 ]
 classifiers = [
   "Programming Language :: Python :: 3.10",
@@ -40,6 +30,37 @@ Documentation = "https://opentargets.github.io/gentropy/"
 
 [project.scripts]
 gentropy = "gentropy.cli:main"
+
+[project.optional-dependencies]
+hail = [
+    "hail>=0.2.134",
+]
+l2g = [
+    "google-cloud-secret-manager>=2.12.6",
+    "google-cloud-storage>=2.14.0",
+    "matplotlib>=3.10.6",
+    "scikit-learn>=1.7.2",
+    "shap>=0.48.0",
+    "skops>=0.13.0",
+    "wandb>=0.21.3",
+    "xgboost"
+]
+
+[tool.uv.sources]
+xgboost = [
+ { index = "xgboost-cpu", marker = "platform_machine == 'amd64' or platform_machine == 'x86_64'", extra = "l2g"},
+ { index = "xgboost", marker = "platform_machine == 'aarch64' or platform_machine == 'arm64'", extra = "l2g"}
+]
+
+[[tool.uv.index]]
+name = "xgboost-cpu"
+url = "https://pypi.org/simple"
+explicit = true
+
+[[tool.uv.index]]
+name = "xgboost"
+url = "https://pypi.org/simple"
+explicit = true
 
 [dependency-groups]
 docs = [

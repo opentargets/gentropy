@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-import hail as hl
 from pyspark.conf import SparkConf
 from pyspark.sql import SparkSession
 
@@ -55,6 +54,12 @@ class Session:
         self.hail_home = hail_home
         self.start_hail = start_hail
         if start_hail:
+            try:
+                import hail as hl  # type: ignore[import]
+            except ImportError as exc:
+                raise ImportError(
+                    "Hail is not installed. Please install gentropy with the 'hail' extra: pip install gentropy[hail]"
+                ) from exc
             hl.init(sc=self.spark.sparkContext, log="/dev/null")
         self.output_partitions = output_partitions
 
