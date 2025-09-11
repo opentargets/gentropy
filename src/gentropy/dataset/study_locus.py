@@ -486,15 +486,15 @@ class StudyLocus(Dataset):
     @staticmethod
     def _overlapping_peaks(
         credset_to_overlap: DataFrame,
-        restrict_to_studyIds: list[str] | None = None,
-        qtl_study_overlap: bool = False,
+        restrict_right_studyIds: list[str] | None = None,
+        gwas_v_qtl_overlap_only: bool = False,
     ) -> DataFrame:
         """Calculate overlapping signals (study-locus) between GWAS-GWAS and GWAS-Molecular trait.
 
         Args:
             credset_to_overlap (DataFrame): DataFrame containing at least `studyLocusId`, `studyType`, `chromosome` and `tagVariantId` columns.
-            restrict_to_studyIds (list[str] | None): List of studyIds to restrict finding overlaps on the right side. Default is None.
-            qtl_study_overlap (bool): When True, finds overlaps with just molecular-QTLs on the right-hand side. Default is False.
+            restrict_right_studyIds (list[str] | None): List of studyIds to restrict finding overlaps on the right side. Default is None.
+            gwas_v_qtl_overlap_only (bool): When True, finds overlaps with just molecular-QTLs on the right-hand side. Default is False.
 
         Returns:
             DataFrame: containing `leftStudyLocusId`, `rightStudyLocusId` and `chromosome` columns.
@@ -509,21 +509,21 @@ class StudyLocus(Dataset):
             "tagVariantId",
         )
         # Define join condition
-        # If qtl_study_overlap is True, finds overlaps with only molecular QTLs.
-        if qtl_study_overlap:
+        # If gwas_v_qtl_overlap_only is True, finds only gwas vs molQTL overlaps.
+        if gwas_v_qtl_overlap_only:
             join_condition = [
                 f.col("left.chromosome") == f.col("right.chromosome"),
                 f.col("left.tagVariantId") == f.col("right.tagVariantId"),
                 f.col("left.studyType") == f.lit("gwas"),
                 f.col("right.studyType") != f.lit("gwas"),
             ]
-        # If restrict_to_studyIds is not empty, restrict finding overlaps to those studies
-        elif restrict_to_studyIds is not None:
+        # If restrict_right_studyIds is not empty, restrict finding overlaps to those studies
+        elif restrict_right_studyIds is not None:
             join_condition = [
                 f.col("left.chromosome") == f.col("right.chromosome"),
                 f.col("left.tagVariantId") == f.col("right.tagVariantId"),
                 f.col("left.studyType") == f.lit("gwas"),
-                (f.col("right.studyId").isin(restrict_to_studyIds))
+                (f.col("right.studyId").isin(restrict_right_studyIds))
                 & (f.col("left.studyLocusId") != f.col("right.studyLocusId")),
             ]
         else:
@@ -836,17 +836,18 @@ class StudyLocus(Dataset):
 
     def find_overlaps(
         self: StudyLocus,
-        restrict_to_studyIds: list[str] | None = None,
-        qtl_study_overlap: bool = False,
+        restrict_right_studyIds: list[str] | None = None,
+        gwas_v_qtl_overlap_only: bool = False,
     ) -> StudyLocusOverlap:
         """Calculate overlapping study-locus.
 
-        Find overlapping study-locus that share at least one tagging variant. All GWAS-GWAS and all GWAS-Molecular traits are computed with the Molecular traits always
-        appearing on the right side.
+        Find overlapping study-locus that share at least one tagging variant. By default all GWAS-GWAS and all GWAS-Molecular traits are computed with the Molecular traits always
+        appearing on the right side of the overlap. The user can restrict computation of overlaps to a list of studyIds on the right-hand side or
+        can restrict the overlaps to just GWAS vs Molecular traits.
 
         Args:
-            restrict_to_studyIds (list[str] | None): List of studyIds to restrict finding overlaps to on the right-side. Default is None.
-            qtl_study_overlap (bool): If True, finds overlaps with just molecular-QTLs on right-hand side. Default is False.
+            restrict_right_studyIds (list[str] | None): List of studyIds to restrict finding overlaps to on the right-side. Default is None.
+            gwas_v_qtl_overlap_only (bool): If True, finds overlaps between all GWAS loci vs molecular-QTLs. Default is False.
 
         Returns:
             StudyLocusOverlap: Pairs of overlapping study-locus with aligned tags.
@@ -873,8 +874,8 @@ class StudyLocus(Dataset):
         # overlapping study-locus
         peak_overlaps = self._overlapping_peaks(
             loci_to_overlap,
-            restrict_to_studyIds=restrict_to_studyIds,
-            qtl_study_overlap=qtl_study_overlap,
+            restrict_right_studyIds=restrict_right_studyIds,
+            gwas_v_qtl_overlap_only=gwas_v_qtl_overlap_only,
         )
 
         # study-locus overlap by aligning overlapping variants
