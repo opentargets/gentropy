@@ -525,8 +525,7 @@ class StudyLocus(Dataset):
                 f.col("left.studyType") == f.lit("gwas"),
                 (f.col("right.studyId").isin(restrict_right_studies))
                 & (~f.col("left.studyId").isin(restrict_right_studies))
-                & (f.col("left.studyLocusId") != f.col("right.studyLocusId"))
-                & (f.col("left.studyLocusId") > f.col("right.studyLocusId")),
+                & (f.col("left.studyLocusId") != f.col("right.studyLocusId")),
             ]
         else:
             join_condition = [

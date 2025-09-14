@@ -70,8 +70,8 @@ def test_study_locus_overlap_from_associations(mock_study_locus: StudyLocus) -> 
 )
 def test_overlapping_peaks(
     spark: SparkSession,
-    observed: list[dict[str, Any]],
-    expected: list[dict[str, Any]],
+    observed: list[Any],
+    expected: list[Any],
 ) -> None:
     """Test overlapping signals between GWAS-GWAS and GWAS-Molecular trait to make sure that mQTLs are always on the right."""
     mock_schema = t.StructType(
@@ -92,7 +92,7 @@ def test_overlapping_peaks(
             t.StructField("chromosome", t.StringType()),
         ]
     )
-    observed_df = spark.createDataFrame(observed, mock_schema)
+    observed_df = spark.createDataFrame(data=observed, schema=mock_schema)
     result_df = StudyLocus._overlapping_peaks(observed_df)
     expected_df = spark.createDataFrame(expected, expected_schema)
     assert result_df.collect() == expected_df.collect()
