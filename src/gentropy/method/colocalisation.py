@@ -449,3 +449,188 @@ class Coloc(ColocalisationMethodInterface):
             ),
             _schema=Colocalisation.get_schema(),
         )
+
+
+class ColocPIP(ColocalisationMethodInterface):
+    """Calculate bayesian colocalisation based on overlapping signals from credible sets using PIPs."""
+
+    METHOD_NAME: str = "COLOC_PIP"
+    METHOD_METRIC: str = "h4"
+
+    @staticmethod
+    def _get_posteriors(
+        pip1_variants: NDArray[np.str_],
+        pip1_values: NDArray[np.float64],
+        pip2_variants: NDArray[np.str_],
+        pip2_values: NDArray[np.float64],
+        p1: float,
+        p2: float,
+        p12: float,
+    ) -> DenseVector:
+        """Approximate coloc posteriors using only PIPs, following the R coloc.pp logic.
+
+        Args:
+            pip1_variants (NDArray[np.str_]): Array of variant names for trait 1
+            pip1_values (NDArray[np.float64]): Array of PIP values for trait 1
+            pip2_variants (NDArray[np.str_]): Array of variant names for trait 2
+            pip2_values (NDArray[np.float64]): Array of PIP values for trait 2
+            p1 (float): Prior on variant being causal for trait 1
+            p2 (float): Prior on variant being causal for trait 2
+            p12 (float): Prior on variant being causal for traits 1 and 2
+
+        Returns:
+            DenseVector: [H0, H1, H2, H3, H4] posteriors
+        """
+        # Union of SNPs
+        snp_names = np.unique(np.concatenate((pip1_variants, pip2_variants)))
+        pip1_dict = dict(zip(pip1_variants, pip1_values))
+        pip2_dict = dict(zip(pip2_variants, pip2_values))
+        n1 = len(pip1_dict)
+        n2 = len(pip2_dict)
+        t1 = sum(pip1_dict.values())
+        t2 = sum(pip2_dict.values())
+        total_snps = len(snp_names)
+
+        # Impute missing PIPs
+        pip1_vec = np.array([pip1_dict.get(snp, np.nan) for snp in snp_names])
+        pip2_vec = np.array([pip2_dict.get(snp, np.nan) for snp in snp_names])
+        if np.any(np.isnan(pip1_vec)):
+            pip1_vec[np.isnan(pip1_vec)] = (1 - t1) / (total_snps - n1)
+        if np.any(np.isnan(pip2_vec)):
+            pip2_vec[np.isnan(pip2_vec)] = (1 - t2) / (total_snps - n2)
+
+        # Work in log-space
+        log_pip1 = np.log(pip1_vec)
+        log_pip2 = np.log(pip2_vec)
+
+        # H4: shared causal
+        PP4 = np.log(p12) + get_logsum((log_pip1 + log_pip2).astype(np.float64))
+        # H3: distinct causal
+        sum_log_pip1 = get_logsum(log_pip1)
+        sum_log_pip2 = get_logsum(log_pip2)
+        log_sum_both = get_logsum((log_pip1 + log_pip2).astype(np.float64))
+        logdiff = np.log(np.exp(sum_log_pip1 + sum_log_pip2) - np.exp(log_sum_both))
+        PP3 = np.log(p1) + np.log(p2) + logdiff
+
+        # Normalize
+        denom = np.logaddexp(PP3, PP4)
+        PP4 = np.exp(PP4 - denom)
+        PP3 = np.exp(PP3 - denom)
+        PP0 = 1 - PP3 - PP4
+
+        return Vectors.dense([PP0, 0.0, 0.0, PP3, PP4])
+
+    @classmethod
+    def colocalise(
+        cls: type[ColocPIP],
+        overlapping_signals: StudyLocusOverlap,
+        **kwargs: Any,
+    ) -> Colocalisation:
+        """Calculate approximate bayesian colocalisation based on overlapping signals with PIPs.
+
+        Args:
+            overlapping_signals (StudyLocusOverlap): overlapping peaks
+            **kwargs (Any): Additional parameters passed to the colocalise method.
+
+        Keyword Args:
+            priorc1 (float): Prior on variant being causal for trait 1. Defaults to 1e-4.
+            priorc2 (float): Prior on variant being causal for trait 2. Defaults to 1e-4.
+            priorc12 (float): Prior on variant being causal for traits 1 and 2. Defaults to 1e-5.
+
+        Returns:
+            Colocalisation: Colocalisation results
+
+        Raises:
+            TypeError: When passed incorrect prior argument types.
+        """
+        # Ensure priors are always present, even if not passed
+        priorc1 = kwargs.get("priorc1") or 1e-4
+        priorc2 = kwargs.get("priorc2") or 1e-4
+        priorc12 = kwargs.get("priorc12") or 1e-5
+        priors = [priorc1, priorc2, priorc12]
+        if any(not isinstance(prior, float) for prior in priors):
+            raise TypeError(
+                "Passed incorrect type(s) for prior parameters. got %s",
+                {type(p): p for p in priors},
+            )
+
+        # Register UDF for calculating posteriors from PIPs
+        posteriors_udf = f.udf(cls._get_posteriors, VectorUDT())
+
+        return Colocalisation(
+            _df=(
+                overlapping_signals.df.withColumn(
+                    "tagVariantSource", get_tag_variant_source(f.col("statistics"))
+                )
+                .select("*", "statistics.*")
+                # Before processing, ensure posterior probabilities are not null
+                .fillna(
+                    0,
+                    subset=[
+                        "left_posteriorProbability",
+                        "right_posteriorProbability",
+                    ],
+                )
+                # Group by overlapping peaks and collect PIPs as arrays
+                .groupBy(
+                    "chromosome",
+                    "leftStudyLocusId",
+                    "rightStudyLocusId",
+                    "rightStudyType",
+                )
+                .agg(
+                    f.size(
+                        f.filter(
+                            f.collect_list(f.col("tagVariantSource")),
+                            lambda x: x == "both",
+                        )
+                    )
+                    .cast(t.LongType())
+                    .alias("numberColocalisingVariants"),
+                    # Collect variant IDs and PIPs for left study
+                    f.collect_list(f.col("tagVariantId")).alias("left_variants"),
+                    f.collect_list(f.col("left_posteriorProbability")).alias(
+                        "left_pips"
+                    ),
+                    # Collect variant IDs and PIPs for right study
+                    f.collect_list(f.col("tagVariantId")).alias("right_variants"),
+                    f.collect_list(f.col("right_posteriorProbability")).alias(
+                        "right_pips"
+                    ),
+                )
+                # Calculate posteriors using the PIP approximation
+                .withColumn(
+                    "posteriors",
+                    posteriors_udf(
+                        f.col("left_variants").cast("array<string>"),
+                        f.col("left_pips").cast("array<double>"),
+                        f.col("right_variants").cast("array<string>"),
+                        f.col("right_pips").cast("array<double>"),
+                        f.lit(priorc1),
+                        f.lit(priorc2),
+                        f.lit(priorc12),
+                    ),
+                )
+                # Extract individual hypothesis posteriors
+                .withColumn("h0", fml.vector_to_array(f.col("posteriors")).getItem(0))
+                .withColumn("h1", fml.vector_to_array(f.col("posteriors")).getItem(1))
+                .withColumn("h2", fml.vector_to_array(f.col("posteriors")).getItem(2))
+                .withColumn("h3", fml.vector_to_array(f.col("posteriors")).getItem(3))
+                .withColumn("h4", fml.vector_to_array(f.col("posteriors")).getItem(4))
+                # Clean up intermediate columns
+                .drop(
+                    "posteriors",
+                    "left_variants",
+                    "left_pips",
+                    "right_variants",
+                    "right_pips",
+                )
+                .withColumn("colocalisationMethod", f.lit(cls.METHOD_NAME))
+                .join(
+                    overlapping_signals.calculate_beta_ratio(),
+                    on=["leftStudyLocusId", "rightStudyLocusId", "chromosome"],
+                    how="left",
+                )
+            ),
+            _schema=Colocalisation.get_schema(),
+        )
