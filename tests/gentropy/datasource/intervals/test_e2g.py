@@ -1,4 +1,4 @@
-"""Test Andersson Intervals."""
+"""Test E2G Intervals."""
 
 from __future__ import annotations
 

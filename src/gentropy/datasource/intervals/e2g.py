@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar
 
 import pyspark.sql.functions as f
 
@@ -17,16 +17,20 @@ if TYPE_CHECKING:
 class IntervalsE2G:
     """Interval dataset from E2G."""
 
+    DATASET_NAME: ClassVar[str] = "E2G"
+    PMID: ClassVar[str] = "38014075"  # PMID for the E2G paper
+    VALID_INTERVAL_TYPES: ClassVar[list[str]] = ["promoter", "genic", "intergenic"]
+
     @staticmethod
     def read(spark: SparkSession, path: str) -> DataFrame:
         """Read E2G dataset.
 
         Args:
             spark (SparkSession): Spark session
-            path (str): Path to the dataset
+            path (str): Path to the E2G dataset (tsv.gz files)
 
         Returns:
-            DataFrame: Raw, full E2G dataframe
+            DataFrame: Raw E2G DataFrame.
         """
         return (
             spark.read.option("delimiter", "\t")
@@ -46,18 +50,14 @@ class IntervalsE2G:
         """Parse E2G dataset.
 
         Args:
-            raw_e2g_df (DataFrame): Raw E2G dataset
-            biosample_mapping (DataFrame): DataFrame mapping biosample names to IDs
-            target_index (TargetIndex): Target index
-            biosample_index (BiosampleIndex): Biosample index
+            raw_e2g_df (DataFrame): Raw E2G DataFrame.
+            biosample_mapping (DataFrame): Biosample mapping DataFrame.
+            target_index (TargetIndex): Target index.
+            biosample_index (BiosampleIndex): Biosample index.
 
         Returns:
-            Intervals: Intervals dataset
+            Intervals: Parsed Intervals dataset.
         """
-        # Constant values:
-        dataset_name = "E2G"
-        pmid = "38014075"  # PMID for the E2G paper
-
         base = (
             raw_e2g_df.withColumn(
                 "studyId", f.regexp_extract(f.col("file_path"), r"([^/]+)\.bed\.gz$", 1)
@@ -86,6 +86,10 @@ class IntervalsE2G:
             .withColumn("end", f.col("end").cast("long"))
         )
 
+        base = base.withColumn(
+            "intervalType", f.lower(f.trim(f.col("intervalType")))
+        ).filter(f.col("intervalType").isin(cls.VALID_INTERVAL_TYPES))
+
         # Target Index: preferred TSS + fallbacks (canonical transcript, genomicLocation)
         ti = target_index._df.select(
             f.col("id").alias("geneId"),
@@ -100,12 +104,9 @@ class IntervalsE2G:
             f.col("genomicLocation.strand").cast("int").alias("gl_strand"),
         )
 
-        # TSS from canonical transcript ( '+' -> start, '-' -> end )
         ct_tss = f.when(f.col("ct_strand") == "+", f.col("ct_start")).when(
             f.col("ct_strand") == "-", f.col("ct_end")
         )
-
-        # TSS from genomicLocation ( 1 -> start, -1 -> end )
         gl_tss = f.when(f.col("gl_strand") == 1, f.col("gl_start")).when(
             f.col("gl_strand") == -1, f.col("gl_end")
         )
@@ -114,11 +115,10 @@ class IntervalsE2G:
             "tss_coalesced", f.coalesce(f.col("tss_primary"), ct_tss, gl_tss)
         )
 
-        # Join intervals to Target Index (inner to keep only genes known to target index)
+        # Join & recompute distanceToTss
         joined = base.alias("iv").join(
             ti_with_tss.alias("ti"), on="geneId", how="inner"
         )
-
         tss = f.col("ti.tss_coalesced")
 
         dist_core = f.when(
@@ -126,7 +126,6 @@ class IntervalsE2G:
         ).otherwise(
             f.least(f.abs(tss - f.col("iv.start")), f.abs(tss - f.col("iv.end")))
         )
-
         distance_expr = (
             f.when(f.col("iv.intervalType") == "promoter", f.lit(0))
             .when(tss.isNull(), f.lit(None).cast("long"))
@@ -163,8 +162,8 @@ class IntervalsE2G:
                     f.col("distanceToTss").cast("integer"),
                     f.col("score").cast("double"),
                     f.col("resourceScore"),
-                    f.lit(dataset_name).alias("datasourceId"),
-                    f.lit(pmid).alias("pmid"),
+                    f.lit(cls.DATASET_NAME).alias("datasourceId"),
+                    f.lit(cls.PMID).alias("pmid"),
                     f.col("studyId"),
                     f.col("biosampleId"),
                     f.col("intervalId"),
