@@ -491,13 +491,20 @@ class ColocPIP(ColocalisationMethodInterface):
         t2 = sum(pip2_dict.values())
         total_snps = len(snp_names)
 
-        # Impute missing PIPs
+        # Impute missing PIPs with a small pseudocount to avoid log(0)
+        pseudocount = 1e-10
         pip1_vec = np.array([pip1_dict.get(snp, np.nan) for snp in snp_names])
         pip2_vec = np.array([pip2_dict.get(snp, np.nan) for snp in snp_names])
         if np.any(np.isnan(pip1_vec)):
-            pip1_vec[np.isnan(pip1_vec)] = (1 - t1) / (total_snps - n1)
+            imputed_pip1 = max((1 - t1) / (total_snps - n1), pseudocount)
+            pip1_vec[np.isnan(pip1_vec)] = imputed_pip1
         if np.any(np.isnan(pip2_vec)):
-            pip2_vec[np.isnan(pip2_vec)] = (1 - t2) / (total_snps - n2)
+            imputed_pip2 = max((1 - t2) / (total_snps - n2), pseudocount)
+            pip2_vec[np.isnan(pip2_vec)] = imputed_pip2
+
+        # Ensure no PIPs are exactly zero by adding pseudocount
+        pip1_vec = np.maximum(pip1_vec, pseudocount)
+        pip2_vec = np.maximum(pip2_vec, pseudocount)
 
         # Work in log-space
         log_pip1 = np.log(pip1_vec)
@@ -546,7 +553,7 @@ class ColocPIP(ColocalisationMethodInterface):
         # Ensure priors are always present, even if not passed
         priorc1 = kwargs.get("priorc1") or 1e-4
         priorc2 = kwargs.get("priorc2") or 1e-4
-        priorc12 = kwargs.get("priorc12") or 1e-5
+        priorc12 = kwargs.get("priorc12") or 5e-6
         priors = [priorc1, priorc2, priorc12]
         if any(not isinstance(prior, float) for prior in priors):
             raise TypeError(
