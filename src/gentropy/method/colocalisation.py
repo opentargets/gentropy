@@ -491,8 +491,11 @@ class ColocPIP(ColocalisationMethodInterface):
         t2 = sum(pip2_dict.values())
         total_snps = len(snp_names)
 
-        # Impute missing PIPs with a small pseudocount to avoid log(0)
+        # Ensure priors are never zero to avoid log(0)
         pseudocount = 1e-10
+        p1 = max(p1, pseudocount)
+        p2 = max(p2, pseudocount)
+        p12 = max(p12, pseudocount)
         pip1_vec = np.array([pip1_dict.get(snp, np.nan) for snp in snp_names])
         pip2_vec = np.array([pip2_dict.get(snp, np.nan) for snp in snp_names])
         if np.any(np.isnan(pip1_vec)):
@@ -516,7 +519,12 @@ class ColocPIP(ColocalisationMethodInterface):
         sum_log_pip1 = get_logsum(log_pip1)
         sum_log_pip2 = get_logsum(log_pip2)
         log_sum_both = get_logsum((log_pip1 + log_pip2).astype(np.float64))
-        logdiff = np.log(np.exp(sum_log_pip1 + sum_log_pip2) - np.exp(log_sum_both))
+
+        # Compute logdiff safely to avoid log of negative numbers
+        diff_arg = np.exp(sum_log_pip1 + sum_log_pip2) - np.exp(log_sum_both)
+        # Add pseudocount if difference is too small or negative
+        diff_arg = max(diff_arg, pseudocount)
+        logdiff = np.log(diff_arg)
         PP3 = np.log(p1) + np.log(p2) + logdiff
 
         # Normalize
