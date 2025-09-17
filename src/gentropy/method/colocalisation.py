@@ -487,7 +487,7 @@ class ColocPIP(ColocalisationMethodInterface):
         pip2_dict = dict(zip(pip2_variants, pip2_values))
 
         # Ensure priors are never zero to avoid log(0)
-        pseudocount = 1e-10
+        pseudocount = 1e-16
         p1 = max(p1, pseudocount)
         p2 = max(p2, pseudocount)
         p12 = max(p12, pseudocount)
@@ -501,26 +501,31 @@ class ColocPIP(ColocalisationMethodInterface):
         # Work in log-space
         log_pip1 = np.log(pip1_vec)
         log_pip2 = np.log(pip2_vec)
-
-        # H4: shared causal
-        PP4 = np.log(p12) + get_logsum((log_pip1 + log_pip2).astype(np.float64))
-        # H3: distinct causal
         sum_log_pip1 = get_logsum(log_pip1)
         sum_log_pip2 = get_logsum(log_pip2)
         log_sum_both = get_logsum((log_pip1 + log_pip2).astype(np.float64))
 
-        # Compute logdiff safely to avoid log of negative numbers
-        diff_arg = np.exp(sum_log_pip1 + sum_log_pip2) - np.exp(log_sum_both)
-        # Add pseudocount if difference is too small or negative
-        diff_arg = max(diff_arg, pseudocount)
-        logdiff = np.log(diff_arg)
+        # Compute logdiff as in R coloc:::logdiff
+        x = sum_log_pip1 + sum_log_pip2
+        y = log_sum_both
+        my_max = max(x, y)
+        diff_arg = max(np.exp(x - my_max) - np.exp(y - my_max), 0)
+        if diff_arg == 0:
+            logdiff = -np.inf
+        else:
+            logdiff = my_max + np.log(diff_arg)
+
+        # H3: distinct causal
         PP3 = np.log(p1) + np.log(p2) + logdiff
+
+        # H4: shared causal
+        PP4 = np.log(p12) + log_sum_both
 
         # Normalize
         denom = get_logsum(np.array([PP3, PP4]))
         PP4 = np.exp(PP4 - denom)
         PP3 = np.exp(PP3 - denom)
-        PP0 = 1 - PP3 - PP4
+        PP0 = max(0, 1 - PP3 - PP4)
 
         return Vectors.dense([PP0, 0.0, 0.0, PP3, PP4])
 
