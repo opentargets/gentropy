@@ -6,7 +6,7 @@ ci:
   skip: [uv-lock]
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.12.11
+    rev: v0.12.12
     hooks:
       - id: ruff
         args:
@@ -98,11 +98,11 @@ repos:
       - id: beautysh
 
   - repo: https://github.com/jsh9/pydoclint
-    rev: 0.6.11
+    rev: 0.7.3
     hooks:
       - id: pydoclint
   - repo: https://github.com/astral-sh/uv-pre-commit
-    rev: 0.8.14
+    rev: 0.8.15
     hooks:
       - id: uv-lock
         args: [--check]
