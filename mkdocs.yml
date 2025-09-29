@@ -54,7 +54,6 @@ markdown_extensions:
   - markdown_katex:
       no_inline_svg: true
       insert_fonts_css: true
-      macro-file: macros.tex
 
 hooks:
   - src/utils/schemadocs.py

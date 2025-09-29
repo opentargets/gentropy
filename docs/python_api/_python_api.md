@@ -15,3 +15,4 @@ Gentropy data model is build upon following concepts:
 - [**Methods**](methods/_methods.md): statistical analysis tools
 - [**Steps**](steps/_steps.md): pipeline steps
 - [**Common**](common/_common.md): Common classes
+- [**Assets**](assets/_assets.md): Assets used in gentropy package

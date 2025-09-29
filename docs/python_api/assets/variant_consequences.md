@@ -1,8 +1,5 @@
 ---
-title: variant_consequences
+title: Variant Consequences
 ---
 
-## Variant Consequences
-
-:::gentropy.assets.variant_consequences.Consequence
-:::gentropy.assets.variant_consequences.VariantConsequence
+:::gentropy.assets.variant_consequences

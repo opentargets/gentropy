@@ -1,4 +1,9 @@
-"""Variant Consequence."""
+"""Common module representing Ensembl Variation Variant Consequences.
+
+This module contains the `Consequence` dataclass and the `VariantConsequence` enum.
+The `VariantConsequence` enum contains all `Consequence` instances defined by the Ensembl Variation API (used by Variant Effect Predictor - VEP).
+The full definition of the consequence was derived from the Ensembl Variation API.
+"""
 
 from __future__ import annotations
 
