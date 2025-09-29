@@ -5,26 +5,35 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import Enum
 
-import numpy as np
-
 
 @dataclass(frozen=True)
 class Consequence:
-    """Model class for the variant consequence.
+    """Base class for the variant consequence term.
 
-    Example:
-    -------
-    >>> c = Consequence(id="SO_0001893", label="transcript_ablation", impact="HIGH", rank=1)
-    >>> c.id
-    'SO_0001893'
-    >>> c.label
-    'transcript_ablation'
-    >>> c.impact
-    'HIGH'
-    >>> c.rank
-    1
-    >>> str(c)
-    'Consequence(id=SO_0001893, label=transcript_ablation, impact=HIGH, rank=1)'
+    Note:
+        This class is used as a base class for the `VariantConsequence` enum, which
+        contains all the valid consequence terms defined by the Ensembl Variation API.
+
+    Warning:
+        **Building new instances of this class is not recommended**, as it may lead to inconsistencies
+        in the way the `Consequence.score` is calculated.
+        Rather then creating new instances of this class it is recommended to subclass it
+        and override the `score` property with custom logic.
+
+    Examples:
+        >>> c = VariantConsequence.MISSENSE_VARIANT.value
+        >>> c.id
+        'SO_0001583'
+        >>> c.label
+        'missense_variant'
+        >>> c.impact
+        'MODERATE'
+        >>> c.score
+        0.68
+        >>> c.rank
+        13
+        >>> str(c)
+        'Consequence(id=SO_0001583, label=missense_variant, impact=MODERATE, rank=13)'
     """
 
     id: str
@@ -34,8 +43,23 @@ class Consequence:
 
     @property
     def score(self) -> float:
-        """Scores the impact of a variant consequence."""
-        return np.round(1 - (self.rank / len(VariantConsequence)), 2)
+        r"""Scores the impact of a variant consequence.
+
+        Note:
+            The consequence scores are derived from the rank introduced by the `ensembl-variation` ranking of sequence ontology consequence terms.
+            The ranking is derived from [Constants.pm](https://github.com/Ensembl/ensembl-variation/blob/ac9116d964b33253cb34f727cad8c1c022d28672/modules/Bio/EnsEMBL/Variation/Utils/Constants.pm#L375).
+            The scoring that follows the inverse of the ranking is based on the formula.
+            ```math
+            score=1 - \frac{rank}{max(rank)}
+            ```
+            where $max(rank)$ is the maximum rank of the consequences (41 in this case).
+            The score is then rounded to 2 decimal places.
+
+        * The score derived this way follows the VEP consequence ranking, which means that the consequence score is in sync to the actual mostSevereConsequence term
+        * The score is **different for each consequence term**
+        * The score follow the severity measure (0.98 - highest severity, 0 - lowest severity)
+        """
+        return round(1 - (self.rank / len(VariantConsequence)), 2)
 
     def __str__(self) -> str:
         """String representation of the consequence.
@@ -57,9 +81,10 @@ class Consequence:
 class VariantConsequence(Enum):
     """Enum representing Ensembl Variation Variant Consequences.
 
-    Note:
-        The full definition of the consequence was derived from the Ensembl Variation API.
-        See [issue](https://github.com/opentargets/issues/issues/3952) for more details.
+    This enum contains all `Consequence` instances defined by the Ensembl Variation API (used by Variant Effect Predictor - VEP).
+
+    The full definition of the consequence was derived from the Ensembl Variation API.
+    See [issue](https://github.com/opentargets/issues/issues/3952) for more details.
 
     Attributes:
         TRANSCRIPT_ABLATION (Consequence): A feature ablation whereby the deleted region includes a transcript feature
@@ -98,11 +123,11 @@ class VariantConsequence(Enum):
         TFBS_ABLATION (Consequence): A feature ablation whereby the deleted region includes a transcription factor binding site
         TFBS_AMPLIFICATION (Consequence): A feature amplification of a region containing a transcription factor binding site
         TF_BINDING_SITE_VARIANT (Consequence): A sequence variant located within a transcription factor binding site
-        REGULATORY_REGION_ABLATION (Consequence): A feature ablation whereby the deleted region includes a regulatory region
+        REGULATORY_REGION_ABLATION (ConsequeSO_0001893nce): A feature ablation whereby the deleted region includes a regulatory region
         REGULATORY_REGION_AMPLIFICATION (Consequence): A feature amplification of a region containing a regulatory region
         REGULATORY_REGION_VARIANT (Consequence): A sequence variant located within a regulatory region
         INTERGENIC_VARIANT (Consequence): A sequence variant located in the intergenic region, between genes
-        SEQUENCE_VARIANT (Consequence): A sequence_variant is a non exact copy of a sequence_feature or genome exhibiting one or more sequence_alteration
+        SEQUENCE_VARIANT (Consequence): A sequence_variant is a non exact copy of a sequence_feature or genome exhibiting one or more sequence_alterations
     """
 
     TRANSCRIPT_ABLATION = Consequence(
@@ -242,10 +267,17 @@ class VariantConsequence(Enum):
 
     @classmethod
     def map_sequence_ontology(cls) -> dict[str, str]:
-        """Return the mapping of the consequence label (key) and consequence ID (value).
+        """Return the mapping of the `Consequence.label` (key) and `Consequence.id` (value) representing Sequence Ontology term.
 
         Returns:
             dict[str, str]: Mapping of consequence label to ID.
+
+        Examples:
+            >>> m = VariantConsequence.map_sequence_ontology()
+            >>> m["missense_variant"]
+            'SO_0001583'
+            >>> len(m)
+            41
         """
         return {
             consequence.value.label: consequence.value.id
@@ -254,10 +286,17 @@ class VariantConsequence(Enum):
 
     @classmethod
     def map_score(cls) -> dict[str, float]:
-        """Return the mapping of the consequence label (key) and consequence scores (value).
+        """Return the mapping of the `Consequence.label` (key) and `Consequence.score` (value).
 
         Returns:
             dict[str, float]: Mapping of consequence label to score.
+
+        Examples:
+            >>> s = VariantConsequence.map_score()
+            >>> s["missense_variant"]
+            0.68
+            >>> len(s)
+            41
         """
         return {
             consequence.value.label: consequence.value.score
