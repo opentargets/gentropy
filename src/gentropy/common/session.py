@@ -240,7 +240,7 @@ class Log4j:
         """
         self.logger.error(message)
 
-    def warn(self, message: str) -> None:
+    def warning(self, message: str) -> None:
         """Log a warning.
 
         Args:

@@ -31,23 +31,20 @@ class FinngenUkbbMvpMetaIngestionStep:
             raw_summary_statistics_output_path (str): Output path for raw summary statistics.
             harmonised_summary_statistics_output_path (str): Output path for harmonised summary statistics.
         """
-        session.logger.info("Building study index.")
-        finngen_manifest = (
-            session.spark.read.option("header", True)
-            .option("sep", "\t")
-            .csv(manifest_path)
+        session.logger.info(f"Reading Finngen manifest from {manifest_path}.")
+        finngen_manifest = FinngenMetaManifest.from_path(
+            session=session, manifest_path=manifest_path
         )
-        
-        if efo_curation_path.startswith("http://"):
-            
-        
+
+        session.logger.info(f"Reading EFO curation from {efo_curation_path}.")
+
         efo_curation = (
             session.spark.read.option("header", True)
             .option("sep", "\t")
             .csv(efo_curation_path)
         )
 
-        study_index = FinngenUkbbMvpMetaStudyIndex.from_manifest(
+        study_index = FinngenMetaStudyIndex.from_manifest(
             session=session,
             manifest_path=manifest_path,
             output_path=study_index_output_path,
