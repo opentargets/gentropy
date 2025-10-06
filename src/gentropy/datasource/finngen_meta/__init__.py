@@ -9,7 +9,9 @@ if TYPE_CHECKING:
 
     from gentropy import Session
 
+import operator
 from enum import Enum
+from functools import reduce
 
 from pyspark.sql import Column
 from pyspark.sql import functions as f
@@ -26,14 +28,22 @@ class MetaAnalysisDataSource(str, Enum):
 class FinngenMetaManifest:
     """FinnGen meta-analysis manifest."""
 
+    ukbb_ancestry_cols = {
+        "ukbb_n_cases",
+        "ukbb_n_controls",
+    }
+
+    finngen_ancestry_cols = {
+        "fg_n_cases",
+        "fg_n_controls",
+    }
+
     required_columns = {
         "fg_phenotype",  # Original Finngen studyId (e.g. "I9_HEARTFAIL")
         "name",  # Finngen phenotype name - used for mapping to EFO
         # Ancestry columns for finngen and UKBB (should be in both meta analyses)
-        "fg_n_cases",
-        "fg_n_controls",
-        "ukbb_n_cases",
-        "ukbb_n_controls",
+        *finngen_ancestry_cols,
+        *ukbb_ancestry_cols,
     }
 
     mvp_ancestry_columns = {
@@ -51,10 +61,36 @@ class FinngenMetaManifest:
 
         Args:
             df (DataFrame): DataFrame containing the manifest data.
-            meta (MetaAnalysisDataSource): Meta-analysis data source.
+            meta (MetaAnalysisDataSource): Meta-analysis data source enum.
         """
-        self.df = df
         self.meta = meta
+        self._df = df
+
+    @property
+    def df(self) -> DataFrame:
+        """Get the manifest DataFrame.
+
+        The resulting DataFrame has the following schema:
+        ```
+        |-- studyPhenotype: string (nullable = true)
+        |-- traitFromSource: string (nullable = true)
+        |-- discoverySamples: array (nullable = true)
+            |-- element: struct (containsNull = true)
+                |-- sampleSize: integer (nullable = true)
+                |-- ancestry: string (nullable = true)
+        |-- nSamples: integer (nullable = true)
+        |-- hasSumstats: boolean (nullable = true)
+        |-- summarystatsLocation: string (nullable = true)  # may be null if not provided in the manifest
+        ```
+        """
+        return self._df.select(
+            f.col("fg_phenotype").alias("studyPhenotype"),
+            f.col("name").alias("traitFromSource"),
+            self.discovery_samples().alias("discoverySamples"),
+            self.n_samples().alias("nSamples"),
+            f.lit(True).alias("hasSumstats"),
+            f.col("path_bucket").alias("summarystatsLocation"),
+        )
 
     @classmethod
     def from_path(cls, session: Session, manifest_path: str) -> FinngenMetaManifest:
@@ -129,66 +165,131 @@ class FinngenMetaManifest:
         df = df.select(*column_map)  # Final contract
         return cls(df=df, meta=meta)
 
-    def ld_ancestries(self) -> Column:
-        """Get the ld ancestry cocktail."""
+    def discovery_samples(self) -> Column:
+        """Get the discovery samples.
+
+        This method dispatches to the appropriate private method based on the meta-analysis data source.
+
+        Returns:
+            Column: Spark Column representing the discovery samples.
+        """
         match self.meta:
             case MetaAnalysisDataSource.FINNGEN_UKBB:
-                return self._ld_ancestries_finngen_ukbb()
+                return self._discovery_samples_finngen_ukbb()
             case MetaAnalysisDataSource.FINNGEN_UKBB_MVP:
-                return self._ld_ancestries_finngen_ukbb_mvp()
+                return self._discovery_samples_finngen_ukbb_mvp()
             case _:
                 raise ValueError(f"Unsupported meta-analysis data source: {self.meta}")
 
-    def _ld_ancestries_finngen_ukbb(self) -> Column:
-        """Get the ld ancestry cocktail for FinnGen UKBB meta-analysis."""
-        return f.array(
-            f.struct(
-                (f.col("fg_n_cases") + f.col("fg_n_controls"))
-                .cast(t.IntegerType())
-                .alias("sampleSize"),
-                f.lit("fin").alias("ancestry"),
-            ),
-            f.struct(
-                (f.col("ukbb_n_cases") + f.col("ukbb_n_controls"))
-                .cast(t.IntegerType())
-                .alias("sampleSize"),
-                f.lit("nfe").alias("ancestry"),
-            ),
-        )
+    @staticmethod
+    def _add(*cols: Column) -> Column:
+        """Get the total number of samples from multiple columns.
 
-    def _ld_ancestries_finngen_ukbb_mvp(self) -> Column:
-        """Get the ld ancestry cocktail for FinnGen UKBB MVP meta-analysis."""
-        return f.array(
-            f.struct(
-                (f.col("fg_n_cases") + f.col("fg_n_controls"))
-                .cast(t.IntegerType())
-                .alias("sampleSize"),
-                f.lit("Finninsh").alias("ancestry"),
+        Args:
+            *cols (Column): Columns to sum.
+
+        Returns:
+            Column: Column representing the total number of samples.
+        """
+        return reduce(operator.add, cols).cast(t.IntegerType()).alias("nSamples")
+
+    def n_samples(self) -> Column:
+        """Get the total number of samples."""
+        match self.meta:
+            case MetaAnalysisDataSource.FINNGEN_UKBB:
+                ancestry_cols = [
+                    f.col(c)
+                    for c in self.finngen_ancestry_cols.union(self.ukbb_ancestry_cols)
+                ]
+            case MetaAnalysisDataSource.FINNGEN_UKBB_MVP:
+                ancestry_cols = [
+                    f.col(c)
+                    for c in self.finngen_ancestry_cols.union(
+                        self.ukbb_ancestry_cols.union(self.mvp_ancestry_columns)
+                    )
+                ]
+            case _:
+                raise ValueError(f"Unsupported meta-analysis data source: {self.meta}")
+        return self._add(*ancestry_cols).alias("nSamples")
+
+    def _discovery_samples_finngen_ukbb(self) -> Column:
+        """Get the discovery samples for FinnGen UKBB meta-analysis.
+
+        This meta analysis includes only two cohorts:
+        - Finnish (from FinnGen)
+        - Non-Finnish European (from Pan-UKBB European subset)
+
+        All ancestries with sample size > 0 are included.
+
+        Returns:
+            Column: Spark Column representing the ancestry cocktail.
+        """
+        return f.filter(
+            f.array(
+                f.struct(
+                    (f.col("fg_n_cases") + f.col("fg_n_controls"))
+                    .cast(t.IntegerType())
+                    .alias("sampleSize"),
+                    f.lit("fin").alias("ancestry"),
+                ),
+                f.struct(
+                    (f.col("ukbb_n_cases") + f.col("ukbb_n_controls"))
+                    .cast(t.IntegerType())
+                    .alias("sampleSize"),
+                    f.lit("nfe").alias("ancestry"),
+                ),
             ),
-            f.struct(
-                (
-                    f.col("ukbb_n_cases")
-                    + f.col("ukbb_n_controls")
-                    + f.col("MVP_EUR_n_cases")
-                    + f.col("MVP_EUR_n_controls")
-                )
-                .cast(t.IntegerType())
-                .alias("sampleSize"),
-                f.lit("European").alias("ancestry"),
+            lambda x: x.sampleSize > 0.0,
+        ).alias("discoverySamples")
+
+    def _discovery_samples_finngen_ukbb_mvp(self) -> Column:
+        """Get the discovery samples for FinnGen UKBB MVP meta-analysis.
+
+        This meta analysis includes n of four cohorts:
+        - Finnish (from FinnGen)
+        - European (from Pan-UKBB European subset and MVP European subset)
+        - African (from MVP African subset)
+        - American (from MVP American subset)
+
+        All ancestries with sample size > 0 are included.
+
+        Returns:
+            Column: Spark Column representing the ancestry cocktail.
+        """
+        return f.filter(
+            f.array(
+                f.struct(
+                    (f.col("fg_n_cases") + f.col("fg_n_controls"))
+                    .cast(t.IntegerType())
+                    .alias("sampleSize"),
+                    f.lit("Finninsh").alias("ancestry"),
+                ),
+                f.struct(
+                    (
+                        f.col("ukbb_n_cases")
+                        + f.col("ukbb_n_controls")
+                        + f.col("MVP_EUR_n_cases")
+                        + f.col("MVP_EUR_n_controls")
+                    )
+                    .cast(t.IntegerType())
+                    .alias("sampleSize"),
+                    f.lit("European").alias("ancestry"),
+                ),
+                f.struct(
+                    (f.col("MVP_AFR_n_cases") + f.col("MVP_AFR_n_controls"))
+                    .cast(t.IntegerType())
+                    .alias("sampleSize"),
+                    f.lit("afr").alias("ancestry"),
+                ),
+                f.struct(
+                    (f.col("MVP_AMR_n_cases") + f.col("MVP_AMR_n_controls"))
+                    .cast(t.IntegerType())
+                    .alias("sampleSize"),
+                    f.lit("amr").alias("ancestry"),
+                ),
             ),
-            f.struct(
-                (f.col("MVP_AFR_n_cases") + f.col("MVP_AFR_n_controls"))
-                .cast(t.IntegerType())
-                .alias("sampleSize"),
-                f.lit("afr").alias("ancestry"),
-            ),
-            f.struct(
-                (f.col("MVP_AMR_n_cases") + f.col("MVP_AMR_n_controls"))
-                .cast(t.IntegerType())
-                .alias("sampleSize"),
-                f.lit("amr").alias("ancestry"),
-            ),
-        )
+            lambda x: x.sampleSize > 0.0,
+        ).alias("discoverySamples")
 
 
 class EFOCuration:

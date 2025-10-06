@@ -3,6 +3,11 @@
 from __future__ import annotations
 
 from gentropy.common.session import Session
+from gentropy.datasource.finngen_meta import EFOCuration, FinngenMetaManifest
+from gentropy.datasource.finngen_meta.study_index import FinngenMetaStudyIndex
+from gentropy.datasource.finngen_meta.summary_statistics import (
+    FinngenMetaSummaryStatistics,
+)
 
 
 class FinngenUkbbMvpMetaIngestionStep:
@@ -35,23 +40,22 @@ class FinngenUkbbMvpMetaIngestionStep:
         finngen_manifest = FinngenMetaManifest.from_path(
             session=session, manifest_path=manifest_path
         )
-
+        session.logger.info(f"Building study index for: {finngen_manifest.meta.value}")
         session.logger.info(f"Reading EFO curation from {efo_curation_path}.")
-
-        efo_curation = (
-            session.spark.read.option("header", True)
-            .option("sep", "\t")
-            .csv(efo_curation_path)
+        efo_curation = EFOCuration.from_path(
+            session=session, efo_curation_path=efo_curation_path
         )
 
-        study_index = FinngenMetaStudyIndex.from_manifest(
-            session=session,
-            manifest_path=manifest_path,
-            output_path=study_index_output_path,
+        session.logger.info("Creating study index.")
+        study_index = FinngenMetaStudyIndex.from_finngen_manifest(
+            finngen_manifest, efo_curation
         )
+        session.logger.info("Writing study index.")
+        study_index.df.write.mode(session.write_mode).parquet(study_index_output_path)
+        session.logger.info(f"Study index written to {study_index_output_path}.")
 
         session.logger.info("Downloading summary statistics.")
-        raw_summary_stats = FinngenUkbMvpMetaSummaryStats.gzip_to_parquet(
+        raw_summary_stats = FinngenMetaSummaryStatistics.bgzip_to_parquet(
             session=session,
             study_index=study_index,
             summary_statistics_base_path=summary_statistics_base_path,

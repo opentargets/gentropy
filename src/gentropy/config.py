@@ -18,6 +18,7 @@ class SessionConfig:
     spark_uri: str = "local[*]"
     hail_home: str = os.path.dirname(hail_location)
     extended_spark_conf: dict[str, str] | None = field(default_factory=dict[str, str])
+    use_enhanced_bgzip_codec: bool = False
     output_partitions: int = 200
     _target_: str = "gentropy.common.session.Session"
 

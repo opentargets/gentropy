@@ -59,6 +59,7 @@ class Session:
 
         self.hail_home = hail_home
         self.start_hail = start_hail
+        self.use_enhanced_bgzip_codec = use_enhanced_bgzip_codec
         if start_hail:
             hl.init(sc=self.spark.sparkContext, log="/dev/null")
         self.output_partitions = output_partitions

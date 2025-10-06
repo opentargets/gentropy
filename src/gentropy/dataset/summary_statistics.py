@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 import pyspark.sql.functions as f
+from pyspark.sql import types as t
 
 from gentropy.common.genomic_region import GenomicRegion
 from gentropy.common.schemas import parse_spark_schema
@@ -16,7 +17,7 @@ from gentropy.dataset.dataset import Dataset
 if TYPE_CHECKING:
     from pyspark.sql.types import StructType
 
-    from gentropy.dataset.study_locus import StudyLocus
+    from gentropy import Session, StudyIndex, StudyLocus, VariantIndex
 
 
 @dataclass
@@ -170,3 +171,74 @@ class SummaryStatistics(Dataset):
         ).drop_infinity_values(*cols)
 
         return summary_stats
+
+    def limit_to_studies(
+        self, session: Session, study_index: StudyIndex
+    ) -> SummaryStatistics:
+        """Limit summary statistics to those present in the study index.
+
+        Args:
+            session (Session): Session object.
+            study_index (StudyIndex): Study index object.
+
+        Returns:
+            SummaryStatistics: Filtered summary statistics object.
+        """
+        studies = study_index.df.select("studyId").distinct().collect()
+        study_ids = [row.studyId for row in studies]
+        session.logger.info(f"Expecting N={len(study_ids)} studies.")
+
+        count_pre = self.df.select("studyId").distinct().count()
+        session.logger.info(f"Found N={count_pre} distinct summary statistics.")
+
+        session.logger.info("Filtering summary statistics to match the study index.")
+        filtered_sumstats = self.df.filter(f.col("studyId").isin(study_ids))
+
+        count_post = filtered_sumstats.select("studyId").distinct().count()
+        session.logger.info(f"N={count_post} studies match the study index.")
+
+        if count_pre != count_post:
+            session.logger.warning(
+                f"Dropping N={count_pre - count_post} studies that are not in the study index."
+            )
+        return SummaryStatistics(_df=filtered_sumstats)
+
+    def normalize_chromosome(self: SummaryStatistics) -> SummaryStatistics:
+        """Normalize chromosome column to remove 'chr' prefix if present.
+
+        Normalize chromosome column:
+            - Ensure chromosome is of string type.
+            - Remove 'chr' prefix if present.
+            - Convert '23' to 'X'
+            - Convert '24' to 'Y'.
+            - Convert 'M' to 'MT'.
+
+        Returns:
+            SummaryStatistics: Summary statistics object with normalized chromosome column.
+        """
+        df = (
+            self._df.withColumn(
+                "chromosome",
+                f.col("chromosome").cast(t.StringType()),
+            )
+            .withColumn(
+                "chromosome",
+                f.regexp_replace(f.col("chromosome"), "^chr", ""),
+            )
+            .withColumn(
+                "chromosome",
+                f.when(f.col("chromosome") == f.lit("23"), f.lit("X"))
+                .when(f.col("chromosome") == f.lit("24"), f.lit("Y"))
+                .when(f.col("chromosome") == f.lit("M"), f.lit("MT"))
+                .otherwise(f.col("chromosome")),
+            )
+        )
+
+        return SummaryStatistics(_df=df, _schema=self._schema)
+
+    def normalize_alleles(
+        self: SummaryStatistics, vi: VariantIndex
+    ) -> SummaryStatistics:
+        pass
+    
+    def 
