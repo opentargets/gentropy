@@ -31,6 +31,91 @@ class FinnGenMetaSummaryStatistics:
             f.element_at(f.split(file_path, "/"), -1), "_meta_out.tsv.gz", ""
         )
 
+    # raw_schema represents the order of columns in the original summary statistics files
+    raw_schema = t.StructType(
+        [
+            t.StructField("#CHR", t.StringType(), True),
+            t.StructField("POS", t.LongType(), True),
+            t.StructField("REF", t.StringType(), True),
+            t.StructField("ALT", t.StringType(), True),
+            t.StructField("SNP", t.StringType(), True),
+            # fg_ (FinnGen)
+            t.StructField("fg_beta", t.DoubleType(), True),
+            t.StructField("fg_sebeta", t.DoubleType(), True),
+            t.StructField("fg_pval", t.DoubleType(), True),
+            t.StructField("fg_af_alt", t.DoubleType(), True),
+            t.StructField("fg_af_alt_cases", t.DoubleType(), True),
+            t.StructField("fg_af_alt_controls", t.DoubleType(), True),
+            # MVP_EUR
+            t.StructField("MVP_EUR_beta", t.DoubleType(), True),
+            t.StructField("MVP_EUR_sebeta", t.DoubleType(), True),
+            t.StructField("MVP_EUR_pval", t.DoubleType(), True),
+            t.StructField("MVP_EUR_af_alt", t.DoubleType(), True),
+            t.StructField("MVP_EUR_r2", t.DoubleType(), True),
+            # MVP_AFR
+            t.StructField("MVP_AFR_beta", t.DoubleType(), True),
+            t.StructField("MVP_AFR_sebeta", t.DoubleType(), True),
+            t.StructField("MVP_AFR_pval", t.DoubleType(), True),
+            t.StructField("MVP_AFR_af_alt", t.DoubleType(), True),
+            t.StructField("MVP_AFR_r2", t.DoubleType(), True),
+            # MVP_HIS
+            t.StructField("MVP_HIS_beta", t.DoubleType(), True),
+            t.StructField("MVP_HIS_sebeta", t.DoubleType(), True),
+            t.StructField("MVP_HIS_pval", t.DoubleType(), True),
+            t.StructField("MVP_HIS_af_alt", t.DoubleType(), True),
+            t.StructField("MVP_HIS_r2", t.DoubleType(), True),
+            # UKBB
+            t.StructField("ukbb_beta", t.DoubleType(), True),
+            t.StructField("ukbb_sebeta", t.DoubleType(), True),
+            t.StructField("ukbb_pval", t.DoubleType(), True),
+            t.StructField("ukbb_af_alt", t.DoubleType(), True),
+            # Meta
+            t.StructField("all_meta_N", t.IntegerType(), True),
+            t.StructField("all_inv_var_meta_beta", t.DoubleType(), True),
+            t.StructField("all_inv_var_meta_sebeta", t.DoubleType(), True),
+            t.StructField("all_inv_var_meta_p", t.DoubleType(), True),
+            t.StructField("all_inv_var_meta_mlogp", t.DoubleType(), True),
+            t.StructField("all_inv_var_het_p", t.DoubleType(), True),
+            # Leave-one-out: FinnGen
+            t.StructField("leave_fg_N", t.IntegerType(), True),
+            t.StructField("leave_fg_inv_var_meta_beta", t.DoubleType(), True),
+            t.StructField("leave_fg_inv_var_meta_sebeta", t.DoubleType(), True),
+            t.StructField("leave_fg_inv_var_meta_p", t.DoubleType(), True),
+            t.StructField("leave_fg_inv_var_meta_mlogp", t.DoubleType(), True),
+            t.StructField("leave_fg_inv_var_meta_het_p", t.DoubleType(), True),
+            # Leave-one-out: MVP_EUR
+            t.StructField("leave_MVP_EUR_N", t.IntegerType(), True),
+            t.StructField("leave_MVP_EUR_inv_var_meta_beta", t.DoubleType(), True),
+            t.StructField("leave_MVP_EUR_inv_var_meta_sebeta", t.DoubleType(), True),
+            t.StructField("leave_MVP_EUR_inv_var_meta_p", t.DoubleType(), True),
+            t.StructField("leave_MVP_EUR_inv_var_meta_mlogp", t.DoubleType(), True),
+            t.StructField("leave_MVP_EUR_inv_var_meta_het_p", t.DoubleType(), True),
+            # Leave-one-out: MVP_AFR
+            t.StructField("leave_MVP_AFR_N", t.IntegerType(), True),
+            t.StructField("leave_MVP_AFR_inv_var_meta_beta", t.DoubleType(), True),
+            t.StructField("leave_MVP_AFR_inv_var_meta_sebeta", t.DoubleType(), True),
+            t.StructField("leave_MVP_AFR_inv_var_meta_p", t.DoubleType(), True),
+            t.StructField("leave_MVP_AFR_inv_var_meta_mlogp", t.DoubleType(), True),
+            t.StructField("leave_MVP_AFR_inv_var_meta_het_p", t.DoubleType(), True),
+            # Leave-one-out: MVP_HIS
+            t.StructField("leave_MVP_HIS_N", t.IntegerType(), True),
+            t.StructField("leave_MVP_HIS_inv_var_meta_beta", t.DoubleType(), True),
+            t.StructField("leave_MVP_HIS_inv_var_meta_sebeta", t.DoubleType(), True),
+            t.StructField("leave_MVP_HIS_inv_var_meta_p", t.DoubleType(), True),
+            t.StructField("leave_MVP_HIS_inv_var_meta_mlogp", t.DoubleType(), True),
+            t.StructField("leave_MVP_HIS_inv_var_meta_het_p", t.DoubleType(), True),
+            # Leave-one-out: UKBB
+            t.StructField("leave_ukbb_N", t.IntegerType(), True),
+            t.StructField("leave_ukbb_inv_var_meta_beta", t.DoubleType(), True),
+            t.StructField("leave_ukbb_inv_var_meta_sebeta", t.DoubleType(), True),
+            t.StructField("leave_ukbb_inv_var_meta_p", t.DoubleType(), True),
+            t.StructField("leave_ukbb_inv_var_meta_mlogp", t.DoubleType(), True),
+            t.StructField("leave_ukbb_inv_var_meta_het_p", t.DoubleType(), True),
+            # RSID
+            t.StructField("rsid", t.StringType(), True),
+        ]
+    )
+
     @classmethod
     def bgzip_to_parquet(
         cls,
@@ -59,10 +144,9 @@ class FinnGenMetaSummaryStatistics:
             )
 
         (
-            session.spark.read.format("csv")
-            .option("sep", "\t")
-            .option("header", "true")
-            .load(summary_statistics_glob)
+            session.spark.read.csv(
+                summary_statistics_glob, schema=cls.raw_schema, sep="\t", header=True
+            )
             .withColumn(
                 "studyId",
                 f.concat_ws(
