@@ -6,7 +6,6 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 import pyspark.sql.functions as f
-from pyspark.sql import types as t
 
 from gentropy.common.genomic_region import GenomicRegion
 from gentropy.common.schemas import parse_spark_schema
@@ -17,7 +16,7 @@ from gentropy.dataset.dataset import Dataset
 if TYPE_CHECKING:
     from pyspark.sql.types import StructType
 
-    from gentropy import Session, StudyIndex, StudyLocus, VariantIndex
+    from gentropy import Session, StudyIndex, StudyLocus
 
 
 @dataclass

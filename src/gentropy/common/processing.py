@@ -4,25 +4,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-import pyspark.sql.types as t
-from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql import functions as f
 
 from gentropy.common.spark import extract_column_name
-from gentropy.common.stats import (
-    chi2_from_pvalue,
-    pvalue_from_neglogpval,
-    stderr_from_chi2_and_effect_size,
-)
 
 if TYPE_CHECKING:
     from pyspark.sql import Column
 
-    from gentropy.common.session import Session
-    from gentropy.datasource.finngen_ukb_meta.summary_stats import (
-        FinngenUkbMetaSummaryStats,
-    )
-    from gentropy.datasource.ukb_ppp_eur.summary_stats import UkbPppEurSummaryStats
 
 
 def parse_efos(efo_uri: Column) -> Column:
