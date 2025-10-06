@@ -5,52 +5,67 @@ from __future__ import annotations
 from pyspark.sql import functions as f
 
 from gentropy import StudyIndex
-from gentropy.datasource.finngen.study_index import FinnGenStudyIndex
+from gentropy.datasource.finngen.efo_mapping import EFOMapping
 from gentropy.datasource.finngen_meta import (
-    EFOCuration,
-    FinngenMetaManifest,
+    FinnGenMetaManifest,
+    MetaAnalysisDataSource,
 )
 
 
-class FinngenMetaStudyIndex:
+class FinnGenMetaStudyIndex:
     """FinnGen meta-analysis study index."""
+
+    CONSTANTS = {
+        MetaAnalysisDataSource.FINNGEN_UKBB.value: {
+            "initialSampleSize": f.lit(
+                "920,880 (FinnGenR12: nNFE=500,349; pan-UKBB-EUR: nEUR=420,531)"
+            ),  # based on https://metaresults-ukbb.finngen.fi/about
+            "pubmedId": f.lit("36653562"),
+            "cohorts": f.array(f.lit("FinnGen"), f.lit("pan-UKBB-EUR")),
+        },
+        MetaAnalysisDataSource.FINNGEN_UKBB_MVP.value: {
+            "initialSampleSize": f.lit(
+                "1,550,147 (MVP: nEUR=449,042, nAFR=121,177, nAMR=59,048; FinnGenR12: nNFE=500,349; pan-UKBB-EUR: nEUR=420,531)"
+            ),  # based on https://mvp-ukbb.finngen.fi/about
+            "cohorts": f.array(f.lit("MVP"), f.lit("FinnGen"), f.lit("pan-UKBB-EUR")),
+        },
+    }
 
     @classmethod
     def from_finngen_manifest(
-        cls: type[FinngenMetaStudyIndex],
-        manifest: FinngenMetaManifest,
-        efo_curation: EFOCuration,
+        cls: type[FinnGenMetaStudyIndex],
+        manifest: FinnGenMetaManifest,
+        efo_mapping: EFOMapping,
     ) -> StudyIndex:
         """Create the FinnGen meta-analysis study index from the manifest."""
-        # 1. Read the mapping
-
+        # Read the mapping
         df = manifest.df.select(
+            f.col("studyId"),
+            f.col("projectId"),
             f.lit("gwas").alias("studyType"),
-            f.lit(manifest.meta.value).alias("projectId"),
-            f.concat_ws(
-                "_",
-                f.lit(manifest.meta.value),
-                f.col("studyPhenotype"),
-            ).alias("studyId"),
             f.col("traitFromSource"),
             f.col("hasSumstats"),
             f.col("summarystatsLocation"),
             f.col("discoverySamples"),
             f.col("nSamples"),
-        )
-
-        # Add population structure.
-        study_index_df = df.withColumn(
-            "ldPopulationStructure",
-            StudyIndex.aggregate_and_map_ancestries(f.col("discoverySamples")),
+            f.col("nCases"),
+            f.col("nControls"),
+            # Add constant columns
+            *[
+                value.alias(key)
+                for key, value in cls.CONSTANTS[manifest.meta.value].items()
+            ],
+            # Compute the ld structure `ldPopulationStructure` from discovery samples.
+            StudyIndex.aggregate_and_map_ancestries(f.col("discoverySamples")).alias(
+                "ldPopulationStructure"
+            ),
         )
 
         # Create study index.
-        study_index = StudyIndex(_df=study_index_df)
+        study_index = StudyIndex(_df=df)
 
-        # Add EFO mappings.
-        study_index = FinnGenStudyIndex.join_efo_mapping(
-            study_index, efo_curation.df, finngen_release="R12"
-        )
+        # Add EFO mappings - `traitFromSourceMappedIds`.
+        study_index = efo_mapping.join_efo_mapping(study_index, finngen_release="R12")
+
         # Coalesce to a single file.
         return StudyIndex(_df=study_index.df.coalesce(1))

@@ -203,14 +203,6 @@ class JavaLogger(Protocol):
         """
         ...
 
-    def warning(self, message: str) -> None:
-        """Log a warning message (alias).
-
-        Args:
-            message (str): The error message to log.
-        """
-        ...
-
     def info(self, message: str) -> None:
         """Log an info message.
 
@@ -247,7 +239,7 @@ class Log4j:
         Args:
             message (str): Warning message to write to log
         """
-        self.logger.warning(message)
+        self.logger.warn(message)  #  # noqa: G010
 
     def info(self, message: str) -> None:
         """Log information.

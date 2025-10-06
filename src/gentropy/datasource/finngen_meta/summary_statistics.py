@@ -17,7 +17,7 @@ from gentropy.dataset.summary_statistics import SummaryStatistics
 from gentropy.datasource.finngen_meta import MetaAnalysisDataSource
 
 
-class FinngenMetaSummaryStatistics:
+class FinnGenMetaSummaryStatistics:
     """FinnGen meta summary statistics ingestion and harmonisation."""
 
     @staticmethod

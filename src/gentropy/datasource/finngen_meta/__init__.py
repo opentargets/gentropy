@@ -25,7 +25,7 @@ class MetaAnalysisDataSource(str, Enum):
     FINNGEN_UKBB = "FINNGEN_R12_UKB_META"
 
 
-class FinngenMetaManifest:
+class FinnGenMetaManifest:
     """FinnGen meta-analysis manifest."""
 
     ukbb_ancestry_cols = {
@@ -79,21 +79,26 @@ class FinngenMetaManifest:
                 |-- sampleSize: integer (nullable = true)
                 |-- ancestry: string (nullable = true)
         |-- nSamples: integer (nullable = true)
+        |-- nCases: integer (nullable = true)
+        |-- nControls: integer (nullable = true)
         |-- hasSumstats: boolean (nullable = true)
         |-- summarystatsLocation: string (nullable = true)  # may be null if not provided in the manifest
         ```
         """
         return self._df.select(
-            f.col("fg_phenotype").alias("studyPhenotype"),
-            f.col("name").alias("traitFromSource"),
-            self.discovery_samples().alias("discoverySamples"),
-            self.n_samples().alias("nSamples"),
-            f.lit(True).alias("hasSumstats"),
-            f.col("path_bucket").alias("summarystatsLocation"),
+            self.study_id.alias("studyId"),
+            self.project_id.alias("projectId"),
+            self.trait_from_source.alias("traitFromSource"),
+            self.discovery_samples.alias("discoverySamples"),
+            self.n_samples.alias("nSamples"),
+            self.n_cases.alias("nCases"),
+            self.n_controls.alias("nControls"),
+            self.summary_statistics_location.alias("summarystatsLocation"),
+            self.has_summary_statistics.alias("hasSumstats"),
         )
 
     @classmethod
-    def from_path(cls, session: Session, manifest_path: str) -> FinngenMetaManifest:
+    def from_path(cls, session: Session, manifest_path: str) -> FinnGenMetaManifest:
         """Load the FinnGen meta-analysis manifest from a specified path.
 
         Note:
@@ -165,6 +170,7 @@ class FinngenMetaManifest:
         df = df.select(*column_map)  # Final contract
         return cls(df=df, meta=meta)
 
+    @property
     def discovery_samples(self) -> Column:
         """Get the discovery samples.
 
@@ -190,27 +196,72 @@ class FinngenMetaManifest:
 
         Returns:
             Column: Column representing the total number of samples.
-        """
-        return reduce(operator.add, cols).cast(t.IntegerType()).alias("nSamples")
 
-    def n_samples(self) -> Column:
-        """Get the total number of samples."""
+
+        Examples:
+            >>> df = spark.createDataFrame([(1, 2, 3), (1, 2, None)], ["a", "b", "c"])
+            >>> df.select(FinnGenMetaManifest._add(f.col("a"), f.col("b"), f.col("c")).alias("total")).show()
+            +-----+
+            |total|
+            +-----+
+            |    6|
+            |    3|
+            +-----+
+            <BLANKLINE>
+        """
+        # Coalesce to 0 to handle nulls
+        ccols = [f.coalesce(col, f.lit(0)) for col in cols]
+        return reduce(operator.add, ccols).cast(t.IntegerType())
+
+    @property
+    def ancestry_columns(self) -> set[str]:
+        """Find all ancestry number columns in the manifest.
+
+        These columns are used to calculate the total number of samples, cases, and controls.
+
+        Returns:
+            set[str]: Set of ancestry number columns.
+
+        Raises:
+            ValueError: If the meta-analysis data source is unsupported.
+
+        Examples:
+            >>> dummy_df = spark.createDataFrame([(1,2,3), (4,5,6)])
+            >>> manifest = FinnGenMetaManifest(df=dummy_df, meta=MetaAnalysisDataSource.FINNGEN_UKBB)
+            >>> sorted(manifest.ancestry_columns)
+            ['fg_n_cases', 'fg_n_controls', 'ukbb_n_cases', 'ukbb_n_controls']
+            >>> manifest = FinnGenMetaManifest(df=dummy_df, meta=MetaAnalysisDataSource.FINNGEN_UKBB_MVP)
+            >>> sorted(manifest.ancestry_columns)
+            ['MVP_AFR_n_cases', 'MVP_AFR_n_controls', 'MVP_AMR_n_cases', 'MVP_AMR_n_controls', 'MVP_EUR_n_cases', 'MVP_EUR_n_controls', 'fg_n_cases', 'fg_n_controls', 'ukbb_n_cases', 'ukbb_n_controls']
+        """
         match self.meta:
             case MetaAnalysisDataSource.FINNGEN_UKBB:
-                ancestry_cols = [
-                    f.col(c)
-                    for c in self.finngen_ancestry_cols.union(self.ukbb_ancestry_cols)
-                ]
+                return self.finngen_ancestry_cols | self.ukbb_ancestry_cols
             case MetaAnalysisDataSource.FINNGEN_UKBB_MVP:
-                ancestry_cols = [
-                    f.col(c)
-                    for c in self.finngen_ancestry_cols.union(
-                        self.ukbb_ancestry_cols.union(self.mvp_ancestry_columns)
-                    )
-                ]
+                return (
+                    self.finngen_ancestry_cols
+                    | self.ukbb_ancestry_cols
+                    | self.mvp_ancestry_columns
+                )
             case _:
                 raise ValueError(f"Unsupported meta-analysis data source: {self.meta}")
-        return self._add(*ancestry_cols).alias("nSamples")
+
+    @property
+    def n_samples(self) -> Column:
+        """Get the total number of samples."""
+        return self._add(*[f.col(c) for c in self.ancestry_columns]).alias("nSamples")
+
+    @property
+    def n_cases(self) -> Column:
+        """Get the total number of cases."""
+        ancestry_cols = [f.col(c) for c in self.ancestry_columns if "n_cases" in c]
+        return self._add(*ancestry_cols).alias("nCases")
+
+    @property
+    def n_controls(self) -> Column:
+        """Get the total number of cases."""
+        ancestry_cols = [f.col(c) for c in self.ancestry_columns if "n_controls" in c]
+        return self._add(*ancestry_cols).alias("nControls")
 
     def _discovery_samples_finngen_ukbb(self) -> Column:
         """Get the discovery samples for FinnGen UKBB meta-analysis.
@@ -227,13 +278,19 @@ class FinngenMetaManifest:
         return f.filter(
             f.array(
                 f.struct(
-                    (f.col("fg_n_cases") + f.col("fg_n_controls"))
+                    (
+                        f.coalesce(f.col("fg_n_cases"), f.lit(0))
+                        + f.coalesce(f.col("fg_n_controls"), f.lit(0))
+                    )
                     .cast(t.IntegerType())
                     .alias("sampleSize"),
                     f.lit("fin").alias("ancestry"),
                 ),
                 f.struct(
-                    (f.col("ukbb_n_cases") + f.col("ukbb_n_controls"))
+                    (
+                        f.coalesce(f.col("ukbb_n_cases"), f.lit(0))
+                        + f.coalesce(f.col("ukbb_n_controls"), f.lit(0))
+                    )
                     .cast(t.IntegerType())
                     .alias("sampleSize"),
                     f.lit("nfe").alias("ancestry"),
@@ -259,92 +316,95 @@ class FinngenMetaManifest:
         return f.filter(
             f.array(
                 f.struct(
-                    (f.col("fg_n_cases") + f.col("fg_n_controls"))
+                    (
+                        f.coalesce(f.col("fg_n_cases"), f.lit(0))
+                        + f.coalesce(f.col("fg_n_controls"), f.lit(0))
+                    )
                     .cast(t.IntegerType())
                     .alias("sampleSize"),
-                    f.lit("Finninsh").alias("ancestry"),
+                    f.lit("Finnish").alias("ancestry"),
                 ),
                 f.struct(
                     (
-                        f.col("ukbb_n_cases")
-                        + f.col("ukbb_n_controls")
-                        + f.col("MVP_EUR_n_cases")
-                        + f.col("MVP_EUR_n_controls")
+                        f.coalesce(f.col("ukbb_n_cases"), f.lit(0))
+                        + f.coalesce(f.col("ukbb_n_controls"), f.lit(0))
+                        + f.coalesce(f.col("MVP_EUR_n_cases"), f.lit(0))
+                        + f.coalesce(f.col("MVP_EUR_n_controls"), f.lit(0))
                     )
                     .cast(t.IntegerType())
                     .alias("sampleSize"),
                     f.lit("European").alias("ancestry"),
                 ),
                 f.struct(
-                    (f.col("MVP_AFR_n_cases") + f.col("MVP_AFR_n_controls"))
+                    (
+                        f.coalesce(f.col("MVP_AFR_n_cases"), f.lit(0))
+                        + f.coalesce(f.col("MVP_AFR_n_controls"), f.lit(0))
+                    )
                     .cast(t.IntegerType())
                     .alias("sampleSize"),
-                    f.lit("afr").alias("ancestry"),
+                    f.lit("African").alias("ancestry"),
                 ),
                 f.struct(
-                    (f.col("MVP_AMR_n_cases") + f.col("MVP_AMR_n_controls"))
+                    (
+                        f.coalesce(f.col("MVP_AMR_n_cases"), f.lit(0))
+                        + f.coalesce(f.col("MVP_AMR_n_controls"), f.lit(0))
+                    )
                     .cast(t.IntegerType())
                     .alias("sampleSize"),
-                    f.lit("amr").alias("ancestry"),
+                    f.lit("Admixed American").alias("ancestry"),
                 ),
             ),
             lambda x: x.sampleSize > 0.0,
         ).alias("discoverySamples")
 
-
-class EFOCuration:
-    """EFO curation for FinnGen meta-analysis."""
-
-    required_columns = {"STUDY", "PROPERTY_VALUE", "SEMANTIC_TAG"}
-
-    def __init__(self, df: DataFrame) -> None:
-        """Initialize the EFO curation.
-
-        Args:
-            df (DataFrame): DataFrame containing the EFO curation data.
-        """
-        self.df = df
-
-    @classmethod
-    def from_path(cls, session: Session, efo_curation_path: str) -> EFOCuration:
-        """Load the EFO curation from a specified path.
-
-        Note:
-            This method asserts that the EFO curation file is tab-delimited and contains header with following columns:
-            ```
-            |-- STUDY: string (nullable = true)           # required
-            |-- PROPERTY_VALUE: string (nullable = true)  # required
-            |-- SEMANTIC_TAG: string (nullable = true)    # required
-            ```
-        Args:
-            session (Session): Session object.
-            efo_curation_path (str): Path to the EFO curation file.
+    @property
+    def summary_statistics_location(self) -> Column:
+        """Get the summary statistics location column.
 
         Returns:
-            EFOCuration: Loaded EFO curation object.
-
-        Raises:
-            AssertionError: If the EFO curation file does not contain the required columns.
-
+            Column: Spark Column representing the summary statistics location.
         """
-        if efo_curation_path.startswith("http"):
-            from pyspark import SparkFiles
+        if self.sumstat_location_column in self._df.columns:
+            return f.col(self.sumstat_location_column).alias("summarystatsLocation")
+        else:
+            return f.lit(None).alias("summarystatsLocation")
 
-            session.spark.sparkContext.addFile(efo_curation_path)
-            efo_curation_path = "file://" + SparkFiles.get(
-                efo_curation_path.split("/")[-1]
-            )
+    @property
+    def has_summary_statistics(self) -> Column:
+        """Get the has summary statistics column.
 
-        efo_curation_mapping = session.spark.read.csv(
-            efo_curation_path,
-            sep="\t",
-            header=True,
-        )
-        assert cls.required_columns.issubset(
-            set(efo_curation_mapping.columns)
-        ), f"EFO curation file must contain the following columns: {cls.required_columns}."
-        columns = [
-            f.col(col).cast(t.StringType()).alias(col) for col in cls.required_columns
-        ]
-        df = efo_curation_mapping.select(*columns)
-        return cls(df=df)
+        Returns:
+            Column: Spark Column representing whether the study has summary statistics.
+        """
+        return f.lit(True).alias("hasSumstats")
+
+    @property
+    def study_id(self) -> Column:
+        """Get the study ID column.
+
+        Returns:
+            Column: Spark Column representing the study ID.
+        """
+        return f.concat_ws(
+            "_",
+            f.lit(self.meta.value),
+            f.col("fg_phenotype"),
+        ).alias("studyId")
+
+    @property
+    def project_id(self) -> Column:
+        """Get the project ID column.
+
+        Returns:
+            Column: Spark Column representing the project ID.
+        """
+        return f.lit(self.meta.value).alias("projectId")
+
+    @property
+    def trait_from_source(self) -> Column:
+        """Get the trait from source column.
+
+        Returns:
+            Column: Spark Column representing the trait from source.
+        """
+        return f.col("name").alias("traitFromSource")

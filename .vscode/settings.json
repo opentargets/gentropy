@@ -18,6 +18,7 @@
       "source.organizeImports": "explicit"
     }
   },
+  "notebook.formatOnSave.enabled": true,
   "json.format.keepLines": true,
   "autoDocstring.docstringFormat": "google",
   "python.testing.pytestArgs": [".", "--doctest-modules", "--cov=src/"],

@@ -203,42 +203,21 @@ class SummaryStatistics(Dataset):
             )
         return SummaryStatistics(_df=filtered_sumstats)
 
-    def normalize_chromosome(self: SummaryStatistics) -> SummaryStatistics:
-        """Normalize chromosome column to remove 'chr' prefix if present.
+    # def normalize_chromosome(self: SummaryStatistics) -> SummaryStatistics:
+    #     """Normalize chromosome column to remove 'chr' prefix if present.
 
-        Normalize chromosome column:
-            - Ensure chromosome is of string type.
-            - Remove 'chr' prefix if present.
-            - Convert '23' to 'X'
-            - Convert '24' to 'Y'.
-            - Convert 'M' to 'MT'.
+    #     Normalize chromosome column:
+    #         - Ensure chromosome is of string type.
+    #         - Remove 'chr' prefix if present.
+    #         - Convert '23' to 'X'
+    #         - Convert '24' to 'Y'.
+    #         - Convert 'M' to 'MT'.
 
-        Returns:
-            SummaryStatistics: Summary statistics object with normalized chromosome column.
-        """
-        df = (
-            self._df.withColumn(
-                "chromosome",
-                f.col("chromosome").cast(t.StringType()),
-            )
-            .withColumn(
-                "chromosome",
-                f.regexp_replace(f.col("chromosome"), "^chr", ""),
-            )
-            .withColumn(
-                "chromosome",
-                f.when(f.col("chromosome") == f.lit("23"), f.lit("X"))
-                .when(f.col("chromosome") == f.lit("24"), f.lit("Y"))
-                .when(f.col("chromosome") == f.lit("M"), f.lit("MT"))
-                .otherwise(f.col("chromosome")),
-            )
-        )
+    #     Returns:
+    #         SummaryStatistics: Summary statistics object with normalized chromosome column.
+    #     """
+    #     df = self._df.withColumn(
+    #         "chromosome", normalize_chromosome(f.col("chromosome"))
+    #     )
 
-        return SummaryStatistics(_df=df, _schema=self._schema)
-
-    def normalize_alleles(
-        self: SummaryStatistics, vi: VariantIndex
-    ) -> SummaryStatistics:
-        pass
-    
-    def 
+    #     return SummaryStatistics(_df=df, _schema=self._schema)
