@@ -56,6 +56,22 @@ class VariantDirection(Dataset):
                 t.StructField("direction", t.ByteType(), nullable=False),
                 t.StructField("strand", t.ByteType(), nullable=True),
                 t.StructField("isPalindromic", t.BooleanType(), nullable=True),
+                t.StructField(
+                    "alleleFrequencies",
+                    t.ArrayType(
+                        t.StructType(
+                            [
+                                t.StructField(
+                                    "populationName", t.StringType(), nullable=False
+                                ),
+                                t.StructField(
+                                    "alleleFrequency", t.DoubleType(), nullable=False
+                                ),
+                            ]
+                        )
+                    ),
+                    nullable=True,
+                ),
             ]
         )
 
@@ -109,7 +125,9 @@ class VariantDirection(Dataset):
         return pos + cls.get_variant_len(ref, alt).cast(t.IntegerType())
 
     @classmethod
-    def alleles(cls, chrom: Column, pos: Column, ref: Column, alt: Column) -> Column:
+    def alleles(
+        cls, chrom: Column, pos: Column, ref: Column, alt: Column, af: Column
+    ) -> Column:
         """Get the alleles of the variant."""
         forward_direct = cls.variant_id(chrom, pos, ref, alt)  # A/G
         forward_flipped = cls.variant_id(chrom, pos, alt, ref)  # G/A
@@ -132,24 +150,40 @@ class VariantDirection(Dataset):
                 f.lit(Direction.DIRECT.value).cast(t.ByteType()).alias("direction"),
                 f.lit(Strand.FORWARD.value).cast(t.ByteType()).alias("strand"),
                 cls.is_palindromic(ref, alt).alias("isPalindromic"),
+                af.alias("alleleFrequencies"),
             ),
             f.struct(
                 forward_flipped.alias("variantId"),
                 f.lit(Direction.FLIPPED.value).cast(t.ByteType()).alias("direction"),
                 f.lit(Strand.FORWARD.value).cast(t.ByteType()).alias("strand"),
                 cls.is_palindromic(ref, alt).alias("isPalindromic"),
+                f.transform(
+                    af,
+                    lambda x: f.struct(
+                        x["populationName"],
+                        (1.0 - x["alleleFrequency"]).alias("alleleFrequency"),
+                    ),
+                ).alias("alleleFrequencies"),
             ),
             f.struct(
                 reverse_direct.alias("variantId"),
                 f.lit(Direction.DIRECT.value).cast(t.ByteType()).alias("direction"),
                 f.lit(Strand.REVERSE.value).cast(t.ByteType()).alias("strand"),
                 cls.is_palindromic(ref, alt).alias("isPalindromic"),
+                af.alias("alleleFrequencies"),
             ),
             f.struct(
                 reverse_flipped.alias("variantId"),
                 f.lit(Direction.FLIPPED.value).cast(t.ByteType()).alias("direction"),
                 f.lit(Strand.REVERSE.value).cast(t.ByteType()).alias("strand"),
                 cls.is_palindromic(ref, alt).alias("isPalindromic"),
+                f.transform(
+                    af,
+                    lambda x: f.struct(
+                        x["populationName"],
+                        (1.0 - x["alleleFrequency"]).alias("alleleFrequency"),
+                    ),
+                ).alias("alleleFrequencies"),
             ),
         )
 
@@ -197,6 +231,7 @@ class VariantDirection(Dataset):
                     f.col("position"),
                     f.col("referenceAllele"),
                     f.col("alternateAllele"),
+                    f.col("alleleFrequencies"),
                 ).alias("alleles")
             ).alias("allele"),
         ).select(
@@ -207,6 +242,7 @@ class VariantDirection(Dataset):
             f.col("allele.direction").alias("direction"),
             f.col("allele.strand").alias("strand"),
             f.col("allele.isPalindromic").alias("isPalindromic"),
+            f.col("allele.alleleFrequencies").alias("alleleFrequencies"),
         )
 
         return VariantDirection(_df=lut)
