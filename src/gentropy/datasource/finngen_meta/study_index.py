@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from pyspark.sql import functions as f
-
 from gentropy import StudyIndex
 from gentropy.datasource.finngen.efo_mapping import EFOMapping
 from gentropy.datasource.finngen_meta import (
@@ -15,25 +14,28 @@ from gentropy.datasource.finngen_meta import (
 class FinnGenMetaStudyIndex:
     """FinnGen meta-analysis study index."""
 
-    CONSTANTS = {
-        MetaAnalysisDataSource.FINNGEN_UKBB.value: {
-            "initialSampleSize": f.lit(
-                "920,880 (FinnGenR12: nNFE=500,349; pan-UKBB-EUR: nEUR=420,531)"
-            ),  # based on https://metaresults-ukbb.finngen.fi/about
-            "pubmedId": f.lit("36653562"),
-            "cohorts": f.array(f.lit("FinnGen"), f.lit("pan-UKBB-EUR")),
-        },
-        MetaAnalysisDataSource.FINNGEN_UKBB_MVP.value: {
-            "initialSampleSize": f.lit(
-                "1,550,147 (MVP: nEUR=449,042, nAFR=121,177, nAMR=59,048; FinnGenR12: nNFE=500,349; pan-UKBB-EUR: nEUR=420,531)"
-            ),  # based on https://mvp-ukbb.finngen.fi/about
-            "cohorts": f.array(f.lit("MVP"), f.lit("FinnGen"), f.lit("pan-UKBB-EUR")),
-        },
-    }
+    @classmethod
+    def get_constants(cls):
+        """Get constants for FinnGen meta-analysis study index."""
+        return {
+            MetaAnalysisDataSource.FINNGEN_UKBB.value: {
+                "initialSampleSize": f.lit(
+                    "920,880 (FinnGenR12: nNFE=500,349; pan-UKBB-EUR: nEUR=420,531)"
+                ),  # based on https://metaresults-ukbb.finngen.fi/about
+                "pubmedId": f.lit("36653562"),
+                "cohorts": f.array(f.lit("FinnGen"), f.lit("pan-UKBB-EUR")),
+            },
+            MetaAnalysisDataSource.FINNGEN_UKBB_MVP.value: {
+                "initialSampleSize": f.lit(
+                    "1,550,147 (MVP: nEUR=449,042, nAFR=121,177, nAMR=59,048; FinnGenR12: nNFE=500,349; pan-UKBB-EUR: nEUR=420,531)"
+                ),  # based on https://mvp-ukbb.finngen.fi/about
+                "cohorts": f.array(f.lit("MVP"), f.lit("FinnGen"), f.lit("pan-UKBB-EUR")),
+            },
+        }
 
     @classmethod
     def from_finngen_manifest(
-        cls: type[FinnGenMetaStudyIndex],
+        cls: type[FinnGenMetaStudyIndex], 
         manifest: FinnGenMetaManifest,
         efo_mapping: EFOMapping,
     ) -> StudyIndex:
@@ -53,7 +55,7 @@ class FinnGenMetaStudyIndex:
             # Add constant columns
             *[
                 value.alias(key)
-                for key, value in cls.CONSTANTS[manifest.meta.value].items()
+                for key, value in cls.get_constants()[manifest.meta.value].items()
             ],
             # Compute the ld structure `ldPopulationStructure` from discovery samples.
             StudyIndex.aggregate_and_map_ancestries(f.col("discoverySamples")).alias(
