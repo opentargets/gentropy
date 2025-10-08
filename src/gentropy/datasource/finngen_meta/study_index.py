@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pyspark.sql import functions as f
+
 from gentropy import StudyIndex
 from gentropy.datasource.finngen.efo_mapping import EFOMapping
 from gentropy.datasource.finngen_meta import (
@@ -35,7 +36,7 @@ class FinnGenMetaStudyIndex:
 
     @classmethod
     def from_finngen_manifest(
-        cls: type[FinnGenMetaStudyIndex], 
+        cls: type[FinnGenMetaStudyIndex],
         manifest: FinnGenMetaManifest,
         efo_mapping: EFOMapping,
     ) -> StudyIndex:
