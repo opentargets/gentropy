@@ -30,7 +30,9 @@ class FinnGenMetaStudyIndex:
                 "initialSampleSize": f.lit(
                     "1,550,147 (MVP: nEUR=449,042, nAFR=121,177, nAMR=59,048; FinnGenR12: nNFE=500,349; pan-UKBB-EUR: nEUR=420,531)"
                 ),  # based on https://mvp-ukbb.finngen.fi/about
-                "cohorts": f.array(f.lit("MVP"), f.lit("FinnGen"), f.lit("pan-UKBB-EUR")),
+                "cohorts": f.array(
+                    f.lit("MVP"), f.lit("FinnGen"), f.lit("pan-UKBB-EUR")
+                ),
             },
         }
 

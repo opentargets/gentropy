@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from pyspark.sql import Column
+    from pyspark.sql import Column, DataFrame
 
     from gentropy.common.session import Session
 
@@ -188,3 +188,277 @@ class FinnGenMetaSummaryStatistics:
             f.col("standardError").cast(t.DoubleType()).alias("standardError"),
         )
         return SummaryStatistics(_df=sumstats)
+
+    @staticmethod
+    def maf(af: Column) -> Column:
+        """Calculate minor allele frequency from allele frequency."""
+        return (
+            f.when(af.isNotNull() & (af <= 0.5), af)
+            .when(af.isNotNull(), 1 - af)
+            .otherwise(f.lit(None))
+            .alias("minorAlleleFrequency")
+        )
+
+    @classmethod
+    def allele_frequencies(cls, af_threshold: float = 1e-4) -> Column:
+        return f.filter(
+            f.array(
+                f.struct(
+                    f.col("MVP_EUR_af_alt").alias("alleleFrequency"),
+                    cls.maf(f.col("MVP_EUR_af_alt")).alias("minAlleleFrequency"),
+                    f.lit("MVP_EUR").alias("cohort"),
+                    f.when(
+                        f.col("MVP_EUR_af_alt").isNull()
+                        | (cls.maf(f.col("MVP_EUR_af_alt")) > af_threshold),
+                        f.lit(True),
+                    )
+                    .otherwise(f.lit(False))
+                    .alias("filter"),
+                ),
+                f.struct(
+                    f.col("MVP_AFR_af_alt").alias("alleleFrequency"),
+                    cls.maf(f.col("MVP_AFR_af_alt")).alias("minAlleleFrequency"),
+                    f.lit("MVP_AFR").alias("cohort"),
+                    f.when(
+                        f.col("MVP_AFR_af_alt").isNull()
+                        | (cls.maf(f.col("MVP_AFR_af_alt")) > af_threshold),
+                        f.lit(True),
+                    )
+                    .otherwise(f.lit(False))
+                    .alias("filter"),
+                ),
+                f.struct(
+                    f.col("MVP_HIS_af_alt").alias("alleleFrequency"),
+                    cls.maf(f.col("MVP_HIS_af_alt")).alias("minAlleleFrequency"),
+                    f.lit("MVP_AMR").alias("cohort"),
+                    f.when(
+                        f.col("MVP_HIS_af_alt").isNull()
+                        | (cls.maf(f.col("MVP_HIS_af_alt")) > af_threshold),
+                        f.lit(True),
+                    )
+                    .otherwise(f.lit(False))
+                    .alias("filter"),
+                ),
+                f.struct(
+                    f.col("fg_af_alt").alias("alleleFrequency"),
+                    cls.maf(f.col("fg_af_alt")).alias("minAlleleFrequency"),
+                    f.lit("FinnGen").alias("cohort"),
+                    f.when(
+                        f.col("fg_af_alt").isNull()
+                        | (cls.maf(f.col("fg_af_alt")) > af_threshold),
+                        f.lit(True),
+                    )
+                    .otherwise(f.lit(False))
+                    .alias("filter"),
+                ),
+                f.struct(
+                    f.col("ukbb_af_alt").alias("alleleFrequency"),
+                    cls.maf(f.col("ukbb_af_alt")).alias("minAlleleFrequency"),
+                    f.lit("UKBB").alias("cohort"),
+                    f.when(
+                        f.col("ukbb_af_alt").isNull()
+                        | (cls.maf(f.col("ukbb_af_alt")) > af_threshold),
+                        f.lit(True),
+                    )
+                    .otherwise(f.lit(False))
+                    .alias("filter"),
+                ),
+                lambda x: x["alleleFrequency"].isNotNull(),
+            )
+        ).alias("alleleFrequencies")
+
+    @classmethod
+    def imputation_score(cls, imputation_threshold: float = 0.8) -> Column:
+        return f.array(
+            f.struct(
+                f.col("MVP_EUR_r2").alias("r2"),
+                f.lit("MVP_EUR").alias("cohort"),
+                f.when(
+                    f.col("MVP_EUR_r2").isNull()
+                    | (f.col("MVP_EUR_r2") >= imputation_threshold),
+                    f.lit(True),
+                )
+                .otherwise(f.lit(False))
+                .alias("filter"),
+            ),
+            f.struct(
+                f.col("MVP_AFR_r2").alias("r2"),
+                f.lit("MVP_AFR").alias("cohort"),
+                f.when(
+                    f.col("MVP_AFR_r2").isNull()
+                    | (f.col("MVP_AFR_r2") >= imputation_threshold),
+                    f.lit(True),
+                )
+                .otherwise(f.lit(False))
+                .alias("filter"),
+            ),
+            f.struct(
+                f.col("MVP_HIS_r2").alias("r2"),
+                f.lit("MVP_AMR").alias("cohort"),
+                f.when(
+                    f.col("MVP_HIS_r2").isNull()
+                    | (f.col("MVP_HIS_r2") >= imputation_threshold),
+                    f.lit(True),
+                )
+                .otherwise(f.lit(False))
+                .alias("filter"),
+            ),
+        ).alias("imputationScore")
+
+    @classmethod
+    def cohorts(cls) -> Column:
+        return f.transform(
+            f.array(
+                f.filter(
+                    f.struct(
+                        f.when(f.col("MVP_EUR_af_alt").isNotNull(), f.lit(True))
+                        .otherwise(f.lit(False))
+                        .alias("inCohort"),
+                        f.lit("MVP_EUR").alias("cohort"),
+                        f.lit("MVP").alias("biobank"),
+                    ),
+                    f.struct(
+                        f.when(f.col("MVP_AFR_af_alt").isNotNull(), f.lit(True))
+                        .otherwise(f.lit(False))
+                        .alias("inCohort"),
+                        f.lit("MVP_AFR").alias("cohort"),
+                        f.lit("MVP").alias("biobank"),
+                    ),
+                    f.struct(
+                        f.when(f.col("MVP_HIS_af_alt").isNotNull(), f.lit(True))
+                        .otherwise(f.lit(False))
+                        .alias("inCohort"),
+                        f.lit("MVP_AMR").alias("cohort"),
+                        f.lit("MVP").alias("biobank"),
+                    ),
+                    f.struct(
+                        f.when(f.col("fg_af_alt").isNotNull(), f.lit(True))
+                        .otherwise(f.lit(False))
+                        .alias("inCohort"),
+                        f.lit("FinnGen").alias("cohort"),
+                        f.lit("FinnGen").alias("biobank"),
+                    ),
+                    f.struct(
+                        f.when(f.col("ukbb_af_alt").isNotNull(), f.lit(True))
+                        .otherwise(f.lit(False))
+                        .alias("inCohort"),
+                        f.lit("UKBB").alias("cohort"),
+                        f.lit("UKBB").alias("biobank"),
+                    ),
+                    lambda x: x["inCohort"],
+                ),
+                lambda x: f.struct(x["biobank"], x["cohort"]),
+            )
+        ).alias("cohorts")
+
+    @classmethod
+    def n_biobanks(cls, cohorts: Column) -> Column:
+        return f.reduce(
+            f.array_distinct(
+                f.transform(
+                    f.col("metaCohorts"),
+                    lambda x: f.struct(
+                        x["biobank"],
+                        x["inCohort"].cast(t.IntegerType()).alias("inCohort"),
+                    ),
+                )
+            ),
+            f.lit(0),
+            lambda acc, x: acc + x["inCohort"],
+        ).alias("nBiobanks")
+
+    @classmethod
+    def is_meta_analyzed_variant(cls, n_biobanks: Column) -> Column:
+        return (
+            f.when(n_biobanks > 1, f.lit(True))
+            .otherwise(f.lit(False))
+            .alias("isMetaAnalyzedVariant")
+        )
+
+    @classmethod
+    def has_low_min_allele_frequency(cls, allele_frequencies: Column) -> Column:
+        return (f.size(f.filter(allele_frequencies, lambda x: ~x["filter"])) > 0).alias(
+            "hasLowMinAlleleFrequency"
+        )
+
+    @classmethod
+    def has_low_imputation_score(cls, imputation_r2: Column) -> Column:
+        return (f.size(f.filter(imputation_r2, lambda x: ~x["filter"])) > 0).alias(
+            "hasLowImputationScore"
+        )
+
+    @classmethod
+    def chromosome(cls) -> Column:
+        return (
+            f.when(f.col("#CHR").cast(t.StringType()) == f.lit("23"), f.lit("X"))
+            .otherwise(f.col("#CHR").cast(t.StringType()))
+            .alias("chromosome")
+        )
+
+    @classmethod
+    def variant_id(cls) -> Column:
+        return f.concat_ws(
+            "_",
+            f.col("chromosome"),
+            f.col("position"),
+            f.col("reference"),
+            f.col("alternate"),
+        ).alias("variantId")
+
+    def _harmonise(self, df: DataFrame) -> DataFrame:
+        return (
+            df.filter(f.col("all_inv_var_meta_mlogp").isNotNull())
+            .filter(f.col("all_inv_var_meta_beta").isNotNull())
+            .filter(f.col("all_inv_var_meta_sebeta").isNotNull())
+            # Filter by the meta analyzed biobank count > 1
+            .withColumn("cohorts", self.cohorts())
+            .withColumn("metaCohorts", self.meta_cohorts())
+            .withColumn("nBiobanks", self.n_biobanks())
+            .withColumn("isMetaAnalyzedVariant", self.is_meta_analyzed_variant())
+            .filter(f.col("isMetaAnalyzedVariant"))
+            # .drop("isMetaAnalyzedVariant", "cohorts", "metaCohorts", "nBiobanks")
+            # Filter by imputation score < 0.8
+            .withColumn("imputationR2", self.imputation_score())
+            .withColumn("hasLowImputationScore", self.has_low_imputation_score())
+            .filter(~f.col("hasLowImputationScore"))
+            # .drop("hasLowImputationScore", "imputationR2")
+            # Filter by the allele frequency < 0.0001
+            .withColumn("alleleFrequencies", self.allele_frequencies())
+            .withColumn("hasLowMinAlleleFrequency", self.has_low_min_allele_frequency())
+            .filter(~f.col("hasLowMinAlleleFrequency"))
+            # .drop("hasLowMinAlleleFrequency", "alleleFrequencies", "filteredAlleleFrequencies")
+            .select(
+                f.col("studyId"),
+                self.chromosome().alias("chromosome"),
+                f.col("POS").cast(t.IntegerType()).alias("position"),
+                f.col("REF").cast(t.StringType()).alias("reference"),
+                f.col("ALT").cast(t.StringType()).alias("alternate"),
+                f.col("all_inv_var_meta_beta").alias("beta"),
+                f.col("all_inv_var_meta_sebeta").alias("standardError"),
+                *pvalue_from_neglogpval(f.col("all_inv_var_meta_mlogp")),
+                f.col("isMetaAnalyzedVariant"),
+                f.col("nBiobanks"),
+                f.col("metaCohorts"),
+                f.col("filteredAlleleFrequencies"),
+                f.col("hasLowMinAlleleFrequency"),
+                f.col("hasLowImputationScore"),
+                f.col("imputationR2"),
+            )
+            .select(
+                f.col("studyId"),
+                self.variant_id().alias("variantId"),
+                f.col("chromosome"),
+                f.col("position"),
+                f.col("beta"),
+                f.col("pValueMantissa"),
+                f.col("pValueExponent"),
+                f.col("standardError"),
+                f.col("isMetaAnalyzedVariant"),
+                f.col("nBiobanks"),
+                f.col("metaCohorts"),
+                f.col("filteredAlleleFrequencies"),
+                f.col("hasLowMinAlleleFrequency"),
+                f.col("hasLowImputationScore"),
+                f.col("imputationR2"),
+            )
+        )

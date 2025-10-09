@@ -83,6 +83,10 @@ class FinnGenMetaManifest:
         |-- nControls: integer (nullable = true)
         |-- hasSumstats: boolean (nullable = true)
         |-- summarystatsLocation: string (nullable = true)  # may be null if not provided in the manifest
+        |-- alleleCounts: array (nullable = true)
+            |-- element: struct (containsNull = true)
+                |-- cohort: string (nullable = true)
+                |-- AC: integer (nullable = true)
         ```
         """
         return self._df.select(
@@ -95,6 +99,7 @@ class FinnGenMetaManifest:
             self.n_controls.alias("nControls"),
             self.summary_statistics_location.alias("summarystatsLocation"),
             self.has_summary_statistics.alias("hasSumstats"),
+            self.allelic_counts.alias("alleleCounts"),
         )
 
     @classmethod
@@ -134,9 +139,9 @@ class FinnGenMetaManifest:
             .option("sep", "\t")
             .csv(manifest_path)
         )
-        assert cls.required_columns.issubset(
-            set(df.columns)
-        ), f"Manifest file must contain the following columns: {cls.required_columns}. "
+        assert cls.required_columns.issubset(set(df.columns)), (
+            f"Manifest file must contain the following columns: {cls.required_columns}. "
+        )
 
         # By default we assume we are dealing with the FinnGen UKBB meta-analysis
         meta = MetaAnalysisDataSource.FINNGEN_UKBB
@@ -171,6 +176,41 @@ class FinnGenMetaManifest:
         return cls(df=df, meta=meta)
 
     @property
+    def allelic_counts(self) -> Column:
+        """Get the allelic counts column.
+
+        Returns:
+            Column: Spark Column representing the allelic counts.
+        """
+        ac = [
+            f.struct(
+                f.lit("FinnGen").alias("cohort"),
+                2 * f.coalesce(f.col("fg_n_cases"), f.lit(0)).alias("AC"),
+            ),
+            f.struct(
+                f.lit("UKBB").alias("cohort"),
+                2 * f.coalesce(f.col("ukbb_n_cases"), f.lit(0)).alias("AC"),
+            ),
+        ]
+        if self.meta == MetaAnalysisDataSource.FINNGEN_UKBB_MVP:
+            ac += [
+                f.struct(
+                    f.lit("MVP_EUR").alias("cohort"),
+                    2 * f.coalesce(f.col("MVP_EUR_n_cases"), f.lit(0)),
+                ).alias("AC"),
+                f.struct(
+                    f.lit("MVP_AFR").alias("cohort"),
+                    2 * f.coalesce(f.col("MVP_AFR_n_cases"), f.lit(0)),
+                ).alias("AC"),
+                f.struct(
+                    f.lit("MVP_AMR").alias("cohort"),
+                    2 * f.coalesce(f.col("MVP_AMR_n_cases"), f.lit(0)),
+                ).alias("AC"),
+            ]
+
+        return f.array(*ac).alias("alleleCounts")
+
+    @property
     def discovery_samples(self) -> Column:
         """Get the discovery samples.
 
@@ -179,13 +219,12 @@ class FinnGenMetaManifest:
         Returns:
             Column: Spark Column representing the discovery samples.
         """
-        match self.meta:
-            case MetaAnalysisDataSource.FINNGEN_UKBB:
-                return self._discovery_samples_finngen_ukbb()
-            case MetaAnalysisDataSource.FINNGEN_UKBB_MVP:
-                return self._discovery_samples_finngen_ukbb_mvp()
-            case _:
-                raise ValueError(f"Unsupported meta-analysis data source: {self.meta}")
+        if self.meta == MetaAnalysisDataSource.FINNGEN_UKBB:
+            return self._discovery_samples_finngen_ukbb()
+        elif self.meta == MetaAnalysisDataSource.FINNGEN_UKBB_MVP:
+            return self._discovery_samples_finngen_ukbb_mvp()
+        else:
+            raise ValueError(f"Unsupported meta-analysis data source: {self.meta}")
 
     @staticmethod
     def _add(*cols: Column) -> Column:
@@ -234,17 +273,16 @@ class FinnGenMetaManifest:
             >>> sorted(manifest.ancestry_columns)
             ['MVP_AFR_n_cases', 'MVP_AFR_n_controls', 'MVP_AMR_n_cases', 'MVP_AMR_n_controls', 'MVP_EUR_n_cases', 'MVP_EUR_n_controls', 'fg_n_cases', 'fg_n_controls', 'ukbb_n_cases', 'ukbb_n_controls']
         """
-        match self.meta:
-            case MetaAnalysisDataSource.FINNGEN_UKBB:
-                return self.finngen_ancestry_cols | self.ukbb_ancestry_cols
-            case MetaAnalysisDataSource.FINNGEN_UKBB_MVP:
-                return (
-                    self.finngen_ancestry_cols
-                    | self.ukbb_ancestry_cols
-                    | self.mvp_ancestry_columns
-                )
-            case _:
-                raise ValueError(f"Unsupported meta-analysis data source: {self.meta}")
+        if self.meta == MetaAnalysisDataSource.FINNGEN_UKBB:
+            return self.finngen_ancestry_cols | self.ukbb_ancestry_cols
+        elif self.meta == MetaAnalysisDataSource.FINNGEN_UKBB_MVP:
+            return (
+                self.finngen_ancestry_cols
+                | self.ukbb_ancestry_cols
+                | self.mvp_ancestry_columns
+            )
+        else:
+            raise ValueError(f"Unsupported meta-analysis data source: {self.meta}")
 
     @property
     def n_samples(self) -> Column:
