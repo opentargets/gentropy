@@ -8,7 +8,6 @@ import pyspark.sql.types as t
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql import functions as f
 
-from gentropy.common.spark import extract_column_name
 from gentropy.common.stats import (
     chi2_from_pvalue,
     pvalue_from_neglogpval,
@@ -30,7 +29,7 @@ def parse_efos(efo_uris: Column) -> Column:
     This function parses EFO identifiers from a comma-separated list of EFO URIs.
 
     Args:
-        efo_uri (Column): column with a list of EFO URIs
+        efo_uris (Column): column with a list of EFO URIs
 
     Returns:
         Column: column with a sorted list of parsed EFO IDs
@@ -49,9 +48,9 @@ def parse_efos(efo_uris: Column) -> Column:
     """
     return f.transform(
         # Splitting colun values to individual URIs:
-        f.split(efo_uris, ','),
+        f.split(efo_uris, ","),
         # Each URI is further split, and the last component is returned:
-        lambda uri: f.element_at(f.split(uri, '/'), -1)
+        lambda uri: f.element_at(f.split(uri, "/"), -1)
     )
 
 
