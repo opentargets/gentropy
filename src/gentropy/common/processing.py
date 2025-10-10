@@ -24,7 +24,7 @@ if TYPE_CHECKING:
     )
     from gentropy.datasource.ukb_ppp_eur.summary_stats import UkbPppEurSummaryStats
 
-def parse_efos(efo_uri: Column) -> Column:
+def parse_efos(efo_uris: Column) -> Column:
     """Extracting EFO identifiers.
 
     This function parses EFO identifiers from a comma-separated list of EFO URIs.
@@ -38,17 +38,21 @@ def parse_efos(efo_uri: Column) -> Column:
     Examples:
         >>> d = [("http://www.ebi.ac.uk/efo/EFO_0000001,http://purl.obolibrary.org/obo/OBA_VT0001253,http://www.orpha.net/ORDO/Orphanet_101953",)]
         >>> df = spark.createDataFrame(d).toDF("efos")
-        >>> df.withColumn("efos_parsed", parse_efos(f.col("efos"))).show(truncate=False)
-        +---------------------------------------------------------------------------------------------------------------------------+---------------------------------------------+
-        |efos                                                                                                                       |efos_parsed                                  |
-        +---------------------------------------------------------------------------------------------------------------------------+---------------------------------------------+
-        |http://www.ebi.ac.uk/efo/EFO_0000001,http://purl.obolibrary.org/obo/OBA_VT0001253,http://www.orpha.net/ORDO/Orphanet_101953|[EFO_0000001, OBA_VT0001253, Orphanet_101953]|
-        +---------------------------------------------------------------------------------------------------------------------------+---------------------------------------------+
+        >>> df.select(parse_efos(f.col("efos")).alias('col')).show(truncate=False)
+        +---------------------------------------------+
+        |col                                          |
+        +---------------------------------------------+
+        |[EFO_0000001, OBA_VT0001253, Orphanet_101953]|
+        +---------------------------------------------+
         <BLANKLINE>
 
     """
-    name = extract_column_name(efo_uri)
-    return f.array_sort(f.expr(f"regexp_extract_all(`{name}`, '(?i)([A-Z]+_[A-Z0-9]+)')"))
+    return f.transform(
+        # Splitting colun values to individual URIs:
+        f.split(efo_uris, ','),
+        # Each URI is further split, and the last component is returned:
+        lambda uri: f.element_at(f.split(uri, '/'), -1)
+    )
 
 
 def extract_chromosome(variant_id: Column) -> Column:
