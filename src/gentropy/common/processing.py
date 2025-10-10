@@ -36,19 +36,19 @@ def parse_efos(efo_uri: Column) -> Column:
         Column: column with a sorted list of parsed EFO IDs
 
     Examples:
-        >>> d = [("http://www.ebi.ac.uk/efo/EFO_0000001,http://purl.obolibrary.org/obo/OBA_VT0001253",)]
+        >>> d = [("http://www.ebi.ac.uk/efo/EFO_0000001,http://purl.obolibrary.org/obo/OBA_VT0001253,http://www.orpha.net/ORDO/Orphanet_101953",)]
         >>> df = spark.createDataFrame(d).toDF("efos")
         >>> df.withColumn("efos_parsed", parse_efos(f.col("efos"))).show(truncate=False)
-        +---------------------------------------------------------------------------------+----------------------------+
-        |efos                                                                             |efos_parsed                 |
-        +---------------------------------------------------------------------------------+----------------------------+
-        |http://www.ebi.ac.uk/efo/EFO_0000001,http://purl.obolibrary.org/obo/OBA_VT0001253|[EFO_0000001, OBA_VT0001253]|
-        +---------------------------------------------------------------------------------+----------------------------+
+        +---------------------------------------------------------------------------------------------------------------------------+---------------------------------------------+
+        |efos                                                                                                                       |efos_parsed                                  |
+        +---------------------------------------------------------------------------------------------------------------------------+---------------------------------------------+
+        |http://www.ebi.ac.uk/efo/EFO_0000001,http://purl.obolibrary.org/obo/OBA_VT0001253,http://www.orpha.net/ORDO/Orphanet_101953|[EFO_0000001, OBA_VT0001253, Orphanet_101953]|
+        +---------------------------------------------------------------------------------------------------------------------------+---------------------------------------------+
         <BLANKLINE>
 
     """
     name = extract_column_name(efo_uri)
-    return f.array_sort(f.expr(f"regexp_extract_all(`{name}`, '([A-Z]+_[A-Z0-9]+)')"))
+    return f.array_sort(f.expr(f"regexp_extract_all(`{name}`, '(?i)([A-Z]+_[A-Z0-9]+)')"))
 
 
 def extract_chromosome(variant_id: Column) -> Column:
