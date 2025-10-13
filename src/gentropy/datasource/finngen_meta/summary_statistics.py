@@ -12,13 +12,11 @@ if TYPE_CHECKING:
 from pyspark.sql import functions as f
 from pyspark.sql import types as t
 
-from gentropy import StudyIndex
 from gentropy.common.processing import normalize_chromosome
 from gentropy.common.stats import pvalue_from_neglogpval
 from gentropy.dataset.summary_statistics import SummaryStatistics
 from gentropy.dataset.variant_direction import VariantDirection
-from gentropy.datasource.finngen_meta import MetaAnalysisDataSource
-from gentropy.datasource.finngen_meta import FinnGenMetaManifest
+from gentropy.datasource.finngen_meta import FinnGenMetaManifest, MetaAnalysisDataSource
 
 
 class FinnGenMetaSummaryStatistics:
