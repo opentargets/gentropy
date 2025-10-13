@@ -499,7 +499,6 @@ class FinnGenMetaSummaryStatistics:
             Column: Boolean column indicating if the variant is meta-analyzed.
 
         Examples:
-
             >>> data = [([("FinnGen", "FinnGen"), ("MVP", "MVP_EUR"), ("MVP", "MVP_AMR")],), ([("MVP", "MVP_AMR"), ("MVP", "MVP_EUR")],),([("UKBB", "UKBB")],)]
             >>> schema = "cohorts ARRAY<STRUCT<biobank: STRING, cohort: STRING>>"
             >>> df = spark.createDataFrame(data, schema)
