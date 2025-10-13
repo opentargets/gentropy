@@ -190,13 +190,12 @@ class FinnGenMetaSummaryStatistics:
             .filter(f.col("all_inv_var_meta_sebeta").isNotNull())
             # Filter out variants that are not meta analyzed (nBiobanks < 1)
             .withColumn("cohorts", cls.cohorts())
-            .withColumn("nBiobanks", cls.n_biobanks())
             .withColumn(
                 "isMetaAnalyzedVariant",
-                cls.is_meta_analyzed_variant(f.col("nBiobanks")),
+                cls.is_meta_analyzed_variant(f.col("cohorts")),
             )
             .filter(f.col("isMetaAnalyzedVariant"))
-            .drop("isMetaAnalyzedVariant", "cohorts", "nBiobanks")
+            .drop("isMetaAnalyzedVariant", "cohorts")
             # Filter out variants from MVP cohorts that have low imputation score
             .withColumn(
                 "imputationScore",
@@ -490,25 +489,40 @@ class FinnGenMetaSummaryStatistics:
         ).alias("cohorts")
 
     @classmethod
-    def n_biobanks(cls, cohorts: Column) -> Column:
-        return f.reduce(
-            f.array_distinct(
-                f.transform(
-                    cohorts,
-                    lambda x: f.struct(
-                        x["biobank"],
-                        x["inCohort"].cast(t.IntegerType()).alias("inCohort"),
-                    ),
-                )
-            ),
-            f.lit(0),
-            lambda acc, x: acc + x["inCohort"],
-        ).alias("nBiobanks")
+    def is_meta_analyzed_variant(cls, cohorts: Column) -> Column:
+        """Check if the variant is meta-analyzed (present in more than one biobank).
 
-    @classmethod
-    def is_meta_analyzed_variant(cls, n_biobanks: Column) -> Column:
-        return (
-            f.when(n_biobanks > 1, f.lit(True))
-            .otherwise(f.lit(False))
-            .alias("isMetaAnalyzedVariant")
+        Args:
+            cohorts (Column): Array of structs with fields 'biobank'.
+
+        Returns:
+            Column: Boolean column indicating if the variant is meta-analyzed.
+
+        Examples:
+
+            >>> data = [([("FinnGen", "FinnGen"), ("MVP", "MVP_EUR"), ("MVP", "MVP_AMR")],), ([("MVP", "MVP_AMR"), ("MVP", "MVP_EUR")],),([("UKBB", "UKBB")],)]
+            >>> schema = "cohorts ARRAY<STRUCT<biobank: STRING, cohort: STRING>>"
+            >>> df = spark.createDataFrame(data, schema)
+            >>> df.show(truncate=False)
+            +--------------------------------------------------+
+            |cohorts                                           |
+            +--------------------------------------------------+
+            |[{FinnGen, FinnGen}, {MVP, MVP_EUR}, {MVP, MVP_AMR}]|
+            |[{MVP, MVP_AMR}, {MVP, MVP_EUR}]                      |
+            |[{UKBB, UKBB}]                                       |
+            >>> df.withColumn("isMetaAnalyzedVariant", FinnGenMetaSummaryStatistics.is_meta_analyzed_variant(f.col("cohorts"))).show(truncate=False)
+            +-------+-----------------------+
+            |cohorts|isMetaAnalyzedVariant  |
+            +-------+-----------------------+
+            |[{FinnGen, FinnGen}, {MVP, MVP_EUR}, {MVP, MVP_AMR}]|true                   |
+            |[{MVP, MVP_AMR}, {MVP, MVP_EUR}]|false                  |
+            |[{UKBB, UKBB}]                                       |false                  |
+            +-------+-----------------------+
+
+
+
+        """
+        n_biobanks = f.size(
+            f.array_distinct(f.transform(cohorts, lambda x: x.getField("biobank"))),
         )
+        return (n_biobanks > 1).alias("isMetaAnalyzedVariant")
