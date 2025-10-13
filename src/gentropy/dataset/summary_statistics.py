@@ -201,22 +201,3 @@ class SummaryStatistics(Dataset):
                 f"Dropping N={count_pre - count_post} studies that are not in the study index."
             )
         return SummaryStatistics(_df=filtered_sumstats)
-
-    # def normalize_chromosome(self: SummaryStatistics) -> SummaryStatistics:
-    #     """Normalize chromosome column to remove 'chr' prefix if present.
-
-    #     Normalize chromosome column:
-    #         - Ensure chromosome is of string type.
-    #         - Remove 'chr' prefix if present.
-    #         - Convert '23' to 'X'
-    #         - Convert '24' to 'Y'.
-    #         - Convert 'M' to 'MT'.
-
-    #     Returns:
-    #         SummaryStatistics: Summary statistics object with normalized chromosome column.
-    #     """
-    #     df = self._df.withColumn(
-    #         "chromosome", normalize_chromosome(f.col("chromosome"))
-    #     )
-
-    #     return SummaryStatistics(_df=df, _schema=self._schema)

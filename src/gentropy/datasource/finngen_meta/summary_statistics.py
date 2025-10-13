@@ -12,9 +12,13 @@ if TYPE_CHECKING:
 from pyspark.sql import functions as f
 from pyspark.sql import types as t
 
+from gentropy import StudyIndex
+from gentropy.common.processing import normalize_chromosome
 from gentropy.common.stats import pvalue_from_neglogpval
 from gentropy.dataset.summary_statistics import SummaryStatistics
+from gentropy.dataset.variant_direction import VariantDirection
 from gentropy.datasource.finngen_meta import MetaAnalysisDataSource
+from gentropy.datasource.finngen_meta import FinnGenMetaManifest
 
 
 class FinnGenMetaSummaryStatistics:
@@ -161,33 +165,149 @@ class FinnGenMetaSummaryStatistics:
         )
 
     @classmethod
-    def harmonise(
+    def from_source(
         cls,
-        session: Session,
-        raw_summary_statistics_path: str,
+        raw_summary_statistics: DataFrame,
+        finngen_manifest: FinnGenMetaManifest,
+        variant_annotations: VariantDirection,
+        imputation_score_threshold: float = 0.8,
+        min_allele_count_threshold: int = 20,
     ) -> SummaryStatistics:
-        """Load raw summary statistics from Parquet files.
-
-        Args:
-            session (Session): Session object.
-            raw_summary_statistics_path (str): Path to the raw summary statistics Parquet files.
-            study_index (StudyIndex): Study index object.
-        """
-        raw_sumstats = session.spark.read.parquet(raw_summary_statistics_path)
-        session.logger.info("Harmonising summary statistics.")
-
-        sumstats = raw_sumstats.select(
+        si_slice = finngen_manifest.df.select(
             f.col("studyId"),
-            f.col("variantId"),
-            f.col("chromosome"),
-            f.col("position").cast(t.IntegerType()).alias("position"),
-            f.col("beta").cast(t.DoubleType()).alias("beta"),
-            f.col("sampleSize").cast(t.IntegerType()).alias("sampleSize"),
-            *pvalue_from_neglogpval(f.col("negLogPval")),
-            f.lit(None).cast(t.DoubleType()).alias("effectAlleleFrequencyFromSource"),
-            f.col("standardError").cast(t.DoubleType()).alias("standardError"),
+            f.col("nCasesPerCohort"),
+            f.col("nSamples"),
         )
-        return SummaryStatistics(_df=sumstats)
+        vd_slice = variant_annotations.df.select(
+            f.col("originalVariantId"),
+            f.col("variantId"),
+            f.col("direction"),
+            f.col("isPalindromic"),
+        ).repartition("chromosome")
+        sumstats = (
+            raw_summary_statistics
+            # Filter out rows with missing statistics
+            .filter(f.col("all_inv_var_meta_mlogp").isNotNull())
+            .filter(f.col("all_inv_var_meta_beta").isNotNull())
+            .filter(f.col("all_inv_var_meta_sebeta").isNotNull())
+            # Filter out variants that are not meta analyzed (nBiobanks < 1)
+            .withColumn("cohorts", cls.cohorts())
+            .withColumn("nBiobanks", cls.n_biobanks())
+            .withColumn(
+                "isMetaAnalyzedVariant",
+                cls.is_meta_analyzed_variant(f.col("nBiobanks")),
+            )
+            .filter(f.col("isMetaAnalyzedVariant"))
+            .drop("isMetaAnalyzedVariant", "cohorts", "nBiobanks")
+            # Filter out variants from MVP cohorts that have low imputation score
+            .withColumn(
+                "imputationScore",
+                cls.imputation_score(imputation_score_threshold),
+            )
+            .withColumn(
+                "hasLowImputationScore",
+                cls.has_low_imputation_score(f.col("imputationScore")),
+            )
+            .filter(~f.col("hasLowImputationScore"))
+            .drop("hasLowImputationScore", "imputationScore")
+            # Annotate with StudyIndex nCases to obtain the cases Minor Allele Count
+            .join(si_slice, on="studyId", how="left")
+            # Calculate Minor Allele Count (MAC)
+            .withColumn("cohortAlleleFrequency", cls.allele_frequencies())
+            .withColumn(
+                "cohortMinAlleleFrequency",
+                cls.min_allele_frequency(f.col("cohortAlleleFrequency")),
+            )
+            .withColumn(
+                "cohortMinAlleleCount",
+                cls.min_allele_count(f.col("cohortAlleleCount"), f.col("nCases")),
+            )
+            .withColumn(
+                "hasLowMinAlleleCount",
+                cls.has_low_min_allele_count(
+                    f.col("cohortMinAlleleCount"),
+                    min_allele_count_threshold,
+                ),
+            )
+            .filter(~f.col("hasLowMinAlleleCount"))
+            .drop(
+                "hasLowMinAlleleCount",
+                "cohortAlleleFrequency",
+                "cohortMinAlleleFrequency",
+                "cohortMinAlleleCount",
+                "nCases",
+            )
+            # Select and rename columns
+            .select(
+                f.col("studyId"),
+                f.col("#CHR").cast(t.StringType()).alias("chromosome"),
+                f.col("POS").cast(t.IntegerType()).alias("position"),
+                f.col("REF").alias("referenceAllele"),
+                f.col("ALT").alias("alternateAllele"),
+                *pvalue_from_neglogpval(f.col("all_inv_var_meta_mlogp")),
+                f.col("all_inv_var_meta_beta").cast(t.DoubleType()).alias("beta"),
+                f.col("nSamples").alias("sampleSize"),
+                f.col("all_inv_var_meta_sebeta")
+                .cast(t.DoubleType())
+                .alias("standardError"),
+            )
+            .withColumn("chromosome", normalize_chromosome(f.col("chromosome")))
+            .withColumn(
+                "variantId",
+                f.concat_ws(
+                    "_",
+                    f.col("chromosome"),
+                    f.col("position"),
+                    f.col("reference"),
+                    f.col("alternate"),
+                ).alias("variantId"),
+            )
+            .select(
+                f.col("studyId"),
+                f.col("variantId"),
+                f.col("chromosome"),
+                f.col("position"),
+                f.col("beta"),
+                f.col("sampleSize"),
+                f.col("pValueMantissa"),
+                f.col("pValueExponent"),
+                f.lit(None)
+                .cast(t.FloatType())
+                .alias("effectAlleleFrequencyFromSource"),
+                f.col("standardError"),
+            )
+            # Join with variant direction and align allele orientation, beta sign, and allele frequency
+            # Drop variants that are not present in variant index (any direction)
+            .repartition("chromosome")
+            .join(
+                vd_slice,
+                on=["chromosome", "variantId"],
+                how="inner",
+            )
+            # Remove palindromic variants
+            .filter(~f.col("isPalindromic"))
+            .drop("isPalindromic")
+            # Keep the originalVariantId as variantId - this is aligned with the variant index
+            .drop("variantId")
+            .withColumnRenamed("originalVariantId", "variantId")
+            # Flip the beta sign
+            .withColumn("beta", f.col("beta") * f.col("direction"))
+            # Nothing to be done on AF side, as we do not report it, since we have a mix of ancestries
+            .select(
+                f.col("studyId"),
+                f.col("variantId"),
+                f.col("chromosome"),
+                f.col("position"),
+                f.col("beta"),
+                f.col("sampleSize"),
+                f.col("pValueMantissa"),
+                f.col("pValueExponent"),
+                f.col("effectAlleleFrequencyFromSource"),
+                f.col("standardError"),
+            )
+        )
+
+        return SummaryStatistics(sumstats).sanity_filter()
 
     @staticmethod
     def maf(af: Column) -> Column:
@@ -204,68 +324,81 @@ class FinnGenMetaSummaryStatistics:
         return f.filter(
             f.array(
                 f.struct(
-                    f.col("MVP_EUR_af_alt").alias("alleleFrequency"),
-                    cls.maf(f.col("MVP_EUR_af_alt")).alias("minAlleleFrequency"),
                     f.lit("MVP_EUR").alias("cohort"),
-                    f.when(
-                        f.col("MVP_EUR_af_alt").isNull()
-                        | (cls.maf(f.col("MVP_EUR_af_alt")) > af_threshold),
-                        f.lit(True),
-                    )
-                    .otherwise(f.lit(False))
-                    .alias("filter"),
+                    f.col("MVP_EUR_af_alt").alias("alleleFrequency"),
                 ),
                 f.struct(
-                    f.col("MVP_AFR_af_alt").alias("alleleFrequency"),
-                    cls.maf(f.col("MVP_AFR_af_alt")).alias("minAlleleFrequency"),
                     f.lit("MVP_AFR").alias("cohort"),
-                    f.when(
-                        f.col("MVP_AFR_af_alt").isNull()
-                        | (cls.maf(f.col("MVP_AFR_af_alt")) > af_threshold),
-                        f.lit(True),
-                    )
-                    .otherwise(f.lit(False))
-                    .alias("filter"),
+                    f.col("MVP_AFR_af_alt").alias("alleleFrequency"),
                 ),
                 f.struct(
-                    f.col("MVP_HIS_af_alt").alias("alleleFrequency"),
-                    cls.maf(f.col("MVP_HIS_af_alt")).alias("minAlleleFrequency"),
                     f.lit("MVP_AMR").alias("cohort"),
-                    f.when(
-                        f.col("MVP_HIS_af_alt").isNull()
-                        | (cls.maf(f.col("MVP_HIS_af_alt")) > af_threshold),
-                        f.lit(True),
-                    )
-                    .otherwise(f.lit(False))
-                    .alias("filter"),
+                    f.col("MVP_HIS_af_alt").alias("alleleFrequency"),
                 ),
                 f.struct(
-                    f.col("fg_af_alt").alias("alleleFrequency"),
-                    cls.maf(f.col("fg_af_alt")).alias("minAlleleFrequency"),
                     f.lit("FinnGen").alias("cohort"),
-                    f.when(
-                        f.col("fg_af_alt").isNull()
-                        | (cls.maf(f.col("fg_af_alt")) > af_threshold),
-                        f.lit(True),
-                    )
-                    .otherwise(f.lit(False))
-                    .alias("filter"),
+                    f.col("fg_af_alt").alias("alleleFrequency"),
                 ),
                 f.struct(
-                    f.col("ukbb_af_alt").alias("alleleFrequency"),
-                    cls.maf(f.col("ukbb_af_alt")).alias("minAlleleFrequency"),
                     f.lit("UKBB").alias("cohort"),
-                    f.when(
-                        f.col("ukbb_af_alt").isNull()
-                        | (cls.maf(f.col("ukbb_af_alt")) > af_threshold),
-                        f.lit(True),
-                    )
-                    .otherwise(f.lit(False))
-                    .alias("filter"),
+                    f.col("ukbb_af_alt").alias("alleleFrequency"),
                 ),
-                lambda x: x["alleleFrequency"].isNotNull(),
-            )
+            ),
+            lambda x: x.getField("alleleFrequency").isNotNull(),
         ).alias("alleleFrequencies")
+
+    @classmethod
+    def min_allele_frequency(cls, allele_freq: Column) -> Column:
+        return f.transform(
+            allele_freq,
+            lambda x: f.struct(
+                x.getField("cohort").alias("cohort"),
+                cls.maf(x.getField("alleleFrequency")).alias("minAlleleFrequency"),
+            ),
+        )
+
+    @classmethod
+    def min_allele_count(
+        cls, cohort_min_allele_frequency: Column, n_cases_per_cohort: Column
+    ) -> Column:
+        # Take two arrays of structs and zip them together, then calculate the min allele count
+
+        return f.transform(
+            f.filter(
+                cohort_min_allele_frequency,
+                lambda left: f.exists(
+                    n_cases_per_cohort,
+                    lambda right: right.getField("cohort") == left.getField("cohort"),
+                ),
+            ),
+            lambda left: f.struct(
+                left.getField("cohort").alias("cohort"),
+                (
+                    left.getField("minAlleleFrequency")
+                    * f.lit(2)
+                    * f.filter(
+                        n_cases_per_cohort,
+                        lambda right: right.getField("cohort")
+                        == left.getField("cohort").getItem(0).getField("nCases"),
+                    ).alias("minAlleleCount")
+                ),
+            ),
+        )
+
+    @classmethod
+    def has_low_min_allele_count(
+        cls, min_allele_count: Column, min_allele_count_threshold: int = 20
+    ) -> Column:
+        return (
+            f.size(
+                f.filter(
+                    min_allele_count,
+                    lambda x: x.getField("minAlleleCount")
+                    < f.lit(min_allele_count_threshold),
+                )
+            )
+            > 0
+        ).alias("hasLowMinAlleleCount")
 
     @classmethod
     def imputation_score(cls, imputation_threshold: float = 0.8) -> Column:
@@ -306,10 +439,17 @@ class FinnGenMetaSummaryStatistics:
         ).alias("imputationScore")
 
     @classmethod
+    def has_low_imputation_score(cls, imputation_r2: Column) -> Column:
+        return (f.size(f.filter(imputation_r2, lambda x: ~x["filter"])) > 0).alias(
+            "hasLowImputationScore"
+        )
+
+    @classmethod
     def cohorts(cls) -> Column:
+        """Cohorts involved in the meta-analysis."""
         return f.transform(
-            f.array(
-                f.filter(
+            f.filter(
+                f.array(
                     f.struct(
                         f.when(f.col("MVP_EUR_af_alt").isNotNull(), f.lit(True))
                         .otherwise(f.lit(False))
@@ -345,10 +485,10 @@ class FinnGenMetaSummaryStatistics:
                         f.lit("UKBB").alias("cohort"),
                         f.lit("UKBB").alias("biobank"),
                     ),
-                    lambda x: x["inCohort"],
                 ),
-                lambda x: f.struct(x["biobank"], x["cohort"]),
-            )
+                lambda x: x["inCohort"],
+            ),
+            lambda x: f.struct(x["biobank"], x["cohort"]),
         ).alias("cohorts")
 
     @classmethod
@@ -356,7 +496,7 @@ class FinnGenMetaSummaryStatistics:
         return f.reduce(
             f.array_distinct(
                 f.transform(
-                    f.col("metaCohorts"),
+                    cohorts,
                     lambda x: f.struct(
                         x["biobank"],
                         x["inCohort"].cast(t.IntegerType()).alias("inCohort"),
@@ -373,92 +513,4 @@ class FinnGenMetaSummaryStatistics:
             f.when(n_biobanks > 1, f.lit(True))
             .otherwise(f.lit(False))
             .alias("isMetaAnalyzedVariant")
-        )
-
-    @classmethod
-    def has_low_min_allele_frequency(cls, allele_frequencies: Column) -> Column:
-        return (f.size(f.filter(allele_frequencies, lambda x: ~x["filter"])) > 0).alias(
-            "hasLowMinAlleleFrequency"
-        )
-
-    @classmethod
-    def has_low_imputation_score(cls, imputation_r2: Column) -> Column:
-        return (f.size(f.filter(imputation_r2, lambda x: ~x["filter"])) > 0).alias(
-            "hasLowImputationScore"
-        )
-
-    @classmethod
-    def chromosome(cls) -> Column:
-        return (
-            f.when(f.col("#CHR").cast(t.StringType()) == f.lit("23"), f.lit("X"))
-            .otherwise(f.col("#CHR").cast(t.StringType()))
-            .alias("chromosome")
-        )
-
-    @classmethod
-    def variant_id(cls) -> Column:
-        return f.concat_ws(
-            "_",
-            f.col("chromosome"),
-            f.col("position"),
-            f.col("reference"),
-            f.col("alternate"),
-        ).alias("variantId")
-
-    def _harmonise(self, df: DataFrame) -> DataFrame:
-        return (
-            df.filter(f.col("all_inv_var_meta_mlogp").isNotNull())
-            .filter(f.col("all_inv_var_meta_beta").isNotNull())
-            .filter(f.col("all_inv_var_meta_sebeta").isNotNull())
-            # Filter by the meta analyzed biobank count > 1
-            .withColumn("cohorts", self.cohorts())
-            .withColumn("metaCohorts", self.meta_cohorts())
-            .withColumn("nBiobanks", self.n_biobanks())
-            .withColumn("isMetaAnalyzedVariant", self.is_meta_analyzed_variant())
-            .filter(f.col("isMetaAnalyzedVariant"))
-            # .drop("isMetaAnalyzedVariant", "cohorts", "metaCohorts", "nBiobanks")
-            # Filter by imputation score < 0.8
-            .withColumn("imputationR2", self.imputation_score())
-            .withColumn("hasLowImputationScore", self.has_low_imputation_score())
-            .filter(~f.col("hasLowImputationScore"))
-            # .drop("hasLowImputationScore", "imputationR2")
-            # Filter by the allele frequency < 0.0001
-            .withColumn("alleleFrequencies", self.allele_frequencies())
-            .withColumn("hasLowMinAlleleFrequency", self.has_low_min_allele_frequency())
-            .filter(~f.col("hasLowMinAlleleFrequency"))
-            # .drop("hasLowMinAlleleFrequency", "alleleFrequencies", "filteredAlleleFrequencies")
-            .select(
-                f.col("studyId"),
-                self.chromosome().alias("chromosome"),
-                f.col("POS").cast(t.IntegerType()).alias("position"),
-                f.col("REF").cast(t.StringType()).alias("reference"),
-                f.col("ALT").cast(t.StringType()).alias("alternate"),
-                f.col("all_inv_var_meta_beta").alias("beta"),
-                f.col("all_inv_var_meta_sebeta").alias("standardError"),
-                *pvalue_from_neglogpval(f.col("all_inv_var_meta_mlogp")),
-                f.col("isMetaAnalyzedVariant"),
-                f.col("nBiobanks"),
-                f.col("metaCohorts"),
-                f.col("filteredAlleleFrequencies"),
-                f.col("hasLowMinAlleleFrequency"),
-                f.col("hasLowImputationScore"),
-                f.col("imputationR2"),
-            )
-            .select(
-                f.col("studyId"),
-                self.variant_id().alias("variantId"),
-                f.col("chromosome"),
-                f.col("position"),
-                f.col("beta"),
-                f.col("pValueMantissa"),
-                f.col("pValueExponent"),
-                f.col("standardError"),
-                f.col("isMetaAnalyzedVariant"),
-                f.col("nBiobanks"),
-                f.col("metaCohorts"),
-                f.col("filteredAlleleFrequencies"),
-                f.col("hasLowMinAlleleFrequency"),
-                f.col("hasLowImputationScore"),
-                f.col("imputationR2"),
-            )
         )

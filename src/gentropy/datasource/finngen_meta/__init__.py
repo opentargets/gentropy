@@ -96,6 +96,7 @@ class FinnGenMetaManifest:
             self.discovery_samples.alias("discoverySamples"),
             self.n_samples.alias("nSamples"),
             self.n_cases.alias("nCases"),
+            self.n_cases_per_cohort.alias("nCasesPerCohort"),
             self.n_controls.alias("nControls"),
             self.summary_statistics_location.alias("summarystatsLocation"),
             self.has_summary_statistics.alias("hasSumstats"),
@@ -446,3 +447,38 @@ class FinnGenMetaManifest:
             Column: Spark Column representing the trait from source.
         """
         return f.col("name").alias("traitFromSource")
+
+    @property
+    def n_cases_per_cohort(self) -> Column:
+        """Get the number of cases per cohort column.
+
+        Returns:
+            Column: Spark Column representing the number of cases per cohort.
+        """
+        n_cases = [
+            f.struct(
+                f.lit("FinnGen").alias("cohort"),
+                f.coalesce(f.col("fg_n_cases"), f.lit(0)).alias("nCases"),
+            ),
+            f.struct(
+                f.lit("UKBB").alias("cohort"),
+                f.coalesce(f.col("ukbb_n_cases"), f.lit(0)).alias("nCases"),
+            ),
+        ]
+        if self.meta == MetaAnalysisDataSource.FINNGEN_UKBB_MVP:
+            n_cases += [
+                f.struct(
+                    f.lit("MVP_EUR").alias("cohort"),
+                    f.coalesce(f.col("MVP_EUR_n_cases"), f.lit(0)).alias("nCases"),
+                ),
+                f.struct(
+                    f.lit("MVP_AFR").alias("cohort"),
+                    f.coalesce(f.col("MVP_AFR_n_cases"), f.lit(0)).alias("nCases"),
+                ),
+                f.struct(
+                    f.lit("MVP_AMR").alias("cohort"),
+                    f.coalesce(f.col("MVP_AMR_n_cases"), f.lit(0)).alias("nCases"),
+                ),
+            ]
+
+        return f.array(*n_cases).alias("nCasesPerCohort")
