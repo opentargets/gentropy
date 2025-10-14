@@ -10,7 +10,7 @@ from pyspark.testing import assertDataFrameEqual
 
 from gentropy import Session, VariantIndex
 from gentropy.dataset.variant_direction import VariantDirection
-from gentropy.datasource.finngen_meta.study_index import (
+from gentropy.datasource.finngen_meta import (
     FinnGenMetaManifest,
     MetaAnalysisDataSource,
 )
