@@ -80,6 +80,10 @@ class FinnGenMetaManifest:
                 |-- ancestry: string (nullable = true)
         |-- nSamples: integer (nullable = true)
         |-- nCases: integer (nullable = true)
+        |-- nCasesPerCohort: array (nullable = true)
+            |-- element: struct (containsNull = true)
+                |-- cohort: string (nullable = true)
+                |-- nCases: integer (nullable = true)
         |-- nControls: integer (nullable = true)
         |-- hasSumstats: boolean (nullable = true)
         |-- summarystatsLocation: string (nullable = true)  # may be null if not provided in the manifest
