@@ -2,6 +2,7 @@
 
 import pytest
 from pyspark.sql import Row
+from pyspark.sql import types as t
 from pyspark.testing import assertDataFrameEqual
 
 from gentropy import VariantIndex
@@ -19,8 +20,8 @@ class TestVariantDirection:
             Row(
                 chromosome="1",
                 position=100,
-                reference_allele="A",
-                alternate_allele="C",
+                referenceAllele="A",
+                alternateAllele="C",
                 variantId="1_100_A_C",
                 alleleFrequencies=[
                     Row(populationName="nfe_adj", alleleFrequency=0.1),
@@ -30,8 +31,8 @@ class TestVariantDirection:
             Row(
                 chromosome="1",
                 position=100,
-                reference_allele="ACT",
-                alternate_allele="G",
+                referenceAllele="ACT",
+                alternateAllele="G",
                 variantId="1_100_ACT_G",
                 alleleFrequencies=[
                     Row(populationName="nfe_adj", alleleFrequency=0.1),
@@ -41,8 +42,8 @@ class TestVariantDirection:
             Row(
                 chromosome="1",
                 position=100,
-                reference_allele="A",
-                alternate_allele="T",
+                referenceAllele="A",
+                alternateAllele="T",
                 variantId="1_100_A_T",
                 alleleFrequencies=[
                     Row(populationName="nfe_adj", alleleFrequency=0.1),
@@ -50,12 +51,27 @@ class TestVariantDirection:
                 ],
             ),
         ]
-        return VariantIndex(
-            _df=session.spark.createDataFrame(
-                data,
-                VariantIndex.get_schema(),
-            )
+        schema = t.StructType(
+            [
+                t.StructField("chromosome", t.StringType(), False),
+                t.StructField("position", t.IntegerType(), False),
+                t.StructField("referenceAllele", t.StringType(), False),
+                t.StructField("alternateAllele", t.StringType(), False),
+                t.StructField("variantId", t.StringType(), False),
+                t.StructField(
+                    "alleleFrequencies",
+                    t.ArrayType(
+                        t.StructType(
+                            [
+                                t.StructField("populationName", t.StringType(), False),
+                                t.StructField("alleleFrequency", t.DoubleType(), False),
+                            ]
+                        )
+                    ),
+                ),
+            ]
         )
+        return VariantIndex(_df=session.spark.createDataFrame(data, schema))
 
     def test_from_variant_index(self, session: Session, variant_index: VariantIndex):
         """Test from_variant_index."""
@@ -72,8 +88,8 @@ class TestVariantDirection:
                 variantId="1_100_A_C",
                 direction=1,
                 strand=1,
-                isPalindromic=False,
-                alleleFrequencies=[
+                isStrandAmbiguous=False,
+                originalAlleleFrequencies=[
                     Row(populationName="nfe_adj", alleleFrequency=0.1),
                     Row(populationName="fin_adj", alleleFrequency=0.2),
                 ],
@@ -85,21 +101,8 @@ class TestVariantDirection:
                 variantId="1_100_C_A",
                 direction=-1,
                 strand=1,
-                isPalindromic=False,
-                alleleFrequencies=[
-                    Row(populationName="nfe_adj", alleleFrequency=0.1),
-                    Row(populationName="fin_adj", alleleFrequency=0.2),
-                ],
-            ),
-            Row(
-                chromosome="1",
-                originalVariantId="1_100_A_C",
-                type=1,
-                variantId="1_100_G_T",
-                direction=1,
-                strand=-1,
-                isPalindromic=False,
-                alleleFrequencies=[
+                isStrandAmbiguous=False,
+                originalAlleleFrequencies=[
                     Row(populationName="nfe_adj", alleleFrequency=0.1),
                     Row(populationName="fin_adj", alleleFrequency=0.2),
                 ],
@@ -109,10 +112,23 @@ class TestVariantDirection:
                 originalVariantId="1_100_A_C",
                 type=1,
                 variantId="1_100_T_G",
+                direction=1,
+                strand=-1,
+                isStrandAmbiguous=False,
+                originalAlleleFrequencies=[
+                    Row(populationName="nfe_adj", alleleFrequency=0.1),
+                    Row(populationName="fin_adj", alleleFrequency=0.2),
+                ],
+            ),
+            Row(
+                chromosome="1",
+                originalVariantId="1_100_A_C",
+                type=1,
+                variantId="1_100_G_T",
                 direction=-1,
                 strand=-1,
-                isPalindromic=False,
-                alleleFrequencies=[
+                isStrandAmbiguous=False,
+                originalAlleleFrequencies=[
                     Row(populationName="nfe_adj", alleleFrequency=0.1),
                     Row(populationName="fin_adj", alleleFrequency=0.2),
                 ],
@@ -124,8 +140,8 @@ class TestVariantDirection:
                 variantId="1_100_A_T",
                 direction=1,
                 strand=1,
-                isPalindromic=True,
-                alleleFrequencies=[
+                isStrandAmbiguous=True,
+                originalAlleleFrequencies=[
                     Row(populationName="nfe_adj", alleleFrequency=0.1),
                     Row(populationName="fin_adj", alleleFrequency=0.2),
                 ],
@@ -137,8 +153,8 @@ class TestVariantDirection:
                 variantId="1_100_T_A",
                 direction=-1,
                 strand=1,
-                isPalindromic=True,
-                alleleFrequencies=[
+                isStrandAmbiguous=True,
+                originalAlleleFrequencies=[
                     Row(populationName="nfe_adj", alleleFrequency=0.1),
                     Row(populationName="fin_adj", alleleFrequency=0.2),
                 ],
@@ -150,8 +166,8 @@ class TestVariantDirection:
                 variantId="1_100_T_A",
                 direction=1,
                 strand=-1,
-                isPalindromic=True,
-                alleleFrequencies=[
+                isStrandAmbiguous=True,
+                originalAlleleFrequencies=[
                     Row(populationName="nfe_adj", alleleFrequency=0.1),
                     Row(populationName="fin_adj", alleleFrequency=0.2),
                 ],
@@ -163,8 +179,8 @@ class TestVariantDirection:
                 variantId="1_100_A_T",
                 direction=-1,
                 strand=-1,
-                isPalindromic=True,
-                alleleFrequencies=[
+                isStrandAmbiguous=True,
+                originalAlleleFrequencies=[
                     Row(populationName="nfe_adj", alleleFrequency=0.1),
                     Row(populationName="fin_adj", alleleFrequency=0.2),
                 ],
@@ -172,12 +188,12 @@ class TestVariantDirection:
             Row(
                 chromosome="1",
                 originalVariantId="1_100_ACT_G",
-                type=1,
+                type=3,
                 variantId="1_100_ACT_G",
                 direction=1,
                 strand=1,
-                isPalindromic=False,
-                alleleFrequencies=[
+                isStrandAmbiguous=False,
+                originalAlleleFrequencies=[
                     Row(populationName="nfe_adj", alleleFrequency=0.1),
                     Row(populationName="fin_adj", alleleFrequency=0.2),
                 ],
@@ -185,12 +201,12 @@ class TestVariantDirection:
             Row(
                 chromosome="1",
                 originalVariantId="1_100_ACT_G",
-                type=1,
+                type=3,
                 variantId="1_100_G_ACT",
                 direction=-1,
                 strand=1,
-                isPalindromic=False,
-                alleleFrequencies=[
+                isStrandAmbiguous=False,
+                originalAlleleFrequencies=[
                     Row(populationName="nfe_adj", alleleFrequency=0.1),
                     Row(populationName="fin_adj", alleleFrequency=0.2),
                 ],
@@ -198,12 +214,12 @@ class TestVariantDirection:
             Row(
                 chromosome="1",
                 originalVariantId="1_100_ACT_G",
-                type=1,
-                variantId="1_100_CAG_T",
+                type=3,
+                variantId="1_100_AGT_C",
                 direction=1,
                 strand=-1,
-                isPalindromic=False,
-                alleleFrequencies=[
+                isStrandAmbiguous=False,
+                originalAlleleFrequencies=[
                     Row(populationName="nfe_adj", alleleFrequency=0.1),
                     Row(populationName="fin_adj", alleleFrequency=0.2),
                 ],
@@ -211,21 +227,21 @@ class TestVariantDirection:
             Row(
                 chromosome="1",
                 originalVariantId="1_100_ACT_G",
-                type=1,
-                variantId="1_100_CAG_T",
-                direction=1,
+                type=3,
+                variantId="1_100_C_AGT",
+                direction=-1,
                 strand=-1,
-                isPalindromic=False,
-                alleleFrequencies=[
+                isStrandAmbiguous=False,
+                originalAlleleFrequencies=[
                     Row(populationName="nfe_adj", alleleFrequency=0.1),
                     Row(populationName="fin_adj", alleleFrequency=0.2),
                 ],
             ),
         ]
         exp_df = session.spark.createDataFrame(exp_data, VariantDirection.get_schema())
+        variant_index.df.show(truncate=False)
+        variant_direction.df.show(truncate=False)
         assertDataFrameEqual(
-            variant_direction.df.select(exp_df.columns).orderBy(
-                "variantId", "strand", "direction"
-            ),
-            exp_df.orderBy("variantId", "strand", "direction"),
+            variant_direction.df.select(exp_df.columns), exp_df, checkRowOrder=False
         )
+        assert 1

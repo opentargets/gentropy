@@ -226,7 +226,7 @@ class FinnGenMetaSummaryStatistics:
             f.col("originalVariantId"),
             f.col("variantId"),
             f.col("direction"),
-            f.col("isPalindromic"),
+            f.col("isStrandAmbiguous"),
         ).repartition("chromosome")
         sumstats = (
             raw_summary_statistics
@@ -256,6 +256,15 @@ class FinnGenMetaSummaryStatistics:
             .withColumn(
                 "cohortMinAlleleFrequency",
                 cls.min_allele_frequency(f.col("cohortAlleleFrequency")),
+            )
+            # Make sure to only keep cohorts that have nCases > 0
+            .withColumn(
+                "nCasesPerCohort",
+                f.filter(
+                    f.col("nCasesPerCohort"),
+                    lambda x: x.getField("nCases").isNotNull()
+                    & (x.getField("nCases") > 0),
+                ),
             )
             .withColumn(
                 "cohortMinAlleleCount",
@@ -327,8 +336,8 @@ class FinnGenMetaSummaryStatistics:
                 how="inner",
             )
             # Remove palindromic variants
-            .filter(~f.col("isPalindromic"))
-            .drop("isPalindromic")
+            .filter(~f.col("isStrandAmbiguous"))
+            .drop("isStrandAmbiguous")
             # Keep the originalVariantId as variantId - this is aligned with the variant index
             .drop("variantId")
             .withColumnRenamed("originalVariantId", "variantId")
