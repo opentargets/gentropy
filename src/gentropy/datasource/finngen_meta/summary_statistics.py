@@ -358,7 +358,7 @@ class FinnGenMetaSummaryStatistics:
             )
         )
 
-        return SummaryStatistics(sumstats)  # .sanity_filter()
+        return SummaryStatistics(sumstats).sanity_filter()
 
     @classmethod
     def allele_frequencies(cls, scale: int = 10) -> Column:

@@ -91,4 +91,6 @@ class FinnGenMetaStudyIndex:
         )
 
         # Coalesce to a single file.
-        return StudyIndex(_df=study_index.df.coalesce(1))
+        return StudyIndex(
+            _df=study_index.df.coalesce(1), schema=StudyIndex.get_schema()
+        )
