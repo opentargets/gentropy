@@ -73,7 +73,9 @@ class TestVariantDirection:
         )
         return VariantIndex(_df=session.spark.createDataFrame(data, schema))
 
-    def test_from_variant_index(self, session: Session, variant_index: VariantIndex):
+    def test_from_variant_index(
+        self, session: Session, variant_index: VariantIndex
+    ) -> None:
         """Test from_variant_index."""
         variant_direction = VariantDirection.from_variant_index(
             variant_index=variant_index
@@ -244,4 +246,3 @@ class TestVariantDirection:
         assertDataFrameEqual(
             variant_direction.df.select(exp_df.columns), exp_df, checkRowOrder=False
         )
-        assert 1
