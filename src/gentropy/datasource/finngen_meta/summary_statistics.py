@@ -222,6 +222,7 @@ class FinnGenMetaSummaryStatistics:
             f.col("nSamples"),
         )
         vd_slice = variant_annotations.df.select(
+            f.col("chromosome"),
             f.col("originalVariantId"),
             f.col("variantId"),
             f.col("direction"),
@@ -258,7 +259,10 @@ class FinnGenMetaSummaryStatistics:
             )
             .withColumn(
                 "cohortMinAlleleCount",
-                cls.min_allele_count(f.col("cohortAlleleCount"), f.col("nCases")),
+                cls.min_allele_count(
+                    f.col("cohortMinAlleleFrequency"),
+                    f.col("nCasesPerCohort"),
+                ),
             )
             .withColumn(
                 "hasLowMinAlleleCount",
@@ -273,7 +277,7 @@ class FinnGenMetaSummaryStatistics:
                 "cohortAlleleFrequency",
                 "cohortMinAlleleFrequency",
                 "cohortMinAlleleCount",
-                "nCases",
+                "nCasesPerCohort",
             )
             # Select and rename columns
             .select(
@@ -296,8 +300,8 @@ class FinnGenMetaSummaryStatistics:
                     "_",
                     f.col("chromosome"),
                     f.col("position"),
-                    f.col("reference"),
-                    f.col("alternate"),
+                    f.col("referenceAllele"),
+                    f.col("alternateAllele"),
                 ).alias("variantId"),
             )
             .select(
@@ -345,7 +349,7 @@ class FinnGenMetaSummaryStatistics:
             )
         )
 
-        return SummaryStatistics(sumstats).sanity_filter()
+        return SummaryStatistics(sumstats)  # .sanity_filter()
 
     @classmethod
     def allele_frequencies(cls, scale: int = 10) -> Column:
