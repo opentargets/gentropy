@@ -7,10 +7,10 @@ from typing import TYPE_CHECKING
 from unittest.mock import MagicMock
 
 import pytest
-from pyspark.sql import DataFrame
 from pyspark.sql import types as T
 
 from gentropy.dataset.study_index import StudyIndex
+from gentropy.datasource.finngen.efo_mapping import EFOMapping
 from gentropy.datasource.finngen.study_index import (
     FinngenPrefixMatch,
     FinnGenStudyIndex,
@@ -168,7 +168,7 @@ def efo_mappings_mock() -> list[tuple[str, str, str]]:
 @pytest.fixture()
 def efo_mappings_df_mock(
     spark: SparkSession, efo_mappings_mock: list[tuple[str, str, str]]
-) -> DataFrame:
+) -> EFOMapping:
     """EFO mappings dataframe mock."""
     schema = T.StructType(
         [
@@ -178,38 +178,7 @@ def efo_mappings_df_mock(
         ]
     )
     data = spark.createDataFrame(data=efo_mappings_mock, schema=schema)
-    return data
-
-
-@pytest.fixture()
-def urlopen_mock(
-    efo_mappings_mock: list[tuple[str, str, str, str]],
-    finngen_phenotype_table_mock: str,
-) -> Callable[[str], MagicMock]:
-    """Mock object for requesting urlopen objects with proper encoding.
-
-    This mock object allows to call `read` and `readlines` methods on two endpoints:
-    - https://finngen_phenotypes -> finngen_phenotype_table_mock
-    - https://efo_mappings -> efo_mappings_mock
-
-    The return values are mocks of the source data respectively.
-    """
-
-    def mock_response(url: str) -> MagicMock:
-        """Mock urllib.request.urlopen."""
-        match url:
-            case "https://finngen_phenotypes":
-                value = finngen_phenotype_table_mock
-            case "https://efo_mappings":
-                value = "\n".join(["\t".join(row) for row in efo_mappings_mock])
-            case _:
-                value = ""
-        mock_open = MagicMock()
-        mock_open.read.return_value = value.encode()
-        mock_open.readlines.return_value = value.encode().splitlines(keepends=True)
-        return mock_open
-
-    return mock_response
+    return EFOMapping(df=data)
 
 
 @pytest.mark.step_test
@@ -238,6 +207,7 @@ def test_finngen_study_index_step(
     'condition'
     """
     with monkeypatch.context() as m:
+        m.setattr("gentropy.datasource.finngen.efo_mapping.urlopen", urlopen_mock)
         m.setattr("gentropy.datasource.finngen.study_index.urlopen", urlopen_mock)
         output_path = str(tmp_path / "study_index")
         FinnGenStudiesStep(
@@ -255,20 +225,6 @@ def test_finngen_study_index_step(
         assert study_index.df.count() == 3, "Expected 3 rows that come from the input table."
         assert "traitFromSourceMappedIds" in study_index.df.columns, "Expected that EFO terms were joined to the study_index table."
         # fmt: on
-
-
-def test_finngen_study_index_read_efo_curation(
-    monkeypatch: pytest.MonkeyPatch,
-    spark: SparkSession,
-    urlopen_mock: Callable[[str], MagicMock],
-) -> None:
-    """Test reading efo curation."""
-    with monkeypatch.context() as m:
-        m.setattr("gentropy.datasource.finngen.study_index.urlopen", urlopen_mock)
-        efo_df = FinnGenStudyIndex.read_efo_curation(spark, "https://efo_mappings")
-        assert isinstance(efo_df, DataFrame)
-        efo_df.show()
-        assert efo_df.count() == 5
 
 
 def test_finngen_study_index_from_source(
@@ -362,18 +318,17 @@ def test_finngen_validate_release_prefix(
             FinnGenStudyIndex.validate_release_prefix(prefix)
 
 
-def test_finngen_study_index_add_efos(
+def test_finngen_study_index_annotate_with_efos(
     finngen_study_index_mock: StudyIndex,
-    efo_mappings_df_mock: DataFrame,
+    efo_mappings_df_mock: EFOMapping,
 ) -> None:
     """Test finngen study index add efo ids."""
     efo_column_name = "traitFromSourceMappedIds"
     # Expect that EFO column is not present when study index is generated.
     assert efo_column_name not in finngen_study_index_mock.df.columns
-    study_index = FinnGenStudyIndex.join_efo_mapping(
-        finngen_study_index_mock,
+    study_index = efo_mappings_df_mock.annotate_study_index(
+        study_index=finngen_study_index_mock,
         finngen_release="R11",
-        efo_curation_mapping=efo_mappings_df_mock,
     )
     # fmt: off
     assert isinstance(study_index, StudyIndex), "Expect we have the StudyIndex object after joining EFOs."

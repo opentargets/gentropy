@@ -5,6 +5,7 @@ from __future__ import annotations
 from gentropy.common.session import Session
 from gentropy.dataset.summary_statistics_qc import SummaryStatisticsQC
 from gentropy.dataset.variant_direction import VariantDirection
+from gentropy.dataset.variant_index import VariantIndex
 from gentropy.datasource.finngen.efo_mapping import EFOMapping
 from gentropy.datasource.finngen_meta import FinnGenMetaManifest
 from gentropy.datasource.finngen_meta.study_index import FinnGenMetaStudyIndex
@@ -57,6 +58,7 @@ class FinngenUkbbMvpMetaIngestionStep:
         study_index = FinnGenMetaStudyIndex.from_finngen_manifest(
             finngen_manifest, efo_mapping
         )
+
         session.logger.info("Writing study index.")
         study_index.df.write.mode(session.write_mode).parquet(study_index_output_path)
         session.logger.info(f"Study index written to {study_index_output_path}.")
@@ -68,25 +70,33 @@ class FinngenUkbbMvpMetaIngestionStep:
             datasource=finngen_manifest.meta,
             raw_summary_statistics_output_path=raw_summary_statistics_output_path,
         )
-        session.logger.info("Preparing variant annotations.")
-        variant_direction = VariantDirection.from_variant_index(
-            session=session, variant_index_path=gnomad_variant_index_path
+
+        session.logger.info("Reading gnomAD variant index.")
+        gnomad_variant_index = VariantIndex.from_parquet(
+            session, gnomad_variant_index_path
         )
 
-        session.logger.info("Harmonising summary statistics.")
+        session.logger.info("Building variant direction annotations.")
+        variant_direction = VariantDirection.from_variant_index(gnomad_variant_index)
 
+        session.logger.info("Reading raw summary statistics.")
         raw_summary_statistics = session.spark.read.parquet(
             raw_summary_statistics_output_path
         )
+
+        session.logger.info("Harmonising summary statistics.")
         harmonised_summary_statistics = FinnGenMetaSummaryStatistics.from_source(
-            study_index=study_index,
             raw_summary_statistics=raw_summary_statistics,
+            finngen_manifest=finngen_manifest,
             variant_annotations=variant_direction,
         )
 
         session.logger.info("Writing harmonised summary statistics.")
         harmonised_summary_statistics.df.write.mode(session.write_mode).parquet(
             harmonised_summary_statistics_output_path
+        )
+        session.logger.info(
+            f"Harmonised summary statistics written to {harmonised_summary_statistics_output_path}."
         )
 
         session.logger.info("Running summary statistics QC.")
@@ -99,9 +109,17 @@ class FinngenUkbbMvpMetaIngestionStep:
         summary_statistics_qc.df.repartition(1).write.mode(session.write_mode).parquet(
             harmonised_summary_statistics_qc_output_path
         )
+        session.logger.info(
+            f"Summary statistics QC results written to {harmonised_summary_statistics_qc_output_path}."
+        )
 
         session.logger.info("Adding qc to the study index.")
         study_index.annotate_sumstats_qc(summary_statistics_qc)
 
         session.logger.info("Writing updated study index.")
-        study_index.df.write.mode("overwrite").parquet(study_index_output_path)
+        study_index.df.repartition(1).write.mode("overwrite").parquet(
+            study_index_output_path
+        )
+        session.logger.info(
+            f"Updated study index written to {study_index_output_path}."
+        )

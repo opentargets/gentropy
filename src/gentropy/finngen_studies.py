@@ -47,7 +47,7 @@ class FinnGenStudiesStep:
             finngen_summary_stats_url_suffix,
             sample_size,
         )
-        study_index_with_efo = efo_mapping.join_efo_mapping(study_index, release)
+        study_index_with_efo = efo_mapping.annotate_study_index(study_index, release)
         study_index_with_efo.df.coalesce(session.output_partitions).write.mode(
             session.write_mode
         ).parquet(finngen_study_index_out)

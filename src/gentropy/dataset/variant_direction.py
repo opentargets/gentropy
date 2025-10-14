@@ -77,7 +77,32 @@ class VariantDirection(Dataset):
 
     @classmethod
     def is_palindromic(cls, ref: Column, alt: Column) -> Column:
-        """Check if the variant is palindromic."""
+        """Check if the variant is palindromic.
+
+        Args:
+            ref (Column): Reference allele column.
+            alt (Column): Alternate allele column.
+
+        Returns:
+            Column: Boolean column indicating if the variant is palindromic.
+
+        Examples:
+            >>> data = [("A", "T"), ("C", "G"), ("A", "G"), ("AT", "TA"), ("A", "AT")]
+            >>> schema = "ref STRING, alt STRING"
+            >>> df = spark.createDataFrame(data, schema)
+            >>> df.withColumn("isPalindromic", VariantDirection.is_palindromic(f.col("ref"), f.col("alt"))).show()
+            +---+---+-------------+
+            |ref|alt|isPalindromic|
+            +---+---+-------------+
+            |  A|  T|         true|
+            |  C|  G|         true|
+            |  A|  G|        false|
+            | AT| TA|         true|
+            |  A| AT|        false|
+            +---+---+-------------+
+            <BLANKLINE>
+
+        """
         ref_len = f.length(ref)
         alt_len = f.length(alt)
         return f.when(
@@ -86,17 +111,94 @@ class VariantDirection(Dataset):
 
     @staticmethod
     def reverse(allele: Column) -> Column:
-        """Reverse the allele string."""
+        """Reverse the allele string.
+
+        Args:
+            allele (Column): Allele column.
+
+        Returns:
+            Column: Reversed allele column.
+
+        Examples:
+            >>> data = [("A"), ("AT"), ("GTC")]
+            >>> schema = "allele STRING"
+            >>> df = spark.createDataFrame(data, schema)
+            >>> df.withColumn("reversed", VariantDirection.reverse(f.col("allele"))).show()
+            +-------+--------+
+            | allele|reversed|
+            +-------+--------+
+            |      A|       A|
+            |     AT|      TA|
+            |    GTC|     CTG|
+            +-------+--------+
+            <BLANKLINE>
+
+        """
         return f.reverse(allele)
 
     @staticmethod
     def complement(allele: Column) -> Column:
-        """Complement the allele string."""
+        """Complement the allele string.
+
+        Args:
+            allele (Column): Allele column.
+
+        Returns:
+            Column: Complemented allele column.
+
+        Examples:
+            >>> data = [("A"), ("C"), ("G"), ("T"), ("AT"), ("GTC")]
+            >>> schema = "allele STRING"
+            >>> df = spark.createDataFrame(data, schema)
+            >>> df.withColumn("complemented", VariantDirection.complement(f.col("allele"))).show()
+            +-------+------------+
+            | allele|complemented|
+            +-------+------------+
+            |      A|           T|
+            |      C|           G|
+            |      G|           C|
+            |      T|           A|
+            |     AT|          TA|
+            |    GTC|         CAG|
+            +-------+------------+
+            <BLANKLINE>
+
+        """
         return f.translate(f.upper(allele), "ACGT", "TGCA")
 
     @classmethod
     def variant_type(cls, ref: Column, alt: Column) -> Column:
-        """Get the variant type."""
+        """Get the variant type.
+
+        Args:
+            ref (Column): Reference allele column.
+            alt (Column): Alternate allele column.
+
+        Returns:
+            Column: Variant type column.
+
+        Note:
+            Variant type coding follows VariantType enum:
+            - 1: SNP (Single Nucleotide Polymorphism)
+            - 2: INS (Insertion)
+            - 3: DEL (Deletion)
+            - 4: MNP (Multi-Nucleotide Polymorphism)
+
+        Examples:
+            >>> data = [("A", "G"), ("A", "AT"), ("AT", "A"), ("AT", "GC")]
+            >>> schema = "ref STRING, alt STRING"
+            >>> df = spark.createDataFrame(data, schema)
+            >>> df.withColumn("type", VariantDirection.variant_type(f.col("ref"), f.col("alt"))).show()
+            +---+---+----+
+            |ref|alt|type|
+            +---+---+----+
+            |  A|  G|   1|
+            |  A| AT|   2|
+            | AT|  A|   3|
+            | AT| GC|   4|
+            +---+---+----+
+            <BLANKLINE>
+        """
         expr = (
             f.when((f.length(alt) > f.length(ref)), f.lit(VariantType.INS.value))
             .when((f.length(alt) < f.length(ref)), f.lit(VariantType.DEL.value))
@@ -109,26 +211,37 @@ class VariantDirection(Dataset):
         return expr.cast(t.ByteType())
 
     @classmethod
-    def get_variant_len(cls, ref: Column, alt: Column) -> Column:
-        """Get the indel length of the variant.
-
-        Note:
-        ----
-        Effective length is defined as the absolute difference between the lengths of the reference and alternate alleles.
-
-        """
-        return f.abs(f.length(alt) - f.length(ref))
-
-    @classmethod
-    def get_variant_end(cls, pos: Column, ref: Column, alt: Column) -> Column:
-        """Get the end position of the variant."""
-        return pos + cls.get_variant_len(ref, alt).cast(t.IntegerType())
-
-    @classmethod
     def alleles(
         cls, chrom: Column, pos: Column, ref: Column, alt: Column, af: Column
     ) -> Column:
-        """Get the alleles of the variant."""
+        """Get the alleles of the variant.
+
+        Args:
+            chrom (Column): Chromosome column.
+            pos (Column): Position column.
+            ref (Column): Reference allele column.
+            alt (Column): Alternate allele column.
+            af (Column): Allele frequencies column.
+
+        Returns:
+            Column: Array of structs with variantId, direction, strand, isPalindromic, alleleFrequencies.
+
+        Examples:
+            >>> data = [("1", 100, "A", "G", [("nfe_adj", 0.1),])]
+            >>> schema = "chrom STRING, pos INT, ref STRING, alt STRING, af ARRAY<STRUCT<populationName: STRING, alleleFrequency: DOUBLE>>"
+            >>> df = spark.createDataFrame(data, schema)
+            >>> df = df.withColumn("alleles", VariantDirection.alleles("chrom", "pos", "ref", "alt", "af")).select("alleles")
+            >>> df.select(f.explode("alleles").alias("allele")).select("allele.*").show(truncate=False)
+            +----------+---------+------+-------------+-----------------+
+            |variantId |direction|strand|isPalindromic|alleleFrequencies|
+            +----------+---------+------+-------------+-----------------+
+            |1_100_A_G |1        |1     |false        |[{nfe_adj, 0.1}] |
+            |1_100_G_A |-1       |1     |false        |[{nfe_adj, 0.9}] |
+            |1_100_T_C |1        |-1    |false        |[{nfe_adj, 0.1}] |
+            |1_100_C_T |-1       |-1    |false        |[{nfe_adj, 0.9}] |
+            +----------+---------+------+-------------+-----------------+
+            <BLANKLINE>
+        """
         forward_direct = cls.variant_id(chrom, pos, ref, alt)  # A/G
         forward_flipped = cls.variant_id(chrom, pos, alt, ref)  # G/A
         reverse_direct = cls.variant_id(  # T/C
@@ -246,21 +359,3 @@ class VariantDirection(Dataset):
         )
 
         return VariantDirection(_df=lut)
-
-    # def flip_sumstats(self, sumstats: SummaryStatistics) -> sumstats:
-    #     """Flip beta in summary statistics when they map to FLIPPED or keep the DIRECT beta"""
-    #     va = self.prepare().
-    #     merged = sumstats.join(
-    #         va,
-    #         on=(
-    #             (va.chromosome=sumstats.chromosome) &
-    #             (va.variantId = sumstats.variantId)
-    #         ),
-    #         how="inner"
-    #     )
-    #     return SummaryStatistics(
-    #         _df=merged.withColumn(
-    #             "beta",
-    #             f.when(f.col("direction") == Direction.FLIPPED, -1 * f.col("beta")).otherwise(f.col("beta"))
-    #         )
-    #     )

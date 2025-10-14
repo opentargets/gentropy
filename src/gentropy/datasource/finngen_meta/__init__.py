@@ -83,10 +83,6 @@ class FinnGenMetaManifest:
         |-- nControls: integer (nullable = true)
         |-- hasSumstats: boolean (nullable = true)
         |-- summarystatsLocation: string (nullable = true)  # may be null if not provided in the manifest
-        |-- alleleCounts: array (nullable = true)
-            |-- element: struct (containsNull = true)
-                |-- cohort: string (nullable = true)
-                |-- AC: integer (nullable = true)
         ```
         """
         return self._df.select(
@@ -100,7 +96,6 @@ class FinnGenMetaManifest:
             self.n_controls.alias("nControls"),
             self.summary_statistics_location.alias("summarystatsLocation"),
             self.has_summary_statistics.alias("hasSumstats"),
-            self.allelic_counts.alias("alleleCounts"),
         )
 
     @classmethod
@@ -140,9 +135,9 @@ class FinnGenMetaManifest:
             .option("sep", "\t")
             .csv(manifest_path)
         )
-        assert cls.required_columns.issubset(set(df.columns)), (
-            f"Manifest file must contain the following columns: {cls.required_columns}. "
-        )
+        assert cls.required_columns.issubset(
+            set(df.columns)
+        ), f"Manifest file must contain the following columns: {cls.required_columns}. "
 
         # By default we assume we are dealing with the FinnGen UKBB meta-analysis
         meta = MetaAnalysisDataSource.FINNGEN_UKBB
@@ -175,41 +170,6 @@ class FinnGenMetaManifest:
 
         df = df.select(*column_map)  # Final contract
         return cls(df=df, meta=meta)
-
-    @property
-    def allelic_counts(self) -> Column:
-        """Get the allelic counts column.
-
-        Returns:
-            Column: Spark Column representing the allelic counts.
-        """
-        ac = [
-            f.struct(
-                f.lit("FinnGen").alias("cohort"),
-                2 * f.coalesce(f.col("fg_n_cases"), f.lit(0)).alias("AC"),
-            ),
-            f.struct(
-                f.lit("UKBB").alias("cohort"),
-                2 * f.coalesce(f.col("ukbb_n_cases"), f.lit(0)).alias("AC"),
-            ),
-        ]
-        if self.meta == MetaAnalysisDataSource.FINNGEN_UKBB_MVP:
-            ac += [
-                f.struct(
-                    f.lit("MVP_EUR").alias("cohort"),
-                    2 * f.coalesce(f.col("MVP_EUR_n_cases"), f.lit(0)),
-                ).alias("AC"),
-                f.struct(
-                    f.lit("MVP_AFR").alias("cohort"),
-                    2 * f.coalesce(f.col("MVP_AFR_n_cases"), f.lit(0)),
-                ).alias("AC"),
-                f.struct(
-                    f.lit("MVP_AMR").alias("cohort"),
-                    2 * f.coalesce(f.col("MVP_AMR_n_cases"), f.lit(0)),
-                ).alias("AC"),
-            ]
-
-        return f.array(*ac).alias("alleleCounts")
 
     @property
     def discovery_samples(self) -> Column:
@@ -404,9 +364,13 @@ class FinnGenMetaManifest:
             Column: Spark Column representing the summary statistics location.
         """
         if self.sumstat_location_column in self._df.columns:
-            return f.col(self.sumstat_location_column).alias("summarystatsLocation")
+            return (
+                f.col(self.sumstat_location_column)
+                .cast(t.StringType())
+                .alias("summarystatsLocation")
+            )
         else:
-            return f.lit(None).alias("summarystatsLocation")
+            return f.lit(None).cast(t.StringType()).alias("summarystatsLocation")
 
     @property
     def has_summary_statistics(self) -> Column:

@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 from pyspark.sql import functions as f
 from pyspark.sql import types as t
 
-from gentropy.common.processing import normalize_chromosome
+from gentropy.common.processing import mac, maf, normalize_chromosome
 from gentropy.common.stats import pvalue_from_neglogpval
 from gentropy.dataset.summary_statistics import SummaryStatistics
 from gentropy.dataset.variant_direction import VariantDirection
@@ -28,6 +28,28 @@ class FinnGenMetaSummaryStatistics:
 
         Note:
             Assumes the file name format is some_path/to/<studyPhenotype>_meta_out.tsv.gz
+
+
+        Args:
+            file_path (Column): Column containing the file path as a string.
+
+        Returns:
+            Column: Extracted study phenotype as a string.
+
+        Examples:
+            >>> data = [("/path/to/AB1_meta_out.tsv.gz",), ("/another/path/CD2_meta_out.tsv.gz",)]
+            >>> schema = "filePath STRING"
+            >>> df = spark.createDataFrame(data, schema)
+            >>> df =df.withColumn("studyPhenotype", FinnGenMetaSummaryStatistics.extract_study_phenotype_from_path(f.col("filePath")))
+            >>> df.show(truncate=False)
+            +---------------------------------+--------------+
+            |filePath                         |studyPhenotype|
+            +---------------------------------+--------------+
+            |/path/to/AB1_meta_out.tsv.gz     |AB1           |
+            |/another/path/CD2_meta_out.tsv.gz|CD2           |
+            +---------------------------------+--------------+
+            <BLANKLINE>
+
         """
         return f.regexp_replace(
             f.element_at(f.split(file_path, "/"), -1), "_meta_out.tsv.gz", ""
@@ -41,7 +63,7 @@ class FinnGenMetaSummaryStatistics:
             t.StructField("REF", t.StringType(), True),
             t.StructField("ALT", t.StringType(), True),
             t.StructField("SNP", t.StringType(), True),
-            # fg_ (FinnGen)
+            # FinnGen
             t.StructField("fg_beta", t.DoubleType(), True),
             t.StructField("fg_sebeta", t.DoubleType(), True),
             t.StructField("fg_pval", t.DoubleType(), True),
@@ -171,6 +193,29 @@ class FinnGenMetaSummaryStatistics:
         imputation_score_threshold: float = 0.8,
         min_allele_count_threshold: int = 20,
     ) -> SummaryStatistics:
+        """Build the summary statistics dataset from raw summary statistics.
+
+        The logic behind the harmonisation has following steps:
+        (1) Filter out rows with missing statistics (p-value, beta, standard error)
+        (2) Filter out variants that are not meta analyzed (nBiobanks < 1)
+        (3) Filter out variants from MVP cohorts that have low imputation score < 0.8
+        (4) Filter out variants that have low minor allele count < 20 in any cohort
+        (5) Filter out palindromic variants
+        (6) Align allele direction, beta sign based on the Gnomad variant direction dataset.
+        (7) Perform the summary statistics
+
+        To calculate the MAC we need to bring the number of cases per cohort from the StudyIndex.
+
+        Args:
+            raw_summary_statistics (DataFrame): Raw summary statistics dataframe.
+            finngen_manifest (FinnGenMetaManifest): FinnGen meta analysis manifest.
+            variant_annotations (VariantDirection): Variant direction dataset.
+            imputation_score_threshold (float): Imputation score threshold for MVP cohorts. Default is 0.8.
+            min_allele_count_threshold (int): Minimum allele count threshold. Default is 20.
+
+        Returns:
+            SummaryStatistics: Processed summary statistics dataset.
+        """
         si_slice = finngen_manifest.df.select(
             f.col("studyId"),
             f.col("nCasesPerCohort"),
@@ -198,12 +243,8 @@ class FinnGenMetaSummaryStatistics:
             .drop("isMetaAnalyzedVariant", "cohorts")
             # Filter out variants from MVP cohorts that have low imputation score
             .withColumn(
-                "imputationScore",
-                cls.imputation_score(imputation_score_threshold),
-            )
-            .withColumn(
                 "hasLowImputationScore",
-                cls.has_low_imputation_score(f.col("imputationScore")),
+                cls.has_low_imputation_score(imputation_score_threshold),
             )
             .filter(~f.col("hasLowImputationScore"))
             .drop("hasLowImputationScore", "imputationScore")
@@ -306,39 +347,71 @@ class FinnGenMetaSummaryStatistics:
 
         return SummaryStatistics(sumstats).sanity_filter()
 
-    @staticmethod
-    def maf(af: Column) -> Column:
-        """Calculate minor allele frequency from allele frequency."""
-        return (
-            f.when(af.isNotNull() & (af <= 0.5), af)
-            .when(af.isNotNull(), 1 - af)
-            .otherwise(f.lit(None))
-            .alias("minorAlleleFrequency")
-        )
-
     @classmethod
-    def allele_frequencies(cls, af_threshold: float = 1e-4) -> Column:
+    def allele_frequencies(cls, scale: int = 10) -> Column:
+        """Extract the allele frequencies per cohort.
+
+        Returns:
+        Column: Column containing array of structs with `cohort` and `alleleFrequency` fields.
+
+        Examples:
+            >>> data = [("v1", 0.1, 0.2, None, 0.3, 0.4),
+            ...       ("v2", 0.000000001, 0.999999999, None, None, None),]
+            >>> schema = "variantId STRING, MVP_EUR_af_alt DOUBLE, MVP_AFR_af_alt DOUBLE, MVP_HIS_af_alt DOUBLE, fg_af_alt DOUBLE, ukbb_af_alt DOUBLE"
+            >>> df = spark.createDataFrame(data, schema)
+            >>> df.show(truncate=False)
+            +---------+--------------+--------------+--------------+---------+-----------+
+            |variantId|MVP_EUR_af_alt|MVP_AFR_af_alt|MVP_HIS_af_alt|fg_af_alt|ukbb_af_alt|
+            +---------+--------------+--------------+--------------+---------+-----------+
+            |v1       |0.1           |0.2           |NULL          |0.3      |0.4        |
+            |v2       |1.0E-9        |0.999999999   |NULL          |NULL     |NULL       |
+            +---------+--------------+--------------+--------------+---------+-----------+
+            <BLANKLINE>
+
+            >>> df = df.withColumn("alleleFrequencies", FinnGenMetaSummaryStatistics.allele_frequencies())
+            >>> df.select("alleleFrequencies").show(truncate=False)
+            +-------------------------------------------------------------------------------------------------+
+            |alleleFrequencies                                                                                |
+            +-------------------------------------------------------------------------------------------------+
+            |[{MVP_EUR, 0.1000000000}, {MVP_AFR, 0.2000000000}, {FinnGen, 0.3000000000}, {UKBB, 0.4000000000}]|
+            |[{MVP_EUR, 0.0000000010}, {MVP_AFR, 0.9999999990}]                                               |
+            +-------------------------------------------------------------------------------------------------+
+            <BLANKLINE>
+
+        """
+        precision = scale + 1  # to ensure we can represent values like 1.0000
         return f.filter(
             f.array(
                 f.struct(
                     f.lit("MVP_EUR").alias("cohort"),
-                    f.col("MVP_EUR_af_alt").alias("alleleFrequency"),
+                    f.col("MVP_EUR_af_alt")
+                    .cast(t.DecimalType(precision, scale))
+                    .alias("alleleFrequency"),
                 ),
                 f.struct(
                     f.lit("MVP_AFR").alias("cohort"),
-                    f.col("MVP_AFR_af_alt").alias("alleleFrequency"),
+                    f.col("MVP_AFR_af_alt")
+                    .cast(t.DecimalType(precision, scale))
+                    .alias("alleleFrequency"),
                 ),
                 f.struct(
                     f.lit("MVP_AMR").alias("cohort"),
-                    f.col("MVP_HIS_af_alt").alias("alleleFrequency"),
+                    # Note: HIS in sumstats is AMR in study index
+                    f.col("MVP_HIS_af_alt")
+                    .cast(t.DecimalType(precision, scale))
+                    .alias("alleleFrequency"),
                 ),
                 f.struct(
                     f.lit("FinnGen").alias("cohort"),
-                    f.col("fg_af_alt").alias("alleleFrequency"),
+                    f.col("fg_af_alt")
+                    .cast(t.DecimalType(precision, scale))
+                    .alias("alleleFrequency"),
                 ),
                 f.struct(
                     f.lit("UKBB").alias("cohort"),
-                    f.col("ukbb_af_alt").alias("alleleFrequency"),
+                    f.col("ukbb_af_alt")
+                    .cast(t.DecimalType(precision, scale))
+                    .alias("alleleFrequency"),
                 ),
             ),
             lambda x: x.getField("alleleFrequency").isNotNull(),
@@ -346,11 +419,41 @@ class FinnGenMetaSummaryStatistics:
 
     @classmethod
     def min_allele_frequency(cls, allele_freq: Column) -> Column:
+        """Minor Allele Frequency (MAF) per cohort.
+
+        Args:
+            allele_freq (Column): Column containing array of structs with `cohort` and `alleleFrequency` fields.
+
+        Returns:
+            Column: Column containing array of structs with `cohort` and `minAlleleFrequency` fields.
+
+        Examples:
+            >>> data = [("v1", [{"cohort": "A", "alleleFrequency": 0.1}, {"cohort": "B", "alleleFrequency": 0.7}]),]
+            >>> schema = "variantId STRING, alleleFrequencies ARRAY<STRUCT<cohort: STRING, alleleFrequency: DOUBLE>>"
+            >>> df = spark.createDataFrame(data, schema)
+            >>> df.show(truncate=False)
+            +---------+--------------------+
+            |variantId|alleleFrequencies   |
+            +---------+--------------------+
+            |v1       |[{A, 0.1}, {B, 0.7}]|
+            +---------+--------------------+
+            <BLANKLINE>
+
+            >>> df = df.withColumn("cohortMinAlleleFrequency", FinnGenMetaSummaryStatistics.min_allele_frequency(f.col("alleleFrequencies")))
+            >>> df.show(truncate=False)
+            +---------+--------------------+--------------------------------------+
+            |variantId|alleleFrequencies   |cohortMinAlleleFrequency              |
+            +---------+--------------------+--------------------------------------+
+            |v1       |[{A, 0.1}, {B, 0.7}]|[{A, 0.1000000000}, {B, 0.3000000000}]|
+            +---------+--------------------+--------------------------------------+
+            <BLANKLINE>
+
+        """
         return f.transform(
             allele_freq,
             lambda x: f.struct(
                 x.getField("cohort").alias("cohort"),
-                cls.maf(x.getField("alleleFrequency")).alias("minAlleleFrequency"),
+                maf(x.getField("alleleFrequency")).alias("minAlleleFrequency"),
             ),
         )
 
@@ -358,8 +461,51 @@ class FinnGenMetaSummaryStatistics:
     def min_allele_count(
         cls, cohort_min_allele_frequency: Column, n_cases_per_cohort: Column
     ) -> Column:
-        # Take two arrays of structs and zip them together, then calculate the min allele count
+        """Minor Allele Count (MAC) per cohort.
 
+        Note:
+            If a cohort either do not have the maf or nCases, it will be dropped from the resulting MAC array.
+
+        Args:
+            cohort_min_allele_frequency (Column): Column containing array of structs with `cohort` and `minAlleleFrequency` fields.
+            n_cases_per_cohort (Column): Column containing array of structs with `cohort` and `nCases` fields.
+
+        Returns:
+            Column: Column containing array of structs with `cohort` and `minAlleleCount` fields.
+
+        Examples:
+            >>> maf = {"v1": [{"cohort": "A", "minAlleleFrequency": 0.1}, {"cohort": "B", "minAlleleFrequency": 0.2}],
+            ...         "v2": [{"cohort": "A", "minAlleleFrequency": 0.05}, {"cohort": "D", "minAlleleFrequency": 0.15}],
+            ...         "v3": [{"cohort": "A", "minAlleleFrequency": 0.01}, {"cohort": "B", "minAlleleFrequency": 0.02}],}
+            >>> n_cases = {"v1": [{"cohort": "A", "nCases": 100}, {"cohort": "B", "nCases": 200}],
+            ...            "v2": [{"cohort": "A", "nCases": 150}, {"cohort": "C", "nCases": 250}],
+            ...            "v3": [{"cohort": "C", "nCases": 50}, {"cohort": "D", "nCases": 80}],}
+            >>> data = [("v1", maf["v1"], n_cases["v1"]),
+            ...         ("v2", maf["v2"], n_cases["v2"]),
+            ...         ("v3", maf["v3"], n_cases["v3"]),]
+            >>> schema = "variantId STRING, cohortMinAlleleFrequency ARRAY<STRUCT<cohort: STRING, minAlleleFrequency: DOUBLE>>, nCasesPerCohort ARRAY<STRUCT<cohort: STRING, nCases: INT>>"
+            >>> df = spark.createDataFrame(data, schema)
+            >>> df.show(truncate=False)
+            +---------+------------------------+--------------------+
+            |variantId|cohortMinAlleleFrequency|nCasesPerCohort     |
+            +---------+------------------------+--------------------+
+            |v1       |[{A, 0.1}, {B, 0.2}]    |[{A, 100}, {B, 200}]|
+            |v2       |[{A, 0.05}, {D, 0.15}]  |[{A, 150}, {C, 250}]|
+            |v3       |[{A, 0.01}, {B, 0.02}]  |[{C, 50}, {D, 80}]  |
+            +---------+------------------------+--------------------+
+            <BLANKLINE>
+            >>> df = df.withColumn("cohortMinAlleleCount", FinnGenMetaSummaryStatistics.min_allele_count(f.col("cohortMinAlleleFrequency"), f.col("nCasesPerCohort")))
+            >>> df.select("variantId", "cohortMinAlleleCount").show(truncate=False)
+            +---------+--------------------+
+            |variantId|cohortMinAlleleCount|
+            +---------+--------------------+
+            |v1       |[{A, 20}, {B, 80}]  |
+            |v2       |[{A, 15}]           |
+            |v3       |[]                  |
+            +---------+--------------------+
+            <BLANKLINE>
+
+        """
         return f.transform(
             f.filter(
                 cohort_min_allele_frequency,
@@ -370,15 +516,16 @@ class FinnGenMetaSummaryStatistics:
             ),
             lambda left: f.struct(
                 left.getField("cohort").alias("cohort"),
-                (
-                    left.getField("minAlleleFrequency")
-                    * f.lit(2)
-                    * f.filter(
+                mac(
+                    left.getField("minAlleleFrequency"),
+                    f.filter(
                         n_cases_per_cohort,
                         lambda right: right.getField("cohort")
-                        == left.getField("cohort").getItem(0).getField("nCases"),
-                    ).alias("minAlleleCount")
-                ),
+                        == left.getField("cohort"),
+                    )
+                    .getItem(0)
+                    .getField("nCases"),
+                ).alias("minAlleleCount"),
             ),
         )
 
@@ -386,6 +533,39 @@ class FinnGenMetaSummaryStatistics:
     def has_low_min_allele_count(
         cls, min_allele_count: Column, min_allele_count_threshold: int = 20
     ) -> Column:
+        """Find if variant has a low minor allele count in any of the cohorts.
+
+        Note:
+            If any cohort has a minor allele count below the threshold, the variant is considered to have a low minor allele count.
+
+
+        Args:
+            min_allele_count (Column): Column containing array of structs with `cohort` and `minAlleleCount` fields.
+            min_allele_count_threshold (int): Threshold below which the minor allele count is considered low.
+
+        Returns:
+            Column: Boolean column indicating if any cohort has a low minor allele count.
+
+        Examples:
+            >>> data = [("v1", [{"cohort": "A", "minAlleleCount": 30}, {"cohort": "B", "minAlleleCount": 25}]),
+            ...         ("v2", [{"cohort": "A", "minAlleleCount": 15}, {"cohort": "B", "minAlleleCount": 25}]),
+            ...         ("v3", [{"cohort": "A", "minAlleleCount": 30}, {"cohort": "B", "minAlleleCount": 10}]),
+            ...         ("v4", [{"cohort": "A", "minAlleleCount": 5},],)]
+            >>> schema = "variantId STRING, cohortMinAlleleCount ARRAY<STRUCT<cohort: STRING, minAlleleCount: INT>>"
+            >>> df = spark.createDataFrame(data, schema)
+            >>> df = df.withColumn("hasLowMinAlleleCount", FinnGenMetaSummaryStatistics.has_low_min_allele_count(f.col("cohortMinAlleleCount"), 20))
+            >>> df.select("variantId", "hasLowMinAlleleCount").show()
+            +---------+--------------------+
+            |variantId|hasLowMinAlleleCount|
+            +---------+--------------------+
+            |       v1|               false|
+            |       v2|                true|
+            |       v3|                true|
+            |       v4|                true|
+            +---------+--------------------+
+            <BLANKLINE>
+
+        """
         return (
             f.size(
                 f.filter(
@@ -398,52 +578,117 @@ class FinnGenMetaSummaryStatistics:
         ).alias("hasLowMinAlleleCount")
 
     @classmethod
-    def imputation_score(cls, imputation_threshold: float = 0.8) -> Column:
-        return f.array(
-            f.struct(
-                f.col("MVP_EUR_r2").alias("r2"),
-                f.lit("MVP_EUR").alias("cohort"),
-                f.when(
-                    f.col("MVP_EUR_r2").isNull()
-                    | (f.col("MVP_EUR_r2") >= imputation_threshold),
-                    f.lit(True),
-                )
-                .otherwise(f.lit(False))
-                .alias("filter"),
-            ),
-            f.struct(
-                f.col("MVP_AFR_r2").alias("r2"),
-                f.lit("MVP_AFR").alias("cohort"),
-                f.when(
-                    f.col("MVP_AFR_r2").isNull()
-                    | (f.col("MVP_AFR_r2") >= imputation_threshold),
-                    f.lit(True),
-                )
-                .otherwise(f.lit(False))
-                .alias("filter"),
-            ),
-            f.struct(
-                f.col("MVP_HIS_r2").alias("r2"),
-                f.lit("MVP_AMR").alias("cohort"),
-                f.when(
-                    f.col("MVP_HIS_r2").isNull()
-                    | (f.col("MVP_HIS_r2") >= imputation_threshold),
-                    f.lit(True),
-                )
-                .otherwise(f.lit(False))
-                .alias("filter"),
-            ),
-        ).alias("imputationScore")
+    def has_low_imputation_score(cls, imputation_threshold: float) -> Column:
+        """Find if variant has a low r2 imputation score in any of the MVP cohorts.
 
-    @classmethod
-    def has_low_imputation_score(cls, imputation_r2: Column) -> Column:
-        return (f.size(f.filter(imputation_r2, lambda x: ~x["filter"])) > 0).alias(
-            "hasLowImputationScore"
-        )
+        Note:
+            A missing imputation score is considered as passing the threshold, since it means that the variant was not
+            present in that cohort.
+
+        Note:
+            If any r2 imputation score is below the threshold, the variant is considered to have a low imputation score.
+
+        Args:
+            imputation_threshold (float): Threshold below which the imputation score is considered low.
+
+        Returns:
+            Column: Boolean column indicating if any cohort has a low imputation score.
+
+        Examples:
+            >>> data = [("v1", 0.9, 0.8, 1.0), ("v2",0.7, 0.9, 0.9), ("v3", None, None, 0.8), ("v4", None, None, 0.7)]
+            >>> schema = "variantId STRING, MVP_EUR_r2 DOUBLE, MVP_AFR_r2 DOUBLE, MVP_HIS_r2 DOUBLE"
+            >>> df = spark.createDataFrame(data, schema)
+            >>> df = df.withColumn("hasLowImputationScore", FinnGenMetaSummaryStatistics.has_low_imputation_score(0.8))
+            >>> df.select("variantId", "hasLowImputationScore").show()
+            +---------+---------------------+
+            |variantId|hasLowImputationScore|
+            +---------+---------------------+
+            |       v1|                false|
+            |       v2|                 true|
+            |       v3|                false|
+            |       v4|                 true|
+            +---------+---------------------+
+            <BLANKLINE>
+
+        """
+        return (
+            f.size(
+                f.filter(
+                    f.array(
+                        f.struct(
+                            f.col("MVP_EUR_r2").alias("r2"),
+                            f.lit("MVP_EUR").alias("cohort"),
+                            f.when(
+                                f.col("MVP_EUR_r2").isNull()
+                                | (f.col("MVP_EUR_r2") >= imputation_threshold),
+                                f.lit(True),
+                            )
+                            .otherwise(f.lit(False))
+                            .alias("filter"),
+                        ),
+                        f.struct(
+                            f.col("MVP_AFR_r2").alias("r2"),
+                            f.lit("MVP_AFR").alias("cohort"),
+                            f.when(
+                                f.col("MVP_AFR_r2").isNull()
+                                | (f.col("MVP_AFR_r2") >= imputation_threshold),
+                                f.lit(True),
+                            )
+                            .otherwise(f.lit(False))
+                            .alias("filter"),
+                        ),
+                        f.struct(
+                            f.col("MVP_HIS_r2").alias("r2"),
+                            f.lit("MVP_AMR").alias("cohort"),
+                            f.when(
+                                f.col("MVP_HIS_r2").isNull()
+                                | (f.col("MVP_HIS_r2") >= imputation_threshold),
+                                f.lit(True),
+                            )
+                            .otherwise(f.lit(False))
+                            .alias("filter"),
+                        ),
+                    ),
+                    lambda x: ~x.getField("filter"),
+                )
+            )
+            > 0
+        ).alias("hasLowImputationScore")
 
     @classmethod
     def cohorts(cls) -> Column:
-        """Cohorts involved in the meta-analysis."""
+        """Cohorts involved in the meta-analysis.
+
+        This method creates an array of structs containing biobank and cohort information
+        for variants that have allele frequency data available in each respective cohort.
+
+        Returns:
+            Column: Array of structs with fields 'biobank' and 'cohort'.
+
+        Examples:
+            # Test case 1: All cohorts have data
+            >>> data1 = [(0.3, 0.2, 0.4, 0.1, 0.25)]
+            >>> schema1 = "MVP_EUR_af_alt DOUBLE, MVP_AFR_af_alt DOUBLE, MVP_HIS_af_alt DOUBLE, fg_af_alt DOUBLE, ukbb_af_alt DOUBLE"
+            >>> df1 = spark.createDataFrame(data1, schema1)
+            >>> df1.withColumn("cohorts", FinnGenMetaSummaryStatistics.cohorts()).select("cohorts").show(truncate=False)
+            +----------------------------------------------------------------------------------+
+            |cohorts                                                                           |
+            +----------------------------------------------------------------------------------+
+            |[{MVP, MVP_EUR}, {MVP, MVP_AFR}, {MVP, MVP_AMR}, {FinnGen, FinnGen}, {UKBB, UKBB}]|
+            +----------------------------------------------------------------------------------+
+            <BLANKLINE>
+
+            # Test case 2: Only some cohorts have data
+            >>> data2 = [(0.3, None, None, 0.1, None)]
+            >>> df2 = spark.createDataFrame(data2, schema1)
+            >>> df2.withColumn("cohorts", FinnGenMetaSummaryStatistics.cohorts()).select("cohorts").show(truncate=False)
+            +------------------------------------+
+            |cohorts                             |
+            +------------------------------------+
+            |[{MVP, MVP_EUR}, {FinnGen, FinnGen}]|
+            +------------------------------------+
+            <BLANKLINE>
+        """
         return f.transform(
             f.filter(
                 f.array(
@@ -492,6 +737,9 @@ class FinnGenMetaSummaryStatistics:
     def is_meta_analyzed_variant(cls, cohorts: Column) -> Column:
         """Check if the variant is meta-analyzed (present in more than one biobank).
 
+        Note:
+            if the same biobank has multiple cohorts, it still counts as one biobank.
+
         Args:
             cohorts (Column): Array of structs with fields 'biobank'.
 
@@ -503,21 +751,24 @@ class FinnGenMetaSummaryStatistics:
             >>> schema = "cohorts ARRAY<STRUCT<biobank: STRING, cohort: STRING>>"
             >>> df = spark.createDataFrame(data, schema)
             >>> df.show(truncate=False)
-            +--------------------------------------------------+
-            |cohorts                                           |
-            +--------------------------------------------------+
+            +----------------------------------------------------+
+            |cohorts                                             |
+            +----------------------------------------------------+
             |[{FinnGen, FinnGen}, {MVP, MVP_EUR}, {MVP, MVP_AMR}]|
-            |[{MVP, MVP_AMR}, {MVP, MVP_EUR}]                      |
-            |[{UKBB, UKBB}]                                       |
-            >>> df.withColumn("isMetaAnalyzedVariant", FinnGenMetaSummaryStatistics.is_meta_analyzed_variant(f.col("cohorts"))).show(truncate=False)
-            +-------+-----------------------+
-            |cohorts|isMetaAnalyzedVariant  |
-            +-------+-----------------------+
-            |[{FinnGen, FinnGen}, {MVP, MVP_EUR}, {MVP, MVP_AMR}]|true                   |
-            |[{MVP, MVP_AMR}, {MVP, MVP_EUR}]|false                  |
-            |[{UKBB, UKBB}]                                       |false                  |
-            +-------+-----------------------+
+            |[{MVP, MVP_AMR}, {MVP, MVP_EUR}]                    |
+            |[{UKBB, UKBB}]                                      |
+            +----------------------------------------------------+
+            <BLANKLINE>
 
+            >>> df.withColumn("isMetaAnalyzedVariant", FinnGenMetaSummaryStatistics.is_meta_analyzed_variant(f.col("cohorts"))).show(truncate=False)
+            +----------------------------------------------------+---------------------+
+            |cohorts                                             |isMetaAnalyzedVariant|
+            +----------------------------------------------------+---------------------+
+            |[{FinnGen, FinnGen}, {MVP, MVP_EUR}, {MVP, MVP_AMR}]|true                 |
+            |[{MVP, MVP_AMR}, {MVP, MVP_EUR}]                    |false                |
+            |[{UKBB, UKBB}]                                      |false                |
+            +----------------------------------------------------+---------------------+
+            <BLANKLINE>
 
 
         """

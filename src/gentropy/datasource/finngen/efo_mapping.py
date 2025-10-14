@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from urllib.request import urlopen
+
 from pyspark.sql import DataFrame
 from pyspark.sql import functions as f
 from pyspark.sql import types as t
@@ -49,8 +51,6 @@ class EFOMapping:
 
         """
         if efo_curation_path.startswith("http"):
-            from urllib.request import urlopen
-
             csv_data = urlopen(efo_curation_path).readlines()
             csv_rows: list[str] = [row.decode("utf8") for row in csv_data]
             rdd = session.spark.sparkContext.parallelize(csv_rows)
@@ -71,7 +71,7 @@ class EFOMapping:
         df = efo_curation_mapping.select(*columns)
         return cls(df=df)
 
-    def join_efo_mapping(
+    def annotate_study_index(
         self,
         study_index: StudyIndex,
         finngen_release: str = "R12",
