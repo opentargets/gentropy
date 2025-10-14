@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 from pyspark.sql import functions as f
 from pyspark.sql import types as t
 
+from gentropy import Session
 from gentropy.common.spark import extract_column_name
 from gentropy.common.stats import (
     chi2_from_pvalue,
@@ -412,3 +413,48 @@ def harmonise_summary_stats(
 
     # Return the dataframe.
     return df
+
+
+def prepare_va(
+    session: Session, variant_annotation_path: str, tmp_variant_annotation_path: str
+) -> None:
+    """Prepare the Variant Annotation dataset for efficient per-chromosome joins.
+
+    Args:
+        session (Session): The gentropy session wrapper to be used for reading and writing data.
+        variant_annotation_path (str): The path to the input variant annotation dataset.
+        tmp_variant_annotation_path (str): The path to store the temporary output for the repartitioned annotation dataset.
+    """
+    va_df = session.spark.read.parquet(variant_annotation_path)
+    va_df_direct = va_df.select(
+        f.col("chromosome").alias("vaChromosome"),
+        f.col("variantId"),
+        f.concat_ws(
+            "_",
+            f.col("chromosome"),
+            f.col("position"),
+            f.col("referenceAllele"),
+            f.col("alternateAllele"),
+        ).alias("summary_stats_id"),
+        f.lit("direct").alias("direction"),
+    )
+    va_df_flip = va_df.select(
+        f.col("chromosome").alias("vaChromosome"),
+        f.col("variantId"),
+        f.concat_ws(
+            "_",
+            f.col("chromosome"),
+            f.col("position"),
+            f.col("alternateAllele"),
+            f.col("referenceAllele"),
+        ).alias("summary_stats_id"),
+        f.lit("flip").alias("direction"),
+    )
+    (
+        va_df_direct.union(va_df_flip)
+        .coalesce(1)
+        .repartition("vaChromosome")
+        .write.partitionBy("vaChromosome")
+        .mode("overwrite")
+        .parquet(tmp_variant_annotation_path)
+    )

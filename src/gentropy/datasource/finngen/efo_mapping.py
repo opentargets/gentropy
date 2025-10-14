@@ -55,7 +55,7 @@ class EFOMapping:
             csv_rows: list[str] = [row.decode("utf8") for row in csv_data]
             rdd = session.spark.sparkContext.parallelize(csv_rows)
             # NOTE: type annotations for spark.read.csv miss the fact that the first param can be [RDD[str]]
-            efo_curation_mapping = session.spark.read.csv(rdd, header=True, sep="\t")  # type: ignore[arg-type]
+            efo_curation_mapping = session.spark.read.csv(rdd, header=True, sep="\t")
         else:
             efo_curation_mapping = session.spark.read.csv(
                 efo_curation_path,

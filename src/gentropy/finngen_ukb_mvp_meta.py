@@ -114,7 +114,7 @@ class FinngenUkbbMvpMetaIngestionStep:
         )
 
         session.logger.info("Adding qc to the study index.")
-        study_index.annotate_sumstats_qc(summary_statistics_qc)
+        study_index = study_index.annotate_sumstats_qc(summary_statistics_qc)
 
         session.logger.info("Writing updated study index.")
         study_index.df.repartition(1).write.mode("overwrite").parquet(
