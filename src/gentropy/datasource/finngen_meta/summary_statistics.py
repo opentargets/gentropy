@@ -364,8 +364,11 @@ class FinnGenMetaSummaryStatistics:
     def allele_frequencies(cls, scale: int = 10) -> Column:
         """Extract the allele frequencies per cohort.
 
+        Args:
+            scale (int): Scale for the decimal type conversion. Default is 10.
+
         Returns:
-        Column: Column containing array of structs with `cohort` and `alleleFrequency` fields.
+            Column: Column containing array of structs with `cohort` and `alleleFrequency` fields.
 
         Examples:
             >>> data = [("v1", 0.1, 0.2, None, 0.3, 0.4),

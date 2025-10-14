@@ -45,7 +45,7 @@ class VariantDirection(Dataset):
         """Provides the schema for the variant index dataset.
 
         Returns:
-            StructType: Schema for the VariantIndex dataset
+            t.StructType: Schema for the VariantIndex dataset
         """
         return t.StructType(
             [
@@ -291,12 +291,29 @@ class VariantDirection(Dataset):
 
     @classmethod
     def variant_id(cls, chrom: Column, pos: Column, ref: Column, alt: Column) -> Column:
-        """Get the variant id."""
+        """Get the variant id.
+
+        Args:
+            chrom (Column): Chromosome column.
+            pos (Column): Position column.
+            ref (Column): Reference allele column.
+            alt (Column): Alternate allele column.
+
+        Returns:
+            Column: Variant ID column in the format "chrom_pos_ref_alt".
+        """
         return f.concat_ws("_", chrom, pos, ref, alt)
 
     @classmethod
     def from_variant_index(cls, variant_index: VariantIndex) -> VariantDirection:
-        """Prepare the variant direction DataFrame with DIRECT and FLIPPED entries."""
+        """Prepare the variant direction DataFrame with DIRECT and FLIPPED entries.
+
+        Args:
+            variant_index (VariantIndex): Variant index dataset.
+
+        Returns:
+            VariantDirection: Variant direction dataset.
+        """
         lut = variant_index.df.select(
             f.col("chromosome"),
             f.col("variantId").alias("originalVariantId"),

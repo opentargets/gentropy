@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from pyspark.sql import Column
 from pyspark.sql import functions as f
 
 from gentropy import StudyIndex
@@ -16,8 +17,12 @@ class FinnGenMetaStudyIndex:
     """FinnGen meta-analysis study index."""
 
     @classmethod
-    def get_constants(cls):
-        """Get constants for FinnGen meta-analysis study index."""
+    def get_constants(cls) -> dict[str, dict[str, Column]]:
+        """Get constants for FinnGen meta-analysis study index.
+
+        Returns:
+            dict[str, dict[str, Column]]: Constants for each meta-analysis data source.
+        """
         return {
             MetaAnalysisDataSource.FINNGEN_UKBB.value: {
                 "initialSampleSize": f.lit(
@@ -45,7 +50,15 @@ class FinnGenMetaStudyIndex:
         manifest: FinnGenMetaManifest,
         efo_mapping: EFOMapping,
     ) -> StudyIndex:
-        """Create the FinnGen meta-analysis study index from the manifest."""
+        """Create the FinnGen meta-analysis study index from the manifest.
+
+        Args:
+            manifest (FinnGenMetaManifest): FinnGen meta-analysis manifest.
+            efo_mapping (EFOMapping): EFO mapping data source.
+
+        Returns:
+            StudyIndex: FinnGen meta-analysis study index.
+        """
         # Read the mapping
         df = manifest.df.select(
             f.col("studyId"),

@@ -44,7 +44,7 @@ class EFOMapping:
             efo_curation_path (str): Path to the EFO curation file.
 
         Returns:
-            EFOCuration: Loaded EFO curation object.
+            EFOMapping: Loaded EFO curation object.
 
         Raises:
             AssertionError: If the EFO curation file does not contain the required columns.
@@ -88,7 +88,6 @@ class EFOMapping:
 
         Args:
             study_index (StudyIndex): Study index table.
-            efo_curation_mapping (DataFrame): Dataframe with EFO mappings.
             finngen_release (str): FinnGen release.
 
         Returns:
