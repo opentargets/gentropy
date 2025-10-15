@@ -190,8 +190,13 @@ class FinnGenMetaSummaryStatistics:
         raw_summary_statistics: DataFrame,
         finngen_manifest: FinnGenMetaManifest,
         variant_annotations: VariantDirection,
+        perform_meta_analysis_filter: bool = True,
         imputation_score_threshold: float = 0.8,
+        perform_imputation_score_filter: bool = True,
         min_allele_count_threshold: int = 20,
+        perform_min_allele_count_filter: bool = False,
+        min_allele_frequency_threshold: float = 1e-4,
+        perform_min_allele_frequency_filter: bool = True,
     ) -> SummaryStatistics:
         """Build the summary statistics dataset from raw summary statistics.
 
@@ -210,8 +215,13 @@ class FinnGenMetaSummaryStatistics:
             raw_summary_statistics (DataFrame): Raw summary statistics dataframe.
             finngen_manifest (FinnGenMetaManifest): FinnGen meta analysis manifest.
             variant_annotations (VariantDirection): Variant direction dataset.
+            perform_meta_analysis_filter (bool): Whether to remove variants found in just 1 biobank. Default is True.
             imputation_score_threshold (float): Imputation score threshold for MVP cohorts. Default is 0.8.
+            perform_imputation_score_filter (bool): Whether to perform the imputation score filter. Default is True.
             min_allele_count_threshold (int): Minimum allele count threshold. Default is 20.
+            perform_min_allele_count_filter (bool): Whether to perform the minimum allele count filter. Default is False.
+            min_allele_frequency_threshold (float): Minimum allele frequency threshold. Default is 1e-4.
+            perform_min_allele_frequency_filter (bool): Whether to perform the minimum allele frequency filter. Default is True.
 
         Returns:
             SummaryStatistics: Processed summary statistics dataset.
@@ -228,68 +238,98 @@ class FinnGenMetaSummaryStatistics:
             f.col("direction"),
             f.col("isStrandAmbiguous"),
         ).repartition("chromosome")
+
+        # Filter out rows with missing statistics
         sumstats = (
-            raw_summary_statistics
-            # Filter out rows with missing statistics
-            .filter(f.col("all_inv_var_meta_mlogp").isNotNull())
+            raw_summary_statistics.filter(f.col("all_inv_var_meta_mlogp").isNotNull())
             .filter(f.col("all_inv_var_meta_beta").isNotNull())
             .filter(f.col("all_inv_var_meta_sebeta").isNotNull())
-            # Filter out variants that are not meta analyzed (nBiobanks < 1)
-            .withColumn("cohorts", cls.cohorts())
-            .withColumn(
-                "isMetaAnalyzedVariant",
-                cls.is_meta_analyzed_variant(f.col("cohorts")),
+        )
+
+        # Filter out variants that are not meta analyzed (nBiobanks < 1)
+        if perform_meta_analysis_filter:
+            sumstats = (
+                sumstats.withColumn("cohorts", cls.cohorts())
+                .withColumn(
+                    "isMetaAnalyzedVariant",
+                    cls.is_meta_analyzed_variant(f.col("cohorts")),
+                )
+                .filter(f.col("isMetaAnalyzedVariant"))
+                .drop("isMetaAnalyzedVariant", "cohorts")
             )
-            .filter(f.col("isMetaAnalyzedVariant"))
-            .drop("isMetaAnalyzedVariant", "cohorts")
-            # Filter out variants from MVP cohorts that have low imputation score
-            .withColumn(
-                "hasLowImputationScore",
-                cls.has_low_imputation_score(imputation_score_threshold),
+        # Filter out variants with low INFO score
+        if perform_imputation_score_filter:
+            sumstats = (
+                sumstats.withColumn(
+                    "hasLowImputationScore",
+                    cls.has_low_imputation_score(imputation_score_threshold),
+                )
+                .filter(~f.col("hasLowImputationScore"))
+                .drop("hasLowImputationScore", "imputationScore")
             )
-            .filter(~f.col("hasLowImputationScore"))
-            .drop("hasLowImputationScore", "imputationScore")
-            # Annotate with StudyIndex nCases to obtain the cases Minor Allele Count
-            .join(si_slice, on="studyId", how="left")
-            # Calculate Minor Allele Count (MAC)
-            .withColumn("cohortAlleleFrequency", cls.allele_frequencies())
-            .withColumn(
-                "cohortMinAlleleFrequency",
-                cls.min_allele_frequency(f.col("cohortAlleleFrequency")),
+
+        # Annotate with StudyIndex nCases to obtain the cases Minor Allele Count
+        sumstats = sumstats.join(si_slice, on="studyId", how="left")
+
+        if perform_min_allele_count_filter or perform_min_allele_frequency_filter:
+            sumstats = (
+                sumstats
+                # Collapse allele frequencies into an array of structs
+                .withColumn("cohortAlleleFrequency", cls.allele_frequencies())
+                # Calculate the MAF per cohort
+                .withColumn(
+                    "cohortMinAlleleFrequency",
+                    cls.min_allele_frequency(f.col("cohortAlleleFrequency")),
+                )
             )
-            # Make sure to only keep cohorts that have nCases > 0
-            .withColumn(
-                "nCasesPerCohort",
-                f.filter(
-                    f.col("nCasesPerCohort"),
-                    lambda x: x.getField("nCases").isNotNull()
-                    & (x.getField("nCases") > 0),
-                ),
+        if perform_min_allele_count_filter:
+            sumstats = (
+                sumstats
+                # Make sure to only keep cohorts that have nCases > 0
+                .withColumn(
+                    "nCasesPerCohort",
+                    f.filter(
+                        f.col("nCasesPerCohort"),
+                        lambda x: x.getField("nCases").isNotNull()
+                        & (x.getField("nCases") > 0),
+                    ),
+                )
+                .withColumn(
+                    "cohortMinAlleleCount",
+                    cls.min_allele_count(
+                        f.col("cohortMinAlleleFrequency"),
+                        f.col("nCasesPerCohort"),
+                    ),
+                )
+                .withColumn(
+                    "hasLowMinAlleleCount",
+                    cls.has_low_min_allele_count(
+                        f.col("cohortMinAlleleCount"),
+                        min_allele_count_threshold,
+                    ),
+                )
+                .filter(~f.col("hasLowMinAlleleCount"))
+                .drop(
+                    "hasLowMinAlleleCount",
+                    "cohortMinAlleleCount",
+                    "nCasesPerCohort",
+                )
             )
-            .withColumn(
-                "cohortMinAlleleCount",
-                cls.min_allele_count(
-                    f.col("cohortMinAlleleFrequency"),
-                    f.col("nCasesPerCohort"),
-                ),
+        if perform_min_allele_frequency_filter:
+            sumstats = (
+                sumstats.withColumn(
+                    "hasLowMinAlleleFrequency",
+                    cls.has_low_min_allele_frequency(
+                        f.col("cohortMinAlleleFrequency"),
+                        min_allele_frequency_threshold,
+                    ),
+                )
+                .filter(~f.col("hasLowMinAlleleFrequency"))
+                .drop("hasLowMinAlleleFrequency")
             )
-            .withColumn(
-                "hasLowMinAlleleCount",
-                cls.has_low_min_allele_count(
-                    f.col("cohortMinAlleleCount"),
-                    min_allele_count_threshold,
-                ),
-            )
-            .filter(~f.col("hasLowMinAlleleCount"))
-            .drop(
-                "hasLowMinAlleleCount",
-                "cohortAlleleFrequency",
-                "cohortMinAlleleFrequency",
-                "cohortMinAlleleCount",
-                "nCasesPerCohort",
-            )
-            # Select and rename columns
-            .select(
+
+        sumstats = (
+            sumstats.select(
                 f.col("studyId"),
                 f.col("#CHR").cast(t.StringType()).alias("chromosome"),
                 f.col("POS").cast(t.IntegerType()).alias("position"),
@@ -359,6 +399,62 @@ class FinnGenMetaSummaryStatistics:
         )
 
         return SummaryStatistics(sumstats).sanity_filter()
+
+    @classmethod
+    def has_low_min_allele_frequency(
+        cls, maf: Column, threshold: float = 1e-4
+    ) -> Column:
+        """Find if variant has a low minor allele frequency in any cohort.
+
+        Args:
+            maf (Column): Column containing array of structs with `cohort` and `minAlleleFrequency` fields.
+            threshold (float): Threshold below which the minor allele frequency is considered low. Default is 1e-4.
+
+        Returns:
+            Column: Boolean column indicating if any cohort has a low minor allele frequency.
+
+        Examples:
+            >>> maf = {"v1": [{"cohort": "A", "minAlleleFrequency": 0.0001}, {"cohort": "B", "minAlleleFrequency": 0.0002}],
+            ...         "v2": [{"cohort": "A", "minAlleleFrequency": None}, {"cohort": "D", "minAlleleFrequency": 0.15}],
+            ...         "v3": [{"cohort": "A", "minAlleleFrequency": 0.00001}, {"cohort": "B", "minAlleleFrequency": 0.2}],}
+            >>> data = [("v1", maf["v1"]),
+            ...         ("v2", maf["v2"]),
+            ...         ("v3", maf["v3"]),]
+            >>> schema = "variantId STRING, cohortMinAlleleFrequency ARRAY<STRUCT<cohort: STRING, minAlleleFrequency: DOUBLE>>"
+            >>> df = spark.createDataFrame(data, schema)
+            >>> df.show(truncate=False)
+            +---------+--------------------------+
+            |variantId|cohortMinAlleleFrequency  |
+            +---------+--------------------------+
+            |v1       |[{A, 1.0E-4}, {B, 2.0E-4}]|
+            |v2       |[{A, NULL}, {D, 0.15}]    |
+            |v3       |[{A, 1.0E-5}, {B, 0.2}]   |
+            +---------+--------------------------+
+            <BLANKLINE>
+
+            >>> df = df.withColumn("hasMinAlleleFrequency", FinnGenMetaSummaryStatistics.has_low_min_allele_frequency(f.col("cohortMinAlleleFrequency")))
+            >>> df.select("variantId", "hasMinAlleleFrequency").show(truncate=False)
+            +---------+---------------------+
+            |variantId|hasMinAlleleFrequency|
+            +---------+---------------------+
+            |v1       |false                |
+            |v2       |false                |
+            |v3       |true                 |
+            +---------+---------------------+
+            <BLANKLINE>
+        """
+        non_empty_maf = f.filter(
+            maf, lambda x: x.getField("minAlleleFrequency").isNotNull()
+        )
+
+        n_cohorts_with_maf_below_threshold = f.size(
+            f.filter(
+                non_empty_maf,
+                lambda x: x.getField("minAlleleFrequency")
+                < f.lit(threshold).cast(t.DecimalType(11, 10)),
+            )
+        )
+        return n_cohorts_with_maf_below_threshold > 0
 
     @classmethod
     def allele_frequencies(cls, scale: int = 10) -> Column:
@@ -436,6 +532,9 @@ class FinnGenMetaSummaryStatistics:
     @classmethod
     def min_allele_frequency(cls, allele_freq: Column) -> Column:
         """Minor Allele Frequency (MAF) per cohort.
+
+        Note:
+            The resulting value is of DecimalType(11, 10) to ensure precision for low frequency variants.
 
         Args:
             allele_freq (Column): Column containing array of structs with `cohort` and `alleleFrequency` fields.
