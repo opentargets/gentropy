@@ -28,16 +28,14 @@ class FinnGenMetaStudyIndex:
                 "initialSampleSize": f.lit(
                     "920,880 (FinnGenR12: nNFE=500,349; pan-UKBB-EUR: nEUR=420,531)"
                 ),  # based on https://metaresults-ukbb.finngen.fi/about
-                "pubmedId": f.lit("36653562"),
                 "cohorts": f.array(f.lit("FinnGen"), f.lit("pan-UKBB-EUR")),
+                "publicationDate": f.lit("2024-11-01"),
             },
             MetaAnalysisDataSource.FINNGEN_UKBB_MVP.value: {
                 "initialSampleSize": f.lit(
                     "1,550,147 (MVP: nEUR=449,042, nAFR=121,177, nAMR=59,048; FinnGenR12: nNFE=500,349; pan-UKBB-EUR: nEUR=420,531)"
                 ),  # based on https://mvp-ukbb.finngen.fi/about
-                "pubmedId": f.lit(
-                    "40968291"
-                ),  # pan-UKBB publication since it's last published
+                "publicationDate": f.lit("2024-11-01"),
                 "cohorts": f.array(
                     f.lit("MVP"), f.lit("FinnGen"), f.lit("pan-UKBB-EUR")
                 ),

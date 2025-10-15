@@ -197,6 +197,7 @@ class FinnGenMetaSummaryStatistics:
         perform_min_allele_count_filter: bool = False,
         min_allele_frequency_threshold: float = 1e-4,
         perform_min_allele_frequency_filter: bool = True,
+        filter_out_ambiguous_variants: bool = False,
     ) -> SummaryStatistics:
         """Build the summary statistics dataset from raw summary statistics.
 
@@ -205,7 +206,6 @@ class FinnGenMetaSummaryStatistics:
         (2) Filter out variants that are not meta analyzed (nBiobanks < 1)
         (3) Filter out variants from MVP cohorts that have low imputation score < 0.8
         (4) Filter out variants that have low minor allele count < 20 in any cohort
-        (5) Filter out palindromic variants
         (6) Align allele direction, beta sign based on the Gnomad variant direction dataset.
         (7) Perform the summary statistics
 
@@ -375,14 +375,23 @@ class FinnGenMetaSummaryStatistics:
                 on=["chromosome", "variantId"],
                 how="inner",
             )
-            # Remove palindromic variants
-            .filter(~f.col("isStrandAmbiguous"))
-            .drop("isStrandAmbiguous")
-            # Keep the originalVariantId as variantId - this is aligned with the variant index
-            .drop("variantId")
-            .withColumnRenamed("originalVariantId", "variantId")
-            # Flip the beta sign
-            .withColumn("beta", f.col("beta") * f.col("direction"))
+        )
+        # Remove strand ambiguous variants, if not found in gnomAD, we keep the variant
+        if filter_out_ambiguous_variants:
+            sumstats = sumstats.filter(
+                ~f.coalesce(f.col("isStrandAmbiguous"), f.lit(False))
+            )
+        #
+        # Keep the originalVariantId as variantId - this is aligned with the variant index
+        # if not found in gnomAD, keep the variantId as is
+        sumstats = (
+            sumstats.withColumn(
+                "variantId", f.coalesce(f.col("originalVariantId"), f.col("variantId"))
+            )
+            # Flip the beta sign, make sure that if the variant was not found in gnomAD, we keep the beta as is
+            .withColumn(
+                "beta", f.col("beta") * f.coalesce(f.col("direction"), f.lit(1))
+            )
             # Nothing to be done on AF side, as we do not report it, since we have a mix of ancestries
             .select(
                 f.col("studyId"),

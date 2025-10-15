@@ -12,6 +12,7 @@ from gentropy.datasource.finngen_meta.study_index import FinnGenMetaStudyIndex
 from gentropy.datasource.finngen_meta.summary_statistics import (
     FinnGenMetaSummaryStatistics,
 )
+from gentropy import StudyIndex
 
 
 class FinngenUkbbMvpMetaIngestionStep:
@@ -63,13 +64,13 @@ class FinngenUkbbMvpMetaIngestionStep:
         study_index.df.write.mode(session.write_mode).parquet(study_index_output_path)
         session.logger.info(f"Study index written to {study_index_output_path}.")
 
-        session.logger.info("Downloading summary statistics.")
-        FinnGenMetaSummaryStatistics.bgzip_to_parquet(
-            session=session,
-            summary_statistics_glob=source_summary_statistics_glob,
-            datasource=finngen_manifest.meta,
-            raw_summary_statistics_output_path=raw_summary_statistics_output_path,
-        )
+        # session.logger.info("Downloading summary statistics.")
+        # FinnGenMetaSummaryStatistics.bgzip_to_parquet(
+        #     session=session,
+        #     summary_statistics_glob=source_summary_statistics_glob,
+        #     datasource=finngen_manifest.meta,
+        #     raw_summary_statistics_output_path=raw_summary_statistics_output_path,
+        # )
 
         session.logger.info("Reading gnomAD variant index.")
         gnomad_variant_index = VariantIndex.from_parquet(
@@ -114,6 +115,7 @@ class FinngenUkbbMvpMetaIngestionStep:
         )
 
         session.logger.info("Adding qc to the study index.")
+        study_index = StudyIndex.from_parquet(session, study_index_output_path)
         study_index = study_index.annotate_sumstats_qc(summary_statistics_qc)
 
         session.logger.info("Writing updated study index.")
