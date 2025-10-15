@@ -130,7 +130,7 @@ class L2GPrediction(Dataset):
         # A set of optional columns need to be in the input datasets:
         if "diseaseIds" not in study_index.df.columns:
             raise ValueError(
-                "DisaseIds column has to be in the study index to generate disase/target evidence."
+                "DiseaseIds column has to be in the study index to generate disase/target evidence."
             )
 
         # `pubmedId` and `publicationDate` are optional columns in the study index, so we need to make sure they're there:
