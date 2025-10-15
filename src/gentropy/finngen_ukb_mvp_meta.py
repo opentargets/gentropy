@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from gentropy import StudyIndex
 from gentropy.common.session import Session
 from gentropy.dataset.summary_statistics_qc import SummaryStatisticsQC
 from gentropy.dataset.variant_direction import VariantDirection
@@ -12,7 +13,6 @@ from gentropy.datasource.finngen_meta.study_index import FinnGenMetaStudyIndex
 from gentropy.datasource.finngen_meta.summary_statistics import (
     FinnGenMetaSummaryStatistics,
 )
-from gentropy import StudyIndex
 
 
 class FinngenUkbbMvpMetaIngestionStep:
