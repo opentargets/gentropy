@@ -373,7 +373,7 @@ class FinnGenMetaSummaryStatistics:
             .join(
                 vd_slice,
                 on=["chromosome", "variantId"],
-                how="inner",
+                how="left",
             )
         )
         # Remove strand ambiguous variants, if not found in gnomAD, we keep the variant
