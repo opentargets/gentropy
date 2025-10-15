@@ -38,7 +38,49 @@ class VariantType(int, Enum):
 
 @dataclass
 class VariantDirection(Dataset):
-    """Variant direction dataset."""
+    """Variant direction dataset.
+
+    This dataset is useful for flipping alleles to match reference datasets.
+
+    This dataset expends each variant into 4 entries to account for
+
+    * Different directions (FORWARD and FLIPPED) - e.g. A/G and G/A
+    * Different strands (FORWARD and REVERSE) - e.g. A/G and T/C
+
+    Each entry contains the combination of both.
+
+    Additionally this dataset annotates
+    * ambiguous strand variants
+    * type of variant (SNP, INS, DEL, MNP)
+    * original allele frequencies from the source dataset
+    * original variant id from the source dataset
+
+    To compare two datasets, you need to ensure that both datasets are joined on the `variantId` that
+    is a combination of chromosome, position, reference allele and alternate allele.
+
+    Note:
+        The easiest way to create this dataset (have a complete variant space) is to build it
+        from a **VariantIndex**.
+
+    Examples:
+        >>> data = [("1", 100, "A", "G", [("nfe_adj", 0.1), ("fin_adj", 0.2)]),]
+        >>> schema = "chromosome STRING, position INT, referenceAllele STRING, alternateAllele STRING, alleleFrequencies ARRAY<STRUCT<populationName: STRING, alleleFrequency: DOUBLE>>"
+        >>> df = spark.createDataFrame(data, schema).withColumn("variantId",
+        ... f.concat_ws("_", "chromosome", "position", "referenceAllele", "alternateAllele"))
+        >>> variant_index = VariantIndex(_df=df)
+        >>> variant_direction = VariantDirection.from_variant_index(variant_index)
+        >>> variant_direction.df.show(truncate=False)
+        +----------+-----------------+----+---------+---------+------+-----------------+--------------------------------+
+        |chromosome|originalVariantId|type|variantId|direction|strand|isStrandAmbiguous|originalAlleleFrequencies       |
+        +----------+-----------------+----+---------+---------+------+-----------------+--------------------------------+
+        |1         |1_100_A_G        |1   |1_100_A_G|1        |1     |false            |[{nfe_adj, 0.1}, {fin_adj, 0.2}]|
+        |1         |1_100_A_G        |1   |1_100_G_A|-1       |1     |false            |[{nfe_adj, 0.1}, {fin_adj, 0.2}]|
+        |1         |1_100_A_G        |1   |1_100_T_C|1        |-1    |false            |[{nfe_adj, 0.1}, {fin_adj, 0.2}]|
+        |1         |1_100_A_G        |1   |1_100_C_T|-1       |-1    |false            |[{nfe_adj, 0.1}, {fin_adj, 0.2}]|
+        +----------+-----------------+----+---------+---------+------+-----------------+--------------------------------+
+        <BLANKLINE>
+
+    """
 
     @classmethod
     def get_schema(cls: type[VariantDirection]) -> t.StructType:
