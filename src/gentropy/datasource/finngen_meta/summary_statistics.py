@@ -9,17 +9,17 @@ if TYPE_CHECKING:
 
     from gentropy.common.session import Session
 
+from concurrent.futures import ThreadPoolExecutor
+
+from pyspark.sql import DataFrame
 from pyspark.sql import functions as f
 from pyspark.sql import types as t
-from pyspark.sql import DataFrame
+
 from gentropy.common.processing import mac, maf, normalize_chromosome
 from gentropy.common.stats import pvalue_from_neglogpval
 from gentropy.dataset.summary_statistics import SummaryStatistics
 from gentropy.dataset.variant_direction import VariantDirection
 from gentropy.datasource.finngen_meta import FinnGenMetaManifest, MetaAnalysisDataSource
-from gentropy.common.spark import enforce_schema
-from concurrent.futures import ThreadPoolExecutor
-from functools import reduce
 
 
 class FinnGenMetaSummaryStatistics:
