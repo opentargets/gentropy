@@ -10,7 +10,6 @@ if TYPE_CHECKING:
     from gentropy.common.session import Session
 
 from concurrent.futures import ThreadPoolExecutor
-from functools import reduce
 
 from pyspark.sql import DataFrame
 from pyspark.sql import functions as f
