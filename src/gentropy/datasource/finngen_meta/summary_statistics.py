@@ -10,6 +10,7 @@ if TYPE_CHECKING:
     from gentropy.common.session import Session
 
 from concurrent.futures import ThreadPoolExecutor
+from functools import reduce
 
 from pyspark.sql import DataFrame
 from pyspark.sql import functions as f
@@ -181,27 +182,38 @@ class FinnGenMetaSummaryStatistics:
             for c in cls.raw_schema.names:
                 if c not in df.columns:
                     df = df.withColumn(c, f.lit(None).cast(cls.raw_schema[c].dataType))
-            df.withColumn(
+
+            # Replace all NA with nulls and cast to the expected type
+            for field in cls.raw_schema.fields:
+                df = df.withColumn(
+                    field.name,
+                    f.when(f.col(field.name) == "NA", f.lit(None))
+                    .otherwise(f.col(field.name))
+                    .cast(field.dataType),
+                )
+            df = df.withColumn(
                 "studyId",
                 f.concat_ws(
                     "_",
                     f.lit(datasource.value),
                     f.lit(cls.extract_study_phenotype_from_path(f.input_file_name())),
                 ),
-            ).write.mode("append").partitionBy("studyId").parquet(
-                raw_summary_statistics_output_path
             )
+            df.write.mode("append").partitionBy("studyId").parquet(output_path)
+            return df
 
         session.logger.info(
             f"Converting gzipped summary statistics from {summary_statistics_list} to Parquet at {raw_summary_statistics_output_path}."
         )
         with ThreadPoolExecutor(max_workers=10) as pool:
-            [
-                pool.submit(
-                    process_one, input_path, session, raw_summary_statistics_output_path
-                )
-                for input_path in summary_statistics_list
-            ]
+            pool.map(
+                lambda path: process_one(
+                    path,
+                    session=session,
+                    output_path=raw_summary_statistics_output_path,
+                ),
+                summary_statistics_list,
+            )
 
     @classmethod
     def from_source(
