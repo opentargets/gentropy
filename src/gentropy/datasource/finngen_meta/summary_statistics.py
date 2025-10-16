@@ -11,12 +11,15 @@ if TYPE_CHECKING:
 
 from pyspark.sql import functions as f
 from pyspark.sql import types as t
-
+from pyspark.sql import DataFrame
 from gentropy.common.processing import mac, maf, normalize_chromosome
 from gentropy.common.stats import pvalue_from_neglogpval
 from gentropy.dataset.summary_statistics import SummaryStatistics
 from gentropy.dataset.variant_direction import VariantDirection
 from gentropy.datasource.finngen_meta import FinnGenMetaManifest, MetaAnalysisDataSource
+from gentropy.common.spark import enforce_schema
+from concurrent.futures import ThreadPoolExecutor
+from functools import reduce
 
 
 class FinnGenMetaSummaryStatistics:
@@ -144,7 +147,7 @@ class FinnGenMetaSummaryStatistics:
     def bgzip_to_parquet(
         cls,
         session: Session,
-        summary_statistics_glob: str,
+        summary_statistics_list: list[str],
         datasource: MetaAnalysisDataSource,
         raw_summary_statistics_output_path: str,
     ) -> None:
@@ -152,13 +155,10 @@ class FinnGenMetaSummaryStatistics:
 
         Args:
             session (Session): Session object.
-            summary_statistics_glob (str): Base path where summary statistics files are located.
+            summary_statistics_list (list[str]): List of paths where summary statistics files are located.
             datasource (MetaAnalysisDataSource): Data source information.
             raw_summary_statistics_output_path (str): Output path for the Parquet files.
         """
-        session.logger.info(
-            f"Converting gzipped summary statistics from {summary_statistics_glob} to Parquet at {raw_summary_statistics_output_path}."
-        )
         if not session.use_enhanced_bgzip_codec:
             session.logger.error(
                 "The use_enhanced_bgzip_codec is set to False. This will lead to inefficient reading of block gzipped files."
@@ -167,22 +167,41 @@ class FinnGenMetaSummaryStatistics:
                 "Please set `session.spark.use_enhanced_bgzip_codec` to True in the Session configuration."
             )
 
-        (
-            session.spark.read.csv(
-                summary_statistics_glob, schema=cls.raw_schema, sep="\t", header=True
+        def process_one(
+            input_path: str, session: Session, output_path: str
+        ) -> DataFrame:
+            df = session.spark.read.csv(
+                input_path,
+                header=True,
+                inferSchema=True,
+                sep="\t",
+                enforceSchema=False,
             )
-            .withColumn(
+            # Apply schema enforcement by selecting columns in the expected order with proper types
+            for c in cls.raw_schema.names:
+                if c not in df.columns:
+                    df = df.withColumn(c, f.lit(None).cast(cls.raw_schema[c].dataType))
+            df.withColumn(
                 "studyId",
                 f.concat_ws(
                     "_",
                     f.lit(datasource.value),
                     f.lit(cls.extract_study_phenotype_from_path(f.input_file_name())),
                 ),
+            ).write.mode("append").partitionBy("studyId").parquet(
+                raw_summary_statistics_output_path
             )
-            .write.mode(session.write_mode)
-            .partitionBy("studyId")
-            .parquet(raw_summary_statistics_output_path)
+
+        session.logger.info(
+            f"Converting gzipped summary statistics from {summary_statistics_list} to Parquet at {raw_summary_statistics_output_path}."
         )
+        with ThreadPoolExecutor(max_workers=10) as pool:
+            [
+                pool.submit(
+                    process_one, input_path, session, raw_summary_statistics_output_path
+                )
+                for input_path in summary_statistics_list
+            ]
 
     @classmethod
     def from_source(
