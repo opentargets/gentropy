@@ -126,5 +126,5 @@ class TestFinnGenMetaStudyIndex:
             row["initialSampleSize"]
             == "1,550,147 (MVP: nEUR=449,042, nAFR=121,177, nAMR=59,048; FinnGenR12: nNFE=500,349; pan-UKBB-EUR: nEUR=420,531)"
         )
-        assert row["pubmedId"] == "40968291"
+        assert row["publicationDate"] == "2024-11-01"
         assert set(row["cohorts"]) == {"MVP", "FinnGen", "pan-UKBB-EUR"}

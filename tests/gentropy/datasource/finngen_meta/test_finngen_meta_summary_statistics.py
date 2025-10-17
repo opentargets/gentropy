@@ -237,18 +237,62 @@ class TestFinnGenMetaSummaryStatistics:
         return mock_manifest
 
     def test_bgzip_from_parquet(self, tmp_path: Path, session: Session) -> None:
-        """Test bgzip from parquet conversion."""
+        """Test bgzip from parquet conversion.
+
+        Note:
+            Test that includes the usage of enhanced bgzip codec would require to set up
+            the ivy_cache in advance, which can be slow, as the dependencies need to be downloaded.
+            Therefore, here we just test that the KeyError is raised when the setting is not enabled.
+        """
         input_path = "tests/gentropy/data_samples/*_meta_out.tsv.gz"
         output_path = tmp_path / "output"
         with pytest.raises(KeyError) as e:
             FinnGenMetaSummaryStatistics.bgzip_to_parquet(
                 session,
-                summary_statistics_glob=input_path,
+                summary_statistics_list=[input_path],
                 datasource=MetaAnalysisDataSource.FINNGEN_UKBB_MVP,
                 raw_summary_statistics_output_path=output_path.as_posix(),
             )
 
             assert "session.spark.use_enhanced_bgzip_codec" in str(e.value)
+
+    @pytest.mark.long_test()
+    def test_bgzip_from_parquet_with_codec(self, tmp_path: Path) -> None:
+        """Test bgzip codec usage on multiple tsv.gz files with different schemas.
+
+        Note:
+            This test requires access to the internet to download the necessary jar files
+            for the enhanced bgzip codec. It may take longer to run due to this setup.
+            Because of this, the test is marked as `long_test` and does not run by default.
+        """
+        # Path to store the jar dependencies for spark enhanced bgzip codec
+        ivy_cache_path = tmp_path / "ivy_cache"
+        session = Session(
+            extended_spark_conf={"spark.jars.ivy": ivy_cache_path.as_posix()},
+            use_enhanced_bgzip_codec=True,
+        )
+        # Create inputs with different schemas
+        input_path_1 = "tests/gentropy/data_samples/bgzip_tests/A.tsv.gz"  # contains only chr, pos, ref, alt, snp
+        input_path_2 = "tests/gentropy/data_samples/bgzip_tests/B.tsv.gz"  # contains only chr, pos, ref, alt, fg_beta,
+        output_path = (tmp_path / "output").as_posix()
+
+        # Assert that test files & tbi indices exist
+        for p in [input_path_1, input_path_2]:
+            assert Path(p).exists(), f"Test file {p} does not exist."
+            assert Path(p + ".tbi").exists(), f"Index file {p}.tbi does not exist."
+        FinnGenMetaSummaryStatistics.bgzip_to_parquet(
+            session,
+            summary_statistics_list=[input_path_1, input_path_2],
+            datasource=MetaAnalysisDataSource.FINNGEN_UKBB,
+            raw_summary_statistics_output_path=output_path,
+        )
+        # Now read back the parquet files and check if schema is equal to raw schema
+        df = session.spark.read.parquet(output_path)
+        expected_schema = FinnGenMetaSummaryStatistics.raw_schema
+        expected_schema = expected_schema.add(
+            "studyId", t.StringType(), nullable=True
+        )  # studyId is added during bgzip_to_parquet
+        assert df.schema == expected_schema, "Schemas do not match after conversion."
 
     def test_from_source(
         self,
