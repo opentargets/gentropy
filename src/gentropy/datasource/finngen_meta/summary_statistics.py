@@ -224,9 +224,9 @@ class FinnGenMetaSummaryStatistics:
         imputation_score_threshold: float = 0.8,
         perform_imputation_score_filter: bool = True,
         min_allele_count_threshold: int = 20,
-        perform_min_allele_count_filter: bool = False,
+        perform_min_allele_count_filter: bool = True,
         min_allele_frequency_threshold: float = 1e-4,
-        perform_min_allele_frequency_filter: bool = True,
+        perform_min_allele_frequency_filter: bool = False,
         filter_out_ambiguous_variants: bool = False,
     ) -> SummaryStatistics:
         """Build the summary statistics dataset from raw summary statistics.
@@ -274,8 +274,23 @@ class FinnGenMetaSummaryStatistics:
             raw_summary_statistics.filter(f.col("all_inv_var_meta_mlogp").isNotNull())
             .filter(f.col("all_inv_var_meta_beta").isNotNull())
             .filter(f.col("all_inv_var_meta_sebeta").isNotNull())
+            # Prepare variantId and chromosome columns for joining with variant direction
+            .withColumn("chromosome", f.col("#CHR").cast(t.StringType()))
+            .withColumn("chromosome", normalize_chromosome(f.col("chromosome")))
+            .withColumnRenamed("POS", "position")
+            .withColumnRenamed("REF", "referenceAllele")
+            .withColumnRenamed("ALT", "alternateAllele")
+            .withColumn(
+                "variantId",
+                f.concat_ws(
+                    "_",
+                    f.col("chromosome"),
+                    f.col("position"),
+                    f.col("referenceAllele"),
+                    f.col("alternateAllele"),
+                ).alias("variantId"),
+            )
         )
-
         # Filter out variants that are not meta analyzed (nBiobanks < 1)
         if perform_meta_analysis_filter:
             sumstats = (
@@ -299,13 +314,26 @@ class FinnGenMetaSummaryStatistics:
             )
 
         # Annotate with StudyIndex nCases to obtain the cases Minor Allele Count
-        sumstats = sumstats.join(si_slice, on="studyId", how="left")
+        sumstats = (
+            sumstats.join(si_slice, on="studyId", how="left")
+            # Join with variant direction and align allele orientation, beta sign, and allele frequency
+            # Drop variants that are not present in variant index (any direction)
+            .repartition("chromosome")
+            .join(
+                vd_slice,
+                on=["chromosome", "variantId"],
+                how="left",
+            )
+        )
 
         if perform_min_allele_count_filter or perform_min_allele_frequency_filter:
             sumstats = (
                 sumstats
                 # Collapse allele frequencies into an array of structs
-                .withColumn("cohortAlleleFrequency", cls.allele_frequencies())
+                # Flip the Allele Frequency when direction is -1
+                .withColumn(
+                    "cohortAlleleFrequency", cls.allele_frequencies(f.col("direction"))
+                )
                 # Calculate the MAF per cohort
                 .withColumn(
                     "cohortMinAlleleFrequency",
@@ -358,53 +386,30 @@ class FinnGenMetaSummaryStatistics:
                 .drop("hasLowMinAlleleFrequency")
             )
 
-        sumstats = (
-            sumstats.select(
-                f.col("studyId"),
-                f.col("#CHR").cast(t.StringType()).alias("chromosome"),
-                f.col("POS").cast(t.IntegerType()).alias("position"),
-                f.col("REF").alias("referenceAllele"),
-                f.col("ALT").alias("alternateAllele"),
-                *pvalue_from_neglogpval(f.col("all_inv_var_meta_mlogp")),
-                f.col("all_inv_var_meta_beta").cast(t.DoubleType()).alias("beta"),
-                f.col("nSamples").alias("sampleSize"),
-                f.col("all_inv_var_meta_sebeta")
-                .cast(t.DoubleType())
-                .alias("standardError"),
-            )
-            .withColumn("chromosome", normalize_chromosome(f.col("chromosome")))
-            .withColumn(
-                "variantId",
-                f.concat_ws(
-                    "_",
-                    f.col("chromosome"),
-                    f.col("position"),
-                    f.col("referenceAllele"),
-                    f.col("alternateAllele"),
-                ).alias("variantId"),
-            )
-            .select(
-                f.col("studyId"),
-                f.col("variantId"),
-                f.col("chromosome"),
-                f.col("position"),
-                f.col("beta"),
-                f.col("sampleSize"),
-                f.col("pValueMantissa"),
-                f.col("pValueExponent"),
-                f.lit(None)
-                .cast(t.FloatType())
-                .alias("effectAlleleFrequencyFromSource"),
-                f.col("standardError"),
-            )
-            # Join with variant direction and align allele orientation, beta sign, and allele frequency
-            # Drop variants that are not present in variant index (any direction)
-            .repartition("chromosome")
-            .join(
-                vd_slice,
-                on=["chromosome", "variantId"],
-                how="left",
-            )
+        sumstats = sumstats.select(
+            f.col("studyId"),
+            f.col("chromosome"),
+            f.col("position"),
+            f.col("referenceAllele"),
+            f.col("alternateAllele"),
+            f.col("variantId"),
+            *pvalue_from_neglogpval(f.col("all_inv_var_meta_mlogp")),
+            f.col("all_inv_var_meta_beta").cast(t.DoubleType()).alias("beta"),
+            f.col("nSamples").alias("sampleSize"),
+            f.col("all_inv_var_meta_sebeta")
+            .cast(t.DoubleType())
+            .alias("standardError"),
+        ).select(
+            f.col("studyId"),
+            f.col("variantId"),
+            f.col("chromosome"),
+            f.col("position"),
+            f.col("beta"),
+            f.col("sampleSize"),
+            f.col("pValueMantissa"),
+            f.col("pValueExponent"),
+            f.lit(None).cast(t.FloatType()).alias("effectAlleleFrequencyFromSource"),
+            f.col("standardError"),
         )
         # Remove strand ambiguous variants, if not found in gnomAD, we keep the variant
         if filter_out_ambiguous_variants:
@@ -422,7 +427,8 @@ class FinnGenMetaSummaryStatistics:
             .withColumn(
                 "beta", f.col("beta") * f.coalesce(f.col("direction"), f.lit(1))
             )
-            # Nothing to be done on AF side, as we do not report it, since we have a mix of ancestries
+            # AF was flipped already, but we do not collect all allele frequencies, since we would need
+            # to know the ratio of cases per each cohort to compute the overall allele frequency
             .select(
                 f.col("studyId"),
                 f.col("variantId"),
@@ -496,8 +502,54 @@ class FinnGenMetaSummaryStatistics:
         return n_cohorts_with_maf_below_threshold > 0
 
     @classmethod
-    def allele_frequencies(cls, scale: int = 10) -> Column:
+    def normalize_af(cls, af: Column, flip: Column) -> Column:
+        """Normalize allele frequency based on variant direction.
+
+        Args:
+            af (Column): Allele frequency column.
+            flip (Column): Direction column indicating if the allele needs to be flipped.
+
+        Returns:
+            Column: Normalized allele frequency.
+
+        Examples:
+            >>> data = [("v1", 0.1, 1),
+            ...       ("v2", 0.2, -1),
+            ...       ("v3", None, -1),
+            ...       ("V4", 0.1, None),]
+            >>> schema = "variantId STRING, af DOUBLE, flip INT"
+            >>> df = spark.createDataFrame(data, schema)
+            >>> df.show(truncate=False)
+            +---------+----+----+
+            |variantId|af  |flip|
+            +---------+----+----+
+            |v1       |0.1 |1   |
+            |v2       |0.2 |-1  |
+            |v3       |NULL|-1  |
+            |V4       |0.1 |NULL|
+            +---------+----+----+
+            <BLANKLINE>
+
+            >>> df = df.withColumn("normalizedAf", FinnGenMetaSummaryStatistics.normalize_af(f.col("af"), f.col("flip")))
+            >>> df.select("variantId", "normalizedAf").show(truncate=False)
+            +---------+------------+
+            |variantId|normalizedAf|
+            +---------+------------+
+            |v1       |0.1         |
+            |v2       |0.8         |
+            |v3       |NULL        |
+            |V4       |0.1         |
+            +---------+------------+
+            <BLANKLINE>
+        """
+        return f.when((flip == -1) & af.isNotNull(), f.lit(1.0) - af).otherwise(af)
+
+    @classmethod
+    def allele_frequencies(cls, flip: Column, scale: int = 10) -> Column:
         """Extract the allele frequencies per cohort.
+
+        Note:
+            if the `flip` column is -1, then the allele frequency is flipped (1 - af).
 
         Args:
             scale (int): Scale for the decimal type conversion. Default is 10.
@@ -506,26 +558,29 @@ class FinnGenMetaSummaryStatistics:
             Column: Column containing array of structs with `cohort` and `alleleFrequency` fields.
 
         Examples:
-            >>> data = [("v1", 0.1, 0.2, None, 0.3, 0.4),
-            ...       ("v2", 0.000000001, 0.999999999, None, None, None),]
-            >>> schema = "variantId STRING, MVP_EUR_af_alt DOUBLE, MVP_AFR_af_alt DOUBLE, MVP_HIS_af_alt DOUBLE, fg_af_alt DOUBLE, ukbb_af_alt DOUBLE"
+            >>> data = [("v1", 0.1, 0.2, None, 0.3, 0.4, -1),
+            ...        ("v2", 0.000000001, 0.999999999, None, None, None,1),
+            ...        ("v3", 0.1, 0.1, None, None, None, None),]
+            >>> schema = "variantId STRING, MVP_EUR_af_alt DOUBLE, MVP_AFR_af_alt DOUBLE, MVP_HIS_af_alt DOUBLE, fg_af_alt DOUBLE, ukbb_af_alt DOUBLE, flip INT"
             >>> df = spark.createDataFrame(data, schema)
             >>> df.show(truncate=False)
-            +---------+--------------+--------------+--------------+---------+-----------+
-            |variantId|MVP_EUR_af_alt|MVP_AFR_af_alt|MVP_HIS_af_alt|fg_af_alt|ukbb_af_alt|
-            +---------+--------------+--------------+--------------+---------+-----------+
-            |v1       |0.1           |0.2           |NULL          |0.3      |0.4        |
-            |v2       |1.0E-9        |0.999999999   |NULL          |NULL     |NULL       |
-            +---------+--------------+--------------+--------------+---------+-----------+
+            +---------+--------------+--------------+--------------+---------+-----------+----+
+            |variantId|MVP_EUR_af_alt|MVP_AFR_af_alt|MVP_HIS_af_alt|fg_af_alt|ukbb_af_alt|flip|
+            +---------+--------------+--------------+--------------+---------+-----------+----+
+            |v1       |0.1           |0.2           |NULL          |0.3      |0.4        |-1  |
+            |v2       |1.0E-9        |0.999999999   |NULL          |NULL     |NULL       |1   |
+            |v3       |0.1           |0.1           |NULL          |NULL     |NULL       |NULL|
+            +---------+--------------+--------------+--------------+---------+-----------+----+
             <BLANKLINE>
 
-            >>> df = df.withColumn("alleleFrequencies", FinnGenMetaSummaryStatistics.allele_frequencies())
+            >>> df = df.withColumn("alleleFrequencies", FinnGenMetaSummaryStatistics.allele_frequencies(f.col("flip")))
             >>> df.select("alleleFrequencies").show(truncate=False)
             +-------------------------------------------------------------------------------------------------+
             |alleleFrequencies                                                                                |
             +-------------------------------------------------------------------------------------------------+
-            |[{MVP_EUR, 0.1000000000}, {MVP_AFR, 0.2000000000}, {FinnGen, 0.3000000000}, {UKBB, 0.4000000000}]|
+            |[{MVP_EUR, 0.9000000000}, {MVP_AFR, 0.8000000000}, {FinnGen, 0.7000000000}, {UKBB, 0.6000000000}]|
             |[{MVP_EUR, 0.0000000010}, {MVP_AFR, 0.9999999990}]                                               |
+            |[{MVP_EUR, 0.1000000000}, {MVP_AFR, 0.1000000000}]                                               |
             +-------------------------------------------------------------------------------------------------+
             <BLANKLINE>
 
@@ -535,38 +590,65 @@ class FinnGenMetaSummaryStatistics:
             f.array(
                 f.struct(
                     f.lit("MVP_EUR").alias("cohort"),
-                    f.col("MVP_EUR_af_alt")
+                    cls.normalize_af(f.col("MVP_EUR_af_alt"), flip)
                     .cast(t.DecimalType(precision, scale))
                     .alias("alleleFrequency"),
                 ),
                 f.struct(
                     f.lit("MVP_AFR").alias("cohort"),
-                    f.col("MVP_AFR_af_alt")
+                    cls.normalize_af(f.col("MVP_AFR_af_alt"), flip)
                     .cast(t.DecimalType(precision, scale))
                     .alias("alleleFrequency"),
                 ),
                 f.struct(
                     f.lit("MVP_AMR").alias("cohort"),
                     # Note: HIS in sumstats is AMR in study index
-                    f.col("MVP_HIS_af_alt")
+                    cls.normalize_af(f.col("MVP_HIS_af_alt"), flip)
                     .cast(t.DecimalType(precision, scale))
                     .alias("alleleFrequency"),
                 ),
                 f.struct(
                     f.lit("FinnGen").alias("cohort"),
-                    f.col("fg_af_alt")
+                    cls.normalize_af(f.col("fg_af_alt"), flip)
                     .cast(t.DecimalType(precision, scale))
                     .alias("alleleFrequency"),
                 ),
                 f.struct(
                     f.lit("UKBB").alias("cohort"),
-                    f.col("ukbb_af_alt")
+                    cls.normalize_af(f.col("ukbb_af_alt"), flip)
                     .cast(t.DecimalType(precision, scale))
                     .alias("alleleFrequency"),
                 ),
             ),
             lambda x: x.getField("alleleFrequency").isNotNull(),
         ).alias("alleleFrequencies")
+
+    @classmethod
+    def combined_allele_frequency(
+        cls, allele_freq: Column, n_cases_per_cohort: Column
+    ) -> Column:
+        return f.transform(
+            f.filter(
+                allele_freq,
+                lambda left: f.exists(
+                    n_cases_per_cohort,
+                    lambda right: right.getField("cohort") == left.getField("cohort"),
+                ),
+            ),
+            lambda left: f.struct(
+                left.getField("cohort").alias("cohort"),
+                mac(
+                    left.getField("minAlleleFrequency"),
+                    f.filter(
+                        n_cases_per_cohort,
+                        lambda right: right.getField("cohort")
+                        == left.getField("cohort"),
+                    )
+                    .getItem(0)
+                    .getField("nCases"),
+                ).alias("minAlleleCount"),
+            ),
+        )
 
     @classmethod
     def min_allele_frequency(cls, allele_freq: Column) -> Column:
