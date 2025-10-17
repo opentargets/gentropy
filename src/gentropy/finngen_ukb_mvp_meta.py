@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from gentropy import StudyIndex
 from gentropy.common.session import Session
+from gentropy.dataset.summary_statistics import SummaryStatistics
 from gentropy.dataset.summary_statistics_qc import SummaryStatisticsQC
 from gentropy.dataset.variant_direction import VariantDirection
 from gentropy.dataset.variant_index import VariantIndex
@@ -101,7 +102,7 @@ class FinngenUkbbMvpMetaIngestionStep:
         )
 
         session.logger.info("Reading harmonised summary statistics for QC.")
-        harmonised_summary_statistics = FinnGenMetaSummaryStatistics.from_parquet(
+        harmonised_summary_statistics = SummaryStatistics.from_parquet(
             session, harmonised_summary_statistics_output_path
         )
         session.logger.info("Running summary statistics QC.")
