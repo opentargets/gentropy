@@ -256,30 +256,60 @@ class FinnGenMetaSummaryStatistics:
         Returns:
             SummaryStatistics: Processed summary statistics dataset.
         """
-        si_slice = finngen_manifest.df.select(
-            f.col("studyId"),
-            f.col("nCasesPerCohort"),
-            f.col("nSamples"),
+        si_slice = f.broadcast(
+            finngen_manifest.df.select(
+                f.col("studyId"),
+                f.col("nCasesPerCohort"),
+                f.col("nSamples"),
+                f.col("nSamplesPerCohort"),
+            ).persist()
         )
-        vd_slice = variant_annotations.df.select(
-            f.col("chromosome"),
-            f.col("originalVariantId"),
-            f.col("variantId"),
-            f.col("direction"),
-            f.col("isStrandAmbiguous"),
-        ).repartition("chromosome")
+        vd_slice = (
+            variant_annotations.df.select(
+                f.col("chromosome"),
+                f.col("originalVariantId"),
+                f.col("variantId"),
+                f.col("direction"),
+                f.col("isStrandAmbiguous"),
+            )
+            .repartition("chromosome")
+            .persist()
+        )
 
-        # Filter out rows with missing statistics
         sumstats = (
-            raw_summary_statistics.filter(f.col("all_inv_var_meta_mlogp").isNotNull())
-            .filter(f.col("all_inv_var_meta_beta").isNotNull())
-            .filter(f.col("all_inv_var_meta_sebeta").isNotNull())
-            # Prepare variantId and chromosome columns for joining with variant direction
-            .withColumn("chromosome", f.col("#CHR").cast(t.StringType()))
-            .withColumn("chromosome", normalize_chromosome(f.col("chromosome")))
-            .withColumnRenamed("POS", "position")
+            raw_summary_statistics.select(
+                f.col("#CHR"),
+                f.col("POS"),
+                f.col("REF"),
+                f.col("ALT"),
+                f.col("fg_af_alt"),
+                f.col("MVP_EUR_r2"),
+                f.col("MVP_EUR_af_alt"),
+                f.col("MVP_AFR_r2"),
+                f.col("MVP_AFR_af_alt"),
+                f.col("MVP_HIS_r2"),
+                f.col("MVP_HIS_af_alt"),
+                f.col("ukbb_af_alt"),
+                f.col("all_inv_var_meta_mlogp"),
+                f.col("all_inv_var_meta_beta"),
+                f.col("all_inv_var_meta_sebeta"),
+                f.col("studyId"),
+            )
+            .withColumn(
+                "chromosome",
+                normalize_chromosome(f.col("#CHR").cast(t.StringType())),
+            )
+            .drop("#CHR")
+            .withColumn("position", f.col("POS").cast(t.IntegerType()))
             .withColumnRenamed("REF", "referenceAllele")
             .withColumnRenamed("ALT", "alternateAllele")
+            .withColumn(
+                "neglogpval", f.col("all_inv_var_meta_mlogp").cast(t.DoubleType())
+            )
+            .withColumn("beta", f.col("all_inv_var_meta_beta").cast(t.DoubleType()))
+            .withColumn(
+                "standardError", f.col("all_inv_var_meta_sebeta").cast(t.DoubleType())
+            )
             .withColumn(
                 "variantId",
                 f.concat_ws(
@@ -290,6 +320,11 @@ class FinnGenMetaSummaryStatistics:
                     f.col("alternateAllele"),
                 ).alias("variantId"),
             )
+            .drop("referenceAllele", "alternateAllele")
+            # Initial filters based on statistics presence
+            .filter(f.col("neglogpval").isNotNull())
+            .filter(f.col("beta").isNotNull())
+            .filter(f.col("standardError").isNotNull())
         )
         # Filter out variants that are not meta analyzed (nBiobanks < 1)
         if perform_meta_analysis_filter:
@@ -313,32 +348,48 @@ class FinnGenMetaSummaryStatistics:
                 .drop("hasLowImputationScore", "imputationScore")
             )
 
-        # Annotate with StudyIndex nCases to obtain the cases Minor Allele Count
         sumstats = (
+            # Annotate with StudyIndex nCases, nSamples to obtain
+            # the cases Minor Allele Count and Samples for combined AF calculation
             sumstats.join(si_slice, on="studyId", how="left")
-            # Join with variant direction and align allele orientation, beta sign, and allele frequency
-            # Drop variants that are not present in variant index (any direction)
+            # Join with variant direction
+            # Keep variants if not found in gnomAD (left join)
             .repartition("chromosome")
             .join(
                 vd_slice,
                 on=["chromosome", "variantId"],
                 how="left",
             )
+            # Use originalVariantId (already flipped) or fall back to variantId if not found in gnomAD
+            .withColumn(
+                "variantId", f.coalesce(f.col("originalVariantId"), f.col("variantId"))
+            )
+            # Compute allele frequency per cohort and align with direction
+            .withColumn(
+                "cohortAlleleFrequency", cls.allele_frequencies(f.col("direction"))
+            )
+            # Make sure the beta is alined with the direction, if direction is null, keep beta as is
+            .withColumn(
+                "beta", f.col("beta") * f.coalesce(f.col("direction"), f.lit(1))
+            )
+            # Calculate the combined effect allele frequency from cohorts
+            .withColumn(
+                "effectAlleleFrequencyFromSource",
+                cls.combined_allele_frequency(
+                    f.col("cohortAlleleFrequency"), f.col("nSamplesPerCohort")
+                ),
+            )
         )
-
+        # Remove strand ambiguous variants, if not found in gnomAD, we keep the variant
+        if filter_out_ambiguous_variants:
+            sumstats = sumstats.filter(
+                ~f.coalesce(f.col("isStrandAmbiguous"), f.lit(False))
+            )
         if perform_min_allele_count_filter or perform_min_allele_frequency_filter:
-            sumstats = (
-                sumstats
-                # Collapse allele frequencies into an array of structs
-                # Flip the Allele Frequency when direction is -1
-                .withColumn(
-                    "cohortAlleleFrequency", cls.allele_frequencies(f.col("direction"))
-                )
-                # Calculate the MAF per cohort
-                .withColumn(
-                    "cohortMinAlleleFrequency",
-                    cls.min_allele_frequency(f.col("cohortAlleleFrequency")),
-                )
+            # Calculate the MAF per cohort
+            sumstats = sumstats.withColumn(
+                "cohortMinAlleleFrequency",
+                cls.min_allele_frequency(f.col("cohortAlleleFrequency")),
             )
         if perform_min_allele_count_filter:
             sumstats = (
@@ -388,17 +439,14 @@ class FinnGenMetaSummaryStatistics:
 
         sumstats = sumstats.select(
             f.col("studyId"),
+            f.col("variantId"),
             f.col("chromosome"),
             f.col("position"),
-            f.col("referenceAllele"),
-            f.col("alternateAllele"),
-            f.col("variantId"),
-            *pvalue_from_neglogpval(f.col("all_inv_var_meta_mlogp")),
-            f.col("all_inv_var_meta_beta").cast(t.DoubleType()).alias("beta"),
+            f.col("beta"),
             f.col("nSamples").alias("sampleSize"),
-            f.col("all_inv_var_meta_sebeta")
-            .cast(t.DoubleType())
-            .alias("standardError"),
+            *pvalue_from_neglogpval(f.col("neglogpval")),
+            f.col("effectAlleleFrequencyFromSource"),
+            f.col("standardError"),
         ).select(
             f.col("studyId"),
             f.col("variantId"),
@@ -408,39 +456,8 @@ class FinnGenMetaSummaryStatistics:
             f.col("sampleSize"),
             f.col("pValueMantissa"),
             f.col("pValueExponent"),
-            f.lit(None).cast(t.FloatType()).alias("effectAlleleFrequencyFromSource"),
+            f.col("effectAlleleFrequencyFromSource"),
             f.col("standardError"),
-        )
-        # Remove strand ambiguous variants, if not found in gnomAD, we keep the variant
-        if filter_out_ambiguous_variants:
-            sumstats = sumstats.filter(
-                ~f.coalesce(f.col("isStrandAmbiguous"), f.lit(False))
-            )
-        #
-        # Keep the originalVariantId as variantId - this is aligned with the variant index
-        # if not found in gnomAD, keep the variantId as is
-        sumstats = (
-            sumstats.withColumn(
-                "variantId", f.coalesce(f.col("originalVariantId"), f.col("variantId"))
-            )
-            # Flip the beta sign, make sure that if the variant was not found in gnomAD, we keep the beta as is
-            .withColumn(
-                "beta", f.col("beta") * f.coalesce(f.col("direction"), f.lit(1))
-            )
-            # AF was flipped already, but we do not collect all allele frequencies, since we would need
-            # to know the ratio of cases per each cohort to compute the overall allele frequency
-            .select(
-                f.col("studyId"),
-                f.col("variantId"),
-                f.col("chromosome"),
-                f.col("position"),
-                f.col("beta"),
-                f.col("sampleSize"),
-                f.col("pValueMantissa"),
-                f.col("pValueExponent"),
-                f.col("effectAlleleFrequencyFromSource"),
-                f.col("standardError"),
-            )
         )
 
         return SummaryStatistics(sumstats).sanity_filter()
@@ -625,29 +642,86 @@ class FinnGenMetaSummaryStatistics:
 
     @classmethod
     def combined_allele_frequency(
-        cls, allele_freq: Column, n_cases_per_cohort: Column
+        cls, allele_freq: Column, n_samples_per_cohort: Column
     ) -> Column:
-        return f.transform(
+        """Combined Allele Frequency across all cohorts.
+
+        Args:
+            allele_freq (Column): Column containing array of structs with `cohort` and `alleleFrequency` fields.
+            n_samples_per_cohort (Column): Column containing array of structs with `cohort` and `nSamples` fields.
+
+        Returns:
+            Column: Combined allele frequency across all cohorts.
+
+        Examples:
+            >>> data = [
+            ...    ("v1", [{"cohort": "A", "alleleFrequency": 0.6}, {"cohort": "B", "alleleFrequency": 0.2}, {"cohort": "C", "alleleFrequency": 0.3}],
+            ...           [{"cohort": "A", "nSamples": 100}, {"cohort": "B", "nSamples": 200}, {"cohort": "D", "nSamples": 20}]),
+            ...    ("v2", [{"cohort": "A", "alleleFrequency": None},], [{"cohort": "A", "nSamples": 50}]),
+            ...    ("v3", [{"cohort": "A", "alleleFrequency": 0.05},], [{"cohort": "A", "nSamples": None}]),]
+            >>> schema = "variantId STRING, alleleFrequencies ARRAY<STRUCT<cohort: STRING, alleleFrequency: DOUBLE>>, nSamplesPerCohort ARRAY<STRUCT<cohort: STRING, nSamples: INT>>"
+            >>> df = spark.createDataFrame(data, schema)
+            >>> df.show(truncate=False)
+            +---------+------------------------------+-----------------------------+
+            |variantId|alleleFrequencies             |nSamplesPerCohort              |
+            +---------+------------------------------+-----------------------------+
+            |v1       |[{A, 0.6}, {B, 0.2}, {C, 0.3}]|[{A, 100}, {B, 200}, {D, 20}]|
+            |v2       |[{A, NULL}]                   |[{A, 50}]                    |
+            |v3       |[{A, 0.05}]                   |[{A, NULL}]                  |
+            +---------+------------------------------+-----------------------------+
+            <BLANKLINE>
+
+            >>> df = df.withColumn("combinedAlleleFrequency", FinnGenMetaSummaryStatistics.combined_allele_frequency(f.col("alleleFrequencies"), f.col("nSamplesPerCohort")))
+            >>> df.select("variantId", "combinedAlleleFrequency").show(truncate=False)
+            +---------+-----------------------+
+            |variantId|combinedAlleleFrequency|
+            +---------+-----------------------+
+            |v1       |0.5                    |
+            +---------+-----------------------+
+            <BLANKLINE>
+        """
+        af_filtered = f.filter(
+            allele_freq, lambda x: x.getField("alleleFrequency").isNotNull()
+        )
+        samples_filtered = f.filter(
+            n_samples_per_cohort, lambda x: x.getField("nSamples").isNotNull()
+        )
+
+        intersect = f.array_intersect(
+            f.transform(af_filtered, lambda x: x.getField("cohort")),
+            f.transform(samples_filtered, lambda x: x.getField("cohort")),
+        )
+        af_map = f.map_from_entries(
             f.filter(
-                allele_freq,
-                lambda left: f.exists(
-                    n_cases_per_cohort,
-                    lambda right: right.getField("cohort") == left.getField("cohort"),
-                ),
-            ),
-            lambda left: f.struct(
-                left.getField("cohort").alias("cohort"),
-                mac(
-                    left.getField("minAlleleFrequency"),
-                    f.filter(
-                        n_cases_per_cohort,
-                        lambda right: right.getField("cohort")
-                        == left.getField("cohort"),
-                    )
-                    .getItem(0)
-                    .getField("nCases"),
-                ).alias("minAlleleCount"),
-            ),
+                af_filtered, lambda x: f.array_contains(intersect, x.getField("cohort"))
+            )
+        )
+        n_samples_map = f.map_from_entries(
+            f.filter(
+                samples_filtered,
+                lambda x: f.array_contains(intersect, x.getField("cohort")),
+            )
+        )
+        # Compute numerator: sum(AF * n)
+        af_times_n = f.aggregate(
+            f.map_entries(af_map),
+            f.lit(0.0),
+            lambda acc, kv: acc
+            + kv["value"]
+            * f.coalesce(f.element_at(n_samples_map, kv["key"]), f.lit(0.0)),
+        )
+
+        # Compute denominator: sum(n)
+        n_total = f.aggregate(
+            f.map_entries(n_samples_map),
+            f.lit(0),
+            lambda acc, kv: acc + f.coalesce(kv["value"], f.lit(0)),
+        )
+
+        return (
+            f.when((n_total == 0) | (af_times_n == 0), f.lit(None))
+            .otherwise(af_times_n / n_total)
+            .cast(t.FloatType())
         )
 
     @classmethod

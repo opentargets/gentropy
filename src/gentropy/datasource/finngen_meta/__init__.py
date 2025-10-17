@@ -95,6 +95,7 @@ class FinnGenMetaManifest:
             self.trait_from_source.alias("traitFromSource"),
             self.discovery_samples.alias("discoverySamples"),
             self.n_samples.alias("nSamples"),
+            self.n_samples_per_cohort.alias("nSamplesPerCohort"),
             self.n_cases.alias("nCases"),
             self.n_cases_per_cohort.alias("nCasesPerCohort"),
             self.n_controls.alias("nControls"),
@@ -139,9 +140,9 @@ class FinnGenMetaManifest:
             .option("sep", "\t")
             .csv(manifest_path)
         )
-        assert cls.required_columns.issubset(
-            set(df.columns)
-        ), f"Manifest file must contain the following columns: {cls.required_columns}. "
+        assert cls.required_columns.issubset(set(df.columns)), (
+            f"Manifest file must contain the following columns: {cls.required_columns}. "
+        )
 
         # By default we assume we are dealing with the FinnGen UKBB meta-analysis
         meta = MetaAnalysisDataSource.FINNGEN_UKBB
@@ -450,3 +451,53 @@ class FinnGenMetaManifest:
             ]
 
         return f.array(*n_cases).alias("nCasesPerCohort")
+
+    @property
+    def n_samples_per_cohort(self) -> Column:
+        """Get the number of samples per cohort column.
+
+        Returns:
+            Column: Spark Column representing the number of samples per cohort.
+        """
+        n_samples = [
+            f.struct(
+                f.lit("FinnGen").alias("cohort"),
+                (
+                    f.coalesce(f.col("fg_n_cases"), f.lit(0))
+                    + f.coalesce(f.col("fg_n_controls"), f.lit(0))
+                ).alias("nSamples"),
+            ),
+            f.struct(
+                f.lit("UKBB").alias("cohort"),
+                (
+                    f.coalesce(f.col("ukbb_n_cases"), f.lit(0))
+                    + f.coalesce(f.col("ukbb_n_controls"), f.lit(0))
+                ).alias("nSamples"),
+            ),
+        ]
+        if self.meta == MetaAnalysisDataSource.FINNGEN_UKBB_MVP:
+            n_samples += [
+                f.struct(
+                    f.lit("MVP_EUR").alias("cohort"),
+                    (
+                        f.coalesce(f.col("MVP_EUR_n_cases"), f.lit(0))
+                        + f.coalesce(f.col("MVP_EUR_n_controls"), f.lit(0))
+                    ).alias("nSamples"),
+                ),
+                f.struct(
+                    f.lit("MVP_AFR").alias("cohort"),
+                    (
+                        f.coalesce(f.col("MVP_AFR_n_cases"), f.lit(0))
+                        + f.coalesce(f.col("MVP_AFR_n_controls"), f.lit(0))
+                    ).alias("nSamples"),
+                ),
+                f.struct(
+                    f.lit("MVP_AMR").alias("cohort"),
+                    (
+                        f.coalesce(f.col("MVP_AMR_n_cases"), f.lit(0))
+                        + f.coalesce(f.col("MVP_AMR_n_controls"), f.lit(0))
+                    ).alias("nSamples"),
+                ),
+            ]
+
+        return f.array(*n_samples).alias("nSamplesPerCohort")

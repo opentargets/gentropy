@@ -100,6 +100,10 @@ class FinngenUkbbMvpMetaIngestionStep:
             f"Harmonised summary statistics written to {harmonised_summary_statistics_output_path}."
         )
 
+        session.logger.info("Reading harmonised summary statistics for QC.")
+        harmonised_summary_statistics = FinnGenMetaSummaryStatistics.from_parquet(
+            session, harmonised_summary_statistics_output_path
+        )
         session.logger.info("Running summary statistics QC.")
         summary_statistics_qc = SummaryStatisticsQC.from_summary_statistics(
             gwas=harmonised_summary_statistics,
