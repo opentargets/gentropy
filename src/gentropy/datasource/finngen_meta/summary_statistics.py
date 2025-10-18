@@ -272,7 +272,8 @@ class FinnGenMetaSummaryStatistics:
                 f.col("direction"),
                 f.col("isStrandAmbiguous"),
             )
-            .repartition(10_000, "chromosome", "variantId")
+            .repartitionByRange(2_000, "chromosome", "variantId")
+            # .repartition(2_000, "chromosome", "variantId")
             .persist()
         )
 
@@ -354,7 +355,7 @@ class FinnGenMetaSummaryStatistics:
             sumstats.join(si_slice, on="studyId", how="left")
             # Join with variant direction
             # Keep variants if not found in gnomAD (left join)
-            .repartition(10_000, "chromosome", "variantId")
+            .repartitionByRange(2_000, "chromosome", "variantId")
             .join(
                 vd_slice,
                 on=["chromosome", "variantId"],

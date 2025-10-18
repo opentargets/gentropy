@@ -23,7 +23,6 @@ class FinngenUkbbMvpMetaIngestionStep:
         self,
         session: Session,
         source_manifest_path: str,
-        source_summary_statistics_glob: str,
         efo_curation_path: str,
         gnomad_variant_index_path: str,
         study_index_output_path: str,
@@ -37,7 +36,6 @@ class FinngenUkbbMvpMetaIngestionStep:
         Args:
             session (Session): Session object.
             source_manifest_path (str): Path to the manifest file.
-            source_summary_statistics_glob (str): Glob pattern representing the location of summary statistics files.
             efo_curation_path (str): Path to the EFO curation file.
             gnomad_variant_index_path (str): Path to the gnomAD variant index file.
             study_index_output_path (str): Output path for the study index.
@@ -64,14 +62,6 @@ class FinngenUkbbMvpMetaIngestionStep:
         session.logger.info("Writing study index.")
         study_index.df.write.mode(session.write_mode).parquet(study_index_output_path)
         session.logger.info(f"Study index written to {study_index_output_path}.")
-
-        # session.logger.info("Downloading summary statistics.")
-        # FinnGenMetaSummaryStatistics.bgzip_to_parquet(
-        #     session=session,
-        #     summary_statistics_glob=source_summary_statistics_glob,
-        #     datasource=finngen_manifest.meta,
-        #     raw_summary_statistics_output_path=raw_summary_statistics_output_path,
-        # )
 
         session.logger.info("Reading gnomAD variant index.")
         gnomad_variant_index = VariantIndex.from_parquet(
