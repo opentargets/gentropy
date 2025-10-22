@@ -1,5 +1,6 @@
 """Types and type aliases used in the package."""
 
+from enum import Enum
 from typing import Literal, NamedTuple
 
 from pyspark.sql.column import Column
@@ -18,6 +19,17 @@ DataSourceType = Literal[
     "open_targets",
     "intervals",
 ]
+
+
+class UKBBLDAncestryEnum(str, Enum):
+    """Enum for ancestry codes.
+
+    We only have 3 ancestries defined for UKBB LD matrices.
+    """
+
+    AFRICAN = "afr"
+    CENTRAL_SOUTH_ASIAN = "csa"
+    EUROPEAN = "eur"
 
 
 class PValComponents(NamedTuple):

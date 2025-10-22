@@ -8,9 +8,17 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 import pyspark.sql.functions as f
+from pyspark.sql import Window
+from pyspark.sql import types as t
 from pyspark.sql.types import ArrayType, FloatType, LongType, StringType
 
 from gentropy.common.genomic_region import GenomicRegion, KnownGenomicRegions
+from gentropy.common.processing import (
+    extract_alt,
+    extract_chromosome,
+    extract_position,
+    extract_ref,
+)
 from gentropy.common.schemas import parse_spark_schema
 from gentropy.common.spark import (
     create_empty_column_if_not_exists,
@@ -1460,3 +1468,74 @@ class StudyLocus(Dataset):
             _df=df,
             _schema=self.get_schema(),
         )
+
+    def find_duplicates(self: StudyLocus) -> StudyLocus:
+        """Find duplicate study-locus based on lead variant."""
+        window = Window().partitionBy("variantId")
+        duplicates = self.df.withColumn(
+            "duplicatedLead",
+            f.when(f.count("variantId").over(window) > 1, True).otherwise(False),
+        ).filter(f.col("duplicatedLead"))
+
+        return StudyLocus(
+            _df=duplicates.drop("duplicatedLead"), _schema=self.get_schema()
+        )
+
+    def to_sushie_input(self: StudyLocus) -> DataFrame:
+        """Convert StudyLocus to SuShiE input format (SummaryStatistics alike).
+
+        header[0]: "chrom",
+        header[1]: "snp",
+        header[2]: "pos",
+        header[3]: "a1",
+        header[4]: "a0",
+        header[5]: "z",
+        """
+        # if lead is not in the locus array, we add it there
+        df = (
+            self.df.withColumn(
+                "locus",
+                f.when(
+                    ~f.array_contains(
+                        f.transform(f.col("locus"), lambda x: x.getField("variantId")),
+                        f.col("variantId"),
+                    ),
+                    f.array_union(
+                        f.col("locus"),
+                        f.array(
+                            f.struct(
+                                f.lit(None)
+                                .cast(t.BooleanType())
+                                .alias("is95CredibleSet"),
+                                f.lit(None)
+                                .cast(t.BooleanType())
+                                .alias("is99CredibleSet"),
+                                f.lit(None).cast(t.DoubleType()).alias("logBF"),
+                                f.lit(None)
+                                .cast(t.DoubleType())
+                                .alias("posteriorProbability"),
+                                f.col("variantId"),
+                                f.col("pValueMantissa"),
+                                f.col("pValueExponent"),
+                                f.col("beta"),
+                                f.col("standardError"),
+                                f.lit(None).cast(t.BooleanType()).alias("r2Overall"),
+                            )
+                        ),
+                    ),
+                ).otherwise(f.col("locus")),
+            )
+            .select("studyId", f.explode("locus").alias("l"), "studyLocusId")
+            .select(
+                "studyId",
+                "studyLocusId",
+                # content required for SuShiE input summary statistics
+                extract_chromosome(f.col("l.variantId")).alias("chromosome"),
+                "l.variantId",
+                extract_ref(f.col("l.variantId")).alias("referenceAllele"),
+                extract_alt(f.col("l.variantId")).alias("alternateAllele"),
+                extract_position(f.col("l.variantId")).alias("position"),
+                f.col("beta") / f.col("standardError").alias("zScore"),
+            )
+        )
+        return df

@@ -17,6 +17,7 @@ from pyspark.sql.window import Window
 from gentropy.assets import data
 from gentropy.common.schemas import parse_spark_schema
 from gentropy.common.spark import convert_from_wide_to_long, filter_array_struct
+from gentropy.common.types import UKBBLDAncestryEnum
 from gentropy.dataset.dataset import Dataset
 
 if TYPE_CHECKING:
@@ -797,3 +798,22 @@ class StudyIndex(Dataset):
             ),
             _schema=StudyIndex.get_schema(),
         )
+
+    def filter_single_ancestry_studies(
+        self: StudyIndex, ancestries: list[UKBBLDAncestryEnum] | None = None
+    ) -> StudyIndex:
+        """Filter studies with single ancestry from the study index.
+
+        Args:
+            ancestries (list[UKBBLDAncestryEnum] | None): List of ancestries to filter for.
+
+        Returns:
+            StudyIndex: containing only single ancestry studies.
+        """
+        filtered_df = self.df.filter(f.size("ldPopulationStructure") == 1)
+        if ancestries:
+            ancestry_list = [ancestry.value for ancestry in ancestries]
+            filtered_df = filtered_df.filter(
+                f.col("ldPopulationStructure")[0].ldPopulation.isin(ancestry_list)
+            )
+        return StudyIndex(_df=filtered_df, _schema=StudyIndex.get_schema())

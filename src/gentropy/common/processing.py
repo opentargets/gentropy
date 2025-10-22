@@ -24,6 +24,7 @@ if TYPE_CHECKING:
     )
     from gentropy.datasource.ukb_ppp_eur.summary_stats import UkbPppEurSummaryStats
 
+
 def parse_efos(efo_uri: Column) -> Column:
     """Extracting EFO identifiers.
 
@@ -105,6 +106,59 @@ def extract_position(variant_id: Column) -> Column:
 
     """
     return f.regexp_extract(variant_id, r"^.*_(\d+)_.*$", 1)
+
+
+def extract_ref(variant_id: Column) -> Column:
+    """Extract reference allele from variant ID.
+
+    This function extracts the reference allele from a variant ID. The variantId is expected to be in the format `chromosome_position_ref_alt`.
+
+    Args:
+        variant_id (Column): Variant ID
+
+    Returns:
+        Column: Reference Allele
+
+    Examples:
+        >>> d = [("chr1_12345_A_T",),("15_KI270850v1_alt_48777_C_T",),]
+        >>> df = spark.createDataFrame(d).toDF("variantId")
+        >>> df.withColumn("referenceAllele", extract_ref(f.col("variantId"))).show(truncate=False)
+        +---------------------------+-----------------+
+        |variantId                  |referenceAllele  |
+        +---------------------------+-----------------+
+        |chr1_12345_A_T             |A                |
+        |15_KI270850v1_alt_48777_C_T|C                |
+        +---------------------------+-----------------+
+        <BLANKLINE>
+
+    """
+    return f.regexp_extract(variant_id, r"^.*_\d+_(.*)_.*$", 1)
+
+
+def extract_alt(variant_id: Column) -> Column:
+    """Extract alternate allele from variant ID.
+
+    This function extracts the alternate allele from a variant ID. The variantId is expected to be in the format `chromosome_position_ref_alt`.
+
+    Args:
+        variant_id (Column): Variant ID
+
+    Returns:
+        Column: Alternate Allele
+
+    Examples:
+        >>> d = [("chr1_12345_A_T",),("15_KI270850v1_alt_48777_C_T",),]
+        >>> df = spark.createDataFrame(d).toDF("variantId")
+        >>> df.withColumn("alternateAllele", extract_alt(f.col("variantId"))).show(truncate=False)
+        +---------------------------+-----------------+
+        |variantId                  |alternateAllele  |
+        +---------------------------+-----------------+
+        |chr1_12345_A_T             |T                |
+        |15_KI270850v1_alt_48777_C_T|T                |
+        +---------------------------+-----------------+
+        <BLANKLINE>
+    """
+    return f.regexp_extract(variant_id, r"^.*_\d+_(.*)$", 1)
 
 
 def harmonise_summary_stats(
@@ -293,7 +347,9 @@ def harmonise_summary_stats(
     return df
 
 
-def prepare_va(session: Session, variant_annotation_path: str, tmp_variant_annotation_path: str) -> None:
+def prepare_va(
+    session: Session, variant_annotation_path: str, tmp_variant_annotation_path: str
+) -> None:
     """Prepare the Variant Annotation dataset for efficient per-chromosome joins.
 
     Args:
@@ -301,61 +357,49 @@ def prepare_va(session: Session, variant_annotation_path: str, tmp_variant_annot
         variant_annotation_path (str): The path to the input variant annotation dataset.
         tmp_variant_annotation_path (str): The path to store the temporary output for the repartitioned annotation dataset.
     """
-    va_df = (
-        session
-        .spark
-        .read
-        .parquet(variant_annotation_path)
+    va_df = session.spark.read.parquet(variant_annotation_path)
+    va_df_direct = va_df.select(
+        f.col("chromosome").alias("vaChromosome"),
+        f.col("variantId"),
+        f.concat_ws(
+            "_",
+            f.col("chromosome"),
+            f.col("position"),
+            f.col("referenceAllele"),
+            f.col("alternateAllele"),
+        ).alias("summary_stats_id"),
+        f.lit("direct").alias("direction"),
     )
-    va_df_direct = (
-        va_df.
-        select(
-            f.col("chromosome").alias("vaChromosome"),
-            f.col("variantId"),
-            f.concat_ws(
-                "_",
-                f.col("chromosome"),
-                f.col("position"),
-                f.col("referenceAllele"),
-                f.col("alternateAllele")
-            ).alias("summary_stats_id"),
-            f.lit("direct").alias("direction")
-        )
-    )
-    va_df_flip = (
-        va_df.
-        select(
-            f.col("chromosome").alias("vaChromosome"),
-            f.col("variantId"),
-            f.concat_ws(
-                "_",
-                f.col("chromosome"),
-                f.col("position"),
-                f.col("alternateAllele"),
-                f.col("referenceAllele")
-            ).alias("summary_stats_id"),
-            f.lit("flip").alias("direction")
-        )
+    va_df_flip = va_df.select(
+        f.col("chromosome").alias("vaChromosome"),
+        f.col("variantId"),
+        f.concat_ws(
+            "_",
+            f.col("chromosome"),
+            f.col("position"),
+            f.col("alternateAllele"),
+            f.col("referenceAllele"),
+        ).alias("summary_stats_id"),
+        f.lit("flip").alias("direction"),
     )
     (
         va_df_direct.union(va_df_flip)
         .coalesce(1)
         .repartition("vaChromosome")
-        .write
-        .partitionBy("vaChromosome")
+        .write.partitionBy("vaChromosome")
         .mode("overwrite")
         .parquet(tmp_variant_annotation_path)
     )
 
 
 def process_summary_stats_per_chromosome(
-        session: Session,
-        ingestion_class: type[UkbPppEurSummaryStats] | type[FinngenUkbMetaSummaryStats],
-        raw_summary_stats_path: str,
-        tmp_variant_annotation_path: str,
-        summary_stats_output_path: str,
-        study_index_path: str,
-    ) -> None:
+    session: Session,
+    ingestion_class: type[UkbPppEurSummaryStats] | type[FinngenUkbMetaSummaryStats],
+    raw_summary_stats_path: str,
+    tmp_variant_annotation_path: str,
+    summary_stats_output_path: str,
+    study_index_path: str,
+) -> None:
     """Processes summary statistics for each chromosome, partitioning and writing results.
 
     Args:
@@ -380,11 +424,9 @@ def process_summary_stats_per_chromosome(
                 chromosome=str(chromosome),
                 study_index_path=study_index_path,
             )
-            .df
-            .coalesce(1)
+            .df.coalesce(1)
             .repartition("studyId", "chromosome")
-            .write
-            .partitionBy("studyId", "chromosome")
+            .write.partitionBy("studyId", "chromosome")
             .mode(write_mode)
             .parquet(summary_stats_output_path)
         )
