@@ -33,6 +33,18 @@ class StepConfig:
 
 
 @dataclass
+class SuShiELDConfig(StepConfig):
+    """SuShiE LD step configuration."""
+
+    session: SessionConfig
+    sushie_sumstat_input_path: str = MISSING
+    ld_block_matrix_path: str = MISSING
+    ld_slice_output_path: str = MISSING
+    ancestry: str = MISSING
+    _target_: str = "gentropy.sushie_input_steps.SuShiELdInputStep"
+
+
+@dataclass
 class ColocalisationConfig(StepConfig):
     """Colocalisation step configuration."""
 
@@ -802,3 +814,4 @@ def register_config() -> None:
     cs.store(group="step", name="finngen_ukb_meta_ingestion", node=FinngenUkbMetaConfig)
     cs.store(group="step", name="credible_set_qc", node=CredibleSetQCStepConfig)
     cs.store(group="step", name="foldx_integration", node=FoldXVariantAnnotationConfig)
+    cs.store(group="step", name="sushie_ld_input", node=SuShiELDConfig)

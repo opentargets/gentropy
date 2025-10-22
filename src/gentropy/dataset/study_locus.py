@@ -1481,61 +1481,123 @@ class StudyLocus(Dataset):
             _df=duplicates.drop("duplicatedLead"), _schema=self.get_schema()
         )
 
-    def to_sushie_input(self: StudyLocus) -> DataFrame:
+    def to_sushie_input(self: StudyLocus, studies: StudyIndex) -> DataFrame:
         """Convert StudyLocus to SuShiE input format (SummaryStatistics alike).
 
-        header[0]: "chrom",
-        header[1]: "snp",
-        header[2]: "pos",
-        header[3]: "a1",
-        header[4]: "a0",
-        header[5]: "z",
+        Args:
+            studies (StudyIndex): Study index to extract ancestry information.
+
+        Returns:
+            DataFrame: DataFrame in SuShiE input format.
+
+        Note:
+            SuShiE input format columns:
+
+            header[0]: "chrom",
+            header[1]: "snp",
+            header[2]: "pos",
+            header[3]: "a1",
+            header[4]: "a0",
+            header[5]: "z",
+
+            SuShiE requires a parameter --gwas-header to specify the column order in the summary statistics file.
+            The default order is mentioned above. This menans that we neeed to define the `
         """
         # if lead is not in the locus array, we add it there
-        df = (
-            self.df.withColumn(
+
+        ancestry_df = studies.df.select(
+            f.col("studyId"),
+            f.col("ldPopulationStructure")
+            .getItem(0)
+            .getField("ldPopulationStructure")
+            .alias("ancestry"),
+            f.col("nSamples"),
+        )
+        # Bring the ancestry info to the lead variant level.
+
+        all_loci_df = (
+            self.df.select(
+                f.col("studyId"),
+                f.col("studyLocusId"),
+                f.col("variantId").alias("leadVariantId"),
+                f.col("beta").alias("leadVariantBeta"),
+                f.col("standardError").alias("leadVariantSE"),
+                f.col("pValueMantissa").alias("leadVariantPValueMantissa"),
+                f.col("pValueExponent").alias("leadVariantPValueExponent"),
+                f.transform(
+                    "locus",
+                    lambda x: f.struct(
+                        x.getField("variantId"),
+                        x.getField("beta"),
+                        x.getField("standardError"),
+                        x.getField("pValueMantissa"),
+                        x.getField("pValueExponent"),
+                    ),
+                ).alias("locus"),
+            )
+            # Add lead variant to locus if not present
+            .withColumn(
                 "locus",
                 f.when(
                     ~f.array_contains(
                         f.transform(f.col("locus"), lambda x: x.getField("variantId")),
-                        f.col("variantId"),
+                        f.col("leadVariantId"),
                     ),
                     f.array_union(
                         f.col("locus"),
                         f.array(
                             f.struct(
-                                f.lit(None)
-                                .cast(t.BooleanType())
-                                .alias("is95CredibleSet"),
-                                f.lit(None)
-                                .cast(t.BooleanType())
-                                .alias("is99CredibleSet"),
-                                f.lit(None).cast(t.DoubleType()).alias("logBF"),
-                                f.lit(None)
-                                .cast(t.DoubleType())
-                                .alias("posteriorProbability"),
-                                f.col("variantId"),
-                                f.col("pValueMantissa"),
-                                f.col("pValueExponent"),
-                                f.col("beta"),
-                                f.col("standardError"),
-                                f.lit(None).cast(t.BooleanType()).alias("r2Overall"),
+                                f.col("leadVariantId"),
+                                f.col("LeadVariantPValueMantissa"),
+                                f.col("LeadVariantPValueExponent"),
+                                f.col("LeadVariantBeta"),
+                                f.col("LeadVariantStandardError"),
                             )
                         ),
                     ),
                 ).otherwise(f.col("locus")),
             )
-            .select("studyId", f.explode("locus").alias("l"), "studyLocusId")
+            # Join the ancestry info
+            .join(ancestry_df, on="studyId", how="inner")
+        )
+        # Find unique ancestries per signal and choose the study with largest sample size per ancestry
+        w = Window().partitionBy("studyId", "ancestry", "leadVariantId")
+        pre_filtered_study_loci = (
+            all_loci_df.select(
+                f.col("studyId"),
+                f.col("studyLocusId"),
+                f.col("nSamples"),
+                f.col("locus"),
+                f.when(f.col("nSamples") == f.max("nSamples").over(w), True)
+                .otherwise(False)
+                .alias("hasLargestAncestrySample"),
+            )
+            .filter(f.col("hasLargestAncestrySample"))
+            .drop("hasLargestAncestrySample", "nSamples")
+            .select(
+                f.col("studyId"),
+                f.explode("locus").alias("l"),
+                f.col("studyLocusId"),
+                f.col("leadVariantId"),
+            )
             .select(
                 "studyId",
                 "studyLocusId",
+                "leadVariantId",
                 # content required for SuShiE input summary statistics
                 extract_chromosome(f.col("l.variantId")).alias("chromosome"),
                 "l.variantId",
                 extract_ref(f.col("l.variantId")).alias("referenceAllele"),
                 extract_alt(f.col("l.variantId")).alias("alternateAllele"),
                 extract_position(f.col("l.variantId")).alias("position"),
+                f.col("l.pValueMantissa"),
+                f.col("l.pValueExponent"),
+                f.col("l.beta"),
+                f.col("l.standardError"),
                 f.col("beta") / f.col("standardError").alias("zScore"),
             )
         )
-        return df
+
+        # By the end we should have only studies
+
+        return pre_filtered_study_loci

@@ -11,9 +11,16 @@ class SuShiELdInputStep:
 
     def __init__(
         self,
-        ld_matrix_paths: dict[str, str],
+        session: Session,
+        sushie_sumstat_input_path: str,
+        ld_block_matrix_path: str,
+        ld_slice_output_path: str,
+        ancestry: str,
     ) -> None:
-        pass
+        session.logger.info(f"LD matrix path: {ld_block_matrix_path}")
+        session.logger.info(f"LD slice output path: {ld_slice_output_path}")
+        session.logger.info(f"SuShiE sumstat input path: {sushie_sumstat_input_path}")
+        session.logger.info(f"Ancestry: {ancestry}")
 
 
 class SuShiESumStatInputStep:
@@ -41,9 +48,13 @@ class SuShiESumStatInputStep:
             session, study_index_path
         ).filter_single_ancestry_studies(ancestries)
 
-        clumped_study_locus = (
-            StudyLocus.from_parquet(session, clumped_study_locus_path)
-            .find_duplicates()
-            .to_sushie_input(studies)
+        (
+            (
+                StudyLocus.from_parquet(session, clumped_study_locus_path)
+                .find_duplicates()
+                .to_sushie_input(studies)
+            )
+            .write.partitionBy("leadVariantId", "studyId", "ancestry")
+            .csv(sushie_sumstat_output_path)
         )
         # Make sure we keep only the loci where study is in 2 or 3 divergent ancestries.
