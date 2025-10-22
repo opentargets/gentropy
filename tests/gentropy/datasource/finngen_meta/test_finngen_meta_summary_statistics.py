@@ -220,16 +220,76 @@ class TestFinnGenMetaSummaryStatistics:
                 "FINNGEN_TEST",
                 1000,
                 [
-                    {"cohort": "FinnGen", "nCases": 500},
-                    {"cohort": "MVP_EUR", "nCases": 300},
-                    {"cohort": "MVP_AFR", "nCases": 200},
-                    {"cohort": "MVP_AMR", "nCases": 150},
-                    {"cohort": "UKBB", "nCases": 400},
+                    {
+                        "cohort": "FinnGen",
+                        "nCases": 500,
+                        "nCasesPerCohort": [{"cohort": "FinnGen", "nCases": 500}],
+                        "nSamples": 1000,
+                        "nSamplesPerCohort": [{"cohort": "FinnGen", "nSamples": 1000}],
+                    },
+                    {
+                        "cohort": "MVP_EUR",
+                        "nCases": 300,
+                        "nCasesPerCohort": [{"cohort": "MVP_EUR", "nCases": 300}],
+                        "nSamples": 600,
+                        "nSamplesPerCohort": [{"cohort": "MVP_EUR", "nSamples": 600}],
+                    },
+                    {
+                        "cohort": "MVP_AFR",
+                        "nCases": 200,
+                        "nCasesPerCohort": [{"cohort": "MVP_AFR", "nCases": 200}],
+                        "nSamples": 400,
+                        "nSamplesPerCohort": [{"cohort": "MVP_AFR", "nSamples": 400}],
+                    },
+                    {
+                        "cohort": "MVP_AMR",
+                        "nCases": 150,
+                        "nCasesPerCohort": [{"cohort": "MVP_AMR", "nCases": 150}],
+                        "nSamples": 300,
+                        "nSamplesPerCohort": [{"cohort": "MVP_AMR", "nSamples": 300}],
+                    },
+                    {
+                        "cohort": "UKBB",
+                        "nCases": 400,
+                        "nCasesPerCohort": [{"cohort": "UKBB", "nCases": 400}],
+                        "nSamples": 800,
+                        "nSamplesPerCohort": [{"cohort": "UKBB", "nSamples": 800}],
+                    },
                 ],
             )
         ]
 
-        finngen_manifest_schema = "studyId STRING, nSamples INT, nCasesPerCohort ARRAY<STRUCT<cohort:STRING,nCases:INT>>"
+        finngen_manifest_schema = t.StructType(
+            [
+                t.StructField("cohort", t.StringType(), False),
+                t.StructField("nCases", t.IntegerType(), False),
+                t.StructField(
+                    "nCasesPerCohort",
+                    t.ArrayType(
+                        t.StructType(
+                            [
+                                t.StructField("cohort", t.StringType(), False),
+                                t.StructField("nCases", t.IntegerType(), False),
+                            ]
+                        )
+                    ),
+                    False,
+                ),
+                t.StructField("nSamples", t.IntegerType(), False),
+                t.StructField(
+                    "nSamplesPerCohort",
+                    t.ArrayType(
+                        t.StructType(
+                            [
+                                t.StructField("cohort", t.StringType(), False),
+                                t.StructField("nSamples", t.IntegerType(), False),
+                            ]
+                        )
+                    ),
+                    False,
+                ),
+            ]
+        )
 
         mock_manifest.df = session.spark.createDataFrame(
             finngen_manifest_data, finngen_manifest_schema

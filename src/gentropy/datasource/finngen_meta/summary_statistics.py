@@ -654,6 +654,9 @@ class FinnGenMetaSummaryStatistics:
         Returns:
             Column: Combined allele frequency across all cohorts.
 
+        Note:
+            The combination is made by weighting the allele frequencies by the number of samples in each cohort.
+
         Examples:
             >>> data = [
             ...    ("v1", [{"cohort": "A", "alleleFrequency": 0.6}, {"cohort": "B", "alleleFrequency": 0.2}, {"cohort": "C", "alleleFrequency": 0.3}],
@@ -664,7 +667,7 @@ class FinnGenMetaSummaryStatistics:
             >>> df = spark.createDataFrame(data, schema)
             >>> df.show(truncate=False)
             +---------+------------------------------+-----------------------------+
-            |variantId|alleleFrequencies             |nSamplesPerCohort              |
+            |variantId|alleleFrequencies             |nSamplesPerCohort            |
             +---------+------------------------------+-----------------------------+
             |v1       |[{A, 0.6}, {B, 0.2}, {C, 0.3}]|[{A, 100}, {B, 200}, {D, 20}]|
             |v2       |[{A, NULL}]                   |[{A, 50}]                    |
@@ -673,12 +676,14 @@ class FinnGenMetaSummaryStatistics:
             <BLANKLINE>
 
             >>> df = df.withColumn("combinedAlleleFrequency", FinnGenMetaSummaryStatistics.combined_allele_frequency(f.col("alleleFrequencies"), f.col("nSamplesPerCohort")))
-            >>> df.select("variantId", "combinedAlleleFrequency").show(truncate=False)
-            +---------+-----------------------+
-            |variantId|combinedAlleleFrequency|
-            +---------+-----------------------+
-            |v1       |0.5                    |
-            +---------+-----------------------+
+            >>> df.select("variantId", f.round("combinedAlleleFrequency", 2).alias("caf")).show(truncate=False)
+            +---------+----+
+            |variantId|caf |
+            +---------+----+
+            |v1       |0.33|
+            |v2       |NULL|
+            |v3       |NULL|
+            +---------+----+
             <BLANKLINE>
         """
         af_filtered = f.filter(
