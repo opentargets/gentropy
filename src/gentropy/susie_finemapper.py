@@ -885,6 +885,8 @@ class SusieFineMapperStep:
             "GxG",
             "GxE",
             "Case-case study",
+            "wgsGWAS",
+            "GxE, Case-case study",
         ]
         x_boolean = (
             study_index_df.withColumn(
@@ -979,7 +981,7 @@ class SusieFineMapperStep:
             gnomad_ld = LDMatrixInterface.get_numpy_matrix(
                 ld_matrix_paths=ld_matrix_paths,
                 locus_index=gwas_index,
-                ancestry=major_population
+                ancestry=major_population,
             )
 
             # Module to remove NANs from the LD matrix
@@ -1044,7 +1046,7 @@ class SusieFineMapperStep:
             gnomad_ld = LDMatrixInterface.get_numpy_matrix(
                 ld_matrix_paths=ld_matrix_paths,
                 locus_index=gwas_index,
-                ancestry=major_population
+                ancestry=major_population,
             )
 
             # Module to remove NANs from the LD matrix
