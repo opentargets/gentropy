@@ -77,7 +77,7 @@ dev = [
   "interrogate >=1.7.0, <1.8.0",
   "isort >=5.13.2, <6.1.0",
   "darglint >=1.8.1, <1.9.0",
-  "ruff >=0.8.1, <0.13.0",
+  "ruff >=0.8.1, <0.15.0",
 ]
 [tool.semantic_release]
 logging_use_named_masks = true
