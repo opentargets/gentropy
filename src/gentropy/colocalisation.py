@@ -29,17 +29,21 @@ class ColocalisationStep:
         credible_set_path: str,
         coloc_path: str,
         colocalisation_method: str,
+        restrict_right_studies: list[str] | None = None,
+        gwas_v_qtl_overlap_only: bool = False,
         colocalisation_method_params: dict[str, Any] | None = None,
     ) -> None:
         """Run Colocalisation step.
 
-        This step allows for running two colocalisation methods: ecaviar and coloc.
+        This step allows for running two colocalisation methods: ecaviar and coloc. The default behaviour is all gwas vs all gwas plus all gwas vs all molecular-QTLs.
 
         Args:
             session (Session): Session object.
             credible_set_path (str): Input credible sets path.
             coloc_path (str): Output path.
             colocalisation_method (str): Colocalisation method.
+            restrict_right_studies (list[str] | None): List of study IDs to restrict the right side of the colocalisation overlaps to, e.g. all gwas vs a single studyId. Defaults to None.
+            gwas_v_qtl_overlap_only (bool): If True, restricts the right side of colocalisation overlaps to only molecular-QTL studies, e.g. all gwas vs all molQTLs. Defaults to False.
             colocalisation_method_params (dict[str, Any] | None): Keyword arguments passed to the colocalise method of Colocalisation class. Defaults to None
 
         Keyword Args:
@@ -64,7 +68,10 @@ class ColocalisationStep:
             )
 
         # Transform
-        overlaps = credible_set.find_overlaps()
+        overlaps = credible_set.find_overlaps(
+            restrict_right_studies=restrict_right_studies,
+            gwas_v_qtl_overlap_only=gwas_v_qtl_overlap_only,
+        )
 
         # Make a partial caller to ensure that colocalisation_method_params are added to the call only when dict is not empty
         coloc = colocalisation_class.colocalise
