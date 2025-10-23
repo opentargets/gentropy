@@ -150,6 +150,7 @@ class FinnGenMetaSummaryStatistics:
         summary_statistics_list: list[str],
         datasource: MetaAnalysisDataSource,
         raw_summary_statistics_output_path: str,
+        n_threads: int = 10,
     ) -> None:
         """Convert gzipped summary statistics to Parquet format.
 
@@ -158,6 +159,22 @@ class FinnGenMetaSummaryStatistics:
             summary_statistics_list (list[str]): List of paths where summary statistics files are located.
             datasource (MetaAnalysisDataSource): Data source information.
             raw_summary_statistics_output_path (str): Output path for the Parquet files.
+
+        Note:
+            Since the individual summary statistics files are block gzipped we use the enhanced bgzip codec for efficient reading.
+
+        Note:
+            Since the schema for individual summary statistics **is not strictly the same we have to enforce the schema**.
+
+            **_enforcing schema_**
+            using the `enforceSchema` option in `spark.read.csv` **does not map columns that exist in the file provided schema**,
+            but rather alignes columns positionally, which breaks the column order per individual file.
+            **_inferring schema_**
+            Attempting to use the `inferSchema` option in `spark.read.csv` while reading multiple files in bulk drops columns, due
+            to the random sampling of files to infer the schema. (Files choosen to infer the schema may not contain entire superset of column space.)
+            **_manual schema enforcement_**
+            The only way to keep the columns in order and use full column superset is to loop over the files with `inferSchema` and manually
+            add missing columns with null values casted to expected type. The looping can be parallelised using a **thread pool**.
         """
         if not session.use_enhanced_bgzip_codec:
             session.logger.error(
@@ -170,6 +187,7 @@ class FinnGenMetaSummaryStatistics:
         def process_one(
             input_path: str, session: Session, output_path: str
         ) -> DataFrame:
+            """Function to process one finngen-ukbb-mvp summary statistics file to schema superset."""
             df = session.spark.read.csv(
                 input_path,
                 header=True,
@@ -178,11 +196,14 @@ class FinnGenMetaSummaryStatistics:
                 enforceSchema=False,
             )
             # Apply schema enforcement by selecting columns in the expected order with proper types
+            # NOTE: Here we only add missing columns with null values casted to expected type
             for c in cls.raw_schema.names:
                 if c not in df.columns:
                     df = df.withColumn(c, f.lit(None).cast(cls.raw_schema[c].dataType))
 
             # Replace all NA with nulls and cast to the expected type
+            # NOTE: Here we apply the transformation on full schema set (including added missing columns)
+            # NOTE: If we do not transform the `NA` to nulls, we will still have divergent schemas, as `NA` forces the column to StringType
             for field in cls.raw_schema.fields:
                 df = df.withColumn(
                     field.name,
@@ -190,6 +211,7 @@ class FinnGenMetaSummaryStatistics:
                     .otherwise(f.col(field.name))
                     .cast(field.dataType),
                 )
+            # Add studyId based on the input path
             df = df.withColumn(
                 "studyId",
                 f.concat_ws(
@@ -198,13 +220,15 @@ class FinnGenMetaSummaryStatistics:
                     f.lit(cls.extract_study_phenotype_from_path(f.input_file_name())),
                 ),
             )
+            # Write out the processed dataframe to Parquet
+            # NOTE: Write is done per studyId partition to allow for quick reading of individual studies later on
             df.write.mode("append").partitionBy("studyId").parquet(output_path)
             return df
 
         session.logger.info(
             f"Converting gzipped summary statistics from {summary_statistics_list} to Parquet at {raw_summary_statistics_output_path}."
         )
-        with ThreadPoolExecutor(max_workers=10) as pool:
+        with ThreadPoolExecutor(max_workers=n_threads) as pool:
             pool.map(
                 lambda path: process_one(
                     path,
@@ -272,12 +296,16 @@ class FinnGenMetaSummaryStatistics:
                 f.col("direction"),
                 f.col("isStrandAmbiguous"),
             )
-            .repartitionByRange(2_000, "chromosome", "variantId")
-            # .repartition(2_000, "chromosome", "variantId")
+            # NOTE: repartition("chromosome") produces very uneven partitions,
+            # Spark attempts then to fall back to `dynamic partitionning` algorithm
+            # which fails after N failures.
+            .repartitionByRange(4_000, "chromosome", "variantId")
             .persist()
         )
 
         sumstats = (
+            # Pre-select columns that are needed downstream
+            # NOTE: full set of columns is not required.
             raw_summary_statistics.select(
                 f.col("#CHR"),
                 f.col("POS"),
@@ -296,6 +324,7 @@ class FinnGenMetaSummaryStatistics:
                 f.col("all_inv_var_meta_sebeta"),
                 f.col("studyId"),
             )
+            # NOTE: make sure the chromosome is coded to 1:22, X, Y
             .withColumn(
                 "chromosome",
                 normalize_chromosome(f.col("#CHR").cast(t.StringType())),
@@ -327,6 +356,7 @@ class FinnGenMetaSummaryStatistics:
             .filter(f.col("beta").isNotNull())
             .filter(f.col("standardError").isNotNull())
         )
+
         # Filter out variants that are not meta analyzed (nBiobanks < 1)
         if perform_meta_analysis_filter:
             sumstats = (
@@ -338,6 +368,7 @@ class FinnGenMetaSummaryStatistics:
                 .filter(f.col("isMetaAnalyzedVariant"))
                 .drop("isMetaAnalyzedVariant", "cohorts")
             )
+
         # Filter out variants with low INFO score
         if perform_imputation_score_filter:
             sumstats = (
@@ -353,19 +384,17 @@ class FinnGenMetaSummaryStatistics:
             # Annotate with StudyIndex nCases, nSamples to obtain
             # the cases Minor Allele Count and Samples for combined AF calculation
             sumstats.join(si_slice, on="studyId", how="left")
-            # Join with variant direction
+            # Join with variant direction dataset
             # Keep variants if not found in gnomAD (left join)
-            .repartitionByRange(2_000, "chromosome", "variantId")
-            .join(
-                vd_slice,
-                on=["chromosome", "variantId"],
-                how="left",
-            )
+            .repartitionByRange(4_000, "chromosome", "variantId")
+            .join(vd_slice, on=["chromosome", "variantId"], how="left")
             # Use originalVariantId (already flipped) or fall back to variantId if not found in gnomAD
             .withColumn(
                 "variantId", f.coalesce(f.col("originalVariantId"), f.col("variantId"))
             )
             # Compute allele frequency per cohort and align with direction
+            # NOTE: `direction` column represents if variant aligned to gnomAD variant or it's flipped
+            # version, the values are `1`` - direct, `-1`` - flipped
             .withColumn(
                 "cohortAlleleFrequency", cls.allele_frequencies(f.col("direction"))
             )
@@ -395,20 +424,20 @@ class FinnGenMetaSummaryStatistics:
         if perform_min_allele_count_filter:
             sumstats = (
                 sumstats
-                # Make sure to only keep cohorts that have nCases > 0
+                # Make sure to only keep cohorts that have nSamples > 0
                 .withColumn(
-                    "nCasesPerCohort",
+                    "nSamplesPerCohort",
                     f.filter(
-                        f.col("nCasesPerCohort"),
-                        lambda x: x.getField("nCases").isNotNull()
-                        & (x.getField("nCases") > 0),
+                        f.col("nSamplesPerCohort"),
+                        lambda x: x.getField("nSamples").isNotNull()
+                        & (x.getField("nSamples") > 0),
                     ),
                 )
                 .withColumn(
                     "cohortMinAlleleCount",
                     cls.min_allele_count(
                         f.col("cohortMinAlleleFrequency"),
-                        f.col("nCasesPerCohort"),
+                        f.col("nSamplesPerCohort"),
                     ),
                 )
                 .withColumn(
@@ -570,10 +599,12 @@ class FinnGenMetaSummaryStatistics:
             if the `flip` column is -1, then the allele frequency is flipped (1 - af).
 
         Args:
+            flip (Column): Direction column indicating if the allele needs to be flipped. (-1 for flip, 1 for no flip, null for no information)
             scale (int): Scale for the decimal type conversion. Default is 10.
 
         Returns:
             Column: Column containing array of structs with `cohort` and `alleleFrequency` fields.
+
 
         Examples:
             >>> data = [("v1", 0.1, 0.2, None, 0.3, 0.4, -1),
@@ -763,7 +794,6 @@ class FinnGenMetaSummaryStatistics:
             |v1       |[{A, 0.1}, {B, 0.7}]|[{A, 0.1000000000}, {B, 0.3000000000}]|
             +---------+--------------------+--------------------------------------+
             <BLANKLINE>
-
         """
         return f.transform(
             allele_freq,
@@ -775,7 +805,7 @@ class FinnGenMetaSummaryStatistics:
 
     @classmethod
     def min_allele_count(
-        cls, cohort_min_allele_frequency: Column, n_cases_per_cohort: Column
+        cls, cohort_min_allele_frequency: Column, n_samples_per_cohort: Column
     ) -> Column:
         """Minor Allele Count (MAC) per cohort.
 
@@ -784,7 +814,7 @@ class FinnGenMetaSummaryStatistics:
 
         Args:
             cohort_min_allele_frequency (Column): Column containing array of structs with `cohort` and `minAlleleFrequency` fields.
-            n_cases_per_cohort (Column): Column containing array of structs with `cohort` and `nCases` fields.
+            n_samples_per_cohort (Column): Column containing array of structs with `cohort` and `nSamples` fields.
 
         Returns:
             Column: Column containing array of structs with `cohort` and `minAlleleCount` fields.
@@ -793,24 +823,24 @@ class FinnGenMetaSummaryStatistics:
             >>> maf = {"v1": [{"cohort": "A", "minAlleleFrequency": 0.1}, {"cohort": "B", "minAlleleFrequency": 0.2}],
             ...         "v2": [{"cohort": "A", "minAlleleFrequency": 0.05}, {"cohort": "D", "minAlleleFrequency": 0.15}],
             ...         "v3": [{"cohort": "A", "minAlleleFrequency": 0.01}, {"cohort": "B", "minAlleleFrequency": 0.02}],}
-            >>> n_cases = {"v1": [{"cohort": "A", "nCases": 100}, {"cohort": "B", "nCases": 200}],
-            ...            "v2": [{"cohort": "A", "nCases": 150}, {"cohort": "C", "nCases": 250}],
-            ...            "v3": [{"cohort": "C", "nCases": 50}, {"cohort": "D", "nCases": 80}],}
-            >>> data = [("v1", maf["v1"], n_cases["v1"]),
-            ...         ("v2", maf["v2"], n_cases["v2"]),
-            ...         ("v3", maf["v3"], n_cases["v3"]),]
-            >>> schema = "variantId STRING, cohortMinAlleleFrequency ARRAY<STRUCT<cohort: STRING, minAlleleFrequency: DOUBLE>>, nCasesPerCohort ARRAY<STRUCT<cohort: STRING, nCases: INT>>"
+            >>> n_samples = {"v1": [{"cohort": "A", "nSamples": 100}, {"cohort": "B", "nSamples": 200}],
+            ...            "v2": [{"cohort": "A", "nSamples": 150}, {"cohort": "C", "nSamples": 250}],
+            ...            "v3": [{"cohort": "C", "nSamples": 50}, {"cohort": "D", "nSamples": 80}],}
+            >>> data = [("v1", maf["v1"], n_samples["v1"]),
+            ...         ("v2", maf["v2"], n_samples["v2"]),
+            ...         ("v3", maf["v3"], n_samples["v3"]),]
+            >>> schema = "variantId STRING, cohortMinAlleleFrequency ARRAY<STRUCT<cohort: STRING, minAlleleFrequency: DOUBLE>>, nSamplesPerCohort ARRAY<STRUCT<cohort: STRING, nSamples: INT>>"
             >>> df = spark.createDataFrame(data, schema)
             >>> df.show(truncate=False)
             +---------+------------------------+--------------------+
-            |variantId|cohortMinAlleleFrequency|nCasesPerCohort     |
+            |variantId|cohortMinAlleleFrequency|nSamplesPerCohort   |
             +---------+------------------------+--------------------+
             |v1       |[{A, 0.1}, {B, 0.2}]    |[{A, 100}, {B, 200}]|
             |v2       |[{A, 0.05}, {D, 0.15}]  |[{A, 150}, {C, 250}]|
             |v3       |[{A, 0.01}, {B, 0.02}]  |[{C, 50}, {D, 80}]  |
             +---------+------------------------+--------------------+
             <BLANKLINE>
-            >>> df = df.withColumn("cohortMinAlleleCount", FinnGenMetaSummaryStatistics.min_allele_count(f.col("cohortMinAlleleFrequency"), f.col("nCasesPerCohort")))
+            >>> df = df.withColumn("cohortMinAlleleCount", FinnGenMetaSummaryStatistics.min_allele_count(f.col("cohortMinAlleleFrequency"), f.col("nSamplesPerCohort")))
             >>> df.select("variantId", "cohortMinAlleleCount").show(truncate=False)
             +---------+--------------------+
             |variantId|cohortMinAlleleCount|
@@ -826,7 +856,7 @@ class FinnGenMetaSummaryStatistics:
             f.filter(
                 cohort_min_allele_frequency,
                 lambda left: f.exists(
-                    n_cases_per_cohort,
+                    n_samples_per_cohort,
                     lambda right: right.getField("cohort") == left.getField("cohort"),
                 ),
             ),
@@ -835,12 +865,12 @@ class FinnGenMetaSummaryStatistics:
                 mac(
                     left.getField("minAlleleFrequency"),
                     f.filter(
-                        n_cases_per_cohort,
+                        n_samples_per_cohort,
                         lambda right: right.getField("cohort")
                         == left.getField("cohort"),
                     )
                     .getItem(0)
-                    .getField("nCases"),
+                    .getField("nSamples"),
                 ).alias("minAlleleCount"),
             ),
         )
