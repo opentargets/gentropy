@@ -1,5 +1,7 @@
 readonly SHELL_RC="$HOME/.${SHELL##*/}rc"
-readonly PYTHON_VERSION=$(cat .python-version >&/dev/null || echo "3.11.11")
+readonly PYTHON_VERSION=$(cat .python-version 2>&/dev/null || echo "3.11.11")
+echo "Using shell rc file: $SHELL_RC"
+echo "Using python version: $PYTHON_VERSION"
 
 if ! command -v uv &>/dev/null; then
     echo "uv was not found, installing uv..."
