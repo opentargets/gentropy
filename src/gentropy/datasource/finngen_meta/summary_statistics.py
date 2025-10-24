@@ -213,7 +213,7 @@ class FinnGenUkbMvpMetaSummaryStatistics:
         # Handle n_threads limits and warnings
         if not isinstance(n_threads, int) or n_threads < 1:
             session.logger.warning(
-                f"Invalid n_threads value: {n_threads}. Falling back to 10 thread."
+                f"Invalid n_threads value: {n_threads}. Falling back to 10 threads."
             )
             n_threads = FinnGenUkbMvpMetaSummaryStatistics.N_THREAD_OPTIMAL
         if n_threads < FinnGenUkbMvpMetaSummaryStatistics.N_THREAD_OPTIMAL:
