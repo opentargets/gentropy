@@ -55,6 +55,10 @@ markdown_extensions:
       combine_header_slug: true
   - pymdownx.tasklist:
       custom_checkbox: true
+  - markdown_katex:
+      no_inline_svg: true
+      insert_fonts_css: true
+
 hooks:
   - src/utils/schemadocs.py
 

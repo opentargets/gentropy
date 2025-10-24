@@ -943,7 +943,7 @@ wheels = [
 
 [[package]]
 name = "gentropy"
-version = "0.0.0"
+version = "2.4.1"
 source = { editable = "." }
 dependencies = [
     { name = "google-cloud-secret-manager" },
@@ -984,6 +984,7 @@ dev = [
 ]
 docs = [
     { name = "lxml" },
+    { name = "markdown-katex" },
     { name = "mkdocs" },
     { name = "mkdocs-autolinks-plugin" },
     { name = "mkdocs-awesome-pages-plugin" },
@@ -1044,6 +1045,7 @@ dev = [
 ]
 docs = [
     { name = "lxml", specifier = ">=5.1.0,<6.1.0" },
+    { name = "markdown-katex", specifier = ">=202406.1035" },
     { name = "mkdocs", specifier = ">=1.5.3,<1.6.0" },
     { name = "mkdocs-autolinks-plugin", specifier = ">=0.7.1,<0.8.0" },
     { name = "mkdocs-awesome-pages-plugin", specifier = ">=2.9.2,<3.0.0" },
@@ -1838,6 +1840,19 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/54/28/3af612670f82f4c056911fbbbb42760255801b3068c48de792d354ff4472/markdown-3.7.tar.gz", hash = "sha256:2ae2471477cfd02dbbf038d5d9bc226d40def84b4fe2986e49b59b6b472bbed2", size = 357086, upload-time = "2024-08-16T15:55:17.812Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/3f/08/83871f3c50fc983b88547c196d11cf8c3340e37c32d2e9d6152abe2c61f7/Markdown-3.7-py3-none-any.whl", hash = "sha256:7eb6df5690b81a1d7942992c97fad2938e956e79df20cbc6186e9c3a77b1c803", size = 106349, upload-time = "2024-08-16T15:55:16.176Z" },
+]
+
+[[package]]
+name = "markdown-katex"
+version = "202406.1035"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "markdown" },
+    { name = "setuptools" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/07/d1/fb725e498ae1119ce21d3f7b721a16e42fd43ee0433d1be092c279006b10/markdown-katex-202406.1035.tar.gz", hash = "sha256:e82f7bf9a8536451da8f01768d847516fa1827feb17140b8eaa0bea9826bdab0", size = 39561876, upload-time = "2024-06-24T12:28:11.445Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/f4/34/780748d7d78fb4024dd1a290844374dd0d9830da35593c534638a4e9e54e/markdown_katex-202406.1035-py2.py3-none-any.whl", hash = "sha256:c1713e85854ddecb641ad96243a8b6cd67367bf1bf8d39b43b3680d7f2b1884d", size = 39766871, upload-time = "2024-06-24T12:27:46.251Z" },
 ]
 
 [[package]]
