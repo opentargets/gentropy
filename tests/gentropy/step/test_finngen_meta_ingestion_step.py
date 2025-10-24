@@ -7,7 +7,9 @@ import pytest
 from pyspark.sql import DataFrame, Row
 
 from gentropy import Session
-from gentropy.finngen_ukb_mvp_meta import FinngenUkbbMvpMetaIngestionStep
+from gentropy.finngen_ukb_mvp_meta import (
+    FinngenUkbMvpMetaSummaryStatisticsIngestionStep,
+)
 
 
 class TestFinnGenMetaIngestionStep:
@@ -24,7 +26,7 @@ class TestFinnGenMetaIngestionStep:
     @patch("gentropy.finngen_ukb_mvp_meta.FinnGenMetaManifest")
     @patch("gentropy.finngen_ukb_mvp_meta.EFOMapping")
     @patch("gentropy.finngen_ukb_mvp_meta.FinnGenMetaStudyIndex")
-    @patch("gentropy.finngen_ukb_mvp_meta.FinnGenMetaSummaryStatistics")
+    @patch("gentropy.finngen_ukb_mvp_meta.FinnGenUkbMvpMetaSummaryStatistics")
     @patch("gentropy.finngen_ukb_mvp_meta.VariantIndex")
     @patch("gentropy.finngen_ukb_mvp_meta.VariantDirection")
     @patch("pyspark.sql.readwriter.DataFrameReader.parquet")
@@ -99,16 +101,22 @@ class TestFinnGenMetaIngestionStep:
         ).as_posix()
 
         # Run the step
-        FinngenUkbbMvpMetaIngestionStep(
+        FinngenUkbMvpMetaSummaryStatisticsIngestionStep(
             session=session,
             source_manifest_path=source_manifest_path,
             efo_curation_path=efo_curation_path,
-            source_summary_statistics_glob=source_summary_statistics_glob,
             gnomad_variant_index_path=gnomad_variant_index_path,
             study_index_output_path=study_index_output_path,
             raw_summary_statistics_output_path=raw_summary_statistics_output_path,
             harmonised_summary_statistics_output_path=harmonised_summary_statistics_output_path,
             harmonised_summary_statistics_qc_output_path=harmonised_summary_statistics_qc_output_path,
+            perform_meta_analysis_filter=True,
+            imputation_score_threshold=0.8,
+            perform_imputation_score_filter=True,
+            perform_min_allele_count_filter=True,
+            perform_min_allele_frequency_filter=True,
+            min_allele_count_threshold=20,
+            min_allele_frequency_threshold=0.01,
             qc_threshold=1e-8,
         )
 
@@ -122,8 +130,8 @@ class TestFinnGenMetaIngestionStep:
         )
 
         fsi_mock.from_finngen_manifest.assert_called_once_with(
-            manifest_mock.from_path.return_value,
-            efo_mock.from_path.return_value,
+            manifest=manifest_mock.from_path.return_value,
+            efo_mapping=efo_mock.from_path.return_value,
         )
 
         fss_mock.bgzip_to_parquet.assert_called_once_with(
@@ -131,12 +139,15 @@ class TestFinnGenMetaIngestionStep:
             summary_statistics_glob=source_summary_statistics_glob,
             datasource=manifest_mock.from_path.return_value.meta,
             raw_summary_statistics_output_path=raw_summary_statistics_output_path,
+            n_threads=10,
         )
 
-        vi_mock.from_parquet.assert_called_once_with(session, gnomad_variant_index_path)
+        vi_mock.from_parquet.assert_called_once_with(
+            session=session, path=gnomad_variant_index_path
+        )
 
         vd_mock.from_variant_index.assert_called_once_with(
-            vi_mock.from_parquet.return_value
+            variant_index=vi_mock.from_parquet.return_value
         )
 
         # Verify that session.spark.read.parquet was called with the correct path
@@ -148,6 +159,13 @@ class TestFinnGenMetaIngestionStep:
             raw_summary_statistics=spark_read_parquet_mock.return_value,
             finngen_manifest=manifest_mock.from_path.return_value,
             variant_annotations=vd_mock.from_variant_index.return_value,
+            perform_meta_analysis_filter=True,
+            imputation_score_threshold=0.8,
+            perform_imputation_score_filter=True,
+            perform_min_allele_count_filter=True,
+            perform_min_allele_frequency_filter=True,
+            min_allele_count_threshold=20,
+            min_allele_frequency_threshold=0.01,
         )
 
         qc_mock.from_summary_statistics.assert_called_once_with(

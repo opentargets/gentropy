@@ -10,6 +10,7 @@ from pyspark.sql import Column
 from pyspark.sql import types as t
 
 from gentropy import VariantIndex
+from gentropy.common.schemas import parse_spark_schema
 from gentropy.dataset.dataset import Dataset
 
 
@@ -33,7 +34,7 @@ class VariantType(int, Enum):
     SNP = 1
     INS = 2
     DEL = 3
-    MNP = 4  # multi-variant polymorphism
+    MNP = 4  # multi-nucleotide polymorphism
 
 
 @dataclass
@@ -89,33 +90,7 @@ class VariantDirection(Dataset):
         Returns:
             t.StructType: Schema for the VariantIndex dataset
         """
-        return t.StructType(
-            [
-                t.StructField("chromosome", t.StringType(), nullable=False),
-                t.StructField("originalVariantId", t.StringType(), nullable=False),
-                t.StructField("type", t.ByteType(), nullable=True),
-                t.StructField("variantId", t.StringType(), nullable=False),
-                t.StructField("direction", t.ByteType(), nullable=False),
-                t.StructField("strand", t.ByteType(), nullable=True),
-                t.StructField("isStrandAmbiguous", t.BooleanType(), nullable=True),
-                t.StructField(
-                    "originalAlleleFrequencies",
-                    t.ArrayType(
-                        t.StructType(
-                            [
-                                t.StructField(
-                                    "populationName", t.StringType(), nullable=False
-                                ),
-                                t.StructField(
-                                    "alleleFrequency", t.DoubleType(), nullable=False
-                                ),
-                            ]
-                        )
-                    ),
-                    nullable=True,
-                ),
-            ]
-        )
+        return parse_spark_schema("variant_direction.json")
 
     @classmethod
     def is_strand_ambiguous(cls, ref: Column, alt: Column) -> Column:

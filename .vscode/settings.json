@@ -32,15 +32,21 @@
   "extensions.ignoreRecommendations": true,
   "python.analysis.typeCheckingMode": "standard",
   "cSpell.words": [
+    "bgzip",
+    "biobank",
     "biosample",
     "colocalisation",
     "diffpval",
     "eqtl",
+    "finngen",
     "GCST",
     "gentropy",
     "gnomad",
     "harmonisation",
     "harmonise",
+    "harmonised",
+    "Harmonises",
+    "Harmonising",
     "liftover",
     "logpval",
     "logsum",
@@ -59,6 +65,7 @@
     "studylocus",
     "sumstat",
     "sumstats",
-    "tuqtl"
+    "tuqtl",
+    "Ukbb"
   ]
 }

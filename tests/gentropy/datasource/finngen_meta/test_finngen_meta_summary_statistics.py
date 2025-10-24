@@ -15,12 +15,12 @@ from gentropy.datasource.finngen_meta import (
     MetaAnalysisDataSource,
 )
 from gentropy.datasource.finngen_meta.summary_statistics import (
-    FinnGenMetaSummaryStatistics,
+    FinnGenUkbMvpMetaSummaryStatistics,
 )
 
 
-class TestFinnGenMetaSummaryStatistics:
-    """Test FinnGenMetaSummaryStatistics dataset."""
+class TestFinnGenUkbMvpMetaSummaryStatistics:
+    """Test FinnGenUkbMvpMetaSummaryStatistics dataset."""
 
     @pytest.fixture
     def raw_sumstat_required_schema(self) -> t.StructType:
@@ -307,7 +307,7 @@ class TestFinnGenMetaSummaryStatistics:
         input_path = "tests/gentropy/data_samples/*_meta_out.tsv.gz"
         output_path = tmp_path / "output"
         with pytest.raises(KeyError) as e:
-            FinnGenMetaSummaryStatistics.bgzip_to_parquet(
+            FinnGenUkbMvpMetaSummaryStatistics.bgzip_to_parquet(
                 session,
                 summary_statistics_list=[input_path],
                 datasource=MetaAnalysisDataSource.FINNGEN_UKBB_MVP,
@@ -340,7 +340,7 @@ class TestFinnGenMetaSummaryStatistics:
         for p in [input_path_1, input_path_2]:
             assert Path(p).exists(), f"Test file {p} does not exist."
             assert Path(p + ".tbi").exists(), f"Index file {p}.tbi does not exist."
-        FinnGenMetaSummaryStatistics.bgzip_to_parquet(
+        FinnGenUkbMvpMetaSummaryStatistics.bgzip_to_parquet(
             session,
             summary_statistics_list=[input_path_1, input_path_2],
             datasource=MetaAnalysisDataSource.FINNGEN_UKBB,
@@ -348,7 +348,7 @@ class TestFinnGenMetaSummaryStatistics:
         )
         # Now read back the parquet files and check if schema is equal to raw schema
         df = session.spark.read.parquet(output_path)
-        expected_schema = FinnGenMetaSummaryStatistics.raw_schema
+        expected_schema = FinnGenUkbMvpMetaSummaryStatistics.raw_schema
         expected_schema = expected_schema.add(
             "studyId", t.StringType(), nullable=True
         )  # studyId is added during bgzip_to_parquet
@@ -361,7 +361,7 @@ class TestFinnGenMetaSummaryStatistics:
         raw_sumstat_input_df: DataFrame,
     ) -> None:
         """Test summary statistics from source."""
-        sumstat = FinnGenMetaSummaryStatistics.from_source(
+        sumstat = FinnGenUkbMvpMetaSummaryStatistics.from_source(
             raw_sumstat_input_df,
             finngen_manifest,
             variant_direction,

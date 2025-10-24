@@ -22,12 +22,15 @@ from gentropy.dataset.variant_direction import VariantDirection
 from gentropy.datasource.finngen_meta import FinnGenMetaManifest, MetaAnalysisDataSource
 
 
-class FinnGenMetaSummaryStatistics:
+class FinnGenUkbMvpMetaSummaryStatistics:
     """FinnGen meta summary statistics ingestion and harmonisation."""
+
+    N_THREAD_MAX = 32
+    N_THREAD_OPTIMAL = 10
 
     @staticmethod
     def extract_study_phenotype_from_path(file_path: Column) -> Column:
-        """Extract the study phenotype from finngen file path.
+        """Extract the study phenotype from FinnGen file path.
 
         Note:
             Assumes the file name format is some_path/to/<studyPhenotype>_meta_out.tsv.gz
@@ -43,7 +46,7 @@ class FinnGenMetaSummaryStatistics:
             >>> data = [("/path/to/AB1_meta_out.tsv.gz",), ("/another/path/CD2_meta_out.tsv.gz",)]
             >>> schema = "filePath STRING"
             >>> df = spark.createDataFrame(data, schema)
-            >>> df =df.withColumn("studyPhenotype", FinnGenMetaSummaryStatistics.extract_study_phenotype_from_path(f.col("filePath")))
+            >>> df =df.withColumn("studyPhenotype", FinnGenUkbMvpMetaSummaryStatistics.extract_study_phenotype_from_path(f.col("filePath")))
             >>> df.show(truncate=False)
             +---------------------------------+--------------+
             |filePath                         |studyPhenotype|
@@ -154,11 +157,19 @@ class FinnGenMetaSummaryStatistics:
     ) -> None:
         """Convert gzipped summary statistics to Parquet format.
 
+        This is a pre-step that needs to be performed once to convert the block gzipped to parquet format. This step
+        should be run before the actual harmonisation step is performed and the output Parquet files can be used as input
+        for the `from_source` method.
+
         Args:
             session (Session): Session object.
             summary_statistics_list (list[str]): List of paths where summary statistics files are located.
-            datasource (MetaAnalysisDataSource): Data source information.
+            datasource (MetaAnalysisDataSource): Data source, can be FinnGenMetaDataSource.FINNGEN_UKBB_MVP.
             raw_summary_statistics_output_path (str): Output path for the Parquet files.
+            n_threads (int): Maximum number of threads to use for ThreadPoolExecutor (default is 10).
+
+        The output requires a single path that will be populated with Parquet files partitioned by `studyId` extracted
+        from the input file names.
 
         Note:
             Since the individual summary statistics files are block gzipped we use the enhanced bgzip codec for efficient reading.
@@ -168,14 +179,25 @@ class FinnGenMetaSummaryStatistics:
 
             **_enforcing schema_**
             using the `enforceSchema` option in `spark.read.csv` **does not map columns that exist in the file provided schema**,
-            but rather alignes columns positionally, which breaks the column order per individual file.
+            but rather aligns columns positionally, which breaks the column order per individual file.
             **_inferring schema_**
             Attempting to use the `inferSchema` option in `spark.read.csv` while reading multiple files in bulk drops columns, due
-            to the random sampling of files to infer the schema. (Files choosen to infer the schema may not contain entire superset of column space.)
+            to the random sampling of files to infer the schema. (Files chosen to infer the schema may not contain entire superset of column space.)
             **_manual schema enforcement_**
             The only way to keep the columns in order and use full column superset is to loop over the files with `inferSchema` and manually
-            add missing columns with null values casted to expected type. The looping can be parallelised using a **thread pool**.
+            add missing columns with null values casted to expected type. The looping can be parallelized using a **thread pool** (ThreadPoolExecutor)
+            with `n_threads` as the maximum load of jobs to spark cluster.
+
+        Warning:
+            This function requires a Session with `use_enhanced_bgzip_codec` to be set to True. This function is strongly encouraged to be used in
+            a distributed environment.
+
+        Raises:
+            KeyError: If `use_enhanced_bgzip_codec` is set to False in the Session configuration.
         """
+        if len(summary_statistics_list) == 0:
+            session.logger.warning("No summary statistics paths found to process.")
+            return
         if not session.use_enhanced_bgzip_codec:
             session.logger.error(
                 "The use_enhanced_bgzip_codec is set to False. This will lead to inefficient reading of block gzipped files."
@@ -183,6 +205,22 @@ class FinnGenMetaSummaryStatistics:
             raise KeyError(
                 "Please set `session.spark.use_enhanced_bgzip_codec` to True in the Session configuration."
             )
+
+        # Handle n_threads limits and warnings
+        if not isinstance(n_threads, int) or n_threads < 1:
+            session.logger.warning(
+                f"Invalid n_threads value: {n_threads}. Falling back to 10 thread."
+            )
+            n_threads = FinnGenUkbMvpMetaSummaryStatistics.N_THREAD_OPTIMAL
+        if n_threads < FinnGenUkbMvpMetaSummaryStatistics.N_THREAD_OPTIMAL:
+            session.logger.warning(
+                f"Using low n_threads value: {n_threads}. This may lead to sub-optimal performance."
+            )
+        if n_threads > FinnGenUkbMvpMetaSummaryStatistics.N_THREAD_MAX:
+            session.logger.warning(
+                f"Using high n_threads value: {n_threads}, this may lead to overloading spark driver. Limiting to 32."
+            )
+            n_threads = FinnGenUkbMvpMetaSummaryStatistics.N_THREAD_MAX
 
         def process_one(
             input_path: str, session: Session, output_path: str
@@ -256,14 +294,38 @@ class FinnGenMetaSummaryStatistics:
         """Build the summary statistics dataset from raw summary statistics.
 
         The logic behind the harmonisation has following steps:
-        (1) Filter out rows with missing statistics (p-value, beta, standard error)
-        (2) Filter out variants that are not meta analyzed (nBiobanks < 1)
-        (3) Filter out variants from MVP cohorts that have low imputation score < 0.8
-        (4) Filter out variants that have low minor allele count < 20 in any cohort
-        (6) Align allele direction, beta sign based on the Gnomad variant direction dataset.
-        (7) Perform the summary statistics
+            1. Build a slice of FinnGen Manifest to bring the information about nCases and nSamples per cohort (broadcast join).
+            2. Build a variant direction (gnomAD) dataset partitioned by `chromosome` and `variantId` for joining using Sort-Merge strategy.
+            3. Select required columns from raw summary statistics
+            4. Remove all non-meta analyzed variants (nBiobanks < 2) - by default
+            5. Remove all variants with low imputation score - by default
+            6. Join with Finngen Manifest and Variant Direction datasets
+            7. Flip `beta` and `min allele frequency` based on the `direction` from Variant Direction dataset
+            8. Use originalVariantId from Variant Direction dataset if available, otherwise fall back to variantId (for variants missing from Variant Direction)
+            9. Calculate combined effect allele frequency from cohorts
+            10. Remove all variants with low Min Allele Count - by default
+            11. Remove all variants with low Min Allele Frequency - optional
+            12. Remove strand ambiguous variants - optional
 
-        To calculate the MAC we need to bring the number of cases per cohort from the StudyIndex.
+        Note:
+            **Variant Direction**
+            By default we:
+            (1) keep all strand ambiguous variants as is
+            (2) keep all variants found in gnomAD aligned to gnomAD reference ( if alleles are flipped we flip the beta and allele frequency)
+            (3) keep all variants not found in gnomAD as is (cannot determine strand or alignment) - we assume these are correct.
+
+        Note:
+            See original issue to find out more details on the harmonisation logic:
+            https://github.com/opentargets/issues/issues/3474
+
+        Warning:
+            * The input summary statistics are expected to be already parquet formatted and partitioned by `studyId`.
+            * Both `perform_allele_count_filter` and `perform_allele_frequency_filter` are redundant, if both
+            are set to True, only `perform_allele_count_filter` will be applied.
+            * Threshold value for Min Allele Count >= 20 means that with a MAF of 1e-4 we would expect to see
+            at least 1_000 samples with minor allele in a cohort. This is quiet stringent for very rare variants and
+            smaller cohorts, like MVP_AFR (nSamples ~120k) and MVP_HIS (~60k).
+            * MVP_HIS cohort has been mapped to admixed American population - see https://www.science.org/doi/10.1126/science.adj1182 for more details.
 
         Args:
             raw_summary_statistics (DataFrame): Raw summary statistics dataframe.
@@ -276,10 +338,16 @@ class FinnGenMetaSummaryStatistics:
             perform_min_allele_count_filter (bool): Whether to perform the minimum allele count filter. Default is False.
             min_allele_frequency_threshold (float): Minimum allele frequency threshold. Default is 1e-4.
             perform_min_allele_frequency_filter (bool): Whether to perform the minimum allele frequency filter. Default is True.
+            filter_out_ambiguous_variants (bool): Whether to filter out strand ambiguous variants. Default is False.
 
         Returns:
             SummaryStatistics: Processed summary statistics dataset.
         """
+        if perform_min_allele_count_filter and perform_min_allele_frequency_filter:
+            # NOTE - MAC filter will be more stringent at low allele frequencies, so no
+            # need to have both filters active at the same time
+            perform_min_allele_frequency_filter = False
+
         si_slice = f.broadcast(
             finngen_manifest.df.select(
                 f.col("studyId"),
@@ -297,7 +365,7 @@ class FinnGenMetaSummaryStatistics:
                 f.col("isStrandAmbiguous"),
             )
             # NOTE: repartition("chromosome") produces very uneven partitions,
-            # Spark attempts then to fall back to `dynamic partitionning` algorithm
+            # Spark attempts then to fall back to `dynamic partitioning` algorithm
             # which fails after N failures.
             .repartitionByRange(4_000, "chromosome", "variantId")
             .persist()
@@ -394,7 +462,7 @@ class FinnGenMetaSummaryStatistics:
             )
             # Compute allele frequency per cohort and align with direction
             # NOTE: `direction` column represents if variant aligned to gnomAD variant or it's flipped
-            # version, the values are `1`` - direct, `-1`` - flipped
+            # version, the values are `1` - direct, `-1` - flipped
             .withColumn(
                 "cohortAlleleFrequency", cls.allele_frequencies(f.col("direction"))
             )
@@ -411,6 +479,7 @@ class FinnGenMetaSummaryStatistics:
             )
         )
         # Remove strand ambiguous variants, if not found in gnomAD, we keep the variant
+        # Not run by default
         if filter_out_ambiguous_variants:
             sumstats = sumstats.filter(
                 ~f.coalesce(f.col("isStrandAmbiguous"), f.lit(False))
@@ -454,6 +523,7 @@ class FinnGenMetaSummaryStatistics:
                     "nCasesPerCohort",
                 )
             )
+        # Not run by default.
         if perform_min_allele_frequency_filter:
             sumstats = (
                 sumstats.withColumn(
@@ -466,7 +536,7 @@ class FinnGenMetaSummaryStatistics:
                 .filter(~f.col("hasLowMinAlleleFrequency"))
                 .drop("hasLowMinAlleleFrequency")
             )
-
+        # Convert to final summary statistics schema
         sumstats = sumstats.select(
             f.col("studyId"),
             f.col("variantId"),
@@ -524,7 +594,7 @@ class FinnGenMetaSummaryStatistics:
             +---------+--------------------------+
             <BLANKLINE>
 
-            >>> df = df.withColumn("hasMinAlleleFrequency", FinnGenMetaSummaryStatistics.has_low_min_allele_frequency(f.col("cohortMinAlleleFrequency")))
+            >>> df = df.withColumn("hasMinAlleleFrequency", FinnGenUkbMvpMetaSummaryStatistics.has_low_min_allele_frequency(f.col("cohortMinAlleleFrequency")))
             >>> df.select("variantId", "hasMinAlleleFrequency").show(truncate=False)
             +---------+---------------------+
             |variantId|hasMinAlleleFrequency|
@@ -577,7 +647,7 @@ class FinnGenMetaSummaryStatistics:
             +---------+----+----+
             <BLANKLINE>
 
-            >>> df = df.withColumn("normalizedAf", FinnGenMetaSummaryStatistics.normalize_af(f.col("af"), f.col("flip")))
+            >>> df = df.withColumn("normalizedAf", FinnGenUkbMvpMetaSummaryStatistics.normalize_af(f.col("af"), f.col("flip")))
             >>> df.select("variantId", "normalizedAf").show(truncate=False)
             +---------+------------+
             |variantId|normalizedAf|
@@ -622,7 +692,7 @@ class FinnGenMetaSummaryStatistics:
             +---------+--------------+--------------+--------------+---------+-----------+----+
             <BLANKLINE>
 
-            >>> df = df.withColumn("alleleFrequencies", FinnGenMetaSummaryStatistics.allele_frequencies(f.col("flip")))
+            >>> df = df.withColumn("alleleFrequencies", FinnGenUkbMvpMetaSummaryStatistics.allele_frequencies(f.col("flip")))
             >>> df.select("alleleFrequencies").show(truncate=False)
             +-------------------------------------------------------------------------------------------------+
             |alleleFrequencies                                                                                |
@@ -706,7 +776,7 @@ class FinnGenMetaSummaryStatistics:
             +---------+------------------------------+-----------------------------+
             <BLANKLINE>
 
-            >>> df = df.withColumn("combinedAlleleFrequency", FinnGenMetaSummaryStatistics.combined_allele_frequency(f.col("alleleFrequencies"), f.col("nSamplesPerCohort")))
+            >>> df = df.withColumn("combinedAlleleFrequency", FinnGenUkbMvpMetaSummaryStatistics.combined_allele_frequency(f.col("alleleFrequencies"), f.col("nSamplesPerCohort")))
             >>> df.select("variantId", f.round("combinedAlleleFrequency", 2).alias("caf")).show(truncate=False)
             +---------+----+
             |variantId|caf |
@@ -786,7 +856,7 @@ class FinnGenMetaSummaryStatistics:
             +---------+--------------------+
             <BLANKLINE>
 
-            >>> df = df.withColumn("cohortMinAlleleFrequency", FinnGenMetaSummaryStatistics.min_allele_frequency(f.col("alleleFrequencies")))
+            >>> df = df.withColumn("cohortMinAlleleFrequency", FinnGenUkbMvpMetaSummaryStatistics.min_allele_frequency(f.col("alleleFrequencies")))
             >>> df.show(truncate=False)
             +---------+--------------------+--------------------------------------+
             |variantId|alleleFrequencies   |cohortMinAlleleFrequency              |
@@ -840,7 +910,7 @@ class FinnGenMetaSummaryStatistics:
             |v3       |[{A, 0.01}, {B, 0.02}]  |[{C, 50}, {D, 80}]  |
             +---------+------------------------+--------------------+
             <BLANKLINE>
-            >>> df = df.withColumn("cohortMinAlleleCount", FinnGenMetaSummaryStatistics.min_allele_count(f.col("cohortMinAlleleFrequency"), f.col("nSamplesPerCohort")))
+            >>> df = df.withColumn("cohortMinAlleleCount", FinnGenUkbMvpMetaSummaryStatistics.min_allele_count(f.col("cohortMinAlleleFrequency"), f.col("nSamplesPerCohort")))
             >>> df.select("variantId", "cohortMinAlleleCount").show(truncate=False)
             +---------+--------------------+
             |variantId|cohortMinAlleleCount|
@@ -899,7 +969,7 @@ class FinnGenMetaSummaryStatistics:
             ...         ("v4", [{"cohort": "A", "minAlleleCount": 5},],)]
             >>> schema = "variantId STRING, cohortMinAlleleCount ARRAY<STRUCT<cohort: STRING, minAlleleCount: INT>>"
             >>> df = spark.createDataFrame(data, schema)
-            >>> df = df.withColumn("hasLowMinAlleleCount", FinnGenMetaSummaryStatistics.has_low_min_allele_count(f.col("cohortMinAlleleCount"), 20))
+            >>> df = df.withColumn("hasLowMinAlleleCount", FinnGenUkbMvpMetaSummaryStatistics.has_low_min_allele_count(f.col("cohortMinAlleleCount"), 20))
             >>> df.select("variantId", "hasLowMinAlleleCount").show()
             +---------+--------------------+
             |variantId|hasLowMinAlleleCount|
@@ -944,7 +1014,7 @@ class FinnGenMetaSummaryStatistics:
             >>> data = [("v1", 0.9, 0.8, 1.0), ("v2",0.7, 0.9, 0.9), ("v3", None, None, 0.8), ("v4", None, None, 0.7)]
             >>> schema = "variantId STRING, MVP_EUR_r2 DOUBLE, MVP_AFR_r2 DOUBLE, MVP_HIS_r2 DOUBLE"
             >>> df = spark.createDataFrame(data, schema)
-            >>> df = df.withColumn("hasLowImputationScore", FinnGenMetaSummaryStatistics.has_low_imputation_score(0.8))
+            >>> df = df.withColumn("hasLowImputationScore", FinnGenUkbMvpMetaSummaryStatistics.has_low_imputation_score(0.8))
             >>> df.select("variantId", "hasLowImputationScore").show()
             +---------+---------------------+
             |variantId|hasLowImputationScore|
@@ -1016,7 +1086,7 @@ class FinnGenMetaSummaryStatistics:
             >>> data1 = [(0.3, 0.2, 0.4, 0.1, 0.25)]
             >>> schema1 = "MVP_EUR_af_alt DOUBLE, MVP_AFR_af_alt DOUBLE, MVP_HIS_af_alt DOUBLE, fg_af_alt DOUBLE, ukbb_af_alt DOUBLE"
             >>> df1 = spark.createDataFrame(data1, schema1)
-            >>> df1.withColumn("cohorts", FinnGenMetaSummaryStatistics.cohorts()).select("cohorts").show(truncate=False)
+            >>> df1.withColumn("cohorts", FinnGenUkbMvpMetaSummaryStatistics.cohorts()).select("cohorts").show(truncate=False)
             +----------------------------------------------------------------------------------+
             |cohorts                                                                           |
             +----------------------------------------------------------------------------------+
@@ -1027,7 +1097,7 @@ class FinnGenMetaSummaryStatistics:
             # Test case 2: Only some cohorts have data
             >>> data2 = [(0.3, None, None, 0.1, None)]
             >>> df2 = spark.createDataFrame(data2, schema1)
-            >>> df2.withColumn("cohorts", FinnGenMetaSummaryStatistics.cohorts()).select("cohorts").show(truncate=False)
+            >>> df2.withColumn("cohorts", FinnGenUkbMvpMetaSummaryStatistics.cohorts()).select("cohorts").show(truncate=False)
             +------------------------------------+
             |cohorts                             |
             +------------------------------------+
@@ -1106,7 +1176,7 @@ class FinnGenMetaSummaryStatistics:
             +----------------------------------------------------+
             <BLANKLINE>
 
-            >>> df.withColumn("isMetaAnalyzedVariant", FinnGenMetaSummaryStatistics.is_meta_analyzed_variant(f.col("cohorts"))).show(truncate=False)
+            >>> df.withColumn("isMetaAnalyzedVariant", FinnGenUkbMvpMetaSummaryStatistics.is_meta_analyzed_variant(f.col("cohorts"))).show(truncate=False)
             +----------------------------------------------------+---------------------+
             |cohorts                                             |isMetaAnalyzedVariant|
             +----------------------------------------------------+---------------------+
