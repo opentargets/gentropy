@@ -57,7 +57,6 @@ class FinngenUkbMvpMetaSummaryStatisticsIngestionStep:
         C2 --> C3["Raw summary statistics in parquet format"]
         end
 
-
         %% --- STEP 3: Quality Control ---
         subgraph "Variant Annotations"
         G1["VariantIndex"] --> G2["VariantDirection"]

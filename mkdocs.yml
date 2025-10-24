@@ -17,6 +17,7 @@ plugins:
             filters: ["!^_", "!__new__", "__init__"]
             show_signature_annotations: true
             show_root_heading: true
+            heading_level: 3
   - section-index
   - git-revision-date-localized:
       type: timeago
@@ -40,13 +41,13 @@ markdown_extensions:
         - name: mermaid
           class: mermaid
           format: !!python/name:pymdownx.superfences.fence_code_format
+
   - pymdownx.snippets:
       base_path: "docs"
       dedent_subsections: true
   - pymdownx.highlight:
       pygments_lang_class: true
 
-  - pymdownx.superfences
   - toc:
       permalink: true
   - pymdownx.tabbed:

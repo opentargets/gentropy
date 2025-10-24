@@ -30,6 +30,7 @@ repos:
           - --branch=main
       - id: check-toml
       - id: check-yaml
+        args: ["--unsafe"]
       - id: check-ast
       - id: debug-statements
       - id: check-docstring-first
@@ -37,8 +38,7 @@ repos:
     rev: v1.37.1
     hooks:
       - id: yamllint
-        exclude: mkdocs.yaml # Currently pyfences raises unresolvable issue for mermaid blocks.
-        # See: https://stackoverflow.com/questions/79664876/how-prevent-check-yaml-for-specific-file-or-line-inside-that-file-with-pre-commi
+
   - repo: https://github.com/pre-commit/pygrep-hooks
     rev: v1.10.0
     hooks:
