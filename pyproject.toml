@@ -131,7 +131,7 @@ exclude = ["dist"]
 addopts = "-n auto --doctest-modules --cov=src/ --cov-report=xml --cache-clear"
 pythonpath = ["."]
 testpaths = ["tests/gentropy", "src/gentropy"]
-markers = ["step_test"]
+markers = ["step_test", "long_test"]
 filterwarnings = [
   "ignore:.*it is preferred to specify type hints for pandas UDF.*:UserWarning"
 

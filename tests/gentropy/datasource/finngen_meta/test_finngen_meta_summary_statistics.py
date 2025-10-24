@@ -1,6 +1,7 @@
 """Tests for finngen meta summary statistics dataset."""
 
 from pathlib import Path
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pyspark.sql.types as t
@@ -123,7 +124,7 @@ class TestFinnGenUkbMvpMetaSummaryStatistics:
             0.00001,  # UKBB AF (very low)
             0.22, 0.022, 5.7),  # Meta
 
-            # Row 8: Palindromic variant A>T - should be filtered out
+            # Row 8: Palindromic variant A>T - should be preserved
             ("FINNGEN_TEST", "1", 999, "A", "T", "rs8",
             0.36,  # FinnGen AF
             0.46, 0.96,  # MVP_EUR AF, r2
@@ -132,7 +133,7 @@ class TestFinnGenUkbMvpMetaSummaryStatistics:
             0.50,  # UKBB AF
             0.23, 0.023, 5.8),  # Meta
 
-            # Row 9: Variant with flipped direction - should pass but beta flipped
+            # Row 9: Variant with flipped direction - should pass but beta and AF flipped
             ("FINNGEN_TEST", "1", 1000, "A", "G", "rs9",
             0.37,  # FinnGen AF
             0.47, 0.97,  # MVP_EUR AF, r2
@@ -150,7 +151,7 @@ class TestFinnGenUkbMvpMetaSummaryStatistics:
             0.52,  # UKBB AF
             0.25, 0.025, 6.0),  # Meta
 
-            # Row 11: Variant missing from variant direction dataset - should be filtered out
+            # Row 11: Variant missing from variant direction dataset - should pass by default
             ("FINNGEN_TEST", "1", 1002, "A", "C", "rs11",
             0.39,  # FinnGen AF
             0.49, 0.99,  # MVP_EUR AF, r2
@@ -218,49 +219,27 @@ class TestFinnGenUkbMvpMetaSummaryStatistics:
         finngen_manifest_data = [
             (
                 "FINNGEN_TEST",
+                "FinnGen",
+                500,
+                [{"cohort": "FinnGen", "nCases": 500}],
                 1000,
-                [
-                    {
-                        "cohort": "FinnGen",
-                        "nCases": 500,
-                        "nCasesPerCohort": [{"cohort": "FinnGen", "nCases": 500}],
-                        "nSamples": 1000,
-                        "nSamplesPerCohort": [{"cohort": "FinnGen", "nSamples": 1000}],
-                    },
-                    {
-                        "cohort": "MVP_EUR",
-                        "nCases": 300,
-                        "nCasesPerCohort": [{"cohort": "MVP_EUR", "nCases": 300}],
-                        "nSamples": 600,
-                        "nSamplesPerCohort": [{"cohort": "MVP_EUR", "nSamples": 600}],
-                    },
-                    {
-                        "cohort": "MVP_AFR",
-                        "nCases": 200,
-                        "nCasesPerCohort": [{"cohort": "MVP_AFR", "nCases": 200}],
-                        "nSamples": 400,
-                        "nSamplesPerCohort": [{"cohort": "MVP_AFR", "nSamples": 400}],
-                    },
-                    {
-                        "cohort": "MVP_AMR",
-                        "nCases": 150,
-                        "nCasesPerCohort": [{"cohort": "MVP_AMR", "nCases": 150}],
-                        "nSamples": 300,
-                        "nSamplesPerCohort": [{"cohort": "MVP_AMR", "nSamples": 300}],
-                    },
-                    {
-                        "cohort": "UKBB",
-                        "nCases": 400,
-                        "nCasesPerCohort": [{"cohort": "UKBB", "nCases": 400}],
-                        "nSamples": 800,
-                        "nSamplesPerCohort": [{"cohort": "UKBB", "nSamples": 800}],
-                    },
-                ],
-            )
+                [{"cohort": "FinnGen", "nSamples": 1000}],
+            ),
+            (
+                # Another study that should be dropped when joining,
+                # since it is not present in the raw summary statistics
+                "FINNGEN_TEST_2",
+                "FinnGen",
+                500,
+                [{"cohort": "FinnGen", "nCases": 500}],
+                1000,
+                [{"cohort": "FinnGen", "nSamples": 1000}],
+            ),
         ]
 
         finngen_manifest_schema = t.StructType(
             [
+                t.StructField("studyId", t.StringType(), False),
                 t.StructField("cohort", t.StringType(), False),
                 t.StructField("nCases", t.IntegerType(), False),
                 t.StructField(
@@ -354,20 +333,40 @@ class TestFinnGenUkbMvpMetaSummaryStatistics:
         )  # studyId is added during bgzip_to_parquet
         assert df.schema == expected_schema, "Schemas do not match after conversion."
 
+    @pytest.mark.parametrize(
+        ["params"],
+        [
+            pytest.param(
+                {
+                    "perform_meta_analysis_filter": True,
+                    "imputation_score_threshold": 0.8,
+                    "perform_imputation_score_filter": True,
+                    "min_allele_count_threshold": 20,
+                    "perform_min_allele_count_filter": True,
+                    "min_allele_frequency_threshold": 1e-4,
+                    "perform_min_allele_frequency_filter": False,
+                    "filter_out_ambiguous_variants": False,
+                },
+                id="default params",
+            ),
+        ],
+    )
     def test_from_source(
         self,
         finngen_manifest: FinnGenMetaManifest,
         variant_direction: VariantDirection,
         raw_sumstat_input_df: DataFrame,
+        params: dict[str, Any],
     ) -> None:
         """Test summary statistics from source."""
         sumstat = FinnGenUkbMvpMetaSummaryStatistics.from_source(
             raw_sumstat_input_df,
             finngen_manifest,
             variant_direction,
+            **params,
         )
 
-        assert sumstat.df.count() == 2, "wrong number of variants"
+        assert sumstat.df.count() == 4, "wrong number of variants"
         expected_data = [
             Row(
                 studyId="FINNGEN_TEST",
@@ -378,7 +377,7 @@ class TestFinnGenUkbMvpMetaSummaryStatistics:
                 sampleSize=1000,
                 pValueMantissa=1.258925437927246,
                 pValueExponent=-6,
-                effectAlleleFrequencyFromSource=None,
+                effectAlleleFrequencyFromSource=0.6299999952316284,
                 standardError=0.024,
             ),
             Row(
@@ -390,8 +389,32 @@ class TestFinnGenUkbMvpMetaSummaryStatistics:
                 sampleSize=1000,
                 pValueMantissa=1.0,
                 pValueExponent=-6,
-                effectAlleleFrequencyFromSource=None,
+                effectAlleleFrequencyFromSource=0.3799999952316284,
                 standardError=0.025,
+            ),
+            Row(
+                studyId="FINNGEN_TEST",
+                variantId="1_1002_A_C",
+                chromosome="1",
+                position=1002,
+                beta=0.26,
+                sampleSize=1000,
+                pValueMantissa=7.943282127380371,
+                pValueExponent=-7,
+                effectAlleleFrequencyFromSource=0.38999998569488525,
+                standardError=0.026,
+            ),
+            Row(
+                studyId="FINNGEN_TEST",
+                variantId="1_999_A_T",
+                chromosome="1",
+                position=999,
+                beta=0.23,
+                sampleSize=1000,
+                pValueMantissa=1.5848932266235352,
+                pValueExponent=-6,
+                effectAlleleFrequencyFromSource=0.36000001430511475,
+                standardError=0.023,
             ),
         ]
         assertDataFrameEqual(

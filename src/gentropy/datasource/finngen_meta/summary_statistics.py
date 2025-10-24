@@ -46,7 +46,7 @@ class FinnGenUkbMvpMetaSummaryStatistics:
             >>> data = [("/path/to/AB1_meta_out.tsv.gz",), ("/another/path/CD2_meta_out.tsv.gz",)]
             >>> schema = "filePath STRING"
             >>> df = spark.createDataFrame(data, schema)
-            >>> df =df.withColumn("studyPhenotype", FinnGenUkbMvpMetaSummaryStatistics.extract_study_phenotype_from_path(f.col("filePath")))
+            >>> df = df.withColumn("studyPhenotype", FinnGenUkbMvpMetaSummaryStatistics.extract_study_phenotype_from_path(f.col("filePath")))
             >>> df.show(truncate=False)
             +---------------------------------+--------------+
             |filePath                         |studyPhenotype|
@@ -171,25 +171,29 @@ class FinnGenUkbMvpMetaSummaryStatistics:
         The output requires a single path that will be populated with Parquet files partitioned by `studyId` extracted
         from the input file names.
 
-        Note:
-            Since the individual summary statistics files are block gzipped we use the enhanced bgzip codec for efficient reading.
+        !!! note "Block gzipped input files"
 
-        Note:
+            Since the individual summary statistics files are **block gzipped** we use the enhanced bgzip codec for efficient reading.
+
+        !!! note "Reading multiple files with divergent schemas"
+
             Since the schema for individual summary statistics **is not strictly the same we have to enforce the schema**.
 
             **_enforcing schema_**
             using the `enforceSchema` option in `spark.read.csv` **does not map columns that exist in the file provided schema**,
             but rather aligns columns positionally, which breaks the column order per individual file.
+
             **_inferring schema_**
             Attempting to use the `inferSchema` option in `spark.read.csv` while reading multiple files in bulk drops columns, due
             to the random sampling of files to infer the schema. (Files chosen to infer the schema may not contain entire superset of column space.)
+
             **_manual schema enforcement_**
             The only way to keep the columns in order and use full column superset is to loop over the files with `inferSchema` and manually
             add missing columns with null values casted to expected type. The looping can be parallelized using a **thread pool** (ThreadPoolExecutor)
             with `n_threads` as the maximum load of jobs to spark cluster.
 
-        Warning:
-            This function requires a Session with `use_enhanced_bgzip_codec` to be set to True. This function is strongly encouraged to be used in
+        ??? warning "Performance considerations"
+            This function requires a _Session_ with `use_enhanced_bgzip_codec` to be set to True. This function is strongly encouraged to be used in
             a distributed environment.
 
         Raises:
@@ -225,7 +229,16 @@ class FinnGenUkbMvpMetaSummaryStatistics:
         def process_one(
             input_path: str, session: Session, output_path: str
         ) -> DataFrame:
-            """Function to process one finngen-ukbb-mvp summary statistics file to schema superset."""
+            """Function to process one finngen-ukbb-mvp summary statistics file to schema superset.
+
+            Args:
+                input_path (str): Input path to the gzipped summary statistics file.
+                session (Session): Session object.
+                output_path (str): Output path for the Parquet files.
+
+            Returns:
+                DataFrame: Processed dataframe.
+            """
             df = session.spark.read.csv(
                 input_path,
                 header=True,
@@ -293,7 +306,9 @@ class FinnGenUkbMvpMetaSummaryStatistics:
     ) -> SummaryStatistics:
         """Build the summary statistics dataset from raw summary statistics.
 
-        The logic behind the harmonisation has following steps:
+        See original issue to find out more details on the harmonisation logic https://github.com/opentargets/issues/issues/3474
+
+        ??? note "The logic behind the harmonisation"
             1. Build a slice of FinnGen Manifest to bring the information about nCases and nSamples per cohort (broadcast join).
             2. Build a variant direction (gnomAD) dataset partitioned by `chromosome` and `variantId` for joining using Sort-Merge strategy.
             3. Select required columns from raw summary statistics
@@ -307,18 +322,15 @@ class FinnGenUkbMvpMetaSummaryStatistics:
             11. Remove all variants with low Min Allele Frequency - optional
             12. Remove strand ambiguous variants - optional
 
-        Note:
+        ??? tip "Variant Directionality"
             **Variant Direction**
             By default we:
-            (1) keep all strand ambiguous variants as is
-            (2) keep all variants found in gnomAD aligned to gnomAD reference ( if alleles are flipped we flip the beta and allele frequency)
-            (3) keep all variants not found in gnomAD as is (cannot determine strand or alignment) - we assume these are correct.
 
-        Note:
-            See original issue to find out more details on the harmonisation logic:
-            https://github.com/opentargets/issues/issues/3474
+            1. keep all strand ambiguous variants as is
+            2. keep all variants found in gnomAD aligned to gnomAD reference ( if alleles are flipped we flip the beta and allele frequency)
+            3. keep all variants not found in gnomAD as is (cannot determine strand or alignment) - we assume these are correct.
 
-        Warning:
+        ??? note "Important considerations"
             * The input summary statistics are expected to be already parquet formatted and partitioned by `studyId`.
             * Both `perform_allele_count_filter` and `perform_allele_frequency_filter` are redundant, if both
             are set to True, only `perform_allele_count_filter` will be applied.
@@ -343,8 +355,17 @@ class FinnGenUkbMvpMetaSummaryStatistics:
         Returns:
             SummaryStatistics: Processed summary statistics dataset.
         """
+        if perform_min_allele_count_filter:
+            assert (
+                min_allele_count_threshold > 0
+            ), "Allele count threshold should be positive."
+        if perform_min_allele_frequency_filter:
+            assert (
+                0.0 <= min_allele_frequency_threshold <= 0.5
+            ), "MAF needs to be between 0 and 0.5."
+
         if perform_min_allele_count_filter and perform_min_allele_frequency_filter:
-            # NOTE - MAC filter will be more stringent at low allele frequencies, so no
+            # NOTE - MAC filter would be more stringent at low allele frequencies, so no
             # need to have both filters active at the same time
             perform_min_allele_frequency_filter = False
 
@@ -439,6 +460,9 @@ class FinnGenUkbMvpMetaSummaryStatistics:
 
         # Filter out variants with low INFO score
         if perform_imputation_score_filter:
+            assert (
+                imputation_score_threshold >= 0.0
+            ), "Imputation score threshold should be positive."
             sumstats = (
                 sumstats.withColumn(
                     "hasLowImputationScore",

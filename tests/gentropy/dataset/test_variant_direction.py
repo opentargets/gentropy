@@ -81,7 +81,7 @@ class TestVariantDirection:
             variant_index=variant_index
         )
         # 3 variants x 2 directions x 2 strands
-        assert variant_direction.df.count() == 3 * 2 * 2, "missing variants"
+        assert variant_direction.df.count() == 2 * 4 + 2, "missing variants"
         exp_data = [
             Row(
                 chromosome="1",
@@ -155,32 +155,6 @@ class TestVariantDirection:
                 variantId="1_100_T_A",
                 direction=-1,
                 strand=1,
-                isStrandAmbiguous=True,
-                originalAlleleFrequencies=[
-                    Row(populationName="nfe_adj", alleleFrequency=0.1),
-                    Row(populationName="fin_adj", alleleFrequency=0.2),
-                ],
-            ),
-            Row(
-                chromosome="1",
-                originalVariantId="1_100_A_T",
-                type=1,
-                variantId="1_100_T_A",
-                direction=1,
-                strand=-1,
-                isStrandAmbiguous=True,
-                originalAlleleFrequencies=[
-                    Row(populationName="nfe_adj", alleleFrequency=0.1),
-                    Row(populationName="fin_adj", alleleFrequency=0.2),
-                ],
-            ),
-            Row(
-                chromosome="1",
-                originalVariantId="1_100_A_T",
-                type=1,
-                variantId="1_100_A_T",
-                direction=-1,
-                strand=-1,
                 isStrandAmbiguous=True,
                 originalAlleleFrequencies=[
                     Row(populationName="nfe_adj", alleleFrequency=0.1),

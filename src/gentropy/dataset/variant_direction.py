@@ -15,56 +15,78 @@ from gentropy.dataset.dataset import Dataset
 
 
 class Direction(int, Enum):
-    """Allele direction."""
+    """Allele direction.
+
+    Attributes:
+        DIRECT (int): Direct allele direction (e.g., A/G). Defaults to 1.
+        FLIPPED (int): Flipped allele direction (e.g., G/A). Defaults to -1.
+    """
 
     DIRECT = 1
     FLIPPED = -1
 
 
 class Strand(int, Enum):
-    """Strand orientation."""
+    """Strand orientation.
+
+    Attributes:
+        FORWARD (int): Forward strand. Defaults to 1.
+        REVERSE (int): Reverse strand. Defaults to -1.
+    """
 
     FORWARD = 1
     REVERSE = -1
 
 
 class VariantType(int, Enum):
-    """Variant types based on length of reference and alternate alleles."""
+    """Variant types based on length of reference and alternate alleles.
+
+    Attributes:
+        SNP (int): Single Nucleotide Polymorphism. Defaults to 1.
+        INS (int): Insertion. Defaults to 2.
+        DEL (int): Deletion. Defaults to 3.
+        MNP (int): Multi-Nucleotide Polymorphism. Defaults to 4.
+    """
 
     SNP = 1
     INS = 2
     DEL = 3
-    MNP = 4  # multi-nucleotide polymorphism
+    MNP = 4
 
 
 @dataclass
 class VariantDirection(Dataset):
-    """Variant direction dataset.
+    """Dataset used for aligning allele directionality between different datasets.
 
     This dataset is useful for flipping alleles to match reference datasets.
 
     This dataset expends each variant into 4 entries to account for
 
-    * Different directions (FORWARD and FLIPPED) - e.g. A/G and G/A
-    * Different strands (FORWARD and REVERSE) - e.g. A/G and T/C
+    * Different directions (`FORWARD` and `FLIPPED`) - e.g. A/G and G/A
+    * Different strands (`FORWARD` and `REVERSE`) - e.g. A/G and T/C
 
-    Each entry contains the combination of both.
+    Each entry contains the combination of both, meaning that for each input variant
+    there will be 4 entries in this dataset. For strand ambiguous variants the
+    `FORWARD` and `FLIPPED` entries will be identical to the `REVERSE` and `FLIPPED` entries,
+    so we keep only one copy of them.
 
-    Additionally this dataset annotates
+    Additionally this dataset annotates:
+
     * ambiguous strand variants
     * type of variant (SNP, INS, DEL, MNP)
     * original allele frequencies from the source dataset
     * original variant id from the source dataset
 
-    To compare two datasets, you need to ensure that both datasets are joined on the `variantId` that
-    is a combination of chromosome, position, reference allele and alternate allele.
+    ??? tip "Joining with other datasets"
+        To compare two datasets, you need to ensure that both datasets are joined on the `variantId` that
+        is a combination of `chromosome`, `position`, `reference allele` and `alternate allele`.
 
-    Note:
+    ??? note "Building the dataset"
         The easiest way to create this dataset (have a complete variant space) is to build it
         from a **VariantIndex**.
 
     Examples:
-        >>> data = [("1", 100, "A", "G", [("nfe_adj", 0.1), ("fin_adj", 0.2)]),]
+        >>> data = [("1", 100, "A", "G", [("nfe_adj", 0.1), ("fin_adj", 0.2)]), ("1", 100, "T", "A", [("nfe_adj", 0.1), ("fin_adj", 0.2)])]
         >>> schema = "chromosome STRING, position INT, referenceAllele STRING, alternateAllele STRING, alleleFrequencies ARRAY<STRUCT<populationName: STRING, alleleFrequency: DOUBLE>>"
         >>> df = spark.createDataFrame(data, schema).withColumn("variantId",
         ... f.concat_ws("_", "chromosome", "position", "referenceAllele", "alternateAllele"))
@@ -78,6 +100,8 @@ class VariantDirection(Dataset):
         |1         |1_100_A_G        |1   |1_100_G_A|-1       |1     |false            |[{nfe_adj, 0.1}, {fin_adj, 0.2}]|
         |1         |1_100_A_G        |1   |1_100_T_C|1        |-1    |false            |[{nfe_adj, 0.1}, {fin_adj, 0.2}]|
         |1         |1_100_A_G        |1   |1_100_C_T|-1       |-1    |false            |[{nfe_adj, 0.1}, {fin_adj, 0.2}]|
+        |1         |1_100_T_A        |1   |1_100_T_A|1        |1     |true             |[{nfe_adj, 0.1}, {fin_adj, 0.2}]|
+        |1         |1_100_T_A        |1   |1_100_A_T|-1       |1     |true             |[{nfe_adj, 0.1}, {fin_adj, 0.2}]|
         +----------+-----------------+----+---------+---------+------+-----------------+--------------------------------+
         <BLANKLINE>
 
@@ -245,7 +269,7 @@ class VariantDirection(Dataset):
             Column: Array of structs with variantId, direction, strand, isStrandAmbiguous, alleleFrequencies.
 
         Examples:
-            >>> data = [("1", 100, "A", "G", [("nfe_adj", 0.1),])]
+            >>> data = [("1", 100, "A", "G", [("nfe_adj", 0.1),]), ("1", 100, "T", "A", [("nfe_adj", 0.1),])]
             >>> schema = "chrom STRING, pos INT, ref STRING, alt STRING, af ARRAY<STRUCT<populationName: STRING, alleleFrequency: DOUBLE>>"
             >>> df = spark.createDataFrame(data, schema)
             >>> df = df.withColumn("alleles", VariantDirection.alleles(f.col("chrom"), f.col("pos"), f.col("ref"), f.col("alt"), f.col("af"))).select("alleles")
@@ -257,53 +281,81 @@ class VariantDirection(Dataset):
             |1_100_G_A|-1       |1     |false            |[{nfe_adj, 0.1}]         |
             |1_100_T_C|1        |-1    |false            |[{nfe_adj, 0.1}]         |
             |1_100_C_T|-1       |-1    |false            |[{nfe_adj, 0.1}]         |
+            |1_100_T_A|1        |1     |true             |[{nfe_adj, 0.1}]         |
+            |1_100_A_T|-1       |1     |true             |[{nfe_adj, 0.1}]         |
             +---------+---------+------+-----------------+-------------------------+
             <BLANKLINE>
         """
-        forward_direct = cls.variant_id(chrom, pos, ref, alt)  # A/G
-        forward_flipped = cls.variant_id(chrom, pos, alt, ref)  # G/A
-        reverse_direct = cls.variant_id(  # T/C
+        forward_direct = cls.variant_id(chrom, pos, ref, alt)
+        forward_flipped = cls.variant_id(chrom, pos, alt, ref)
+        reverse_direct = cls.variant_id(
             chrom,
             pos,
             cls.reverse(cls.complement(ref)),
             cls.reverse(cls.complement(alt)),
         )
-        reverse_flipped = cls.variant_id(  # C/T
+        reverse_flipped = cls.variant_id(
             chrom,
             pos,
             cls.reverse(cls.complement(alt)),
             cls.reverse(cls.complement(ref)),
         )
 
-        return f.array(
-            f.struct(
-                forward_direct.alias("variantId"),
-                f.lit(Direction.DIRECT.value).cast(t.ByteType()).alias("direction"),
-                f.lit(Strand.FORWARD.value).cast(t.ByteType()).alias("strand"),
-                cls.is_strand_ambiguous(ref, alt).alias("isStrandAmbiguous"),
-                af.alias("originalAlleleFrequencies"),
+        return f.when(
+            ~cls.is_strand_ambiguous(ref, alt),
+            f.array(
+                f.struct(
+                    forward_direct.alias("variantId"),
+                    f.lit(Direction.DIRECT.value).cast(t.ByteType()).alias("direction"),
+                    f.lit(Strand.FORWARD.value).cast(t.ByteType()).alias("strand"),
+                    f.lit(False).alias("isStrandAmbiguous"),
+                    af.alias("originalAlleleFrequencies"),
+                ),
+                f.struct(
+                    forward_flipped.alias("variantId"),
+                    f.lit(Direction.FLIPPED.value)
+                    .cast(t.ByteType())
+                    .alias("direction"),
+                    f.lit(Strand.FORWARD.value).cast(t.ByteType()).alias("strand"),
+                    f.lit(False).alias("isStrandAmbiguous"),
+                    af.alias("originalAlleleFrequencies"),
+                ),
+                f.struct(
+                    reverse_direct.alias("variantId"),
+                    f.lit(Direction.DIRECT.value).cast(t.ByteType()).alias("direction"),
+                    f.lit(Strand.REVERSE.value).cast(t.ByteType()).alias("strand"),
+                    f.lit(False).alias("isStrandAmbiguous"),
+                    af.alias("originalAlleleFrequencies"),
+                ),
+                f.struct(
+                    reverse_flipped.alias("variantId"),
+                    f.lit(Direction.FLIPPED.value)
+                    .cast(t.ByteType())
+                    .alias("direction"),
+                    f.lit(Strand.REVERSE.value).cast(t.ByteType()).alias("strand"),
+                    f.lit(False).alias("isStrandAmbiguous"),
+                    af.alias("originalAlleleFrequencies"),
+                ),
             ),
-            f.struct(
-                forward_flipped.alias("variantId"),
-                f.lit(Direction.FLIPPED.value).cast(t.ByteType()).alias("direction"),
-                f.lit(Strand.FORWARD.value).cast(t.ByteType()).alias("strand"),
-                cls.is_strand_ambiguous(ref, alt).alias("isStrandAmbiguous"),
-                af.alias("originalAlleleFrequencies"),
-            ),
-            f.struct(
-                reverse_direct.alias("variantId"),
-                f.lit(Direction.DIRECT.value).cast(t.ByteType()).alias("direction"),
-                f.lit(Strand.REVERSE.value).cast(t.ByteType()).alias("strand"),
-                cls.is_strand_ambiguous(ref, alt).alias("isStrandAmbiguous"),
-                af.alias("originalAlleleFrequencies"),
-            ),
-            f.struct(
-                reverse_flipped.alias("variantId"),
-                f.lit(Direction.FLIPPED.value).cast(t.ByteType()).alias("direction"),
-                f.lit(Strand.REVERSE.value).cast(t.ByteType()).alias("strand"),
-                cls.is_strand_ambiguous(ref, alt).alias("isStrandAmbiguous"),
-                af.alias("originalAlleleFrequencies"),
-            ),
+        ).otherwise(
+            f.array(
+                f.struct(
+                    forward_direct.alias("variantId"),
+                    f.lit(Direction.DIRECT.value).cast(t.ByteType()).alias("direction"),
+                    f.lit(Strand.FORWARD.value).cast(t.ByteType()).alias("strand"),
+                    f.lit(True).alias("isStrandAmbiguous"),
+                    af.alias("originalAlleleFrequencies"),
+                ),
+                f.struct(
+                    forward_flipped.alias("variantId"),
+                    f.lit(Direction.FLIPPED.value)
+                    .cast(t.ByteType())
+                    .alias("direction"),
+                    f.lit(Strand.FORWARD.value).cast(t.ByteType()).alias("strand"),
+                    f.lit(True).alias("isStrandAmbiguous"),
+                    af.alias("originalAlleleFrequencies"),
+                ),
+            )
         )
 
     @classmethod

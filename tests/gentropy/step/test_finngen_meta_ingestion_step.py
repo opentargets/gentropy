@@ -30,10 +30,14 @@ class TestFinnGenMetaIngestionStep:
     @patch("gentropy.finngen_ukb_mvp_meta.VariantIndex")
     @patch("gentropy.finngen_ukb_mvp_meta.VariantDirection")
     @patch("pyspark.sql.readwriter.DataFrameReader.parquet")
+    @patch("gentropy.finngen_ukb_mvp_meta.StudyIndex")
+    @patch("gentropy.finngen_ukb_mvp_meta.SummaryStatistics")
     @patch("gentropy.finngen_ukb_mvp_meta.SummaryStatisticsQC")
     def test_step(
         self,
         qc_mock: MagicMock,
+        hss_mock: MagicMock,
+        si_mock: MagicMock,
         spark_read_parquet_mock: MagicMock,
         vd_mock: MagicMock,
         vi_mock: MagicMock,
@@ -49,6 +53,9 @@ class TestFinnGenMetaIngestionStep:
         # Any dataset mock
         dataset = MagicMock()
         dataset.df = df
+        paths = ["path1", "path2", "path3"]
+        dataset.get_summary_statistics_paths = MagicMock(return_value=paths)
+        dataset.annotate_sumstats_qc = MagicMock(return_value=dataset)
 
         # Assertion setup for building finngen manifest from path
         manifest_mock.from_path = MagicMock()
@@ -61,6 +68,7 @@ class TestFinnGenMetaIngestionStep:
 
         # Assertion setup for downloading summary statistics
         fss_mock.bgzip_to_parquet = MagicMock()
+        fss_mock.N_THREAD_OPTIMAL = 10  # Example optimal thread count for testing
 
         # Assertion setup for variant index from parquet
         vi_mock.from_parquet = MagicMock()
@@ -74,19 +82,15 @@ class TestFinnGenMetaIngestionStep:
         # Setup mock for the harmonised summary statistics processing
         fss_mock.from_source = MagicMock(return_value=dataset)
 
-        # Setup mock for annotating summary statistics with QC
-        fsi_mock.from_finngen_manifest.return_value.annotate_sumstats_qc = MagicMock(
-            return_value=dataset
-        )
+        si_mock.from_parquet = MagicMock(return_value=dataset)
+
+        hss_mock.from_parquet = MagicMock(return_value=dataset)
 
         # Setup mock for building QC from summary statistics
         qc_mock.from_summary_statistics = MagicMock(return_value=dataset)
 
         # Set up paths to the mock
         source_manifest_path = (tmp_path / "source_manifest").as_posix()
-        source_summary_statistics_glob = (
-            tmp_path / "source_summary_stats_*.tsv.gz"
-        ).as_posix()
         efo_curation_path = (tmp_path / "efo_curation").as_posix()
         gnomad_variant_index_path = (tmp_path / "gnomad_variant_index").as_posix()
         study_index_output_path = (tmp_path / "study_index_output").as_posix()
@@ -114,9 +118,10 @@ class TestFinnGenMetaIngestionStep:
             imputation_score_threshold=0.8,
             perform_imputation_score_filter=True,
             perform_min_allele_count_filter=True,
-            perform_min_allele_frequency_filter=True,
             min_allele_count_threshold=20,
+            perform_min_allele_frequency_filter=True,
             min_allele_frequency_threshold=0.01,
+            filter_out_ambiguous_variants=True,
             qc_threshold=1e-8,
         )
 
@@ -136,10 +141,10 @@ class TestFinnGenMetaIngestionStep:
 
         fss_mock.bgzip_to_parquet.assert_called_once_with(
             session=session,
-            summary_statistics_glob=source_summary_statistics_glob,
+            summary_statistics_list=paths,
             datasource=manifest_mock.from_path.return_value.meta,
             raw_summary_statistics_output_path=raw_summary_statistics_output_path,
-            n_threads=10,
+            n_threads=fss_mock.N_THREAD_OPTIMAL,
         )
 
         vi_mock.from_parquet.assert_called_once_with(
@@ -162,16 +167,27 @@ class TestFinnGenMetaIngestionStep:
             perform_meta_analysis_filter=True,
             imputation_score_threshold=0.8,
             perform_imputation_score_filter=True,
-            perform_min_allele_count_filter=True,
-            perform_min_allele_frequency_filter=True,
             min_allele_count_threshold=20,
+            perform_min_allele_count_filter=True,
             min_allele_frequency_threshold=0.01,
+            perform_min_allele_frequency_filter=True,
+            filter_out_ambiguous_variants=True,
+        )
+
+        hss_mock.from_parquet.assert_called_once_with(
+            session=session,
+            path=harmonised_summary_statistics_output_path,
         )
 
         qc_mock.from_summary_statistics.assert_called_once_with(
-            gwas=fss_mock.from_source.return_value, pval_threshold=1e-8
+            gwas=hss_mock.from_parquet.return_value, pval_threshold=1e-8
         )
 
-        fsi_mock.from_finngen_manifest.return_value.annotate_sumstats_qc.assert_called_once_with(
+        si_mock.from_parquet.assert_called_once_with(
+            session=session,
+            path=study_index_output_path,
+        )
+
+        si_mock.from_parquet.return_value.annotate_sumstats_qc.assert_called_once_with(
             qc_mock.from_summary_statistics.return_value
         )
