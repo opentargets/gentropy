@@ -239,7 +239,7 @@ class Log4j:
         Args:
             message (str): Warning message to write to log
         """
-        self.logger.warn(message)  #  # noqa: G010
+        self.logger.warn(message)  # noqa: G010
 
     def info(self, message: str) -> None:
         """Log information.
