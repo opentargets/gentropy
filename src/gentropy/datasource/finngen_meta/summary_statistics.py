@@ -277,7 +277,7 @@ class FinnGenUkbMvpMetaSummaryStatistics:
                     # we can have up to 60 partitions per study (330 studies)
                 )
                 .orderBy("studyId", "#CHR", "POS")
-                .repartition(60, "studyId")
+                .repartition(60, "#CHR", "POS")
             )
             # Write out the processed dataframe to Parquet
             # NOTE: Write is done per studyId partition from the thread pool to
