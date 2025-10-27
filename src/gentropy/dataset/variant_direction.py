@@ -147,6 +147,8 @@ class VariantDirection(Dataset):
         """
         ref_len = f.length(ref)
         alt_len = f.length(alt)
+        ref = f.upper(ref)
+        alt = f.upper(alt)
         return f.when(
             (ref_len == alt_len) & (cls.reverse(cls.complement(alt)) == ref), True
         ).otherwise(False)
@@ -241,6 +243,8 @@ class VariantDirection(Dataset):
             +---+---+----+
             <BLANKLINE>
         """
+        ref = f.upper(ref)
+        alt = f.upper(alt)
         expr = (
             f.when((f.length(alt) > f.length(ref)), f.lit(VariantType.INS.value))
             .when((f.length(alt) < f.length(ref)), f.lit(VariantType.DEL.value))
@@ -286,6 +290,8 @@ class VariantDirection(Dataset):
             +---------+---------+------+-----------------+-------------------------+
             <BLANKLINE>
         """
+        ref = f.upper(ref)
+        alt = f.upper(alt)
         forward_direct = cls.variant_id(chrom, pos, ref, alt)
         forward_flipped = cls.variant_id(chrom, pos, alt, ref)
         reverse_direct = cls.variant_id(
@@ -371,6 +377,8 @@ class VariantDirection(Dataset):
         Returns:
             Column: Variant ID column in the format "chrom_pos_ref_alt".
         """
+        ref = f.upper(ref)
+        alt = f.upper(alt)
         return f.concat_ws("_", chrom, pos, ref, alt)
 
     @classmethod
