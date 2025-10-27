@@ -276,8 +276,8 @@ class FinnGenUkbMvpMetaSummaryStatistics:
                     # Optimal partition size is ~ 100MB, assuming the total size of the dataset is 2Tb
                     # we can have up to 60 partitions per study (330 studies)
                 )
-                .repartition(60, "studyId")
                 .orderBy("studyId", "#CHR", "POS")
+                .repartition(60, "studyId")
             )
             # Write out the processed dataframe to Parquet
             # NOTE: Write is done per studyId partition from the thread pool to
