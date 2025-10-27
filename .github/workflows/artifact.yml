@@ -62,7 +62,7 @@ jobs:
           project_id: ${{ env.GCP_PROJECT_ID }}
           service_account: github-actions@open-targets-genetics-dev.iam.gserviceaccount.com
           workload_identity_provider: projects/234703259993/locations/global/workloadIdentityPools/github/providers/opentargets
-          access_token_lifetime: 300s
+          access_token_lifetime: 1800s
 
       - id: auth-gar
         name: Login to Google Artifact Registry
