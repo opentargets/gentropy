@@ -16,7 +16,7 @@ from gentropy.dataset.dataset import Dataset
 if TYPE_CHECKING:
     from pyspark.sql.types import StructType
 
-    from gentropy.dataset.study_locus import StudyLocus
+    from gentropy import Session, StudyIndex, StudyLocus
 
 
 @dataclass
@@ -170,3 +170,34 @@ class SummaryStatistics(Dataset):
         ).drop_infinity_values(*cols)
 
         return summary_stats
+
+    def limit_to_studies(
+        self, session: Session, study_index: StudyIndex
+    ) -> SummaryStatistics:
+        """Limit summary statistics to those present in the study index.
+
+        Args:
+            session (Session): Session object.
+            study_index (StudyIndex): Study index object.
+
+        Returns:
+            SummaryStatistics: Filtered summary statistics object.
+        """
+        studies = study_index.df.select("studyId").distinct().collect()
+        study_ids = [row.studyId for row in studies]
+        session.logger.info(f"Expecting N={len(study_ids)} studies.")
+
+        count_pre = self.df.select("studyId").distinct().count()
+        session.logger.info(f"Found N={count_pre} distinct summary statistics.")
+
+        session.logger.info("Filtering summary statistics to match the study index.")
+        filtered_sumstats = self.df.filter(f.col("studyId").isin(study_ids))
+
+        count_post = filtered_sumstats.select("studyId").distinct().count()
+        session.logger.info(f"N={count_post} studies match the study index.")
+
+        if count_pre != count_post:
+            session.logger.warning(
+                f"Dropping N={count_pre - count_post} studies that are not in the study index."
+            )
+        return SummaryStatistics(_df=filtered_sumstats)

@@ -18,6 +18,7 @@ class SessionConfig:
     spark_uri: str = "local[*]"
     hail_home: str = os.path.dirname(hail_location)
     extended_spark_conf: dict[str, str] | None = field(default_factory=dict[str, str])
+    use_enhanced_bgzip_codec: bool = False
     output_partitions: int = 200
     _target_: str = "gentropy.common.session.Session"
 
@@ -379,16 +380,35 @@ class UkbPppEurConfig(StepConfig):
 
 
 @dataclass
-class FinngenUkbMetaConfig(StepConfig):
+class FinngenUkbMvpMetaSummaryStatisticsIngestionConfig(StepConfig):
     """FinnGen UKB meta-analysis ingestion step configuration."""
 
-    raw_study_index_path_from_tsv: str = MISSING
-    raw_summary_stats_path: str = MISSING
-    tmp_variant_annotation_path: str = MISSING
-    variant_annotation_path: str = MISSING
+    session: Any = field(
+        default_factory=lambda: {
+            "use_enhanced_bgzip_codec": True,
+        }
+    )
+    # Inputs
+    source_manifest_path: str = MISSING
+    efo_curation_path: str = MISSING
+    gnomad_variant_index_path: str = MISSING
+    # Outputs
     study_index_output_path: str = MISSING
-    summary_stats_output_path: str = MISSING
-    _target_: str = "gentropy.finngen_ukb_meta.FinngenUkbMetaIngestionStep"
+    raw_summary_statistics_output_path: str = MISSING
+    harmonised_summary_statistics_output_path: str = MISSING
+    harmonised_summary_statistics_qc_output_path: str = MISSING
+    # Harmonisation config
+    perform_meta_analysis_filter: bool = True
+    imputation_score_threshold: float = 0.8
+    perform_imputation_score_filter: bool = True
+    min_allele_count_threshold: int = 20
+    perform_min_allele_count_filter: bool = True
+    min_allele_frequency_threshold: float = 1e-4
+    perform_min_allele_frequency_filter: bool = False
+    filter_out_ambiguous_variants: bool = False
+    _target_: str = (
+        "gentropy.finngen_ukb_mvp_meta.FinngenUkbMvpMetaSummaryStatisticsIngestionStep"
+    )
 
 
 @dataclass
@@ -734,6 +754,10 @@ def register_config() -> None:
         name="locus_to_gene_associations",
         node=LocusToGeneAssociationsStepConfig,
     )
-    cs.store(group="step", name="finngen_ukb_meta_ingestion", node=FinngenUkbMetaConfig)
+    cs.store(
+        group="step",
+        name="finngen_ukb_mvp_meta_summary_statistics_ingestion",
+        node=FinngenUkbMvpMetaSummaryStatisticsIngestionConfig,
+    )
     cs.store(group="step", name="credible_set_qc", node=CredibleSetQCStepConfig)
     cs.store(group="step", name="foldx_integration", node=FoldXVariantAnnotationConfig)
