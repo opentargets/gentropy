@@ -270,9 +270,12 @@ class FinnGenUkbMvpMetaSummaryStatistics:
                     f.lit(datasource.value),
                     f.lit(cls.extract_study_phenotype_from_path(f.input_file_name())),
                 ),
-            )
+                # Optimal partition size is ~ 100MB, assuming the total size of the dataset is 2Tb
+                # we can have up to 60 partitions per study (330 studies)
+            ).repartition(60, "studyId")
             # Write out the processed dataframe to Parquet
-            # NOTE: Write is done per studyId partition to allow for quick reading of individual studies later on
+            # NOTE: Write is done per studyId partition from the thread pool to
+            # make sure we do not need to collect all data after the thread execution.
             df.write.mode("append").partitionBy("studyId").parquet(output_path)
             return df
 
