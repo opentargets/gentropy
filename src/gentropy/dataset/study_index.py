@@ -797,3 +797,15 @@ class StudyIndex(Dataset):
             ),
             _schema=StudyIndex.get_schema(),
         )
+
+    def get_summary_statistics_paths(self: StudyIndex) -> list[str]:
+        """Get summary statistics paths from study index.
+
+        Returns:
+            list[str]: List of summary statistics file paths.
+        """
+        paths_df = self.df.filter(self.has_summarystats()).select(
+            f.col("summarystatsLocation")
+        )
+        paths = [row["summarystatsLocation"] for row in paths_df.collect()]
+        return paths
