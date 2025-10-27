@@ -54,9 +54,7 @@ class IntervalsEpiraction:
             Intervals: Parsed Intervals dataset.
         """
         base = (
-            raw_epiraction_df.filter(
-                (f.col("class") == "enhancer") | (f.col("class") == "promoter")
-            )
+            raw_epiraction_df.filter(f.col("class").isin(cls.VALID_INTERVAL_TYPES))
             .withColumn("chromosome", f.regexp_replace(f.col("chr"), r"^chr", ""))
             .withColumnRenamed("TargetGeneEnsemblID", "geneId")
             .withColumnRenamed("CellType", "biosampleName")
@@ -94,7 +92,6 @@ class IntervalsEpiraction:
             .withColumn("start", f.col("start").cast("long"))
             .withColumn("end", f.col("end").cast("long"))
             .withColumn("intervalType", f.lower(f.trim(f.col("intervalType"))))
-            .filter(f.col("intervalType").isin(cls.VALID_INTERVAL_TYPES))
         )
 
         # Target Index: preferred TSS (+ fallbacks)
