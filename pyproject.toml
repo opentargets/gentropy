@@ -55,6 +55,7 @@ docs = [
   "mkdocs-git-committers-plugin-2 >=2.2.3, <2.6.0",
   "lxml >=5.1.0, <6.1.0",
   "pymdown-extensions >=10.7, <10.17",
+  "markdown-katex>=202406.1035",
 ]
 test = [
   "pytest-cov >=4.1,<7.0",
@@ -78,7 +79,7 @@ dev = [
   "interrogate >=1.7.0, <1.8.0",
   "isort >=5.13.2, <6.1.0",
   "darglint >=1.8.1, <1.9.0",
-  "ruff >=0.8.1, <0.13.0",
+  "ruff >=0.8.1, <0.15.0",
 ]
 [tool.semantic_release]
 logging_use_named_masks = true
