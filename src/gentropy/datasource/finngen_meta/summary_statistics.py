@@ -263,16 +263,22 @@ class FinnGenUkbMvpMetaSummaryStatistics:
                     .cast(field.dataType),
                 )
             # Add studyId based on the input path
-            df = df.withColumn(
-                "studyId",
-                f.concat_ws(
-                    "_",
-                    f.lit(datasource.value),
-                    f.lit(cls.extract_study_phenotype_from_path(f.input_file_name())),
-                ),
-                # Optimal partition size is ~ 100MB, assuming the total size of the dataset is 2Tb
-                # we can have up to 60 partitions per study (330 studies)
-            ).repartition(60, "studyId")
+            df = (
+                df.withColumn(
+                    "studyId",
+                    f.concat_ws(
+                        "_",
+                        f.lit(datasource.value),
+                        f.lit(
+                            cls.extract_study_phenotype_from_path(f.input_file_name())
+                        ),
+                    ),
+                    # Optimal partition size is ~ 100MB, assuming the total size of the dataset is 2Tb
+                    # we can have up to 60 partitions per study (330 studies)
+                )
+                .repartition(60, "studyId")
+                .orderBy("studyId", "#CHR", "POS")
+            )
             # Write out the processed dataframe to Parquet
             # NOTE: Write is done per studyId partition from the thread pool to
             # make sure we do not need to collect all data after the thread execution.
