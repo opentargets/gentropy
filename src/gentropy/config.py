@@ -383,6 +383,11 @@ class UkbPppEurConfig(StepConfig):
 class FinngenUkbMvpMetaSummaryStatisticsIngestionConfig(StepConfig):
     """FinnGen UKB meta-analysis ingestion step configuration."""
 
+    session: Any = field(
+        default_factory=lambda: {
+            "use_enhanced_bgzip_codec": True,
+        }
+    )
     # Inputs
     source_manifest_path: str = MISSING
     efo_curation_path: str = MISSING
