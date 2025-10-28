@@ -542,7 +542,7 @@ class StudyIndexGWASCatalog(StudyIndex):
                 # Excluding finnish:
                 f.when(
                     f.col("initialSampleDescription").contains("Finnish"),
-                    f.lit("other"),
+                    f.lit("Finnish"),
                 )
                 # Excluding Icelandic population:
                 .when(
