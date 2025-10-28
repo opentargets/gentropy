@@ -7,10 +7,8 @@ from typing import TYPE_CHECKING
 from pyspark.sql import functions as f
 from pyspark.sql import types as t
 
-
 from gentropy import Session
 from gentropy.common.stats import (
-    extract_column_name,
     chi2_from_pvalue,
     pvalue_from_neglogpval,
     stderr_from_chi2_and_effect_size,
