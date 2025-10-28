@@ -21,14 +21,8 @@
     {
       "metadata": {},
       "name": "geneId",
-      "nullable": false,
-      "type": "string"
-    },
-    {
-      "metadata": {},
-      "name": "resourceScore",
       "nullable": true,
-      "type": "double"
+      "type": "string"
     },
     {
       "metadata": {},
@@ -38,13 +32,45 @@
     },
     {
       "metadata": {},
+      "name": "distanceToTss",
+      "nullable": true,
+      "type": "integer"
+    },
+    {
+      "metadata": {},
+      "name": "resourceScore",
+      "nullable": true,
+      "type": {
+        "containsNull": false,
+        "elementType": {
+          "fields": [
+            {
+              "metadata": {},
+              "name": "name",
+              "nullable": false,
+              "type": "string"
+            },
+            {
+              "metadata": {},
+              "name": "value",
+              "nullable": false,
+              "type": "float"
+            }
+          ],
+          "type": "struct"
+        },
+        "type": "array"
+      }
+    },
+    {
+      "metadata": {},
       "name": "datasourceId",
       "nullable": false,
       "type": "string"
     },
     {
       "metadata": {},
-      "name": "datatypeId",
+      "name": "intervalType",
       "nullable": false,
       "type": "string"
     },
@@ -57,6 +83,30 @@
     {
       "metadata": {},
       "name": "biofeature",
+      "nullable": true,
+      "type": "string"
+    },
+    {
+      "metadata": {},
+      "name": "biosampleName",
+      "nullable": true,
+      "type": "string"
+    },
+    {
+      "metadata": {},
+      "name": "biosampleId",
+      "nullable": true,
+      "type": "string"
+    },
+    {
+      "metadata": {},
+      "name": "studyId",
+      "nullable": true,
+      "type": "string"
+    },
+    {
+      "metadata": {},
+      "name": "intervalId",
       "nullable": true,
       "type": "string"
     }
