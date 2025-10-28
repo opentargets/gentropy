@@ -8,6 +8,7 @@ import pyspark.sql.types as t
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql import functions as f
 
+from gentropy import Session
 from gentropy.common.stats import (
     chi2_from_pvalue,
     pvalue_from_neglogpval,
@@ -22,6 +23,7 @@ if TYPE_CHECKING:
         FinngenUkbMetaSummaryStats,
     )
     from gentropy.datasource.ukb_ppp_eur.summary_stats import UkbPppEurSummaryStats
+
 
 def parse_efos(efo_uris: Column) -> Column:
     """Extracting EFO identifiers.
@@ -50,7 +52,7 @@ def parse_efos(efo_uris: Column) -> Column:
         # Splitting colun values to individual URIs:
         f.split(efo_uris, ","),
         # Each URI is further split, and the last component is returned:
-        lambda uri: f.element_at(f.split(uri, "/"), -1)
+        lambda uri: f.element_at(f.split(uri, "/"), -1),
     )
 
 
@@ -296,7 +298,9 @@ def harmonise_summary_stats(
     return df
 
 
-def prepare_va(session: Session, variant_annotation_path: str, tmp_variant_annotation_path: str) -> None:
+def prepare_va(
+    session: Session, variant_annotation_path: str, tmp_variant_annotation_path: str
+) -> None:
     """Prepare the Variant Annotation dataset for efficient per-chromosome joins.
 
     Args:
@@ -304,61 +308,49 @@ def prepare_va(session: Session, variant_annotation_path: str, tmp_variant_annot
         variant_annotation_path (str): The path to the input variant annotation dataset.
         tmp_variant_annotation_path (str): The path to store the temporary output for the repartitioned annotation dataset.
     """
-    va_df = (
-        session
-        .spark
-        .read
-        .parquet(variant_annotation_path)
+    va_df = session.spark.read.parquet(variant_annotation_path)
+    va_df_direct = va_df.select(
+        f.col("chromosome").alias("vaChromosome"),
+        f.col("variantId"),
+        f.concat_ws(
+            "_",
+            f.col("chromosome"),
+            f.col("position"),
+            f.col("referenceAllele"),
+            f.col("alternateAllele"),
+        ).alias("summary_stats_id"),
+        f.lit("direct").alias("direction"),
     )
-    va_df_direct = (
-        va_df.
-        select(
-            f.col("chromosome").alias("vaChromosome"),
-            f.col("variantId"),
-            f.concat_ws(
-                "_",
-                f.col("chromosome"),
-                f.col("position"),
-                f.col("referenceAllele"),
-                f.col("alternateAllele")
-            ).alias("summary_stats_id"),
-            f.lit("direct").alias("direction")
-        )
-    )
-    va_df_flip = (
-        va_df.
-        select(
-            f.col("chromosome").alias("vaChromosome"),
-            f.col("variantId"),
-            f.concat_ws(
-                "_",
-                f.col("chromosome"),
-                f.col("position"),
-                f.col("alternateAllele"),
-                f.col("referenceAllele")
-            ).alias("summary_stats_id"),
-            f.lit("flip").alias("direction")
-        )
+    va_df_flip = va_df.select(
+        f.col("chromosome").alias("vaChromosome"),
+        f.col("variantId"),
+        f.concat_ws(
+            "_",
+            f.col("chromosome"),
+            f.col("position"),
+            f.col("alternateAllele"),
+            f.col("referenceAllele"),
+        ).alias("summary_stats_id"),
+        f.lit("flip").alias("direction"),
     )
     (
         va_df_direct.union(va_df_flip)
         .coalesce(1)
         .repartition("vaChromosome")
-        .write
-        .partitionBy("vaChromosome")
+        .write.partitionBy("vaChromosome")
         .mode("overwrite")
         .parquet(tmp_variant_annotation_path)
     )
 
 
 def process_summary_stats_per_chromosome(
-        session: Session,
-        ingestion_class: type[UkbPppEurSummaryStats] | type[FinngenUkbMetaSummaryStats],
-        raw_summary_stats_path: str,
-        tmp_variant_annotation_path: str,
-        summary_stats_output_path: str,
-        study_index_path: str,
-    ) -> None:
+    session: Session,
+    ingestion_class: type[UkbPppEurSummaryStats] | type[FinngenUkbMetaSummaryStats],
+    raw_summary_stats_path: str,
+    tmp_variant_annotation_path: str,
+    summary_stats_output_path: str,
+    study_index_path: str,
+) -> None:
     """Processes summary statistics for each chromosome, partitioning and writing results.
 
     Args:
@@ -383,11 +375,9 @@ def process_summary_stats_per_chromosome(
                 chromosome=str(chromosome),
                 study_index_path=study_index_path,
             )
-            .df
-            .coalesce(1)
+            .df.coalesce(1)
             .repartition("studyId", "chromosome")
-            .write
-            .partitionBy("studyId", "chromosome")
+            .write.partitionBy("studyId", "chromosome")
             .mode(write_mode)
             .parquet(summary_stats_output_path)
         )
