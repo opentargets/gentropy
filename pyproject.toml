@@ -133,7 +133,7 @@ exclude = ["dist"]
 addopts = "-n auto --doctest-modules --cov=src/ --cov-report=xml --cache-clear"
 pythonpath = ["."]
 testpaths = ["tests/gentropy", "src/gentropy"]
-markers = ["step_test"]
+markers = ["step_test", "long_test"]
 filterwarnings = [
   "ignore:.*it is preferred to specify type hints for pandas UDF.*:UserWarning"
 
@@ -227,7 +227,7 @@ select = [
   "T20",     # flake8-print
   "TID251",  # Banned imports
   "TRY004",  # Prefer TypeError exception for invalid type
-  "TRY302",  # Remove exception handler; error is immediately re-raised
+  "TRY203",  # Remove exception handler; error is immediately re-raised
   "UP",      # pyupgrade
   "W",       # pycodestyle
 ]
@@ -254,6 +254,7 @@ ignore = [
   "UP007",   # keep type annotation style as is
   # Ignored due to performance: https://github.com/charliermarsh/ruff/issues/2923
   "UP038", # Use `X | Y` in `isinstance` call instead of `(X, Y)`
+  "G004", # f-string used in logging function
 
 ]
 

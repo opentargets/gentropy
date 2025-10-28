@@ -18,6 +18,7 @@
       "source.organizeImports": "explicit"
     }
   },
+  "notebook.formatOnSave.enabled": true,
   "json.format.keepLines": true,
   "autoDocstring.docstringFormat": "google",
   "python.testing.pytestArgs": [".", "--doctest-modules", "--cov=src/"],
@@ -31,15 +32,21 @@
   "extensions.ignoreRecommendations": true,
   "python.analysis.typeCheckingMode": "standard",
   "cSpell.words": [
+    "bgzip",
+    "biobank",
     "biosample",
     "colocalisation",
     "diffpval",
     "eqtl",
+    "finngen",
     "GCST",
     "gentropy",
     "gnomad",
     "harmonisation",
     "harmonise",
+    "harmonised",
+    "Harmonises",
+    "Harmonising",
     "liftover",
     "logpval",
     "logsum",
@@ -58,6 +65,7 @@
     "studylocus",
     "sumstat",
     "sumstats",
-    "tuqtl"
+    "tuqtl",
+    "Ukbb"
   ]
 }
