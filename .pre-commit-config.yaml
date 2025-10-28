@@ -30,6 +30,7 @@ repos:
           - --branch=main
       - id: check-toml
       - id: check-yaml
+        args: ["--unsafe"]
       - id: check-ast
       - id: debug-statements
       - id: check-docstring-first
