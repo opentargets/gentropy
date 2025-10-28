@@ -46,7 +46,7 @@ jobs:
         with:
           github_token: ${{ steps.trigger-token.outputs.token }}
           tag: ${{ steps.semrelease.outputs.tag }}
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         if: steps.semrelease.outputs.released == 'true'
         with:
           name: python-package-distributions
