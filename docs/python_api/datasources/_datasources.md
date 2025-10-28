@@ -2,19 +2,18 @@
 title: Data Sources
 ---
 
-# Data Sources
-
 This section contains information about the data source harmonisation tools available in Open Targets Gentropy.
 
 ## GWAS study sources
 
 1. [GWAS Catalog](gwas_catalog/_gwas_catalog.md) (with or without full summary statistics)
-1. [FinnGen](finngen/_finngen.md)
-1. [UKB PPP (EUR)](ukb_ppp_eur/_ukb_ppp_eur.md)
+2. [FinnGen](finngen/_finngen.md)
+3. [FinnGen UK Biobank and Million Veteran Program (MVP) meta-analysis](finngen_meta/_finngen_meta.md)
 
 ## Molecular QTLs
 
 1. [GTEx (eQTL catalogue)](eqtl_catalogue/_eqtl_catalogue.md)
+2. [UKB PPP (EUR)](ukb_ppp_eur/_ukb_ppp_eur.md)
 
 ## Interaction / Interval-based Experiments
 
@@ -22,7 +21,7 @@ This section contains information about the data source harmonisation tools avai
 
 ## Variant annotation/validation
 
-1. [GnomAD](gnomad/_gnomad.md) v4.0
+1. [GnomAD](gnomad/_gnomad.md) v4.1
 2. GWAS catalog's [harmonisation pipeline](https://www.ebi.ac.uk/gwas/docs/methods/summary-statistics#_harmonised_summary_statistics_data)
 3. Ensembl's [Variant Effect Predictor](https://www.ensembl.org/info/docs/tools/vep/index.html)
 

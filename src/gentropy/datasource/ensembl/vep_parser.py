@@ -8,6 +8,7 @@ from pyspark.sql import SparkSession
 from pyspark.sql import functions as f
 from pyspark.sql import types as t
 
+from gentropy.assets.variant_consequences import VariantConsequence
 from gentropy.common.schemas import parse_spark_schema
 from gentropy.common.spark import (
     enforce_schema,
@@ -20,8 +21,6 @@ from gentropy.dataset.variant_index import VariantEffectNormaliser, VariantIndex
 
 if TYPE_CHECKING:
     from pyspark.sql import Column, DataFrame
-
-from gentropy.config import VariantIndexConfig
 
 
 class VariantEffectPredictorParser:
@@ -42,16 +41,10 @@ class VariantEffectPredictorParser:
     ALLELE_FREQUENCY_SCHEMA = VariantIndex.get_schema()["alleleFrequencies"].dataType
 
     # Consequence to sequence ontology map:
-    SEQUENCE_ONTOLOGY_MAP = {
-        item["label"]: item["id"]
-        for item in VariantIndexConfig.consequence_to_pathogenicity_score
-    }
+    SEQUENCE_ONTOLOGY_MAP = VariantConsequence.map_sequence_ontology()
 
     # Sequence ontology to score map:
-    LABEL_TO_SCORE_MAP = {
-        item["label"]: item["score"]
-        for item in VariantIndexConfig.consequence_to_pathogenicity_score
-    }
+    LABEL_TO_SCORE_MAP = VariantConsequence.map_score()
 
     @staticmethod
     def get_schema() -> t.StructType:

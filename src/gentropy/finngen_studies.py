@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from gentropy.common.session import Session
 from gentropy.config import FinngenStudiesConfig
+from gentropy.datasource.finngen.efo_mapping import EFOMapping
 from gentropy.datasource.finngen.study_index import FinnGenStudyIndex
 
 
@@ -37,10 +38,7 @@ class FinnGenStudiesStep:
         release_prefix = _match["prefix"]
         release = _match["release"]
 
-        efo_curation_df = FinnGenStudyIndex.read_efo_curation(
-            session.spark,
-            efo_curation_mapping_url,
-        )
+        efo_mapping = EFOMapping.from_path(session, efo_curation_mapping_url)
         study_index = FinnGenStudyIndex.from_source(
             session.spark,
             finngen_phenotype_table_url,
@@ -49,11 +47,7 @@ class FinnGenStudiesStep:
             finngen_summary_stats_url_suffix,
             sample_size,
         )
-        study_index_with_efo = FinnGenStudyIndex.join_efo_mapping(
-            study_index,
-            efo_curation_df,
-            release,
-        )
-        study_index_with_efo.df.write.mode(session.write_mode).parquet(
-            finngen_study_index_out
-        )
+        study_index_with_efo = efo_mapping.annotate_study_index(study_index, release)
+        study_index_with_efo.df.coalesce(session.output_partitions).write.mode(
+            session.write_mode
+        ).parquet(finngen_study_index_out)

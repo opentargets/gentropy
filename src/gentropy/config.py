@@ -2,7 +2,7 @@
 
 import os
 from dataclasses import dataclass, field
-from typing import Any, ClassVar, TypedDict
+from typing import Any
 
 from hail import __file__ as hail_location
 from hydra.core.config_store import ConfigStore
@@ -18,6 +18,7 @@ class SessionConfig:
     spark_uri: str = "local[*]"
     hail_home: str = os.path.dirname(hail_location)
     extended_spark_conf: dict[str, str] | None = field(default_factory=dict[str, str])
+    use_enhanced_bgzip_codec: bool = False
     output_partitions: int = 200
     _target_: str = "gentropy.common.session.Session"
 
@@ -39,6 +40,8 @@ class ColocalisationConfig(StepConfig):
     credible_set_path: str = MISSING
     coloc_path: str = MISSING
     colocalisation_method: str = MISSING
+    restrict_right_studies: list[str] | None = None
+    gwas_v_qtl_overlap_only: bool = False
     colocalisation_method_params: dict[str, Any] = field(default_factory=dict[str, Any])
     _target_: str = "gentropy.colocalisation.ColocalisationStep"
 
@@ -171,7 +174,6 @@ class FinngenFinemappingConfig(StepConfig):
     finngen_finemapping_out: str = MISSING
     finngen_finemapping_lead_pvalue_threshold: float = 1e-5
     finngen_release_prefix: str = "FINNGEN_R11"
-
     _target_: str = (
         "gentropy.finngen_finemapping_ingestion.FinnGenFinemappingIngestionStep"
     )
@@ -377,16 +379,35 @@ class UkbPppEurConfig(StepConfig):
 
 
 @dataclass
-class FinngenUkbMetaConfig(StepConfig):
+class FinngenUkbMvpMetaSummaryStatisticsIngestionConfig(StepConfig):
     """FinnGen UKB meta-analysis ingestion step configuration."""
 
-    raw_study_index_path_from_tsv: str = MISSING
-    raw_summary_stats_path: str = MISSING
-    tmp_variant_annotation_path: str = MISSING
-    variant_annotation_path: str = MISSING
+    session: Any = field(
+        default_factory=lambda: {
+            "use_enhanced_bgzip_codec": True,
+        }
+    )
+    # Inputs
+    source_manifest_path: str = MISSING
+    efo_curation_path: str = MISSING
+    gnomad_variant_index_path: str = MISSING
+    # Outputs
     study_index_output_path: str = MISSING
-    summary_stats_output_path: str = MISSING
-    _target_: str = "gentropy.finngen_ukb_meta.FinngenUkbMetaIngestionStep"
+    raw_summary_statistics_output_path: str = MISSING
+    harmonised_summary_statistics_output_path: str = MISSING
+    harmonised_summary_statistics_qc_output_path: str = MISSING
+    # Harmonisation config
+    perform_meta_analysis_filter: bool = True
+    imputation_score_threshold: float = 0.8
+    perform_imputation_score_filter: bool = True
+    min_allele_count_threshold: int = 20
+    perform_min_allele_count_filter: bool = True
+    min_allele_frequency_threshold: float = 1e-4
+    perform_min_allele_frequency_filter: bool = False
+    filter_out_ambiguous_variants: bool = False
+    _target_: str = (
+        "gentropy.finngen_ukb_mvp_meta.FinngenUkbMvpMetaSummaryStatisticsIngestionStep"
+    )
 
 
 @dataclass
@@ -456,13 +477,6 @@ class LOFIngestionConfig(StepConfig):
 class VariantIndexConfig(StepConfig):
     """Variant index step configuration."""
 
-    class _ConsequenceToPathogenicityScoreMap(TypedDict):
-        """Typing definition for CONSEQUENCE_TO_PATHOGENICITY_SCORE."""
-
-        id: str
-        label: str
-        score: float
-
     session: Any = field(
         default_factory=lambda: {
             "start_hail": False,
@@ -472,67 +486,7 @@ class VariantIndexConfig(StepConfig):
     variant_index_path: str = MISSING
     variant_annotations_path: list[str] | None = None
     hash_threshold: int = 300
-    consequence_to_pathogenicity_score: ClassVar[
-        list[_ConsequenceToPathogenicityScoreMap]
-    ] = [
-        {"id": "SO_0001575", "label": "splice_donor_variant", "score": 1.0},
-        {"id": "SO_0001589", "label": "frameshift_variant", "score": 1.0},
-        {"id": "SO_0001574", "label": "splice_acceptor_variant", "score": 1.0},
-        {"id": "SO_0001587", "label": "stop_gained", "score": 1.0},
-        {"id": "SO_0002012", "label": "start_lost", "score": 1.0},
-        {"id": "SO_0001578", "label": "stop_lost", "score": 1.0},
-        {"id": "SO_0001893", "label": "transcript_ablation", "score": 1.0},
-        {"id": "SO_0001822", "label": "inframe_deletion", "score": 0.66},
-        {
-            "id": "SO_0001818",
-            "label": "protein_altering_variant",
-            "score": 0.66,
-        },
-        {"id": "SO_0001821", "label": "inframe_insertion", "score": 0.66},
-        {
-            "id": "SO_0001787",
-            "label": "splice_donor_5th_base_variant",
-            "score": 0.66,
-        },
-        {"id": "SO_0001583", "label": "missense_variant", "score": 0.66},
-        {"id": "SO_0001567", "label": "stop_retained_variant", "score": 0.33},
-        {"id": "SO_0001630", "label": "splice_region_variant", "score": 0.33},
-        {"id": "SO_0002019", "label": "start_retained_variant", "score": 0.33},
-        {
-            "id": "SO_0002169",
-            "label": "splice_polypyrimidine_tract_variant",
-            "score": 0.33,
-        },
-        {
-            "id": "SO_0001626",
-            "label": "incomplete_terminal_codon_variant",
-            "score": 0.33,
-        },
-        {"id": "SO_0001819", "label": "synonymous_variant", "score": 0.33},
-        {
-            "id": "SO_0002170",
-            "label": "splice_donor_region_variant",
-            "score": 0.33,
-        },
-        {"id": "SO_0001624", "label": "3_prime_UTR_variant", "score": 0.1},
-        {"id": "SO_0001623", "label": "5_prime_UTR_variant", "score": 0.1},
-        {"id": "SO_0001627", "label": "intron_variant", "score": 0.1},
-        {
-            "id": "SO_0001619",
-            "label": "non_coding_transcript_variant",
-            "score": 0.0,
-        },
-        {"id": "SO_0001580", "label": "coding_sequence_variant", "score": 0.0},
-        {"id": "SO_0001632", "label": "downstream_gene_variant", "score": 0.0},
-        {"id": "SO_0001631", "label": "upstream_gene_variant", "score": 0.0},
-        {
-            "id": "SO_0001792",
-            "label": "non_coding_transcript_exon_variant",
-            "score": 0.0,
-        },
-        {"id": "SO_0001620", "label": "mature_miRNA_variant", "score": 0.0},
-        {"id": "SO_0001060", "label": "intergenic_variant", "score": 0.0},
-    ]
+
     amino_acid_change_annotations: list[str] = MISSING
 
     _target_: str = "gentropy.variant_index.VariantIndexStep"
@@ -548,7 +502,15 @@ class ConvertToVcfStepConfig(StepConfig):
     partition_size: int = 2000
     _target_: str = "gentropy.variant_index.ConvertToVcfStep"
 
+@dataclass
+class IntervalE2GStepConfig(StepConfig):
+    """Interval E2G step configuration."""
 
+    target_index_path: str = MISSING
+    interval_source: str = MISSING
+    interval_e2g_path: str = MISSING
+
+    _target_: str = "gentropy.variant_index.IntervalE2GStep"
 @dataclass
 class LocusBreakerClumpingConfig(StepConfig):
     """Locus breaker clumping step configuration."""
@@ -598,16 +560,6 @@ class FinemapperConfig(StepConfig):
     study_index_path: str = MISSING
     study_locus_manifest_path: str = MISSING
     study_locus_index: int = MISSING
-    ld_matrix_paths: dict[str, str] = field(
-        default_factory=lambda: {
-            "pan_ukbb_bm_path": "gs://panukbb-ld-matrixes/UKBB.{POP}.ldadj",
-            "ukbb_annotation_path": "gs://panukbb-ld-matrixes/UKBB.{POP}.aligned.parquet",
-            "ld_matrix_template": "gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.{POP}.common.adj.ld.bm",
-            "ld_index_raw_template": "gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.{POP}.common.ld.variant_indices.ht",
-            "liftover_ht_path": "gs://gcp-public-data--gnomad/release/2.1.1/liftover_grch38/ht/genomes/gnomad.genomes.r2.1.1.sites.liftover_grch38.ht",
-            "grch37_to_grch38_chain_path": "gs://hail-common/references/grch37_to_grch38.over.chain.gz",
-        }
-    )
     max_causal_snps: int = MISSING
     lead_pval_threshold: float = MISSING
     purity_mean_r2_threshold: float = MISSING
@@ -622,7 +574,6 @@ class FinemapperConfig(StepConfig):
     imputed_r2_threshold: float = MISSING
     ld_score_threshold: float = MISSING
     ld_min_r2: float = MISSING
-    ignore_qc: bool = False
     _target_: str = "gentropy.susie_finemapper.SusieFineMapperStep"
 
 
@@ -707,7 +658,6 @@ class StudyLocusValidationStepConfig(StepConfig):
     invalid_qc_reasons: list[str] = MISSING
     trans_qtl_threshold: int = MISSING
     _target_: str = "gentropy.study_locus_validation.StudyLocusValidationStep"
-
 
 @dataclass
 class Config:
@@ -799,6 +749,11 @@ def register_config() -> None:
         name="locus_to_gene_associations",
         node=LocusToGeneAssociationsStepConfig,
     )
-    cs.store(group="step", name="finngen_ukb_meta_ingestion", node=FinngenUkbMetaConfig)
+    cs.store(
+        group="step",
+        name="finngen_ukb_mvp_meta_summary_statistics_ingestion",
+        node=FinngenUkbMvpMetaSummaryStatisticsIngestionConfig,
+    )
     cs.store(group="step", name="credible_set_qc", node=CredibleSetQCStepConfig)
     cs.store(group="step", name="foldx_integration", node=FoldXVariantAnnotationConfig)
+    cs.store(group="step", name="interval_e2g", node=IntervalE2GStepConfig)
