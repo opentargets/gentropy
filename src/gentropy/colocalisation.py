@@ -6,12 +6,16 @@ from functools import partial
 from typing import Any
 
 import pyspark.sql.functions as f
-from pyspark.sql.functions import col
 
 from gentropy.common.session import Session
 from gentropy.dataset.colocalisation import Colocalisation
 from gentropy.dataset.study_locus import FinemappingMethod, StudyLocus
-from gentropy.method.colocalisation import Coloc, ColocalisationMethodInterface
+from gentropy.method.colocalisation import (
+    Coloc,
+    ColocalisationMethodInterface,
+    ColocPIP,
+    ECaviar,
+)
 
 
 class ColocalisationStep:
@@ -70,7 +74,6 @@ class ColocalisationStep:
             )
 
             # Run ColocPIP
-            from gentropy.method.colocalisation import ColocPIP
 
             coloc_pip = ColocPIP.colocalise
             if colocalisation_method_params:
@@ -78,7 +81,6 @@ class ColocalisationStep:
             coloc_pip_results = coloc_pip(overlaps)
 
             # Run eCAVIAR
-            from gentropy.method.colocalisation import ECaviar
 
             ecaviar_results = ECaviar.colocalise(overlaps)
 
@@ -95,8 +97,8 @@ class ColocalisationStep:
                 .join(
                     ecaviar_results.df.alias("ecav").select(
                         *join_keys,
-                        col("clpp").alias("clpp_ecaviar"),
-                        col("numberColocalisingVariants").alias(
+                        f.col("clpp").alias("clpp_ecaviar"),
+                        f.col("numberColocalisingVariants").alias(
                             "numberColocalisingVariants_ecaviar"
                         ),
                     ),
@@ -104,24 +106,24 @@ class ColocalisationStep:
                     how="inner",
                 )
                 .select(
-                    col("pip.leftStudyLocusId"),
-                    col("pip.rightStudyLocusId"),
-                    col("pip.rightStudyType"),
-                    col("pip.chromosome"),
+                    f.col("pip.leftStudyLocusId"),
+                    f.col("pip.rightStudyLocusId"),
+                    f.col("pip.rightStudyType"),
+                    f.col("pip.chromosome"),
                     # Use a combined method name
                     f.lit("COLOC_PIP_ECAVIAR").alias("colocalisationMethod"),
                     # Use the max number of colocalising variants from both methods
                     f.greatest(
-                        col("pip.numberColocalisingVariants"),
-                        col("numberColocalisingVariants_ecaviar"),
+                        f.col("pip.numberColocalisingVariants"),
+                        f.col("numberColocalisingVariants_ecaviar"),
                     ).alias("numberColocalisingVariants"),
                     # Keep h3 and h4 from ColocPIP
-                    col("pip.h3"),
-                    col("pip.h4"),
+                    f.col("pip.h3"),
+                    f.col("pip.h4"),
                     # Add clpp from eCAVIAR
-                    col("clpp_ecaviar").alias("clpp"),
+                    f.col("clpp_ecaviar").alias("clpp"),
                     # Keep beta ratio from ColocPIP
-                    col("pip.betaRatioSignAverage"),
+                    f.col("pip.betaRatioSignAverage"),
                 ),
                 _schema=Colocalisation.get_schema(),
             )
@@ -130,7 +132,7 @@ class ColocalisationStep:
 
             if colocalisation_method == Coloc.METHOD_NAME.lower():
                 credible_set = credible_set.filter(
-                    col("finemappingMethod").isin(
+                    f.col("finemappingMethod").isin(
                         FinemappingMethod.SUSIE.value, FinemappingMethod.SUSIE_INF.value
                     )
                 )
