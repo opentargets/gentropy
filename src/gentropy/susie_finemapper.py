@@ -353,7 +353,7 @@ class SusieFineMapperStep:
         z_values = variant_index_df.iloc[ind]["z"].tolist()
         neglogpval = variant_index_df.iloc[ind]["neglogpval"].tolist()
 
-        neglogpval = [np.nan if np.isinf(val) else val for val in neglogpval]
+        neglogpval = [None if np.isinf(val) else val for val in neglogpval]
 
         list_purity_mean_r2 = []
         list_purity_min_r2 = []
