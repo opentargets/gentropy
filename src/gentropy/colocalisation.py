@@ -62,10 +62,7 @@ class ColocalisationStep:
             session, credible_set_path, recusiveFileLookup=True
         )
 
-        # Check if we should run both ColocPIP and eCAVIAR
         if colocalisation_method == "coloc_pip_ecaviar":
-            # Filter to SuSiE methods for ColocPIP
-
             # Transform - find overlaps once
             overlaps = credible_set.find_overlaps(
                 restrict_right_studies=restrict_right_studies,
@@ -118,10 +115,7 @@ class ColocalisationStep:
                         col("pip.numberColocalisingVariants"),
                         col("numberColocalisingVariants_ecaviar"),
                     ).alias("numberColocalisingVariants"),
-                    # Keep h0-h4 from ColocPIP
-                    col("pip.h0"),
-                    col("pip.h1"),
-                    col("pip.h2"),
+                    # Keep h3 and h4 from ColocPIP
                     col("pip.h3"),
                     col("pip.h4"),
                     # Add clpp from eCAVIAR
@@ -132,7 +126,6 @@ class ColocalisationStep:
                 _schema=Colocalisation.get_schema(),
             )
         else:
-            # Original single-method logic
             colocalisation_class = self._get_colocalisation_class(colocalisation_method)
 
             if colocalisation_method == Coloc.METHOD_NAME.lower():
