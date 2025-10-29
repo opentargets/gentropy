@@ -403,7 +403,7 @@ def pvalue_from_neglogpval(p_value: Column) -> PValComponents:
 
     Examples:
         >>> (
-        ... spark.createDataFrame([(4.56, 'a'),(2109.23, 'b')], ['negLogPv', 'label'])
+        ... spark.createDataFrame([(4.56, 'a'),(2109.23, 'b'),(None,'c')], ['negLogPv', 'label'])
         ... .select('negLogPv',*pvalue_from_neglogpval(f.col('negLogPv')))
         ... .show()
         ... )
@@ -412,6 +412,7 @@ def pvalue_from_neglogpval(p_value: Column) -> PValComponents:
         +--------+--------------+--------------+
         |    4.56|     2.7542286|            -5|
         | 2109.23|     5.8884363|         -2110|
+        |    NULL|          NULL|          NULL|
         +--------+--------------+--------------+
         <BLANKLINE>
     """
