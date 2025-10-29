@@ -525,9 +525,8 @@ class ColocPIP(ColocalisationMethodInterface):
         denom = get_logsum(np.array([PP3, PP4]))
         PP4 = np.exp(PP4 - denom)
         PP3 = np.exp(PP3 - denom)
-        PP0 = max(0, 1 - PP3 - PP4)
 
-        return Vectors.dense([PP0, 0.0, 0.0, PP3, PP4])
+        return Vectors.dense([0.0, 0.0, 0.0, PP3, PP4])
 
     @classmethod
     def colocalise(

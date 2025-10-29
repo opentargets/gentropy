@@ -5,9 +5,11 @@ from __future__ import annotations
 from functools import partial
 from typing import Any
 
+import pyspark.sql.functions as f
 from pyspark.sql.functions import col
 
 from gentropy.common.session import Session
+from gentropy.dataset.colocalisation import Colocalisation
 from gentropy.dataset.study_locus import FinemappingMethod, StudyLocus
 from gentropy.method.colocalisation import Coloc, ColocalisationMethodInterface
 
@@ -41,7 +43,7 @@ class ColocalisationStep:
             session (Session): Session object.
             credible_set_path (str): Input credible sets path.
             coloc_path (str): Output path.
-            colocalisation_method (str): Colocalisation method.
+            colocalisation_method (str): Colocalisation method. Use 'coloc_pip_ecaviar' to run both ColocPIP and eCAVIAR and merge results.
             restrict_right_studies (list[str] | None): List of study IDs to restrict the right side of the colocalisation overlaps to, e.g. all gwas vs a single studyId. Defaults to None.
             gwas_v_qtl_overlap_only (bool): If True, restricts the right side of colocalisation overlaps to only molecular-QTL studies, e.g. all gwas vs all molQTLs. Defaults to False.
             colocalisation_method_params (dict[str, Any] | None): Keyword arguments passed to the colocalise method of Colocalisation class. Defaults to None
@@ -54,30 +56,104 @@ class ColocalisationStep:
             posterior_cutoff (float): Minimum overlapping Posterior probability cutoff for small overlaps. Defaults to 0.0.
         """
         colocalisation_method = colocalisation_method.lower()
-        colocalisation_class = self._get_colocalisation_class(colocalisation_method)
 
         # Extract
         credible_set = StudyLocus.from_parquet(
             session, credible_set_path, recusiveFileLookup=True
         )
-        if colocalisation_method == Coloc.METHOD_NAME.lower():
-            credible_set = credible_set.filter(
-                col("finemappingMethod").isin(
-                    FinemappingMethod.SUSIE.value, FinemappingMethod.SUSIE_INF.value
-                )
+
+        # Check if we should run both ColocPIP and eCAVIAR
+        if colocalisation_method == "coloc_pip_ecaviar":
+            # Filter to SuSiE methods for ColocPIP
+
+            # Transform - find overlaps once
+            overlaps = credible_set.find_overlaps(
+                restrict_right_studies=restrict_right_studies,
+                gwas_v_qtl_overlap_only=gwas_v_qtl_overlap_only,
             )
 
-        # Transform
-        overlaps = credible_set.find_overlaps(
-            restrict_right_studies=restrict_right_studies,
-            gwas_v_qtl_overlap_only=gwas_v_qtl_overlap_only,
-        )
+            # Run ColocPIP
+            from gentropy.method.colocalisation import ColocPIP
 
-        # Make a partial caller to ensure that colocalisation_method_params are added to the call only when dict is not empty
-        coloc = colocalisation_class.colocalise
-        if colocalisation_method_params:
-            coloc = partial(coloc, **colocalisation_method_params)
-        colocalisation_results = coloc(overlaps)
+            coloc_pip = ColocPIP.colocalise
+            if colocalisation_method_params:
+                coloc_pip = partial(coloc_pip, **colocalisation_method_params)
+            coloc_pip_results = coloc_pip(overlaps)
+
+            # Run eCAVIAR
+            from gentropy.method.colocalisation import ECaviar
+
+            ecaviar_results = ECaviar.colocalise(overlaps)
+
+            # Merge results: join on key columns and combine metrics
+            join_keys = [
+                "leftStudyLocusId",
+                "rightStudyLocusId",
+                "chromosome",
+                "rightStudyType",
+            ]
+
+            colocalisation_results = Colocalisation(
+                _df=coloc_pip_results.df.alias("pip")
+                .join(
+                    ecaviar_results.df.alias("ecav").select(
+                        *join_keys,
+                        col("clpp").alias("clpp_ecaviar"),
+                        col("numberColocalisingVariants").alias(
+                            "numberColocalisingVariants_ecaviar"
+                        ),
+                    ),
+                    on=join_keys,
+                    how="inner",
+                )
+                .select(
+                    col("pip.leftStudyLocusId"),
+                    col("pip.rightStudyLocusId"),
+                    col("pip.rightStudyType"),
+                    col("pip.chromosome"),
+                    # Use a combined method name
+                    f.lit("COLOC_PIP_ECAVIAR").alias("colocalisationMethod"),
+                    # Use the max number of colocalising variants from both methods
+                    f.greatest(
+                        col("pip.numberColocalisingVariants"),
+                        col("numberColocalisingVariants_ecaviar"),
+                    ).alias("numberColocalisingVariants"),
+                    # Keep h0-h4 from ColocPIP
+                    col("pip.h0"),
+                    col("pip.h1"),
+                    col("pip.h2"),
+                    col("pip.h3"),
+                    col("pip.h4"),
+                    # Add clpp from eCAVIAR
+                    col("clpp_ecaviar").alias("clpp"),
+                    # Keep beta ratio from ColocPIP
+                    col("pip.betaRatioSignAverage"),
+                ),
+                _schema=Colocalisation.get_schema(),
+            )
+        else:
+            # Original single-method logic
+            colocalisation_class = self._get_colocalisation_class(colocalisation_method)
+
+            if colocalisation_method == Coloc.METHOD_NAME.lower():
+                credible_set = credible_set.filter(
+                    col("finemappingMethod").isin(
+                        FinemappingMethod.SUSIE.value, FinemappingMethod.SUSIE_INF.value
+                    )
+                )
+
+            # Transform
+            overlaps = credible_set.find_overlaps(
+                restrict_right_studies=restrict_right_studies,
+                gwas_v_qtl_overlap_only=gwas_v_qtl_overlap_only,
+            )
+
+            # Make a partial caller to ensure that colocalisation_method_params are added to the call only when dict is not empty
+            coloc = colocalisation_class.colocalise
+            if colocalisation_method_params:
+                coloc = partial(coloc, **colocalisation_method_params)
+            colocalisation_results = coloc(overlaps)
+
         # Load
         colocalisation_results.df.coalesce(session.output_partitions).write.mode(
             session.write_mode
