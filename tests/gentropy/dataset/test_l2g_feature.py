@@ -22,6 +22,7 @@ from pyspark.sql.types import (
 
 from gentropy.dataset.colocalisation import Colocalisation
 from gentropy.dataset.target_index import TargetIndex
+from gentropy.dataset.intervals import Intervals
 from gentropy.dataset.l2g_features.colocalisation import (
     EQtlColocClppMaximumFeature,
     EQtlColocClppMaximumNeighbourhoodFeature,
@@ -67,6 +68,10 @@ from gentropy.dataset.l2g_features.other import (
     ProteinGeneCountFeature,
     CredibleSetConfidenceFeature,
     ProteinCodingFeature,
+)
+
+from gentropy.dataset.l2g_features.intervals import (
+    e2g_interval_feature_wide_logic,
 )
 from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import StudyLocus
@@ -703,6 +708,150 @@ class TestCommonDistanceFeatureLogic:
             ),
             _schema=TargetIndex.get_schema(),
         )
+
+
+class TestE2GIntervalFeatures:
+    """Tests for e2g base + neighbourhood features, single-overlap implementation."""
+
+    @pytest.fixture(autouse=True)
+    def _setup(self, spark: SparkSession) -> None:
+        """Set up test fixtures."""
+        self.sample_study_locus = StudyLocus(
+            _df=spark.createDataFrame(
+                [
+                    {
+                        "studyLocusId": "SL_1",
+                        "variantId": "1_1000001",
+                        "studyId": "study1",
+                        "locus": [
+                            {"variantId": "1_1000001", "posteriorProbability": 0.6},
+                            {
+                                "variantId": "1_1000200",
+                                "posteriorProbability": 0.0005,
+                            },  # filtered out
+                        ],
+                        "chromosome": "1",
+                    },
+                ],
+                StudyLocus.get_schema(),
+            ),
+            _schema=StudyLocus.get_schema(),
+        )
+
+        # --- Intervals fixture built to your schema (score: double; resourceScore: array[struct] or None) ---
+        # Only required/non-nullable fields must be populated; others can be None
+        intervals_rows = [
+            # Two overlapping intervals for SAME variant position and geneA (tests max(score) per variant–gene)
+            {
+                "chromosome": "1",
+                "start": "1000000",
+                "end": "1000100",
+                "geneId": "geneA",
+                "score": 0.8,
+                "distanceToTss": None,
+                "resourceScore": None,
+                "datasourceId": "dummy",
+                "intervalType": "pchic",
+                "pmid": None,
+                "biofeature": None,
+                "biosampleName": None,
+                "biosampleId": None,
+                "studyId": None,
+                "intervalId": None,
+            },
+            {
+                "chromosome": "1",
+                "start": "1000000",
+                "end": "1000100",
+                "geneId": "geneA",
+                "score": 0.5,
+                "distanceToTss": None,
+                "resourceScore": None,
+                "datasourceId": "dummy",
+                "intervalType": "pchic",
+                "pmid": None,
+                "biofeature": None,
+                "biosampleName": None,
+                "biosampleId": None,
+                "studyId": None,
+                "intervalId": None,
+            },
+            # Another gene overlapping the kept variant position
+            {
+                "chromosome": "1",
+                "start": "1000000",
+                "end": "1000500",
+                "geneId": "geneB",
+                "score": 0.2,
+                "distanceToTss": None,
+                "resourceScore": None,
+                "datasourceId": "dummy",
+                "intervalType": "pchic",
+                "pmid": None,
+                "biofeature": None,
+                "biosampleName": None,
+                "biosampleId": None,
+                "studyId": None,
+                "intervalId": None,
+            },
+            # Interval near low-PP variant (won't contribute because PP threshold filters it before the join)
+            {
+                "chromosome": "1",
+                "start": "1000150",
+                "end": "1000300",
+                "geneId": "geneA",
+                "score": 1.0,
+                "distanceToTss": None,
+                "resourceScore": None,
+                "datasourceId": "dummy",
+                "intervalType": "pchic",
+                "pmid": None,
+                "biofeature": None,
+                "biosampleName": None,
+                "biosampleId": None,
+                "studyId": None,
+                "intervalId": None,
+            },
+        ]
+        self.sample_intervals = Intervals(
+            _df=spark.createDataFrame(intervals_rows, schema=Intervals.get_schema()),
+            _schema=Intervals.get_schema(),
+        )
+
+    def test_e2g_interval_feature_wide_once_base_and_neighbourhood(
+        self, spark: SparkSession
+    ) -> None:
+        """Base e2gMean and ratio neighbourhood computed correctly in one pass."""
+        wide = e2g_interval_feature_wide_logic(
+            self.sample_study_locus,
+            intervals=self.sample_intervals,
+            base_name="e2gMean",
+        )
+
+        observed = (
+            wide.select(
+                "studyLocusId",
+                "geneId",
+                f.round("e2gMean", 4).alias("e2gMean"),
+                f.round("e2gMeanNeighbourhood", 4).alias("e2gMeanNeighbourhood"),
+            )
+            .orderBy("geneId")
+            .collect()
+        )
+
+        # Calculations:
+        # kept variant: 1_1000001 with PP=0.6
+        # geneA: max(score)=0.8 -> 0.8*0.6 = 0.48
+        # geneB: score=0.2 -> 0.2*0.6 = 0.12
+        # locus mean = (0.48+0.12)/2=0.30; ratios: geneA=1.6, geneB=0.4
+        expected = [
+            ("SL_1", "geneA", 0.48, 1.6),
+            ("SL_1", "geneB", 0.12, 0.4),
+        ]
+        assert [
+            (r["studyLocusId"], r["geneId"], r["e2gMean"], r["e2gMeanNeighbourhood"])
+            for r in observed
+        ] == expected
 
 
 class TestCommonVepFeatureLogic:
