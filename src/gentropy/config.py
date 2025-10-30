@@ -265,6 +265,9 @@ class LocusToGeneConfig(StepConfig):
             "vepMaximumNeighbourhood",
             "vepMean",
             "vepMeanNeighbourhood",
+            # intervals
+            "e2gMean",
+            "e2gMeanNeighbourhood",
             # other
             "geneCount500kb",
             "proteinGeneCount500kb",
@@ -311,6 +314,7 @@ class LocusToGeneFeatureMatrixConfig(StepConfig):
     colocalisation_path: str | None = None
     study_index_path: str | None = None
     target_index_path: str | None = None
+    intervals_path: str | None = None
     feature_matrix_path: str = MISSING
     features_list: list[str] = field(
         default_factory=lambda: [
@@ -345,6 +349,9 @@ class LocusToGeneFeatureMatrixConfig(StepConfig):
             "vepMaximumNeighbourhood",
             "vepMean",
             "vepMeanNeighbourhood",
+            # intervals
+            "e2gMean",
+            "e2gMeanNeighbourhood",
             # other
             "geneCount500kb",
             "proteinGeneCount500kb",
@@ -502,6 +509,7 @@ class ConvertToVcfStepConfig(StepConfig):
     partition_size: int = 2000
     _target_: str = "gentropy.variant_index.ConvertToVcfStep"
 
+
 @dataclass
 class IntervalE2GStepConfig(StepConfig):
     """Interval E2G step configuration."""
@@ -511,6 +519,8 @@ class IntervalE2GStepConfig(StepConfig):
     interval_e2g_path: str = MISSING
 
     _target_: str = "gentropy.variant_index.IntervalE2GStep"
+
+
 @dataclass
 class LocusBreakerClumpingConfig(StepConfig):
     """Locus breaker clumping step configuration."""
@@ -658,6 +668,7 @@ class StudyLocusValidationStepConfig(StepConfig):
     invalid_qc_reasons: list[str] = MISSING
     trans_qtl_threshold: int = MISSING
     _target_: str = "gentropy.study_locus_validation.StudyLocusValidationStep"
+
 
 @dataclass
 class Config:
