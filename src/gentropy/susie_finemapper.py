@@ -832,6 +832,27 @@ class SusieFineMapperStep:
             logging.warning("Major ancestry is not nfe, csa or afr")
             if not ignore_qc:
                 return None
+        else:
+            has_high_relative_sample = (
+                study_index_df.withColumn(
+                    "hasHighRelativeSampleSize",
+                    f.expr(
+                        "exists(ldPopulationStructure, x -> x.relativeSampleSize >= 0.9)"
+                    ),
+                )
+                .select("hasHighRelativeSampleSize")
+                .collect()[0]["hasHighRelativeSampleSize"]
+            )
+            if not has_high_relative_sample:
+                SusieFineMapperStep._empty_log_mg(
+                    studyId=studyId,
+                    region=region,
+                    error_mg="Major ancestry is less than 90% of total sample size",
+                    path_out=log_output,
+                )
+                logging.warning("Major ancestry is less than 90% of total sample size")
+                if not ignore_qc:
+                    return None
 
         # Desision tree - hasSumstats
         if not study_index_df.select("hasSumstats").collect()[0]["hasSumstats"]:
