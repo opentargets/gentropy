@@ -530,64 +530,7 @@ class StudyIndexGWASCatalog(StudyIndex):
             .persist()
         )
 
-        # Generate information on the ancestry composition of the discovery stage, and calculate
-        # the proportion of the Europeans:
-        europeans_deconvoluted = (
-            ancestry
-            # Focus on discovery stage:
-            .filter(f.col("stage") == "initial")
-            # Sorting ancestries if European:
-            .withColumn(
-                "ancestryFlag",
-                # Excluding finnish:
-                f.when(
-                    f.col("initialSampleDescription").contains("Finnish"),
-                    f.lit("other"),
-                )
-                # Excluding Icelandic population:
-                .when(
-                    f.col("initialSampleDescription").contains("Icelandic"),
-                    f.lit("other"),
-                )
-                # Including European ancestry:
-                .when(f.col("broadAncestralCategory") == "European", f.lit("european"))
-                # Exclude all other population:
-                .otherwise("other"),
-            )
-            # Grouping by study accession and initial sample description:
-            .groupBy("studyId")
-            .pivot("ancestryFlag")
-            .agg(
-                # Summarizing sample sizes for all ancestries:
-                f.sum(f.col("numberOfIndividuals"))
-            )
-            # Do arithmetics to make sure we have the right proportion of european in the set:
-            .withColumn(
-                "initialSampleCountEuropean",
-                f.when(f.col("european").isNull(), f.lit(0)).otherwise(
-                    f.col("european")
-                ),
-            )
-            .withColumn(
-                "initialSampleCountOther",
-                f.when(f.col("other").isNull(), f.lit(0)).otherwise(f.col("other")),
-            )
-            .withColumn(
-                "initialSampleCount",
-                f.col("initialSampleCountEuropean") + f.col("other"),
-            )
-            .drop(
-                "european",
-                "other",
-                "initialSampleCount",
-                "initialSampleCountEuropean",
-                "initialSampleCountOther",
-            )
-        )
-
-        parsed_ancestry_lut = ancestry_stages.join(
-            europeans_deconvoluted, on="studyId", how="outer"
-        ).select(
+        parsed_ancestry_lut = ancestry_stages.select(
             "studyId", "discoverySamples", "ldPopulationStructure", "replicationSamples"
         )
         self.df = self.df.join(parsed_ancestry_lut, on="studyId", how="left")
