@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Protocol
 
 import hail as hl
 from pyspark.conf import SparkConf
@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 class Session:
     """This class provides a Spark session and logger."""
 
-    def __init__(  # noqa: D107
+    def __init__(
         self: Session,
         spark_uri: str = "local[*]",
         write_mode: str = "errorifexists",
@@ -25,6 +25,7 @@ class Session:
         start_hail: bool = False,
         extended_spark_conf: dict[str, str] | None = None,
         output_partitions: int = 200,
+        use_enhanced_bgzip_codec: bool = False,
     ) -> None:
         """Initialises spark session and logger.
 
@@ -36,9 +37,13 @@ class Session:
             start_hail (bool): Whether to start Hail. Defaults to False.
             extended_spark_conf (dict[str, str] | None): Extended Spark configuration. Defaults to None.
             output_partitions (int): Number of partitions for output datasets. Defaults to 200.
+            use_enhanced_bgzip_codec (bool): Whether to use the BGZFEnhancedGzipCodec for reading block gzipped files. Defaults to False.
         """
         merged_conf = self._create_merged_config(
-            start_hail, hail_home, extended_spark_conf
+            start_hail,
+            use_enhanced_bgzip_codec,
+            extended_spark_conf,
+            hail_home,
         )
 
         self.spark = (
@@ -54,6 +59,7 @@ class Session:
 
         self.hail_home = hail_home
         self.start_hail = start_hail
+        self.use_enhanced_bgzip_codec = use_enhanced_bgzip_codec
         if start_hail:
             hl.init(sc=self.spark.sparkContext, log="/dev/null")
         self.output_partitions = output_partitions
@@ -70,30 +76,43 @@ class Session:
             .set("spark.dynamicAllocation.enabled", "true")
             .set("spark.dynamicAllocation.minExecutors", "2")
             .set("spark.dynamicAllocation.initialExecutors", "2")
-            .set(
-                "spark.shuffle.service.enabled", "true"
-            )  # required for dynamic allocation
+            .set("spark.shuffle.service.enabled", "true")
         )
 
-    def _hail_config(
-        self: Session, start_hail: bool, hail_home: str | None
-    ) -> SparkConf:
+    def _bgzip_config(self: Session) -> SparkConf:
+        """Spark configuration for reading block gzipped files.
+
+        Configuration that adds the hadoop-bam package and sets the BGZFEnhancedGzipCodec.
+        Based on hadoop-bam jar artifact from [maven](https://mvnrepository.com/artifact/org.seqdoop/hadoop-bam/7.10.0).
+
+        Note:
+            Full details of the codec can be found in [hadoop-bam](https://github.com/HadoopGenomics/Hadoop-BAM/blob/7.10.0/src/main/java/org/seqdoop/hadoop_bam/util/BGZFEnhancedGzipCodec.java)
+
+        This codec implements:
+        (1) SplittableCompressionCodec allowing parallel reading of bgzip files.
+        (2) GzipCodec allowing reading of standard gzip files.
+
+        Returns:
+            SparkConf: Spark configuration for reading block gzipped files.
+        """
+        return (
+            SparkConf()
+            .set("spark.jars.packages", "org.seqdoop:hadoop-bam:7.10.0")
+            .set(
+                "spark.hadoop.io.compression.codecs",
+                "org.seqdoop.hadoop_bam.util.BGZFEnhancedGzipCodec",
+            )
+        )
+
+    def _hail_config(self: Session, hail_home: str) -> SparkConf:
         """Returns the Hail specific Spark configuration.
 
         Args:
-            start_hail (bool): Whether to start Hail.
-            hail_home (str | None): Path to Hail installation.
+            hail_home (str): Path to Hail installation.
 
         Returns:
             SparkConf: Hail specific Spark configuration.
-
-        Raises:
-            ValueError: If Hail home is not specified but Hail is requested.
         """
-        if not start_hail:
-            return SparkConf()
-        if not hail_home:
-            raise ValueError("Hail home must be specified to start Hail.")
         return (
             SparkConf()
             .set("spark.jars", f"{hail_home}/backend/hail-all-spark.jar")
@@ -108,24 +127,32 @@ class Session:
     def _create_merged_config(
         self: Session,
         start_hail: bool,
-        hail_home: str | None,
+        use_enhanced_bgzip_codec: bool,
         extended_spark_conf: dict[str, str] | None,
+        hail_home: str | None = None,
     ) -> SparkConf:
         """Merges the default, and optionally the Hail and extended configurations if provided.
 
         Args:
             start_hail (bool): Whether to start Hail.
-            hail_home (str | None): Path to Hail installation. Defaults to None.
+            use_enhanced_bgzip_codec (bool): Whether to use the BGZFEnhancedGzipCodec for reading block gzipped files.
             extended_spark_conf (dict[str, str] | None): Extended Spark configuration.
+            hail_home (str | None): Path to Hail installation.
+
+        Raises:
+            ValueError: If Hail home is not specified but Hail is requested.
 
         Returns:
             SparkConf: Merged Spark configuration.
         """
-        all_settings = (
-            self._default_config().getAll()
-            + self._hail_config(start_hail, hail_home).getAll()
-        )
-        if extended_spark_conf:
+        all_settings = self._default_config().getAll()
+        if start_hail:
+            if not hail_home:
+                raise ValueError("Hail home must be specified to start Hail.")
+            all_settings += self._hail_config(hail_home).getAll()
+        if use_enhanced_bgzip_codec:
+            all_settings += self._bgzip_config().getAll()
+        if extended_spark_conf is not None:
             all_settings += list(extended_spark_conf.items())
         return SparkConf().setAll(all_settings)
 
@@ -157,6 +184,34 @@ class Session:
         return self.spark.read.load(path, format=format, schema=schema, **kwargs)
 
 
+class JavaLogger(Protocol):
+    """Protocol for Java Log4j Logger accessed through PySpark JVM bridge."""
+
+    def error(self, message: str) -> None:
+        """Log an error message.
+
+        Args:
+            message (str): The error message to log.
+        """
+        ...
+
+    def warn(self, message: str) -> None:
+        """Log a warning message.
+
+        Args:
+            message (str): The error message to log.
+        """
+        ...
+
+    def info(self, message: str) -> None:
+        """Log an info message.
+
+        Args:
+            message (str): The error message to log.
+        """
+        ...
+
+
 class Log4j:
     """Log4j logger class."""
 
@@ -166,14 +221,11 @@ class Log4j:
         Args:
             spark (SparkSession): The Spark session used to access Spark context and Log4j logging.
         """
-        # get spark app details with which to prefix all messages
-        log4j = spark.sparkContext._jvm.org.apache.log4j  # type: ignore[assignment, unused-ignore]
-        self.logger = log4j.Logger.getLogger(__name__)
+        log4j: Any = spark.sparkContext._jvm.org.apache.log4j  # pyright: ignore[reportAttributeAccessIssue, reportOptionalMemberAccess]
+        # Cast to our protocol type for type safety
+        self.logger: JavaLogger = log4j.LogManager.getLogger(__name__)
 
-        log4j_logger = spark.sparkContext._jvm.org.apache.log4j  # type: ignore[assignment, unused-ignore]
-        self.logger = log4j_logger.LogManager.getLogger(__name__)
-
-    def error(self: Log4j, message: str) -> None:
+    def error(self, message: str) -> None:
         """Log an error.
 
         Args:
@@ -181,15 +233,15 @@ class Log4j:
         """
         self.logger.error(message)
 
-    def warn(self: Log4j, message: str) -> None:
+    def warning(self, message: str) -> None:
         """Log a warning.
 
         Args:
-            message (str): Warning messsage to write to log
+            message (str): Warning message to write to log
         """
-        self.logger.warning(message)
+        self.logger.warn(message)  # noqa: G010
 
-    def info(self: Log4j, message: str) -> None:
+    def info(self, message: str) -> None:
         """Log information.
 
         Args:

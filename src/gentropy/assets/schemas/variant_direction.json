@@ -1,0 +1,58 @@
+{
+  "fields": [
+    {
+      "metadata": {},
+      "name": "chromosome",
+      "nullable": true,
+      "type": "string"
+    },
+    {
+      "metadata": {},
+      "name": "originalVariantId",
+      "nullable": false,
+      "type": "string"
+    },
+    { "metadata": {}, "name": "type", "nullable": false, "type": "byte" },
+    {
+      "metadata": {},
+      "name": "variantId",
+      "nullable": false,
+      "type": "string"
+    },
+    { "metadata": {}, "name": "direction", "nullable": false, "type": "byte" },
+    { "metadata": {}, "name": "strand", "nullable": false, "type": "byte" },
+    {
+      "metadata": {},
+      "name": "isStrandAmbiguous",
+      "nullable": false,
+      "type": "boolean"
+    },
+    {
+      "metadata": {},
+      "name": "originalAlleleFrequencies",
+      "nullable": true,
+      "type": {
+        "containsNull": true,
+        "elementType": {
+          "fields": [
+            {
+              "metadata": {},
+              "name": "populationName",
+              "nullable": true,
+              "type": "string"
+            },
+            {
+              "metadata": {},
+              "name": "alleleFrequency",
+              "nullable": true,
+              "type": "double"
+            }
+          ],
+          "type": "struct"
+        },
+        "type": "array"
+      }
+    }
+  ],
+  "type": "struct"
+}
