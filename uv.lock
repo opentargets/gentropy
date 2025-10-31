@@ -962,8 +962,8 @@ dependencies = [
     { name = "skops" },
     { name = "typing-extensions" },
     { name = "wandb" },
-    { name = "xgboost", marker = "platform_machine == 'aarch64' or platform_machine == 'arm64'" },
-    { name = "xgboost-cpu", marker = "platform_machine == 'amd64' or platform_machine == 'x86_64'" },
+    { name = "xgboost", marker = "platform_machine == 'aarch64' or platform_machine == 'arm64' or (platform_machine == 'x86_64' and sys_platform == 'darwin')" },
+    { name = "xgboost-cpu", marker = "(platform_machine == 'amd64' and sys_platform != 'darwin') or (platform_machine == 'x86_64' and sys_platform != 'darwin')" },
 ]
 
 [package.dev-dependencies]
@@ -984,6 +984,7 @@ dev = [
 ]
 docs = [
     { name = "lxml" },
+    { name = "markdown-katex" },
     { name = "mkdocs" },
     { name = "mkdocs-autolinks-plugin" },
     { name = "mkdocs-awesome-pages-plugin" },
@@ -1019,17 +1020,18 @@ requires-dist = [
     { name = "scikit-learn", specifier = ">=1.6.1,<1.8.0" },
     { name = "scipy", specifier = ">=1.11.4,<1.16.0" },
     { name = "shap", specifier = ">=0.46,<0.49" },
-    { name = "skops", specifier = ">=0.11.0,<0.14.0" },
+    { name = "skops", specifier = ">=0.11.0,<0.12.0" },
     { name = "typing-extensions", specifier = ">=4.12.2,<4.15.0" },
     { name = "wandb", specifier = ">=0.19.4,<0.22.0" },
+    { name = "xgboost", marker = "platform_machine == 'x86_64' and sys_platform == 'darwin'", specifier = ">=3.0.4" },
     { name = "xgboost", marker = "platform_machine == 'aarch64' or platform_machine == 'arm64'", specifier = ">=3.0.4" },
-    { name = "xgboost-cpu", marker = "platform_machine == 'amd64' or platform_machine == 'x86_64'", specifier = ">=3.0.4" },
+    { name = "xgboost-cpu", marker = "(platform_machine == 'amd64' and sys_platform != 'darwin') or (platform_machine == 'x86_64' and sys_platform != 'darwin')", specifier = ">=3.0.4" },
 ]
 
 [package.metadata.requires-dev]
 dev = [
     { name = "darglint", specifier = ">=1.8.1,<1.9.0" },
-    { name = "deptry", specifier = ">=0.22.0,<0.23.0" },
+    { name = "deptry", specifier = ">=0.22.0,<0.24.0" },
     { name = "interrogate", specifier = ">=1.7.0,<1.8.0" },
     { name = "ipykernel", specifier = ">=6.28.0,<6.31.0" },
     { name = "ipython", specifier = ">=8.19.0,<8.38.0" },
@@ -1038,12 +1040,13 @@ dev = [
     { name = "pep8-naming", specifier = ">=0.14.1,<0.16.0" },
     { name = "pre-commit", specifier = ">=4.0.0,<4.4.0" },
     { name = "prettier", specifier = ">=0.0.7,<0.1.0" },
-    { name = "pydoclint", specifier = ">=0.3.8,<0.7.0" },
-    { name = "ruff", specifier = ">=0.8.1,<0.13.0" },
+    { name = "pydoclint", specifier = ">=0.3.8,<0.8.0" },
+    { name = "ruff", specifier = ">=0.8.1,<0.15.0" },
     { name = "yamllint", specifier = ">=1.33.0,<1.38.0" },
 ]
 docs = [
     { name = "lxml", specifier = ">=5.1.0,<6.1.0" },
+    { name = "markdown-katex", specifier = ">=202406.1035" },
     { name = "mkdocs", specifier = ">=1.5.3,<1.6.0" },
     { name = "mkdocs-autolinks-plugin", specifier = ">=0.7.1,<0.8.0" },
     { name = "mkdocs-awesome-pages-plugin", specifier = ">=2.9.2,<3.0.0" },
@@ -1060,7 +1063,7 @@ test = [
     { name = "pyparsing", specifier = ">=3.1.1,<3.3.0" },
     { name = "pytest", specifier = ">=7.4.4,<9.0.0" },
     { name = "pytest-cov", specifier = ">=4.1,<7.0" },
-    { name = "pytest-sugar", specifier = ">=0.9.5,<1.1.0" },
+    { name = "pytest-sugar", specifier = ">=0.9.5,<1.2.0" },
     { name = "pytest-xdist", specifier = ">=3.5.0,<3.9.0" },
 ]
 
@@ -1838,6 +1841,19 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/54/28/3af612670f82f4c056911fbbbb42760255801b3068c48de792d354ff4472/markdown-3.7.tar.gz", hash = "sha256:2ae2471477cfd02dbbf038d5d9bc226d40def84b4fe2986e49b59b6b472bbed2", size = 357086, upload-time = "2024-08-16T15:55:17.812Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/3f/08/83871f3c50fc983b88547c196d11cf8c3340e37c32d2e9d6152abe2c61f7/Markdown-3.7-py3-none-any.whl", hash = "sha256:7eb6df5690b81a1d7942992c97fad2938e956e79df20cbc6186e9c3a77b1c803", size = 106349, upload-time = "2024-08-16T15:55:16.176Z" },
+]
+
+[[package]]
+name = "markdown-katex"
+version = "202406.1035"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "markdown" },
+    { name = "setuptools" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/07/d1/fb725e498ae1119ce21d3f7b721a16e42fd43ee0433d1be092c279006b10/markdown-katex-202406.1035.tar.gz", hash = "sha256:e82f7bf9a8536451da8f01768d847516fa1827feb17140b8eaa0bea9826bdab0", size = 39561876, upload-time = "2024-06-24T12:28:11.445Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/f4/34/780748d7d78fb4024dd1a290844374dd0d9830da35593c534638a4e9e54e/markdown_katex-202406.1035-py2.py3-none-any.whl", hash = "sha256:c1713e85854ddecb641ad96243a8b6cd67367bf1bf8d39b43b3680d7f2b1884d", size = 39766871, upload-time = "2024-06-24T12:27:46.251Z" },
 ]
 
 [[package]]
@@ -4053,15 +4069,19 @@ name = "xgboost"
 version = "3.0.4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "numpy", marker = "platform_machine == 'aarch64' or platform_machine == 'arm64'" },
+    { name = "numpy", marker = "(platform_machine != 'aarc64' and sys_platform != 'linux') or (platform_machine == 'aarch64' and sys_platform == 'linux') or (platform_machine == 'arm64' and sys_platform == 'linux')" },
     { name = "nvidia-nccl-cu12", marker = "platform_machine == 'arm64' and sys_platform == 'linux'" },
-    { name = "scipy", marker = "platform_machine == 'aarch64' or platform_machine == 'arm64'" },
+    { name = "scipy", marker = "(platform_machine != 'aarc64' and sys_platform != 'linux') or (platform_machine == 'aarch64' and sys_platform == 'linux') or (platform_machine == 'arm64' and sys_platform == 'linux')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/47/a8/b64be2bbfa4f1f086c9d7186cac8f9c0d6fe624189327c5ac1d1fbd1d650/xgboost-3.0.4.tar.gz", hash = "sha256:498e79e545a9f85f372c03cdaf55357ddeec88d67a9b0c0608696ce05c681268", size = 1159631, upload-time = "2025-08-11T11:00:52.684Z" }
 wheels = [
+    { url = "https://files.pythonhosted.org/packages/27/03/bc1704970aac97d51eaa299d472603ca9447a01522842c906ed6d206aa19/xgboost-3.0.4-py3-none-macosx_10_15_x86_64.whl", hash = "sha256:d613a7abed8e375c2328030dac39cb29d934ae6d9cc4ab8799ed0c36d2a9d485", size = 2249198, upload-time = "2025-08-11T11:08:23.054Z" },
     { url = "https://files.pythonhosted.org/packages/81/be/d490b0597ef98d6892ebf3cd74be2cb4399630b58ffb5a9141e8edf3a208/xgboost-3.0.4-py3-none-macosx_12_0_arm64.whl", hash = "sha256:13a7dcf77fdfbedea385aa0767844d7da97d3bbdb2f2675b9b774656bdb11bb4", size = 2025991, upload-time = "2025-08-11T11:08:52.148Z" },
     { url = "https://files.pythonhosted.org/packages/46/61/8192b6f51475e54c06b9aafd3ddadf1aef4b64283632b4a93e89e8935a82/xgboost-3.0.4-py3-none-manylinux2014_aarch64.whl", hash = "sha256:db4d52ba712ae831b3bea9545c9e6ee502a0f6dcdcd581d6234b2e90c5eff485", size = 4841607, upload-time = "2025-08-11T11:12:50.844Z" },
+    { url = "https://files.pythonhosted.org/packages/d1/54/0b022a4257f20b0c3754197f676908fceb4d9f3463cd95dd22ee27b32641/xgboost-3.0.4-py3-none-manylinux2014_x86_64.whl", hash = "sha256:ae2a17cd7f29f4bb84ab8a77d5c43b75c42f5dbd0a4cb9dd71a64e0dcf7ce23f", size = 4906206, upload-time = "2025-08-11T11:12:18.411Z" },
     { url = "https://files.pythonhosted.org/packages/08/ea/58fda3d1817d5cad49a502787ae3705b729cdcbf92dfe19c3e467ddf0b8b/xgboost-3.0.4-py3-none-manylinux_2_28_aarch64.whl", hash = "sha256:03fbe7be1a1e2748a9632c807fedfe0c26f5d85a497604f50ef98c96e6e6c15a", size = 4602799, upload-time = "2025-08-11T11:07:50.187Z" },
+    { url = "https://files.pythonhosted.org/packages/dc/76/241d22b2b503e97e222d85d5e18f9cc76a67acb552acef84a78bc9e787a5/xgboost-3.0.4-py3-none-manylinux_2_28_x86_64.whl", hash = "sha256:ecb151a4e12cbc5b6045e08fa034741ebfa2c033d5f5f933f5e454d8e46477f2", size = 94872771, upload-time = "2025-08-11T11:07:15.513Z" },
+    { url = "https://files.pythonhosted.org/packages/99/19/e2544328cb7be70d7f73a7660ecce3a63b40282ff1a344c44c2faeef9586/xgboost-3.0.4-py3-none-win_amd64.whl", hash = "sha256:b57d05fbca52fe44da073f7e89b75998eb4f7b4fcaec973382d3fdf1ac30d600", size = 56826551, upload-time = "2025-08-11T11:11:38.258Z" },
 ]
 
 [[package]]

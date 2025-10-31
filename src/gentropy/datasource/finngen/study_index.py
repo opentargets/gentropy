@@ -7,7 +7,7 @@ from typing import TypedDict
 from urllib.request import urlopen
 
 import pyspark.sql.functions as f
-from pyspark.sql import DataFrame, SparkSession
+from pyspark.sql import SparkSession
 
 from gentropy.dataset.study_index import StudyIndex
 
@@ -65,71 +65,6 @@ class FinnGenStudyIndex:
         if release_prefix.endswith("_"):
             release_prefix = release_prefix[:-1]
         return FinngenPrefixMatch(prefix=release_prefix, release=release)
-
-    @staticmethod
-    def read_efo_curation(session: SparkSession, url: str) -> DataFrame:
-        """Read efo curation from provided url.
-
-        Args:
-            session (SparkSession): Session to use when reading the mapping file.
-            url (str): Url to the mapping file. The file provided should be a tsv file.
-
-        Returns:
-            DataFrame: DataFrame with EFO mappings.
-
-        Example of the file can be found in https://raw.githubusercontent.com/opentargets/curation/refs/heads/master/mappings/disease/manual_string.tsv.
-        """
-        csv_data = urlopen(url).readlines()
-        csv_rows = [row.decode("utf8") for row in csv_data]
-        rdd = session.sparkContext.parallelize(csv_rows)
-        # NOTE: type annotations for spark.read.csv miss the fact that the first param can be [RDD[str]]
-        efo_curation_mapping_df = session.read.csv(rdd, header=True, sep="\t")
-        return efo_curation_mapping_df
-
-    @staticmethod
-    def join_efo_mapping(
-        study_index: StudyIndex,
-        efo_curation_mapping: DataFrame,
-        finngen_release: str,
-    ) -> StudyIndex:
-        """Add EFO mapping to the Finngen study index table.
-
-        This function performs inner join on table of EFO mappings to the study index table by trait name.
-        All studies without EFO traits are dropped. The EFO mappings are then aggregated into lists per
-        studyId.
-
-        NOTE: preserve all studyId entries even if they don't have EFO mappings.
-        This is to avoid discrepancies between `study_index` and `credible_set` `studyId` column.
-        The rows with missing EFO mappings will be dropped in the study_index validation step.
-
-        Args:
-            study_index (StudyIndex): Study index table.
-            efo_curation_mapping (DataFrame): Dataframe with EFO mappings.
-            finngen_release (str): FinnGen release.
-
-        Returns:
-            StudyIndex: Study index table with added EFO mappings.
-        """
-        efo_mappings = (
-            efo_curation_mapping.withColumn("STUDY", f.upper(f.col("STUDY")))
-            .filter(f.col("STUDY").contains("FINNGEN"))
-            .filter(f.upper(f.col("STUDY")).contains(finngen_release))
-            .select(
-                f.regexp_replace(f.col("SEMANTIC_TAG"), r"^.*/", "").alias(
-                    "traitFromSourceMappedId"
-                ),
-                f.col("PROPERTY_VALUE").alias("traitFromSource"),
-            )
-        )
-
-        si_df = study_index.df.join(
-            efo_mappings, on="traitFromSource", how="left_outer"
-        )
-        common_cols = [c for c in si_df.columns if c != "traitFromSourceMappedId"]
-        si_df = si_df.groupby(common_cols).agg(
-            f.collect_list("traitFromSourceMappedId").alias("traitFromSourceMappedIds")
-        )
-        return StudyIndex(_df=si_df, _schema=StudyIndex.get_schema())
 
     @classmethod
     def from_source(

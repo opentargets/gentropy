@@ -485,13 +485,16 @@ class StudyLocus(Dataset):
 
     @staticmethod
     def _overlapping_peaks(
-        credset_to_overlap: DataFrame, intra_study_overlap: bool = False
+        credset_to_overlap: DataFrame,
+        restrict_right_studies: list[str] | None = None,
+        gwas_v_qtl_overlap_only: bool = False,
     ) -> DataFrame:
         """Calculate overlapping signals (study-locus) between GWAS-GWAS and GWAS-Molecular trait.
 
         Args:
             credset_to_overlap (DataFrame): DataFrame containing at least `studyLocusId`, `studyType`, `chromosome` and `tagVariantId` columns.
-            intra_study_overlap (bool): When True, finds intra-study overlaps for credible set deduplication. Default is False.
+            restrict_right_studies (list[str] | None): List of studyIds to restrict finding overlaps on the right side. Default is None.
+            gwas_v_qtl_overlap_only (bool): When True, finds overlaps with just molecular-QTLs on the right-hand side. Default is False.
 
         Returns:
             DataFrame: containing `leftStudyLocusId`, `rightStudyLocusId` and `chromosome` columns.
@@ -505,24 +508,33 @@ class StudyLocus(Dataset):
             "region",
             "tagVariantId",
         )
-        # Define join condition - if intra_study_overlap is True, finds overlaps within the same study. Otherwise finds gwas vs everything overlaps for coloc.
-        join_condition = (
-            [
-                f.col("left.studyId") == f.col("right.studyId"),
+        # Define join condition
+        # If gwas_v_qtl_overlap_only is True, finds only gwas vs molQTL overlaps.
+        if gwas_v_qtl_overlap_only:
+            join_condition = [
                 f.col("left.chromosome") == f.col("right.chromosome"),
                 f.col("left.tagVariantId") == f.col("right.tagVariantId"),
-                f.col("left.studyLocusId") > f.col("right.studyLocusId"),
-                f.col("left.region") != f.col("right.region"),
+                f.col("left.studyType") == f.lit("gwas"),
+                f.col("right.studyType") != f.lit("gwas"),
             ]
-            if intra_study_overlap
-            else [
+        # If restrict_right_studies is not empty, restrict finding overlaps to those studies
+        elif restrict_right_studies is not None:
+            join_condition = [
+                f.col("left.chromosome") == f.col("right.chromosome"),
+                f.col("left.tagVariantId") == f.col("right.tagVariantId"),
+                f.col("left.studyType") == f.lit("gwas"),
+                (f.col("right.studyId").isin(restrict_right_studies))
+                & (~f.col("left.studyId").isin(restrict_right_studies))
+                & (f.col("left.studyLocusId") != f.col("right.studyLocusId")),
+            ]
+        else:
+            join_condition = [
                 f.col("left.chromosome") == f.col("right.chromosome"),
                 f.col("left.tagVariantId") == f.col("right.tagVariantId"),
                 (f.col("right.studyType") != "gwas")
                 | (f.col("left.studyLocusId") > f.col("right.studyLocusId")),
                 f.col("left.studyType") == f.lit("gwas"),
             ]
-        )
 
         return (
             credset_to_overlap.alias("left")
@@ -824,15 +836,19 @@ class StudyLocus(Dataset):
         )
 
     def find_overlaps(
-        self: StudyLocus, intra_study_overlap: bool = False
+        self: StudyLocus,
+        restrict_right_studies: list[str] | None = None,
+        gwas_v_qtl_overlap_only: bool = False,
     ) -> StudyLocusOverlap:
         """Calculate overlapping study-locus.
 
-        Find overlapping study-locus that share at least one tagging variant. All GWAS-GWAS and all GWAS-Molecular traits are computed with the Molecular traits always
-        appearing on the right side.
+        Find overlapping study-locus that share at least one tagging variant. By default all GWAS-GWAS and all GWAS-Molecular traits are computed with the Molecular traits always
+        appearing on the right side of the overlap. The user can restrict computation of overlaps to a list of studyIds on the right-hand side or
+        can restrict the overlaps to just GWAS vs Molecular traits.
 
         Args:
-            intra_study_overlap (bool): If True, finds intra-study overlaps for credible set deduplication. Default is False.
+            restrict_right_studies (list[str] | None): List of studyIds to restrict finding overlaps to on the right-side. Default is None.
+            gwas_v_qtl_overlap_only (bool): If True, finds overlaps between all GWAS loci vs molecular-QTLs. Default is False.
 
         Returns:
             StudyLocusOverlap: Pairs of overlapping study-locus with aligned tags.
@@ -857,7 +873,11 @@ class StudyLocus(Dataset):
         )
 
         # overlapping study-locus
-        peak_overlaps = self._overlapping_peaks(loci_to_overlap, intra_study_overlap)
+        peak_overlaps = self._overlapping_peaks(
+            loci_to_overlap,
+            restrict_right_studies=restrict_right_studies,
+            gwas_v_qtl_overlap_only=gwas_v_qtl_overlap_only,
+        )
 
         # study-locus overlap by aligning overlapping variants
         return self._align_overlapping_tags(loci_to_overlap, peak_overlaps)
