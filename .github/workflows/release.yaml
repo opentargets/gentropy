@@ -46,7 +46,7 @@ jobs:
         with:
           github_token: ${{ steps.trigger-token.outputs.token }}
           tag: ${{ steps.semrelease.outputs.tag }}
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         if: steps.semrelease.outputs.released == 'true'
         with:
           name: python-package-distributions
@@ -63,7 +63,7 @@ jobs:
     permissions:
       id-token: write # IMPORTANT: mandatory for trusted publishing
     steps:
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v6
         with:
           name: python-package-distributions
           path: dist/
@@ -84,7 +84,7 @@ jobs:
     permissions:
       id-token: write # IMPORTANT: mandatory for trusted publishing
     steps:
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v6
         with:
           name: python-package-distributions
           path: dist/
@@ -102,7 +102,7 @@ jobs:
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ env.PYTHON_VERSION_DEFAULT }}
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@v7
         with:
           activate-environment: true
       - run: uv sync --group docs
