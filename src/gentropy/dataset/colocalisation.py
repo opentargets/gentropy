@@ -76,7 +76,6 @@ class Colocalisation(Dataset):
             if any(qtl not in valid_qtls for qtl in filter_by_qtls):
                 raise ValueError(f"There are no studies with QTL type {filter_by_qtls}")
 
-        # Check what methods are available in the colocalisation dataset
         if filter_by_colocalisation_method not in [
             "ECaviar",
             "Coloc",
@@ -84,9 +83,10 @@ class Colocalisation(Dataset):
             raise ValueError(
                 f"Colocalisation method {filter_by_colocalisation_method} is not supported."
             )
+        # Prepare the list of colocalisation methods that contain expected metrics
         colocalisation_methods = [
-            filter_by_colocalisation_method.lower(),  # original method name Coloc or ECaviar
-            "coloc_pip_ecaviar",  # combined method name that contains both CLPP and H4
+            filter_by_colocalisation_method.lower(),  # original method name Coloc or ECaviar to ensure backward compatibility
+            "coloc_pip_ecaviar",  # combined method name, coloc_pip_ecaviar contains both CLPP and H4
         ]
         method_colocalisation_metric = ColocalisationStep._get_colocalisation_class(
             filter_by_colocalisation_method
