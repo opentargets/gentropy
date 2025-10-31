@@ -99,7 +99,7 @@ jobs:
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v6
         with:
           python-version: ${{ env.PYTHON_VERSION_DEFAULT }}
       - uses: astral-sh/setup-uv@v7
