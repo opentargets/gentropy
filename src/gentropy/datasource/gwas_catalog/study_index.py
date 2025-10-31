@@ -126,6 +126,11 @@ class StudyIndexGWASCatalog(StudyIndex):
     A study index dataset captures all the metadata for all studies including GWAS and Molecular QTL.
     """
 
+    def deconvolute_broad_ancestry(
+        self: StudyIndexGWASCatalog,
+    ) -> StudyIndexGWASCatalog:
+        return self
+
     def update_study_id(
         self: StudyIndexGWASCatalog, study_annotation: DataFrame
     ) -> StudyIndexGWASCatalog:
@@ -327,7 +332,9 @@ class StudyIndexGWASCatalog(StudyIndex):
                 "studyAccession", "studyId"
             )  # studyId has not been split yet
         )
+        import pdb
 
+        pdb.set_trace()
         # Get a high resolution dataset on experimental stage:
         ancestry_stages = (
             ancestry.groupBy("studyId")
@@ -344,9 +351,15 @@ class StudyIndexGWASCatalog(StudyIndex):
             )
             .withColumn(
                 "discoverySamples",
-                self._parse_discovery_samples(f.col("initial")),
+                self._parse_discovery_samples(
+                    f.col("initial"), f.col("initialSampleDescription")
+                ),
             )
             .withColumnRenamed("replication", "replicationSamples")
+        )
+        pdb.set_trace()
+        ancestry_stages = (
+            ancestry_stages
             # Mapping discovery stage ancestries to LD reference:
             .withColumn(
                 "ldPopulationStructure",
@@ -458,7 +471,9 @@ class StudyIndexGWASCatalog(StudyIndex):
         return accesions[f.size(accesions) - 1]
 
     @staticmethod
-    def _parse_discovery_samples(discovery_samples: Column) -> Column:
+    def _parse_discovery_samples(
+        discovery_samples: Column, initial_sample_size: Column
+    ) -> Column:
         """Parse discovery sample sizes from GWAS Catalog.
 
         This is a curated field. From publication sometimes it is not clear how the samples were split
