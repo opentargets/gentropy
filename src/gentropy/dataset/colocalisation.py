@@ -76,6 +76,7 @@ class Colocalisation(Dataset):
             if any(qtl not in valid_qtls for qtl in filter_by_qtls):
                 raise ValueError(f"There are no studies with QTL type {filter_by_qtls}")
 
+        # Check what methods are available in the colocalisation dataset
         if filter_by_colocalisation_method not in [
             "ECaviar",
             "Coloc",
@@ -90,7 +91,12 @@ class Colocalisation(Dataset):
 
         coloc_filtering_expr = [
             f.col("rightGeneId").isNotNull(),
-            f.lower("colocalisationMethod") == filter_by_colocalisation_method.lower(),
+            (
+                f.lower("colocalisationMethod").isin(
+                    filter_by_colocalisation_method.lower(),
+                    "COLOC_PIP_ECAVIAR",  # NOTE: COLOC_PIP contains both metrics.
+                )
+            ),
         ]
         if filter_by_qtls:
             coloc_filtering_expr.append(f.lower("rightStudyType").isin(filter_by_qtls))
