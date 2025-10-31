@@ -88,6 +88,9 @@ class Colocalisation(Dataset):
             filter_by_colocalisation_method
         ).METHOD_METRIC
 
+        if filter_by_colocalisation_method.lower() == "colocpip":
+            filter_by_colocalisation_method = "coloc"
+
         coloc_filtering_expr = [
             f.col("rightGeneId").isNotNull(),
             f.lower("colocalisationMethod") == filter_by_colocalisation_method.lower(),
