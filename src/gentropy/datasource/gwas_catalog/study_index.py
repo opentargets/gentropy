@@ -351,11 +351,20 @@ class StudyIndexGWASCatalog(StudyIndex):
             )
             .withColumn(
                 "discoverySamples",
-                self._parse_discovery_samples(
-                    f.col("initial"), f.col("initialSampleDescription")
-                ),
+                self._parse_discovery_samples(f.col("initial")),
             )
             .withColumnRenamed("replication", "replicationSamples")
+        ).transform(
+                deconvolute_european_ancestry, "european", "(?i)finnish[-\s]?european"
+            )
+            .transform(
+                deconvolute_european_ancestry, "finnish", r"(?i)(?<!non[-\s])finnish"
+            )
+            .transform(mark_other_ancestries)
+            .transform(mark_single_ancestries, "finnish")
+            .transform(mark_single_ancestries, "european")
+            .transform(mark_multi_ancestries)
+            .transform(collate_other_ancestries)
         )
         pdb.set_trace()
         ancestry_stages = (
@@ -471,9 +480,7 @@ class StudyIndexGWASCatalog(StudyIndex):
         return accesions[f.size(accesions) - 1]
 
     @staticmethod
-    def _parse_discovery_samples(
-        discovery_samples: Column, initial_sample_size: Column
-    ) -> Column:
+    def _parse_discovery_samples(discovery_samples: Column) -> Column:
         """Parse discovery sample sizes from GWAS Catalog.
 
         This is a curated field. From publication sometimes it is not clear how the samples were split
@@ -481,6 +488,9 @@ class StudyIndexGWASCatalog(StudyIndex):
         and the total sample size is split:
 
         ["European, African", 100] -> ["European, 50], ["African", 50]
+
+        In the cases where the `initial_sample_size` field contains `Finnish` ancestry and the broad ancestry is European,
+        we are assuming th
 
         Args:
             discovery_samples (Column): Raw discovery sample sizes
