@@ -9,7 +9,6 @@ from typing import Any
 import numpy as np
 import pandas as pd
 import pyspark.sql.functions as f
-import scipy as sc
 from pyspark.sql import DataFrame, Row, Window
 from pyspark.sql.functions import desc, row_number
 from pyspark.sql.types import (
@@ -22,7 +21,7 @@ from pyspark.sql.types import (
 
 from gentropy.common.session import Session
 from gentropy.common.spark import order_array_of_structs_by_field
-from gentropy.common.stats import pvalue_from_neglogpval
+from gentropy.common.stats import neglogpval_from_z2, pvalue_from_neglogpval
 from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import (
     FinemappingMethod,
@@ -231,6 +230,10 @@ class SusieFineMapperStep:
         # PLEASE DO NOT REMOVE THIS LINE
         pd.DataFrame.iteritems = pd.DataFrame.items
 
+        variant_index = variant_index.withColumn(
+            "neglogpval", neglogpval_from_z2(f.col("z") ** 2)
+        )
+
         variants = np.array(
             [row["variantId"] for row in variant_index.select("variantId").collect()]
         ).reshape(-1, 1)
@@ -276,6 +279,7 @@ class SusieFineMapperStep:
                         "variantId",
                         "chromosome",
                         "position",
+                        "neglogpval",
                     ),
                     "variantId",
                 )
@@ -290,6 +294,12 @@ class SusieFineMapperStep:
                             .alias("posteriorProbability"),
                             f.col("logBF").cast("double").alias("logBF"),
                             f.col("beta").cast("double").alias("beta"),
+                            pvalue_from_neglogpval(f.col("neglogpval"))[0].alias(
+                                "pValueMantissa"
+                            ),
+                            pvalue_from_neglogpval(f.col("neglogpval"))[1].alias(
+                                "pValueExponent"
+                            ),
                         )
                     ).over(win),
                 )
@@ -339,15 +349,11 @@ class SusieFineMapperStep:
         )
         vlist_series = pd.Series(lead_variantId_list)
         ind = vlist_series.map(variant_index_df.set_index("variantId").index.get_loc)
+
         z_values = variant_index_df.iloc[ind]["z"].tolist()
-        z_values_array = np.array(z_values)
-        pval = sc.stats.chi2.sf((z_values_array**2), 1)
+        neglogpval = variant_index_df.iloc[ind]["neglogpval"].tolist()
 
-        # sometimes pval is 0, we need to avoid it
-        pval[pval < 1e-322] = 1e-322
-
-        neglogpval = -np.log10(pval)
-        neglogpval = neglogpval.tolist()
+        neglogpval = [None if np.isinf(val) else val for val in neglogpval]
 
         list_purity_mean_r2 = []
         list_purity_min_r2 = []
@@ -490,7 +496,7 @@ class SusieFineMapperStep:
         """Susie fine-mapper function that uses LD, z-scores, variant info and other options for Fine-Mapping.
 
         Args:
-            GWAS_df (DataFrame): GWAS DataFrame with mandotary columns: z, variantId
+            GWAS_df (DataFrame): GWAS DataFrame with mandotary columns: z, variantId, beta, StandardError
             ld_index (DataFrame): LD index DataFrame
             gnomad_ld (np.ndarray): GnomAD LD matrix
             L (int): number of causal variants
@@ -618,11 +624,13 @@ class SusieFineMapperStep:
             [
                 StructField("variantId", StringType(), True),
                 StructField("z", DoubleType(), True),
+                StructField("beta", DoubleType(), True),
+                StructField("StandardError", DoubleType(), True),
             ]
         )
         variant_index = (
             session.spark.createDataFrame(
-                GWAS_df[["variantId", "z"]],
+                GWAS_df[["variantId", "z", "beta", "StandardError"]],
                 schema=schema,
             )
             .withColumn(
@@ -824,6 +832,27 @@ class SusieFineMapperStep:
             logging.warning("Major ancestry is not nfe, csa or afr")
             if not ignore_qc:
                 return None
+        else:
+            has_high_relative_sample = (
+                study_index_df.withColumn(
+                    "hasHighRelativeSampleSize",
+                    f.expr(
+                        "exists(ldPopulationStructure, x -> x.relativeSampleSize >= 0.9)"
+                    ),
+                )
+                .select("hasHighRelativeSampleSize")
+                .collect()[0]["hasHighRelativeSampleSize"]
+            )
+            if not has_high_relative_sample:
+                SusieFineMapperStep._empty_log_mg(
+                    studyId=studyId,
+                    region=region,
+                    error_mg="Major ancestry is less than 90% of total sample size",
+                    path_out=log_output,
+                )
+                logging.warning("Major ancestry is less than 90% of total sample size")
+                if not ignore_qc:
+                    return None
 
         # Desision tree - hasSumstats
         if not study_index_df.select("hasSumstats").collect()[0]["hasSumstats"]:

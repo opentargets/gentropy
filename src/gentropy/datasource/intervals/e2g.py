@@ -1,4 +1,4 @@
-"""Interval dataset from EPIraction."""
+"""Interval dataset from regulatory Enhancer To Gene (rE2G)."""
 
 from __future__ import annotations
 
