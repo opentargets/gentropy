@@ -104,7 +104,7 @@ class StudyIndexGWASCatalogParser:
 
         Examples:
         >>> data = [('BioME|CaPS|Estonia|FHS|UKB|GERA|GERA|GERA',),(None,),]
-        >>> spark.createDataFrame(data, ['cohorts']).select(StudyIndexGWASCatalogParser.parse_cohorts(f.col('cohorts')).alias('parsedCohorts')).show(truncate=False)
+        >>> spark.createDataFrame(data, ['cohorts']).select(StudyIndexGWASCatalogParser._parse_cohorts(f.col('cohorts')).alias('parsedCohorts')).show(truncate=False)
         +--------------------------------------+
         |parsedCohorts                         |
         +--------------------------------------+
@@ -125,11 +125,6 @@ class StudyIndexGWASCatalog(StudyIndex):
 
     A study index dataset captures all the metadata for all studies including GWAS and Molecular QTL.
     """
-
-    def deconvolute_broad_ancestry(
-        self: StudyIndexGWASCatalog,
-    ) -> StudyIndexGWASCatalog:
-        return self
 
     def update_study_id(
         self: StudyIndexGWASCatalog, study_annotation: DataFrame
@@ -307,6 +302,136 @@ class StudyIndexGWASCatalog(StudyIndex):
             )
         )
 
+    @staticmethod
+    def mark_ancestry(df: DataFrame, ancestry: str, ancestry_pattern: str) -> DataFrame:
+        """Mark if a specific ancestry is present.
+
+        Args:
+            df (DataFrame): Dataframe with ancestryFlag column.
+            ancestry (str): Ancestry to check for presence.
+            ancestry_pattern (str): Regex pattern to match ancestry in initialSampleDescription column.
+
+        Returns:
+            DataFrame: Dataframe with updated ancestryFlag column.
+        """
+        return df.withColumn(
+            "ancestryFlag",
+            f.when(
+                f.col("initialSampleDescription").rlike(ancestry_pattern),
+                f.array_distinct(
+                    f.array_append(
+                        f.col("ancestryFlag"), f.lit(ancestry).alias("name")
+                    ),
+                ),
+            ).otherwise(f.col("ancestryFlag")),
+        )
+
+    @staticmethod
+    def mark_single_ancestries(df: DataFrame, ancestry: str) -> DataFrame:
+        """Mark if only Finnish ancestry is present.
+
+        Args:
+            df (DataFrame): Dataframe with ancestryFlag column
+            ancestry (str): Ancestry to check for single presence
+
+        Returns:
+            DataFrame: Dataframe with new column `<ancestry>Only`
+        """
+        return df.withColumn(
+            f"{ancestry}Only",
+            (f.size(f.col("ancestryFlag")) == 1)
+            & (f.col("ancestryFlag")[0] == ancestry),
+        )
+
+    @staticmethod
+    def mark_other_ancestries(df: DataFrame) -> DataFrame:
+        """Mark if other ancestries are present.
+
+        Args:
+            df (DataFrame): Dataframe with ancestryFlag column.
+
+        Returns:
+            DataFrame: Dataframe with updated ancestryFlag column.
+        """
+        return df.withColumn(
+            "ancestryFlag",
+            f.when(
+                f.size(f.col("ancestryFlag")) == 0,
+                f.array_append(
+                    f.col("ancestryFlag"),
+                    f.lit("other").alias("name"),
+                ),
+            ).otherwise(f.col("ancestryFlag")),
+        )
+
+    @staticmethod
+    def mark_multi_ancestries(df: DataFrame) -> DataFrame:
+        """Mark if only Finnish ancestry is present.
+
+        Args:
+            df (DataFrame): Dataframe with ancestryFlag.
+
+        Returns:
+            DataFrame: Dataframe with new column `multiAncestry`.
+        """
+        return df.withColumn("multiAncestry", f.size(f.col("ancestryFlag")) > 1)
+
+    @staticmethod
+    def collate_other_ancestries(df: DataFrame) -> DataFrame:
+        """Collate ancestries into a single column.
+
+        Args:
+            df (DataFrame): Dataframe with ancestryFlag and multiAncestry columns.
+
+        Returns:
+            DataFrame: Dataframe with new column `ancestry`.
+        """
+        return df.withColumn(
+            "ancestry",
+            f.when(f.col("multiAncestry"), f.lit("European")).otherwise(
+                f.col("ancestryFlag").getItem(0)
+            ),
+        )
+
+    @classmethod
+    def deconvolute_european_ancestry(cls, ancestry: DataFrame) -> DataFrame:
+        """Deconvolute european ancestries from the initial sample description.
+
+        Args:
+            ancestry (DataFrame): Ancestry table as downloaded from the GWAS Catalog
+
+        Returns:
+            DataFrame: Deconvoluted ancestries with Finnish and European labels.
+
+        """
+        return (
+            ancestry.filter(f.col("stage") == "initial")
+            .filter(f.col("broadAncestralCategory").isin(["European"]))
+            .withColumn("ancestryFlag", f.array().cast(t.ArrayType(t.StringType())))
+            # First mark finnish ancestry
+            .transform(
+                cls.mark_ancestry,
+                "Finnish",
+                r"(?i)(?<!non[-\s])finnish([-\s]european)?",
+            )
+            # Next mark all other ancestries as other
+            .transform(cls.mark_other_ancestries)
+            # Next find where the Finnish ancestry is the only one present
+            # NOTE: this will only work when single-ancestries are all marked previously
+            .transform(cls.mark_single_ancestries, "Finnish")
+            # Next find where multiple ancestries are present
+            .transform(cls.mark_multi_ancestries)
+            # Next collate ancestries to get Finnish vs European
+            .transform(cls.collate_other_ancestries)
+            .select(
+                "studyId",
+                f.when(f.col("ancestry") == f.lit("Finnish"), f.lit("Finnish"))
+                .otherwise(f.lit("European"))
+                .alias("deconvolutedBroadAncestralCategory"),
+                f.lit("European").alias("broadAncestralCategory"),
+            )
+        )
+
     def annotate_ancestries(
         self: StudyIndexGWASCatalog, ancestry_lut: DataFrame
     ) -> StudyIndexGWASCatalog:
@@ -332,9 +457,23 @@ class StudyIndexGWASCatalog(StudyIndex):
                 "studyAccession", "studyId"
             )  # studyId has not been split yet
         )
-        import pdb
-
-        pdb.set_trace()
+        # NOTE: Since we allow for two different european ancestries (Finnish and non-Finnish) LD,
+        # We need to deconvolute these:
+        # - Finnish - mapped to Finnish LD
+        # - Finnish + european - mapped to European LD
+        # - European - mapped to European LD
+        deconvoluted_ancestry = self.deconvolute_european_ancestry(ancestry)
+        ancestry = ancestry.join(
+            deconvoluted_ancestry,
+            on=["studyId", "broadAncestralCategory"],
+            how="left",
+        ).withColumn(
+            "broadAncestralCategory",
+            f.coalesce(
+                f.col("deconvolutedBroadAncestralCategory"),
+                f.col("broadAncestralCategory"),
+            ),
+        )
         # Get a high resolution dataset on experimental stage:
         ancestry_stages = (
             ancestry.groupBy("studyId")
@@ -354,19 +493,7 @@ class StudyIndexGWASCatalog(StudyIndex):
                 self._parse_discovery_samples(f.col("initial")),
             )
             .withColumnRenamed("replication", "replicationSamples")
-        ).transform(
-                deconvolute_european_ancestry, "european", "(?i)finnish[-\s]?european"
-            )
-            .transform(
-                deconvolute_european_ancestry, "finnish", r"(?i)(?<!non[-\s])finnish"
-            )
-            .transform(mark_other_ancestries)
-            .transform(mark_single_ancestries, "finnish")
-            .transform(mark_single_ancestries, "european")
-            .transform(mark_multi_ancestries)
-            .transform(collate_other_ancestries)
         )
-        pdb.set_trace()
         ancestry_stages = (
             ancestry_stages
             # Mapping discovery stage ancestries to LD reference:
@@ -490,7 +617,7 @@ class StudyIndexGWASCatalog(StudyIndex):
         ["European, African", 100] -> ["European, 50], ["African", 50]
 
         In the cases where the `initial_sample_size` field contains `Finnish` ancestry and the broad ancestry is European,
-        we are assuming th
+        we are assuming the Finnish ancestry.
 
         Args:
             discovery_samples (Column): Raw discovery sample sizes
@@ -509,7 +636,7 @@ class StudyIndexGWASCatalog(StudyIndex):
             ...        ).alias('discoverySampleSize')
             ...    )
             ...    .orderBy('studyId')
-            ...    .withColumn('discoverySampleSize', StudyIndexGWASCatalogParser._parse_discovery_samples(f.col('discoverySampleSize')))
+            ...    .withColumn('discoverySampleSize', StudyIndexGWASCatalog._parse_discovery_samples(f.col('discoverySampleSize')))
             ...    .select('discoverySampleSize')
             ...    .show(truncate=False)
             ... )
@@ -629,7 +756,7 @@ class StudyIndexGWASCatalog(StudyIndex):
             >>> data = [(12, ['African', 'European']),(12, ['African'])]
             >>> (
             ...     spark.createDataFrame(data, ['sample_count', 'ancestries'])
-            ...     .select(StudyIndexGWASCatalogParser._merge_ancestries_and_counts(f.struct('sample_count', 'ancestries')).alias('test'))
+            ...     .select(StudyIndexGWASCatalog._merge_ancestries_and_counts(f.struct('sample_count', 'ancestries')).alias('test'))
             ...     .show(truncate=False)
             ... )
             +-------------------------------+

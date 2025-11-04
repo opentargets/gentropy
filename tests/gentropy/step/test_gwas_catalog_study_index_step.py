@@ -42,6 +42,20 @@ def download_studies(session: Session) -> DataFrame:
             None,
             "COHORT_B",
         ),
+        # Finnish - broad ancestry
+        (
+            "STUDY_B1",
+            "2",
+            "AUTHOR_B",
+            "2022-03-28",
+            "JOURNAL_B",
+            "TITLE_B",
+            "TRAIT_B",
+            "10,123 Finnish European ancestry individuals",
+            "http://www.ebi.ac.uk/efo/TRAIT_B",
+            None,
+            "COHORT_B",
+        ),
         # Icelandic - broad ancestry = European
         (
             "STUDY_C",
@@ -66,6 +80,19 @@ def download_studies(session: Session) -> DataFrame:
             "TITLE_D",
             "TRAIT_D",
             "100,628 Non-Finnish European ancestry individuals",
+            "http://purl.obolibrary.org/obo/TRAIT_D, http://www.ebi.ac.uk/efo/TRAIT_E",
+            None,
+            "COHORT_D",
+        ),
+        (
+            "STUDY_D",
+            "4",
+            "AUTHOR_D",
+            "2024-03-06",
+            "JOURNAL_D",
+            "TITLE_D",
+            "TRAIT_D",
+            "100,628 Non-Finnish European ancestry individuals with finnish samples",
             "http://purl.obolibrary.org/obo/TRAIT_D, http://www.ebi.ac.uk/efo/TRAIT_E",
             None,
             "COHORT_D",
@@ -118,6 +145,13 @@ def download_ancestries(session: Session) -> DataFrame:
             "10,123 Finnish ancestry individuals",
         ),
         (
+            "STUDY_B1",
+            "initial",
+            "10123",
+            "European",
+            "10,123 Finnish European ancestry individuals",
+        ),
+        (
             "STUDY_C",
             "initial",
             "5364",
@@ -159,7 +193,7 @@ class TestStudyIndexGwasCatalogParser:
             download_studies, download_ancestries
         ).df
         unique_studies = res.select("studyId").distinct().count()
-        assert unique_studies == 4, "Should have 4 unique studyIndex values."
+        assert unique_studies == 5, "Should have 5 unique studyIndex values."
 
         ld_structures = (
             res.select("studyId", "ldPopulationStructure").distinct().collect()
@@ -172,6 +206,7 @@ class TestStudyIndexGwasCatalogParser:
         expected_ld_structures = [
             ("STUDY_A", "nfe"),
             ("STUDY_B", "fin"),
+            ("STUDY_B1", "fin"),
             ("STUDY_C", "nfe"),
             ("STUDY_D", "nfe"),
         ]
