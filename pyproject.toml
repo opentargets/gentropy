@@ -27,6 +27,7 @@ dependencies = [
   "xgboost-cpu>=3.0.4 ; (platform_machine == 'amd64' and sys_platform != 'darwin') or (platform_machine == 'x86_64' and sys_platform != 'darwin')",
   "xgboost>=3.0.4 ; platform_machine == 'x86_64' and sys_platform == 'darwin'",
   "huggingface-hub>=0.27.1",
+  "wandb (>=0.19.4, <0.23.0)"
 ]
 classifiers = [
   "Programming Language :: Python :: 3.10",
@@ -80,7 +81,6 @@ dev = [
   "isort >=5.13.2, <6.1.0",
   "darglint >=1.8.1, <1.9.0",
   "ruff >=0.8.1, <0.15.0",
-  "wandb (>=0.19.4, <0.23.0)",
 ]
 [tool.semantic_release]
 logging_use_named_masks = true
@@ -124,7 +124,6 @@ extend_exclude = ["src/conftest.py", "src/utils"]
 DEP001 = ["gentropy"]
 DEP003 = ["gentropy"]
 DEP002 = ["xgboost", "xgboost-cpu"]
-DEP004 = ["wandb"]  # Optional dependency for experiment tracking
 
 [tool.interrogate]
 fail-under = 95
