@@ -744,8 +744,8 @@ class TestE2GIntervalFeatures:
             # Two overlapping intervals for SAME variant position and geneA (tests max(score) per variant–gene)
             {
                 "chromosome": "1",
-                "start": "1000000",
-                "end": "1000100",
+                "start": 1000000,
+                "end": 1000100,
                 "geneId": "geneA",
                 "score": 0.8,
                 "distanceToTss": None,
@@ -761,8 +761,8 @@ class TestE2GIntervalFeatures:
             },
             {
                 "chromosome": "1",
-                "start": "1000000",
-                "end": "1000100",
+                "start": 1000000,
+                "end": 1000100,
                 "geneId": "geneA",
                 "score": 0.5,
                 "distanceToTss": None,
@@ -779,8 +779,8 @@ class TestE2GIntervalFeatures:
             # Another gene overlapping the kept variant position
             {
                 "chromosome": "1",
-                "start": "1000000",
-                "end": "1000500",
+                "start": 1000000,
+                "end": 1000500,
                 "geneId": "geneB",
                 "score": 0.2,
                 "distanceToTss": None,
@@ -797,8 +797,8 @@ class TestE2GIntervalFeatures:
             # Interval near low-PP variant (won't contribute because PP threshold filters it before the join)
             {
                 "chromosome": "1",
-                "start": "1000150",
-                "end": "1000300",
+                "start": 1000150,
+                "end": 1000300,
                 "geneId": "geneA",
                 "score": 1.0,
                 "distanceToTss": None,
@@ -843,10 +843,46 @@ class TestE2GIntervalFeatures:
         # kept variant: 1_1000001 with PP=0.6
         # geneA: max(score)=0.8 -> 0.8*0.6 = 0.48
         # geneB: score=0.2 -> 0.2*0.6 = 0.12
-        # locus mean = (0.48+0.12)/2=0.30; ratios: geneA=1.6, geneB=0.4
+        # locus max = 0.48; ratios: geneA=1.0, geneB=0.25
         expected = [
-            ("SL_1", "geneA", 0.48, 1.6),
-            ("SL_1", "geneB", 0.12, 0.4),
+            ("SL_1", "geneA", 0.48, 1),
+            ("SL_1", "geneB", 0.12, 0.25),
+        ]
+        assert [
+            (r["studyLocusId"], r["geneId"], r["e2gMean"], r["e2gMeanNeighbourhood"])
+            for r in observed
+        ] == expected
+
+    def test_e2g_interval_feature_wide_once_base_and_neighbourhood_no_bin(
+        self, spark: SparkSession
+    ) -> None:
+        """Base e2gMean and ratio neighbourhood computed correctly in one pass."""
+        wide = e2g_interval_feature_wide_logic(
+            self.sample_study_locus,
+            intervals=self.sample_intervals,
+            base_name="e2gMean",
+            use_binned=False,
+        )
+
+        observed = (
+            wide.select(
+                "studyLocusId",
+                "geneId",
+                f.round("e2gMean", 4).alias("e2gMean"),
+                f.round("e2gMeanNeighbourhood", 4).alias("e2gMeanNeighbourhood"),
+            )
+            .orderBy("geneId")
+            .collect()
+        )
+
+        # Calculations:
+        # kept variant: 1_1000001 with PP=0.6
+        # geneA: max(score)=0.8 -> 0.8*0.6 = 0.48
+        # geneB: score=0.2 -> 0.2*0.6 = 0.12
+        # locus max = 0.48; ratios: geneA=1.0, geneB=0.25
+        expected = [
+            ("SL_1", "geneA", 0.48, 1),
+            ("SL_1", "geneB", 0.12, 0.25),
         ]
         assert [
             (r["studyLocusId"], r["geneId"], r["e2gMean"], r["e2gMeanNeighbourhood"])
