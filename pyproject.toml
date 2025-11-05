@@ -124,6 +124,7 @@ extend_exclude = ["src/conftest.py", "src/utils"]
 DEP001 = ["gentropy"]
 DEP003 = ["gentropy"]
 DEP002 = ["xgboost", "xgboost-cpu"]
+DEP004 = ["wandb"]  # Optional dependency for experiment tracking
 
 [tool.interrogate]
 fail-under = 95
