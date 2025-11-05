@@ -130,14 +130,17 @@ class L2GPrediction(Dataset):
         # A set of optional columns need to be in the input datasets:
         if "diseaseIds" not in study_index.df.columns:
             raise ValueError(
-                "DisaseIds column has to be in the study index to generate disase/target evidence."
+                "DiseaseIds column has to be in the study index to generate disase/target evidence."
             )
 
-        # PubmedId is an optional column in the study index, so we need to make sure it's there:
-        if "pubmedId" not in study_index.df.columns:
-            study_index = StudyIndex(
-                study_index.df.withColumn("pubmedId", f.lit(None).cast(StringType()))
-            )
+        # `pubmedId` and `publicationDate` are optional columns in the study index, so we need to make sure they're there:
+        for optional_column in ["publicationDate", "pubmedId"]:
+            if optional_column not in study_index.df.columns:
+                study_index = StudyIndex(
+                    study_index.df.withColumn(
+                        optional_column, f.lit(None).cast(StringType())
+                    )
+                )
 
         return (
             self.df.filter(f.col("score") >= l2g_threshold)
@@ -150,6 +153,10 @@ class L2GPrediction(Dataset):
                 study_index.df.select(
                     "studyId",
                     "diseaseIds",
+                    f.when(
+                        f.col("publicationDate").rlike(r"\d{4}-\d{2}-\d{2}"),
+                        f.col("publicationDate"),
+                    ).alias("curationDate"),
                     # Only store pubmed id if provided from source:
                     f.when(
                         f.col("pubmedId").isNotNull(), f.array(f.col("pubmedId"))
@@ -164,6 +171,7 @@ class L2GPrediction(Dataset):
                 f.col("geneId").alias("targetFromSourceId"),
                 f.explode(f.col("diseaseIds")).alias("diseaseFromSourceMappedId"),
                 f.col("score").alias("resourceScore"),
+                "curationDate",
                 "studyLocusId",
                 "literature",
             )

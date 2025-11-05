@@ -212,15 +212,31 @@ class TestEvidenceGeneration:
         "resourceScore",
         "studyLocusId",
         "literature",
+        "curationDate",
     ]
 
-    L2G_DATA = [("1", "gene1", 0.8), ("1", "gene2", 0.01)]
+    # L2G data:
+    L2G_DATA = [
+        ("1", "gene1", 0.8),
+        ("1", "gene2", 0.01),
+        ("3", "gene2", 0.9),
+        ("4", "gene2", 0.9),
+    ]
 
-    STUDYLOCUS_DATA = [("1", "v1", "s1"), ("2", "v2", "s1")]
+    # StudyLocus data:
+    STUDYLOCUS_DATA = [
+        ("1", "v1", "s1"),
+        ("2", "v2", "s1"),
+        ("3", "v2", "s3"),
+        ("4", "v2", "s4"),
+    ]
 
+    # Study data:
     STUDY_DATA = [
-        ("s1", "p1", "gwas", "EFO_1,EFO_2", "22"),
-        ("s2", "p1", "gwas", "EFO_1", "234"),
+        ("s1", "p1", "gwas", "EFO_1,EFO_2", "22", None),
+        ("s2", "p1", "gwas", "EFO_1", "234", None),
+        ("s3", "p1", "gwas", "EFO_1", None, "2021-12-01"),
+        ("s4", "p1", "gwas", "EFO_1", None, "2021"),
     ]
 
     @pytest.fixture(autouse=True)
@@ -229,7 +245,7 @@ class TestEvidenceGeneration:
         self.study_index = StudyIndex(
             spark.createDataFrame(
                 self.STUDY_DATA,
-                "studyId STRING, projectId STRING, studyType STRING, diseaseIds STRING, pubmedId STRING",
+                "studyId STRING, projectId STRING, studyType STRING, diseaseIds STRING, pubmedId STRING, publicationDate STRING",
             ).withColumn("diseaseIds", f.split("diseaseIds", ","))
         )
 
@@ -237,7 +253,7 @@ class TestEvidenceGeneration:
         self.study_index_no_disease = StudyIndex(
             spark.createDataFrame(
                 self.STUDY_DATA,
-                "studyId STRING, projectId STRING, studyType STRING, diseaseIds STRING, pubmedId STRING",
+                "studyId STRING, projectId STRING, studyType STRING, diseaseIds STRING, pubmedId STRING, publicationDate STRING",
             ).drop("diseaseIds")
         )
 
@@ -245,7 +261,7 @@ class TestEvidenceGeneration:
         self.study_index_no_pubmed = StudyIndex(
             spark.createDataFrame(
                 self.STUDY_DATA,
-                "studyId STRING, projectId STRING, studyType STRING, diseaseIds STRING, pubmedId STRING",
+                "studyId STRING, projectId STRING, studyType STRING, diseaseIds STRING, pubmedId STRING, publicationDate STRING",
             )
             .withColumn("diseaseIds", f.split("diseaseIds", ","))
             .drop("pubmedId")
@@ -289,7 +305,7 @@ class TestEvidenceGeneration:
                 study_locus=self.study_locus,
             )
         assert (
-            "DisaseIds column has to be in the study index to generate disase/target evidence."
+            "DiseaseIds column has to be in the study index to generate disase/target evidence."
             in str(excinfo.value)
         )
 
@@ -314,3 +330,30 @@ class TestEvidenceGeneration:
                 assert column in self.evidence1.columns, (
                     f'Column "{column}" is missing from evidence dataset.'
                 )
+
+    def test_missing_literature(self: TestEvidenceGeneration) -> None:
+        """Test if literature is null if no pmids are present."""
+        # Assert returned columns:
+        if self.evidence1 is not None:
+            assert (
+                self.evidence1.filter(
+                    f.col("literature").isNull() & (f.col("studyId") == "s3")
+                ).count()
+            ) > 0
+
+    def test_presence_of_curation_date(self: TestEvidenceGeneration) -> None:
+        """Testing if study release date is properly captured."""
+        # Assert returned columns:
+        if self.evidence1 is not None:
+            # Asserting that the curation date is dropped if format is wrong:
+            assert (
+                self.evidence1.filter(
+                    f.col("curationDate").isNull() & (f.col("studyId") == "s4")
+                ).count()
+            ) > 0
+            # Asserting that the curation date is propagated if properly formatted:
+            assert (
+                self.evidence1.filter(
+                    f.col("curationDate").isNotNull() & (f.col("studyId") == "s3")
+                ).count()
+            ) > 0

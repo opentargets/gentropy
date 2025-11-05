@@ -2,10 +2,7 @@
 
 from __future__ import annotations
 
-from gentropy.common.processing import (
-    prepare_va,
-    process_summary_stats_per_chromosome,
-)
+from gentropy.common.processing import prepare_va
 from gentropy.common.session import Session
 from gentropy.datasource.ukb_ppp_eur.study_index import UkbPppEurStudyIndex
 from gentropy.datasource.ukb_ppp_eur.summary_stats import UkbPppEurSummaryStats
@@ -52,9 +49,8 @@ class UkbPppEurStep:
         )
 
         session.logger.info("Process and harmonise summary stats.")
-        process_summary_stats_per_chromosome(
+        UkbPppEurSummaryStats.process_summary_stats_per_chromosome(
             session,
-            UkbPppEurSummaryStats,
             raw_summary_stats_path,
             tmp_variant_annotation_path,
             summary_stats_output_path,

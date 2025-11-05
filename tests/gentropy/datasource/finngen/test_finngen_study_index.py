@@ -2,15 +2,14 @@
 
 from __future__ import annotations
 
-import json
 from typing import TYPE_CHECKING
 from unittest.mock import MagicMock
 
 import pytest
-from pyspark.sql import DataFrame
 from pyspark.sql import types as T
 
 from gentropy.dataset.study_index import StudyIndex
+from gentropy.datasource.finngen.efo_mapping import EFOMapping
 from gentropy.datasource.finngen.study_index import (
     FinngenPrefixMatch,
     FinnGenStudyIndex,
@@ -64,154 +63,6 @@ def finngen_study_index_mock(spark: SparkSession) -> StudyIndex:
     return StudyIndex(_df=df, _schema=StudyIndex.get_schema())
 
 
-@pytest.fixture()
-def finngen_phenotype_table_mock() -> str:
-    """This is the data extracted from https://r11.finngen.fi/api/phenos."""
-    data = json.dumps(
-        [
-            # NOTE: Study maps to single EFO trait.
-            {
-                "assoc_files": [
-                    "/cromwell_root/pheweb/generated-by-pheweb/pheno_gz/AB1_ACTINOMYCOSIS.gz"
-                ],
-                "category": "I Certain infectious and parasitic diseases (AB1_)",
-                "category_index": 1,
-                "gc_lambda": {
-                    "0.001": 0.93878,
-                    "0.01": 0.96727,
-                    "0.1": 0.85429,
-                    "0.5": 0.52544,
-                },
-                "num_cases": 113,
-                "num_cases_prev": 101,
-                "num_controls": 399149,
-                "num_controls_prev": 363227,
-                "num_gw_significant": 0,
-                "num_gw_significant_prev": 0,
-                "phenocode": "AB1_ACTINOMYCOSIS",
-                "phenostring": "Actinomycosis",
-            },
-            # NOTE: Study maps to multiple EFO traits.
-            {
-                "assoc_files": [
-                    "/cromwell_root/pheweb/generated-by-pheweb/pheno_gz/GLUCOSE.gz"
-                ],
-                "category": "Glucose",
-                "category_index": 28,
-                "gc_lambda": {
-                    "0.001": 1.1251,
-                    "0.01": 1.062,
-                    "0.1": 1.0531,
-                    "0.5": 1.0599,
-                },
-                "num_cases": 43764,
-                "num_cases_prev": 39231,
-                "num_controls": 409969,
-                "num_controls_prev": 372950,
-                "num_gw_significant": 3,
-                "num_gw_significant_prev": 3,
-                "phenocode": "GLUCOSE",
-                "phenostring": "Glucose",
-            },
-            # NOTE: Study does not map to EFO traits
-            {
-                "assoc_files": [
-                    "/cromwell_root/pheweb/generated-by-pheweb/pheno_gz/SOME_OTHER_TRAIT.gz"
-                ],
-                "category": "SomeOtherTrait",
-                "category_index": 28,
-                "gc_lambda": {
-                    "0.001": 1.1251,
-                    "0.01": 1.062,
-                    "0.1": 1.0531,
-                    "0.5": 1.0599,
-                },
-                "num_cases": 43764,
-                "num_cases_prev": 39231,
-                "num_controls": 409969,
-                "num_controls_prev": 372950,
-                "num_gw_significant": 3,
-                "num_gw_significant_prev": 3,
-                "phenocode": "SOME_OTHER_TRAIT",
-                "phenostring": "Some other trait",
-            },
-        ]
-    )
-    return data
-
-
-@pytest.fixture()
-def efo_mappings_mock() -> list[tuple[str, str, str]]:
-    """EFO mappings mock based on https://raw.githubusercontent.com/opentargets/curation/24.09.1/mappings/disease/manual_string.tsv.
-
-    Only required fields are extracted.
-    """
-    data = [
-        (
-            "STUDY",
-            "PROPERTY_VALUE",
-            "SEMANTIC_TAG",
-        ),
-        ("FinnGen r11", "Actinomycosis", "http://www.ebi.ac.uk/efo/EFO_0007128"),
-        # NOTE: EFO does not map, as it's missing from the StudyIndex - hypothetical example.
-        ("FinnGen r11", "Bleeding", "http://purl.obolibrary.org/obo/MP_0001914"),
-        # NOTE: Two EFO traits for one disease should be collected to array - hypothetical example:
-        # Glucose tolerance test & NMR Glucose
-        ("FinnGen r11", "Glucose", "http://www.ebi.ac.uk/efo/EFO_0002571"),
-        ("FinnGen r11", "Glucose", "http://www.ebi.ac.uk/efo/EFO_0004468"),
-        # NOTE: EFO that does not map, due to study not from Finngen - hypothetical example.
-        ("PheWAS 2024", "Glucose", "http://www.ebi.ac.uk/efo/EFO_0000001"),
-    ]
-    return data
-
-
-@pytest.fixture()
-def efo_mappings_df_mock(
-    spark: SparkSession, efo_mappings_mock: list[tuple[str, str, str]]
-) -> DataFrame:
-    """EFO mappings dataframe mock."""
-    schema = T.StructType(
-        [
-            T.StructField("STUDY", T.StringType(), nullable=False),
-            T.StructField("PROPERTY_VALUE", T.StringType(), nullable=False),
-            T.StructField("SEMANTIC_TAG", T.StringType(), nullable=False),
-        ]
-    )
-    data = spark.createDataFrame(data=efo_mappings_mock, schema=schema)
-    return data
-
-
-@pytest.fixture()
-def urlopen_mock(
-    efo_mappings_mock: list[tuple[str, str, str, str]],
-    finngen_phenotype_table_mock: str,
-) -> Callable[[str], MagicMock]:
-    """Mock object for requesting urlopen objects with proper encoding.
-
-    This mock object allows to call `read` and `readlines` methods on two endpoints:
-    - https://finngen_phenotypes -> finngen_phenotype_table_mock
-    - https://efo_mappings -> efo_mappings_mock
-
-    The return values are mocks of the source data respectively.
-    """
-
-    def mock_response(url: str) -> MagicMock:
-        """Mock urllib.request.urlopen."""
-        match url:
-            case "https://finngen_phenotypes":
-                value = finngen_phenotype_table_mock
-            case "https://efo_mappings":
-                value = "\n".join(["\t".join(row) for row in efo_mappings_mock])
-            case _:
-                value = ""
-        mock_open = MagicMock()
-        mock_open.read.return_value = value.encode()
-        mock_open.readlines.return_value = value.encode().splitlines(keepends=True)
-        return mock_open
-
-    return mock_response
-
-
 @pytest.mark.step_test
 def test_finngen_study_index_step(
     monkeypatch: pytest.MonkeyPatch,
@@ -238,6 +89,7 @@ def test_finngen_study_index_step(
     'condition'
     """
     with monkeypatch.context() as m:
+        m.setattr("gentropy.datasource.finngen.efo_mapping.urlopen", urlopen_mock)
         m.setattr("gentropy.datasource.finngen.study_index.urlopen", urlopen_mock)
         output_path = str(tmp_path / "study_index")
         FinnGenStudiesStep(
@@ -255,20 +107,6 @@ def test_finngen_study_index_step(
         assert study_index.df.count() == 3, "Expected 3 rows that come from the input table."
         assert "traitFromSourceMappedIds" in study_index.df.columns, "Expected that EFO terms were joined to the study_index table."
         # fmt: on
-
-
-def test_finngen_study_index_read_efo_curation(
-    monkeypatch: pytest.MonkeyPatch,
-    spark: SparkSession,
-    urlopen_mock: Callable[[str], MagicMock],
-) -> None:
-    """Test reading efo curation."""
-    with monkeypatch.context() as m:
-        m.setattr("gentropy.datasource.finngen.study_index.urlopen", urlopen_mock)
-        efo_df = FinnGenStudyIndex.read_efo_curation(spark, "https://efo_mappings")
-        assert isinstance(efo_df, DataFrame)
-        efo_df.show()
-        assert efo_df.count() == 5
 
 
 def test_finngen_study_index_from_source(
@@ -362,18 +200,17 @@ def test_finngen_validate_release_prefix(
             FinnGenStudyIndex.validate_release_prefix(prefix)
 
 
-def test_finngen_study_index_add_efos(
+def test_finngen_study_index_annotate_with_efos(
     finngen_study_index_mock: StudyIndex,
-    efo_mappings_df_mock: DataFrame,
+    efo_mappings_df_mock: EFOMapping,
 ) -> None:
     """Test finngen study index add efo ids."""
     efo_column_name = "traitFromSourceMappedIds"
     # Expect that EFO column is not present when study index is generated.
     assert efo_column_name not in finngen_study_index_mock.df.columns
-    study_index = FinnGenStudyIndex.join_efo_mapping(
-        finngen_study_index_mock,
+    study_index = efo_mappings_df_mock.annotate_study_index(
+        study_index=finngen_study_index_mock,
         finngen_release="R11",
-        efo_curation_mapping=efo_mappings_df_mock,
     )
     # fmt: off
     assert isinstance(study_index, StudyIndex), "Expect we have the StudyIndex object after joining EFOs."

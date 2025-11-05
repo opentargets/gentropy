@@ -16,16 +16,17 @@ dependencies = [
   "numpy (>=1.26.4, <2.3.0)",
   "wandb (>=0.19.4, <0.23.0)",
   "omegaconf (>=2.3.0, <2.4.0)",
-  "typing-extensions (>=4.12.2, <4.15.0)",
+  "typing-extensions (>=4.12.2, <4.16.0)",
   "scikit-learn (>=1.6.1, <1.8.0)",
   "pandas[gcp,parquet] (>=2.2.3, <2.4.0)",
-  "skops (>=0.11.0, <0.14.0)",
+  "skops (>=0.11.0, <0.12.0)",
   "shap (>=0.46, <0.49)",
   "matplotlib (>=3.10.0, <3.11.0)",
-  "google-cloud-secret-manager (>=2.12.6, <2.25.0)",
+  "google-cloud-secret-manager (>=2.12.6, <2.26.0)",
   "google-cloud-storage (>=2.14.0, <3.4.0)",
-  "xgboost-cpu>=3.0.4 ; platform_machine == 'amd64' or platform_machine == 'x86_64' ",
   "xgboost>=3.0.4 ; platform_machine == 'aarch64' or platform_machine == 'arm64'",
+  "xgboost-cpu>=3.0.4 ; (platform_machine == 'amd64' and sys_platform != 'darwin') or (platform_machine == 'x86_64' and sys_platform != 'darwin')",
+  "xgboost>=3.0.4 ; platform_machine == 'x86_64' and sys_platform == 'darwin'",
 ]
 classifiers = [
   "Programming Language :: Python :: 3.10",
@@ -54,9 +55,10 @@ docs = [
   "mkdocs-git-committers-plugin-2 >=2.2.3, <2.6.0",
   "lxml >=5.1.0, <6.1.0",
   "pymdown-extensions >=10.7, <10.17",
+  "markdown-katex>=202406.1035",
 ]
 test = [
-  "pytest-cov >=4.1,<7.0",
+  "pytest-cov >=4.1,<8.0",
   "pytest-sugar >=0.9.5,<1.2.0",
   "dbldatagen >=0.3.1,<0.5.0",
   "pyparsing >=3.1.1, <3.3.0",
@@ -72,12 +74,12 @@ dev = [
   "deptry >=0.22.0, <0.24.0",
   "yamllint >=1.33.0, <1.38.0",
   "pre-commit >=4.0.0, <4.4.0",
-  "mypy >=1.13, <1.18",
+  "mypy >=1.13, <1.19",
   "pep8-naming >=0.14.1, <0.16.0",
   "interrogate >=1.7.0, <1.8.0",
   "isort >=5.13.2, <6.1.0",
   "darglint >=1.8.1, <1.9.0",
-  "ruff >=0.8.1, <0.13.0",
+  "ruff >=0.8.1, <0.15.0",
 ]
 [tool.semantic_release]
 logging_use_named_masks = true
@@ -131,7 +133,7 @@ exclude = ["dist"]
 addopts = "-n auto --doctest-modules --cov=src/ --cov-report=xml --cache-clear"
 pythonpath = ["."]
 testpaths = ["tests/gentropy", "src/gentropy"]
-markers = ["step_test"]
+markers = ["step_test", "long_test"]
 filterwarnings = [
   "ignore:.*it is preferred to specify type hints for pandas UDF.*:UserWarning"
 
@@ -225,7 +227,7 @@ select = [
   "T20",     # flake8-print
   "TID251",  # Banned imports
   "TRY004",  # Prefer TypeError exception for invalid type
-  "TRY302",  # Remove exception handler; error is immediately re-raised
+  "TRY203",  # Remove exception handler; error is immediately re-raised
   "UP",      # pyupgrade
   "W",       # pycodestyle
 ]
@@ -252,6 +254,7 @@ ignore = [
   "UP007",   # keep type annotation style as is
   # Ignored due to performance: https://github.com/charliermarsh/ruff/issues/2923
   "UP038", # Use `X | Y` in `isinstance` call instead of `(X, Y)`
+  "G004", # f-string used in logging function
 
 ]
 
