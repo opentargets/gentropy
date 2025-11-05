@@ -262,40 +262,82 @@ class LocusToGeneModel:
             language="en",
             license="mit",
             library_name="sklearn",
-            tags=["sklearn", "tabular-classification", "genomics"],
+            tags=[
+                "sklearn",
+                "tabular-classification",
+                "genomics",
+                "gwas",
+                "gene-prioritization",
+            ],
         )
 
-        # Create the model card with default template
-        model_card = ModelCard.from_template(
+        # Create model card with custom template
+        card = ModelCard.from_template(
             card_data,
-            model_id="opentargets/locus_to_gene",
-            model_description="""The locus-to-gene (L2G) model derives features to prioritise likely causal genes at each GWAS locus based on genetic and functional genomics features. The main categories of predictive features are:
-
-            - Distance: (from credible set variants to gene)
-            - Molecular QTL Colocalization
-            - Variant Pathogenicity: (from VEP)
-
-            More information at: https://opentargets.github.io/gentropy/python_api/methods/l2g/_l2g/""",
-            model_summary="Gradient Boosting Classifier for gene prioritisation in GWAS loci.",
-            developers="Open Targets",
-            repo="https://github.com/opentargets/gentropy",
+            template_path=None,
         )
 
-        # Add usage section
-        usage_section = """## How to Get Started with the Model
+        card.text = """# Locus-to-Gene (L2G) Model
 
-        To use the model, you can load it using the `LocusToGeneModel.load_from_hub` method. This will return a `LocusToGeneModel` object that can be used to make predictions on a feature matrix.
-        The model can then be used to make predictions using the `predict` method.
+The locus-to-gene (L2G) model prioritises likely causal genes at each GWAS locus based on genetic and functional genomics features.
 
-        More information can be found at: https://opentargets.github.io/gentropy/python_api/methods/l2g/model/
-        """
-        citation_section = """## Citation
+## Model Description
 
-        https://doi.org/10.1038/s41588-021-00945-5
-        """
-        model_card.text += "\n" + usage_section + "\n" + citation_section
+This is a **Gradient Boosting Classifier** (XGBoost) trained to predict causal genes at GWAS loci.
 
-        model_card.save(Path(local_repo) / "README.md")
+Limited to protein-coding genes with available feature data.
+
+**Key Features:**
+- **Distance**: proximity from credible set variants to gene
+- **Molecular QTL Colocalization**: evidence from expression/protein QTL studies
+- **Variant Pathogenicity**: VEP (Variant Effect Predictor) scores
+
+## Usage
+
+```python
+from gentropy.method.l2g.model import LocusToGeneModel
+from gentropy.common.session import Session
+
+# Load model from Hugging Face Hub
+session = Session()
+model = LocusToGeneModel.load_from_hub(
+    session=session,
+    hf_model_id="opentargets/locus_to_gene"
+)
+
+# Make predictions on your L2G feature matrix
+predictions = model.predict(your_feature_matrix, session)
+```
+
+## Training
+
+- **Architecture**: XGBoost Gradient Boosting Classifier
+- **Training Data**: Curated positive/negative gene-locus pairs from Open Targets
+- **Evaluation Metric**: Area under precision-recall curve (AUCPR)
+
+## Citation
+
+If you use this model, please cite:
+
+```bibtex
+@article{ghoussaini2021open,
+title={Open Targets Genetics: systematic identification of trait-associated genes using large-scale genetics and functional genomics},
+author={Ghoussaini, Maya and Mountjoy, Edward and Carmona, Maria and others},
+journal={Nature Genetics},
+volume={53},
+pages={1527--1533},
+year={2021},
+doi={10.1038/s41588-021-00945-5}
+}
+```
+
+## More Information
+
+- **Repository**: [opentargets/gentropy](https://github.com/opentargets/gentropy)
+- **Documentation**: [L2G Method Docs](https://opentargets.github.io/gentropy/python_api/methods/l2g/_l2g/)
+- **Developer**: Open Targets
+"""
+        card.save(Path(local_repo) / "README.md")
 
     def export_to_hugging_face_hub(
         self: LocusToGeneModel,
