@@ -496,7 +496,7 @@ class SusieFineMapperStep:
         """Susie fine-mapper function that uses LD, z-scores, variant info and other options for Fine-Mapping.
 
         Args:
-            GWAS_df (DataFrame): GWAS DataFrame with mandotary columns: z, variantId
+            GWAS_df (DataFrame): GWAS DataFrame with mandatary columns: z, variantId
             ld_index (DataFrame): LD index DataFrame
             gnomad_ld (np.ndarray): GnomAD LD matrix
             L (int): number of causal variants
