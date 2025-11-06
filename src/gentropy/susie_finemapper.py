@@ -496,7 +496,7 @@ class SusieFineMapperStep:
         """Susie fine-mapper function that uses LD, z-scores, variant info and other options for Fine-Mapping.
 
         Args:
-            GWAS_df (DataFrame): GWAS DataFrame with mandotary columns: z, variantId, beta, StandardError
+            GWAS_df (DataFrame): GWAS DataFrame with mandotary columns: z, variantId
             ld_index (DataFrame): LD index DataFrame
             gnomad_ld (np.ndarray): GnomAD LD matrix
             L (int): number of causal variants
@@ -624,13 +624,11 @@ class SusieFineMapperStep:
             [
                 StructField("variantId", StringType(), True),
                 StructField("z", DoubleType(), True),
-                StructField("beta", DoubleType(), True),
-                StructField("StandardError", DoubleType(), True),
             ]
         )
         variant_index = (
             session.spark.createDataFrame(
-                GWAS_df[["variantId", "z", "beta", "StandardError"]],
+                GWAS_df[["variantId", "z"]],
                 schema=schema,
             )
             .withColumn(
