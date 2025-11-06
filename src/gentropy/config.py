@@ -502,6 +502,7 @@ class ConvertToVcfStepConfig(StepConfig):
     partition_size: int = 2000
     _target_: str = "gentropy.variant_index.ConvertToVcfStep"
 
+
 @dataclass
 class IntervalE2GStepConfig(StepConfig):
     """Interval E2G step configuration."""
@@ -511,6 +512,8 @@ class IntervalE2GStepConfig(StepConfig):
     interval_e2g_path: str = MISSING
 
     _target_: str = "gentropy.variant_index.IntervalE2GStep"
+
+
 @dataclass
 class LocusBreakerClumpingConfig(StepConfig):
     """Locus breaker clumping step configuration."""
@@ -560,6 +563,17 @@ class FinemapperConfig(StepConfig):
     study_index_path: str = MISSING
     study_locus_manifest_path: str = MISSING
     study_locus_index: int = MISSING
+    ld_matrix_paths: dict[str, str] = field(
+        default_factory=lambda: {
+            "pan_ukbb_bm_path": "gs://panukbb-ld-matrixes/UKBB.{POP}.ldadj",
+            "pan_ukbb_ht_path": "gs://panukbb-ld-matrixes/ukb-diverse-pops-public-build-38/UKBB.{POP}.ldadj.variant.b38",
+            "ukbb_annotation_path": "gs://panukbb-ld-matrixes/UKBB.{POP}.aligned.parquet",
+            "ld_matrix_template": "gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.{POP}.common.adj.ld.bm",
+            "ld_index_raw_template": "gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.{POP}.common.ld.variant_indices.ht",
+            "liftover_ht_path": "gs://gcp-public-data--gnomad/release/2.1.1/liftover_grch38/ht/genomes/gnomad.genomes.r2.1.1.sites.liftover_grch38.ht",
+            "grch37_to_grch38_chain_path": "gs://hail-common/references/grch37_to_grch38.over.chain.gz",
+        }
+    )
     max_causal_snps: int = MISSING
     lead_pval_threshold: float = MISSING
     purity_mean_r2_threshold: float = MISSING
@@ -658,6 +672,7 @@ class StudyLocusValidationStepConfig(StepConfig):
     invalid_qc_reasons: list[str] = MISSING
     trans_qtl_threshold: int = MISSING
     _target_: str = "gentropy.study_locus_validation.StudyLocusValidationStep"
+
 
 @dataclass
 class Config:
