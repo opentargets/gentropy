@@ -49,7 +49,7 @@ docs = [
   "mkdocstrings-python >=1.12.2, <1.19.0",
   "mkdocs-material",
   "mkdocs-section-index >=0.3.4, <0.4.0",
-  "mkdocs-git-revision-date-localized-plugin >=1.2.2, <1.5.0",
+  "mkdocs-git-revision-date-localized-plugin >=1.2.2, <1.6.0",
   "mkdocs-autolinks-plugin >=0.7.1, <0.8.0",
   "mkdocs-awesome-pages-plugin >=2.9.2, <3.0.0",
   "mkdocs-exclude >=1.0.2, <1.1.0",
@@ -69,7 +69,7 @@ test = [
 
 dev = [
   "ipython >=8.19.0, <8.38.0",
-  "pydoclint >=0.3.8,<0.8.0",
+  "pydoclint >=0.3.8,<0.9.0",
   "ipykernel >=6.28.0, <6.31.0",
   "prettier >=0.0.7, <0.1.0",
   "deptry >=0.22.0, <0.24.0",
