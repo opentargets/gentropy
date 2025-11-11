@@ -2,7 +2,7 @@ SHELL := /bin/bash
 PROJECT_ID ?= open-targets-genetics-dev
 REGION ?= europe-west1
 APP_NAME ?= $$(cat pyproject.toml | grep -m 1 "name" | cut -d" " -f3 | sed  's/"//g')
-PACKAGE_VERSION ?= $(shell grep -m 1 'version = ' pyproject.toml | sed 's/version = "\(.*\)"/\1/')
+PACKAGE_VERSION ?= "25.3.1-dev.5"
 USER_SAFE ?= $(shell echo $(USER) | tr '[:upper:]' '[:lower:]')
 CLUSTER_TIMEOUT ?= 60m
 # NOTE: git rev-parse will always return the HEAD if it sits in the tag,
@@ -14,7 +14,7 @@ else
 endif
 
 CLEAN_PACKAGE_VERSION := $(shell echo "$(PACKAGE_VERSION)" | tr -cd '[:alnum:]')
-BUCKET_NAME=gs://genetics_etl_python_playground/initialisation
+BUCKET_NAME=gs://genetics_etl_python_playground/pts-initialization
 
 .PHONY: $(shell sed -n -e '/^$$/ { n ; /^[^ .\#][^ ]*:/ { s/:.*$$// ; p ; } ; }' $(MAKEFILE_LIST))
 
@@ -63,8 +63,8 @@ create-dev-cluster: sync-cluster-init-script sync-gentropy-cli-script ## Spin up
 		--image-version 2.2 \
 		--region ${REGION} \
 		--master-machine-type n1-standard-16 \
-		--metadata="GENTROPY_REF=${REF}" \
-		--initialization-actions=${BUCKET_NAME}/install_dependencies_on_cluster.sh \
+		--metadata="PTS=${REF}" \
+		--initialization-actions="gs://genetics_etl_python_playground/pts-initialization/install_dependencies_on_cluster.sh" \
 		--secondary-worker-type spot \
 		--worker-machine-type n1-standard-16 \
 		--public-ip-address \
