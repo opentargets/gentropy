@@ -220,6 +220,81 @@ class LDBasedClumpingConfig(StepConfig):
 
 
 @dataclass
+class LocusToGeneTrainingConfig(StepConfig):
+    """Training configuration for locus to gene model."""
+
+    credible_set_path: str = MISSING
+    feature_matrix_path: str = MISSING
+    gold_standard_curation_path: str = MISSING
+    features_list: list[str] = field(
+        default_factory=lambda: [
+            # max CLPP for each (study, locus, gene) aggregating over a specific qtl type
+            "eQtlColocClppMaximum",
+            "pQtlColocClppMaximum",
+            "sQtlColocClppMaximum",
+            # max H4 for each (study, locus, gene) aggregating over a specific qtl type
+            "eQtlColocH4Maximum",
+            "pQtlColocH4Maximum",
+            "sQtlColocH4Maximum",
+            # max CLPP for each (study, locus, gene) aggregating over a specific qtl type and in relation with the mean in the vicinity
+            "eQtlColocClppMaximumNeighbourhood",
+            "pQtlColocClppMaximumNeighbourhood",
+            "sQtlColocClppMaximumNeighbourhood",
+            # max H4 for each (study, locus, gene) aggregating over a specific qtl type and in relation with the mean in the vicinity
+            "eQtlColocH4MaximumNeighbourhood",
+            "pQtlColocH4MaximumNeighbourhood",
+            "sQtlColocH4MaximumNeighbourhood",
+            # distance to gene footprint
+            "distanceSentinelFootprint",
+            "distanceSentinelFootprintNeighbourhood",
+            "distanceFootprintMean",
+            "distanceFootprintMeanNeighbourhood",
+            # distance to gene tss
+            "distanceTssMean",
+            "distanceTssMeanNeighbourhood",
+            "distanceSentinelTss",
+            "distanceSentinelTssNeighbourhood",
+            # vep
+            "vepMaximum",
+            "vepMaximumNeighbourhood",
+            "vepMean",
+            "vepMeanNeighbourhood",
+            # other
+            "geneCount500kb",
+            "proteinGeneCount500kb",
+            "credibleSetConfidence",
+        ]
+    )
+    hyperparameters: dict[str, Any] = field(
+        default_factory=lambda: {
+            "max_depth": 5,
+            "reg_alpha": 1,  # L1 regularization
+            "reg_lambda": 1.0,  # L2 regularization
+            "subsample": 0.8,
+            "colsample_bytree": 0.8,
+            "eta": 0.05,
+            "min_child_weight": 10,
+            "scale_pos_weight": 0.8,
+        }
+    )
+    metrics: dict[str, Any] = field(
+        default_factory=lambda: {
+            "wandb_run_name": None,
+            "hf_hub_repo_id": None,
+            "hf_model_commit_message": None,
+        }
+    )
+    wandb_run_name: str | None = None
+    hf_hub_repo_id: str | None = None
+    hf_model_commit_message: str | None = None
+    hf_model_version: str | None = None
+    download_from_hub: bool = True
+    cross_validate: bool = True
+    explain_predictions: bool | None = False
+    _target_: str = "gentropy.l2g.LocusToGeneStep"
+
+
+@dataclass
 class LocusToGeneConfig(StepConfig):
     """Locus to gene step configuration."""
 

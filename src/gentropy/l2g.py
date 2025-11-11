@@ -168,6 +168,7 @@ class LocusToGeneStep:
         Raises:
             ValueError: If run_mode is not 'train' or 'predict'
         """
+        # breakpoint()
         if run_mode not in ["train", "predict"]:
             raise ValueError(
                 f"run_mode must be one of 'train' or 'predict', got {run_mode}"
@@ -199,6 +200,7 @@ class LocusToGeneStep:
         self.credible_set = StudyLocus.from_parquet(
             session, credible_set_path, recursiveFileLookup=True
         )
+
         self.feature_matrix = L2GFeatureMatrix(
             _df=session.load_data(feature_matrix_path),
         )
@@ -349,6 +351,7 @@ class LocusToGeneStep:
         Raises:
             ValueError: If features list is not provided for model training.
         """
+        breakpoint()
         if self.features_list is None:
             raise ValueError("Features list is required for model training.")
         # Initialize access to weights and biases
