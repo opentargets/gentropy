@@ -1,4 +1,5 @@
 """Collection of methods that extract features from the interval datasets."""
+
 from __future__ import annotations
 
 from typing import Any
@@ -87,7 +88,9 @@ def e2g_interval_feature_wide_logic_binned(
     study_loci_exploded = (
         sl.withColumn("variantInLocus", f.explode_outer("locus"))
         .withColumn("chromosome", f.split("variantInLocus.variantId", "_").getItem(0))
-        .withColumn("position", f.split("variantInLocus.variantId", "_").getItem(1).cast("int"))
+        .withColumn(
+            "position", f.split("variantInLocus.variantId", "_").getItem(1).cast("int")
+        )
         .withColumn("pp", f.col("variantInLocus.posteriorProbability").cast("double"))
         .filter(f.col("pp") >= f.lit(pp_min))
         .select(
@@ -96,7 +99,11 @@ def e2g_interval_feature_wide_logic_binned(
             f.col("position").alias("position"),
             f.col("pp").alias("pp"),
         )
-        .filter(f.col("sl_chromosome").isNotNull() & f.col("position").isNotNull() & f.col("pp").isNotNull())
+        .filter(
+            f.col("sl_chromosome").isNotNull()
+            & f.col("position").isNotNull()
+            & f.col("pp").isNotNull()
+        )
         .alias("slx")
     )
 
@@ -118,15 +125,21 @@ def e2g_interval_feature_wide_logic_binned(
         "var_bin", (f.col("position") / f.lit(bin_size)).cast("long")
     )
     if repartitions_variants:
-        slx_binned = slx_binned.repartition(repartitions_variants, "sl_chromosome", "var_bin")
+        slx_binned = slx_binned.repartition(
+            repartitions_variants, "sl_chromosome", "var_bin"
+        )
     else:
         slx_binned = slx_binned.repartition("sl_chromosome", "var_bin")
 
     ivf_binned = _explode_interval_bins(
-        intervals_filtered, bin_size=bin_size, max_bins_per_interval=max_bins_per_interval
+        intervals_filtered,
+        bin_size=bin_size,
+        max_bins_per_interval=max_bins_per_interval,
     )
     if repartitions_intervals:
-        ivf_binned = ivf_binned.repartition(repartitions_intervals, "iv_chromosome", "iv_bin")
+        ivf_binned = ivf_binned.repartition(
+            repartitions_intervals, "iv_chromosome", "iv_bin"
+        )
     else:
         ivf_binned = ivf_binned.repartition("iv_chromosome", "iv_bin")
 
@@ -141,7 +154,10 @@ def e2g_interval_feature_wide_logic_binned(
             ],
             how="inner",
         )
-        .filter((f.col("cs.position") >= f.col("iv.start")) & (f.col("cs.position") <= f.col("iv.end")))
+        .filter(
+            (f.col("cs.position") >= f.col("iv.start"))
+            & (f.col("cs.position") <= f.col("iv.end"))
+        )
         .select(
             f.col("cs.studyLocusId").alias("studyLocusId"),
             f.col("cs.sl_chromosome").alias("chromosome"),
@@ -153,18 +169,18 @@ def e2g_interval_feature_wide_logic_binned(
     )
 
     # Per variant per gene max interval score, keep pp
-    per_variant_gene = (
-        joined.groupBy("studyLocusId", "chromosome", "position", "geneId")
-        .agg(
-            f.max("score").alias("maxScore"),
-            f.first("pp", ignorenulls=True).alias("pp"),
-        )
+    per_variant_gene = joined.groupBy(
+        "studyLocusId", "chromosome", "position", "geneId"
+    ).agg(
+        f.max("score").alias("maxScore"),
+        f.first("pp", ignorenulls=True).alias("pp"),
     )
 
     # Weight and aggregate to gene per locus
     base_df = (
-        per_variant_gene
-        .withColumn("weightedIntervalScore", f.col("maxScore") * f.col("pp"))
+        per_variant_gene.withColumn(
+            "weightedIntervalScore", f.col("maxScore") * f.col("pp")
+        )
         .groupBy("studyLocusId", "geneId")
         .agg(f.sum("weightedIntervalScore").alias(base_name))
     ).persist()
@@ -172,7 +188,9 @@ def e2g_interval_feature_wide_logic_binned(
     # Neighbourhood ratio within locus, using locus max as the denominator
     w = Window.partitionBy("studyLocusId")
     with_max = base_df.withColumn("regional_max", f.max(base_name).over(w))
-    neigh_ratio = f.when(f.col("regional_max") != 0, f.col(base_name) / f.col("regional_max")).otherwise(f.lit(0.0))
+    neigh_ratio = f.when(
+        f.col("regional_max") != 0, f.col(base_name) / f.col("regional_max")
+    ).otherwise(f.lit(0.0))
 
     wide = with_max.select(
         "studyLocusId",
@@ -233,8 +251,13 @@ def e2g_interval_feature_wide_logic(
     study_loci_exploded = (
         sl.withColumn("variantInLocus", f.explode_outer("locus"))
         .withColumn("chromosome", f.split("variantInLocus.variantId", "_").getItem(0))
-        .withColumn("position", f.split("variantInLocus.variantId", "_").getItem(1).cast("int"))
-        .withColumn("posteriorProbability", f.col("variantInLocus.posteriorProbability").cast("double"))
+        .withColumn(
+            "position", f.split("variantInLocus.variantId", "_").getItem(1).cast("int")
+        )
+        .withColumn(
+            "posteriorProbability",
+            f.col("variantInLocus.posteriorProbability").cast("double"),
+        )
         .filter(f.col("posteriorProbability") > f.lit(pp_min))
         .select(
             f.col("studyLocusId").alias("studyLocusId"),
@@ -252,39 +275,41 @@ def e2g_interval_feature_wide_logic(
         f.col("score").alias("score"),
     ).alias("ivf")
 
-    joined = (
-        study_loci_exploded.join(
-            intervals_filtered,
-            (f.col("slx.sl_chromosome") == f.col("ivf.iv_chromosome"))
-            & (f.col("position") >= f.col("start"))
-            & (f.col("position") <= f.col("end")),
-            "inner",
-        )
-        .select(
-            f.col("studyLocusId"),
-            f.col("slx.sl_chromosome").alias("chromosome"),
-            f.col("position"),
-            f.col("pp"),
-            f.col("geneId"),
-            f.col("score"),
-        )
+    joined = study_loci_exploded.join(
+        intervals_filtered,
+        (f.col("slx.sl_chromosome") == f.col("ivf.iv_chromosome"))
+        & (f.col("position") >= f.col("start"))
+        & (f.col("position") <= f.col("end")),
+        "inner",
+    ).select(
+        f.col("studyLocusId"),
+        f.col("slx.sl_chromosome").alias("chromosome"),
+        f.col("position"),
+        f.col("pp"),
+        f.col("geneId"),
+        f.col("score"),
     )
 
-    per_variant_gene = joined.groupBy("studyLocusId", "chromosome", "position", "geneId").agg(
+    per_variant_gene = joined.groupBy(
+        "studyLocusId", "chromosome", "position", "geneId"
+    ).agg(
         f.max("score").alias("maxScore"),
         f.first("pp", ignorenulls=True).alias("pp"),
     )
 
     base_df = (
-        per_variant_gene
-        .withColumn("weightedIntervalScore", f.col("maxScore") * f.col("pp"))
+        per_variant_gene.withColumn(
+            "weightedIntervalScore", f.col("maxScore") * f.col("pp")
+        )
         .groupBy("studyLocusId", "geneId")
         .agg(f.sum("weightedIntervalScore").alias(base_name))
     ).persist()
 
     w = Window.partitionBy("studyLocusId")
     with_max = base_df.withColumn("regional_max", f.max(base_name).over(w))
-    neigh_ratio = f.when(f.col("regional_max") != 0, f.col(base_name) / f.col("regional_max")).otherwise(f.lit(0.0))
+    neigh_ratio = f.when(
+        f.col("regional_max") != 0, f.col(base_name) / f.col("regional_max")
+    ).otherwise(f.lit(0.0))
 
     wide = with_max.select(
         "studyLocusId",
@@ -345,6 +370,7 @@ def get_or_make_e2g_wide(
 
 class E2gMeanFeature(L2GFeature):
     """e2gMean feature from E2G intervals."""
+
     feature_dependency_type = Intervals
     feature_name = "e2gMean"
 
@@ -381,6 +407,7 @@ class E2gMeanFeature(L2GFeature):
 
 class E2gMeanNeighbourhoodFeature(L2GFeature):
     """e2gMeanNeighbourhood feature from E2G intervals."""
+
     feature_dependency_type = Intervals
     feature_name = "e2gMeanNeighbourhood"
 
