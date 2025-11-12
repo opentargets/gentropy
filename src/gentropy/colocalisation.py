@@ -59,30 +59,40 @@ class ColocalisationStep:
             overlap_size_cutoff (int): Minimum number of overlapping variants bfore filtering. Defaults to 0.
             posterior_cutoff (float): Minimum overlapping Posterior probability cutoff for small overlaps. Defaults to 0.0.
         """
+        session.logger.info("Starting Colocalisation Step")
         colocalisation_method = colocalisation_method.lower()
+        session.logger.info(f"Colocalisation method: {colocalisation_method.upper()}")
 
         # Extract
+        session.logger.info(f"Loading credible sets from {credible_set_path}")
         credible_set = StudyLocus.from_parquet(
             session, credible_set_path, recusiveFileLookup=True
         )
 
         if colocalisation_method == "coloc_pip_ecaviar":
+            session.logger.info("Running combined ColocPIP and eCAVIAR colocalisation")
             # Transform - find overlaps once
+            session.logger.info("Finding overlaps for colocalisation")
             overlaps = credible_set.find_overlaps(
                 restrict_right_studies=restrict_right_studies,
                 gwas_v_qtl_overlap_only=gwas_v_qtl_overlap_only,
             )
+            session.logger.info("Overlaps found, running colocalisation methods")
 
             # Run ColocPIP
-
             coloc_pip = ColocPIP.colocalise
             if colocalisation_method_params:
+                session.logger.info(
+                    f"Using ColocPIP params: {colocalisation_method_params}"
+                )
                 coloc_pip = partial(coloc_pip, **colocalisation_method_params)
+            session.logger.info("Running ColocPIP colocalisation")
             coloc_pip_results = coloc_pip(overlaps)
-
+            session.logger.info("ColocPIP colocalisation complete")
             # Run eCAVIAR
-
+            session.logger.info("Running eCAVIAR colocalisation")
             ecaviar_results = ECaviar.colocalise(overlaps)
+            session.logger.info("eCAVIAR colocalisation complete")
 
             # Merge results: join on key columns and combine metrics
             join_keys = [
@@ -91,7 +101,7 @@ class ColocalisationStep:
                 "chromosome",
                 "rightStudyType",
             ]
-
+            session.logger.info("Merging ColocPIP and eCAVIAR results")
             colocalisation_results = Colocalisation(
                 _df=coloc_pip_results.df.alias("pip")
                 .join(
@@ -127,10 +137,17 @@ class ColocalisationStep:
                 ),
                 _schema=Colocalisation.get_schema(),
             )
+            session.logger.info("Merging complete")
         else:
+            session.logger.info(
+                f"Running {colocalisation_method.upper()} colocalisation"
+            )
             colocalisation_class = self._get_colocalisation_class(colocalisation_method)
 
             if colocalisation_method == Coloc.METHOD_NAME.lower():
+                session.logger.info(
+                    "Filtering credible sets to SUSIE finemapping only for COLOC"
+                )
                 credible_set = credible_set.filter(
                     f.col("finemappingMethod").isin(
                         FinemappingMethod.SUSIE.value, FinemappingMethod.SUSIE_INF.value
@@ -138,21 +155,28 @@ class ColocalisationStep:
                 )
 
             # Transform
+            session.logger.info("Finding overlaps for colocalisation")
             overlaps = credible_set.find_overlaps(
                 restrict_right_studies=restrict_right_studies,
                 gwas_v_qtl_overlap_only=gwas_v_qtl_overlap_only,
             )
+            session.logger.info("Overlaps found, running colocalisation method")
 
             # Make a partial caller to ensure that colocalisation_method_params are added to the call only when dict is not empty
             coloc = colocalisation_class.colocalise
             if colocalisation_method_params:
+                session.logger.info(
+                    f"Using {colocalisation_method.upper()} params: {colocalisation_method_params}"
+                )
                 coloc = partial(coloc, **colocalisation_method_params)
             colocalisation_results = coloc(overlaps)
 
         # Load
+        session.logger.info(f"Writing colocalisation results to {coloc_path}")
         colocalisation_results.df.coalesce(session.output_partitions).write.mode(
             session.write_mode
         ).parquet(coloc_path)
+        session.logger.info("Colocalisation Step complete.")
 
     @classmethod
     def _get_colocalisation_class(
