@@ -15,7 +15,6 @@ dependencies = [
   "pyliftover (>=0.4.1, <0.5.0)",
   "numpy>=2.3.0",
   "omegaconf (>=2.3.0, <2.4.0)",
-  "typing-extensions (>=4.12.2, <4.16.0)",
   "scikit-learn (>=1.6.1, <1.8.0)",
   "pandas[gcp,parquet] (>=2.2.3, <2.4.0)",
   "skops (>=0.13.0, <0.14.0)",
