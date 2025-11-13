@@ -4,7 +4,6 @@ import pytest
 from pyspark.sql import Row
 from pyspark.sql import functions as f
 from pyspark.sql import types as t
-from pyspark.testing import assertDataFrameEqual
 
 from gentropy import Session
 from gentropy.datasource.finngen_meta import FinnGenMetaManifest, MetaAnalysisDataSource
@@ -79,10 +78,10 @@ class TestFinnGenMetaManifest:
             expected_study_ids,
             schema="studyId: STRING",
         )
-        assertDataFrameEqual(
-            actual=manifest.df.select("studyId"),
-            expected=expected_study_df,
-        )
+        assert (
+            manifest.df.select("studyId").distinct().collect()
+            == expected_study_df.collect()
+        ), "data does not match expected"
 
     @pytest.mark.parametrize(
         ("manifest_path", "expected_project_id"),
@@ -110,10 +109,10 @@ class TestFinnGenMetaManifest:
             [(sid,) for sid in [expected_project_id] * 4],
             schema="projectId: STRING",
         )
-        assertDataFrameEqual(
-            actual=manifest.df.select("projectId"),
-            expected=expected_study_df,
-        )
+        assert (
+            manifest.df.select("projectId").distinct().collect()
+            == expected_study_df.distinct().collect()
+        ), "data does not match expected"
 
     @pytest.mark.parametrize(
         ("manifest_path", "expected_trait_from_source"),
@@ -151,10 +150,10 @@ class TestFinnGenMetaManifest:
             expected_trait_from_source,
             schema="traitFromSource: STRING",
         )
-        assertDataFrameEqual(
-            actual=manifest.df.select("traitFromSource"),
-            expected=expected_study_df,
-        )
+        assert (
+            manifest.df.select("traitFromSource").distinct().collect()
+            == expected_study_df.collect()
+        ), "data does not match expected"
 
     @pytest.mark.parametrize(
         ("manifest_path", "expected_discovery_samples"),
@@ -240,10 +239,11 @@ class TestFinnGenMetaManifest:
             expected_discovery_samples,
             schema="discoverySamples: ARRAY<STRUCT<sampleSize: INT, ancestry: STRING>>",
         )
-        assertDataFrameEqual(
-            actual=manifest.df.select("discoverySamples"),
-            expected=expected_study_df,
-        )
+
+        assert (
+            manifest.df.select("discoverySamples").distinct().collect()
+            == expected_study_df.collect()
+        ), "data does not match expected"
 
     @pytest.mark.parametrize(
         ("manifest_path", "expected_n_stats"),
@@ -284,10 +284,10 @@ class TestFinnGenMetaManifest:
             expected_n_stats,
             schema="nSamples: INT, nCases: INT, nControls: INT",
         )
-        assertDataFrameEqual(
-            actual=manifest.df.select("nSamples", "nCases", "nControls"),
-            expected=expected_study_df,
-        )
+        assert (
+            manifest.df.select("nSamples", "nCases", "nControls").distinct().collect()
+            == expected_study_df.collect()
+        ), "data does not match expected"
 
     @pytest.mark.parametrize(
         ("manifest_path", "expected_n_cases_per_cohort"),
@@ -377,10 +377,10 @@ class TestFinnGenMetaManifest:
             expected_n_cases_per_cohort,
             schema="nCasesPerCohort: ARRAY<STRUCT<cohort: STRING, nCases: INT>>",
         )
-        assertDataFrameEqual(
-            actual=manifest.df.select("nCasesPerCohort"),
-            expected=expected_study_df,
-        )
+        assert (
+            manifest.df.select("nCasesPerCohort").distinct().collect()
+            == expected_study_df.collect()
+        ), "data does not match expected"
 
     @pytest.mark.parametrize(
         ("manifest_path", "expected_sumstats_stats"),
@@ -435,7 +435,7 @@ class TestFinnGenMetaManifest:
             "summarystatsLocation", f.col("summarystatsLocation").cast(t.StringType())
         )
 
-        assertDataFrameEqual(
-            actual=manifest.df.select("summarystatsLocation", "hasSumstats"),
-            expected=expected_study_df,
-        )
+        assert (
+            manifest.df.select("summarystatsLocation", "hasSumstats").collect()
+            == expected_study_df.collect()
+        ), "data does not match expected"

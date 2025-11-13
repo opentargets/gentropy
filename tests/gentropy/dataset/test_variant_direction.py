@@ -3,7 +3,6 @@
 import pytest
 from pyspark.sql import Row
 from pyspark.sql import types as t
-from pyspark.testing import assertDataFrameEqual
 
 from gentropy import VariantIndex
 from gentropy.common.session import Session
@@ -137,32 +136,6 @@ class TestVariantDirection:
             ),
             Row(
                 chromosome="1",
-                originalVariantId="1_100_A_T",
-                type=1,
-                variantId="1_100_A_T",
-                direction=1,
-                strand=1,
-                isStrandAmbiguous=True,
-                originalAlleleFrequencies=[
-                    Row(populationName="nfe_adj", alleleFrequency=0.1),
-                    Row(populationName="fin_adj", alleleFrequency=0.2),
-                ],
-            ),
-            Row(
-                chromosome="1",
-                originalVariantId="1_100_A_T",
-                type=1,
-                variantId="1_100_T_A",
-                direction=-1,
-                strand=1,
-                isStrandAmbiguous=True,
-                originalAlleleFrequencies=[
-                    Row(populationName="nfe_adj", alleleFrequency=0.1),
-                    Row(populationName="fin_adj", alleleFrequency=0.2),
-                ],
-            ),
-            Row(
-                chromosome="1",
                 originalVariantId="1_100_ACT_G",
                 type=3,
                 variantId="1_100_ACT_G",
@@ -213,10 +186,34 @@ class TestVariantDirection:
                     Row(populationName="fin_adj", alleleFrequency=0.2),
                 ],
             ),
+            Row(
+                chromosome="1",
+                originalVariantId="1_100_A_T",
+                type=1,
+                variantId="1_100_A_T",
+                direction=1,
+                strand=1,
+                isStrandAmbiguous=True,
+                originalAlleleFrequencies=[
+                    Row(populationName="nfe_adj", alleleFrequency=0.1),
+                    Row(populationName="fin_adj", alleleFrequency=0.2),
+                ],
+            ),
+            Row(
+                chromosome="1",
+                originalVariantId="1_100_A_T",
+                type=1,
+                variantId="1_100_T_A",
+                direction=-1,
+                strand=1,
+                isStrandAmbiguous=True,
+                originalAlleleFrequencies=[
+                    Row(populationName="nfe_adj", alleleFrequency=0.1),
+                    Row(populationName="fin_adj", alleleFrequency=0.2),
+                ],
+            ),
         ]
         exp_df = session.spark.createDataFrame(exp_data, VariantDirection.get_schema())
-        variant_index.df.show(truncate=False)
-        variant_direction.df.show(truncate=False)
-        assertDataFrameEqual(
-            variant_direction.df.select(exp_df.columns), exp_df, checkRowOrder=False
-        )
+        assert (
+            variant_direction.df.select(exp_df.columns).collect() == exp_df.collect()
+        ), "data does not match expected"
