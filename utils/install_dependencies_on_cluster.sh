@@ -52,7 +52,7 @@ function main() {
     pip uninstall -y gentropy
     echo "Install package..."
     uv pip uninstall --system pandas numpy pyarrow scipy
-    run_with_retry uv pip install --no-break-system-packages --system "gentropy @ git+${REPO_URI}.git@${GENTROPY_REF}"
+    run_with_retry uv pip install --system "gentropy @ git+${REPO_URI}.git@${GENTROPY_REF}"
 }
 
 main
