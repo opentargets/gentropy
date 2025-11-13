@@ -133,8 +133,17 @@ class PICS:
             ...     Row(variantId="var1", r2Overall=0.8),
             ...     Row(variantId="var2", r2Overall=1),
             ... ]
-            >>> PICS._finemap(ld_set, lead_neglog_p=10.0, k=6.4)
-            [{'variantId': 'var1', 'r2Overall': 0.8, 'standardError': 0.07420896512708416, 'posteriorProbability': 0.07116959886882368}, {'variantId': 'var2', 'r2Overall': 1, 'standardError': 0.9977000638225533, 'posteriorProbability': 0.9288304011311763}]
+            >>> result = PICS._finemap(ld_set, lead_neglog_p=10.0, k=6.4)
+            >>> [list(v.keys()) for v in result]
+            [['variantId', 'r2Overall', 'standardError', 'posteriorProbability'], ['variantId', 'r2Overall', 'standardError', 'posteriorProbability']]
+            >>> [v["variantId"] for v in result]
+            ['var1', 'var2']
+            >>> [round(v["posteriorProbability"], 3) for v in result]
+            [0.071, 0.929]
+            >>> [v["r2Overall"] for v in result]
+            [0.8, 1]
+            >>> [round(v["standardError"], 3) for v in result]
+            [0.074, 0.998]
             >>> empty_ld_set = []
             >>> PICS._finemap(empty_ld_set, lead_neglog_p=10.0, k=6.4)
             []
