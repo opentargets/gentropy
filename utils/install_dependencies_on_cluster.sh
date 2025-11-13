@@ -37,7 +37,6 @@ function install_pip() {
     run_with_retry apt install python-pip -y
 }
 
-
 function main() {
     # Define a specific directory to download the files
     echo "export HYDRA_FULL_ERROR=1" | tee --append /etc/profile
@@ -52,6 +51,7 @@ function main() {
 
     pip uninstall -y gentropy
     echo "Install package..."
+    uv pip uninstall --system pandas numpy pyarrow scipy
     run_with_retry uv pip install --no-break-system-packages --system "gentropy @ git+${REPO_URI}.git@${GENTROPY_REF}"
 }
 
