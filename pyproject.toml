@@ -6,7 +6,7 @@ description = "Open Targets python framework for post-GWAS analysis"
 authors = [{ name = "Open Targets core team", email = "data@opentargets.org" }]
 license = "Apache-2.0"
 readme = "README.md"
-requires-python = ">=3.10, <3.13"
+requires-python = ">=3.11, <3.13"
 dependencies = [
   "pyspark[pandas_on_spark] (>=3.5.0, <3.6)",
   "hail (>=0.2.133, <0.3.0)",
@@ -19,7 +19,7 @@ dependencies = [
   "scikit-learn (>=1.6.1, <1.8.0)",
   "pandas[gcp,parquet] (>=2.2.3, <2.4.0)",
   "skops (>=0.13.0, <0.14.0)",
-  "shap (>=0.46, <0.50)",
+  "shap>=0.50.0",
   "matplotlib (>=3.10.0, <3.11.0)",
   "google-cloud-secret-manager (>=2.12.6, <2.26.0)",
   "google-cloud-storage (>=2.14.0, <3.4.0)",
@@ -27,10 +27,9 @@ dependencies = [
   "xgboost-cpu>=3.0.4 ; (platform_machine == 'amd64' and sys_platform != 'darwin') or (platform_machine == 'x86_64' and sys_platform != 'darwin')",
   "xgboost>=3.0.4 ; platform_machine == 'x86_64' and sys_platform == 'darwin'",
   "huggingface-hub>=0.27.1",
-  "wandb (>=0.19.4, <0.23.0)"
+  "wandb (>=0.19.4, <0.23.0)",
 ]
 classifiers = [
-  "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
 ]
