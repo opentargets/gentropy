@@ -6,6 +6,10 @@ readonly GENTROPY_REF=$(/usr/share/google/get_metadata_value attributes/GENTROPY
 readonly REPO_URI="https://github.com/opentargets/gentropy"
 readonly VENV_PATH="/opt/venv/gentropy-env"
 readonly DEFAULT_PYTHON="/opt/conda/miniconda3/bin/python"
+export PYSPARK_PYTHON="${VENV_PATH}/.venv/bin/python"
+export PATH="$VIRTUAL_ENV/.venv/bin:$PATH"
+export PYSPARK_DRIVER_PYTHON="${VENV_PATH}/.venv/bin/python"
+
 function err() {
     echo "[$(date +'%Y-%m-%dT%H:%M:%S%z')]: $*" >&2
     exit 1
