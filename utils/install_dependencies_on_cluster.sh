@@ -4,12 +4,6 @@ set -exo pipefail
 
 readonly GENTROPY_REF=$(/usr/share/google/get_metadata_value attributes/GENTROPY_REF || true)
 readonly REPO_URI="https://github.com/opentargets/gentropy"
-readonly VENV_PATH="/opt/venv/gentropy-env"
-readonly DEFAULT_PYTHON="/opt/conda/miniconda3/bin/python"
-export PYSPARK_PYTHON="${VENV_PATH}/.venv/bin/python"
-export PATH="$VIRTUAL_ENV/.venv/bin:$PATH"
-export PYSPARK_DRIVER_PYTHON="${VENV_PATH}/.venv/bin/python"
-
 function err() {
     echo "[$(date +'%Y-%m-%dT%H:%M:%S%z')]: $*" >&2
     exit 1
@@ -55,14 +49,10 @@ function main() {
     install_pip
     pip install uv
 
+    pip uninstall -y gentropy
     echo "Install package..."
-    # Create venv with uv
-    echo "Creating venv with uv"
-    (
-        cd VENV_PATH &&
-        uv venv --python "${DEFAULT_PYTHON}" &&
-        uv pip install --python "${VENV_PATH}/.venv/bin/python" "gentropy @ git+${REPO_URI}.git@${GENTROPY_REF}"
-    )
+    uv pip uninstall --system pandas numpy pyarrow scipy opencv-python
+    run_with_retry uv pip install --no-break-system-packages --system "gentropy @ git+${REPO_URI}.git@${GENTROPY_REF}"
 }
 
 main
