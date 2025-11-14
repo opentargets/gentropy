@@ -7,7 +7,6 @@ from unittest.mock import MagicMock, patch
 import pyspark.sql.types as t
 import pytest
 from pyspark.sql import DataFrame, Row
-from pyspark.testing import assertDataFrameEqual
 
 from gentropy import Session, VariantIndex
 from gentropy.dataset.variant_direction import VariantDirection
@@ -417,6 +416,4 @@ class TestFinnGenUkbMvpMetaSummaryStatistics:
                 standardError=0.023,
             ),
         ]
-        assertDataFrameEqual(
-            actual=sumstat.df.collect(), expected=expected_data, checkRowOrder=False
-        )
+        assert sumstat.df.collect() == expected_data, "data does not match expected"

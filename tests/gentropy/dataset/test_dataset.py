@@ -73,18 +73,17 @@ def test_dataset_filter(mock_study_index: StudyIndex) -> None:
     ), "Filtering failed."
 
 
-def test_dataset_drop_infinity_values() -> None:
+def test_dataset_drop_infinity_values(spark: SparkSession) -> None:
     """drop_infinity_values method shoud remove inf value from standardError field."""
-    spark = SparkSession.getActiveSession()
-    data = [np.Infinity, -np.Infinity, np.inf, -np.inf, np.Inf, -np.Inf, 5.1]
+    data = [np.inf, -np.inf, 5.1]
     rows = [(v,) for v in data]
     schema = StructType([StructField("field", DoubleType())])
     input_df = spark.createDataFrame(rows, schema=schema)
 
-    assert input_df.count() == 7
+    assert input_df.count() == 3
     # run without specifying *cols results in no filtering
     ds = MockDataset(_df=input_df, _schema=schema)
-    assert ds.drop_infinity_values().df.count() == 7
+    assert ds.drop_infinity_values().df.count() == 3
     # otherwise drop all columns
     assert ds.drop_infinity_values("field").df.count() == 1
 

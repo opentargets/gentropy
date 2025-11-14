@@ -23,5 +23,4 @@ from gentropy.dataset.summary_statistics import SummaryStatistics
 )
 def test_create_dataset(func: Any, session: Session) -> None:
     """Test any method in create_dataset returns an instance of SummaryStatistics."""
-    tested_func = func(session) if func != create_from_pandas else func()
-    assert isinstance(tested_func, SummaryStatistics)
+    assert isinstance(func(session), SummaryStatistics)
