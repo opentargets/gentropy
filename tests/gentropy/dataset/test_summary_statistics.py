@@ -106,7 +106,7 @@ def test_summary_statistics__sanity_filter_remove_inf_values(session: Session) -
             "10_73856419_C_A",
             10,
             73856419,
-            np.Infinity,
+            np.inf,
             1,
             3.1324,
             -650,

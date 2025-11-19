@@ -83,14 +83,18 @@ class Colocalisation(Dataset):
             raise ValueError(
                 f"Colocalisation method {filter_by_colocalisation_method} is not supported."
             )
-
+        # Prepare the list of colocalisation methods that contain expected metrics
+        colocalisation_methods = [
+            filter_by_colocalisation_method.lower(),  # original method name Coloc or ECaviar to ensure backward compatibility
+            "coloc_pip_ecaviar",  # combined method name, coloc_pip_ecaviar contains both CLPP and H4
+        ]
         method_colocalisation_metric = ColocalisationStep._get_colocalisation_class(
             filter_by_colocalisation_method
         ).METHOD_METRIC
 
         coloc_filtering_expr = [
             f.col("rightGeneId").isNotNull(),
-            f.lower("colocalisationMethod") == filter_by_colocalisation_method.lower(),
+            (f.lower("colocalisationMethod").isin(colocalisation_methods)),
         ]
         if filter_by_qtls:
             coloc_filtering_expr.append(f.lower("rightStudyType").isin(filter_by_qtls))

@@ -307,6 +307,7 @@ class chemblDrugEnrichment:
 
             # Calculate confidence interval for odds ratio
 
+
             if ~(np.any(np.array(contingency_table) == 0)):
                 ln_or = np.log(odds_ratio)
                 se_ln_or = np.sqrt(
