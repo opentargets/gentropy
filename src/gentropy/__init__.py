@@ -2,6 +2,15 @@
 
 from __future__ import annotations
 
+import warnings
+
+# NOTE: Suppress DeprecationWarnings from pyspark related to pandas API on Spark due to LooseVersion being deprecated in Python 3.12+
+warnings.filterwarnings(
+    "ignore",
+    category=DeprecationWarning,
+    module="pyspark.sql.pandas.utils",
+)
+
 from gentropy.common.session import Session
 from gentropy.dataset.biosample_index import BiosampleIndex
 from gentropy.dataset.colocalisation import Colocalisation

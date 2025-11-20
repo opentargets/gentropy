@@ -3,12 +3,11 @@
 from __future__ import annotations
 
 from functools import reduce
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Self
 
 import pyspark.sql.functions as f
 from pandas import DataFrame as pd_dataframe
 from pyspark.sql import Window
-from typing_extensions import Self
 
 from gentropy.common.spark import convert_from_long_to_wide
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard

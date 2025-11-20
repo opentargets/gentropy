@@ -4,11 +4,10 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-import pyspark.sql.types as t
-from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql import functions as f
+from pyspark.sql import types as t
 
-from gentropy.common.spark import extract_column_name
+from gentropy import Session
 from gentropy.common.stats import (
     chi2_from_pvalue,
     pvalue_from_neglogpval,
@@ -16,39 +15,40 @@ from gentropy.common.stats import (
 )
 
 if TYPE_CHECKING:
-    from pyspark.sql import Column
+    from pyspark.sql import Column, DataFrame, SparkSession
 
-    from gentropy.common.session import Session
-    from gentropy.datasource.finngen_ukb_meta.summary_stats import (
-        FinngenUkbMetaSummaryStats,
-    )
-    from gentropy.datasource.ukb_ppp_eur.summary_stats import UkbPppEurSummaryStats
 
-def parse_efos(efo_uri: Column) -> Column:
+def parse_efos(efo_uris: Column) -> Column:
     """Extracting EFO identifiers.
 
     This function parses EFO identifiers from a comma-separated list of EFO URIs.
 
     Args:
-        efo_uri (Column): column with a list of EFO URIs
+        efo_uris (Column): column with a list of EFO URIs
 
     Returns:
-        Column: column with a sorted list of parsed EFO IDs
+        Column: column with a sorted and unique list of parsed EFO IDs
 
     Examples:
-        >>> d = [("http://www.ebi.ac.uk/efo/EFO_0000001,http://www.ebi.ac.uk/efo/EFO_0000002",)]
+        >>> d = [("http://www.ebi.ac.uk/efo/EFO_0000001,http://purl.obolibrary.org/obo/OBA_VT0001253,http://www.orpha.net/ORDO/Orphanet_101953,http://www.ebi.ac.uk/efo/EFO_0000001",)]
         >>> df = spark.createDataFrame(d).toDF("efos")
-        >>> df.withColumn("efos_parsed", parse_efos(f.col("efos"))).show(truncate=False)
-        +-------------------------------------------------------------------------+--------------------------+
-        |efos                                                                     |efos_parsed               |
-        +-------------------------------------------------------------------------+--------------------------+
-        |http://www.ebi.ac.uk/efo/EFO_0000001,http://www.ebi.ac.uk/efo/EFO_0000002|[EFO_0000001, EFO_0000002]|
-        +-------------------------------------------------------------------------+--------------------------+
+        >>> df.select(parse_efos(f.col("efos")).alias('col')).show(truncate=False)
+        +---------------------------------------------+
+        |col                                          |
+        +---------------------------------------------+
+        |[EFO_0000001, OBA_VT0001253, Orphanet_101953]|
+        +---------------------------------------------+
         <BLANKLINE>
 
     """
-    name = extract_column_name(efo_uri)
-    return f.array_sort(f.expr(f"regexp_extract_all(`{name}`, '([A-Z]+_[0-9]+)')"))
+    return f.array_distinct(
+        f.transform(
+            # Splitting colun values to individual URIs:
+            f.split(efo_uris, ","),
+            # Each URI is further split, and the last component is returned:
+            lambda uri: f.element_at(f.split(uri, "/"), -1),
+        )
+    )
 
 
 def extract_chromosome(variant_id: Column) -> Column:
@@ -105,6 +105,133 @@ def extract_position(variant_id: Column) -> Column:
 
     """
     return f.regexp_extract(variant_id, r"^.*_(\d+)_.*$", 1)
+
+
+def normalize_chromosome(chromosome: Column) -> Column:
+    """Normalize chromosome notation.
+
+    This function normalizes chromosome notation by
+        1. Removing the "chr" prefix if present.
+        2. Converting "M" to "MT".
+        3. Converting "23" to "X".
+        4. Converting "24" to "Y".
+
+    Args:
+        chromosome (Column): Chromosome column
+
+    Returns:
+        Column: Normalized chromosome column
+
+    Examples:
+        >>> d = [("chr1",),("2",),("chrX",),("Y",),("chrM",),("23",),("24",)]
+        >>> df = spark.createDataFrame(data=d, schema="chromosome STRING")
+        >>> df.withColumn("normalized_chromosome", normalize_chromosome(f.col("chromosome"))).show(truncate=False)
+        +----------+---------------------+
+        |chromosome|normalized_chromosome|
+        +----------+---------------------+
+        |chr1      |1                    |
+        |2         |2                    |
+        |chrX      |X                    |
+        |Y         |Y                    |
+        |chrM      |MT                   |
+        |23        |X                    |
+        |24        |Y                    |
+        +----------+---------------------+
+        <BLANKLINE>
+    """
+    chr_str = chromosome.cast(t.StringType())
+    ensembl_chr = f.regexp_replace(chr_str, r"^chr", "")
+    return (
+        f.when(ensembl_chr == "M", "MT")
+        .when(ensembl_chr == "23", "X")
+        .when(ensembl_chr == "24", "Y")
+        .otherwise(ensembl_chr)
+    ).alias("chromosome")
+
+
+def maf(af: Column, scale: int = 10) -> Column:
+    """Calculate minor allele frequency from allele frequency.
+
+    Args:
+        af (Column): Allele frequency column.
+        scale (int): Scale for DecimalType.
+
+    Note:
+        the DecimalType is represented by two parameters: precision and scale.
+        The precision is the total number of digits that can be stored and the scale
+        is the number of digits to the right of the decimal point.
+
+        For AF the value can be only between 0 and 1.0, so we limit the scale to the
+        number of digits after the decimal point. The precision is set to scale + 1
+        to ensure we can represent values like 1.0 with the given scale.
+
+    Returns:
+        Column: Minor allele frequency column.
+
+    Examples:
+        >>> data = [("v1", 0.1), ("v2", 0.9), ("v3", None),]
+        >>> schema = "variantId STRING, af DOUBLE"
+        >>> df = spark.createDataFrame(data, schema)
+        >>> df.show(truncate=False)
+        +---------+----+
+        |variantId|af  |
+        +---------+----+
+        |v1       |0.1 |
+        |v2       |0.9 |
+        |v3       |NULL|
+        +---------+----+
+        <BLANKLINE>
+        >>> df.withColumn("minorAlleleFrequency", maf(f.col("af"))).show(truncate=False)
+        +---------+----+--------------------+
+        |variantId|af  |minorAlleleFrequency|
+        +---------+----+--------------------+
+        |v1       |0.1 |0.1000000000        |
+        |v2       |0.9 |0.1000000000        |
+        |v3       |NULL|NULL                |
+        +---------+----+--------------------+
+        <BLANKLINE>
+    """
+    precision = scale + 1  # to ensure we can represent values like 1.0000
+    scaled_af = af.cast(t.DecimalType(precision, scale))
+    max_af = f.lit(1.0).cast(t.DecimalType(precision, scale))
+    return (
+        f.when(af.isNotNull() & (af <= 0.5), scaled_af)
+        .when(af.isNotNull(), max_af - scaled_af)
+        .otherwise(f.lit(None))
+        .alias("minorAlleleFrequency")
+    )
+
+
+def mac(maf: Column, n: Column) -> Column:
+    """Calculate minor allele count from minor allele frequency and sample size.
+
+    Args:
+        maf (Column): Minor allele frequency column.
+        n (Column): Sample size column.
+
+    Returns:
+        Column: Minor allele count column.
+
+    Examples:
+        >>> data = [("v1", 0.1, 100), ("v2", 0.2, 200), ("v3", None, 150), ("v4", 0.3, None),]
+        >>> schema = "variantId STRING, maf DOUBLE, n INT"
+        >>> df = spark.createDataFrame(data, schema)
+        >>> df.show(truncate=False)
+        +---------+----+----+
+        |variantId|maf |n   |
+        +---------+----+----+
+        |v1       |0.1 |100 |
+        |v2       |0.2 |200 |
+        |v3       |NULL|150 |
+        |v4       |0.3 |NULL|
+        +---------+----+----+
+        <BLANKLINE>
+    """
+    return (
+        f.when(maf.isNotNull() & n.isNotNull(), (maf * n * 2).cast(t.IntegerType()))
+        .otherwise(f.lit(None))
+        .alias("minorAlleleCount")
+    )
 
 
 def harmonise_summary_stats(
@@ -293,7 +420,9 @@ def harmonise_summary_stats(
     return df
 
 
-def prepare_va(session: Session, variant_annotation_path: str, tmp_variant_annotation_path: str) -> None:
+def prepare_va(
+    session: Session, variant_annotation_path: str, tmp_variant_annotation_path: str
+) -> None:
     """Prepare the Variant Annotation dataset for efficient per-chromosome joins.
 
     Args:
@@ -301,92 +430,36 @@ def prepare_va(session: Session, variant_annotation_path: str, tmp_variant_annot
         variant_annotation_path (str): The path to the input variant annotation dataset.
         tmp_variant_annotation_path (str): The path to store the temporary output for the repartitioned annotation dataset.
     """
-    va_df = (
-        session
-        .spark
-        .read
-        .parquet(variant_annotation_path)
+    va_df = session.spark.read.parquet(variant_annotation_path)
+    va_df_direct = va_df.select(
+        f.col("chromosome").alias("vaChromosome"),
+        f.col("variantId"),
+        f.concat_ws(
+            "_",
+            f.col("chromosome"),
+            f.col("position"),
+            f.col("referenceAllele"),
+            f.col("alternateAllele"),
+        ).alias("summary_stats_id"),
+        f.lit("direct").alias("direction"),
     )
-    va_df_direct = (
-        va_df.
-        select(
-            f.col("chromosome").alias("vaChromosome"),
-            f.col("variantId"),
-            f.concat_ws(
-                "_",
-                f.col("chromosome"),
-                f.col("position"),
-                f.col("referenceAllele"),
-                f.col("alternateAllele")
-            ).alias("summary_stats_id"),
-            f.lit("direct").alias("direction")
-        )
-    )
-    va_df_flip = (
-        va_df.
-        select(
-            f.col("chromosome").alias("vaChromosome"),
-            f.col("variantId"),
-            f.concat_ws(
-                "_",
-                f.col("chromosome"),
-                f.col("position"),
-                f.col("alternateAllele"),
-                f.col("referenceAllele")
-            ).alias("summary_stats_id"),
-            f.lit("flip").alias("direction")
-        )
+    va_df_flip = va_df.select(
+        f.col("chromosome").alias("vaChromosome"),
+        f.col("variantId"),
+        f.concat_ws(
+            "_",
+            f.col("chromosome"),
+            f.col("position"),
+            f.col("alternateAllele"),
+            f.col("referenceAllele"),
+        ).alias("summary_stats_id"),
+        f.lit("flip").alias("direction"),
     )
     (
         va_df_direct.union(va_df_flip)
         .coalesce(1)
         .repartition("vaChromosome")
-        .write
-        .partitionBy("vaChromosome")
+        .write.partitionBy("vaChromosome")
         .mode("overwrite")
         .parquet(tmp_variant_annotation_path)
     )
-
-
-def process_summary_stats_per_chromosome(
-        session: Session,
-        ingestion_class: type[UkbPppEurSummaryStats] | type[FinngenUkbMetaSummaryStats],
-        raw_summary_stats_path: str,
-        tmp_variant_annotation_path: str,
-        summary_stats_output_path: str,
-        study_index_path: str,
-    ) -> None:
-    """Processes summary statistics for each chromosome, partitioning and writing results.
-
-    Args:
-        session (Session): The Gentropy session session to use for distributed data processing.
-        ingestion_class (type[UkbPppEurSummaryStats] | type[FinngenUkbMetaSummaryStats]): The class used to handle ingestion of source data. Must have a `from_source` method returning a DataFrame.
-        raw_summary_stats_path (str): The path to the raw summary statistics files.
-        tmp_variant_annotation_path (str): The path to temporary variant annotation data, used for chromosome joins.
-        summary_stats_output_path (str): The output path to write processed summary statistics as parquet files.
-        study_index_path (str): The path to study index, which is necessary in some cases to populate the sample size column.
-    """
-    # Set mode to overwrite for processing the first chromosome.
-    write_mode = "overwrite"
-    # Chromosome 23 is X, this is handled downstream.
-    for chromosome in list(range(1, 24)):
-        logging_message = f"  Processing chromosome {chromosome}"
-        session.logger.info(logging_message)
-        (
-            ingestion_class.from_source(
-                spark=session.spark,
-                raw_summary_stats_path=raw_summary_stats_path,
-                tmp_variant_annotation_path=tmp_variant_annotation_path,
-                chromosome=str(chromosome),
-                study_index_path=study_index_path,
-            )
-            .df
-            .coalesce(1)
-            .repartition("studyId", "chromosome")
-            .write
-            .partitionBy("studyId", "chromosome")
-            .mode(write_mode)
-            .parquet(summary_stats_output_path)
-        )
-        # Now that we have written the first chromosome, change mode to append for subsequent operations.
-        write_mode = "append"

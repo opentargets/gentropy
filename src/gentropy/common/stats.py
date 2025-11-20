@@ -283,12 +283,15 @@ def normalise_gwas_statistics(
 
     Note:
         Effect (Beta) harmonisation:
+
         - If beta is not null, it is kept as is.
         - If beta is null, but odds ratio is not null, odds ratio is converted to beta
 
     Note:
         Effect Standard Error (std(beta)) harmonisation
+
         **Prefer calculation from p-value and beta, if available, as the confidence interval is usually rounded and may lead to loss of precision**:
+
         - If standard error is not null, it is kept as is.
         - If standard error is null, but beta, pval-mantissa, pval-exponent are not null, convert pval components and beta to standard error
         - If standard error is null, but ci-upper and ci-lower are not null and they come from odds ratio, convert them to standard error.
@@ -400,7 +403,7 @@ def pvalue_from_neglogpval(p_value: Column) -> PValComponents:
 
     Examples:
         >>> (
-        ... spark.createDataFrame([(4.56, 'a'),(2109.23, 'b')], ['negLogPv', 'label'])
+        ... spark.createDataFrame([(4.56, 'a'),(2109.23, 'b'),(None,'c')], ['negLogPv', 'label'])
         ... .select('negLogPv',*pvalue_from_neglogpval(f.col('negLogPv')))
         ... .show()
         ... )
@@ -409,6 +412,7 @@ def pvalue_from_neglogpval(p_value: Column) -> PValComponents:
         +--------+--------------+--------------+
         |    4.56|     2.7542286|            -5|
         | 2109.23|     5.8884363|         -2110|
+        |    NULL|          NULL|          NULL|
         +--------+--------------+--------------+
         <BLANKLINE>
     """
@@ -592,17 +596,17 @@ def zscore_from_pvalue(pval_col: Column, beta: Column) -> Column:
         +-------+----+
         <BLANKLINE>
 
-        >>> df.withColumn("zscore", zscore_from_pvalue(f.col("pval"), f.col("beta"))).show()
-        +-------+----+--------------------+
-        |   pval|beta|              zscore|
-        +-------+----+--------------------+
-        |    1.0|-1.0|                -0.0|
-        |    0.9|-1.0|-0.12566134685507405|
-        |   0.05| 1.0|   1.959963984540055|
-        | 1e-300| 1.0|  37.065787880772135|
-        |1e-1000|NULL|   67.75421020128564|
-        |   NULL| 1.0|                NULL|
-        +-------+----+--------------------+
+        >>> df.withColumn("zscore", f.round(zscore_from_pvalue(f.col("pval"), f.col("beta")), 2)).show()
+        +-------+----+------+
+        |   pval|beta|zscore|
+        +-------+----+------+
+        |    1.0|-1.0|   0.0|
+        |    0.9|-1.0| -0.13|
+        |   0.05| 1.0|  1.96|
+        | 1e-300| 1.0| 37.07|
+        |1e-1000|NULL| 67.75|
+        |   NULL| 1.0|  NULL|
+        +-------+----+------+
         <BLANKLINE>
 
     """

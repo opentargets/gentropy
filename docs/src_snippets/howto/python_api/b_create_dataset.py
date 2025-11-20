@@ -1,4 +1,5 @@
 """Docs to create a dataset."""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -38,21 +39,23 @@ def create_from_source(session: Session) -> SummaryStatistics:
     return summary_stats
 
 
-def create_from_pandas() -> SummaryStatistics:
+def create_from_pandas(session: Session) -> SummaryStatistics:
     """Create a dataset from a path with Pandas files."""
     # --8<-- [start:create_from_pandas_import]
-    import pyspark.pandas as ps
+    import pandas as pd
 
     from gentropy import SummaryStatistics
 
     # --8<-- [end:create_from_pandas_import]
 
     path = "tests/gentropy/data_samples/sumstats_sample/GCST005523_chr18.parquet"
-    custom_summary_stats_pandas_df = ps.read_parquet(path)
+    custom_summary_stats_pandas_df = pd.read_parquet(path)
     # --8<-- [start:create_from_pandas]
 
     # Create a SummaryStatistics object specifying the data and schema
-    custom_summary_stats_df = custom_summary_stats_pandas_df.to_spark()
+    custom_summary_stats_df = session.spark.createDataFrame(
+        custom_summary_stats_pandas_df, schema=SummaryStatistics.get_schema()
+    )
     custom_summary_stats = SummaryStatistics(_df=custom_summary_stats_df)
     # --8<-- [end:create_from_pandas]
     return custom_summary_stats

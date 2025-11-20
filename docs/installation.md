@@ -9,7 +9,7 @@ hide:
 
 To install gentropy one needs to have pre installed:
 
-- Python >=3.10, <3.13
+- Python >=3.11, <3.14
 - PySpark >=3.5.0, <3.6
 - Java 11, 17 (for hail support Java 11 is recommended, see [troubleshooting](development/troubleshooting.md) for more details)
 
