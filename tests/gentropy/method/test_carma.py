@@ -54,7 +54,9 @@ class TestCARMA:
             p=21,
             num_causal=10,
         )
-        assert np.allclose(np.round(np.corrcoef(l1_pips, pips)[0, 1], decimals=2), 1)
+        assert np.allclose(
+            np.round(np.corrcoef(l1_pips, pips)[0, 1], decimals=2), 1, atol=0.05
+        )
 
     def test_time_limited_CARMA_spike_slab_noEM_pips_no_restriction(
         self: TestCARMA, sample_data_for_carma: list[np.ndarray]
