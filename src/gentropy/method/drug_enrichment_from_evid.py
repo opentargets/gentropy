@@ -16,7 +16,7 @@ from gentropy.dataset.study_locus import StudyLocus
 class chemblDrugEnrichment:
     """Chembl drug target enrichment.
 
-    Note: uses the logic from Nealson's paper.
+    Note: uses the logic from Nealson's paper (doi.org/10.1038/s41586-024-07316-0).
     """
 
     @staticmethod
