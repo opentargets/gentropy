@@ -8,6 +8,18 @@
 
 
 
+## v3.0.0 (2025-11-20)
+## v2.4.2-rc.10 (2025-11-10)
+## v2.4.2-rc.9 (2025-11-06)
+## v2.4.2-rc.4 (2025-10-31)
+## v2.4.2-rc.3 (2025-10-31)
+## v2.4.2-rc.2 (2025-10-31)
+### 📖 Documentation
+
+
+-  add coloc pip to docs (#1146) [\@Szymon Szyszkowski](mailto:69353402+project-defiant@users.noreply.github.com)
+
+## v2.4.2-rc.1 (2025-09-22)
 ## v2.4.1 (2025-09-05)
 ### 📖 Documentation
 
