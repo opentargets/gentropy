@@ -1,0 +1,5374 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+        <link rel="prev" href="../_assets/">
+      
+      
+        <link rel="next" href="../../common/_common/">
+      
+      
+      <link rel="icon" href="../../../assets/imgs/favicon.png">
+      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.5.18">
+    
+    
+      
+        <title>Variant Consequences - Open Targets Gentropy</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.66ac8b77.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../../css/timeago.css">
+    
+      <link rel="stylesheet" href="../../../assets/_mkdocstrings.css">
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="blue-grey" data-md-color-accent="light-blue">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#gentropy.assets.variant_consequences" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="Open Targets Gentropy" class="md-header__button md-logo" aria-label="Open Targets Gentropy" data-md-component="logo">
+      
+  <img src="../../../assets/imgs/otlogo.png" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Open Targets Gentropy
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Variant Consequences
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="blue-grey" data-md-color-accent="light-blue"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 6H7c-3.31 0-6 2.69-6 6s2.69 6 6 6h10c3.31 0 6-2.69 6-6s-2.69-6-6-6zm0 10H7c-2.21 0-4-1.79-4-4s1.79-4 4-4h10c2.21 0 4 1.79 4 4s-1.79 4-4 4zM7 9c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="blue-grey" data-md-color-accent="light-blue"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 7H7a5 5 0 0 0-5 5 5 5 0 0 0 5 5h10a5 5 0 0 0 5-5 5 5 0 0 0-5-5m0 8a3 3 0 0 1-3-3 3 3 0 0 1 3-3 3 3 0 0 1 3 3 3 3 0 0 1-3 3Z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var media,input,key,value,palette=__md_get("__palette");if(palette&&palette.color){"(prefers-color-scheme)"===palette.color.media&&(media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']"),palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent"));for([key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/opentargets/gentropy" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.5.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    opentargets/gentropy
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../.." class="md-tabs__link">
+        
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../../installation/" class="md-tabs__link">
+        
+  
+    
+  
+  Installation
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../../howto/_howto/" class="md-tabs__link">
+        
+  
+    
+  
+  How-to
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../../development/_development/" class="md-tabs__link">
+        
+  
+    
+  
+  Development
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+    
+  
+  
+    <li class="md-tabs__item md-tabs__item--active">
+      <a href="../../_python_api/" class="md-tabs__link">
+        
+  
+    
+  
+  Python API
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="Open Targets Gentropy" class="md-nav__button md-logo" aria-label="Open Targets Gentropy" data-md-component="logo">
+      
+  <img src="../../../assets/imgs/otlogo.png" alt="logo">
+
+    </a>
+    Open Targets Gentropy
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/opentargets/gentropy" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.5.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    opentargets/gentropy
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Home
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../installation/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Installation
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../howto/_howto/" class="md-nav__link ">
+              
+  
+  <span class="md-ellipsis">
+    How-to
+  </span>
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_3" id="__nav_3_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            How-to
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_1" >
+        
+          
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../howto/command_line/_command_line/" class="md-nav__link ">
+              
+  
+  <span class="md-ellipsis">
+    Command line
+  </span>
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_3_1" id="__nav_3_1_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_1">
+            <span class="md-nav__icon md-icon"></span>
+            Command line
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../howto/command_line/run_step_in_cli/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Run step in cli
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../howto/command_line/run_step_using_config/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Run step using config
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_2" >
+        
+          
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../howto/tutorials/_tutorials/" class="md-nav__link ">
+              
+  
+  <span class="md-ellipsis">
+    Tutorials
+  </span>
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_3_2" id="__nav_3_2_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_2">
+            <span class="md-nav__icon md-icon"></span>
+            Tutorials
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../howto/tutorials/a_creating_spark_session/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Creating a Spark Session
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../howto/tutorials/b_create_dataset/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Create a dataset
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../howto/tutorials/c_applying_methods/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Applying methods
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../howto/tutorials/d_inspect_dataset/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Inspect a dataset
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../development/_development/" class="md-nav__link ">
+              
+  
+  <span class="md-ellipsis">
+    Development
+  </span>
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_4" id="__nav_4_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Development
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../development/contributing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Contributing guidelines
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../development/troubleshooting/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Troubleshooting
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+      
+        
+        
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
+        
+          
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../_python_api/" class="md-nav__link ">
+              
+  
+  <span class="md-ellipsis">
+    Python API
+  </span>
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_5" id="__nav_5_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            Python API
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_1" checked>
+        
+          
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../_assets/" class="md-nav__link ">
+              
+  
+  <span class="md-ellipsis">
+    Assets
+  </span>
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_5_1" id="__nav_5_1_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_1_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_5_1">
+            <span class="md-nav__icon md-icon"></span>
+            Assets
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Variant Consequences
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  <span class="md-ellipsis">
+    Variant Consequences
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#gentropy.assets.variant_consequences" class="md-nav__link">
+    <span class="md-ellipsis">
+      variant_consequences
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="variant_consequences">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#gentropy.assets.variant_consequences.Consequence" class="md-nav__link">
+    <span class="md-ellipsis">
+      Consequence
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Consequence">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#gentropy.assets.variant_consequences.Consequence.score" class="md-nav__link">
+    <span class="md-ellipsis">
+      score
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gentropy.assets.variant_consequences.VariantConsequence" class="md-nav__link">
+    <span class="md-ellipsis">
+      VariantConsequence
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="VariantConsequence">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#gentropy.assets.variant_consequences.VariantConsequence.map_score" class="md-nav__link">
+    <span class="md-ellipsis">
+      map_score
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gentropy.assets.variant_consequences.VariantConsequence.map_sequence_ontology" class="md-nav__link">
+    <span class="md-ellipsis">
+      map_sequence_ontology
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_2" >
+        
+          
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../common/_common/" class="md-nav__link ">
+              
+  
+  <span class="md-ellipsis">
+    Common
+  </span>
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_5_2" id="__nav_5_2_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_2">
+            <span class="md-nav__icon md-icon"></span>
+            Common
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../common/genomic_region/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    genomic_region
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../common/processing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    processing
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../common/session/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    session
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../common/spark/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    spark
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../common/stats/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    stats
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../common/types/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    types
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../common/udf/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    udf
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_3" >
+        
+          
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../datasets/_datasets/" class="md-nav__link ">
+              
+  
+  <span class="md-ellipsis">
+    Datasets
+  </span>
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_5_3" id="__nav_5_3_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_3">
+            <span class="md-nav__icon md-icon"></span>
+            Datasets
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../datasets/biosample_index/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Biosample index
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../datasets/colocalisation/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Colocalisation
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../datasets/intervals/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Intervals
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../datasets/l2g_feature_matrix/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    L2G Feature Matrix
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../datasets/l2g_gold_standard/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    L2G Gold Standard
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../datasets/l2g_prediction/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    L2G Prediction
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../datasets/ld_index/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    LD Index
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../datasets/study_index/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Study Index
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../datasets/study_locus/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Study Locus
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../datasets/study_locus_overlap/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Study Locus Overlap
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../datasets/summary_statistics/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Summary Statistics
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../datasets/summary_statistics_qc/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Summary Statistics Quality Control
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../datasets/target_index/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Target Index
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../datasets/variant_direction/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Variant Direction
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../datasets/variant_index/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Variant index
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_3_16" >
+        
+          
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../datasets/l2g_features/_l2g_feature/" class="md-nav__link ">
+              
+  
+  <span class="md-ellipsis">
+    L2g features
+  </span>
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_5_3_16" id="__nav_5_3_16_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_5_3_16_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_3_16">
+            <span class="md-nav__icon md-icon"></span>
+            L2g features
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../datasets/l2g_features/colocalisation/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    From colocalisation
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../datasets/l2g_features/distance/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    From distance
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../datasets/l2g_features/other/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Other features
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../datasets/l2g_features/vep/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    From VEP
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_4" >
+        
+          
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../datasources/_datasources/" class="md-nav__link ">
+              
+  
+  <span class="md-ellipsis">
+    Datasources
+  </span>
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_5_4" id="__nav_5_4_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_4">
+            <span class="md-nav__icon md-icon"></span>
+            Datasources
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../datasources/biosample_ontologies/_biosample_ontologies/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Biosample Ontologies
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_4_2" >
+        
+          
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../datasources/ensembl/_ensembl/" class="md-nav__link ">
+              
+  
+  <span class="md-ellipsis">
+    Ensembl
+  </span>
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_5_4_2" id="__nav_5_4_2_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_5_4_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_4_2">
+            <span class="md-nav__icon md-icon"></span>
+            Ensembl
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../datasources/ensembl/variant_effect_predictor_parser/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Variant effector parser
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_4_3" >
+        
+          
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../datasources/eqtl_catalogue/_eqtl_catalogue/" class="md-nav__link ">
+              
+  
+  <span class="md-ellipsis">
+    Eqtl catalogue
+  </span>
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_5_4_3" id="__nav_5_4_3_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_5_4_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_4_3">
+            <span class="md-nav__icon md-icon"></span>
+            Eqtl catalogue
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../datasources/eqtl_catalogue/finemapping/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Fine mapping results
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../datasources/eqtl_catalogue/study_index/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Study Index
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../datasources/eqtl_catalogue/summary_stats/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Summary Stats
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_4_4" >
+        
+          
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../datasources/finngen/_finngen/" class="md-nav__link ">
+              
+  
+  <span class="md-ellipsis">
+    Finngen
+  </span>
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_5_4_4" id="__nav_5_4_4_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_5_4_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_4_4">
+            <span class="md-nav__icon md-icon"></span>
+            Finngen
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../datasources/finngen/efo_mapping/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    FinnGen EFO Phenotype Mapping
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../datasources/finngen/finemapping/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Finemapping
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../datasources/finngen/study_index/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Study Index
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../datasources/finngen/summary_stats/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Summary Statistics
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_4_5" >
+        
+          
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../datasources/finngen_meta/_finngen_meta/" class="md-nav__link ">
+              
+  
+  <span class="md-ellipsis">
+    Finngen meta
+  </span>
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_5_4_5" id="__nav_5_4_5_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_5_4_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_4_5">
+            <span class="md-nav__icon md-icon"></span>
+            Finngen meta
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../datasources/finngen_meta/finngen_manifest/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    FinnGen Meta Analysis Manifest
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../datasources/finngen_meta/study_index/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    FinnGen Meta Analysis Study Index
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../datasources/finngen_meta/summary_stats/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    FinnGen Meta Analysis Summary Statistics
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_4_6" >
+        
+          
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../datasources/gnomad/_gnomad/" class="md-nav__link ">
+              
+  
+  <span class="md-ellipsis">
+    Gnomad
+  </span>
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_5_4_6" id="__nav_5_4_6_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_5_4_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_4_6">
+            <span class="md-nav__icon md-icon"></span>
+            Gnomad
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../datasources/gnomad/gnomad_ld/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    LD Matrix
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../datasources/gnomad/gnomad_variants/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Variants
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_4_7" >
+        
+          
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../datasources/gwas_catalog/_gwas_catalog/" class="md-nav__link ">
+              
+  
+  <span class="md-ellipsis">
+    Gwas catalog
+  </span>
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_5_4_7" id="__nav_5_4_7_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_5_4_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_4_7">
+            <span class="md-nav__icon md-icon"></span>
+            Gwas catalog
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../datasources/gwas_catalog/associations/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Associations
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../datasources/gwas_catalog/study_index/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Study Index
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../datasources/gwas_catalog/study_splitter/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Study Splitter
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../datasources/gwas_catalog/summary_statistics/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Summary statistics
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_4_8" >
+        
+          
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../datasources/intervals/_intervals/" class="md-nav__link ">
+              
+  
+  <span class="md-ellipsis">
+    Intervals
+  </span>
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_5_4_8" id="__nav_5_4_8_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_5_4_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_4_8">
+            <span class="md-nav__icon md-icon"></span>
+            Intervals
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../datasources/intervals/e2g/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ENCODE-rE2G
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../datasources/intervals/epiraction/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    EPIraction
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_4_9" >
+        
+          
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../datasources/open_targets/_open_targets/" class="md-nav__link ">
+              
+  
+  <span class="md-ellipsis">
+    Open targets
+  </span>
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_5_4_9" id="__nav_5_4_9_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_5_4_9_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_4_9">
+            <span class="md-nav__icon md-icon"></span>
+            Open targets
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../datasources/open_targets/l2g_gold_standard/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    L2G Gold Standard
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_4_10" >
+        
+          
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../datasources/ukb_ppp_eur/_ukb_ppp_eur/" class="md-nav__link ">
+              
+  
+  <span class="md-ellipsis">
+    Ukb ppp eur
+  </span>
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_5_4_10" id="__nav_5_4_10_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_5_4_10_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_4_10">
+            <span class="md-nav__icon md-icon"></span>
+            Ukb ppp eur
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../datasources/ukb_ppp_eur/study_index/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Study Index
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../datasources/ukb_ppp_eur/summary_stats/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Summary Statistics
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_5" >
+        
+          
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../methods/_methods/" class="md-nav__link ">
+              
+  
+  <span class="md-ellipsis">
+    Methods
+  </span>
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_5_5" id="__nav_5_5_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_5">
+            <span class="md-nav__icon md-icon"></span>
+            Methods
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../methods/carma/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    CARMA
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../methods/clumping/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Clumping
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../methods/coloc/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Coloc
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../methods/coloc_pip/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Coloc using Posterior Inclusion Probabilities (PIP)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../methods/ecaviar/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    eCAVIAR
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../methods/ld_annotator/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    LDAnnotator
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../methods/pics/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    PICS
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../methods/sumstat_imputation/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Summary Statistics Imputation
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../methods/sumstat_quality_controls/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    QC of GWAS Summary Statistics
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../methods/susie_inf/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    SuSiE-inf
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_5_11" >
+        
+          
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../methods/l2g/_l2g/" class="md-nav__link ">
+              
+  
+  <span class="md-ellipsis">
+    L2g
+  </span>
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_5_5_11" id="__nav_5_5_11_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_5_5_11_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_5_11">
+            <span class="md-nav__icon md-icon"></span>
+            L2g
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../methods/l2g/feature_factory/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    L2G Feature Factory
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../methods/l2g/model/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    L2G Model
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../methods/l2g/trainer/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    L2G Trainer
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_6" >
+        
+          
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../steps/_steps/" class="md-nav__link ">
+              
+  
+  <span class="md-ellipsis">
+    Steps
+  </span>
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_5_6" id="__nav_5_6_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_6">
+            <span class="md-nav__icon md-icon"></span>
+            Steps
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../steps/biosample_index_step/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    biosample_index
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../steps/colocalisation/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    colocalisation
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../steps/credible_set_qc_step/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    credible_set_qc
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../steps/eqtl_catalogue/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    eQTL Catalogue
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../steps/finngen_studies/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    finngen_studies
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../steps/finngen_sumstat_preprocess/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    finngen_sumstat_preprocess
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../steps/finngen_ukbb_mvp_meta_step/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    FinnGen UKBB MVP Meta Analysis Step
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../steps/gwas_catalog_curation/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    gwas_catalog_study_curation
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../steps/gwas_catalog_study_index/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    gwas_catalog_study_inclusion
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../steps/gwas_catalog_sumstat_preprocess/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    gwas_catalog_sumstat_preprocess
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../steps/gwas_catalog_top_hits/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    GWAS Catalog Top Hits Ingestion Step
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../steps/l2g/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Locus to Gene (L2G)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../steps/ld_clump/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ld_based_clumping
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../steps/ld_index/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    GnomAD Linkage data ingestion
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../steps/locus_breaker_clumping/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    locus_breaker_clumping
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../steps/pics/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    pics
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../steps/study_locus_validation/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Study-Locus Validation
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../steps/study_validation/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Study Validation
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../steps/summary_statistics_qc/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    summary_statistics_qc
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../steps/ukb_ppp_eur_sumstat_preprocess/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ukb_ppp_eur_sumstat_preprocess
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../steps/variant_annotation_step/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    GnomAD variant data ingestion
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../steps/variant_index_step/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    variant_index
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../steps/window_based_clumping/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    window_based_clumping
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#gentropy.assets.variant_consequences" class="md-nav__link">
+    <span class="md-ellipsis">
+      variant_consequences
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="variant_consequences">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#gentropy.assets.variant_consequences.Consequence" class="md-nav__link">
+    <span class="md-ellipsis">
+      Consequence
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Consequence">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#gentropy.assets.variant_consequences.Consequence.score" class="md-nav__link">
+    <span class="md-ellipsis">
+      score
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gentropy.assets.variant_consequences.VariantConsequence" class="md-nav__link">
+    <span class="md-ellipsis">
+      VariantConsequence
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="VariantConsequence">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#gentropy.assets.variant_consequences.VariantConsequence.map_score" class="md-nav__link">
+    <span class="md-ellipsis">
+      map_score
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gentropy.assets.variant_consequences.VariantConsequence.map_sequence_ontology" class="md-nav__link">
+    <span class="md-ellipsis">
+      map_sequence_ontology
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  
+  
+
+
+  <h1>Variant Consequences</h1>
+
+<div class="doc doc-object doc-module">
+
+
+
+<h3 id="gentropy.assets.variant_consequences" class="doc doc-heading">
+            <code>gentropy.assets.variant_consequences</code>
+
+
+<a href="#gentropy.assets.variant_consequences" class="headerlink" title="Permanent link">&para;</a></h3>
+
+    <div class="doc doc-contents first">
+
+        <p>Common module representing Ensembl Variation Variant Consequences.</p>
+<p>This module contains the <code>Consequence</code> dataclass and the <code>VariantConsequence</code> enum.
+The <code>VariantConsequence</code> enum contains all <code>Consequence</code> instances defined by the Ensembl Variation API (used by Variant Effect Predictor - VEP).
+The full definition of the consequence was derived from the Ensembl Variation API.</p>
+
+
+
+
+
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<h4 id="gentropy.assets.variant_consequences.Consequence" class="doc doc-heading">
+            <code>Consequence</code>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-dataclass"><code>dataclass</code></small>
+  </span>
+
+<a href="#gentropy.assets.variant_consequences.Consequence" class="headerlink" title="Permanent link">&para;</a></h4>
+
+
+    <div class="doc doc-contents ">
+
+
+        <p>Base class for the variant consequence term.</p>
+
+
+<details class="note" open>
+  <summary>Note</summary>
+  <p>This class is used as a base class for the <code>VariantConsequence</code> enum, which
+contains all the valid consequence terms defined by the Ensembl Variation API.</p>
+</details>
+
+<details class="warning" open>
+  <summary>Warning</summary>
+  <p><strong>Building new instances of this class is not recommended</strong>, as it may lead to inconsistencies
+in the way the <code>Consequence.score</code> is calculated.
+Rather then creating new instances of this class it is recommended to subclass it
+and override the <code>score</code> property with custom logic.</p>
+</details>
+
+<p><span class="doc-section-title">Examples:</span></p>
+    <div class="language-pycon highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">c</span> <span class="o">=</span> <span class="n">VariantConsequence</span><span class="o">.</span><span class="n">MISSENSE_VARIANT</span><span class="o">.</span><span class="n">value</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">c</span><span class="o">.</span><span class="n">id</span>
+<span class="go">&#39;SO_0001583&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">c</span><span class="o">.</span><span class="n">label</span>
+<span class="go">&#39;missense_variant&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">c</span><span class="o">.</span><span class="n">impact</span>
+<span class="go">&#39;MODERATE&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">c</span><span class="o">.</span><span class="n">score</span>
+<span class="go">0.68</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">c</span><span class="o">.</span><span class="n">rank</span>
+<span class="go">13</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">str</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
+<span class="go">&#39;Consequence(id=SO_0001583, label=missense_variant, impact=MODERATE, rank=13)&#39;</span>
+</code></pre></div>
+
+
+
+
+
+
+
+              <details class="quote">
+                <summary>Source code in <code>src/gentropy/assets/variant_consequences.py</code></summary>
+                <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">14</span>
+<span class="normal">15</span>
+<span class="normal">16</span>
+<span class="normal">17</span>
+<span class="normal">18</span>
+<span class="normal">19</span>
+<span class="normal">20</span>
+<span class="normal">21</span>
+<span class="normal">22</span>
+<span class="normal">23</span>
+<span class="normal">24</span>
+<span class="normal">25</span>
+<span class="normal">26</span>
+<span class="normal">27</span>
+<span class="normal">28</span>
+<span class="normal">29</span>
+<span class="normal">30</span>
+<span class="normal">31</span>
+<span class="normal">32</span>
+<span class="normal">33</span>
+<span class="normal">34</span>
+<span class="normal">35</span>
+<span class="normal">36</span>
+<span class="normal">37</span>
+<span class="normal">38</span>
+<span class="normal">39</span>
+<span class="normal">40</span>
+<span class="normal">41</span>
+<span class="normal">42</span>
+<span class="normal">43</span>
+<span class="normal">44</span>
+<span class="normal">45</span>
+<span class="normal">46</span>
+<span class="normal">47</span>
+<span class="normal">48</span>
+<span class="normal">49</span>
+<span class="normal">50</span>
+<span class="normal">51</span>
+<span class="normal">52</span>
+<span class="normal">53</span>
+<span class="normal">54</span>
+<span class="normal">55</span>
+<span class="normal">56</span>
+<span class="normal">57</span>
+<span class="normal">58</span>
+<span class="normal">59</span>
+<span class="normal">60</span>
+<span class="normal">61</span>
+<span class="normal">62</span>
+<span class="normal">63</span>
+<span class="normal">64</span>
+<span class="normal">65</span>
+<span class="normal">66</span>
+<span class="normal">67</span>
+<span class="normal">68</span>
+<span class="normal">69</span>
+<span class="normal">70</span>
+<span class="normal">71</span>
+<span class="normal">72</span>
+<span class="normal">73</span>
+<span class="normal">74</span>
+<span class="normal">75</span>
+<span class="normal">76</span>
+<span class="normal">77</span>
+<span class="normal">78</span>
+<span class="normal">79</span>
+<span class="normal">80</span>
+<span class="normal">81</span>
+<span class="normal">82</span>
+<span class="normal">83</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Consequence</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Base class for the variant consequence term.</span>
+
+<span class="sd">    Note:</span>
+<span class="sd">        This class is used as a base class for the `VariantConsequence` enum, which</span>
+<span class="sd">        contains all the valid consequence terms defined by the Ensembl Variation API.</span>
+
+<span class="sd">    Warning:</span>
+<span class="sd">        **Building new instances of this class is not recommended**, as it may lead to inconsistencies</span>
+<span class="sd">        in the way the `Consequence.score` is calculated.</span>
+<span class="sd">        Rather then creating new instances of this class it is recommended to subclass it</span>
+<span class="sd">        and override the `score` property with custom logic.</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; c = VariantConsequence.MISSENSE_VARIANT.value</span>
+<span class="sd">        &gt;&gt;&gt; c.id</span>
+<span class="sd">        &#39;SO_0001583&#39;</span>
+<span class="sd">        &gt;&gt;&gt; c.label</span>
+<span class="sd">        &#39;missense_variant&#39;</span>
+<span class="sd">        &gt;&gt;&gt; c.impact</span>
+<span class="sd">        &#39;MODERATE&#39;</span>
+<span class="sd">        &gt;&gt;&gt; c.score</span>
+<span class="sd">        0.68</span>
+<span class="sd">        &gt;&gt;&gt; c.rank</span>
+<span class="sd">        13</span>
+<span class="sd">        &gt;&gt;&gt; str(c)</span>
+<span class="sd">        &#39;Consequence(id=SO_0001583, label=missense_variant, impact=MODERATE, rank=13)&#39;</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="nb">id</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">label</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">impact</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">rank</span><span class="p">:</span> <span class="nb">int</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">score</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Scores the impact of a variant consequence.</span>
+
+<span class="sd">        Note:</span>
+<span class="sd">            The consequence scores are derived from the rank introduced by the `ensembl-variation` ranking of sequence ontology consequence terms.</span>
+<span class="sd">            The ranking is derived from [Constants.pm](https://github.com/Ensembl/ensembl-variation/blob/ac9116d964b33253cb34f727cad8c1c022d28672/modules/Bio/EnsEMBL/Variation/Utils/Constants.pm#L375).</span>
+<span class="sd">            The scoring that follows the inverse of the ranking is based on the formula.</span>
+<span class="sd">            ```math</span>
+<span class="sd">            score=1 - \frac{rank}{max(rank)}</span>
+<span class="sd">            ```</span>
+<span class="sd">            where $max(rank)$ is the maximum rank of the consequences (41 in this case).</span>
+<span class="sd">            The score is then rounded to 2 decimal places.</span>
+
+<span class="sd">        * The score derived this way follows the VEP consequence ranking, which means that the consequence score is in sync to the actual mostSevereConsequence term</span>
+<span class="sd">        * The score is **different for each consequence term**</span>
+<span class="sd">        * The score follow the severity measure (0.98 - highest severity, 0 - lowest severity)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">round</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rank</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">VariantConsequence</span><span class="p">)),</span> <span class="mi">2</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;String representation of the consequence.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            str: String representation of the consequence.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;Consequence(id=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="si">}</span><span class="s2">, label=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">label</span><span class="si">}</span><span class="s2">, impact=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">impact</span><span class="si">}</span><span class="s2">, rank=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">rank</span><span class="si">}</span><span class="s2">)&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Official string representation of the consequence.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            str: String representation of the consequence.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()</span>
+</code></pre></div></td></tr></table></div>
+              </details>
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h5 id="gentropy.assets.variant_consequences.Consequence.score" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">score</span><span class="p">:</span> <span class="nb">float</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#gentropy.assets.variant_consequences.Consequence.score" class="headerlink" title="Permanent link">&para;</a></h5>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Scores the impact of a variant consequence.</p>
+
+
+<details class="note" open>
+  <summary>Note</summary>
+  <link rel="stylesheet"
+  href="https://cdn.jsdelivr.net/npm/katex@0.15.1/dist/katex.min.css"
+  integrity="sha384-R4558gYOUz8mP9YWpZJjofhk+zx0AS11p36HnD2ZKj/6JR5z27gSSULCNHIRReVs"
+  crossorigin="anonymous" />
+
+<style type="text/css">
+    .katex img {
+      object-fit: fill;
+      padding: unset;
+      display: block;
+      position: absolute;
+      width: 100%;
+      height: inherit;
+    }
+</style>
+<p>The consequence scores are derived from the rank introduced by the <code>ensembl-variation</code> ranking of sequence ontology consequence terms.
+The ranking is derived from <a href="https://github.com/Ensembl/ensembl-variation/blob/ac9116d964b33253cb34f727cad8c1c022d28672/modules/Bio/EnsEMBL/Variation/Utils/Constants.pm#L375">Constants.pm</a>.
+The scoring that follows the inverse of the ranking is based on the formula.
+<p><span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><mi>s</mi><mi>c</mi><mi>o</mi><mi>r</mi><mi>e</mi><mo>=</mo><mn>1</mn><mo>−</mo><mfrac><mrow><mi>r</mi><mi>a</mi><mi>n</mi><mi>k</mi></mrow><mrow><mi>m</mi><mi>a</mi><mi>x</mi><mo stretchy="false">(</mo><mi>r</mi><mi>a</mi><mi>n</mi><mi>k</mi><mo stretchy="false">)</mo></mrow></mfrac></mrow><annotation encoding="application/x-tex">
+score=1 - \frac{rank}{max(rank)}
+</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.4306em;"></span><span class="mord mathnormal">score</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.7278em;vertical-align:-0.0833em;"></span><span class="mord">1</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="base"><span class="strut" style="height:2.3074em;vertical-align:-0.936em;"></span><span class="mord"><span class="mopen nulldelimiter"></span><span class="mfrac"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.3714em;"><span style="top:-2.314em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord mathnormal">ma</span><span class="mord mathnormal">x</span><span class="mopen">(</span><span class="mord mathnormal" style="margin-right:0.02778em;">r</span><span class="mord mathnormal" style="margin-right:0.03148em;">ank</span><span class="mclose">)</span></span></span><span style="top:-3.23em;"><span class="pstrut" style="height:3em;"></span><span class="frac-line" style="border-bottom-width:0.04em;"></span></span><span style="top:-3.677em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.02778em;">r</span><span class="mord mathnormal" style="margin-right:0.03148em;">ank</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.936em;"><span></span></span></span></span></span><span class="mclose nulldelimiter"></span></span></span></span></span></span></p>
+where $max(rank)$ is the maximum rank of the consequences (41 in this case).
+The score is then rounded to 2 decimal places.</p>
+</details>        <ul>
+<li>The score derived this way follows the VEP consequence ranking, which means that the consequence score is in sync to the actual mostSevereConsequence term</li>
+<li>The score is <strong>different for each consequence term</strong></li>
+<li>The score follow the severity measure (0.98 - highest severity, 0 - lowest severity)</li>
+</ul>
+
+    </div>
+
+</div>
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h4 id="gentropy.assets.variant_consequences.VariantConsequence" class="doc doc-heading">
+            <code>VariantConsequence</code>
+
+
+<a href="#gentropy.assets.variant_consequences.VariantConsequence" class="headerlink" title="Permanent link">&para;</a></h4>
+
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><span title="enum.Enum">Enum</span></code></p>
+
+
+        <p>Enum representing Ensembl Variation Variant Consequences.</p>
+<p>This enum contains all <code>Consequence</code> instances defined by the Ensembl Variation API (used by Variant Effect Predictor - VEP).</p>
+<p>The full definition of the consequence was derived from the Ensembl Variation API.
+See <a href="https://github.com/opentargets/issues/issues/3952">issue</a> for more details.</p>
+
+
+<p><span class="doc-section-title">Attributes:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code><span title="gentropy.assets.variant_consequences.VariantConsequence.TRANSCRIPT_ABLATION">TRANSCRIPT_ABLATION</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="gentropy.assets.variant_consequences.Consequence" href="#gentropy.assets.variant_consequences.Consequence">Consequence</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A feature ablation whereby the deleted region includes a transcript feature</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="gentropy.assets.variant_consequences.VariantConsequence.SPLICE_ACCEPTOR_VARIANT">SPLICE_ACCEPTOR_VARIANT</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="gentropy.assets.variant_consequences.Consequence" href="#gentropy.assets.variant_consequences.Consequence">Consequence</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A splice variant that changes the 2 base region at the 3' end of an intron</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="gentropy.assets.variant_consequences.VariantConsequence.SPLICE_DONOR_VARIANT">SPLICE_DONOR_VARIANT</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="gentropy.assets.variant_consequences.Consequence" href="#gentropy.assets.variant_consequences.Consequence">Consequence</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A splice variant that changes the 2 base region at the 5' end of an intron</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="gentropy.assets.variant_consequences.VariantConsequence.STOP_GAINED">STOP_GAINED</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="gentropy.assets.variant_consequences.Consequence" href="#gentropy.assets.variant_consequences.Consequence">Consequence</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A sequence variant whereby at least one base of a codon is changed, resulting in a premature stop codon, leading to a shortened transcript</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="gentropy.assets.variant_consequences.VariantConsequence.FRAMESHIFT_VARIANT">FRAMESHIFT_VARIANT</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="gentropy.assets.variant_consequences.Consequence" href="#gentropy.assets.variant_consequences.Consequence">Consequence</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A sequence variant which causes a disruption of the translational reading frame, because the number of nucleotides inserted or deleted is not a multiple of three</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="gentropy.assets.variant_consequences.VariantConsequence.STOP_LOST">STOP_LOST</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="gentropy.assets.variant_consequences.Consequence" href="#gentropy.assets.variant_consequences.Consequence">Consequence</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A sequence variant where at least one base of the terminator codon (stop) is changed, resulting in an elongated transcript</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="gentropy.assets.variant_consequences.VariantConsequence.START_LOST">START_LOST</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="gentropy.assets.variant_consequences.Consequence" href="#gentropy.assets.variant_consequences.Consequence">Consequence</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A codon variant that changes at least one base of the canonical start codon</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="gentropy.assets.variant_consequences.VariantConsequence.TRANSCRIPT_AMPLIFICATION">TRANSCRIPT_AMPLIFICATION</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="gentropy.assets.variant_consequences.Consequence" href="#gentropy.assets.variant_consequences.Consequence">Consequence</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A feature amplification of a region containing a transcript</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="gentropy.assets.variant_consequences.VariantConsequence.FEATURE_ELONGATION">FEATURE_ELONGATION</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="gentropy.assets.variant_consequences.Consequence" href="#gentropy.assets.variant_consequences.Consequence">Consequence</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A sequence variant that causes the extension of a genomic feature, with regard to the reference sequence</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="gentropy.assets.variant_consequences.VariantConsequence.FEATURE_TRUNCATION">FEATURE_TRUNCATION</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="gentropy.assets.variant_consequences.Consequence" href="#gentropy.assets.variant_consequences.Consequence">Consequence</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A sequence variant that causes the reduction of a genomic feature, with regard to the reference sequence</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="gentropy.assets.variant_consequences.VariantConsequence.INFRAME_INSERTION">INFRAME_INSERTION</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="gentropy.assets.variant_consequences.Consequence" href="#gentropy.assets.variant_consequences.Consequence">Consequence</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>An inframe non synonymous variant that inserts bases into in the coding sequence</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="gentropy.assets.variant_consequences.VariantConsequence.INFRAME_DELETION">INFRAME_DELETION</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="gentropy.assets.variant_consequences.Consequence" href="#gentropy.assets.variant_consequences.Consequence">Consequence</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>An inframe non synonymous variant that deletes bases from the coding sequence</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="gentropy.assets.variant_consequences.VariantConsequence.MISSENSE_VARIANT">MISSENSE_VARIANT</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="gentropy.assets.variant_consequences.Consequence" href="#gentropy.assets.variant_consequences.Consequence">Consequence</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A sequence variant, that changes one or more bases, resulting in a different amino acid sequence but where the length is preserved</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="gentropy.assets.variant_consequences.VariantConsequence.PROTEIN_ALTERING_VARIANT">PROTEIN_ALTERING_VARIANT</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="gentropy.assets.variant_consequences.Consequence" href="#gentropy.assets.variant_consequences.Consequence">Consequence</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A sequence_variant which is predicted to change the protein encoded in the coding sequence</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="gentropy.assets.variant_consequences.VariantConsequence.SPLICE_DONOR_5TH_BASE_VARIANT">SPLICE_DONOR_5TH_BASE_VARIANT</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="gentropy.assets.variant_consequences.Consequence" href="#gentropy.assets.variant_consequences.Consequence">Consequence</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A sequence variant that causes a change at the 5th base pair after the start of the intron in the orientation of the transcript</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="gentropy.assets.variant_consequences.VariantConsequence.SPLICE_REGION_VARIANT">SPLICE_REGION_VARIANT</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="gentropy.assets.variant_consequences.Consequence" href="#gentropy.assets.variant_consequences.Consequence">Consequence</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A sequence variant in which a change has occurred within the region of the splice site, either within 1-3 bases of the exon or 3-8 bases of the intron</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="gentropy.assets.variant_consequences.VariantConsequence.SPLICE_DONOR_REGION_VARIANT">SPLICE_DONOR_REGION_VARIANT</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="gentropy.assets.variant_consequences.Consequence" href="#gentropy.assets.variant_consequences.Consequence">Consequence</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A sequence variant that falls in the region between the 3rd and 6th base after splice junction (5' end of intron).</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="gentropy.assets.variant_consequences.VariantConsequence.SPLICE_POLYPYRIMIDINE_TRACT_VARIANT">SPLICE_POLYPYRIMIDINE_TRACT_VARIANT</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="gentropy.assets.variant_consequences.Consequence" href="#gentropy.assets.variant_consequences.Consequence">Consequence</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A sequence variant that falls in the polypyrimidine tract at 3' end of intron between 17 and 3 bases from the end (acceptor -3 to acceptor -17)</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="gentropy.assets.variant_consequences.VariantConsequence.INCOMPLETE_TERMINAL_CODON_VARIANT">INCOMPLETE_TERMINAL_CODON_VARIANT</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="gentropy.assets.variant_consequences.Consequence" href="#gentropy.assets.variant_consequences.Consequence">Consequence</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A sequence variant where at least one base of the final codon of an incompletely annotated transcript is changed</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="gentropy.assets.variant_consequences.VariantConsequence.START_RETAINED_VARIANT">START_RETAINED_VARIANT</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="gentropy.assets.variant_consequences.Consequence" href="#gentropy.assets.variant_consequences.Consequence">Consequence</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A sequence variant where at least one base in the start codon is changed, but the start remains</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="gentropy.assets.variant_consequences.VariantConsequence.STOP_RETAINED_VARIANT">STOP_RETAINED_VARIANT</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="gentropy.assets.variant_consequences.Consequence" href="#gentropy.assets.variant_consequences.Consequence">Consequence</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A sequence variant where at least one base in the terminator codon is changed, but the terminator remains</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="gentropy.assets.variant_consequences.VariantConsequence.SYNONYMOUS_VARIANT">SYNONYMOUS_VARIANT</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="gentropy.assets.variant_consequences.Consequence" href="#gentropy.assets.variant_consequences.Consequence">Consequence</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A sequence variant where there is no resulting change to the encoded amino acid</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="gentropy.assets.variant_consequences.VariantConsequence.CODING_SEQUENCE_VARIANT">CODING_SEQUENCE_VARIANT</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="gentropy.assets.variant_consequences.Consequence" href="#gentropy.assets.variant_consequences.Consequence">Consequence</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A sequence variant that changes the coding sequence</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="gentropy.assets.variant_consequences.VariantConsequence.MATURE_MIRNA_VARIANT">MATURE_MIRNA_VARIANT</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="gentropy.assets.variant_consequences.Consequence" href="#gentropy.assets.variant_consequences.Consequence">Consequence</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A transcript variant located with the sequence of the mature miRNA</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="gentropy.assets.variant_consequences.VariantConsequence.5_PRIME_UTR_VARIANT">5_PRIME_UTR_VARIANT</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="gentropy.assets.variant_consequences.Consequence" href="#gentropy.assets.variant_consequences.Consequence">Consequence</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A UTR variant of the 5' UTR</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="gentropy.assets.variant_consequences.VariantConsequence.3_PRIME_UTR_VARIANT">3_PRIME_UTR_VARIANT</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="gentropy.assets.variant_consequences.Consequence" href="#gentropy.assets.variant_consequences.Consequence">Consequence</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A UTR variant of the 3' UTR</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="gentropy.assets.variant_consequences.VariantConsequence.NON_CODING_TRANSCRIPT_EXON_VARIANT">NON_CODING_TRANSCRIPT_EXON_VARIANT</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="gentropy.assets.variant_consequences.Consequence" href="#gentropy.assets.variant_consequences.Consequence">Consequence</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A sequence variant that changes non-coding exon sequence in a non-coding transcript</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="gentropy.assets.variant_consequences.VariantConsequence.INTRON_VARIANT">INTRON_VARIANT</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="gentropy.assets.variant_consequences.Consequence" href="#gentropy.assets.variant_consequences.Consequence">Consequence</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A transcript variant occurring within an intron</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="gentropy.assets.variant_consequences.VariantConsequence.NMD_TRANSCRIPT_VARIANT">NMD_TRANSCRIPT_VARIANT</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="gentropy.assets.variant_consequences.Consequence" href="#gentropy.assets.variant_consequences.Consequence">Consequence</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A variant in a transcript that is the target of NMD</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="gentropy.assets.variant_consequences.VariantConsequence.NON_CODING_TRANSCRIPT_VARIANT">NON_CODING_TRANSCRIPT_VARIANT</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="gentropy.assets.variant_consequences.Consequence" href="#gentropy.assets.variant_consequences.Consequence">Consequence</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A transcript variant of a non coding RNA gene</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="gentropy.assets.variant_consequences.VariantConsequence.CODING_TRANSCRIPT_VARIANT">CODING_TRANSCRIPT_VARIANT</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="gentropy.assets.variant_consequences.Consequence" href="#gentropy.assets.variant_consequences.Consequence">Consequence</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A transcript variant of a protein coding gene</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="gentropy.assets.variant_consequences.VariantConsequence.UPSTREAM_GENE_VARIANT">UPSTREAM_GENE_VARIANT</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="gentropy.assets.variant_consequences.Consequence" href="#gentropy.assets.variant_consequences.Consequence">Consequence</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A sequence variant located 5' of a gene</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="gentropy.assets.variant_consequences.VariantConsequence.DOWNSTREAM_GENE_VARIANT">DOWNSTREAM_GENE_VARIANT</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="gentropy.assets.variant_consequences.Consequence" href="#gentropy.assets.variant_consequences.Consequence">Consequence</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A sequence variant located 3' of a gene</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="gentropy.assets.variant_consequences.VariantConsequence.TFBS_ABLATION">TFBS_ABLATION</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="gentropy.assets.variant_consequences.Consequence" href="#gentropy.assets.variant_consequences.Consequence">Consequence</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A feature ablation whereby the deleted region includes a transcription factor binding site</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="gentropy.assets.variant_consequences.VariantConsequence.TFBS_AMPLIFICATION">TFBS_AMPLIFICATION</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="gentropy.assets.variant_consequences.Consequence" href="#gentropy.assets.variant_consequences.Consequence">Consequence</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A feature amplification of a region containing a transcription factor binding site</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="gentropy.assets.variant_consequences.VariantConsequence.TF_BINDING_SITE_VARIANT">TF_BINDING_SITE_VARIANT</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="gentropy.assets.variant_consequences.Consequence" href="#gentropy.assets.variant_consequences.Consequence">Consequence</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A sequence variant located within a transcription factor binding site</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="gentropy.assets.variant_consequences.VariantConsequence.REGULATORY_REGION_ABLATION">REGULATORY_REGION_ABLATION</span></code></td>
+            <td>
+                  <code><span title="ConsequeSO_0001893nce">ConsequeSO_0001893nce</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A feature ablation whereby the deleted region includes a regulatory region</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="gentropy.assets.variant_consequences.VariantConsequence.REGULATORY_REGION_AMPLIFICATION">REGULATORY_REGION_AMPLIFICATION</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="gentropy.assets.variant_consequences.Consequence" href="#gentropy.assets.variant_consequences.Consequence">Consequence</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A feature amplification of a region containing a regulatory region</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="gentropy.assets.variant_consequences.VariantConsequence.REGULATORY_REGION_VARIANT">REGULATORY_REGION_VARIANT</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="gentropy.assets.variant_consequences.Consequence" href="#gentropy.assets.variant_consequences.Consequence">Consequence</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A sequence variant located within a regulatory region</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="gentropy.assets.variant_consequences.VariantConsequence.INTERGENIC_VARIANT">INTERGENIC_VARIANT</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="gentropy.assets.variant_consequences.Consequence" href="#gentropy.assets.variant_consequences.Consequence">Consequence</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A sequence variant located in the intergenic region, between genes</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="gentropy.assets.variant_consequences.VariantConsequence.SEQUENCE_VARIANT">SEQUENCE_VARIANT</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="gentropy.assets.variant_consequences.Consequence" href="#gentropy.assets.variant_consequences.Consequence">Consequence</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A sequence_variant is a non exact copy of a sequence_feature or genome exhibiting one or more sequence_alterations</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+
+
+
+
+
+              <details class="quote">
+                <summary>Source code in <code>src/gentropy/assets/variant_consequences.py</code></summary>
+                <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 86</span>
+<span class="normal"> 87</span>
+<span class="normal"> 88</span>
+<span class="normal"> 89</span>
+<span class="normal"> 90</span>
+<span class="normal"> 91</span>
+<span class="normal"> 92</span>
+<span class="normal"> 93</span>
+<span class="normal"> 94</span>
+<span class="normal"> 95</span>
+<span class="normal"> 96</span>
+<span class="normal"> 97</span>
+<span class="normal"> 98</span>
+<span class="normal"> 99</span>
+<span class="normal">100</span>
+<span class="normal">101</span>
+<span class="normal">102</span>
+<span class="normal">103</span>
+<span class="normal">104</span>
+<span class="normal">105</span>
+<span class="normal">106</span>
+<span class="normal">107</span>
+<span class="normal">108</span>
+<span class="normal">109</span>
+<span class="normal">110</span>
+<span class="normal">111</span>
+<span class="normal">112</span>
+<span class="normal">113</span>
+<span class="normal">114</span>
+<span class="normal">115</span>
+<span class="normal">116</span>
+<span class="normal">117</span>
+<span class="normal">118</span>
+<span class="normal">119</span>
+<span class="normal">120</span>
+<span class="normal">121</span>
+<span class="normal">122</span>
+<span class="normal">123</span>
+<span class="normal">124</span>
+<span class="normal">125</span>
+<span class="normal">126</span>
+<span class="normal">127</span>
+<span class="normal">128</span>
+<span class="normal">129</span>
+<span class="normal">130</span>
+<span class="normal">131</span>
+<span class="normal">132</span>
+<span class="normal">133</span>
+<span class="normal">134</span>
+<span class="normal">135</span>
+<span class="normal">136</span>
+<span class="normal">137</span>
+<span class="normal">138</span>
+<span class="normal">139</span>
+<span class="normal">140</span>
+<span class="normal">141</span>
+<span class="normal">142</span>
+<span class="normal">143</span>
+<span class="normal">144</span>
+<span class="normal">145</span>
+<span class="normal">146</span>
+<span class="normal">147</span>
+<span class="normal">148</span>
+<span class="normal">149</span>
+<span class="normal">150</span>
+<span class="normal">151</span>
+<span class="normal">152</span>
+<span class="normal">153</span>
+<span class="normal">154</span>
+<span class="normal">155</span>
+<span class="normal">156</span>
+<span class="normal">157</span>
+<span class="normal">158</span>
+<span class="normal">159</span>
+<span class="normal">160</span>
+<span class="normal">161</span>
+<span class="normal">162</span>
+<span class="normal">163</span>
+<span class="normal">164</span>
+<span class="normal">165</span>
+<span class="normal">166</span>
+<span class="normal">167</span>
+<span class="normal">168</span>
+<span class="normal">169</span>
+<span class="normal">170</span>
+<span class="normal">171</span>
+<span class="normal">172</span>
+<span class="normal">173</span>
+<span class="normal">174</span>
+<span class="normal">175</span>
+<span class="normal">176</span>
+<span class="normal">177</span>
+<span class="normal">178</span>
+<span class="normal">179</span>
+<span class="normal">180</span>
+<span class="normal">181</span>
+<span class="normal">182</span>
+<span class="normal">183</span>
+<span class="normal">184</span>
+<span class="normal">185</span>
+<span class="normal">186</span>
+<span class="normal">187</span>
+<span class="normal">188</span>
+<span class="normal">189</span>
+<span class="normal">190</span>
+<span class="normal">191</span>
+<span class="normal">192</span>
+<span class="normal">193</span>
+<span class="normal">194</span>
+<span class="normal">195</span>
+<span class="normal">196</span>
+<span class="normal">197</span>
+<span class="normal">198</span>
+<span class="normal">199</span>
+<span class="normal">200</span>
+<span class="normal">201</span>
+<span class="normal">202</span>
+<span class="normal">203</span>
+<span class="normal">204</span>
+<span class="normal">205</span>
+<span class="normal">206</span>
+<span class="normal">207</span>
+<span class="normal">208</span>
+<span class="normal">209</span>
+<span class="normal">210</span>
+<span class="normal">211</span>
+<span class="normal">212</span>
+<span class="normal">213</span>
+<span class="normal">214</span>
+<span class="normal">215</span>
+<span class="normal">216</span>
+<span class="normal">217</span>
+<span class="normal">218</span>
+<span class="normal">219</span>
+<span class="normal">220</span>
+<span class="normal">221</span>
+<span class="normal">222</span>
+<span class="normal">223</span>
+<span class="normal">224</span>
+<span class="normal">225</span>
+<span class="normal">226</span>
+<span class="normal">227</span>
+<span class="normal">228</span>
+<span class="normal">229</span>
+<span class="normal">230</span>
+<span class="normal">231</span>
+<span class="normal">232</span>
+<span class="normal">233</span>
+<span class="normal">234</span>
+<span class="normal">235</span>
+<span class="normal">236</span>
+<span class="normal">237</span>
+<span class="normal">238</span>
+<span class="normal">239</span>
+<span class="normal">240</span>
+<span class="normal">241</span>
+<span class="normal">242</span>
+<span class="normal">243</span>
+<span class="normal">244</span>
+<span class="normal">245</span>
+<span class="normal">246</span>
+<span class="normal">247</span>
+<span class="normal">248</span>
+<span class="normal">249</span>
+<span class="normal">250</span>
+<span class="normal">251</span>
+<span class="normal">252</span>
+<span class="normal">253</span>
+<span class="normal">254</span>
+<span class="normal">255</span>
+<span class="normal">256</span>
+<span class="normal">257</span>
+<span class="normal">258</span>
+<span class="normal">259</span>
+<span class="normal">260</span>
+<span class="normal">261</span>
+<span class="normal">262</span>
+<span class="normal">263</span>
+<span class="normal">264</span>
+<span class="normal">265</span>
+<span class="normal">266</span>
+<span class="normal">267</span>
+<span class="normal">268</span>
+<span class="normal">269</span>
+<span class="normal">270</span>
+<span class="normal">271</span>
+<span class="normal">272</span>
+<span class="normal">273</span>
+<span class="normal">274</span>
+<span class="normal">275</span>
+<span class="normal">276</span>
+<span class="normal">277</span>
+<span class="normal">278</span>
+<span class="normal">279</span>
+<span class="normal">280</span>
+<span class="normal">281</span>
+<span class="normal">282</span>
+<span class="normal">283</span>
+<span class="normal">284</span>
+<span class="normal">285</span>
+<span class="normal">286</span>
+<span class="normal">287</span>
+<span class="normal">288</span>
+<span class="normal">289</span>
+<span class="normal">290</span>
+<span class="normal">291</span>
+<span class="normal">292</span>
+<span class="normal">293</span>
+<span class="normal">294</span>
+<span class="normal">295</span>
+<span class="normal">296</span>
+<span class="normal">297</span>
+<span class="normal">298</span>
+<span class="normal">299</span>
+<span class="normal">300</span>
+<span class="normal">301</span>
+<span class="normal">302</span>
+<span class="normal">303</span>
+<span class="normal">304</span>
+<span class="normal">305</span>
+<span class="normal">306</span>
+<span class="normal">307</span>
+<span class="normal">308</span>
+<span class="normal">309</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">VariantConsequence</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Enum representing Ensembl Variation Variant Consequences.</span>
+
+<span class="sd">    This enum contains all `Consequence` instances defined by the Ensembl Variation API (used by Variant Effect Predictor - VEP).</span>
+
+<span class="sd">    The full definition of the consequence was derived from the Ensembl Variation API.</span>
+<span class="sd">    See [issue](https://github.com/opentargets/issues/issues/3952) for more details.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        TRANSCRIPT_ABLATION (Consequence): A feature ablation whereby the deleted region includes a transcript feature</span>
+<span class="sd">        SPLICE_ACCEPTOR_VARIANT (Consequence): A splice variant that changes the 2 base region at the 3&#39; end of an intron</span>
+<span class="sd">        SPLICE_DONOR_VARIANT (Consequence): A splice variant that changes the 2 base region at the 5&#39; end of an intron</span>
+<span class="sd">        STOP_GAINED (Consequence): A sequence variant whereby at least one base of a codon is changed, resulting in a premature stop codon, leading to a shortened transcript</span>
+<span class="sd">        FRAMESHIFT_VARIANT (Consequence): A sequence variant which causes a disruption of the translational reading frame, because the number of nucleotides inserted or deleted is not a multiple of three</span>
+<span class="sd">        STOP_LOST (Consequence): A sequence variant where at least one base of the terminator codon (stop) is changed, resulting in an elongated transcript</span>
+<span class="sd">        START_LOST (Consequence): A codon variant that changes at least one base of the canonical start codon</span>
+<span class="sd">        TRANSCRIPT_AMPLIFICATION (Consequence): A feature amplification of a region containing a transcript</span>
+<span class="sd">        FEATURE_ELONGATION (Consequence): A sequence variant that causes the extension of a genomic feature, with regard to the reference sequence</span>
+<span class="sd">        FEATURE_TRUNCATION (Consequence): A sequence variant that causes the reduction of a genomic feature, with regard to the reference sequence</span>
+<span class="sd">        INFRAME_INSERTION (Consequence): An inframe non synonymous variant that inserts bases into in the coding sequence</span>
+<span class="sd">        INFRAME_DELETION (Consequence): An inframe non synonymous variant that deletes bases from the coding sequence</span>
+<span class="sd">        MISSENSE_VARIANT (Consequence): A sequence variant, that changes one or more bases, resulting in a different amino acid sequence but where the length is preserved</span>
+<span class="sd">        PROTEIN_ALTERING_VARIANT (Consequence): A sequence_variant which is predicted to change the protein encoded in the coding sequence</span>
+<span class="sd">        SPLICE_DONOR_5TH_BASE_VARIANT (Consequence): A sequence variant that causes a change at the 5th base pair after the start of the intron in the orientation of the transcript</span>
+<span class="sd">        SPLICE_REGION_VARIANT (Consequence): A sequence variant in which a change has occurred within the region of the splice site, either within 1-3 bases of the exon or 3-8 bases of the intron</span>
+<span class="sd">        SPLICE_DONOR_REGION_VARIANT (Consequence): A sequence variant that falls in the region between the 3rd and 6th base after splice junction (5&#39; end of intron).</span>
+<span class="sd">        SPLICE_POLYPYRIMIDINE_TRACT_VARIANT (Consequence): A sequence variant that falls in the polypyrimidine tract at 3&#39; end of intron between 17 and 3 bases from the end (acceptor -3 to acceptor -17)</span>
+<span class="sd">        INCOMPLETE_TERMINAL_CODON_VARIANT (Consequence): A sequence variant where at least one base of the final codon of an incompletely annotated transcript is changed</span>
+<span class="sd">        START_RETAINED_VARIANT (Consequence): A sequence variant where at least one base in the start codon is changed, but the start remains</span>
+<span class="sd">        STOP_RETAINED_VARIANT (Consequence): A sequence variant where at least one base in the terminator codon is changed, but the terminator remains</span>
+<span class="sd">        SYNONYMOUS_VARIANT (Consequence): A sequence variant where there is no resulting change to the encoded amino acid</span>
+<span class="sd">        CODING_SEQUENCE_VARIANT (Consequence): A sequence variant that changes the coding sequence</span>
+<span class="sd">        MATURE_MIRNA_VARIANT (Consequence): A transcript variant located with the sequence of the mature miRNA</span>
+<span class="sd">        5_PRIME_UTR_VARIANT (Consequence): A UTR variant of the 5&#39; UTR</span>
+<span class="sd">        3_PRIME_UTR_VARIANT (Consequence): A UTR variant of the 3&#39; UTR</span>
+<span class="sd">        NON_CODING_TRANSCRIPT_EXON_VARIANT (Consequence): A sequence variant that changes non-coding exon sequence in a non-coding transcript</span>
+<span class="sd">        INTRON_VARIANT (Consequence): A transcript variant occurring within an intron</span>
+<span class="sd">        NMD_TRANSCRIPT_VARIANT (Consequence): A variant in a transcript that is the target of NMD</span>
+<span class="sd">        NON_CODING_TRANSCRIPT_VARIANT (Consequence): A transcript variant of a non coding RNA gene</span>
+<span class="sd">        CODING_TRANSCRIPT_VARIANT (Consequence): A transcript variant of a protein coding gene</span>
+<span class="sd">        UPSTREAM_GENE_VARIANT (Consequence): A sequence variant located 5&#39; of a gene</span>
+<span class="sd">        DOWNSTREAM_GENE_VARIANT (Consequence): A sequence variant located 3&#39; of a gene</span>
+<span class="sd">        TFBS_ABLATION (Consequence): A feature ablation whereby the deleted region includes a transcription factor binding site</span>
+<span class="sd">        TFBS_AMPLIFICATION (Consequence): A feature amplification of a region containing a transcription factor binding site</span>
+<span class="sd">        TF_BINDING_SITE_VARIANT (Consequence): A sequence variant located within a transcription factor binding site</span>
+<span class="sd">        REGULATORY_REGION_ABLATION (ConsequeSO_0001893nce): A feature ablation whereby the deleted region includes a regulatory region</span>
+<span class="sd">        REGULATORY_REGION_AMPLIFICATION (Consequence): A feature amplification of a region containing a regulatory region</span>
+<span class="sd">        REGULATORY_REGION_VARIANT (Consequence): A sequence variant located within a regulatory region</span>
+<span class="sd">        INTERGENIC_VARIANT (Consequence): A sequence variant located in the intergenic region, between genes</span>
+<span class="sd">        SEQUENCE_VARIANT (Consequence): A sequence_variant is a non exact copy of a sequence_feature or genome exhibiting one or more sequence_alterations</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">TRANSCRIPT_ABLATION</span> <span class="o">=</span> <span class="n">Consequence</span><span class="p">(</span>
+        <span class="nb">id</span><span class="o">=</span><span class="s2">&quot;SO_0001893&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;transcript_ablation&quot;</span><span class="p">,</span> <span class="n">impact</span><span class="o">=</span><span class="s2">&quot;HIGH&quot;</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="mi">1</span>
+    <span class="p">)</span>
+    <span class="n">SPLICE_ACCEPTOR_VARIANT</span> <span class="o">=</span> <span class="n">Consequence</span><span class="p">(</span>
+        <span class="nb">id</span><span class="o">=</span><span class="s2">&quot;SO_0001574&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;splice_acceptor_variant&quot;</span><span class="p">,</span> <span class="n">impact</span><span class="o">=</span><span class="s2">&quot;HIGH&quot;</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="mi">2</span>
+    <span class="p">)</span>
+    <span class="n">SPLICE_DONOR_VARIANT</span> <span class="o">=</span> <span class="n">Consequence</span><span class="p">(</span>
+        <span class="nb">id</span><span class="o">=</span><span class="s2">&quot;SO_0001575&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;splice_donor_variant&quot;</span><span class="p">,</span> <span class="n">impact</span><span class="o">=</span><span class="s2">&quot;HIGH&quot;</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="mi">3</span>
+    <span class="p">)</span>
+    <span class="n">STOP_GAINED</span> <span class="o">=</span> <span class="n">Consequence</span><span class="p">(</span>
+        <span class="nb">id</span><span class="o">=</span><span class="s2">&quot;SO_0001587&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;stop_gained&quot;</span><span class="p">,</span> <span class="n">impact</span><span class="o">=</span><span class="s2">&quot;HIGH&quot;</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="mi">4</span>
+    <span class="p">)</span>
+    <span class="n">FRAMESHIFT_VARIANT</span> <span class="o">=</span> <span class="n">Consequence</span><span class="p">(</span>
+        <span class="nb">id</span><span class="o">=</span><span class="s2">&quot;SO_0001589&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;frameshift_variant&quot;</span><span class="p">,</span> <span class="n">impact</span><span class="o">=</span><span class="s2">&quot;HIGH&quot;</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="mi">5</span>
+    <span class="p">)</span>
+    <span class="n">STOP_LOST</span> <span class="o">=</span> <span class="n">Consequence</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="s2">&quot;SO_0001578&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;stop_lost&quot;</span><span class="p">,</span> <span class="n">impact</span><span class="o">=</span><span class="s2">&quot;HIGH&quot;</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="mi">6</span><span class="p">)</span>
+    <span class="n">START_LOST</span> <span class="o">=</span> <span class="n">Consequence</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="s2">&quot;SO_0002012&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;start_lost&quot;</span><span class="p">,</span> <span class="n">impact</span><span class="o">=</span><span class="s2">&quot;HIGH&quot;</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="mi">7</span><span class="p">)</span>
+    <span class="n">TRANSCRIPT_AMPLIFICATION</span> <span class="o">=</span> <span class="n">Consequence</span><span class="p">(</span>
+        <span class="nb">id</span><span class="o">=</span><span class="s2">&quot;SO_0001889&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;transcript_amplification&quot;</span><span class="p">,</span> <span class="n">impact</span><span class="o">=</span><span class="s2">&quot;HIGH&quot;</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="mi">8</span>
+    <span class="p">)</span>
+    <span class="n">FEATURE_ELONGATION</span> <span class="o">=</span> <span class="n">Consequence</span><span class="p">(</span>
+        <span class="nb">id</span><span class="o">=</span><span class="s2">&quot;SO_0001907&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;feature_elongation&quot;</span><span class="p">,</span> <span class="n">impact</span><span class="o">=</span><span class="s2">&quot;HIGH&quot;</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="mi">9</span>
+    <span class="p">)</span>
+    <span class="n">FEATURE_TRUNCATION</span> <span class="o">=</span> <span class="n">Consequence</span><span class="p">(</span>
+        <span class="nb">id</span><span class="o">=</span><span class="s2">&quot;SO_0001906&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;feature_truncation&quot;</span><span class="p">,</span> <span class="n">impact</span><span class="o">=</span><span class="s2">&quot;HIGH&quot;</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="mi">10</span>
+    <span class="p">)</span>
+    <span class="n">INFRAME_INSERTION</span> <span class="o">=</span> <span class="n">Consequence</span><span class="p">(</span>
+        <span class="nb">id</span><span class="o">=</span><span class="s2">&quot;SO_0001821&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;inframe_insertion&quot;</span><span class="p">,</span> <span class="n">impact</span><span class="o">=</span><span class="s2">&quot;MODERATE&quot;</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="mi">11</span>
+    <span class="p">)</span>
+    <span class="n">INFRAME_DELETION</span> <span class="o">=</span> <span class="n">Consequence</span><span class="p">(</span>
+        <span class="nb">id</span><span class="o">=</span><span class="s2">&quot;SO_0001822&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;inframe_deletion&quot;</span><span class="p">,</span> <span class="n">impact</span><span class="o">=</span><span class="s2">&quot;MODERATE&quot;</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="mi">12</span>
+    <span class="p">)</span>
+    <span class="n">MISSENSE_VARIANT</span> <span class="o">=</span> <span class="n">Consequence</span><span class="p">(</span>
+        <span class="nb">id</span><span class="o">=</span><span class="s2">&quot;SO_0001583&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;missense_variant&quot;</span><span class="p">,</span> <span class="n">impact</span><span class="o">=</span><span class="s2">&quot;MODERATE&quot;</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="mi">13</span>
+    <span class="p">)</span>
+    <span class="n">PROTEIN_ALTERING_VARIANT</span> <span class="o">=</span> <span class="n">Consequence</span><span class="p">(</span>
+        <span class="nb">id</span><span class="o">=</span><span class="s2">&quot;SO_0001818&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;protein_altering_variant&quot;</span><span class="p">,</span> <span class="n">impact</span><span class="o">=</span><span class="s2">&quot;MODERATE&quot;</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="mi">14</span>
+    <span class="p">)</span>
+    <span class="n">SPLICE_DONOR_5TH_BASE_VARIANT</span> <span class="o">=</span> <span class="n">Consequence</span><span class="p">(</span>
+        <span class="nb">id</span><span class="o">=</span><span class="s2">&quot;SO_0001787&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;splice_donor_5th_base_variant&quot;</span><span class="p">,</span> <span class="n">impact</span><span class="o">=</span><span class="s2">&quot;LOW&quot;</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="mi">15</span>
+    <span class="p">)</span>
+    <span class="n">SPLICE_REGION_VARIANT</span> <span class="o">=</span> <span class="n">Consequence</span><span class="p">(</span>
+        <span class="nb">id</span><span class="o">=</span><span class="s2">&quot;SO_0001630&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;splice_region_variant&quot;</span><span class="p">,</span> <span class="n">impact</span><span class="o">=</span><span class="s2">&quot;LOW&quot;</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="mi">16</span>
+    <span class="p">)</span>
+    <span class="n">SPLICE_DONOR_REGION_VARIANT</span> <span class="o">=</span> <span class="n">Consequence</span><span class="p">(</span>
+        <span class="nb">id</span><span class="o">=</span><span class="s2">&quot;SO_0002170&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;splice_donor_region_variant&quot;</span><span class="p">,</span> <span class="n">impact</span><span class="o">=</span><span class="s2">&quot;LOW&quot;</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="mi">17</span>
+    <span class="p">)</span>
+    <span class="n">SPLICE_POLYPYRIMIDINE_TRACT_VARIANT</span> <span class="o">=</span> <span class="n">Consequence</span><span class="p">(</span>
+        <span class="nb">id</span><span class="o">=</span><span class="s2">&quot;SO_0002169&quot;</span><span class="p">,</span>
+        <span class="n">label</span><span class="o">=</span><span class="s2">&quot;splice_polypyrimidine_tract_variant&quot;</span><span class="p">,</span>
+        <span class="n">impact</span><span class="o">=</span><span class="s2">&quot;LOW&quot;</span><span class="p">,</span>
+        <span class="n">rank</span><span class="o">=</span><span class="mi">18</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">INCOMPLETE_labelINAL_CODON_VARIANT</span> <span class="o">=</span> <span class="n">Consequence</span><span class="p">(</span>
+        <span class="nb">id</span><span class="o">=</span><span class="s2">&quot;SO_0001626&quot;</span><span class="p">,</span>
+        <span class="n">label</span><span class="o">=</span><span class="s2">&quot;incomplete_labelinal_codon_variant&quot;</span><span class="p">,</span>
+        <span class="n">impact</span><span class="o">=</span><span class="s2">&quot;LOW&quot;</span><span class="p">,</span>
+        <span class="n">rank</span><span class="o">=</span><span class="mi">19</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">START_RETAINED_VARIANT</span> <span class="o">=</span> <span class="n">Consequence</span><span class="p">(</span>
+        <span class="nb">id</span><span class="o">=</span><span class="s2">&quot;SO_0002019&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;start_retained_variant&quot;</span><span class="p">,</span> <span class="n">impact</span><span class="o">=</span><span class="s2">&quot;LOW&quot;</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="mi">20</span>
+    <span class="p">)</span>
+    <span class="n">STOP_RETAINED_VARIANT</span> <span class="o">=</span> <span class="n">Consequence</span><span class="p">(</span>
+        <span class="nb">id</span><span class="o">=</span><span class="s2">&quot;SO_0001567&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;stop_retained_variant&quot;</span><span class="p">,</span> <span class="n">impact</span><span class="o">=</span><span class="s2">&quot;LOW&quot;</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="mi">21</span>
+    <span class="p">)</span>
+    <span class="n">SYNONYMOUS_VARIANT</span> <span class="o">=</span> <span class="n">Consequence</span><span class="p">(</span>
+        <span class="nb">id</span><span class="o">=</span><span class="s2">&quot;SO_0001819&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;synonymous_variant&quot;</span><span class="p">,</span> <span class="n">impact</span><span class="o">=</span><span class="s2">&quot;LOW&quot;</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="mi">22</span>
+    <span class="p">)</span>
+    <span class="n">CODING_SEQUENCE_VARIANT</span> <span class="o">=</span> <span class="n">Consequence</span><span class="p">(</span>
+        <span class="nb">id</span><span class="o">=</span><span class="s2">&quot;SO_0001580&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;coding_sequence_variant&quot;</span><span class="p">,</span> <span class="n">impact</span><span class="o">=</span><span class="s2">&quot;MODIFIER&quot;</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="mi">23</span>
+    <span class="p">)</span>
+    <span class="n">MATURE_MIRNA_VARIANT</span> <span class="o">=</span> <span class="n">Consequence</span><span class="p">(</span>
+        <span class="nb">id</span><span class="o">=</span><span class="s2">&quot;SO_0001620&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;mature_miRNA_variant&quot;</span><span class="p">,</span> <span class="n">impact</span><span class="o">=</span><span class="s2">&quot;MODIFIER&quot;</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="mi">24</span>
+    <span class="p">)</span>
+    <span class="n">FIVE_PRIME_UTR_VARIANT</span> <span class="o">=</span> <span class="n">Consequence</span><span class="p">(</span>
+        <span class="nb">id</span><span class="o">=</span><span class="s2">&quot;SO_0001623&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;5_prime_UTR_variant&quot;</span><span class="p">,</span> <span class="n">impact</span><span class="o">=</span><span class="s2">&quot;MODIFIER&quot;</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="mi">25</span>
+    <span class="p">)</span>
+    <span class="n">THREE_PRIME_UTR_VARIANT</span> <span class="o">=</span> <span class="n">Consequence</span><span class="p">(</span>
+        <span class="nb">id</span><span class="o">=</span><span class="s2">&quot;SO_0001624&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;3_prime_UTR_variant&quot;</span><span class="p">,</span> <span class="n">impact</span><span class="o">=</span><span class="s2">&quot;MODIFIER&quot;</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="mi">26</span>
+    <span class="p">)</span>
+    <span class="n">NON_CODING_TRANSCRIPT_EXON_VARIANT</span> <span class="o">=</span> <span class="n">Consequence</span><span class="p">(</span>
+        <span class="nb">id</span><span class="o">=</span><span class="s2">&quot;SO_0001792&quot;</span><span class="p">,</span>
+        <span class="n">label</span><span class="o">=</span><span class="s2">&quot;non_coding_transcript_exon_variant&quot;</span><span class="p">,</span>
+        <span class="n">impact</span><span class="o">=</span><span class="s2">&quot;MODIFIER&quot;</span><span class="p">,</span>
+        <span class="n">rank</span><span class="o">=</span><span class="mi">27</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">INTRON_VARIANT</span> <span class="o">=</span> <span class="n">Consequence</span><span class="p">(</span>
+        <span class="nb">id</span><span class="o">=</span><span class="s2">&quot;SO_0001627&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;intron_variant&quot;</span><span class="p">,</span> <span class="n">impact</span><span class="o">=</span><span class="s2">&quot;MODIFIER&quot;</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="mi">28</span>
+    <span class="p">)</span>
+    <span class="n">NMD_TRANSCRIPT_VARIANT</span> <span class="o">=</span> <span class="n">Consequence</span><span class="p">(</span>
+        <span class="nb">id</span><span class="o">=</span><span class="s2">&quot;SO_0001621&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;NMD_transcript_variant&quot;</span><span class="p">,</span> <span class="n">impact</span><span class="o">=</span><span class="s2">&quot;MODIFIER&quot;</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="mi">29</span>
+    <span class="p">)</span>
+    <span class="n">NON_CODING_TRANSCRIPT_VARIANT</span> <span class="o">=</span> <span class="n">Consequence</span><span class="p">(</span>
+        <span class="nb">id</span><span class="o">=</span><span class="s2">&quot;SO_0001619&quot;</span><span class="p">,</span>
+        <span class="n">label</span><span class="o">=</span><span class="s2">&quot;non_coding_transcript_variant&quot;</span><span class="p">,</span>
+        <span class="n">impact</span><span class="o">=</span><span class="s2">&quot;MODIFIER&quot;</span><span class="p">,</span>
+        <span class="n">rank</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">CODING_TRANSCRIPT_VARIANT</span> <span class="o">=</span> <span class="n">Consequence</span><span class="p">(</span>
+        <span class="nb">id</span><span class="o">=</span><span class="s2">&quot;SO_0001968&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;coding_transcript_variant&quot;</span><span class="p">,</span> <span class="n">impact</span><span class="o">=</span><span class="s2">&quot;MODIFIER&quot;</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="mi">31</span>
+    <span class="p">)</span>
+    <span class="n">UPSTREAM_GENE_VARIANT</span> <span class="o">=</span> <span class="n">Consequence</span><span class="p">(</span>
+        <span class="nb">id</span><span class="o">=</span><span class="s2">&quot;SO_0001631&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;upstream_gene_variant&quot;</span><span class="p">,</span> <span class="n">impact</span><span class="o">=</span><span class="s2">&quot;MODIFIER&quot;</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="mi">32</span>
+    <span class="p">)</span>
+    <span class="n">DOWNSTREAM_GENE_VARIANT</span> <span class="o">=</span> <span class="n">Consequence</span><span class="p">(</span>
+        <span class="nb">id</span><span class="o">=</span><span class="s2">&quot;SO_0001632&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;downstream_gene_variant&quot;</span><span class="p">,</span> <span class="n">impact</span><span class="o">=</span><span class="s2">&quot;MODIFIER&quot;</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="mi">33</span>
+    <span class="p">)</span>
+    <span class="n">TFBS_ABLATION</span> <span class="o">=</span> <span class="n">Consequence</span><span class="p">(</span>
+        <span class="nb">id</span><span class="o">=</span><span class="s2">&quot;SO_0001895&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;TFBS_ablation&quot;</span><span class="p">,</span> <span class="n">impact</span><span class="o">=</span><span class="s2">&quot;MODERATE&quot;</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="mi">34</span>
+    <span class="p">)</span>
+    <span class="n">TFBS_AMPLIFICATION</span> <span class="o">=</span> <span class="n">Consequence</span><span class="p">(</span>
+        <span class="nb">id</span><span class="o">=</span><span class="s2">&quot;SO_0001892&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;TFBS_amplification&quot;</span><span class="p">,</span> <span class="n">impact</span><span class="o">=</span><span class="s2">&quot;MODIFIER&quot;</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="mi">35</span>
+    <span class="p">)</span>
+    <span class="n">TF_BINDING_SITE_VARIANT</span> <span class="o">=</span> <span class="n">Consequence</span><span class="p">(</span>
+        <span class="nb">id</span><span class="o">=</span><span class="s2">&quot;SO_0001782&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;TF_binding_site_variant&quot;</span><span class="p">,</span> <span class="n">impact</span><span class="o">=</span><span class="s2">&quot;MODIFIER&quot;</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="mi">36</span>
+    <span class="p">)</span>
+    <span class="n">REGULATORY_REGION_ABLATION</span> <span class="o">=</span> <span class="n">Consequence</span><span class="p">(</span>
+        <span class="nb">id</span><span class="o">=</span><span class="s2">&quot;SO_0001894&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;regulatory_region_ablation&quot;</span><span class="p">,</span> <span class="n">impact</span><span class="o">=</span><span class="s2">&quot;MODIFIER&quot;</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="mi">37</span>
+    <span class="p">)</span>
+    <span class="n">REGULATORY_REGION_AMPLIFICATION</span> <span class="o">=</span> <span class="n">Consequence</span><span class="p">(</span>
+        <span class="nb">id</span><span class="o">=</span><span class="s2">&quot;SO_0001891&quot;</span><span class="p">,</span>
+        <span class="n">label</span><span class="o">=</span><span class="s2">&quot;regulatory_region_amplification&quot;</span><span class="p">,</span>
+        <span class="n">impact</span><span class="o">=</span><span class="s2">&quot;MODIFIER&quot;</span><span class="p">,</span>
+        <span class="n">rank</span><span class="o">=</span><span class="mi">38</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">REGULATORY_REGION_VARIANT</span> <span class="o">=</span> <span class="n">Consequence</span><span class="p">(</span>
+        <span class="nb">id</span><span class="o">=</span><span class="s2">&quot;SO_0001566&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;regulatory_region_variant&quot;</span><span class="p">,</span> <span class="n">impact</span><span class="o">=</span><span class="s2">&quot;MODIFIER&quot;</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="mi">39</span>
+    <span class="p">)</span>
+    <span class="n">INTERGENIC_VARIANT</span> <span class="o">=</span> <span class="n">Consequence</span><span class="p">(</span>
+        <span class="nb">id</span><span class="o">=</span><span class="s2">&quot;SO_0001628&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;intergenic_variant&quot;</span><span class="p">,</span> <span class="n">impact</span><span class="o">=</span><span class="s2">&quot;MODIFIER&quot;</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="mi">40</span>
+    <span class="p">)</span>
+    <span class="n">SEQUENCE_VARIANT</span> <span class="o">=</span> <span class="n">Consequence</span><span class="p">(</span>
+        <span class="nb">id</span><span class="o">=</span><span class="s2">&quot;SO_0001060&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;sequence_variant&quot;</span><span class="p">,</span> <span class="n">impact</span><span class="o">=</span><span class="s2">&quot;MODIFIER&quot;</span><span class="p">,</span> <span class="n">rank</span><span class="o">=</span><span class="mi">41</span>
+    <span class="p">)</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">map_sequence_ontology</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the mapping of the `Consequence.label` (key) and `Consequence.id` (value) representing Sequence Ontology term.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            dict[str, str]: Mapping of consequence label to ID.</span>
+
+<span class="sd">        Examples:</span>
+<span class="sd">            &gt;&gt;&gt; m = VariantConsequence.map_sequence_ontology()</span>
+<span class="sd">            &gt;&gt;&gt; m[&quot;missense_variant&quot;]</span>
+<span class="sd">            &#39;SO_0001583&#39;</span>
+<span class="sd">            &gt;&gt;&gt; len(m)</span>
+<span class="sd">            41</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="n">consequence</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">label</span><span class="p">:</span> <span class="n">consequence</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">id</span>
+            <span class="k">for</span> <span class="n">consequence</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="n">__members__</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
+        <span class="p">}</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">map_score</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the mapping of the `Consequence.label` (key) and `Consequence.score` (value).</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            dict[str, float]: Mapping of consequence label to score.</span>
+
+<span class="sd">        Examples:</span>
+<span class="sd">            &gt;&gt;&gt; s = VariantConsequence.map_score()</span>
+<span class="sd">            &gt;&gt;&gt; s[&quot;missense_variant&quot;]</span>
+<span class="sd">            0.68</span>
+<span class="sd">            &gt;&gt;&gt; len(s)</span>
+<span class="sd">            41</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="n">consequence</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">label</span><span class="p">:</span> <span class="n">consequence</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">score</span>
+            <span class="k">for</span> <span class="n">consequence</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="n">__members__</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
+        <span class="p">}</span>
+</code></pre></div></td></tr></table></div>
+              </details>
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h5 id="gentropy.assets.variant_consequences.VariantConsequence.map_score" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">map_score</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
+  </span>
+
+<a href="#gentropy.assets.variant_consequences.VariantConsequence.map_score" class="headerlink" title="Permanent link">&para;</a></h5>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Return the mapping of the <code>Consequence.label</code> (key) and <code>Consequence.score</code> (value).</p>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="dict">dict</span>[<span title="str">str</span>, <span title="float">float</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>dict[str, float]: Mapping of consequence label to score.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Examples:</span></p>
+    <div class="language-pycon highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">s</span> <span class="o">=</span> <span class="n">VariantConsequence</span><span class="o">.</span><span class="n">map_score</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">s</span><span class="p">[</span><span class="s2">&quot;missense_variant&quot;</span><span class="p">]</span>
+<span class="go">0.68</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">len</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+<span class="go">41</span>
+</code></pre></div>
+
+
+            <details class="quote">
+              <summary>Source code in <code>src/gentropy/assets/variant_consequences.py</code></summary>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">292</span>
+<span class="normal">293</span>
+<span class="normal">294</span>
+<span class="normal">295</span>
+<span class="normal">296</span>
+<span class="normal">297</span>
+<span class="normal">298</span>
+<span class="normal">299</span>
+<span class="normal">300</span>
+<span class="normal">301</span>
+<span class="normal">302</span>
+<span class="normal">303</span>
+<span class="normal">304</span>
+<span class="normal">305</span>
+<span class="normal">306</span>
+<span class="normal">307</span>
+<span class="normal">308</span>
+<span class="normal">309</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">map_score</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return the mapping of the `Consequence.label` (key) and `Consequence.score` (value).</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        dict[str, float]: Mapping of consequence label to score.</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; s = VariantConsequence.map_score()</span>
+<span class="sd">        &gt;&gt;&gt; s[&quot;missense_variant&quot;]</span>
+<span class="sd">        0.68</span>
+<span class="sd">        &gt;&gt;&gt; len(s)</span>
+<span class="sd">        41</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="n">consequence</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">label</span><span class="p">:</span> <span class="n">consequence</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">score</span>
+        <span class="k">for</span> <span class="n">consequence</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="n">__members__</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
+    <span class="p">}</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h5 id="gentropy.assets.variant_consequences.VariantConsequence.map_sequence_ontology" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">map_sequence_ontology</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
+  </span>
+
+<a href="#gentropy.assets.variant_consequences.VariantConsequence.map_sequence_ontology" class="headerlink" title="Permanent link">&para;</a></h5>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Return the mapping of the <code>Consequence.label</code> (key) and <code>Consequence.id</code> (value) representing Sequence Ontology term.</p>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="dict">dict</span>[<span title="str">str</span>, <span title="str">str</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>dict[str, str]: Mapping of consequence label to ID.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Examples:</span></p>
+    <div class="language-pycon highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">m</span> <span class="o">=</span> <span class="n">VariantConsequence</span><span class="o">.</span><span class="n">map_sequence_ontology</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">m</span><span class="p">[</span><span class="s2">&quot;missense_variant&quot;</span><span class="p">]</span>
+<span class="go">&#39;SO_0001583&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">len</span><span class="p">(</span><span class="n">m</span><span class="p">)</span>
+<span class="go">41</span>
+</code></pre></div>
+
+
+            <details class="quote">
+              <summary>Source code in <code>src/gentropy/assets/variant_consequences.py</code></summary>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">273</span>
+<span class="normal">274</span>
+<span class="normal">275</span>
+<span class="normal">276</span>
+<span class="normal">277</span>
+<span class="normal">278</span>
+<span class="normal">279</span>
+<span class="normal">280</span>
+<span class="normal">281</span>
+<span class="normal">282</span>
+<span class="normal">283</span>
+<span class="normal">284</span>
+<span class="normal">285</span>
+<span class="normal">286</span>
+<span class="normal">287</span>
+<span class="normal">288</span>
+<span class="normal">289</span>
+<span class="normal">290</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">map_sequence_ontology</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return the mapping of the `Consequence.label` (key) and `Consequence.id` (value) representing Sequence Ontology term.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        dict[str, str]: Mapping of consequence label to ID.</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; m = VariantConsequence.map_sequence_ontology()</span>
+<span class="sd">        &gt;&gt;&gt; m[&quot;missense_variant&quot;]</span>
+<span class="sd">        &#39;SO_0001583&#39;</span>
+<span class="sd">        &gt;&gt;&gt; len(m)</span>
+<span class="sd">        41</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="n">consequence</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">label</span><span class="p">:</span> <span class="n">consequence</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">id</span>
+        <span class="k">for</span> <span class="n">consequence</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="n">__members__</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
+    <span class="p">}</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+<hr />
+<div class="md-source-file">
+  <small>
+    <ul
+      class="metadata page-metadata"
+      data-bi-name="page info"
+      lang="en-us"
+      dir="ltr"
+    >
+      <!-- mkdocs-git-revision-date-plugin -->
+      
+      <li>
+        <span class="icon twemoji">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M14.47 15.08 11 13V7h1.5v5.25l3.08 1.83c-.41.28-.79.62-1.11 1m-1.39 4.84c-.36.05-.71.08-1.08.08-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8c0 .37-.03.72-.08 1.08.69.1 1.33.32 1.92.64.1-.56.16-1.13.16-1.72 0-5.5-4.5-10-10-10S2 6.5 2 12s4.47 10 10 10c.59 0 1.16-.06 1.72-.16-.32-.59-.54-1.23-.64-1.92M18 15v3h-3v2h3v3h2v-3h3v-2h-3v-3h-2Z"/></svg>
+        </span>
+        <span class="label"> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="October 23, 2025 17:37:55 UTC"><span class="timeago" datetime="2025-10-23T17:37:55+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 23, 2025 17:37:55 UTC">2025-10-23</span> </span>
+      </li>
+       
+      <li>
+        <span class="icon twemoji">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1-2.1-2M12.5 7v5.2l4 2.4-1 1L11 13V7h1.5M11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2v1.8Z"/></svg>
+        </span>
+        <span class="label"> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="October 23, 2025 17:37:55 UTC"><span class="timeago" datetime="2025-10-23T17:37:55+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 23, 2025 17:37:55 UTC">2025-10-23</span> </span>
+      </li>
+      
+
+      <li>
+        <span class="icon twemoji">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 2A10 10 0 0 0 2 12c0 4.42 2.87 8.17 6.84 9.5.5.08.66-.23.66-.5v-1.69c-2.77.6-3.36-1.34-3.36-1.34-.46-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.87 1.52 2.34 1.07 2.91.83.09-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.92 0-1.11.38-2 1.03-2.71-.1-.25-.45-1.29.1-2.64 0 0 .84-.27 2.75 1.02.79-.22 1.65-.33 2.5-.33.85 0 1.71.11 2.5.33 1.91-1.29 2.75-1.02 2.75-1.02.55 1.35.2 2.39.1 2.64.65.71 1.03 1.6 1.03 2.71 0 3.82-2.34 4.66-4.57 4.91.36.31.69.92.69 1.85V21c0 .27.16.59.67.5C19.14 20.16 22 16.42 22 12A10 10 0 0 0 12 2Z"/></svg>
+        </span>
+        <span class="label"> Contributors </span>
+      </li>
+      <li class="contributors-holder">
+        <ul class="contributors" data-bi-name="contributors"><li>
+            <a
+              href="https://github.com/project-defiant"
+              title="project-defiant"
+              data-bi-name="contributorprofile"
+              target="_blank"
+              ><img src="https://avatars.githubusercontent.com/u/69353402?v=4" alt="project-defiant"
+            /></a>
+          </li><li>
+            <a
+              href="https://github.com/web-flow"
+              title="web-flow"
+              data-bi-name="contributorprofile"
+              target="_blank"
+              ><img src="https://avatars.githubusercontent.com/u/19864447?v=4" alt="web-flow"
+            /></a>
+          </li></ul>
+      </li>
+    </ul>
+  </small>
+</div>
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12Z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        <div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/gentropy" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.5.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "../../..", "features": ["navigation.instant", "navigation.top", "navigation.tabs", "navigation.tabs.sticky", "content.code.annotate", "search.suggest", "search.highlight"], "search": "../../../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.3220b9d7.min.js"></script>
+      
+        <script src="../../../js/timeago.min.js"></script>
+      
+        <script src="../../../js/timeago_mkdocs_material.js"></script>
+      
+        <script src="../../../assets/javascripts/extra.js"></script>
+      
+    
+  </body>
+</html>
