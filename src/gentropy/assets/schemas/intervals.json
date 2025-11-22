@@ -10,13 +10,13 @@
       "metadata": {},
       "name": "start",
       "nullable": false,
-      "type": "string"
+      "type": "integer"
     },
     {
       "metadata": {},
       "name": "end",
       "nullable": false,
-      "type": "string"
+      "type": "integer"
     },
     {
       "metadata": {},

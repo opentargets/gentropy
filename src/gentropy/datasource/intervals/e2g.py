@@ -154,8 +154,8 @@ class IntervalsE2G:
             _df=(
                 parsed.select(
                     f.col("chromosome"),
-                    f.col("start").cast("string"),
-                    f.col("end").cast("string"),
+                    f.col("start").cast("integer"),
+                    f.col("end").cast("integer"),
                     f.col("geneId"),
                     f.col("biosampleName"),
                     f.col("intervalType"),

@@ -43,6 +43,10 @@ from gentropy.dataset.l2g_features.vep import (
     VepMeanFeature,
     VepMeanNeighbourhoodFeature,
 )
+from gentropy.dataset.l2g_features.intervals import (
+    E2gMeanFeature,
+    E2gMeanNeighbourhoodFeature,
+)
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
 from gentropy.dataset.study_locus import StudyLocus
 
@@ -127,6 +131,8 @@ class FeatureFactory:
         "vepMeanNeighbourhood": VepMeanNeighbourhoodFeature,
         "vepMaximum": VepMaximumFeature,
         "vepMaximumNeighbourhood": VepMaximumNeighbourhoodFeature,
+        "e2gMean": E2gMeanFeature,
+        "e2gMeanNeighbourhood": E2gMeanNeighbourhoodFeature,
         "geneCount500kb": GeneCountFeature,
         "proteinGeneCount500kb": ProteinGeneCountFeature,
         "isProteinCoding": ProteinCodingFeature,
@@ -181,7 +187,7 @@ class FeatureFactory:
 
         Args:
             feature_name (str): name of the feature
-            features_input_loader (L2GFeatureInputLoader): Object that contais features input.
+            features_input_loader (L2GFeatureInputLoader): Object that contains features input.
 
         Returns:
             L2GFeature: instantiated feature object
