@@ -66,6 +66,7 @@ class EqtlCatalogueStep:
         (
             EqtlCatalogueStudyIndex.from_susie_results(processed_susie_df)
             # Writing the output:
+            .coalesce(1)
             .df.write.mode(session.write_mode)
             .parquet(eqtl_catalogue_study_index_out)
         )
@@ -75,7 +76,6 @@ class EqtlCatalogueStep:
             # Flagging sub-significnat loci:
             .validate_lead_pvalue(pvalue_cutoff=eqtl_lead_pvalue_threshold)
             # Writing the output:
-            .df.coalesce(1)
-            .write.mode(session.write_mode)
+            .df.write.mode(session.write_mode)
             .parquet(eqtl_catalogue_credible_sets_out)
         )
