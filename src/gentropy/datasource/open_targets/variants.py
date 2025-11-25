@@ -80,7 +80,7 @@ class OpenTargetsVariant:
             DataFrame: DataFrame with variant information in VCF format.
         """
         # Add necessary cols if not present and apply rsID mappings
-        mandatory_cols = ["variantId", "variantRsId", "locus"]
+        mandatory_cols = ["variantId", "variantRsId", "locus", "variantLabel"]
         missing_cols = [col for col in mandatory_cols if col not in variant_df.columns]
         for col in missing_cols:
             if col == "locus":
@@ -96,7 +96,10 @@ class OpenTargetsVariant:
                     col, create_empty_column_if_not_exists(col)
                 )
         return (
-            variant_df.filter(f.col("variantId").isNotNull())
+            variant_df
+            # Defaulting to variantLabel, as variantId might be already hashed:
+            .withColumn("variantId", f.coalesce("variantLabel", "variantId"))
+            .filter(f.col("variantId").isNotNull())
             .withColumn(
                 # Combine variant IDs from variantId and locus.variantId
                 "variantId",
