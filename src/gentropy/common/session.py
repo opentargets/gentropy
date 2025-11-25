@@ -237,6 +237,7 @@ class Session:
         if format in {"tsv", "txt"}:
             format = "csv"
             kwargs["sep"] = "\t"
+            kwargs["header"] = kwargs.get("header", True)
 
         match path:
             case list():
@@ -250,7 +251,7 @@ class Session:
                 raise ValueError("Path must be a string or a list of strings.")
 
         if protocol in ["http", "https"]:
-            self._load_from_url(path, schema=schema, format=format, **kwargs)
+            return self._load_from_url(path, format=format, schema=schema, **kwargs)
 
         if schema is None:
             kwargs["inferSchema"] = kwargs.get("inferSchema", True)
@@ -263,7 +264,7 @@ class Session:
         url: str | list[str],
         format: str,
         schema: StructType | str | None = None,
-        **kwargs: bool | float | int | str | None,
+        **kwargs: str,
     ) -> DataFrame:
         """Load CSV/TSV data from a URL into a Spark DataFrame.
 
@@ -271,7 +272,7 @@ class Session:
             url (str | list[str]): URL or list of URLs to load data from.
             format (str): File format. Currently only 'csv' is supported.
             schema (StructType | str | None): Schema to use when reading the data.
-            **kwargs (bool | float | int | str | None): Additional arguments to pass to spark.read.csv.
+            **kwargs (str): Additional arguments to pass to spark.read.csv.
 
         Returns:
             DataFrame: Dataframe containing the loaded data.
@@ -294,9 +295,7 @@ class Session:
         csv_data = urlopen(url).readlines()
         csv_rows: list[str] = [row.decode("utf8") for row in csv_data]
         rdd = self.spark.sparkContext.parallelize(csv_rows)
-        return self.spark.read.load(
-            rdd, format="csv", header=True, schema=schema, **kwargs
-        )
+        return self.spark.read.csv(rdd, schema=schema, **kwargs)
 
 
 class JavaLogger(Protocol):
