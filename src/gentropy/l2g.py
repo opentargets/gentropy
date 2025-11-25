@@ -452,8 +452,7 @@ class LocusToGeneEvidenceStep:
             )
             .coalesce(session.output_partitions)
             .write.mode(session.write_mode)
-            .option("compression", "gzip")
-            .json(evidence_output_path)
+            .parquet(evidence_output_path)
         )
 
 

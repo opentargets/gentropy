@@ -2,24 +2,21 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-
 import numpy as np
 import pandas as pd
 import pyspark.sql.functions as f
 from pyspark.sql import DataFrame
-from scipy.stats import fisher_exact
+from scipy.stats import chi2, fisher_exact
 
 from gentropy.common.spark import calculate_harmonic_sum
 from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import StudyLocus
 
 
-@dataclass
 class chemblDrugEnrichment:
     """Chembl drug target enrichment.
 
-    Note: uses the logic from Nealson's paper.
+    Note: uses the logic from Nealson's paper (doi.org/10.1038/s41586-024-07316-0).
     """
 
     @staticmethod
@@ -306,18 +303,38 @@ class chemblDrugEnrichment:
             odds_ratio, p_value = fisher_exact(contingency_table)
 
             # Calculate confidence interval for odds ratio
-            ln_or = np.log(odds_ratio)
-            se_ln_or = np.sqrt(
-                1 / contingency_table[0][0]
-                + 1 / contingency_table[0][1]
-                + 1 / contingency_table[1][0]
-                + 1 / contingency_table[1][1]
-            )
+
+            if not np.any(np.array(contingency_table) == 0):
+                ln_or = np.log(odds_ratio)
+                se_ln_or = np.sqrt(
+                    1 / contingency_table[0][0]
+                    + 1 / contingency_table[0][1]
+                    + 1 / contingency_table[1][0]
+                    + 1 / contingency_table[1][1]
+                )
+
+                relative_success = (X_G / N_G) / (X_negG / N_negG)
+                ln_rs = np.log(relative_success)
+                se_ln_rs = np.sqrt((1 / X_negG) - (1 / N_negG) + (1 / X_G) - (1 / N_G))
+                p_value_rs = chi2.sf((ln_rs / se_ln_rs) ** 2, df=1)
+            else:
+                odds_ratio = 1
+                ln_or = 0
+                se_ln_or = 0
+                relative_success = 1
+                ln_rs = 0
+                se_ln_rs = 0
+                p_value_rs = 1
+
             ci_ln_low = ln_or - z * se_ln_or
             ci_ln_high = ln_or + z * se_ln_or
             ci_low = np.exp(ci_ln_low)
             ci_high = np.exp(ci_ln_high)
 
+            ci_ln_rs_low = ln_rs - z * se_ln_rs
+            ci_ln_rs_high = ln_rs + z * se_ln_rs
+            ci_rs_low = np.exp(ci_ln_rs_low)
+            ci_rs_high = np.exp(ci_ln_rs_high)
             # Store results
             results.append(
                 {
@@ -326,6 +343,10 @@ class chemblDrugEnrichment:
                     "p_value": p_value,
                     "ci_low": ci_low,
                     "ci_high": ci_high,
+                    "Relative success": relative_success,
+                    "ci_rs_low": ci_rs_low,
+                    "ci_rs_high": ci_rs_high,
+                    "rs_p_value": p_value_rs,
                     "no_evid-low_clinphase": N_negG - X_negG,
                     "no_evid-high_clinphase": X_negG,
                     "yes_evid-low_clinphase": N_G - X_G,

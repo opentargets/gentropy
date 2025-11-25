@@ -10,10 +10,10 @@ from typing import TYPE_CHECKING, Any
 
 import pandas as pd
 import skops.io as sio
+from huggingface_hub import HfApi, ModelCard, ModelCardData, create_repo
 from pandas import DataFrame as pd_dataframe
 from pandas import to_numeric as pd_to_numeric
 from sklearn.ensemble import GradientBoostingClassifier
-from skops import hub_utils
 from xgboost import XGBClassifier
 
 from gentropy.common.session import Session
@@ -142,6 +142,7 @@ class LocusToGeneModel:
         Returns:
             LocusToGeneModel: L2G model loaded from the Hugging Face Hub
         """
+        from huggingface_hub import snapshot_download
 
         def get_features_list_from_metadata() -> list[str]:
             """Get the features list (in the right order) from the metadata JSON file downloaded from the Hub.
@@ -164,12 +165,11 @@ class LocusToGeneModel:
                 ]
             ]
 
-        local_path = hf_model_id
-        hub_utils.download(
+        local_path = snapshot_download(
             repo_id=hf_model_id,
-            dst=local_path,
-            token=hf_token,
+            local_dir=hf_model_id,
             revision=hf_model_version,
+            token=hf_token,
         )
         features_list = get_features_list_from_metadata()
         return cls.load_from_disk(
@@ -258,41 +258,86 @@ class LocusToGeneModel:
         Args:
             local_repo (str): Path to the folder where the README file will be saved to be pushed to the Hugging Face Hub
         """
-        from skops import card
-
-        # Define card metadata
-        description = """The locus-to-gene (L2G) model derives features to prioritise likely causal genes at each GWAS locus based on genetic and functional genomics features. The main categories of predictive features are:
-
-        - Distance: (from credible set variants to gene)
-        - Molecular QTL Colocalization
-        - Variant Pathogenicity: (from VEP)
-
-        More information at: https://opentargets.github.io/gentropy/python_api/methods/l2g/_l2g/
-        """
-        how_to = """To use the model, you can load it using the `LocusToGeneModel.load_from_hub` method. This will return a `LocusToGeneModel` object that can be used to make predictions on a feature matrix.
-        The model can then be used to make predictions using the `predict` method.
-
-        More information can be found at: https://opentargets.github.io/gentropy/python_api/methods/l2g/model/
-        """
-        model_card = card.Card(
-            self.model,
-            metadata=card.metadata_from_config(Path(local_repo)),
+        card_data = ModelCardData(
+            language="en",
+            license="mit",
+            library_name="sklearn",
+            tags=[
+                "sklearn",
+                "tabular-classification",
+                "genomics",
+                "gwas",
+                "gene-prioritization",
+            ],
         )
-        model_card.add(
-            **{
-                "Model description": description,
-                "Model description/Training Procedure": "Gradient Boosting Classifier",
-                "How to Get Started with the Model": how_to,
-                "Model Card Authors": "Open Targets",
-                "License": "MIT",
-                "Citation": "https://doi.org/10.1038/s41588-021-00945-5",
-            }
+
+        # Create model card with custom template
+        card = ModelCard.from_template(
+            card_data,
+            template_path=None,
         )
-        model_card.delete("Model description/Training Procedure/Model Plot")
-        model_card.delete("Model description/Evaluation Results")
-        model_card.delete("Model Card Authors")
-        model_card.delete("Model Card Contact")
-        model_card.save(Path(local_repo) / "README.md")
+
+        card.text = """# Locus-to-Gene (L2G) Model
+
+The locus-to-gene (L2G) model prioritises likely causal genes at each GWAS locus based on genetic and functional genomics features.
+
+## Model Description
+
+This is a **Gradient Boosting Classifier** (XGBoost) trained to predict causal genes at GWAS loci.
+
+Limited to protein-coding genes with available feature data.
+
+**Key Features:**
+- **Distance**: proximity from credible set variants to gene
+- **Molecular QTL Colocalization**: evidence from expression/protein QTL studies
+- **Variant Pathogenicity**: VEP (Variant Effect Predictor) scores
+
+## Usage
+
+```python
+from gentropy.method.l2g.model import LocusToGeneModel
+from gentropy.common.session import Session
+
+# Load model from Hugging Face Hub
+session = Session()
+model = LocusToGeneModel.load_from_hub(
+    session=session,
+    hf_model_id="opentargets/locus_to_gene"
+)
+
+# Make predictions on your L2G feature matrix
+predictions = model.predict(your_feature_matrix, session)
+```
+
+## Training
+
+- **Architecture**: XGBoost Gradient Boosting Classifier
+- **Training Data**: Curated positive/negative gene-locus pairs from Open Targets
+- **Evaluation Metric**: Area under precision-recall curve (AUCPR)
+
+## Citation
+
+If you use this model, please cite:
+
+```bibtex
+@article{ghoussaini2021open,
+title={Open Targets Genetics: systematic identification of trait-associated genes using large-scale genetics and functional genomics},
+author={Ghoussaini, Maya and Mountjoy, Edward and Carmona, Maria and others},
+journal={Nature Genetics},
+volume={53},
+pages={1527--1533},
+year={2021},
+doi={10.1038/s41588-021-00945-5}
+}
+```
+
+## More Information
+
+- **Repository**: [opentargets/gentropy](https://github.com/opentargets/gentropy)
+- **Documentation**: [L2G Method Docs](https://opentargets.github.io/gentropy/python_api/methods/l2g/_l2g/)
+- **Developer**: Open Targets
+"""
+        card.save(Path(local_repo) / "README.md")
 
     def export_to_hugging_face_hub(
         self: LocusToGeneModel,
@@ -319,8 +364,8 @@ class LocusToGeneModel:
         Raises:
             RuntimeError: If the push to the Hugging Face Hub fails
         """
+        import shutil
         import tempfile
-        from pathlib import Path
 
         from sklearn import __version__ as sklearn_version
 
@@ -336,30 +381,36 @@ class LocusToGeneModel:
                     label_encoder=self.label_encoder,
                     label_col=feature_matrix.label_col,
                 )
-
-                # Initialize hub with the training data as example
-                hub_utils.init(
-                    model=model_path,
-                    requirements=[f"sklearn={sklearn_version}"],
-                    dst=str(temp_dir_path),
-                    task="tabular-classification",
-                    data=train_df,
-                )
-
-                # Save train/test splits
                 train_df.to_parquet(temp_dir_path / "train.parquet")
                 test_df.to_parquet(temp_dir_path / "test.parquet")
+
+                shutil.copy(model_path, temp_dir_path / "classifier.skops")
+
+                with open(temp_dir_path / "config.json", "w") as f:
+                    config = {
+                        "sklearn": {
+                            "columns": train_df.columns.tolist(),
+                            "sklearn_version": sklearn_version,
+                        },
+                        "task": "tabular-classification",
+                    }
+                    json.dump(config, f, indent=2)
+
+                with open(temp_dir_path / "requirements.txt", "w") as f:
+                    f.write(f"scikit-learn=={sklearn_version}\n")
+                    f.write("skops\n")
 
                 # Create model card
                 self._create_hugging_face_model_card(str(temp_dir_path))
 
-                # Push to Hugging Face Hub
-                hub_utils.push(
+                # Create repo if it doesn't exist and upload
+                api = HfApi(token=hf_hub_token)
+                create_repo(repo_id, exist_ok=True, token=hf_hub_token)
+
+                api.upload_folder(
+                    folder_path=str(temp_dir_path),
                     repo_id=repo_id,
-                    source=str(temp_dir_path),
-                    token=hf_hub_token,
                     commit_message=commit_message,
-                    create_remote=True,
                 )
 
             except Exception as e:
