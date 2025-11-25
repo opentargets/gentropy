@@ -14,14 +14,13 @@ from pyspark.sql import types as t
 from pyspark.sql.window import Window
 
 from gentropy.common.schemas import SchemaValidationError, compare_struct_schemas
+from gentropy.common.session import Session
 
 if TYPE_CHECKING:
     from enum import Enum
 
     from pyspark.sql import Column
     from pyspark.sql.types import StructType
-
-    from gentropy.common.session import Session
 
 
 @dataclass

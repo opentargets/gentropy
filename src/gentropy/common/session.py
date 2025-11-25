@@ -205,9 +205,6 @@ class Session:
             DataFrame: Dataframe containing the loaded data.
         """
         # Set default kwargs
-        # import pdb
-
-        # pdb.set_trace()
         if format is None:
             match path:
                 case list():

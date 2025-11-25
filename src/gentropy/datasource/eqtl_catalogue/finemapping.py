@@ -15,6 +15,7 @@ from pyspark.sql.types import (
     StructType,
 )
 
+from gentropy.common.processing import normalize_chromosome
 from gentropy.common.session import Session
 from gentropy.common.spark import clean_strings_from_symbols
 from gentropy.common.stats import split_pvalue_column
@@ -124,6 +125,7 @@ class EqtlCatalogueFinemapping:
         credible_sets: DataFrame,
         lbf: DataFrame,
         studies_metadata: DataFrame,
+        ss_ftp_path_template: str = "https://ftp.ebi.ac.uk/pub/databases/spot/eQTL/sumstats",
     ) -> DataFrame:
         """Parse the SuSIE results into a DataFrame containing the finemapping statistics and metadata about the studies.
 
@@ -131,11 +133,11 @@ class EqtlCatalogueFinemapping:
             credible_sets (DataFrame): DataFrame containing raw statistics of all variants in the credible sets.
             lbf (DataFrame): DataFrame containing the raw log Bayes Factors for all variants.
             studies_metadata (DataFrame): DataFrame containing the study metadata.
+            ss_ftp_path_template (str, optional): eQTL Catalogue FTP path template for summary statistics. Defaults to "https://ftp.ebi.ac.uk/pub/databases/spot/eQTL/sumstats".
 
         Returns:
             DataFrame: Processed SuSIE results to contain metadata about the studies and the finemapping statistics.
         """
-        ss_ftp_path_template = "https://ftp.ebi.ac.uk/pub/databases/spot/eQTL/sumstats"
         return (
             lbf.join(
                 credible_sets.join(f.broadcast(studies_metadata), on="dataset_id"),
@@ -158,7 +160,7 @@ class EqtlCatalogueFinemapping:
             .select(
                 f.regexp_replace(f.col("variant"), r"chr", "").alias("variantId"),
                 f.col("region"),
-                f.col("chromosome"),
+                normalize_chromosome(f.col("chromosome")).alias("chromosome"),
                 f.col("position"),
                 f.col("pip").alias("posteriorProbability"),
                 *split_pvalue_column(f.col("pvalue")),
@@ -261,25 +263,19 @@ class EqtlCatalogueFinemapping:
     @classmethod
     def read_credible_set_from_source(
         cls: type[EqtlCatalogueFinemapping],
-        session: Session,
         credible_set_path: str | list[str],
     ) -> DataFrame:
         """Load raw credible sets from eQTL Catalogue.
 
         Args:
-            session (Session): Spark session.
             credible_set_path (str | list[str]): Path to raw table(s) containing finemapping results for any variant belonging to a credible set.
 
         Returns:
             DataFrame: Credible sets DataFrame.
         """
+        session = Session.find()
         return (
-            session.spark.read.csv(
-                credible_set_path,
-                sep="\t",
-                header=True,
-                schema=cls.raw_credible_set_schema,
-            )
+            session.load_data(credible_set_path, schema=cls.raw_credible_set_schema)
             .withColumns(
                 {
                     # Adding dataset id based on the input file name:
@@ -298,25 +294,19 @@ class EqtlCatalogueFinemapping:
     @classmethod
     def read_lbf_from_source(
         cls: type[EqtlCatalogueFinemapping],
-        session: Session,
         lbf_path: str | list[str],
     ) -> DataFrame:
         """Load raw log Bayes Factors from eQTL Catalogue.
 
         Args:
-            session (Session): Spark session.
             lbf_path (str | list[str]): Path to raw table(s) containing Log Bayes Factors for each variant.
 
         Returns:
             DataFrame: Log Bayes Factors DataFrame.
         """
+        session = Session.find()
         return (
-            session.spark.read.csv(
-                lbf_path,
-                sep="\t",
-                header=True,
-                schema=cls.raw_lbf_schema,
-            )
+            session.load_data(lbf_path, schema=cls.raw_lbf_schema)
             .withColumn(
                 "dataset_id",
                 cls._extract_dataset_id_from_file_path(f.input_file_name()),
