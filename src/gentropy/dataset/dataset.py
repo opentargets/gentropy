@@ -141,6 +141,20 @@ class Dataset(ABC):
         return {}
 
     @classmethod
+    def read(cls, path: str | list[str], **kwargs) -> Self:
+        """Reads dataset into a Dataset with a given schema."""
+        session = Session.find()
+        schema = cls.get_schema()
+        return cls(
+            _df=session.load_data(
+                path=path,
+                schema=schema,
+                **kwargs,
+            ),
+            _schema=schema,
+        )
+
+    @classmethod
     def from_parquet(
         cls: type[Self],
         session: Session,
