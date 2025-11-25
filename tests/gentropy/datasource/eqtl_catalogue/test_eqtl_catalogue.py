@@ -46,7 +46,7 @@ class TestEqtlCatalogueStudyLocus:
     """Test the correctness of the study locus dataset from eQTL Catalogue."""
 
     @pytest.fixture(autouse=True)
-    def _setup(self, processed_finemapping_df: DataFrame) -> DataFrame:
+    def _setup(self, processed_finemapping_df: DataFrame) -> None:
         """Set up the test."""
         self.study_locus = EqtlCatalogueFinemapping.from_susie_results(
             processed_finemapping_df
