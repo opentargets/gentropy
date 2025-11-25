@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+import pyspark.sql.functions as f
+
 from gentropy.dataset.study_locus import StudyLocus
 from gentropy.datasource.open_targets.variants import OpenTargetsVariant
 
@@ -49,9 +51,9 @@ class TestOpenTargetsVariant:
             ],
             vcf_cols,
         )
-        assert observed_df.collect() == df_credible_set_expected_df.collect(), (
-            "Unexpected VCF dataframe."
-        )
+        assert (
+            observed_df.collect() == df_credible_set_expected_df.collect()
+        ), "Unexpected VCF dataframe."
 
     def test_as_vcf_df_without_variant_id(
         self: TestOpenTargetsVariant,
@@ -85,6 +87,32 @@ class TestOpenTargetsVariant:
             vcf_cols,
         )
 
-        assert observed_df.collect() == df_without_rs_id_expected_df.collect(), (
-            "Unexpected VCF dataframe."
+        assert (
+            observed_df.collect() == df_without_rs_id_expected_df.collect()
+        ), "Unexpected VCF dataframe."
+
+    def test_as_vcf_df_when_hashed_variant(
+        self: TestOpenTargetsVariant,
+        spark: SparkSession,
+        session: Session,
+    ) -> None:
+        """Test the as_vcf_df method with a dataframe of variants without an annotated variantRsId."""
+        df_without_rs_id_df = spark.createDataFrame(
+            [
+                ("1_2_G_GA", "1_2_G_GA"),  # Both variantId and label present
+                (None, "1_3_G_GA"),  # Only variantId is present
+                ("1_4_G_GA", "OTVAR_hash"),  # VariantId is hashed.
+            ],
+            ["variantLabel", "variantId"],
         )
+        observed_df = OpenTargetsVariant.as_vcf_df(session, df_without_rs_id_df)
+
+        # We need to make sure all variant survived:
+        assert observed_df.count() == 3
+
+        # Assert all values in chromosome is 1:
+        assert observed_df.select("#CHROM").distinct().count() == 1
+        assert observed_df.select("#CHROM").first().asDict()["#CHROM"] == "1"
+
+        # Assert the hashed identifiers are propagated to the VEP input:
+        assert observed_df.filter(f.col("ID").startswith("OTV")).count() == 1

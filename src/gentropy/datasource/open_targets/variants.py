@@ -98,6 +98,12 @@ class OpenTargetsVariant:
         return (
             variant_df
             # Defaulting to variantLabel, as variantId might be already hashed:
+            .withColumn(
+                "variantRsId",
+                f.when(
+                    f.col("variantId").startswith("OTVAR"), f.col("variantId")
+                ).otherwise(f.col("variantRsId")),
+            )
             .withColumn("variantId", f.coalesce("variantLabel", "variantId"))
             .filter(f.col("variantId").isNotNull())
             .withColumn(
