@@ -317,7 +317,8 @@ class StudyIndex(Dataset):
                     f.col("projectId").isin(deprecated_project_ids),
                     StudyQualityCheck.DEPRECATED_PROJECT,
                 ),
-            )
+            ),
+            _schema=StudyIndex.get_schema(),
         )
 
     def _normalise_disease(
