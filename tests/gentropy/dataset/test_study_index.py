@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import pytest
-from pyspark.sql import DataFrame, SparkSession
+from pyspark.sql import DataFrame, Row, SparkSession
 from pyspark.sql import functions as f
 
 from gentropy.dataset.biosample_index import BiosampleIndex
@@ -719,3 +719,49 @@ class TestStudyIndexAnnotation:
         )
         assert annotated[0][0] == "s1", "s1 Should be annotated with the flag"
         assert annotated[1][0] == "s3", "s3 Should be annotated with the flag"
+
+
+class TestProjectIdValidation:
+    """Test study index project id validation."""
+
+    STUDY_REQUIRED_DATA: list[tuple[str, str, str, list[str]]] = [
+        ("s1", "GCST", "gwas", []),
+        ("s2", "GTEx", "gwas", []),
+    ]
+
+    STUDY_REQUIRED_SCHEMA = "studyId STRING, projectId STRING, studyType STRING, qualityControls ARRAY<STRING>"
+
+    @pytest.mark.parametrize(
+        ["project_id", "expected_data"],
+        [
+            pytest.param(
+                "GTEx",
+                [
+                    Row(studyId="s1", qualityControls=[]),
+                    Row(
+                        studyId="s2",
+                        qualityControls=[StudyQualityCheck.DEPRECATED_PROJECT.value],
+                    ),
+                ],
+                id="GTEx projectId should not be flagged",
+            ),
+        ],
+    )
+    def test_project_id_validation(
+        self, spark: SparkSession, project_id: str, expected_data: list[Row]
+    ) -> None:
+        """Test project id validation."""
+        si = StudyIndex(
+            _df=spark.createDataFrame(
+                self.STUDY_REQUIRED_DATA, self.STUDY_REQUIRED_SCHEMA
+            )
+        )
+        validated_si = si.validate_project_id(deprecated_project_ids=[project_id])
+        assert isinstance(validated_si, StudyIndex), "should be a StudyIndex"
+        assert validated_si.df.count() == 2, "Should have 2 rows"
+        assert (
+            validated_si.df.select("studyId", "qualityControls")
+            .orderBy("studyId")
+            .collect()
+            == expected_data
+        ), "Should have expected qualityControls"
