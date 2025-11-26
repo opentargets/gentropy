@@ -3,6 +3,7 @@
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+import pytest
 from pyspark.sql import Row
 
 from gentropy import Session
@@ -12,6 +13,7 @@ from gentropy.study_validation import StudyValidationStep
 class TestStudyQcStep:
     """Test study qc step."""
 
+    @pytest.mark.step_test
     @patch("pyspark.sql.readwriter.DataFrameReader.parquet")
     @patch("gentropy.study_validation.TargetIndex")
     @patch("gentropy.study_validation.BiosampleIndex")
