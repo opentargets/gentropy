@@ -55,7 +55,7 @@ def e2g_interval_feature_wide_logic_binned(
     base_name: str = "e2gMean",
     pp_min: float = 0.001,
     bin_size: int = 50_000,
-    max_bins_per_interval: int = 200,
+    max_bins_per_interval: int = 1000,
     repartitions_variants: int | None = None,
     repartitions_intervals: int | None = None,
 ) -> DataFrame:
@@ -439,5 +439,4 @@ class E2gMeanNeighbourhoodFeature(L2GFeature):
             value_name="featureValue",
             value_vars=(cls.feature_name,),
         )
-        return cls(_df=df_long, _schema=cls.get_schema())
         return cls(_df=df_long, _schema=cls.get_schema())
