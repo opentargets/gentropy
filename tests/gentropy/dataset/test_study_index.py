@@ -743,7 +743,7 @@ class TestProjectIdValidation:
                         qualityControls=[StudyQualityCheck.DEPRECATED_PROJECT.value],
                     ),
                 ],
-                id="GTEx projectId should not be flagged",
+                id="GTEx projectId should be flagged as deprecated",
             ),
         ],
     )
