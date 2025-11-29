@@ -1,4 +1,4 @@
-"""Summary satistics dataset."""
+"""Summary statistics dataset."""
 
 from __future__ import annotations
 
