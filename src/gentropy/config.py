@@ -265,6 +265,9 @@ class LocusToGeneConfig(StepConfig):
             "vepMaximumNeighbourhood",
             "vepMean",
             "vepMeanNeighbourhood",
+            # intervals
+            "e2gMean",
+            "e2gMeanNeighbourhood",
             # other
             "geneCount500kb",
             "proteinGeneCount500kb",
@@ -311,6 +314,7 @@ class LocusToGeneFeatureMatrixConfig(StepConfig):
     colocalisation_path: str | None = None
     study_index_path: str | None = None
     target_index_path: str | None = None
+    intervals_path: str | None = None
     feature_matrix_path: str = MISSING
     features_list: list[str] = field(
         default_factory=lambda: [
@@ -345,6 +349,9 @@ class LocusToGeneFeatureMatrixConfig(StepConfig):
             "vepMaximumNeighbourhood",
             "vepMean",
             "vepMeanNeighbourhood",
+            # intervals
+            "e2gMean",
+            "e2gMeanNeighbourhood",
             # other
             "geneCount500kb",
             "proteinGeneCount500kb",

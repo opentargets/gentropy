@@ -35,6 +35,7 @@ if TYPE_CHECKING:
     from matplotlib.axes._axes import Axes
     from shap._explanation import Explanation
     from wandb.sdk.wandb_run import Run
+
 import logging
 
 
@@ -435,7 +436,7 @@ class LocusToGeneTrainer:
                 config = dict(sweep_run.config)
 
                 # Reset wandb setup to ensure clean state
-                _setup(_reset=True)
+                _setup()
 
                 wandb_termlog(f"Sweep URL: {sweep_url}")
                 wandb_termlog(f"Sweep Group URL: {sweep_group_url}")
