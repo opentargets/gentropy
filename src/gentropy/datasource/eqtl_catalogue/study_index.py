@@ -53,6 +53,7 @@ class EqtlCatalogueStudyIndex:
         QuantificationMethod.LEAFCUTTER.value: StudyType.SQTL.value,
         QuantificationMethod.APTAMER.value: StudyType.PQTL.value,
         QuantificationMethod.TXREV.value: StudyType.TUQTL.value,
+        QuantificationMethod.MAJIQ.value: StudyType.SQTL.value,
     }
 
     @classmethod
