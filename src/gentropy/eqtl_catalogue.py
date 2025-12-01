@@ -21,6 +21,7 @@ class EqtlCatalogueStep:
         eqtl_catalogue_paths_imported: str,
         eqtl_catalogue_study_index_out: str,
         eqtl_catalogue_credible_sets_out: str,
+        eqtl_catalogue_metadata_path: str = EqtlCatalogueConfig().eqtl_catalogue_metadata_path,
         eqtl_lead_pvalue_threshold: float = EqtlCatalogueConfig().eqtl_lead_pvalue_threshold,
     ) -> None:
         """Run eQTL Catalogue ingestion step.
@@ -31,11 +32,13 @@ class EqtlCatalogueStep:
             eqtl_catalogue_paths_imported (str): Input eQTL Catalogue fine mapping results path.
             eqtl_catalogue_study_index_out (str): Output eQTL Catalogue study index path.
             eqtl_catalogue_credible_sets_out (str): Output eQTL Catalogue credible sets path.
+            eqtl_catalogue_metadata_path: str = Path to the data_table hosted on the eQTL Catalogue github. Defaults to EqtlCatalogueConfig().eqtl_catalogue_metadata_path
             eqtl_lead_pvalue_threshold (float, optional): Lead p-value threshold. Defaults to EqtlCatalogueConfig().eqtl_lead_pvalue_threshold.
         """
         # Extract
         studies_metadata = EqtlCatalogueStudyIndex.read_studies_from_source(
-            session, list(mqtl_quantification_methods_blacklist)
+            eqtl_catalogue_metadata_path,
+            list(mqtl_quantification_methods_blacklist),
         )
 
         # Load raw data only for the studies we are interested in ingestion. This makes the proces much lighter.
@@ -43,14 +46,12 @@ class EqtlCatalogueStep:
             studies_metadata
         )
         credible_sets_df = EqtlCatalogueFinemapping.read_credible_set_from_source(
-            session,
             credible_set_path=[
                 f"{eqtl_catalogue_paths_imported}/{qtd_id}.credible_sets.tsv"
                 for qtd_id in studies_to_ingest
             ],
         )
         lbf_df = EqtlCatalogueFinemapping.read_lbf_from_source(
-            session,
             lbf_path=[
                 f"{eqtl_catalogue_paths_imported}/{qtd_id}.lbf_variable.txt"
                 for qtd_id in studies_to_ingest
@@ -65,6 +66,7 @@ class EqtlCatalogueStep:
         (
             EqtlCatalogueStudyIndex.from_susie_results(processed_susie_df)
             # Writing the output:
+            .coalesce(1)
             .df.write.mode(session.write_mode)
             .parquet(eqtl_catalogue_study_index_out)
         )

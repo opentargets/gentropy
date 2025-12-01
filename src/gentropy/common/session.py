@@ -39,6 +39,11 @@ class Session:
             output_partitions (int): Number of partitions for output datasets. Defaults to 200.
             use_enhanced_bgzip_codec (bool): Whether to use the BGZFEnhancedGzipCodec for reading block gzipped files. Defaults to False.
         """
+        self.write_mode = write_mode
+        self.hail_home = hail_home
+        self.start_hail = start_hail
+        self.use_enhanced_bgzip_codec = use_enhanced_bgzip_codec
+        self.output_partitions = output_partitions
         merged_conf = self._create_merged_config(
             start_hail,
             use_enhanced_bgzip_codec,
@@ -53,16 +58,9 @@ class Session:
             .appName(app_name)
             .getOrCreate()
         )
-        self.logger = Log4j(self.spark)
-
-        self.write_mode = write_mode
-
-        self.hail_home = hail_home
-        self.start_hail = start_hail
-        self.use_enhanced_bgzip_codec = use_enhanced_bgzip_codec
         if start_hail:
             hl.init(sc=self.spark.sparkContext, log="/dev/null")
-        self.output_partitions = output_partitions
+        self.logger = Log4j(self.spark)
 
     def _default_config(self: Session) -> SparkConf:
         """Default spark configuration.
@@ -77,6 +75,8 @@ class Session:
             .set("spark.dynamicAllocation.minExecutors", "2")
             .set("spark.dynamicAllocation.initialExecutors", "2")
             .set("spark.shuffle.service.enabled", "true")
+            .set("gentropy.config.writeMode", self.write_mode)
+            .set("gentropy.config.outputPartitions", str(self.output_partitions))
         )
 
     def _bgzip_config(self: Session) -> SparkConf:
@@ -102,6 +102,7 @@ class Session:
                 "spark.hadoop.io.compression.codecs",
                 "org.seqdoop.hadoop_bam.util.BGZFEnhancedGzipCodec",
             )
+            .set("gentropy.config.useEnhancedBgzipCodec", "true")
         )
 
     def _hail_config(self: Session, hail_home: str) -> SparkConf:
@@ -122,7 +123,34 @@ class Session:
             .set("spark.executor.extraClassPath", "./hail-all-spark.jar")
             .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
             .set("spark.kryo.registrator", "is.hail.kryo.HailKryoRegistrator")
+            .set("gentropy.config.enableHail", "true")
+            .set("gentropy.config.hailHome", hail_home)
         )
+
+    @classmethod
+    def find(cls) -> Session:
+        """Finds the current active Spark session or creates a new one.
+
+        Returns:
+            Session: Current active Spark session or a new one.
+        """
+        spark = SparkSession.getActiveSession()
+        if spark is None:
+            raise ValueError("No active Spark session found.")
+        conf = spark.sparkContext.getConf()
+        # Collect parameters from the active Spark session
+        session = cls.__new__(cls)
+        session.spark = spark
+        session.logger = Log4j(spark)
+        session.write_mode = conf.get("gentropy.config.writeMode")
+        session.output_partitions = conf.get("gentropy.config.outputPartitions")
+        session.start_hail = bool(conf.get("gentropy.config.enableHail"))
+        session.hail_home = conf.get("gentropy.config.hailHome")
+        session.use_enhanced_bgzip_codec = conf.get(
+            "gentropy.config.useEnhancedBgzipCodec"
+        )
+
+        return session
 
     def _create_merged_config(
         self: Session,
@@ -159,7 +187,7 @@ class Session:
     def load_data(
         self: Session,
         path: str | list[str],
-        format: str = "parquet",
+        format: str | None = None,
         schema: StructType | str | None = None,
         **kwargs: bool | float | int | str | None,
     ) -> DataFrame:
@@ -174,14 +202,100 @@ class Session:
             **kwargs (bool | float | int | str | None): Additional arguments to pass to spark.read.load. `mergeSchema` is set to True, `recursiveFileLookup` is set to False by default.
 
         Returns:
-            DataFrame: Dataframe
+            DataFrame: Dataframe containing the loaded data.
         """
         # Set default kwargs
+        if format is None:
+            match path:
+                case list():
+                    assert len(path) > 0 & all(isinstance(p, str) for p in path), (
+                        "Path must be a non-empty list of strings."
+                    )
+                    # if path is a list, then infer format from the extension of the first element
+                    self.logger.info(
+                        f"Inferring file format from the extension of the first path: {path[0]}"
+                    )
+                    inferred_format = path[0].split(".")[-1]
+                case str():
+                    # if path is a string, then infer format from the extension
+                    inferred_format = path.split(".")[-1]
+                case _:
+                    raise ValueError("Path must be a string or a list of strings.")
+
+            match inferred_format.lower():
+                case "parquet" | "json" | "csv" | "tsv" | "txt":
+                    format = inferred_format
+                case _:
+                    # Assume parquet as default format if the extension is unknown
+                    # Ex, for folders that end with no extension
+                    self.logger.warning(
+                        f"Could not infer file format from the extension '{inferred_format}'. Assuming 'parquet' as default format."
+                    )
+                    format = "parquet"
+
+        # Make sure to set the correct options for tsv files
+        if format in {"tsv", "txt"}:
+            format = "csv"
+            kwargs["sep"] = "\t"
+            kwargs["header"] = kwargs.get("header", True)
+
+        match path:
+            case list():
+                assert len(path) > 0 & all(isinstance(p, str) for p in path), (
+                    "Path must be a non-empty list of strings."
+                )
+                protocol = path[0].split("://")[0]
+            case str():
+                protocol = path.split("://")[0]
+            case _:
+                raise ValueError("Path must be a string or a list of strings.")
+
+        if protocol in ["http", "https"]:
+            return self._load_from_url(path, format=format, schema=schema, **kwargs)
+
         if schema is None:
             kwargs["inferSchema"] = kwargs.get("inferSchema", True)
         kwargs["mergeSchema"] = kwargs.get("mergeSchema", True)
         kwargs["recursiveFileLookup"] = kwargs.get("recursiveFileLookup", False)
         return self.spark.read.load(path, format=format, schema=schema, **kwargs)
+
+    def _load_from_url(
+        self: Session,
+        url: str | list[str],
+        format: str,
+        schema: StructType | str | None = None,
+        **kwargs: str,
+    ) -> DataFrame:
+        """Load CSV/TSV data from a URL into a Spark DataFrame.
+
+        Args:
+            url (str | list[str]): URL or list of URLs to load data from.
+            format (str): File format. Currently only 'csv' is supported.
+            schema (StructType | str | None): Schema to use when reading the data.
+            **kwargs (str): Additional arguments to pass to spark.read.csv.
+
+        Returns:
+            DataFrame: Dataframe containing the loaded data.
+        """
+        # We need to pre-read the data
+        self.logger.warning(
+            "Reading data over HTTP/HTTPS. This may be slow for large datasets. Consider downloading the data locally or to a distributed file system."
+        )
+        from urllib.request import urlopen
+
+        if isinstance(url, list):
+            raise NotImplementedError(
+                "Reading multiple files over HTTP/HTTPS is not supported."
+            )
+        if not format == "csv":
+            raise NotImplementedError(
+                "Only 'csv' format is supported for loading data from URL."
+            )
+
+        csv_data = urlopen(url).readlines()
+        csv_rows: list[str] = [row.decode("utf8") for row in csv_data]
+        rdd = self.spark.sparkContext.parallelize(csv_rows)
+        return self.spark.read.csv(rdd, schema=schema, **kwargs)
 
 
 class JavaLogger(Protocol):

@@ -14,14 +14,13 @@ from pyspark.sql import types as t
 from pyspark.sql.window import Window
 
 from gentropy.common.schemas import SchemaValidationError, compare_struct_schemas
+from gentropy.common.session import Session
 
 if TYPE_CHECKING:
     from enum import Enum
 
     from pyspark.sql import Column
     from pyspark.sql.types import StructType
-
-    from gentropy.common.session import Session
 
 
 @dataclass
@@ -139,6 +138,20 @@ class Dataset(ABC):
             dict[str, str]: Mapping between flag name and QC column category value.
         """
         return {}
+
+    @classmethod
+    def read(cls, path: str | list[str], **kwargs) -> Self:
+        """Reads dataset into a Dataset with a given schema."""
+        session = Session.find()
+        schema = cls.get_schema()
+        return cls(
+            _df=session.load_data(
+                path=path,
+                schema=schema,
+                **kwargs,
+            ),
+            _schema=schema,
+        )
 
     @classmethod
     def from_parquet(
