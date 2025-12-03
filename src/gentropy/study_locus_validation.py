@@ -24,7 +24,7 @@ class StudyLocusValidationStep:
         valid_study_locus_path: str,
         invalid_study_locus_path: str,
         trans_qtl_threshold: int,
-        invalid_qc_reasons: list[str] = [],
+        invalid_qc_reasons: list[str] | None = None,
     ) -> None:
         """Initialize step.
 
@@ -36,8 +36,9 @@ class StudyLocusValidationStep:
             valid_study_locus_path (str): Path to write the valid records.
             invalid_study_locus_path (str): Path to write the output file.
             trans_qtl_threshold (int): genomic distance above which a QTL is considered trans.
-            invalid_qc_reasons (list[str]): List of invalid quality check reason names from `StudyLocusQualityCheck` (e.g. ['SUBSIGNIFICANT_FLAG']).
+            invalid_qc_reasons (list[str] | None): List of invalid quality check reason names from `StudyLocusQualityCheck` (e.g. ['SUBSIGNIFICANT_FLAG']).
         """
+        invalid_qc_reasons = invalid_qc_reasons or []
         # Reading datasets:
         study_index = StudyIndex.from_parquet(session, study_index_path)
         target_index = TargetIndex.from_parquet(session, target_index_path)
