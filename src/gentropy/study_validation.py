@@ -51,7 +51,7 @@ class StudyValidationStep:
         target_index = TargetIndex.from_parquet(session, target_index_path)
         biosample_index = BiosampleIndex.from_parquet(session, biosample_index_path)
         # Reading disease index and pre-process.
-        # This logic does not belong anywhere, but gentorpy has no disease dataset yet.
+        # This logic does not belong anywhere, but gentropy has no disease dataset yet.
         disease_index = (
             session.spark.read.parquet(disease_index_path)
             .select(
@@ -74,16 +74,19 @@ class StudyValidationStep:
             .validate_project_id(deprecated_project_ids)  # Flag obsolete projectIds
             .validate_target(target_index)  # Flagging QTL studies with invalid targets
             .validate_disease(disease_index)  # Flagging invalid EFOs
-            .validate_biosample(
-                biosample_index
-            )  # Flagging QTL studies with invalid biosamples
+            .validate_biosample(biosample_index)  # Flagging invalid biosample in QTLs
             .validate_analysis_flags()  # Flagging studies with case case design
-        ).persist()  # we will need this for 2 types of outputs
+            .persist()  # we will need this for 2 types of outputs
+        )
 
-        study_index_with_qc.valid_rows(invalid_qc_reasons, invalid=True).df.coalesce(
-            session.output_partitions
-        ).write.mode(session.write_mode).parquet(invalid_study_index_path)
-
-        study_index_with_qc.valid_rows(invalid_qc_reasons).df.coalesce(
-            session.output_partitions
-        ).write.mode(session.write_mode).parquet(valid_study_index_path)
+        valid, invalid = study_index_with_qc.valid_rows(invalid_qc_reasons)
+        (
+            valid.df.coalesce(session.output_partitions)
+            .write.mode(session.write_mode)
+            .parquet(invalid_study_index_path)
+        )
+        (
+            invalid.df.coalesce(session.output_partitions)
+            .write.mode(session.write_mode)
+            .parquet(valid_study_index_path)
+        )

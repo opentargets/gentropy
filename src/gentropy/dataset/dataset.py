@@ -17,15 +17,25 @@ from gentropy.common.schemas import SchemaValidationError, compare_struct_schema
 
 if TYPE_CHECKING:
     from enum import Enum
+    from typing import Generic, NamedTuple, TypeVar
 
     from pyspark.sql import Column
     from pyspark.sql.types import StructType
 
     from gentropy.common.session import Session
 
+T = TypeVar("T")
+
+
+class DatasetValidationResult(NamedTuple, Generic[T]):
+    """Dataset validation result."""
+
+    valid: T
+    invalid: T
+
 
 @dataclass
-class Dataset(ABC):
+class Dataset(ABC, Generic[T]):
     """Open Targets Gentropy Dataset Interface.
 
     The `Dataset` interface is a wrapper around a Spark DataFrame with a predefined schema.
@@ -200,7 +210,9 @@ class Dataset(ABC):
                 f"Schema validation failed for {type(self).__name__}", discrepancies
             )
 
-    def valid_rows(self: Self, invalid_flags: list[str], invalid: bool = False) -> Self:
+    def valid_rows(
+        self: Self, invalid_flags: list[str]
+    ) -> DatasetValidationResult[Self]:
         """Filters `Dataset` according to a list of quality control flags. Only `Dataset` classes with a QC column can be validated.
 
         This method checks do following steps:
@@ -210,10 +222,9 @@ class Dataset(ABC):
 
         Args:
             invalid_flags (list[str]): List of quality control flags to be excluded.
-            invalid (bool): If True returns the invalid rows, instead of the valid. Defaults to False.
 
         Returns:
-            Self: filtered dataset.
+            DatasetValidationResult[Self]: A named tuple with valid and invalid Datasets.
 
         Raises:
             ValueError: If the Dataset does not contain a QC column or if the invalid_flags elements do not exist in QC mappings flags.
@@ -243,10 +254,10 @@ class Dataset(ABC):
             f.array([f.lit(i) for i in invalid_reasons]), qc
         )
         # Returning the filtered dataset:
-        if invalid:
-            return self.filter(~filterCondition)
-        else:
-            return self.filter(filterCondition)
+        return DatasetValidationResult(
+            valid=self.filter(filterCondition),
+            invalid=self.filter(~filterCondition),
+        )
 
     def drop_infinity_values(self: Self, *cols: str) -> Self:
         """Drop infinity values from Double typed column.
