@@ -25,6 +25,7 @@ class IntervalQualityCheck(Enum):
 
     UNRESOLVED_TARGET = "Target/gene identifier could not match to reference"
     UNKNOWN_BIOSAMPLE = "Biosample identifier was not found in the reference"
+    SCORE_OUTSIDE_BOUNDS = "Score was above or below specified thresholds"
 
 
 @dataclass
@@ -149,16 +150,28 @@ class Intervals(Dataset):
         )
         return Intervals(_df=validated_df, _schema=Intervals.get_schema())
 
-    def validate_score(self: Intervals, min_score: float) -> Intervals:
+    def validate_score(
+        self: Intervals, min_score: float, max_score: float
+    ) -> Intervals:
         """Validate scores in the Intervals dataset.
 
         Args:
             min_score (float): Minimum acceptable score.
+            max_score (float): Maximum acceptable score.
+
         Returns:
             Intervals: Intervals dataset with invalid scores flagged.
 
         """
-        raise NotImplementedError("Score validation not yet implemented.")
+        valid_df = self.df.withColumn(
+            "qualityControls",
+            self.update_quality_flag(
+                f.col("qualityControls"),
+                ~f.col("score").between(min_score, max_score),
+                IntervalQualityCheck.SCORE_OUTSIDE_BOUNDS,
+            ),
+        )
+        return Intervals(_df=valid_df)
 
     def validate_interval(self: Intervals) -> Intervals:
         """Validate chromosome labels in the Intervals dataset.

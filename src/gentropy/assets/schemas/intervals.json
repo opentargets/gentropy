@@ -103,7 +103,7 @@
       "name": "biosampleId",
       "nullable": true,
       "type": "string"
-    }
+    },
     {
       "metadata": {},
       "name": "studyId",
