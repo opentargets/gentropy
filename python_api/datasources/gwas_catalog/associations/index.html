@@ -5033,7 +5033,9 @@
 <span class="normal">1179</span>
 <span class="normal">1180</span>
 <span class="normal">1181</span>
-<span class="normal">1182</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
+<span class="normal">1182</span>
+<span class="normal">1183</span>
+<span class="normal">1184</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">GWASCatalogCuratedAssociationsParser</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;GWAS Catalog curated associations parser.&quot;&quot;&quot;</span>
 
@@ -5611,7 +5613,7 @@
 <span class="sd">            ... ]</span>
 <span class="sd">            &gt;&gt;&gt; (</span>
 <span class="sd">            ...    spark.createDataFrame(d, [&#39;effect&#39;, &#39;ci_text&#39;, &#39;flip&#39;])</span>
-<span class="sd">            ...    .select(&quot;effect&quot;, &quot;ci_text&quot;, &#39;flip&#39;, GWASCatalogCuratedAssociationsParser._harmonise_beta(f.col(&quot;effect&quot;), f.col(&quot;ci_text&quot;), f.lit(False)).alias(&quot;beta&quot;))</span>
+<span class="sd">            ...    .select(&quot;effect&quot;, &quot;ci_text&quot;, &#39;flip&#39;, GWASCatalogCuratedAssociationsParser._harmonise_beta(f.col(&quot;effect&quot;), f.col(&quot;ci_text&quot;), f.col(&#39;flip&#39;)).alias(&quot;beta&quot;))</span>
 <span class="sd">            ...    .show()</span>
 <span class="sd">            ... )</span>
 <span class="sd">            +------+--------+-----+----+</span>
@@ -5619,16 +5621,18 @@
 <span class="sd">            +------+--------+-----+----+</span>
 <span class="sd">            |   0.5|increase|false| 0.5|</span>
 <span class="sd">            |   0.5|decrease|false|-0.5|</span>
-<span class="sd">            |   0.5|decrease| true|-0.5|</span>
-<span class="sd">            |   0.5|increase| true| 0.5|</span>
+<span class="sd">            |   0.5|decrease| true| 0.5|</span>
+<span class="sd">            |   0.5|increase| true|-0.5|</span>
 <span class="sd">            |   0.5|decrease|false|-0.5|</span>
 <span class="sd">            +------+--------+-----+----+</span>
 <span class="sd">            &lt;BLANKLINE&gt;</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="p">(</span>
             <span class="n">f</span><span class="o">.</span><span class="n">when</span><span class="p">(</span>
-                <span class="p">(</span><span class="n">flipping_needed</span> <span class="o">&amp;</span> <span class="n">confidence_interval</span><span class="o">.</span><span class="n">contains</span><span class="p">(</span><span class="s2">&quot;increase&quot;</span><span class="p">))</span>
-                <span class="o">|</span> <span class="p">(</span><span class="o">~</span><span class="n">flipping_needed</span> <span class="o">&amp;</span> <span class="n">confidence_interval</span><span class="o">.</span><span class="n">contains</span><span class="p">(</span><span class="s2">&quot;decrease&quot;</span><span class="p">)),</span>
+                <span class="p">(</span>
+                    <span class="p">(</span><span class="n">flipping_needed</span> <span class="o">&amp;</span> <span class="n">confidence_interval</span><span class="o">.</span><span class="n">contains</span><span class="p">(</span><span class="s2">&quot;increase&quot;</span><span class="p">))</span>
+                    <span class="o">|</span> <span class="p">(</span><span class="o">~</span><span class="n">flipping_needed</span> <span class="o">&amp;</span> <span class="n">confidence_interval</span><span class="o">.</span><span class="n">contains</span><span class="p">(</span><span class="s2">&quot;decrease&quot;</span><span class="p">))</span>
+                <span class="p">),</span>
                 <span class="o">-</span><span class="n">effect_size</span><span class="p">,</span>
             <span class="p">)</span>
             <span class="o">.</span><span class="n">otherwise</span><span class="p">(</span><span class="n">effect_size</span><span class="p">)</span>
@@ -6504,9 +6508,7 @@ applies some pre-defined filters on the data:</p>
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/datasource/gwas_catalog/associations.py</code></summary>
-              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1091</span>
-<span class="normal">1092</span>
-<span class="normal">1093</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1093</span>
 <span class="normal">1094</span>
 <span class="normal">1095</span>
 <span class="normal">1096</span>
@@ -6595,7 +6597,9 @@ applies some pre-defined filters on the data:</p>
 <span class="normal">1179</span>
 <span class="normal">1180</span>
 <span class="normal">1181</span>
-<span class="normal">1182</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
+<span class="normal">1182</span>
+<span class="normal">1183</span>
+<span class="normal">1184</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">from_source</span><span class="p">(</span>
     <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">GWASCatalogCuratedAssociationsParser</span><span class="p">],</span>
     <span class="n">gwas_associations</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span>
@@ -6830,9 +6834,7 @@ GWASCatalogCuratedAssociationsParser.harmonise_association_effect_to_beta(df).sh
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/datasource/gwas_catalog/associations.py</code></summary>
-              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 956</span>
-<span class="normal"> 957</span>
-<span class="normal"> 958</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 958</span>
 <span class="normal"> 959</span>
 <span class="normal"> 960</span>
 <span class="normal"> 961</span>
@@ -6963,7 +6965,9 @@ GWASCatalogCuratedAssociationsParser.harmonise_association_effect_to_beta(df).sh
 <span class="normal">1086</span>
 <span class="normal">1087</span>
 <span class="normal">1088</span>
-<span class="normal">1089</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@staticmethod</span>
+<span class="normal">1089</span>
+<span class="normal">1090</span>
+<span class="normal">1091</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@staticmethod</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">harmonise_association_effect_to_beta</span><span class="p">(</span>
     <span class="n">df</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataFrame</span><span class="p">:</span>
@@ -7143,9 +7147,7 @@ GWASCatalogCuratedAssociationsParser.harmonise_association_effect_to_beta(df).sh
 
               <details class="quote">
                 <summary>Source code in <code>src/gentropy/datasource/gwas_catalog/associations.py</code></summary>
-                <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1185</span>
-<span class="normal">1186</span>
-<span class="normal">1187</span>
+                <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1187</span>
 <span class="normal">1188</span>
 <span class="normal">1189</span>
 <span class="normal">1190</span>
@@ -7225,7 +7227,9 @@ GWASCatalogCuratedAssociationsParser.harmonise_association_effect_to_beta(df).sh
 <span class="normal">1264</span>
 <span class="normal">1265</span>
 <span class="normal">1266</span>
-<span class="normal">1267</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
+<span class="normal">1267</span>
+<span class="normal">1268</span>
+<span class="normal">1269</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">StudyLocusGWASCatalog</span><span class="p">(</span><span class="n">StudyLocus</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Study locus Dataset for GWAS Catalog curated associations.</span>
 
@@ -7393,9 +7397,7 @@ GWASCatalogCuratedAssociationsParser.harmonise_association_effect_to_beta(df).sh
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/datasource/gwas_catalog/associations.py</code></summary>
-              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1253</span>
-<span class="normal">1254</span>
-<span class="normal">1255</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1255</span>
 <span class="normal">1256</span>
 <span class="normal">1257</span>
 <span class="normal">1258</span>
@@ -7407,7 +7409,9 @@ GWASCatalogCuratedAssociationsParser.harmonise_association_effect_to_beta(df).sh
 <span class="normal">1264</span>
 <span class="normal">1265</span>
 <span class="normal">1266</span>
-<span class="normal">1267</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">apply_inclusion_list</span><span class="p">(</span>
+<span class="normal">1267</span>
+<span class="normal">1268</span>
+<span class="normal">1269</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">apply_inclusion_list</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">:</span> <span class="n">StudyLocusGWASCatalog</span><span class="p">,</span> <span class="n">inclusion_list</span><span class="p">:</span> <span class="n">DataFrame</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyLocusGWASCatalog</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Restricting GWAS Catalog studies based on a list of accpected study ids.</span>
@@ -7467,9 +7471,7 @@ GWASCatalogCuratedAssociationsParser.harmonise_association_effect_to_beta(df).sh
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/datasource/gwas_catalog/associations.py</code></summary>
-              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1215</span>
-<span class="normal">1216</span>
-<span class="normal">1217</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1217</span>
 <span class="normal">1218</span>
 <span class="normal">1219</span>
 <span class="normal">1220</span>
@@ -7485,7 +7487,9 @@ GWASCatalogCuratedAssociationsParser.harmonise_association_effect_to_beta(df).sh
 <span class="normal">1230</span>
 <span class="normal">1231</span>
 <span class="normal">1232</span>
-<span class="normal">1233</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">qc_ambiguous_study</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyLocusGWASCatalog</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyLocusGWASCatalog</span><span class="p">:</span>
+<span class="normal">1233</span>
+<span class="normal">1234</span>
+<span class="normal">1235</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">qc_ambiguous_study</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyLocusGWASCatalog</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyLocusGWASCatalog</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Flag associations with variants that can not be unambiguously associated with one study.</span>
 
 <span class="sd">    Returns:</span>
@@ -7549,9 +7553,7 @@ GWASCatalogCuratedAssociationsParser.harmonise_association_effect_to_beta(df).sh
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/datasource/gwas_catalog/associations.py</code></summary>
-              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1235</span>
-<span class="normal">1236</span>
-<span class="normal">1237</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1237</span>
 <span class="normal">1238</span>
 <span class="normal">1239</span>
 <span class="normal">1240</span>
@@ -7565,7 +7567,9 @@ GWASCatalogCuratedAssociationsParser.harmonise_association_effect_to_beta(df).sh
 <span class="normal">1248</span>
 <span class="normal">1249</span>
 <span class="normal">1250</span>
-<span class="normal">1251</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">qc_flag_all_tophits</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyLocusGWASCatalog</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyLocusGWASCatalog</span><span class="p">:</span>
+<span class="normal">1251</span>
+<span class="normal">1252</span>
+<span class="normal">1253</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">qc_flag_all_tophits</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">StudyLocusGWASCatalog</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyLocusGWASCatalog</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Flag all associations as top hits.</span>
 
 <span class="sd">    Returns:</span>
@@ -7658,9 +7662,7 @@ GWASCatalogCuratedAssociationsParser.harmonise_association_effect_to_beta(df).sh
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/datasource/gwas_catalog/associations.py</code></summary>
-              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1192</span>
-<span class="normal">1193</span>
-<span class="normal">1194</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">1194</span>
 <span class="normal">1195</span>
 <span class="normal">1196</span>
 <span class="normal">1197</span>
@@ -7679,7 +7681,9 @@ GWASCatalogCuratedAssociationsParser.harmonise_association_effect_to_beta(df).sh
 <span class="normal">1210</span>
 <span class="normal">1211</span>
 <span class="normal">1212</span>
-<span class="normal">1213</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">update_study_id</span><span class="p">(</span>
+<span class="normal">1213</span>
+<span class="normal">1214</span>
+<span class="normal">1215</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">update_study_id</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">:</span> <span class="n">StudyLocusGWASCatalog</span><span class="p">,</span> <span class="n">study_annotation</span><span class="p">:</span> <span class="n">DataFrame</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StudyLocusGWASCatalog</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Update final studyId and studyLocusId with a dataframe containing study annotation.</span>

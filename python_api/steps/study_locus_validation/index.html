@@ -3774,7 +3774,8 @@ when target of disease validation fails.</p>
 <span class="normal">74</span>
 <span class="normal">75</span>
 <span class="normal">76</span>
-<span class="normal">77</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">StudyLocusValidationStep</span><span class="p">:</span>
+<span class="normal">77</span>
+<span class="normal">78</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">StudyLocusValidationStep</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Study index validation step.</span>
 
 <span class="sd">    This step reads and outputs a study index dataset with flagged studies</span>
@@ -3790,7 +3791,7 @@ when target of disease validation fails.</p>
         <span class="n">valid_study_locus_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">invalid_study_locus_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">trans_qtl_threshold</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-        <span class="n">invalid_qc_reasons</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[],</span>
+        <span class="n">invalid_qc_reasons</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize step.</span>
 
@@ -3802,8 +3803,9 @@ when target of disease validation fails.</p>
 <span class="sd">            valid_study_locus_path (str): Path to write the valid records.</span>
 <span class="sd">            invalid_study_locus_path (str): Path to write the output file.</span>
 <span class="sd">            trans_qtl_threshold (int): genomic distance above which a QTL is considered trans.</span>
-<span class="sd">            invalid_qc_reasons (list[str]): List of invalid quality check reason names from `StudyLocusQualityCheck` (e.g. [&#39;SUBSIGNIFICANT_FLAG&#39;]).</span>
+<span class="sd">            invalid_qc_reasons (list[str] | None): List of invalid quality check reason names from `StudyLocusQualityCheck` (e.g. [&#39;SUBSIGNIFICANT_FLAG&#39;]).</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">invalid_qc_reasons</span> <span class="o">=</span> <span class="n">invalid_qc_reasons</span> <span class="ow">or</span> <span class="p">[]</span>
         <span class="c1"># Reading datasets:</span>
         <span class="n">study_index</span> <span class="o">=</span> <span class="n">StudyIndex</span><span class="o">.</span><span class="n">from_parquet</span><span class="p">(</span><span class="n">session</span><span class="p">,</span> <span class="n">study_index_path</span><span class="p">)</span>
         <span class="n">target_index</span> <span class="o">=</span> <span class="n">TargetIndex</span><span class="o">.</span><span class="n">from_parquet</span><span class="p">(</span><span class="n">session</span><span class="p">,</span> <span class="n">target_index_path</span><span class="p">)</span>
@@ -3860,7 +3862,7 @@ when target of disease validation fails.</p>
 
 
 <h4 id="gentropy.study_locus_validation.StudyLocusValidationStep.__init__" class="doc doc-heading">
-            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">session</span><span class="p">:</span> <span class="n">Session</span><span class="p">,</span> <span class="n">study_locus_path</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">study_index_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">target_index_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">valid_study_locus_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">invalid_study_locus_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">trans_qtl_threshold</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">invalid_qc_reasons</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[])</span> <span class="o">-&gt;</span> <span class="kc">None</span></code>
+            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">session</span><span class="p">:</span> <span class="n">Session</span><span class="p">,</span> <span class="n">study_locus_path</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">study_index_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">target_index_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">valid_study_locus_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">invalid_study_locus_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">trans_qtl_threshold</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">invalid_qc_reasons</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span></code>
 
 <a href="#gentropy.study_locus_validation.StudyLocusValidationStep.__init__" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -3998,7 +4000,7 @@ when target of disease validation fails.</p>
                 <code>invalid_qc_reasons</code>
             </td>
             <td>
-                  <code><span title="list">list</span>[<span title="str">str</span>]</code>
+                  <code><span title="list">list</span>[<span title="str">str</span>] | None</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4006,7 +4008,7 @@ when target of disease validation fails.</p>
               </div>
             </td>
             <td>
-                  <code>[]</code>
+                  <code>None</code>
             </td>
           </tr>
       </tbody>
@@ -4074,7 +4076,8 @@ when target of disease validation fails.</p>
 <span class="normal">74</span>
 <span class="normal">75</span>
 <span class="normal">76</span>
-<span class="normal">77</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+<span class="normal">77</span>
+<span class="normal">78</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
     <span class="n">session</span><span class="p">:</span> <span class="n">Session</span><span class="p">,</span>
     <span class="n">study_locus_path</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
@@ -4083,7 +4086,7 @@ when target of disease validation fails.</p>
     <span class="n">valid_study_locus_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">invalid_study_locus_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">trans_qtl_threshold</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-    <span class="n">invalid_qc_reasons</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[],</span>
+    <span class="n">invalid_qc_reasons</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Initialize step.</span>
 
@@ -4095,8 +4098,9 @@ when target of disease validation fails.</p>
 <span class="sd">        valid_study_locus_path (str): Path to write the valid records.</span>
 <span class="sd">        invalid_study_locus_path (str): Path to write the output file.</span>
 <span class="sd">        trans_qtl_threshold (int): genomic distance above which a QTL is considered trans.</span>
-<span class="sd">        invalid_qc_reasons (list[str]): List of invalid quality check reason names from `StudyLocusQualityCheck` (e.g. [&#39;SUBSIGNIFICANT_FLAG&#39;]).</span>
+<span class="sd">        invalid_qc_reasons (list[str] | None): List of invalid quality check reason names from `StudyLocusQualityCheck` (e.g. [&#39;SUBSIGNIFICANT_FLAG&#39;]).</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">invalid_qc_reasons</span> <span class="o">=</span> <span class="n">invalid_qc_reasons</span> <span class="ow">or</span> <span class="p">[]</span>
     <span class="c1"># Reading datasets:</span>
     <span class="n">study_index</span> <span class="o">=</span> <span class="n">StudyIndex</span><span class="o">.</span><span class="n">from_parquet</span><span class="p">(</span><span class="n">session</span><span class="p">,</span> <span class="n">study_index_path</span><span class="p">)</span>
     <span class="n">target_index</span> <span class="o">=</span> <span class="n">TargetIndex</span><span class="o">.</span><span class="n">from_parquet</span><span class="p">(</span><span class="n">session</span><span class="p">,</span> <span class="n">target_index_path</span><span class="p">)</span>

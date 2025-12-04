@@ -3961,7 +3961,11 @@
 <span class="normal">167</span>
 <span class="normal">168</span>
 <span class="normal">169</span>
-<span class="normal">170</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">extract_ontology_from_json</span><span class="p">(</span>
+<span class="normal">170</span>
+<span class="normal">171</span>
+<span class="normal">172</span>
+<span class="normal">173</span>
+<span class="normal">174</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">extract_ontology_from_json</span><span class="p">(</span>
     <span class="n">ontology_json</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">spark</span><span class="p">:</span> <span class="n">SparkSession</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BiosampleIndex</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Extracts the ontology information from a JSON file. Currently only supports Uberon and Cell Ontology.</span>
@@ -4053,6 +4057,9 @@
     <span class="n">df_edges</span> <span class="o">=</span> <span class="n">df_edges</span><span class="o">.</span><span class="n">withColumn</span><span class="p">(</span>
         <span class="s2">&quot;object&quot;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">regexp_replace</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;object&quot;</span><span class="p">),</span> <span class="n">escaped_urls_pattern</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
     <span class="p">)</span>
+    <span class="n">df_edges</span> <span class="o">=</span> <span class="n">df_edges</span><span class="o">.</span><span class="n">withColumn</span><span class="p">(</span>
+        <span class="s2">&quot;predicate&quot;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">regexp_replace</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;predicate&quot;</span><span class="p">),</span> <span class="n">escaped_urls_pattern</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+    <span class="p">)</span>
 
     <span class="c1"># Extract the relevant information from the nodes</span>
     <span class="n">transformed_df</span> <span class="o">=</span> <span class="n">df_nodes</span><span class="o">.</span><span class="n">select</span><span class="p">(</span>
@@ -4073,13 +4080,14 @@
 
     <span class="c1"># Extract the relationships from the edges</span>
     <span class="c1"># Prepare relationship-specific DataFrames</span>
+    <span class="c1"># predicates: is_a and part_of</span>
     <span class="n">df_parents</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">df_edges</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;predicate&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;is_a&quot;</span><span class="p">)</span>
+        <span class="n">df_edges</span><span class="o">.</span><span class="n">filter</span><span class="p">((</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;predicate&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;is_a&quot;</span><span class="p">)</span> <span class="o">|</span> <span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;predicate&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;BFO_0000050&quot;</span><span class="p">))</span>
         <span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="s2">&quot;subject&quot;</span><span class="p">,</span> <span class="s2">&quot;object&quot;</span><span class="p">)</span>
         <span class="o">.</span><span class="n">withColumnRenamed</span><span class="p">(</span><span class="s2">&quot;object&quot;</span><span class="p">,</span> <span class="s2">&quot;parent&quot;</span><span class="p">)</span>
     <span class="p">)</span>
     <span class="n">df_children</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">df_edges</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;predicate&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;is_a&quot;</span><span class="p">)</span>
+        <span class="n">df_edges</span><span class="o">.</span><span class="n">filter</span><span class="p">((</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;predicate&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;is_a&quot;</span><span class="p">)</span> <span class="o">|</span> <span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;predicate&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;BFO_0000050&quot;</span><span class="p">))</span>
         <span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="s2">&quot;object&quot;</span><span class="p">,</span> <span class="s2">&quot;subject&quot;</span><span class="p">)</span>
         <span class="o">.</span><span class="n">withColumnRenamed</span><span class="p">(</span><span class="s2">&quot;subject&quot;</span><span class="p">,</span> <span class="s2">&quot;child&quot;</span><span class="p">)</span>
     <span class="p">)</span>
