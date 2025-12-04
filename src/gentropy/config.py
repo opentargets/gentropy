@@ -631,6 +631,7 @@ class StudyValidationStepConfig(StepConfig):
     valid_study_index_path: str = MISSING
     invalid_study_index_path: str = MISSING
     invalid_qc_reasons: list[str] = MISSING
+    deprecated_project_ids: list[str] | None = None
     _target_: str = "gentropy.study_validation.StudyValidationStep"
 
 
