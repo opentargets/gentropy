@@ -1,35 +1,37 @@
 {
   "fields": [
     {
+      "metadata": {},
       "name": "id",
-      "type": "string",
-      "nullable": false,
-      "metadata": {}
+      "nullable": true,
+      "type": "string"
     },
     {
+      "metadata": {},
       "name": "approvedSymbol",
-      "type": "string",
       "nullable": true,
-      "metadata": {}
+      "type": "string"
     },
     {
+      "metadata": {},
       "name": "biotype",
-      "type": "string",
       "nullable": true,
-      "metadata": {}
+      "type": "string"
     },
     {
+      "metadata": {},
       "name": "transcriptIds",
+      "nullable": true,
       "type": {
         "containsNull": true,
         "elementType": "string",
         "type": "array"
-      },
-      "nullable": true,
-      "metadata": {}
+      }
     },
     {
+      "metadata": {},
       "name": "canonicalTranscript",
+      "nullable": true,
       "type": {
         "fields": [
           {
@@ -64,72 +66,52 @@
           }
         ],
         "type": "struct"
-      },
-      "nullable": true,
-      "metadata": {}
+      }
     },
     {
+      "metadata": {},
       "name": "canonicalExons",
+      "nullable": true,
       "type": {
         "containsNull": true,
         "elementType": "string",
         "type": "array"
-      },
-      "nullable": true,
-      "metadata": {}
+      }
     },
     {
-      "name": "genomicLocation",
-      "type": {
-        "fields": [
-          {
-            "metadata": {},
-            "name": "chromosome",
-            "nullable": true,
-            "type": "string"
-          },
-          {
-            "metadata": {},
-            "name": "start",
-            "nullable": true,
-            "type": "long"
-          },
-          {
-            "metadata": {},
-            "name": "end",
-            "nullable": true,
-            "type": "long"
-          },
-          {
-            "metadata": {},
-            "name": "strand",
-            "nullable": true,
-            "type": "integer"
-          }
-        ],
-        "type": "struct"
-      },
+      "metadata": {},
+      "name": "probeMinerScore",
       "nullable": true,
-      "metadata": {}
+      "type": "double"
     },
     {
-      "name": "alternativeGenes",
-      "type": {
-        "containsNull": true,
-        "elementType": "string",
-        "type": "array"
-      },
+      "metadata": {},
+      "name": "probesDrugsScore",
       "nullable": true,
-      "metadata": {}
+      "type": "double"
     },
     {
-      "name": "approvedName",
-      "type": "string",
+      "metadata": {},
+      "name": "scoreInCells",
       "nullable": true,
-      "metadata": {}
+      "type": "double"
     },
     {
-      "name": "go",
+      "metadata": {},
+      "name": "scoreInOrganisms",
+      "nullable": true,
+      "type": "double"
+    },
+    {
+      "metadata": {},
+      "name": "targetFromSourceId",
+      "nullable": true,
+      "type": "string"
+    },
+    {
+      "metadata": {},
+      "name": "urls",
+      "nullable": true,
       "type": {
         "containsNull": true,
         "elementType": {
@@ -174,12 +156,12 @@
           "type": "struct"
         },
         "type": "array"
-      },
-      "nullable": true,
-      "metadata": {}
+      }
     },
     {
+      "metadata": {},
       "name": "hallmarks",
+      "nullable": true,
       "type": {
         "fields": [
           {
@@ -254,12 +236,12 @@
           }
         ],
         "type": "struct"
-      },
-      "nullable": true,
-      "metadata": {}
+      }
     },
     {
+      "metadata": {},
       "name": "synonyms",
+      "nullable": true,
       "type": {
         "containsNull": true,
         "elementType": {
@@ -280,12 +262,12 @@
           "type": "struct"
         },
         "type": "array"
-      },
-      "nullable": true,
-      "metadata": {}
+      }
     },
     {
+      "metadata": {},
       "name": "symbolSynonyms",
+      "nullable": true,
       "type": {
         "containsNull": true,
         "elementType": {
@@ -306,12 +288,12 @@
           "type": "struct"
         },
         "type": "array"
-      },
-      "nullable": true,
-      "metadata": {}
+      }
     },
     {
+      "metadata": {},
       "name": "nameSynonyms",
+      "nullable": true,
       "type": {
         "containsNull": true,
         "elementType": {
@@ -332,22 +314,22 @@
           "type": "struct"
         },
         "type": "array"
-      },
-      "nullable": true,
-      "metadata": {}
+      }
     },
     {
+      "metadata": {},
       "name": "functionDescriptions",
+      "nullable": true,
       "type": {
         "containsNull": true,
         "elementType": "string",
         "type": "array"
-      },
-      "nullable": true,
-      "metadata": {}
+      }
     },
     {
+      "metadata": {},
       "name": "subcellularLocations",
+      "nullable": true,
       "type": {
         "containsNull": true,
         "elementType": {
@@ -380,12 +362,12 @@
           "type": "struct"
         },
         "type": "array"
-      },
-      "nullable": true,
-      "metadata": {}
+      }
     },
     {
+      "metadata": {},
       "name": "targetClass",
+      "nullable": true,
       "type": {
         "containsNull": true,
         "elementType": {
@@ -412,12 +394,12 @@
           "type": "struct"
         },
         "type": "array"
-      },
-      "nullable": true,
-      "metadata": {}
+      }
     },
     {
+      "metadata": {},
       "name": "obsoleteSymbols",
+      "nullable": true,
       "type": {
         "containsNull": true,
         "elementType": {
@@ -438,12 +420,12 @@
           "type": "struct"
         },
         "type": "array"
-      },
-      "nullable": true,
-      "metadata": {}
+      }
     },
     {
+      "metadata": {},
       "name": "obsoleteNames",
+      "nullable": true,
       "type": {
         "containsNull": true,
         "elementType": {
@@ -464,12 +446,12 @@
           "type": "struct"
         },
         "type": "array"
-      },
-      "nullable": true,
-      "metadata": {}
+      }
     },
     {
+      "metadata": {},
       "name": "constraint",
+      "nullable": true,
       "type": {
         "containsNull": true,
         "elementType": {
@@ -538,12 +520,12 @@
           "type": "struct"
         },
         "type": "array"
-      },
-      "nullable": true,
-      "metadata": {}
+      }
     },
     {
+      "metadata": {},
       "name": "tep",
+      "nullable": true,
       "type": {
         "fields": [
           {
@@ -572,12 +554,12 @@
           }
         ],
         "type": "struct"
-      },
-      "nullable": true,
-      "metadata": {}
+      }
     },
     {
+      "metadata": {},
       "name": "proteinIds",
+      "nullable": true,
       "type": {
         "containsNull": true,
         "elementType": {
@@ -598,12 +580,12 @@
           "type": "struct"
         },
         "type": "array"
-      },
-      "nullable": true,
-      "metadata": {}
+      }
     },
     {
+      "metadata": {},
       "name": "dbXrefs",
+      "nullable": true,
       "type": {
         "containsNull": true,
         "elementType": {
@@ -624,19 +606,25 @@
           "type": "struct"
         },
         "type": "array"
-      },
-      "nullable": true,
-      "metadata": {}
+      }
     },
     {
+      "metadata": {},
       "name": "chemicalProbes",
+      "nullable": true,
       "type": {
         "containsNull": true,
         "elementType": {
           "fields": [
             {
               "metadata": {},
-              "name": "control",
+              "name": "targetFromSourceId",
+              "nullable": true,
+              "type": "string"
+            },
+            {
+              "metadata": {},
+              "name": "id",
               "nullable": true,
               "type": "string"
             },
@@ -645,18 +633,6 @@
               "name": "drugId",
               "nullable": true,
               "type": "string"
-            },
-            {
-              "metadata": {},
-              "name": "id",
-              "nullable": true,
-              "type": "string"
-            },
-            {
-              "metadata": {},
-              "name": "isHighQuality",
-              "nullable": true,
-              "type": "boolean"
             },
             {
               "metadata": {},
@@ -680,13 +656,25 @@
             },
             {
               "metadata": {},
-              "name": "probeMinerScore",
+              "name": "control",
+              "nullable": true,
+              "type": "string"
+            },
+            {
+              "metadata": {},
+              "name": "isHighQuality",
+              "nullable": true,
+              "type": "boolean"
+            },
+            {
+              "metadata": {},
+              "name": "probesDrugsScore",
               "nullable": true,
               "type": "double"
             },
             {
               "metadata": {},
-              "name": "probesDrugsScore",
+              "name": "probeMinerScore",
               "nullable": true,
               "type": "double"
             },
@@ -701,12 +689,6 @@
               "name": "scoreInOrganisms",
               "nullable": true,
               "type": "double"
-            },
-            {
-              "metadata": {},
-              "name": "targetFromSourceId",
-              "nullable": true,
-              "type": "string"
             },
             {
               "metadata": {},
@@ -738,12 +720,12 @@
           "type": "struct"
         },
         "type": "array"
-      },
-      "nullable": true,
-      "metadata": {}
+      }
     },
     {
+      "metadata": {},
       "name": "homologues",
+      "nullable": true,
       "type": {
         "containsNull": true,
         "elementType": {
@@ -806,12 +788,12 @@
           "type": "struct"
         },
         "type": "array"
-      },
-      "nullable": true,
-      "metadata": {}
+      }
     },
     {
+      "metadata": {},
       "name": "tractability",
+      "nullable": true,
       "type": {
         "containsNull": true,
         "elementType": {
@@ -838,12 +820,12 @@
           "type": "struct"
         },
         "type": "array"
-      },
-      "nullable": true,
-      "metadata": {}
+      }
     },
     {
+      "metadata": {},
       "name": "safetyLiabilities",
+      "nullable": true,
       "type": {
         "containsNull": true,
         "elementType": {
@@ -896,13 +878,7 @@
                   "fields": [
                     {
                       "metadata": {},
-                      "name": "cellFormat",
-                      "nullable": true,
-                      "type": "string"
-                    },
-                    {
-                      "metadata": {},
-                      "name": "cellLabel",
+                      "name": "tissueLabel",
                       "nullable": true,
                       "type": "string"
                     },
@@ -914,7 +890,19 @@
                     },
                     {
                       "metadata": {},
-                      "name": "tissueLabel",
+                      "name": "cellLabel",
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    {
+                      "metadata": {},
+                      "name": "cellFormat",
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    {
+                      "metadata": {},
+                      "name": "cellId",
                       "nullable": true,
                       "type": "string"
                     }
@@ -978,12 +966,12 @@
           "type": "struct"
         },
         "type": "array"
-      },
-      "nullable": true,
-      "metadata": {}
+      }
     },
     {
+      "metadata": {},
       "name": "pathways",
+      "nullable": true,
       "type": {
         "containsNull": true,
         "elementType": {
@@ -1010,15 +998,13 @@
           "type": "struct"
         },
         "type": "array"
-      },
-      "nullable": true,
-      "metadata": {}
+      }
     },
     {
+      "metadata": {},
       "name": "tss",
-      "type": "long",
       "nullable": true,
-      "metadata": {}
+      "type": "long"
     }
   ],
   "type": "struct"
