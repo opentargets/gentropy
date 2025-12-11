@@ -1,7 +1,7 @@
 [project]
 name = "gentropy"
 # !! version is managed by semantic_release
-version = "3.1.0"
+version = "3.1.1"
 description = "Open Targets python framework for post-GWAS analysis"
 authors = [{ name = "Open Targets core team", email = "data@opentargets.org" }]
 license = "Apache-2.0"
