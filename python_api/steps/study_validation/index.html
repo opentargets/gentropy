@@ -3784,7 +3784,9 @@ when target of disease validation fails.</p>
 <span class="normal">86</span>
 <span class="normal">87</span>
 <span class="normal">88</span>
-<span class="normal">89</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">StudyValidationStep</span><span class="p">:</span>
+<span class="normal">89</span>
+<span class="normal">90</span>
+<span class="normal">91</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">StudyValidationStep</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Study index validation step.</span>
 
 <span class="sd">    This step reads and outputs a study index dataset with flagged studies</span>
@@ -3818,8 +3820,10 @@ when target of disease validation fails.</p>
 <span class="sd">            invalid_qc_reasons (list[str] | None): List of invalid quality check reason names from `StudyQualityCheck` (e.g. [&#39;DUPLICATED_STUDY&#39;]).</span>
 <span class="sd">            deprecated_project_ids (list[str] | None): List of deprecated projectIds, (e.g. [&#39;GTEx&#39;]).</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">invalid_qc_reasons</span> <span class="o">=</span> <span class="n">invalid_qc_reasons</span> <span class="ow">or</span> <span class="p">[]</span>
-        <span class="n">deprecated_project_ids</span> <span class="o">=</span> <span class="n">deprecated_project_ids</span> <span class="ow">or</span> <span class="p">[]</span>
+        <span class="n">invalid_qc_reasons</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">invalid_qc_reasons</span><span class="p">)</span> <span class="k">if</span> <span class="n">invalid_qc_reasons</span> <span class="k">else</span> <span class="p">[]</span>
+        <span class="n">deprecated_project_ids</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="nb">list</span><span class="p">(</span><span class="n">deprecated_project_ids</span><span class="p">)</span> <span class="k">if</span> <span class="n">deprecated_project_ids</span> <span class="k">else</span> <span class="p">[]</span>
+        <span class="p">)</span>
 
         <span class="c1"># Reading datasets:</span>
         <span class="n">target_index</span> <span class="o">=</span> <span class="n">TargetIndex</span><span class="o">.</span><span class="n">from_parquet</span><span class="p">(</span><span class="n">session</span><span class="p">,</span> <span class="n">target_index_path</span><span class="p">)</span>
@@ -4120,7 +4124,9 @@ when target of disease validation fails.</p>
 <span class="normal">86</span>
 <span class="normal">87</span>
 <span class="normal">88</span>
-<span class="normal">89</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+<span class="normal">89</span>
+<span class="normal">90</span>
+<span class="normal">91</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
     <span class="n">session</span><span class="p">:</span> <span class="n">Session</span><span class="p">,</span>
     <span class="n">study_index_path</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
@@ -4147,8 +4153,10 @@ when target of disease validation fails.</p>
 <span class="sd">        invalid_qc_reasons (list[str] | None): List of invalid quality check reason names from `StudyQualityCheck` (e.g. [&#39;DUPLICATED_STUDY&#39;]).</span>
 <span class="sd">        deprecated_project_ids (list[str] | None): List of deprecated projectIds, (e.g. [&#39;GTEx&#39;]).</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">invalid_qc_reasons</span> <span class="o">=</span> <span class="n">invalid_qc_reasons</span> <span class="ow">or</span> <span class="p">[]</span>
-    <span class="n">deprecated_project_ids</span> <span class="o">=</span> <span class="n">deprecated_project_ids</span> <span class="ow">or</span> <span class="p">[]</span>
+    <span class="n">invalid_qc_reasons</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">invalid_qc_reasons</span><span class="p">)</span> <span class="k">if</span> <span class="n">invalid_qc_reasons</span> <span class="k">else</span> <span class="p">[]</span>
+    <span class="n">deprecated_project_ids</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="nb">list</span><span class="p">(</span><span class="n">deprecated_project_ids</span><span class="p">)</span> <span class="k">if</span> <span class="n">deprecated_project_ids</span> <span class="k">else</span> <span class="p">[]</span>
+    <span class="p">)</span>
 
     <span class="c1"># Reading datasets:</span>
     <span class="n">target_index</span> <span class="o">=</span> <span class="n">TargetIndex</span><span class="o">.</span><span class="n">from_parquet</span><span class="p">(</span><span class="n">session</span><span class="p">,</span> <span class="n">target_index_path</span><span class="p">)</span>

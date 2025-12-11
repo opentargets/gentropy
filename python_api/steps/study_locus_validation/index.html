@@ -3805,7 +3805,7 @@ when target of disease validation fails.</p>
 <span class="sd">            trans_qtl_threshold (int): genomic distance above which a QTL is considered trans.</span>
 <span class="sd">            invalid_qc_reasons (list[str] | None): List of invalid quality check reason names from `StudyLocusQualityCheck` (e.g. [&#39;SUBSIGNIFICANT_FLAG&#39;]).</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">invalid_qc_reasons</span> <span class="o">=</span> <span class="n">invalid_qc_reasons</span> <span class="ow">or</span> <span class="p">[]</span>
+        <span class="n">invalid_qc_reasons</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">invalid_qc_reasons</span><span class="p">)</span> <span class="k">if</span> <span class="n">invalid_qc_reasons</span> <span class="k">else</span> <span class="p">[]</span>
         <span class="c1"># Reading datasets:</span>
         <span class="n">study_index</span> <span class="o">=</span> <span class="n">StudyIndex</span><span class="o">.</span><span class="n">from_parquet</span><span class="p">(</span><span class="n">session</span><span class="p">,</span> <span class="n">study_index_path</span><span class="p">)</span>
         <span class="n">target_index</span> <span class="o">=</span> <span class="n">TargetIndex</span><span class="o">.</span><span class="n">from_parquet</span><span class="p">(</span><span class="n">session</span><span class="p">,</span> <span class="n">target_index_path</span><span class="p">)</span>
@@ -4100,7 +4100,7 @@ when target of disease validation fails.</p>
 <span class="sd">        trans_qtl_threshold (int): genomic distance above which a QTL is considered trans.</span>
 <span class="sd">        invalid_qc_reasons (list[str] | None): List of invalid quality check reason names from `StudyLocusQualityCheck` (e.g. [&#39;SUBSIGNIFICANT_FLAG&#39;]).</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">invalid_qc_reasons</span> <span class="o">=</span> <span class="n">invalid_qc_reasons</span> <span class="ow">or</span> <span class="p">[]</span>
+    <span class="n">invalid_qc_reasons</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">invalid_qc_reasons</span><span class="p">)</span> <span class="k">if</span> <span class="n">invalid_qc_reasons</span> <span class="k">else</span> <span class="p">[]</span>
     <span class="c1"># Reading datasets:</span>
     <span class="n">study_index</span> <span class="o">=</span> <span class="n">StudyIndex</span><span class="o">.</span><span class="n">from_parquet</span><span class="p">(</span><span class="n">session</span><span class="p">,</span> <span class="n">study_index_path</span><span class="p">)</span>
     <span class="n">target_index</span> <span class="o">=</span> <span class="n">TargetIndex</span><span class="o">.</span><span class="n">from_parquet</span><span class="p">(</span><span class="n">session</span><span class="p">,</span> <span class="n">target_index_path</span><span class="p">)</span>

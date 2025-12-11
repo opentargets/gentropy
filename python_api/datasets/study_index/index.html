@@ -5067,7 +5067,7 @@
                 <span class="s2">&quot;qualityControls&quot;</span><span class="p">,</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">update_quality_flag</span><span class="p">(</span>
                     <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;qualityControls&quot;</span><span class="p">),</span>
-                    <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;projectId&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">deprecated_project_ids</span><span class="p">),</span>
+                    <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;projectId&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="o">*</span><span class="n">deprecated_project_ids</span><span class="p">),</span>
                     <span class="n">StudyQualityCheck</span><span class="o">.</span><span class="n">DEPRECATED_PROJECT</span><span class="p">,</span>
                 <span class="p">),</span>
             <span class="p">),</span>
@@ -7723,7 +7723,7 @@ when the projectId is in the deprecated list.</p>
             <span class="s2">&quot;qualityControls&quot;</span><span class="p">,</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">update_quality_flag</span><span class="p">(</span>
                 <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;qualityControls&quot;</span><span class="p">),</span>
-                <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;projectId&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">deprecated_project_ids</span><span class="p">),</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;projectId&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="o">*</span><span class="n">deprecated_project_ids</span><span class="p">),</span>
                 <span class="n">StudyQualityCheck</span><span class="o">.</span><span class="n">DEPRECATED_PROJECT</span><span class="p">,</span>
             <span class="p">),</span>
         <span class="p">),</span>
