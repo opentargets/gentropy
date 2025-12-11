@@ -314,7 +314,7 @@ class StudyIndex(Dataset):
                 "qualityControls",
                 self.update_quality_flag(
                     f.col("qualityControls"),
-                    f.col("projectId").isin(deprecated_project_ids),
+                    f.col("projectId").isin(*deprecated_project_ids),
                     StudyQualityCheck.DEPRECATED_PROJECT,
                 ),
             ),
