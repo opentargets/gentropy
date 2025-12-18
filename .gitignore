@@ -16,3 +16,7 @@ wandb/
 hail*.log
 .python-version
 .idea
+
+# Rust build artifacts
+rust-linalg/target/
+rust-linalg/Cargo.lock

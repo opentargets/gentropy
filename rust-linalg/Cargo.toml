@@ -1,0 +1,12 @@
+[package]
+name = "rust-linalg"
+version = "0.1.0"
+edition = "2021"
+authors = ["Open Targets core team <data@opentargets.org>"]
+description = "A Rust library for linear algebra operations"
+license = "Apache-2.0"
+repository = "https://github.com/opentargets/gentropy"
+
+[dependencies]
+
+[dev-dependencies]
