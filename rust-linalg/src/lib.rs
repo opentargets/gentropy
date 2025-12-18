@@ -72,6 +72,7 @@ impl Matrix {
     /// ```
     pub fn from_vec(data: Vec<Vec<f64>>) -> Self {
         assert!(!data.is_empty(), "Matrix data cannot be empty");
+        assert!(!data[0].is_empty(), "Matrix rows cannot be empty");
         let rows = data.len();
         let cols = data[0].len();
         
@@ -521,5 +522,11 @@ mod tests {
         let a = Matrix::new(2, 3);
         let b = Matrix::new(2, 2);
         a.multiply(&b);
+    }
+
+    #[test]
+    #[should_panic(expected = "Matrix rows cannot be empty")]
+    fn test_from_vec_empty_row() {
+        Matrix::from_vec(vec![vec![]]);
     }
 }

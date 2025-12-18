@@ -24,6 +24,20 @@ pip install gentropy
 
 For alternative ways to install the package visit the [Documentation](https://opentargets.github.io/gentropy/installation/)
 
+## Rust Linear Algebra Library
+
+This repository includes a Rust library for performing linear algebra operations. The library provides efficient matrix operations including creation, addition, subtraction, multiplication, transpose, and scalar operations.
+
+For more details, see the [Rust Linear Algebra Library README](rust-linalg/README.md).
+
+### Quick Start
+
+```bash
+cd rust-linalg
+cargo test      # Run tests
+cargo run --example demo  # Run demo
+```
+
 ## References
 
 - [Documentation](https://opentargets.github.io/gentropy/)
