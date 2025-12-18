@@ -4,7 +4,7 @@ REGION ?= europe-west1
 APP_NAME ?= $$(cat pyproject.toml | grep -m 1 "name" | cut -d" " -f3 | sed  's/"//g')
 PACKAGE_VERSION ?= $(shell grep -m 1 'version = ' pyproject.toml | sed 's/version = "\(.*\)"/\1/')
 USER_SAFE ?= $(shell echo $(USER) | tr '[:upper:]' '[:lower:]')
-CLUSTER_TIMEOUT ?= 60m
+CLUSTER_TIMEOUT ?= 300m
 # NOTE: git rev-parse will always return the HEAD if it sits in the tag,
 # this way we can distinguish the tag vs branch name
 ifeq ($(shell git rev-parse --abbrev-ref HEAD),HEAD)
@@ -67,12 +67,12 @@ create-dev-cluster: sync-cluster-init-script sync-gentropy-cli-script ## Spin up
 		--initialization-actions=${BUCKET_NAME}/install_dependencies_on_cluster.sh \
 		--secondary-worker-type spot \
 		--worker-machine-type n1-standard-16 \
+		--single-node \
 		--public-ip-address \
 		--worker-boot-disk-size 500 \
-		--autoscaling-policy="projects/${PROJECT_ID}/regions/${REGION}/autoscalingPolicies/otg-etl" \
 		--optional-components=JUPYTER \
 		--enable-component-gateway \
-		--labels team=open-targets,subteam=gentropy,created_by=${USER_SAFE},environment=development, \
+		--labels team=open-targets,subteam=gentropy,created_by=ss60,environment=development, \
 		--max-idle=${CLUSTER_TIMEOUT}
 
 update-dev-cluster: build ## Reinstalls the package on the dev-cluster
