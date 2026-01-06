@@ -604,7 +604,7 @@ class GWASCatalogCuratedAssociationsParser:
             ... ]
             >>> (
             ...    spark.createDataFrame(d, ['effect', 'ci_text', 'flip'])
-            ...    .select("effect", "ci_text", 'flip', GWASCatalogCuratedAssociationsParser._harmonise_beta(f.col("effect"), f.col("ci_text"), f.lit(False)).alias("beta"))
+            ...    .select("effect", "ci_text", 'flip', GWASCatalogCuratedAssociationsParser._harmonise_beta(f.col("effect"), f.col("ci_text"), f.col('flip')).alias("beta"))
             ...    .show()
             ... )
             +------+--------+-----+----+
@@ -612,16 +612,18 @@ class GWASCatalogCuratedAssociationsParser:
             +------+--------+-----+----+
             |   0.5|increase|false| 0.5|
             |   0.5|decrease|false|-0.5|
-            |   0.5|decrease| true|-0.5|
-            |   0.5|increase| true| 0.5|
+            |   0.5|decrease| true| 0.5|
+            |   0.5|increase| true|-0.5|
             |   0.5|decrease|false|-0.5|
             +------+--------+-----+----+
             <BLANKLINE>
         """
         return (
             f.when(
-                (flipping_needed & confidence_interval.contains("increase"))
-                | (~flipping_needed & confidence_interval.contains("decrease")),
+                (
+                    (flipping_needed & confidence_interval.contains("increase"))
+                    | (~flipping_needed & confidence_interval.contains("decrease"))
+                ),
                 -effect_size,
             )
             .otherwise(effect_size)
