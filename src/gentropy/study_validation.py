@@ -44,8 +44,10 @@ class StudyValidationStep:
             invalid_qc_reasons (list[str] | None): List of invalid quality check reason names from `StudyQualityCheck` (e.g. ['DUPLICATED_STUDY']).
             deprecated_project_ids (list[str] | None): List of deprecated projectIds, (e.g. ['GTEx']).
         """
-        invalid_qc_reasons = invalid_qc_reasons or []
-        deprecated_project_ids = deprecated_project_ids or []
+        invalid_qc_reasons = list(invalid_qc_reasons) if invalid_qc_reasons else []
+        deprecated_project_ids = (
+            list(deprecated_project_ids) if deprecated_project_ids else []
+        )
 
         # Reading datasets:
         target_index = TargetIndex.from_parquet(session, target_index_path)

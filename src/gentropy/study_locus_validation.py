@@ -38,7 +38,7 @@ class StudyLocusValidationStep:
             trans_qtl_threshold (int): genomic distance above which a QTL is considered trans.
             invalid_qc_reasons (list[str] | None): List of invalid quality check reason names from `StudyLocusQualityCheck` (e.g. ['SUBSIGNIFICANT_FLAG']).
         """
-        invalid_qc_reasons = invalid_qc_reasons or []
+        invalid_qc_reasons = list(invalid_qc_reasons) if invalid_qc_reasons else []
         # Reading datasets:
         study_index = StudyIndex.from_parquet(session, study_index_path)
         target_index = TargetIndex.from_parquet(session, target_index_path)
