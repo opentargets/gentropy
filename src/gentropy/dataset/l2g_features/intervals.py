@@ -335,6 +335,13 @@ def get_or_make_e2g_wide(
 ) -> DataFrame:
     """Compute or retrieve the e2g wide feature DataFrame with optional binned join settings.
 
+    This method implements a caching registry within the `feature_dependency` dictionary object defined by parent caller.
+    The method stores the reference to wide e2g dataframe execution plan under specific cache_key,
+    so subsequent feature factory calls to the E2GFeature.compute() can reference the cached resource instead of recomputing the plan.
+
+    Note:
+        The caching mechanism acts on the `feature_dependency` dictionary and modifies it in place as of side effect.
+
     The cache key incorporates parameters that affect output.
 
     Args:
