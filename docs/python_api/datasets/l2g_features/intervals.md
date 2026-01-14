@@ -1,5 +1,5 @@
 ---
-title: Interval features
+title: Epigenetic regulatory region features
 ---
 
 ## List of features

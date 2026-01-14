@@ -721,12 +721,12 @@ class TestE2GIntervalFeatures:
                 [
                     {
                         "studyLocusId": "SL_1",
-                        "variantId": "1_1000001",
+                        "variantId": "1_1000001_A_C",
                         "studyId": "study1",
                         "locus": [
-                            {"variantId": "1_1000001", "posteriorProbability": 0.6},
+                            {"variantId": "1_1000001_A_C", "posteriorProbability": 0.6},
                             {
-                                "variantId": "1_1000200",
+                                "variantId": "1_1000200_G_T",
                                 "posteriorProbability": 0.0005,
                             },  # filtered out
                         ],

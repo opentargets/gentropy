@@ -7,6 +7,7 @@ from typing import Any
 import pyspark.sql.functions as f
 from pyspark.sql import DataFrame, Window
 
+from gentropy.common.processing import extract_chromosome, extract_position
 from gentropy.common.spark import convert_from_wide_to_long
 from gentropy.dataset.intervals import Intervals
 from gentropy.dataset.l2g_features.l2g_feature import L2GFeature
@@ -88,9 +89,13 @@ def e2g_interval_feature_wide_logic_binned(
 
     study_loci_exploded = (
         sl.withColumn("variantInLocus", f.explode_outer("locus"))
-        .withColumn("chromosome", f.split("variantInLocus.variantId", "_").getItem(0))
         .withColumn(
-            "position", f.split("variantInLocus.variantId", "_").getItem(1).cast("int")
+            "chromosome",
+            extract_chromosome(f.col("variantInLocus").getField("variantId")),
+        )
+        .withColumn(
+            "position",
+            extract_position(f.col("variantInLocus").getField("variantId")).cast("int"),
         )
         .withColumn("pp", f.col("variantInLocus.posteriorProbability").cast("double"))
         .filter(f.col("pp") >= f.lit(pp_min))
@@ -251,9 +256,13 @@ def e2g_interval_feature_wide_logic(
     iv = intervals.df.alias("iv")
     study_loci_exploded = (
         sl.withColumn("variantInLocus", f.explode_outer("locus"))
-        .withColumn("chromosome", f.split("variantInLocus.variantId", "_").getItem(0))
         .withColumn(
-            "position", f.split("variantInLocus.variantId", "_").getItem(1).cast("int")
+            "chromosome",
+            extract_chromosome(f.col("variantInLocus").getField("variantId")),
+        )
+        .withColumn(
+            "position",
+            extract_position(f.col("variantInLocus").getField("variantId")).cast("int"),
         )
         .withColumn(
             "posteriorProbability",
