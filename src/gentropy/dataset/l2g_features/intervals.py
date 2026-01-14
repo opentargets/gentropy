@@ -28,6 +28,7 @@ def _explode_interval_bins(
         iv (DataFrame): Intervals DataFrame
         bin_size (int): Size of bins for the binned overlap
         max_bins_per_interval (int): Maximum number of bins to explode per interval
+
     Returns:
         DataFrame: DataFrame with interval bins exploded
     """
@@ -79,8 +80,8 @@ def e2g_interval_feature_wide_logic_binned(
         repartitions_intervals (int | None): Number of repartitions for interval side
 
     Returns:
-      DataFrame: a WIDE DF with studyLocusId, geneId, e2gMean, e2gMeanNeighbourhood, neighbourhood is ratio-centred:
-      e2gMeanNeighbourhood = e2gMean / mean(e2gMean within locus)
+        DataFrame: a WIDE DF with studyLocusId, geneId, e2gMean, e2gMeanNeighbourhood, neighbourhood is ratio-centred:
+        e2gMeanNeighbourhood = e2gMean / mean(e2gMean within locus)
     """
     sl = study_loci_to_annotate.df.alias("sl")
     iv = intervals.df.alias("iv")
@@ -230,8 +231,8 @@ def e2g_interval_feature_wide_logic(
         repartitions_intervals (int | None): Number of repartitions for interval side
 
     Returns:
-      DataFrame: a WIDE DF with studyLocusId, geneId, e2gMean, e2gMeanNeighbourhood, neighbourhood is ratio-centred:
-      e2gMeanNeighbourhood = e2gMean / mean(e2gMean within locus)
+        DataFrame: a WIDE DF with studyLocusId, geneId, e2gMean, e2gMeanNeighbourhood, neighbourhood is ratio-centred:
+        e2gMeanNeighbourhood = e2gMean / mean(e2gMean within locus)
     """
     if use_binned:
         return e2g_interval_feature_wide_logic_binned(
@@ -334,6 +335,13 @@ def get_or_make_e2g_wide(
 ) -> DataFrame:
     """Compute or retrieve the e2g wide feature DataFrame with optional binned join settings.
 
+    This method implements a caching registry within the `feature_dependency` dictionary object defined by parent caller.
+    The method stores the reference to wide e2g dataframe execution plan under specific cache_key,
+    so subsequent feature factory calls to the E2GFeature.compute() can reference the cached resource instead of recomputing the plan.
+
+    Note:
+        The caching mechanism acts on the `feature_dependency` dictionary and modifies it in place as of side effect.
+
     The cache key incorporates parameters that affect output.
 
     Args:
@@ -386,6 +394,7 @@ class E2gMeanFeature(L2GFeature):
             study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci
                 that will be used for annotation
             feature_dependency (dict[str, Any]): Dataset that contains the e2g information, expecting intervals
+
         Returns:
             E2gMeanFeature: Computed e2gMean feature.
         """
@@ -423,6 +432,7 @@ class E2gMeanNeighbourhoodFeature(L2GFeature):
             study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci
                 that will be used for annotation
             feature_dependency (dict[str, Any]): Dataset that contains the e2g information, expecting intervals
+
         Returns:
             E2gMeanNeighbourhoodFeature: Computed e2gMeanNeighbourhood feature.
         """
