@@ -65,15 +65,13 @@ create-dev-cluster: sync-cluster-init-script sync-gentropy-cli-script ## Spin up
 		--master-machine-type n1-standard-16 \
 		--metadata="GENTROPY_REF=${REF}" \
 		--initialization-actions=${BUCKET_NAME}/install_dependencies_on_cluster.sh \
-		--secondary-worker-type spot \
-		--worker-machine-type n1-standard-16 \
 		--public-ip-address \
 		--worker-boot-disk-size 500 \
-		--autoscaling-policy="projects/${PROJECT_ID}/regions/${REGION}/autoscalingPolicies/otg-etl" \
 		--optional-components=JUPYTER \
 		--enable-component-gateway \
 		--labels team=open-targets,subteam=gentropy,created_by=${USER_SAFE},environment=development, \
-		--max-idle=${CLUSTER_TIMEOUT}
+		--max-idle=${CLUSTER_TIMEOUT} \
+	  --single-node  
 
 update-dev-cluster: build ## Reinstalls the package on the dev-cluster
 	@echo "Updating Dataproc Dev Cluster"
