@@ -4,7 +4,7 @@ REGION ?= europe-west1
 APP_NAME ?= $$(cat pyproject.toml | grep -m 1 "name" | cut -d" " -f3 | sed  's/"//g')
 PACKAGE_VERSION ?= $(shell grep -m 1 'version = ' pyproject.toml | sed 's/version = "\(.*\)"/\1/')
 USER_SAFE ?= $(shell echo $(USER) | tr '[:upper:]' '[:lower:]')
-CLUSTER_TIMEOUT ?= 60m
+CLUSTER_TIMEOUT ?= 1d
 # NOTE: git rev-parse will always return the HEAD if it sits in the tag,
 # this way we can distinguish the tag vs branch name
 ifeq ($(shell git rev-parse --abbrev-ref HEAD),HEAD)
