@@ -4,9 +4,12 @@ from __future__ import annotations
 
 from enum import Enum
 
+from pydantic import BaseModel
 from pyspark.sql import DataFrame
+from pyspark.sql import functions as f
+from pyspark.sql import types as t
 
-from gentropy import Session, StudyIndex, SummaryStatistics
+from gentropy import Session
 
 # 1. Build the studyIndex from the manifest
 # 2. Download the raw deCODE data files
@@ -16,73 +19,125 @@ from gentropy import Session, StudyIndex, SummaryStatistics
 # 6. QualityControls
 
 
-class deCODEDataSource(Enum, str):
+class deCODEDataSource(str, Enum):
     """deCODE proteomics data sources."""
 
-    DECODE_PROTEOMICS = "deCODE-proteomics"
+    DECODE_PROTEOMICS_RAW = "deCODE-proteomics-raw"
+    DECODE_PROTEOMICS_SMP = "deCODE-proteomics-smp"
+
+
+class S3Config(BaseModel):
+    """Model for S3 configuration."""
+
+    bucket_name: str
+    s3_host_port: int
+    s3_host_url: str
+    access_key_id: str
+    secret_access_key: str
 
 
 class deCODEManifest:
     """deCODE manifest class."""
 
+    bucket_listing_schema = t.StructType(
+        [
+            t.StructField("date", t.DateType()),
+            t.StructField("time", t.StringType()),
+            t.StructField("empty", t.StringType()),  # empty field in aws s3 ls output
+            t.StructField("size", t.StringType()),
+            t.StructField("unit", t.StringType()),
+            t.StructField("relativePath", t.StringType()),
+        ]
+    )
+
     def __init__(self, df: DataFrame) -> None:
         """Initialize deCODE manifest."""
         self._df = df
 
+    def get_summmary_statistics_paths(self) -> list[str]:
+        """Get summary statistics paths from manifest.
+
+        Returns:
+            list[str]: List of summary statistics paths.
+        """
+        return [
+            row.summarystatsLocation
+            for row in self._df.select("summarystatsLocation").collect()
+        ]
+
     @classmethod
-    def from_path(cls, session: Session, path: str) -> deCODEManifest:
-        """Create deCODE manifest from path.
+    def from_bucket_listing(
+        cls, session: Session, path: str, config: S3Config
+    ) -> deCODEManifest:
+        r"""Create deCODE manifest from listing s3 compatible bucket.
+
+        The command to list the bucket:
+        ```
+        aws s3 ls \\
+          --recursive \\
+          --human-readable \\
+          --summarize  \\
+          --profile $1 \\
+          $2 \\
+          --endpoint-url https://${S3_HOST_URL}:${S3_HOST_PORT} > manifest.txt
+        ```
+        The output manifest.txt file can then be used to create the deCODEManifest.
+        Note that the bottom summary lines should be removed from the manifest file before use.
 
         Args:
             session (Session): Gentropy session.
             path (str): Path to the manifest file.
+            config (S3Config): S3 configuration.
 
         Returns:
             deCODEManifest: deCODE manifest instance.
         """
-        # Implement logic to read and parse the manifest file from the given path
+        project_id = f.when(
+            f.col("relativePath").contains("SMP"),
+            f.lit(deCODEDataSource.DECODE_PROTEOMICS_SMP.value),
+        ).otherwise(deCODEDataSource.DECODE_PROTEOMICS_RAW.value)
 
         manifest_df = (
-            session.spark.read.format("csv")
-            .option("header", "true")
-            .option("sep", "\t")
-            .load(path)
+            session.spark.read.csv(
+                path, sep=" ", header=True, schema=cls.bucket_listing_schema
+            )
+            .drop("empty")
+            .withColumn("projectId", project_id)
+            .withColumn(
+                "studyId",
+                f.concat_ws(
+                    "_",
+                    f.col("projectId"),
+                    f.regexp_extract(
+                        "relativePath", r"^.*/(Proteomics_.*)\.txt.gz$", 1
+                    ),
+                ),
+            )
+            .withColumn("hasSumstats", f.lit(True))
+            .withColumn(
+                "summarystatsLocation",
+                f.concat(
+                    f.lit("s3a://"),
+                    f.lit(config.bucket_name),
+                    f.lit("/"),
+                    f.col("relativePath"),
+                ),
+            )
+            .withColumn("size", f.concat_ws(" ", f.col("size"), f.col("unit")))
+            .withColumn(
+                "accessionTimestamp",
+                f.to_timestamp(
+                    f.concat_ws(" ", f.col("date"), f.col("time")),
+                    "yyyy-MM-dd HH:mm:ss",
+                ),
+            )
+            .select(
+                "projectId",
+                "studyId",
+                "hasSumstats",
+                "summarystatsLocation",
+                "size",
+                "accessionTimestamp",
+            )
         )
         return cls(df=manifest_df)
-
-
-class deCODEStudyIndex:
-    """deCODE study index class."""
-
-    @classmethod
-    def from_manifest(cls, manifest: deCODEManifest) -> StudyIndex:
-        """Create deCODE study index from manifest.
-
-        Args:
-            manifest (deCODEManifest): deCODE manifest.
-
-        Returns:
-            deCODEStudyIndex: deCODE study index instance.
-        """
-        raise NotImplementedError("deCODE study index creation not implemented yet.")
-
-
-class deCODESummaryStatistics:
-    """deCODE summary statistics class."""
-
-    @classmethod
-    def from_study_index(cls, study_index: StudyIndex) -> SummaryStatistics:
-        """Create deCODE summary statistics from study index.
-
-        Args:
-            study_index (StudyIndex): deCODE study index.
-
-        Returns:
-            SummaryStatistics: deCODE summary statistics instance.
-        """
-        raise NotImplementedError(
-            "deCODE summary statistics creation not implemented yet."
-        )
-
-    @staticmethod
-    def tsv_to_parquet(session, summary_statistics_paths: list[str], raw_summary_statistics_path: str,)
