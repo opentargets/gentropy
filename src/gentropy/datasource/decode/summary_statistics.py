@@ -14,7 +14,7 @@ class deCODESummaryStatistics:
     """deCODE summary statistics class."""
 
     N_THREAD_OPTIMAL = 10
-    N_THREAD_MAX = 32
+    N_THREAD_MAX = 500
 
     raw_schema = t.StructType(
         [
