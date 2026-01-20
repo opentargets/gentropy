@@ -3,29 +3,51 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from enum import Enum
 from typing import TYPE_CHECKING
 
+from pyspark.sql import Window
 from pyspark.sql import functions as f
 from pyspark.sql import types as t
 
 from gentropy.common.schemas import parse_spark_schema
 from gentropy.dataset.biosample_index import BiosampleIndex
+from gentropy.dataset.contig_index import ContigIndex
 from gentropy.dataset.dataset import Dataset
 from gentropy.dataset.target_index import TargetIndex
 
 if TYPE_CHECKING:
-    from pyspark.sql import DataFrame, SparkSession
     from pyspark.sql.types import StructType
 
-from enum import Enum
+
+class IntervalDataSource(str, Enum):
+    """Enum for interval data sources."""
+
+    E2G = "E2G"
+    EPIRACTION = "epiraction"
 
 
-class IntervalQualityCheck(Enum):
+class IntervalQualityCheck(str, Enum):
     """Enum for interval quality check reasons."""
 
     UNRESOLVED_TARGET = "Target/gene identifier could not match to reference"
     UNKNOWN_BIOSAMPLE = "Biosample identifier was not found in the reference"
     SCORE_OUTSIDE_BOUNDS = "Score was above or below specified thresholds"
+    UNKNOWN_INTERVAL_TYPE = "Interval type is not supported"
+    AMBIGUOUS_SCORE = "Interval has a duplicate with different score"
+    UNKNOWN_PROJECT_ID = "Project id could not be resolved to any known dataset"
+    INVALID_CHROMOSOME = "Interval chromosome was not found in "
+    INVALID_RANGE = "Interval range exceeded chromosome bounds"
+    AMBIGUOUS_INTERVAL_TYPE = "Multiple interval types for the same (id, geneId) pair"
+
+
+class IntervalType(str, Enum):
+    """Enum representing interval type."""
+
+    PROMOTER = "promoter"
+    ENHANCER = "enhancer"
+    GENIC = "genic"
+    INTRAGENIC = "intragenic"
 
 
 @dataclass
@@ -41,52 +63,68 @@ class Intervals(Dataset):
         """
         return parse_spark_schema("intervals.json")
 
-    @classmethod
-    def from_source(
-        cls: type[Intervals],
-        spark: SparkSession,
-        source_name: str,
-        source_path: str,
-        target_index: TargetIndex,
-        biosample_index: BiosampleIndex,
-        biosample_mapping: DataFrame,
-    ) -> Intervals:
-        """Collect interval data for a particular source.
-
-        Args:
-            spark (SparkSession): Spark session
-            source_name (str): Name of the interval source
-            source_path (str): Path to the interval source file
-            target_index (TargetIndex): Target index
-            biosample_index (BiosampleIndex): Biosample index
-            biosample_mapping (DataFrame): Biosample mapping DataFrame
+    def validate_datasource_id(self: Intervals) -> Intervals:
+        """Validate datasourceId in the Intervals dataset.
 
         Returns:
-            Intervals: Intervals dataset
-
-        Raises:
-            ValueError: If the source name is not recognised
+            Intervals: Intervals dataset with invalid datasourceId flagged.
         """
-        from gentropy.datasource.intervals.e2g import IntervalsE2G
-        from gentropy.datasource.intervals.epiraction import IntervalsEpiraction
+        valid_df = self.df.withColumn(
+            "qualityControls",
+            self.update_quality_flag(
+                f.col("qualityControls"),
+                ~f.col("datasourceId").isin([ds.value for ds in IntervalDataSource]),
+                IntervalQualityCheck.UNKNOWN_PROJECT_ID,
+            ),
+        )
+        return Intervals(_df=valid_df)
 
-        if source_name == "e2g":
-            raw = IntervalsE2G.read(spark, source_path)
-            return IntervalsE2G.parse(
-                raw_e2g_df=raw,
-                biosample_mapping=biosample_mapping,
-                target_index=target_index,
-                biosample_index=biosample_index,
+    def validate_interval_range(
+        self: Intervals, contig_index: ContigIndex
+    ) -> Intervals:
+        """Validate chromosome labels in the Intervals dataset.
+
+        Args:
+            contig_index (ContigIndex): Contig ingex.
+
+        Returns:
+            Intervals: Intervals dataset with invalid chromosome labels flagged.
+        """
+        chromosomes = f.broadcast(
+            contig_index.canonical().df.select(
+                f.col("start").alias("contigStart"),
+                f.col("end").alias("contigEnd"),
+                f.col("id").alias("chromosome"),
             )
-
-        if source_name == "epiraction":
-            raw = IntervalsEpiraction.read(spark, source_path)
-            return IntervalsEpiraction.parse(
-                raw_epiraction_df=raw,
-                target_index=target_index,
+        )
+        valid_df = (
+            self.df.repartitionByRange("chromosome")
+            .join(chromosomes, on="chromosome", how="left")
+            .withColumn(
+                "qualityControls",
+                self.update_quality_flag(
+                    f.col("qualityControls"),
+                    # The chromosome is not canonical, resulting in empty contig bounds after left join
+                    ((f.col("contigStat").isNull()) | (f.col("contigEnd").isNull())),
+                    IntervalQualityCheck.INVALID_CHROMOSOME,
+                ),
             )
+            .withColumn(
+                "qualityControls",
+                self.update_quality_flag(
+                    f.col("qualityControls"),
+                    # interval Range exceeds bounds the contig range
+                    (
+                        (f.col("start") < f.col("contigStart"))
+                        | (f.col("end") > f.col("contigEnd"))
+                    ),
+                    IntervalQualityCheck.INVALID_RANGE,
+                ),
+            )
+            .drop("chrStart", "chrEnd")
+        )
 
-        raise ValueError(f"Unknown interval source: {source_name!r}")
+        return Intervals(_df=valid_df, _schema=Intervals.get_schema())
 
     def validate_target(self: Intervals, target_index: TargetIndex) -> Intervals:
         """Validate targets in the Intervals dataset.
@@ -150,6 +188,36 @@ class Intervals(Dataset):
         )
         return Intervals(_df=validated_df, _schema=Intervals.get_schema())
 
+    def validate_interval_type(self: Intervals) -> Intervals:
+        """Validate interval types in the Intervals dataset.
+
+        Returns:
+            Intervals: Intervals dataset with invalid interval types flagged.
+        """
+        valid_df = self.df.withColumn(
+            "qualityControls",
+            self.update_quality_flag(
+                f.col("qualityControls"),
+                ~f.col("intervalType").isin(
+                    [interval_type.value for interval_type in IntervalType]
+                ),
+                IntervalQualityCheck.UNKNOWN_INTERVAL_TYPE,
+            ),
+        )
+
+        window = Window.partitionBy("id", "geneId")
+
+        valid_df = valid_df.withColumn(
+            "qualityControls",
+            self.update_quality_flag(
+                f.col("qualityControls"),
+                f.count_distinct("intervalType").over(window) > 1,
+                IntervalQualityCheck.AMBIGUOUS_INTERVAL_TYPE,
+            ),
+        )
+
+        return Intervals(_df=valid_df)
+
     def validate_score(
         self: Intervals, min_score: float, max_score: float
     ) -> Intervals:
@@ -173,34 +241,24 @@ class Intervals(Dataset):
         )
         return Intervals(_df=valid_df)
 
-    def validate_interval(self: Intervals) -> Intervals:
-        """Validate chromosome labels in the Intervals dataset.
+    def validate_id_has_unique_score(self: Intervals) -> Intervals:
+        """Validate unique (id, score) group.
+
+        The assumption is that the same id (geneId, biosampleId) should not have different
 
         Returns:
-            Intervals: Intervals dataset with invalid chromosome labels flagged.
+            Intervals: Intervals dataset with ambiguous scores flagged.
         """
-        raise NotImplementedError("Chromosome label validation not yet implemented.")
+        w = Window().partitionBy(
+            "id", "biosampleId", "geneId", "studyId", "intervalType"
+        )
+        valid_df = self.df.withColumn(
+            "qualityControls",
+            self.update_quality_flag(
+                f.col("qualityControls"),
+                (f.size(f.array_distinct(f.collect_list(f.col("score")).over(w))) > 1),
+                IntervalQualityCheck.AMBIGUOUS_SCORE,
+            ),
+        )
 
-    def validate_unique_id(self: Intervals) -> Intervals:
-        """Validate unique IDs in the Intervals dataset.
-
-        Returns:
-            Intervals: Intervals dataset with duplicate IDs flagged.
-        """
-        raise NotImplementedError("Unique ID validation not yet implemented.")
-
-    def validate_interval_type(self: Intervals) -> Intervals:
-        """Validate interval types in the Intervals dataset.
-
-        Returns:
-            Intervals: Intervals dataset with invalid interval types flagged.
-        """
-        raise NotImplementedError("Interval type validation not yet implemented.")
-
-    def validate_biofeature(self: Intervals) -> Intervals:
-        """Validate biofeature in the Intervals dataset.
-
-        Returns:
-            Intervals: Intervals dataset with invalid biofeatures flagged.
-        """
-        raise NotImplementedError("Biofeature validation not yet implemented.")
+        return Intervals(_df=valid_df)

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from gentropy.common.session import Session
 from gentropy.dataset.biosample_index import BiosampleIndex
+from gentropy.dataset.contig_index import ContigIndex
 from gentropy.dataset.intervals import Intervals
 from gentropy.dataset.target_index import TargetIndex
 from gentropy.datasource.intervals.e2g import IntervalsE2G
@@ -94,8 +95,11 @@ class IntervalQCStep:
         interval_path: str,
         target_index_path: str,
         biosample_index_path: str,
+        chromosome_contig_index_path: str,
         valid_ouptut_path: str,
         invalid_output_path: str,
+        min_valid_score: float = 0.6,
+        max_valid_score: float = 1.0,
         invalid_qc_reasons: list[str] | None = None,
     ) -> None:
         """Run the QC interval step."""
@@ -104,10 +108,16 @@ class IntervalQCStep:
         interval_index = Intervals.from_parquet(session, interval_path)
         target_index = TargetIndex.from_parquet(session, target_index_path)
         biosample_index = BiosampleIndex.from_parquet(session, biosample_index_path)
+        contig_index = ContigIndex.from_parquet(session, chromosome_contig_index_path)
 
         valid_intervals, invalid_intervals = (
-            interval_index.validate_target(target_index)
+            interval_index.validate_datasource_id()
+            .validate_interval_range(contig_index)
+            .validate_target(target_index)
             .validate_biosample(biosample_index)
+            .validate_interval_type()
+            .validate_score(min_valid_score, max_valid_score)
+            .validate_id_has_unique_score()
             .persist()  # we will need this for 2 types of outputs
             .valid_rows(invalid_qc_reasons)
         )

@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, ClassVar
 
 import pyspark.sql.functions as f
 
-from gentropy.dataset.intervals import Intervals
+from gentropy.dataset.intervals import IntervalDataSource, Intervals, IntervalType
 from gentropy.dataset.target_index import TargetIndex
 
 if TYPE_CHECKING:
@@ -16,9 +16,7 @@ if TYPE_CHECKING:
 class IntervalsEpiraction:
     """Interval dataset from EPIraction."""
 
-    DATASET_NAME: ClassVar[str] = "epiraction"
     PMID: ClassVar[str] = "40027634"
-    VALID_INTERVAL_TYPES: ClassVar[list[str]] = ["promoter", "enhancer"]
 
     @staticmethod
     def read(spark: SparkSession, path: str) -> DataFrame:
@@ -54,7 +52,9 @@ class IntervalsEpiraction:
             Intervals: Parsed Intervals dataset.
         """
         base = (
-            raw_epiraction_df.filter(f.col("class").isin(cls.VALID_INTERVAL_TYPES))
+            raw_epiraction_df.filter(
+                f.col("class").isin([it.value for it in IntervalType])
+            )
             .withColumn("chromosome", f.regexp_replace(f.col("chr"), r"^chr", ""))
             .withColumnRenamed("TargetGeneEnsemblID", "geneId")
             .withColumnRenamed("CellType", "biosampleName")
@@ -95,7 +95,7 @@ class IntervalsEpiraction:
         )
 
         # Target Index: preferred TSS (+ fallbacks)
-        ti = target_index._df.select(
+        ti = target_index.df.select(
             f.col("id").alias("geneId"),
             f.col("tss").cast("long").alias("tss_primary"),
             f.col("canonicalTranscript.start").cast("long").alias("ct_start"),
@@ -152,7 +152,7 @@ class IntervalsEpiraction:
                     f.col("iv.start"),
                     f.col("iv.end"),
                     f.col("iv.geneId"),
-                    f.lit(cls.DATASET_NAME),
+                    f.lit(IntervalDataSource.EPIRACTION),
                 )
             ),
         )
@@ -169,7 +169,7 @@ class IntervalsEpiraction:
                     f.col("distanceToTss").cast("integer").alias("distanceToTss"),
                     f.col("iv.score").cast("double").alias("score"),
                     f.col("iv.resourceScore").alias("resourceScore"),
-                    f.lit(cls.DATASET_NAME).alias("datasourceId"),
+                    f.lit(IntervalDataSource.EPIRACTION).alias("datasourceId"),
                     f.lit(cls.PMID).alias("pmid"),
                 )
             ),

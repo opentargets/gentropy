@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, ClassVar
 import pyspark.sql.functions as f
 
 from gentropy.dataset.biosample_index import BiosampleIndex
-from gentropy.dataset.intervals import Intervals
+from gentropy.dataset.intervals import IntervalDataSource, Intervals, IntervalType
 from gentropy.dataset.target_index import TargetIndex
 
 if TYPE_CHECKING:
@@ -17,9 +17,7 @@ if TYPE_CHECKING:
 class IntervalsE2G:
     """Interval dataset from E2G."""
 
-    DATASET_NAME: ClassVar[str] = "E2G"
     PMID: ClassVar[str] = "38014075"  # PMID for the E2G paper
-    VALID_INTERVAL_TYPES: ClassVar[list[str]] = ["promoter", "genic", "intergenic"]
 
     @staticmethod
     def read(spark: SparkSession, path: str) -> DataFrame:
@@ -88,10 +86,10 @@ class IntervalsE2G:
 
         base = base.withColumn(
             "intervalType", f.lower(f.trim(f.col("intervalType")))
-        ).filter(f.col("intervalType").isin(cls.VALID_INTERVAL_TYPES))
+        ).filter(f.col("intervalType").isin([it.value for it in IntervalType]))
 
         # Target Index: preferred TSS + fallbacks (canonical transcript, genomicLocation)
-        ti = target_index._df.select(
+        ti = target_index.df.select(
             f.col("id").alias("geneId"),
             f.col("tss").cast("long").alias("tss_primary"),
             f.col("canonicalTranscript.chromosome").alias("ct_chr"),
@@ -162,7 +160,7 @@ class IntervalsE2G:
                     f.col("distanceToTss").cast("integer"),
                     f.col("score").cast("double"),
                     f.col("resourceScore"),
-                    f.lit(cls.DATASET_NAME).alias("datasourceId"),
+                    f.lit(IntervalDataSource.E2G.value).alias("datasourceId"),
                     f.lit(cls.PMID).alias("pmid"),
                     f.col("studyId"),
                     f.col("biosampleId"),
