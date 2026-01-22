@@ -7,9 +7,8 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum
 from functools import reduce
-from typing import TYPE_CHECKING, Any, ParamSpec, Self
+from typing import TYPE_CHECKING, Any, Generic, NamedTuple, ParamSpec, Self, TypeVar
 
-from pydantic import BaseModel
 from pyspark.sql import DataFrame
 from pyspark.sql import functions as f
 from pyspark.sql import types as t
@@ -19,7 +18,6 @@ from gentropy.common.schemas import SchemaValidationError, compare_struct_schema
 
 if TYPE_CHECKING:
     from enum import Enum
-    from typing import Generic, NamedTuple, TypeVar
 
     from pyspark.sql import Column
     from pyspark.sql.types import StructType

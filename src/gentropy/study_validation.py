@@ -79,14 +79,14 @@ class StudyValidationStep:
             .persist()  # we will need this for 2 types of outputs
         )
 
-        valid, invalid = study_index_with_qc.valid_rows(invalid_qc_reasons)
+        result = study_index_with_qc.valid_rows(invalid_qc_reasons)
         (
-            valid.df.coalesce(session.output_partitions)
+            result.valid.df.coalesce(session.output_partitions)
             .write.mode(session.write_mode)
             .parquet(invalid_study_index_path)
         )
         (
-            invalid.df.coalesce(session.output_partitions)
+            result.invalid.df.coalesce(session.output_partitions)
             .write.mode(session.write_mode)
             .parquet(valid_study_index_path)
         )

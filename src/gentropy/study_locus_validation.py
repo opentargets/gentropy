@@ -67,11 +67,11 @@ class StudyLocusValidationStep:
             .persist()  # we will need this for 2 types of outputs
         )
 
-        valid, invalid = study_locus_with_qc.valid_rows(invalid_qc_reasons)
+        result = study_locus_with_qc.valid_rows(invalid_qc_reasons)
 
         (
             # Valid study locus partitioned to simplify the finding of overlaps
-            valid.df.repartitionByRange(
+            result.valid.df.repartitionByRange(
                 session.output_partitions,
                 "chromosome",
                 "position",
@@ -81,7 +81,7 @@ class StudyLocusValidationStep:
             .parquet(valid_study_locus_path)
         )
         (
-            invalid.df.coalesce(session.output_partitions)
+            result.invalid.df.coalesce(session.output_partitions)
             .write.mode(session.write_mode)
             .parquet(invalid_study_locus_path)
         )
