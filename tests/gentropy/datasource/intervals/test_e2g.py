@@ -36,7 +36,6 @@ def test_e2g_intervals_from_source(
     sample_intervals_e2g: DataFrame,
     sample_biosample_mapping: DataFrame,
     mock_target_index: TargetIndex,
-    mock_biosample_index: BiosampleIndex,
 ) -> None:
     """Test E2GIntervals creation with mock data."""
     assert isinstance(
@@ -44,7 +43,6 @@ def test_e2g_intervals_from_source(
             sample_intervals_e2g,
             sample_biosample_mapping,
             mock_target_index,
-            mock_biosample_index,
         ),
         Intervals,
     )

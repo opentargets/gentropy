@@ -1,22 +1,22 @@
 {
   "fields": [
     {
-      "metadata": { },
+      "metadata": {},
       "name": "id",
       "nullable": false,
       "type": "string"
     },
     {
-      "metadata": { },
+      "metadata": {},
       "name": "start",
       "nullable": false,
-      "type": "integer"
+      "type": "long"
     },
     {
-      "metadata": { },
+      "metadata": {},
       "name": "end",
       "nullable": false,
-      "type": "integer"
+      "type": "long"
     }
   ],
   "type": "struct"

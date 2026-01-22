@@ -28,7 +28,8 @@ class ContigIndex(Dataset):
     >>> df = spark.createDataFrame([
     ...     ("1", 0, 248956422),
     ...     ("2", 0, 242193529),
-    ...    ("X", 0, 156040895), ])
+    ...    ("X", 0, 156040895),],
+    ...    schema=["id", "start", "end"])
     >>> contig_index = ContigIndex(_df=df)
     >>> contig_index.canonical().df.show()
     +---+-----+---------+
@@ -41,7 +42,8 @@ class ContigIndex(Dataset):
     <BLANKLINE>
     """
 
-    CANONICAL_CONTIGS = [str(i) for i in range(1, 23)] + ["X", "Y", "MT"]
+    CANONICAL_CHROMOSOMES = [str(i) for i in range(1, 23)] + ["X", "Y", "MT"]
+    """Canonical chromosomes"""
 
     @classmethod
     def get_schema(cls: type[ContigIndex]) -> StructType:
@@ -56,6 +58,8 @@ class ContigIndex(Dataset):
         """Get the canonical subpart of the index.
 
         Returns:
-            ContigIndex: Filtered by canonical contigs.
+            ContigIndex: Filtered by canonical chromosomes.
         """
-        return ContigIndex(_df=self.df.filter(f.col("id").isin(self.CANONICAL_CONTIGS)))
+        return ContigIndex(
+            _df=self.df.filter(f.col("id").isin(self.CANONICAL_CHROMOSOMES))
+        )

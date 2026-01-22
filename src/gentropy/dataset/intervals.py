@@ -84,22 +84,23 @@ class Intervals(Dataset):
             Column: Distance from interval to TSS.
 
         Example:
-            >>> data = [(100, 200, 'enhancer', 150),
-            ...         (300, 400, 'promoter', 350),
-            ...         (500, 600, 'enhancer', 400),
-            ...         (700, 800, 'enhancer', None)]
+            >>> data = [(100, 200, 'enhancer', 150), # tss within interval
+            ...         (300, 400, 'promoter', 350), # promoter type always 0 distance
+            ...         (500, 600, 'enhancer', 400), # tss 100 bp away the istart
+            ...         (700, 800, 'enhancer', None)] # tss is null
             >>> df = spark.createDataFrame(data, ['istart', 'iend', 'itype', 'tss'])
             >>> df.withColumn('distanceToTss', Intervals.distance_to_tss(
             ...     f.col('istart'), f.col('iend'), f.col('itype'), f.col('tss'))
             ... ).show()
-            +------+----+---------+-----+-------------+
-            |istart|iend|    itype|  tss|distanceToTss|
-            +------+----+---------+-----+-------------+
-            |   100| 200| enhancer|  150|            0|
-            |   300| 400| promoter|  350|            0|
-            |   500| 600| enhancer|  400|          100|
-            |   700| 800| enhancer| None|         None|
-            +------+----+---------+-----+-------------+
+            +------+----+--------+----+-------------+
+            |istart|iend|   itype| tss|distanceToTss|
+            +------+----+--------+----+-------------+
+            |   100| 200|enhancer| 150|            0|
+            |   300| 400|promoter| 350|            0|
+            |   500| 600|enhancer| 400|          100|
+            |   700| 800|enhancer|NULL|         NULL|
+            +------+----+--------+----+-------------+
+            <BLANKLINE>
         """
         is_promoter = itype == f.lit(IntervalType.PROMOTER.value)
         tss_in_interval = (tss >= istart) & (tss <= iend)
