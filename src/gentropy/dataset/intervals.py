@@ -4,8 +4,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, ParamSpec, TypeVar
 
+from pydantic import BaseModel
 from pyspark.sql import Window
 from pyspark.sql import functions as f
 from pyspark.sql import types as t
@@ -13,11 +14,23 @@ from pyspark.sql import types as t
 from gentropy.common.schemas import parse_spark_schema
 from gentropy.dataset.biosample_index import BiosampleIndex
 from gentropy.dataset.contig_index import ContigIndex
-from gentropy.dataset.dataset import Dataset
+from gentropy.dataset.dataset import Dataset, DatasetValidationResult, qc_test
 from gentropy.dataset.target_index import TargetIndex
 
 if TYPE_CHECKING:
+    from pyspark.sql import Column
     from pyspark.sql.types import StructType
+
+
+P = ParamSpec("P")
+F = TypeVar("F", bound=Dataset)
+
+
+class IntervalQCConfig(BaseModel):
+    """Configuration for interval quality control."""
+
+    min_valid_score: float
+    max_valid_score: float
 
 
 class IntervalDataSource(str, Enum):
@@ -46,13 +59,58 @@ class IntervalType(str, Enum):
 
     PROMOTER = "promoter"
     ENHANCER = "enhancer"
-    GENIC = "genic"
     INTRAGENIC = "intragenic"
 
 
 @dataclass
 class Intervals(Dataset):
     """Intervals dataset links genes to genomic regions based on genome interaction studies."""
+
+    id_cols = ["chromosome", "start", "end", "geneId", "studyId", "intervalType"]
+
+    @staticmethod
+    def distance_to_tss(
+        istart: Column, iend: Column, itype: Column, tss: Column
+    ) -> Column:
+        """Compute distance from interval to TSS.
+
+        Args:
+            istart (Column): Interval start position.
+            iend (Column): Interval end position.
+            itype (Column): Interval type.
+            tss (Column): Transcription start site position.
+
+        Returns:
+            Column: Distance from interval to TSS.
+
+        Example:
+            >>> data = [(100, 200, 'enhancer', 150),
+            ...         (300, 400, 'promoter', 350),
+            ...         (500, 600, 'enhancer', 400),
+            ...         (700, 800, 'enhancer', None)]
+            >>> df = spark.createDataFrame(data, ['istart', 'iend', 'itype', 'tss'])
+            >>> df.withColumn('distanceToTss', Intervals.distance_to_tss(
+            ...     f.col('istart'), f.col('iend'), f.col('itype'), f.col('tss'))
+            ... ).show()
+            +------+----+---------+-----+-------------+
+            |istart|iend|    itype|  tss|distanceToTss|
+            +------+----+---------+-----+-------------+
+            |   100| 200| enhancer|  150|            0|
+            |   300| 400| promoter|  350|            0|
+            |   500| 600| enhancer|  400|          100|
+            |   700| 800| enhancer| None|         None|
+            +------+----+---------+-----+-------------+
+        """
+        is_promoter = itype == f.lit(IntervalType.PROMOTER.value)
+        tss_in_interval = (tss >= istart) & (tss <= iend)
+
+        expr = (
+            f.when((is_promoter) | (tss_in_interval), f.lit(0))
+            .when(tss.isNull(), f.lit(None).cast(t.LongType()))
+            .otherwise(f.least(f.abs(tss - istart), f.abs(tss - iend)))
+        )
+
+        return expr.cast(t.LongType()).alias("distanceToTss")
 
     @classmethod
     def get_schema(cls: type[Intervals]) -> StructType:
@@ -63,6 +121,7 @@ class Intervals(Dataset):
         """
         return parse_spark_schema("intervals.json")
 
+    @qc_test
     def validate_datasource_id(self: Intervals) -> Intervals:
         """Validate datasourceId in the Intervals dataset.
 
@@ -79,13 +138,14 @@ class Intervals(Dataset):
         )
         return Intervals(_df=valid_df)
 
+    @qc_test
     def validate_interval_range(
         self: Intervals, contig_index: ContigIndex
     ) -> Intervals:
         """Validate chromosome labels in the Intervals dataset.
 
         Args:
-            contig_index (ContigIndex): Contig ingex.
+            contig_index (ContigIndex): Contig index.
 
         Returns:
             Intervals: Intervals dataset with invalid chromosome labels flagged.
@@ -126,6 +186,7 @@ class Intervals(Dataset):
 
         return Intervals(_df=valid_df, _schema=Intervals.get_schema())
 
+    @qc_test
     def validate_target(self: Intervals, target_index: TargetIndex) -> Intervals:
         """Validate targets in the Intervals dataset.
 
@@ -156,6 +217,7 @@ class Intervals(Dataset):
         )
         return Intervals(_df=validated_df, _schema=Intervals.get_schema())
 
+    @qc_test
     def validate_biosample(
         self: Intervals, biosample_index: BiosampleIndex
     ) -> Intervals:
@@ -188,6 +250,7 @@ class Intervals(Dataset):
         )
         return Intervals(_df=validated_df, _schema=Intervals.get_schema())
 
+    @qc_test
     def validate_interval_type(self: Intervals) -> Intervals:
         """Validate interval types in the Intervals dataset.
 
@@ -218,6 +281,7 @@ class Intervals(Dataset):
 
         return Intervals(_df=valid_df)
 
+    @qc_test
     def validate_score(
         self: Intervals, min_score: float, max_score: float
     ) -> Intervals:
@@ -241,6 +305,7 @@ class Intervals(Dataset):
         )
         return Intervals(_df=valid_df)
 
+    @qc_test
     def validate_id_has_unique_score(self: Intervals) -> Intervals:
         """Validate unique (id, score) group.
 
@@ -262,3 +327,27 @@ class Intervals(Dataset):
         )
 
         return Intervals(_df=valid_df)
+
+    def qc(
+        self,
+        contig_index: ContigIndex,
+        target_index: TargetIndex,
+        biosample_index: BiosampleIndex,
+        min_valid_score: float,
+        max_valid_score: float,
+        invalid_qc_reasons: list[str] | None = None,
+    ) -> DatasetValidationResult[Intervals]:
+        """Perform Quality Control over Intervals dataset."""
+        if invalid_qc_reasons is None:
+            invalid_qc_reasons = []
+        return (
+            self.validate_datasource_id()
+            .validate_interval_range(contig_index)
+            .validate_target(target_index)
+            .validate_biosample(biosample_index)
+            .validate_interval_type()
+            .validate_score(min_valid_score, max_valid_score)
+            .validate_id_has_unique_score()
+            .persist()
+            .valid_rows(invalid_qc_reasons)
+        )

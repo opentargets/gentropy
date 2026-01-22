@@ -17,7 +17,7 @@ from pyspark.sql.window import Window
 from gentropy.assets import data
 from gentropy.common.schemas import parse_spark_schema
 from gentropy.common.spark import convert_from_wide_to_long, filter_array_struct
-from gentropy.dataset.dataset import Dataset
+from gentropy.dataset.dataset import Dataset, qc_test
 
 if TYPE_CHECKING:
     from pyspark.sql import Column, DataFrame
@@ -275,6 +275,7 @@ class StudyIndex(Dataset):
         """
         return self.df.hasSumstats
 
+    @qc_test
     def validate_unique_study_id(self: StudyIndex) -> StudyIndex:
         """Validating the uniqueness of study identifiers and flagging duplicated studies.
 
@@ -293,6 +294,7 @@ class StudyIndex(Dataset):
             _schema=StudyIndex.get_schema(),
         )
 
+    @qc_test
     def validate_project_id(
         self: StudyIndex, deprecated_project_ids: list[str]
     ) -> StudyIndex:
@@ -358,6 +360,7 @@ class StudyIndex(Dataset):
             )
         )
 
+    @qc_test
     def validate_disease(self: StudyIndex, disease_map: DataFrame) -> StudyIndex:
         """Validate diseases in the study index dataset.
 
@@ -429,6 +432,7 @@ class StudyIndex(Dataset):
             _schema=StudyIndex.get_schema(),
         )
 
+    @qc_test
     def validate_study_type(self: StudyIndex) -> StudyIndex:
         """Validating study type and flag unsupported types.
 
@@ -453,6 +457,7 @@ class StudyIndex(Dataset):
         )
         return StudyIndex(_df=validated_df, _schema=StudyIndex.get_schema())
 
+    @qc_test
     def validate_target(self: StudyIndex, target_index: TargetIndex) -> StudyIndex:
         """Validating gene identifiers in the study index against the provided target index.
 
@@ -492,6 +497,7 @@ class StudyIndex(Dataset):
 
         return StudyIndex(_df=validated_df, _schema=StudyIndex.get_schema())
 
+    @qc_test
     def validate_biosample(
         self: StudyIndex, biosample_index: BiosampleIndex
     ) -> StudyIndex:
@@ -541,6 +547,7 @@ class StudyIndex(Dataset):
 
         return StudyIndex(_df=validated_df, _schema=StudyIndex.get_schema())
 
+    @qc_test
     def annotate_sumstats_qc(
         self: StudyIndex,
         sumstats_qc: SummaryStatisticsQC,
@@ -650,6 +657,7 @@ class StudyIndex(Dataset):
             _schema=StudyIndex.get_schema(),
         )
 
+    @qc_test
     def validate_analysis_flags(self: StudyIndex) -> StudyIndex:
         """Validating analysis flags in the study index dataset.
 
@@ -671,6 +679,7 @@ class StudyIndex(Dataset):
         )
         return StudyIndex(_df=df, _schema=StudyIndex.get_schema())
 
+    @qc_test
     def deconvolute_studies(self: StudyIndex) -> StudyIndex:
         """Deconvolute the study index dataset.
 
