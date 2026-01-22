@@ -84,9 +84,9 @@ class Intervals(Dataset):
             Column: Distance from interval to TSS.
 
         Example:
-            >>> data = [(100, 200, 'enhancer', 150), # tss within interval
-            ...         (300, 400, 'promoter', 350), # promoter type always 0 distance
-            ...         (500, 600, 'enhancer', 400), # tss 100 bp away the istart
+            >>> data = [(100, 200, 'enhancer', 150),  # tss within interval
+            ...         (300, 400, 'promoter', 350),  # promoter type always 0 distance
+            ...         (500, 600, 'enhancer', 400),  # tss 100 bp away the istart
             ...         (700, 800, 'enhancer', None)] # tss is null
             >>> df = spark.createDataFrame(data, ['istart', 'iend', 'itype', 'tss'])
             >>> df.withColumn('distanceToTss', Intervals.distance_to_tss(
@@ -107,11 +107,11 @@ class Intervals(Dataset):
 
         expr = (
             f.when((is_promoter) | (tss_in_interval), f.lit(0))
-            .when(tss.isNull(), f.lit(None).cast(t.LongType()))
+            .when(tss.isNull(), f.lit(None).cast(t.IntegerType()))
             .otherwise(f.least(f.abs(tss - istart), f.abs(tss - iend)))
         )
 
-        return expr.cast(t.LongType()).alias("distanceToTss")
+        return expr.cast(t.IntegerType()).alias("distanceToTss")
 
     @classmethod
     def get_schema(cls: type[Intervals]) -> StructType:

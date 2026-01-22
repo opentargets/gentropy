@@ -50,7 +50,7 @@ class IntervalE2GStep:
         biosample_mapping = session.spark.read.option("header", "true").csv(
             biosample_mapping_path
         )
-        target_index = TargetIndex.from_parquet(session, target_index_path)
+        target_index = TargetIndex.from_parquet(session, target_index_path).persist()
         biosample_index = BiosampleIndex.from_parquet(session, biosample_index_path)
         contig_index = ContigIndex.from_parquet(session, chromosome_contig_index_path)
         data = IntervalsE2G.read(session.spark, interval_source)
@@ -102,17 +102,11 @@ class IntervalEpiractionStep:
             invalid_qc_reasons (list[str] | None): List of invalid quality check reason names from `IntervalQualityCheck` (e.g. ['INVALID_CHROMOSOME']).
         """
         invalid_qc_reasons = invalid_qc_reasons or []
-        target_index = TargetIndex.from_parquet(
-            session,
-            target_index_path,
-        ).persist()
+        target_index = TargetIndex.from_parquet(session, target_index_path).persist()
         data = IntervalsEpiraction.read(session.spark, interval_source)
         interval_epiraction = IntervalsEpiraction.parse(data, target_index)
-        target_index = TargetIndex.from_parquet(session, target_index_path)
         biosample_index = BiosampleIndex.from_parquet(session, biosample_index_path)
         contig_index = ContigIndex.from_parquet(session, chromosome_contig_index_path)
-        data = IntervalsEpiraction.read(session.spark, interval_source)
-        interval_epiraction = IntervalsEpiraction.parse(data, target_index)
         valid, invalid = interval_epiraction.qc(
             contig_index=contig_index,
             target_index=target_index,

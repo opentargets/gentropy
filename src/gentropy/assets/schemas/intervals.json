@@ -10,13 +10,13 @@
       "metadata": {},
       "name": "start",
       "nullable": false,
-      "type": "string"
+      "type": "long"
     },
     {
       "metadata": {},
       "name": "end",
       "nullable": false,
-      "type": "string"
+      "type": "long"
     },
     {
       "metadata": {},
@@ -115,6 +115,22 @@
       "name": "id",
       "nullable": true,
       "type": "string"
+    },
+    {
+      "metadata": {},
+      "name": "intervalId",
+      "nullable": false,
+      "type": "string"
+    },
+    {
+      "metadata": {},
+      "name": "qualityControls",
+      "type": {
+        "type": "array",
+        "elementType": "string",
+        "containsNull": true
+      },
+      "nullable": true
     }
   ],
   "type": "struct"

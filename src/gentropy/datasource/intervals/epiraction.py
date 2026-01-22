@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, ClassVar
 
-import pyspark.sql.functions as f
+from pyspark.sql import functions as f
+from pyspark.sql import types as t
 
 from gentropy.common.processing import normalize_chromosome
 from gentropy.dataset.intervals import IntervalDataSource, Intervals
@@ -63,6 +64,7 @@ class IntervalsEpiraction:
             .withColumnRenamed("TargetGeneEnsemblID", "geneId")
             .withColumnRenamed("CellType", "biosampleName")
             .withColumnRenamed("Score", "score")
+            .withColumn("score", f.col("score").cast("double"))
             .withColumnRenamed("class", "intervalType")
             .withColumn("intervalType", f.lower(f.trim(f.col("intervalType"))))
             .withColumn(
@@ -122,13 +124,16 @@ class IntervalsEpiraction:
                     f.col("start"),
                     f.col("end"),
                     f.col("geneId"),
-                    f.col("biosampleName"),
-                    f.col("intervalType"),
-                    f.col("distanceToTss"),
                     f.col("score"),
+                    f.col("distanceToTss"),
                     f.col("resourceScore"),
                     f.lit(IntervalDataSource.EPIRACTION.value).alias("datasourceId"),
+                    f.col("intervalType"),
                     f.lit(cls.PMID).alias("pmid"),
+                    f.lit(None).cast(t.StringType()).alias("biofeature"),
+                    f.col("biosampleName"),
+                    f.lit(None).cast(t.StringType()).alias("biosampleFromSourceId"),
+                    f.lit(None).cast(t.StringType()).alias("biosampleId"),
                     f.col("studyId"),
                     f.col("intervalId"),
                     f.col("qualityControls"),
