@@ -24,7 +24,7 @@ if TYPE_CHECKING:
 
     from gentropy.common.session import Session
 
-T = TypeVar("T")
+T = TypeVar("T", bound="Dataset")
 P = ParamSpec("P")
 
 
