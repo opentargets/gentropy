@@ -338,7 +338,19 @@ class Intervals(Dataset):
         max_valid_score: float,
         invalid_qc_reasons: list[str] | None = None,
     ) -> DatasetValidationResult[Intervals]:
-        """Perform Quality Control over Intervals dataset."""
+        """Perform Quality Control over Intervals dataset.
+
+        Args:
+            contig_index (ContigIndex): Contig index.
+            target_index (TargetIndex): Target index.
+            biosample_index (BiosampleIndex): Biosample index.
+            min_valid_score (float): Minimum valid score for interval QC.
+            max_valid_score (float): Maximum valid score for interval QC.
+            invalid_qc_reasons (list[str] | None): List of invalid quality check reason names from `IntervalQualityCheck` (e.g. ['INVALID_CHROMOSOME']).
+
+        Returns:
+            DatasetValidationResult[Intervals]: Valid and invalid Intervals datasets.
+        """
         if invalid_qc_reasons is None:
             invalid_qc_reasons = []
         return (

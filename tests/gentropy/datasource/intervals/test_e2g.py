@@ -5,7 +5,6 @@ from __future__ import annotations
 import pytest
 from pyspark.sql import DataFrame, SparkSession
 
-from gentropy.dataset.biosample_index import BiosampleIndex
 from gentropy.dataset.intervals import Intervals
 from gentropy.dataset.target_index import TargetIndex
 from gentropy.datasource.intervals.e2g import IntervalsE2G

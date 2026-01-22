@@ -36,14 +36,21 @@ class DatasetValidationResult(NamedTuple, Generic[T]):
 
 
 def qc_test(func: Callable[P, T]) -> Callable[P, T]:
-    """Decorator to mark methods as quality control tests."""
+    """Decorator to mark methods as quality control tests.
+
+    Args:
+        func (Callable[P, T]): Function to be decorated. The function should take any parameters and return Dataset derivative.
+
+    Returns:
+        Callable[P, T]: Decorated function.
+    """
     func.__setattr__("__is_qc_test__", True)
 
     return func
 
 
 @dataclass
-class Dataset(ABC, Generic[T]):
+class Dataset(ABC):
     """Open Targets Gentropy Dataset Interface.
 
     The `Dataset` interface is a wrapper around a Spark DataFrame with a predefined schema.
