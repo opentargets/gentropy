@@ -88,6 +88,7 @@ def decode_study_index_df(session: Session) -> DataFrame:
 
 @pytest.fixture
 def decode_summary_statistics_df(session: Session) -> DataFrame:
+    pass
 
 
 class TestdeCODEIngestionStep:

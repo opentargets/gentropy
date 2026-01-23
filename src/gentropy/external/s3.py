@@ -58,7 +58,6 @@ class S3Config(BaseModel):
         Returns:
             S3Config: S3 configuration instance.
 
-
         Examples:
         ---
         >>> import tempfile
@@ -70,14 +69,15 @@ class S3Config(BaseModel):
         ...     "access_key_id": "my-access-key-id",
         ...     "secret_access_key": "my-secret-access-key",
         ... }
-        >>> with tempfile.NamedTemporaryFile(mode='w') as tmpfile:
+        >>> with tempfile.NamedTemporaryFile(mode='w', delete=False) as tmpfile:
         ...     json.dump(config_data, tmpfile)
         ...     tmpfile_path = tmpfile.name
-        ...     config = S3Config.from_file(tmpfile_path)
-        ...     print(config.bucket_name)
-        my-bucket
+        >>> config = S3Config.from_file(tmpfile_path)
+        >>> config.bucket_name
+        'my-bucket'
+        >>> os.remove(tmpfile_path)
 
         """
-        with open(path) as f:
+        with open(path, encoding="utf-8") as f:
             config_data = json.load(f)
         return cls(**config_data)
