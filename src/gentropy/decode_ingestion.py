@@ -64,26 +64,21 @@ class deCODEStudyIndexGenerationStep:
         )
 
 
-# class deCODESummaryStatisticsIngestionStep:
-#     """deCODE SummaryStatistics ingestion step."""
+class deCODESummaryStatisticsIngestionStep:
+    """deCODE SummaryStatistics ingestion step."""
 
-#     def __init__(
-#         self, session: Session, study_index_path: str, raw_summary_statistics_path: str
-#     ) -> None:
-#         """Run deCODE SummaryStatistics ingestion step."""
-
-#         summary_statistics_paths = study_index.get_summary_statistics_paths()
-#         assert len(summary_statistics_paths) > 0, "No summary statistics paths found."
-#         session.logger.info(
-#             f"Found {len(summary_statistics_paths)} summary statistics paths."
-#         )
-
-#         summary_statistics = deCODESummaryStatistics.txtgz_to_parquet(
-#             session=session,
-#             summary_statistics_list=summary_statistics_paths,
-#             raw_summary_statistics_output_path=raw_summary_statistics_output_path,
-#             n_threads=deCODESummaryStatistics.N_THREADS_OPTIMAL,
-#         )
+    def __init__(
+        self, session: Session, study_index_path: str, raw_summary_statistics_path: str
+    ) -> None:
+        """Run deCODE SummaryStatistics ingestion step."""
+        study_index = StudyIndex.from_parquet(session, study_index_path)
+        summary_statistics_paths = study_index.get_summary_statistics_paths()
+        deCODESummaryStatistics.txtgz_to_parquet(
+            session=session,
+            summary_statistics_list=summary_statistics_paths,
+            raw_summary_statistics_output_path=raw_summary_statistics_path,
+            n_threads=deCODESummaryStatistics.N_THREAD_MAX,
+        )
 
 
 # class deCODESummaryStatisticsHarmonisationStep:

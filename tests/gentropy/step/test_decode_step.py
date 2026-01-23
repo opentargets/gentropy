@@ -86,6 +86,10 @@ def decode_study_index_df(session: Session) -> DataFrame:
     return session.spark.createDataFrame(data)
 
 
+@pytest.fixture
+def decode_summary_statistics_df(session: Session) -> DataFrame:
+
+
 class TestdeCODEIngestionStep:
     """Test deCODEManifestGenerationStep."""
 
@@ -127,7 +131,6 @@ class TestdeCODEIngestionStep:
         )
         assert Path(output_path).exists()
 
-    @pytest.mark.skip(reason="Not implemented yet")
     @patch("gentropy.decode_ingestion.deCODEManifest")
     @patch("gentropy.decode_ingestion.TargetIndex")
     @patch("gentropy.decode_ingestion.deCODEStudyIndex")
@@ -175,13 +178,21 @@ class TestdeCODEIngestionStep:
         assert Path(output_path).exists()
 
 
-# class TestdeCODESummaryStatisticsIngestionStep:
-#     """Test deCODESummaryStatisticsIngestionStep."""
+class TestdeCODESummaryStatisticsIngestionStep:
+    """Test deCODESummaryStatisticsIngestionStep."""
 
-#     @pytest.mark.skip(reason="Not implemented yet")
-#     def test_decode_summary_statistics_ingestion_step(self):
-#         """Test deCODESummaryStatisticsIngestionStep."""
-#         pass
+    @patch("gentropy.decode_ingestion.deCODESummaryStatistics")
+    @patch("gentropy.decode_ingestion.StudyIndex")
+    def test_decode_summary_statistics_ingestion_step(
+        self,
+        study_index_mock: MagicMock,
+        summary_statistics_mock: MagicMock,
+        session: Session,
+        tmp_path: Path,
+        decode_summary_statistics_df: DataFrame,
+    ):
+        """Test deCODESummaryStatisticsIngestionStep."""
+        pass
 
 
 # class TestdeCODESummaryStatisticsHarmonisationStep:
