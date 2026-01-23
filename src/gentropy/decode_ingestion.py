@@ -2,21 +2,44 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 from gentropy import (
     Session,
     StudyIndex,
     SummaryStatistics,
     SummaryStatisticsQC,
+    TargetIndex,
     VariantIndex,
 )
 from gentropy.dataset.variant_direction import VariantDirection
-from gentropy.datasource.decode import (
-    deCODEManifest,
-    deCODEStudyIndex,
-    deCODESummaryStatistics,
-)
+from gentropy.datasource.decode import deCODEManifest
+from gentropy.datasource.decode.study_index import deCODEStudyIndex
+from gentropy.datasource.decode.summary_statistics import deCODESummaryStatistics
+from gentropy.external.s3 import S3Config
+
+
+class deCODEManifestGenerationStep:
+    """Build deCODE Manifest from bucket listing.
+
+    This step shall be run once to generate the listing of available deCODE datasets.
+    The input to this step is the S3 bucket listing done via the aws s3 ls command.
+    """
+
+    def __init__(
+        self,
+        session: Session,
+        s3_config_path: str,
+        bucket_listing_path: str,
+        output_path: str,
+    ) -> None:
+        """Run deCODE Manifest generation step."""
+        config = S3Config.from_file(s3_config_path)
+
+        manifest = deCODEManifest.from_bucket_listing(
+            session=session,
+            config=config,
+            path=bucket_listing_path,
+        )
+        manifest.df.repartition(1).write.mode(session.write_mode).parquet(output_path)
 
 
 class deCODEStudyIndexGenerationStep:
@@ -27,11 +50,14 @@ class deCODEStudyIndexGenerationStep:
         session: Session,
         manifest_path: str,
         study_index_path: str,
+        target_index_path: str,
     ) -> None:
         """Run deCODE StudyIndex generation step."""
         manifest = deCODEManifest.from_path(session=session, path=manifest_path)
-
-        study_index = deCODEStudyIndex.from_manifest(manifest=manifest)
+        target_index = TargetIndex.from_parquet(session=session, path=target_index_path)
+        study_index = deCODEStudyIndex.from_manifest(
+            manifest=manifest, target_index=target_index
+        )
 
         study_index.df.repartition(session.output_partitions).write.mode(
             session.write_mode
@@ -45,10 +71,6 @@ class deCODESummaryStatisticsIngestionStep:
         self, session: Session, study_index_path: str, raw_summary_statistics_path: str
     ) -> None:
         """Run deCODE SummaryStatistics ingestion step."""
-        study_index = StudyIndex.from_parquet(
-            session=session,
-            path=study_index_path,
-        )
 
         summary_statistics_paths = study_index.get_summary_statistics_paths()
         assert len(summary_statistics_paths) > 0, "No summary statistics paths found."
@@ -56,12 +78,11 @@ class deCODESummaryStatisticsIngestionStep:
             f"Found {len(summary_statistics_paths)} summary statistics paths."
         )
 
-        summary_statistics = deCODESummaryStatistics.tsv_to_parquet(
+        summary_statistics = deCODESummaryStatistics.txtgz_to_parquet(
             session=session,
             summary_statistics_list=summary_statistics_paths,
-            raw_summary_statistics_path=raw_summary_statistics_path,
+            raw_summary_statistics_output_path=raw_summary_statistics_output_path,
             n_threads=deCODESummaryStatistics.N_THREADS_OPTIMAL,
-            study_index=study_index,
         )
 
 

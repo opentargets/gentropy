@@ -36,10 +36,10 @@ class deCODESummaryStatistics:
     @classmethod
     def txtgz_to_parquet(
         cls,
+        session: Session,
         summary_statistics_list: list[str],
         raw_summary_statistics_output_path: str,
-        session: Session,
-        n_threads: int = 10,
+        n_threads: int = 500,
     ) -> None:
         """Convert txt.gz (tsv) summary statistics to Parquet format.
 
@@ -48,9 +48,9 @@ class deCODESummaryStatistics:
         and writes the combined output in Parquet format, partitioned by studyId.
 
         Args:
+            session (Session): Gentropy session.
             summary_statistics_list (list[str]): List of summary statistics paths.
             raw_summary_statistics_output_path (str): Output path for raw summary statistics in Parquet format.
-            session (Session): Gentropy session.
             n_threads (int): Number of threads to use.
 
         """

@@ -4,12 +4,12 @@ from __future__ import annotations
 
 from enum import Enum
 
-from pydantic import BaseModel
 from pyspark.sql import DataFrame
 from pyspark.sql import functions as f
 from pyspark.sql import types as t
 
 from gentropy import Session
+from gentropy.external.s3 import S3Config
 
 # 1. Build the studyIndex from the manifest
 # 2. Download the raw deCODE data files
@@ -24,16 +24,6 @@ class deCODEDataSource(str, Enum):
 
     DECODE_PROTEOMICS_RAW = "deCODE-proteomics-raw"
     DECODE_PROTEOMICS_SMP = "deCODE-proteomics-smp"
-
-
-class S3Config(BaseModel):
-    """Model for S3 configuration."""
-
-    bucket_name: str
-    s3_host_port: int
-    s3_host_url: str
-    access_key_id: str
-    secret_access_key: str
 
 
 class deCODEManifest:
@@ -52,7 +42,7 @@ class deCODEManifest:
 
     def __init__(self, df: DataFrame) -> None:
         """Initialize deCODE manifest."""
-        self._df = df
+        self.df = df
 
     def get_summmary_statistics_paths(self) -> list[str]:
         """Get summary statistics paths from manifest.
@@ -62,8 +52,22 @@ class deCODEManifest:
         """
         return [
             row.summarystatsLocation
-            for row in self._df.select("summarystatsLocation").collect()
+            for row in self.df.select("summarystatsLocation").collect()
         ]
+
+    @classmethod
+    def from_path(cls, session: Session, path: str) -> deCODEManifest:
+        """Load deCODE manifest from parquet file.
+
+        Args:
+            session (Session): Gentropy session.
+            path (str): Path to the manifest file.
+
+        Returns:
+            deCODEManifest: deCODE manifest instance.
+        """
+        manifest_df = session.spark.read.parquet(path)
+        return cls(df=manifest_df)
 
     @classmethod
     def from_bucket_listing(
