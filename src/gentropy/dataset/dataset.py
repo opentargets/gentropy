@@ -17,8 +17,6 @@ from pyspark.sql.window import Window
 from gentropy.common.schemas import SchemaValidationError, compare_struct_schemas
 
 if TYPE_CHECKING:
-    from enum import Enum
-
     from pyspark.sql import Column
     from pyspark.sql.types import StructType
 
@@ -44,7 +42,7 @@ def qc_test(func: Callable[P, T]) -> Callable[P, T]:
     Returns:
         Callable[P, T]: Decorated function.
     """
-    func.__setattr__("__is_qc_test__", True)
+    setattr(func, "__is_qc_test__", True)
 
     return func
 

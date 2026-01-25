@@ -516,7 +516,7 @@ class IntervalE2GStepConfig(StepConfig):
 
     target_index_path: str = MISSING
     biosample_mapping_path: str = MISSING
-    bisample_index_path: str = MISSING
+    biosample_index_path: str = MISSING
     chromosome_contig_index_path: str = MISSING
     interval_source: str = MISSING
     valid_output_path: str = MISSING
@@ -537,7 +537,7 @@ class IntervalE2GStepConfig(StepConfig):
         ]
     )
 
-    _target_: str = "gentropy.variant_index.IntervalE2GStep"
+    _target_: str = "gentropy.intervals.IntervalE2GStep"
 
 
 @dataclass

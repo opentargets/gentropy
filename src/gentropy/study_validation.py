@@ -85,10 +85,10 @@ class StudyValidationStep:
         (
             result.valid.df.coalesce(session.output_partitions)
             .write.mode(session.write_mode)
-            .parquet(invalid_study_index_path)
+            .parquet(valid_study_index_path)
         )
         (
             result.invalid.df.coalesce(session.output_partitions)
             .write.mode(session.write_mode)
-            .parquet(valid_study_index_path)
+            .parquet(invalid_study_index_path)
         )
