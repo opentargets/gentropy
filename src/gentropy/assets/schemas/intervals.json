@@ -112,12 +112,6 @@
     },
     {
       "metadata": {},
-      "name": "id",
-      "nullable": true,
-      "type": "string"
-    },
-    {
-      "metadata": {},
       "name": "intervalId",
       "nullable": false,
       "type": "string"
