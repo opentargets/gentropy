@@ -6,7 +6,6 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import TYPE_CHECKING
 
-from pydantic import BaseModel
 from pyspark.sql import Window
 from pyspark.sql import functions as f
 from pyspark.sql import types as t
@@ -20,13 +19,6 @@ from gentropy.dataset.target_index import TargetIndex
 if TYPE_CHECKING:
     from pyspark.sql import Column
     from pyspark.sql.types import StructType
-
-
-class IntervalQCConfig(BaseModel):
-    """Configuration for interval quality control."""
-
-    min_valid_score: float
-    max_valid_score: float
 
 
 class IntervalDataSource(str, Enum):
@@ -55,16 +47,30 @@ class IntervalQualityCheck(str, Enum):
 class IntervalType(str, Enum):
     """Enum representing interval type."""
 
-    PROMOTER = "promoter"
-    ENHANCER = "enhancer"
-    INTRAGENIC = "intragenic"
-    INTERGENIC = "intergenic"
-    GENIC = "genic"
+    PROMOTER = "promoter"  # Promoter region
+    ENHANCER = "enhancer"  # Enhancer region
+    INTRAGENIC = "intragenic"  # Within gene
+    INTERGENIC = "intergenic"  # Between genes
 
 
 @dataclass
 class Intervals(Dataset):
-    """Intervals dataset links genes to genomic regions based on genome interaction studies."""
+    """Intervals dataset links genes to genomic regions based on genome interaction studies.
+
+    Examples:
+    ---
+    >>> data = [("1", 100, 200, "ENSG1", "E2G", "promoter", "interval1"),]
+    >>> schema = "chromosome STRING, start LONG, end LONG, geneId STRING, datasourceId STRING, intervalType STRING, intervalId STRING"
+    >>> df = spark.createDataFrame(data=data, schema=schema)
+    >>> intervals = Intervals(_df=df)
+    >>> intervals.df.show(truncate=False)
+    +----------+-----+---+------+------------+------------+----------+
+    |chromosome|start|end|geneId|datasourceId|intervalType|intervalId|
+    +----------+-----+---+------+------------+------------+----------+
+    |1         |100  |200|ENSG1 |E2G         |promoter    |interval1 |
+    +----------+-----+---+------+------------+------------+----------+
+    <BLANKLINE>
+    """
 
     id_cols = ["chromosome", "start", "end", "geneId", "studyId", "intervalType"]
 
@@ -79,7 +85,7 @@ class Intervals(Dataset):
 
     @classmethod
     def get_QC_column_name(cls: type[Intervals]) -> str:
-        """Abstract method to get the QC column name. Assumes None unless overriden by child classes.
+        """Abstract method to get the QC column name. Assumes None unless overridden by child classes.
 
         Returns:
             str: QC column name.
@@ -92,6 +98,22 @@ class Intervals(Dataset):
 
         Returns:
             dict[str, str]: Mapping between flag name and QC column category value.
+
+        Examples:
+        ---
+        >>> mappings = Intervals.get_QC_mappings()
+        >>> for key, value in mappings.items():
+        ...     print(f"{key}: {value}")
+        UNRESOLVED_TARGET: Target/gene identifier could not match to reference
+        UNKNOWN_BIOSAMPLE: Biosample identifier was not found in the reference
+        SCORE_OUTSIDE_BOUNDS: Score was above or below specified thresholds
+        UNKNOWN_INTERVAL_TYPE: Interval type is not supported
+        AMBIGUOUS_SCORE: Interval has a duplicate with different score
+        UNKNOWN_PROJECT_ID: Project id could not be resolved to any known dataset
+        INVALID_CHROMOSOME: Interval chromosome was not found in contig index
+        INVALID_RANGE: Interval range exceeded chromosome bounds
+        AMBIGUOUS_INTERVAL_TYPE: Multiple interval types for the same (region, geneId) pair
+
         """
         return {member.name: member.value for member in IntervalQualityCheck}
 
@@ -383,7 +405,7 @@ class Intervals(Dataset):
         >>> data = [("1", 100, 200, "ENSG1", "E2G", "promoter", "interval1"),
         ...         ("1", 150, 250, "ENSG2", "E2G", "enhancer", "interval2"),
         ...         ("2", 300, 400, "ENSG3", "E2G", "intragenic", "interval3"),
-        ...         ("2", 300, 400, "ENSG3", "E2G", "genic", "interval4"),
+        ...         ("2", 300, 400, "ENSG3", "E2G", "intergenic", "interval4"),
         ...         ("2", 400, 500, "ENSG4", "E2G", "other", "interval5"),
         ...         ("2", 450, 550, "ENSG5", "E2G", "", "interval6")]
         >>> schema = "chromosome STRING, start LONG, end LONG, geneId STRING, datasourceId STRING, intervalType STRING, intervalId STRING"
@@ -397,7 +419,7 @@ class Intervals(Dataset):
         |promoter    |[]                                                          |
         |enhancer    |[]                                                          |
         |intragenic  |[Multiple interval types for the same (region, geneId) pair]|
-        |genic       |[Multiple interval types for the same (region, geneId) pair]|
+        |intergenic  |[Multiple interval types for the same (region, geneId) pair]|
         |other       |[Interval type is not supported]                            |
         |            |[Interval type is not supported]                            |
         +------------+------------------------------------------------------------+
