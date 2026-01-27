@@ -52,7 +52,7 @@ def target_index(session: Session) -> TargetIndex:
 @pytest.fixture
 def biosample_index(session: Session) -> BiosampleIndex:
     """Get a mock biosample index."""
-    data = [("Biosample1", "CellType1"), ("Biosample2", "CellType2")]
+    data = [("biosample1", "CellType1"), ("biosample2", "CellType2")]
     schema = "biosampleId STRING, biosampleName STRING"
     df = session.spark.createDataFrame(data, schema=schema)
     return BiosampleIndex(df)

@@ -278,7 +278,7 @@ class Intervals(Dataset):
                     IntervalQualityCheck.INVALID_RANGE,
                 ),
             )
-            .drop("chrStart", "chrEnd", "contigStart", "contigEnd")
+            .drop("contigStart", "contigEnd")
         )
 
         return Intervals(_df=valid_df, _schema=Intervals.get_schema())
@@ -507,7 +507,7 @@ class Intervals(Dataset):
     def validate_id_has_unique_score(self: Intervals) -> Intervals:
         """Validate unique (id, score) group.
 
-        The assumption is that the same id (geneId, biosampleId) should not have different
+        The assumption is that the same interval (defined as chromosome, start, end, biosampleId, geneId, studyId, intervalType) should not have different scores.
 
         Returns:
             Intervals: Intervals dataset with ambiguous scores flagged.
