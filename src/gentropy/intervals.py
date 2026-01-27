@@ -47,9 +47,7 @@ class IntervalE2GStep:
         """
         invalid_qc_reasons = invalid_qc_reasons or []
 
-        biosample_mapping = session.spark.read.option("header", "true").csv(
-            biosample_mapping_path
-        )
+        biosample_mapping = session.spark.read.csv(biosample_mapping_path, header=True)
         target_index = TargetIndex.from_parquet(session, target_index_path).persist()
         biosample_index = BiosampleIndex.from_parquet(session, biosample_index_path)
         contig_index = ContigIndex.from_parquet(session, chromosome_contig_index_path)
