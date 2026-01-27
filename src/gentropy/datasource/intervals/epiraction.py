@@ -53,12 +53,16 @@ class IntervalsEpiraction:
         Returns:
             Intervals: Parsed Intervals dataset.
         """
+        if "#chr" in raw_epiraction_df.columns:
+            chr_col = "#chr"
+        else:
+            chr_col = "chr"
         base = (
             raw_epiraction_df.withColumn(
                 "studyId",
                 f.regexp_extract(f.input_file_name(), r"([^/]+)\.bed\.gz$", 1),
             )
-            .withColumn("chromosome", normalize_chromosome(f.col("chr")))
+            .withColumn("chromosome", normalize_chromosome(f.col(chr_col)))
             .withColumn("start", f.col("start").cast("long"))
             .withColumn("end", f.col("end").cast("long"))
             .withColumnRenamed("TargetGeneEnsemblID", "geneId")

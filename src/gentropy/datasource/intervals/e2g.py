@@ -55,11 +55,15 @@ class IntervalsE2G:
         Returns:
             Intervals: Parsed Intervals dataset.
         """
+        if "#chr" in raw_e2g_df.columns:
+            chr_col = "#chr"
+        else:
+            chr_col = "chr"
         base = (
             raw_e2g_df.withColumn(
                 "studyId", f.regexp_extract(f.col("file_path"), r"([^/]+)\.bed\.gz$", 1)
             )
-            .withColumn("chromosome", normalize_chromosome(f.col("chr")))
+            .withColumn("chromosome", normalize_chromosome(f.col(chr_col)))
             .withColumn("start", f.col("start").cast("long"))
             .withColumn("end", f.col("end").cast("long"))
             .withColumnRenamed("TargetGeneEnsemblID", "geneId")
