@@ -61,8 +61,20 @@ class IntervalE2GStep:
             max_valid_score=max_valid_score,
             invalid_qc_reasons=invalid_qc_reasons,
         )
-        valid.df.write.mode(session.write_mode).parquet(valid_output_path)
-        invalid.df.write.mode(session.write_mode).parquet(invalid_output_path)
+        (
+            valid.df.repartitionByRange(
+                session.output_partitions, "chromosome", "start"
+            )
+            .write.mode(session.write_mode)
+            .parquet(valid_output_path)
+        )
+        (
+            invalid.df.repartitionByRange(
+                session.output_partitions, "chromosome", "start"
+            )
+            .write.mode(session.write_mode)
+            .parquet(invalid_output_path)
+        )
 
 
 class IntervalEpiractionStep:
@@ -113,5 +125,17 @@ class IntervalEpiractionStep:
             max_valid_score=max_valid_score,
             invalid_qc_reasons=invalid_qc_reasons,
         )
-        valid.df.write.mode(session.write_mode).parquet(valid_output_path)
-        invalid.df.write.mode(session.write_mode).parquet(invalid_output_path)
+        (
+            valid.df.repartitionByRange(
+                session.output_partitions, "chromosome", "start"
+            )
+            .write.mode(session.write_mode)
+            .parquet(valid_output_path)
+        )
+        (
+            invalid.df.repartitionByRange(
+                session.output_partitions, "chromosome", "start"
+            )
+            .write.mode(session.write_mode)
+            .parquet(invalid_output_path)
+        )

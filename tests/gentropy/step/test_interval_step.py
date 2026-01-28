@@ -44,7 +44,7 @@ class TestIntervalE2GStep:
         invalid_qc_reasons = ["INVALID_CHROMOSOME", "INVALID_SCORE"]
 
         dummy_df = session.spark.createDataFrame(
-            [("A", "B"), ("C", "D")], schema="col1 STRING, col2 STRING"
+            [("A", 1), ("C", 2)], schema="chromosome STRING, start LONG"
         )
 
         # Mock the `Dataset.from_parquet` methods to return MagicMock instances
@@ -140,7 +140,7 @@ class TestIntervalEpiractionStep:
         invalid_qc_reasons = ["INVALID_CHROMOSOME", "INVALID_SCORE"]
 
         dummy_df = session.spark.createDataFrame(
-            [("A", "B"), ("C", "D")], schema="col1 STRING, col2 STRING"
+            [("A", 0), ("C", 1)], schema="chromosome STRING, start LONG"
         )
 
         # Mock the `Dataset.from_parquet` methods to return MagicMock instances

@@ -59,18 +59,17 @@ class Intervals(Dataset):
     """Intervals dataset links genes to genomic regions based on genome interaction studies.
 
     Examples:
-    ---
-    >>> data = [("1", 100, 200, "ENSG1", "E2G", "promoter", "interval1"),]
-    >>> schema = "chromosome STRING, start LONG, end LONG, geneId STRING, datasourceId STRING, intervalType STRING, intervalId STRING"
-    >>> df = spark.createDataFrame(data=data, schema=schema)
-    >>> intervals = Intervals(_df=df)
-    >>> intervals.df.show(truncate=False)
-    +----------+-----+---+------+------------+------------+----------+
-    |chromosome|start|end|geneId|datasourceId|intervalType|intervalId|
-    +----------+-----+---+------+------------+------------+----------+
-    |1         |100  |200|ENSG1 |E2G         |promoter    |interval1 |
-    +----------+-----+---+------+------------+------------+----------+
-    <BLANKLINE>
+        >>> data = [("1", 100, 200, "ENSG1", "E2G", "promoter", "interval1"),]
+        >>> schema = "chromosome STRING, start LONG, end LONG, geneId STRING, datasourceId STRING, intervalType STRING, intervalId STRING"
+        >>> df = spark.createDataFrame(data=data, schema=schema)
+        >>> intervals = Intervals(_df=df)
+        >>> intervals.df.show(truncate=False)
+        +----------+-----+---+------+------------+------------+----------+
+        |chromosome|start|end|geneId|datasourceId|intervalType|intervalId|
+        +----------+-----+---+------+------------+------------+----------+
+        |1         |100  |200|ENSG1 |E2G         |promoter    |interval1 |
+        +----------+-----+---+------+------------+------------+----------+
+        <BLANKLINE>
     """
 
     id_cols = ["chromosome", "start", "end", "geneId", "studyId", "intervalType"]
@@ -101,19 +100,18 @@ class Intervals(Dataset):
             dict[str, str]: Mapping between flag name and QC column category value.
 
         Examples:
-        ---
-        >>> mappings = Intervals.get_QC_mappings()
-        >>> for key, value in mappings.items():
-        ...     print(f"{key}: {value}")
-        UNRESOLVED_TARGET: Target/gene identifier could not match to reference
-        UNKNOWN_BIOSAMPLE: Biosample identifier was not found in the reference
-        SCORE_OUTSIDE_BOUNDS: Score was above or below specified thresholds
-        UNKNOWN_INTERVAL_TYPE: Interval type is not supported
-        AMBIGUOUS_SCORE: Interval has a duplicate with different score
-        UNKNOWN_PROJECT_ID: Project id could not be resolved to any known dataset
-        INVALID_CHROMOSOME: Interval chromosome was not found in contig index
-        INVALID_RANGE: Interval range exceeded chromosome bounds
-        AMBIGUOUS_INTERVAL_TYPE: Multiple interval types for the same (region, geneId) pair
+            >>> mappings = Intervals.get_QC_mappings()
+            >>> for key, value in mappings.items():
+            ...     print(f"{key}: {value}")
+            UNRESOLVED_TARGET: Target/gene identifier could not match to reference
+            UNKNOWN_BIOSAMPLE: Biosample identifier was not found in the reference
+            SCORE_OUTSIDE_BOUNDS: Score was above or below specified thresholds
+            UNKNOWN_INTERVAL_TYPE: Interval type is not supported
+            AMBIGUOUS_SCORE: Interval has a duplicate with different score
+            UNKNOWN_PROJECT_ID: Project id could not be resolved to any known dataset
+            INVALID_CHROMOSOME: Interval chromosome was not found in contig index
+            INVALID_RANGE: Interval range exceeded chromosome bounds
+            AMBIGUOUS_INTERVAL_TYPE: Multiple interval types for the same (region, geneId) pair
 
         """
         return {member.name: member.value for member in IntervalQualityCheck}
@@ -133,7 +131,7 @@ class Intervals(Dataset):
         Returns:
             Column: Distance from interval to TSS.
 
-        Example:
+        Examples:
             >>> data = [(100, 200, 'enhancer', 150),  # tss within interval
             ...         (300, 400, 'promoter', 350),  # promoter type always 0 distance
             ...         (500, 600, 'enhancer', 400),  # tss 100 bp away the istart
@@ -170,26 +168,25 @@ class Intervals(Dataset):
         Returns:
             Intervals: Intervals dataset with invalid datasourceId flagged.
 
-        Example:
-        ---
-        >>> data = [("1", 100, 200, "UNKNOWN_ID", "promoter", "interval1"),
-        ...         ("1", 150, 250, "E2G", "enhancer", "interval2"),
-        ...         ("2", 300, 400, "epiraction", "intragenic", "interval3"),
-        ...         ("2", 350, 450, "", "promoter", "interval4")]
-        >>> schema = "chromosome STRING, start LONG, end LONG, datasourceId STRING, intervalType STRING, intervalId STRING"
-        >>> df = spark.createDataFrame(data=data, schema=schema)
-        >>> intervals = Intervals(_df=df)
-        >>> validated_intervals = intervals.validate_datasource_id()
-        >>> validated_intervals.df.select("intervalId", "qualityControls").show(truncate=False)
-        +----------+-------------------------------------------------------+
-        |intervalId|qualityControls                                        |
-        +----------+-------------------------------------------------------+
-        |interval1 |[Project id could not be resolved to any known dataset]|
-        |interval2 |[]                                                     |
-        |interval3 |[]                                                     |
-        |interval4 |[Project id could not be resolved to any known dataset]|
-        +----------+-------------------------------------------------------+
-        <BLANKLINE>
+        Examples:
+            >>> data = [("1", 100, 200, "UNKNOWN_ID", "promoter", "interval1"),
+            ...         ("1", 150, 250, "E2G", "enhancer", "interval2"),
+            ...         ("2", 300, 400, "epiraction", "intragenic", "interval3"),
+            ...         ("2", 350, 450, "", "promoter", "interval4")]
+            >>> schema = "chromosome STRING, start LONG, end LONG, datasourceId STRING, intervalType STRING, intervalId STRING"
+            >>> df = spark.createDataFrame(data=data, schema=schema)
+            >>> intervals = Intervals(_df=df)
+            >>> validated_intervals = intervals.validate_datasource_id()
+            >>> validated_intervals.df.select("intervalId", "qualityControls").show(truncate=False)
+            +----------+-------------------------------------------------------+
+            |intervalId|qualityControls                                        |
+            +----------+-------------------------------------------------------+
+            |interval1 |[Project id could not be resolved to any known dataset]|
+            |interval2 |[]                                                     |
+            |interval3 |[]                                                     |
+            |interval4 |[Project id could not be resolved to any known dataset]|
+            +----------+-------------------------------------------------------+
+            <BLANKLINE>
         """
         qc_column = self.get_QC_column_name()
         if qc_column not in self.df.columns:
@@ -219,28 +216,27 @@ class Intervals(Dataset):
             Intervals: Intervals dataset with invalid chromosome labels flagged.
 
         Examples:
-        ---
-        >>> contig_data = [("1", 0, 250),
-        ...                ("2", 0, 200)]
-        >>> contig_schema = "id STRING, start LONG, end LONG"
-        >>> contig_df = spark.createDataFrame(data=contig_data, schema=contig_schema)
-        >>> contig_index = ContigIndex(_df=contig_df)
-        >>> data = [("UNKNOWN_CHR", 100, 200, "E2G", "promoter", "interval1"),
-        ...         ("1", 150, 250, "E2G", "enhancer", "interval2"),
-        ...        ("2", 300, 400, "E2G", "intragenic", "interval3")]
-        >>> schema = "chromosome STRING, start LONG, end LONG, datasourceId STRING, intervalType STRING, intervalId STRING"
-        >>> df = spark.createDataFrame(data=data, schema=schema)
-        >>> intervals = Intervals(_df=df)
-        >>> validated_intervals = intervals.validate_interval_range(contig_index)
-        >>> validated_intervals.df.select("intervalId", "qualityControls").show(truncate=False)
-        +----------+---------------------------------------------------+
-        |intervalId|qualityControls                                    |
-        +----------+---------------------------------------------------+
-        |interval1 |[Interval chromosome was not found in contig index]|
-        |interval2 |[]                                                 |
-        |interval3 |[Interval range exceeded chromosome bounds]        |
-        +----------+---------------------------------------------------+
-        <BLANKLINE>
+            >>> contig_data = [("1", 0, 250),
+            ...                ("2", 0, 200)]
+            >>> contig_schema = "id STRING, start LONG, end LONG"
+            >>> contig_df = spark.createDataFrame(data=contig_data, schema=contig_schema)
+            >>> contig_index = ContigIndex(_df=contig_df)
+            >>> data = [("UNKNOWN_CHR", 100, 200, "E2G", "promoter", "interval1"),
+            ...         ("1", 150, 250, "E2G", "enhancer", "interval2"),
+            ...        ("2", 300, 400, "E2G", "intragenic", "interval3")]
+            >>> schema = "chromosome STRING, start LONG, end LONG, datasourceId STRING, intervalType STRING, intervalId STRING"
+            >>> df = spark.createDataFrame(data=data, schema=schema)
+            >>> intervals = Intervals(_df=df)
+            >>> validated_intervals = intervals.validate_interval_range(contig_index)
+            >>> validated_intervals.df.select("intervalId", "qualityControls").show(truncate=False)
+            +----------+---------------------------------------------------+
+            |intervalId|qualityControls                                    |
+            +----------+---------------------------------------------------+
+            |interval1 |[Interval chromosome was not found in contig index]|
+            |interval2 |[]                                                 |
+            |interval3 |[Interval range exceeded chromosome bounds]        |
+            +----------+---------------------------------------------------+
+            <BLANKLINE>
         """
         qc_column = self.get_QC_column_name()
         if qc_column not in self.df.columns:
@@ -295,27 +291,26 @@ class Intervals(Dataset):
             Intervals: Intervals dataset with invalid targets flagged.
 
         Examples:
-        ---
-        >>> target_data = [("ENSG1",), ("ENSG2",)]
-        >>> target_schema = "id STRING"
-        >>> target_df = spark.createDataFrame(data=target_data, schema=target_schema)
-        >>> target_index = TargetIndex(_df=target_df)
-        >>> data = [("1", 100, 200, "ENSG1", "E2G", "promoter", "interval1"),
-        ...         ("1", 150, 250, "", "E2G", "enhancer", "interval2"),
-        ...         ("2", 300, 400, "OTHER", "epiraction", "intragenic", "interval3")]
-        >>> schema = "chromosome STRING, start LONG, end LONG, geneId STRING, datasourceId STRING, intervalType STRING, intervalId STRING"
-        >>> df = spark.createDataFrame(data=data, schema=schema)
-        >>> intervals = Intervals(_df=df)
-        >>> validated_intervals = intervals.validate_target(target_index)
-        >>> validated_intervals.df.select("intervalId", "qualityControls").show(truncate=False)
-        +----------+-----------------------------------------------------+
-        |intervalId|qualityControls                                      |
-        +----------+-----------------------------------------------------+
-        |interval1 |[]                                                   |
-        |interval2 |[Target/gene identifier could not match to reference]|
-        |interval3 |[Target/gene identifier could not match to reference]|
-        +----------+-----------------------------------------------------+
-        <BLANKLINE>
+            >>> target_data = [("ENSG1",), ("ENSG2",)]
+            >>> target_schema = "id STRING"
+            >>> target_df = spark.createDataFrame(data=target_data, schema=target_schema)
+            >>> target_index = TargetIndex(_df=target_df)
+            >>> data = [("1", 100, 200, "ENSG1", "E2G", "promoter", "interval1"),
+            ...         ("1", 150, 250, "", "E2G", "enhancer", "interval2"),
+            ...         ("2", 300, 400, "OTHER", "epiraction", "intragenic", "interval3")]
+            >>> schema = "chromosome STRING, start LONG, end LONG, geneId STRING, datasourceId STRING, intervalType STRING, intervalId STRING"
+            >>> df = spark.createDataFrame(data=data, schema=schema)
+            >>> intervals = Intervals(_df=df)
+            >>> validated_intervals = intervals.validate_target(target_index)
+            >>> validated_intervals.df.select("intervalId", "qualityControls").show(truncate=False)
+            +----------+-----------------------------------------------------+
+            |intervalId|qualityControls                                      |
+            +----------+-----------------------------------------------------+
+            |interval1 |[]                                                   |
+            |interval2 |[Target/gene identifier could not match to reference]|
+            |interval3 |[Target/gene identifier could not match to reference]|
+            +----------+-----------------------------------------------------+
+            <BLANKLINE>
         """
         qc_column = self.get_QC_column_name()
         if qc_column not in self.df.columns:
@@ -352,25 +347,24 @@ class Intervals(Dataset):
             Intervals: Intervals dataset with invalid biosamples flagged.
 
         Examples:
-        ---
-        >>> biosample_data = [("BS1", "name1"), ("BS2", "name2")]
-        >>> biosample_schema = "biosampleId STRING, biosampleName STRING"
-        >>> biosample_df = spark.createDataFrame(data=biosample_data, schema=biosample_schema)
-        >>> biosample_index = BiosampleIndex(_df=biosample_df)
-        >>> data = [("1", 100, 200, "E2G", "promoter", "interval1", "BS1"),
-        ...         ("1", 150, 250, "E2G", "enhancer", "interval2", "UNKNOWN_BS")]
-        >>> schema = "chromosome STRING, start LONG, end LONG, datasourceId STRING, intervalType STRING, intervalId STRING, biosampleId STRING"
-        >>> df = spark.createDataFrame(data=data, schema=schema)
-        >>> intervals = Intervals(_df=df)
-        >>> validated_intervals = intervals.validate_biosample(biosample_index)
-        >>> validated_intervals.df.select("intervalId", "qualityControls").show(truncate=False)
-        +----------+-----------------------------------------------------+
-        |intervalId|qualityControls                                      |
-        +----------+-----------------------------------------------------+
-        |interval1 |[]                                                   |
-        |interval2 |[Biosample identifier was not found in the reference]|
-        +----------+-----------------------------------------------------+
-        <BLANKLINE>
+            >>> biosample_data = [("BS1", "name1"), ("BS2", "name2")]
+            >>> biosample_schema = "biosampleId STRING, biosampleName STRING"
+            >>> biosample_df = spark.createDataFrame(data=biosample_data, schema=biosample_schema)
+            >>> biosample_index = BiosampleIndex(_df=biosample_df)
+            >>> data = [("1", 100, 200, "E2G", "promoter", "interval1", "BS1"),
+            ...         ("1", 150, 250, "E2G", "enhancer", "interval2", "UNKNOWN_BS")]
+            >>> schema = "chromosome STRING, start LONG, end LONG, datasourceId STRING, intervalType STRING, intervalId STRING, biosampleId STRING"
+            >>> df = spark.createDataFrame(data=data, schema=schema)
+            >>> intervals = Intervals(_df=df)
+            >>> validated_intervals = intervals.validate_biosample(biosample_index)
+            >>> validated_intervals.df.select("intervalId", "qualityControls").show(truncate=False)
+            +----------+-----------------------------------------------------+
+            |intervalId|qualityControls                                      |
+            +----------+-----------------------------------------------------+
+            |interval1 |[]                                                   |
+            |interval2 |[Biosample identifier was not found in the reference]|
+            +----------+-----------------------------------------------------+
+            <BLANKLINE>
         """
         qc_column = self.get_QC_column_name()
         if qc_column not in self.df.columns:
@@ -402,29 +396,28 @@ class Intervals(Dataset):
             Intervals: Intervals dataset with invalid interval types flagged.
 
         Examples:
-        ---
-        >>> data = [("1", 100, 200, "ENSG1", "E2G", "promoter", "interval1"),
-        ...         ("1", 150, 250, "ENSG2", "E2G", "enhancer", "interval2"),
-        ...         ("2", 300, 400, "ENSG3", "E2G", "intragenic", "interval3"),
-        ...         ("2", 300, 400, "ENSG3", "E2G", "intergenic", "interval4"),
-        ...         ("2", 400, 500, "ENSG4", "E2G", "other", "interval5"),
-        ...         ("2", 450, 550, "ENSG5", "E2G", "", "interval6")]
-        >>> schema = "chromosome STRING, start LONG, end LONG, geneId STRING, datasourceId STRING, intervalType STRING, intervalId STRING"
-        >>> df = spark.createDataFrame(data=data, schema=schema)
-        >>> intervals = Intervals(_df=df)
-        >>> validated_intervals = intervals.validate_interval_type()
-        >>> validated_intervals.df.select("intervalType", "qualityControls").show(truncate=False)
-        +------------+------------------------------------------------------------+
-        |intervalType|qualityControls                                             |
-        +------------+------------------------------------------------------------+
-        |promoter    |[]                                                          |
-        |enhancer    |[]                                                          |
-        |intragenic  |[Multiple interval types for the same (region, geneId) pair]|
-        |intergenic  |[Multiple interval types for the same (region, geneId) pair]|
-        |other       |[Interval type is not supported]                            |
-        |            |[Interval type is not supported]                            |
-        +------------+------------------------------------------------------------+
-        <BLANKLINE>
+            >>> data = [("1", 100, 200, "ENSG1", "E2G", "promoter", "interval1"),
+            ...         ("1", 150, 250, "ENSG2", "E2G", "enhancer", "interval2"),
+            ...         ("2", 300, 400, "ENSG3", "E2G", "intragenic", "interval3"),
+            ...         ("2", 300, 400, "ENSG3", "E2G", "intergenic", "interval4"),
+            ...         ("2", 400, 500, "ENSG4", "E2G", "other", "interval5"),
+            ...         ("2", 450, 550, "ENSG5", "E2G", "", "interval6")]
+            >>> schema = "chromosome STRING, start LONG, end LONG, geneId STRING, datasourceId STRING, intervalType STRING, intervalId STRING"
+            >>> df = spark.createDataFrame(data=data, schema=schema)
+            >>> intervals = Intervals(_df=df)
+            >>> validated_intervals = intervals.validate_interval_type()
+            >>> validated_intervals.df.select("intervalType", "qualityControls").show(truncate=False)
+            +------------+------------------------------------------------------------+
+            |intervalType|qualityControls                                             |
+            +------------+------------------------------------------------------------+
+            |promoter    |[]                                                          |
+            |enhancer    |[]                                                          |
+            |intragenic  |[Multiple interval types for the same (region, geneId) pair]|
+            |intergenic  |[Multiple interval types for the same (region, geneId) pair]|
+            |other       |[Interval type is not supported]                            |
+            |            |[Interval type is not supported]                            |
+            +------------+------------------------------------------------------------+
+            <BLANKLINE>
         """
         qc_column = self.get_QC_column_name()
         if qc_column not in self.df.columns:
@@ -469,25 +462,24 @@ class Intervals(Dataset):
             Intervals: Intervals dataset with invalid scores flagged.
 
         Examples:
-        ---
-        >>> data = [("1", 100, 200, "E2G", "promoter", 0.5, "interval1"),
-        ...         ("1", 150, 250, "E2G", "enhancer", -1.0, "interval2"),
-        ...         ("2", 300, 400, "E2G", "intragenic", 2.0, "interval3"),
-        ...         ("2", 350, 450, "E2G", "promoter", None, "interval4")]
-        >>> schema = "chromosome STRING, start LONG, end LONG, datasourceId STRING, intervalType STRING, score DOUBLE, intervalId STRING"
-        >>> df = spark.createDataFrame(data=data, schema=schema)
-        >>> intervals = Intervals(_df=df)
-        >>> validated_intervals = intervals.validate_score(min_score=0.0, max_score=1.0)
-        >>> validated_intervals.df.select("intervalId", "qualityControls").show(truncate=False)
-        +----------+-----------------------------------------------+
-        |intervalId|qualityControls                                |
-        +----------+-----------------------------------------------+
-        |interval1 |[]                                             |
-        |interval2 |[Score was above or below specified thresholds]|
-        |interval3 |[Score was above or below specified thresholds]|
-        |interval4 |[Score was above or below specified thresholds]|
-        +----------+-----------------------------------------------+
-        <BLANKLINE>
+            >>> data = [("1", 100, 200, "E2G", "promoter", 0.5, "interval1"),
+            ...         ("1", 150, 250, "E2G", "enhancer", -1.0, "interval2"),
+            ...         ("2", 300, 400, "E2G", "intragenic", 2.0, "interval3"),
+            ...         ("2", 350, 450, "E2G", "promoter", None, "interval4")]
+            >>> schema = "chromosome STRING, start LONG, end LONG, datasourceId STRING, intervalType STRING, score DOUBLE, intervalId STRING"
+            >>> df = spark.createDataFrame(data=data, schema=schema)
+            >>> intervals = Intervals(_df=df)
+            >>> validated_intervals = intervals.validate_score(min_score=0.0, max_score=1.0)
+            >>> validated_intervals.df.select("intervalId", "qualityControls").show(truncate=False)
+            +----------+-----------------------------------------------+
+            |intervalId|qualityControls                                |
+            +----------+-----------------------------------------------+
+            |interval1 |[]                                             |
+            |interval2 |[Score was above or below specified thresholds]|
+            |interval3 |[Score was above or below specified thresholds]|
+            |interval4 |[Score was above or below specified thresholds]|
+            +----------+-----------------------------------------------+
+            <BLANKLINE>
         """
         qc_column = self.get_QC_column_name()
         if qc_column not in self.df.columns:
@@ -514,23 +506,22 @@ class Intervals(Dataset):
             Intervals: Intervals dataset with ambiguous scores flagged.
 
         Examples:
-        ---
-        >>> data = [("1", 100, 200, "ENSG1", "S1", "BS1", "E2G", "promoter", 0.5, "interval1"),
-        ...         ("1", 100, 200, "ENSG1", "S1", "BS1", "E2G", "promoter", 0.7, "interval2"),
-        ...         ("2", 300, 400, "ENSG2", "S1", "BS2", "E2G", "enhancer", 0.9, "interval3")]
-        >>> schema = "chromosome STRING, start LONG, end LONG, geneId STRING, studyId STRING, biosampleId STRING, datasourceId STRING, intervalType STRING, score DOUBLE, intervalId STRING"
-        >>> df = spark.createDataFrame(data=data, schema=schema)
-        >>> intervals = Intervals(_df=df)
-        >>> validated_intervals = intervals.validate_id_has_unique_score()
-        >>> validated_intervals.df.select("intervalId", "qualityControls").show(truncate=False)
-        +----------+-----------------------------------------------+
-        |intervalId|qualityControls                                |
-        +----------+-----------------------------------------------+
-        |interval1 |[Interval has a duplicate with different score]|
-        |interval2 |[Interval has a duplicate with different score]|
-        |interval3 |[]                                             |
-        +----------+-----------------------------------------------+
-        <BLANKLINE>
+            >>> data = [("1", 100, 200, "ENSG1", "S1", "BS1", "E2G", "promoter", 0.5, "interval1"),
+            ...         ("1", 100, 200, "ENSG1", "S1", "BS1", "E2G", "promoter", 0.7, "interval2"),
+            ...         ("2", 300, 400, "ENSG2", "S1", "BS2", "E2G", "enhancer", 0.9, "interval3")]
+            >>> schema = "chromosome STRING, start LONG, end LONG, geneId STRING, studyId STRING, biosampleId STRING, datasourceId STRING, intervalType STRING, score DOUBLE, intervalId STRING"
+            >>> df = spark.createDataFrame(data=data, schema=schema)
+            >>> intervals = Intervals(_df=df)
+            >>> validated_intervals = intervals.validate_id_has_unique_score()
+            >>> validated_intervals.df.select("intervalId", "qualityControls").show(truncate=False)
+            +----------+-----------------------------------------------+
+            |intervalId|qualityControls                                |
+            +----------+-----------------------------------------------+
+            |interval1 |[Interval has a duplicate with different score]|
+            |interval2 |[Interval has a duplicate with different score]|
+            |interval3 |[]                                             |
+            +----------+-----------------------------------------------+
+            <BLANKLINE>
         """
         qc_column = self.get_QC_column_name()
         if qc_column not in self.df.columns:
