@@ -515,10 +515,29 @@ class IntervalE2GStepConfig(StepConfig):
     """Interval E2G step configuration."""
 
     target_index_path: str = MISSING
+    biosample_mapping_path: str = MISSING
+    biosample_index_path: str = MISSING
+    chromosome_contig_index_path: str = MISSING
     interval_source: str = MISSING
-    interval_e2g_path: str = MISSING
+    valid_output_path: str = MISSING
+    invalid_output_path: str = MISSING
+    min_valid_score: float = 0.6
+    max_valid_score: float = 1.0
+    invalid_qc_reasons: list[str] = field(
+        default_factory=lambda: [
+            "UNRESOLVED_TARGET",
+            "UNKNOWN_BIOSAMPLE",
+            "SCORE_OUTSIDE_BOUNDS",
+            "UNKNOWN_INTERVAL_TYPE",
+            "AMBIGUOUS_SCORE",
+            "UNKNOWN_PROJECT_ID",
+            "INVALID_CHROMOSOME",
+            "INVALID_RANGE",
+            "AMBIGUOUS_INTERVAL_TYPE",
+        ]
+    )
 
-    _target_: str = "gentropy.variant_index.IntervalE2GStep"
+    _target_: str = "gentropy.intervals.IntervalE2GStep"
 
 
 @dataclass

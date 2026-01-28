@@ -1,10 +1,12 @@
 """Target index dataset."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 import pyspark.sql.functions as f
+from pyspark.sql import types as t
 
 from gentropy.common.schemas import parse_spark_schema
 from gentropy.dataset.dataset import Dataset
@@ -74,3 +76,28 @@ class TargetIndex(Dataset):
             f.col("genomicLocation.chromosome").alias("chromosome"),
             "tss",
         )
+
+    def tss_lut(self: TargetIndex) -> DataFrame:
+        """Gene TSS lookup table.
+
+        The TSS is determined using the following priority:
+        1. preferred TSS from target index
+        2. canonical transcript start|end based on strand
+        3. genomic location start|end based on strand
+
+        Returns:
+            DataFrame: Gene LUT for TSS mapping containing `geneId` and `tss` columns.
+        """
+        ct_tss = f.when(
+            f.col("canonicalTranscript.strand") == "+",
+            f.col("canonicalTranscript.start"),
+        ).when(
+            f.col("canonicalTranscript.strand") == "-",
+            f.col("canonicalTranscript.end"),
+        )
+        gl_tss = f.when(
+            f.col("genomicLocation.strand") == 1, f.col("genomicLocation.start")
+        ).when(f.col("genomicLocation.strand") == -1, f.col("genomicLocation.end"))
+
+        tss = f.coalesce(f.col("tss"), ct_tss, gl_tss).cast(t.LongType()).alias("tss")
+        return self.df.select(f.col("id").alias("geneId"), tss)
