@@ -51,6 +51,7 @@ class IntervalType(str, Enum):
     ENHANCER = "enhancer"  # Enhancer region
     INTRAGENIC = "intragenic"  # Within gene
     INTERGENIC = "intergenic"  # Between genes
+    GENIC = "genic"  # Within or near gene
 
 
 @dataclass
