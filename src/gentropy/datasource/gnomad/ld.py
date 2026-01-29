@@ -12,7 +12,6 @@ import pyspark.sql.functions as f
 from hail.linalg import BlockMatrix
 from pyspark.sql import Window
 
-from gentropy.common.genomic_region import liftover_loci
 from gentropy.common.spark import get_top_ranked_in_window, get_value_from_row
 from gentropy.common.types import LD_Population
 from gentropy.config import LDIndexConfig
@@ -123,7 +122,7 @@ class GnomADLDMatrix:
         population_id: str,
         ld_matrix_path: str,
         ld_index_raw_path: str,
-        grch37_to_grch38_chain_path: str,
+        liftover_ht_path: str,
         min_r2: float,
     ) -> DataFrame:
         """Create LDIndex for a specific population.
@@ -132,7 +131,7 @@ class GnomADLDMatrix:
             population_id (str): Population ID
             ld_matrix_path (str): Path to the LD matrix
             ld_index_raw_path (str): Path to the LD index
-            grch37_to_grch38_chain_path (str): Path to the chain file used to lift over the coordinates
+            liftover_ht_path (str): Path to gnomad hail table used to lift over the coordinates
             min_r2 (float): Minimum r2 value to keep in the table
 
         Returns:
@@ -146,7 +145,7 @@ class GnomADLDMatrix:
         # Prepare table with variant indices
         ld_index = GnomADLDMatrix._process_variant_indices(
             hl.read_table(ld_index_raw_path),
-            grch37_to_grch38_chain_path,
+            liftover_ht_path,
         )
 
         return GnomADLDMatrix._resolve_variant_indices(ld_index, ld_matrix).select(
@@ -156,7 +155,8 @@ class GnomADLDMatrix:
 
     @staticmethod
     def _process_variant_indices(
-        ld_index_raw: hl.Table, grch37_to_grch38_chain_path: str
+        ld_index_raw: hl.Table,
+        liftover_ht_path: str,
     ) -> DataFrame:
         """Creates a look up table between variants and their coordinates in the LD Matrix.
 
@@ -164,35 +164,36 @@ class GnomADLDMatrix:
 
         Args:
             ld_index_raw (hl.Table): LD index table from GnomAD
-            grch37_to_grch38_chain_path (str): Path to the chain file used to lift over the coordinates
+            liftover_ht_path (str): Path to gnomad hail table used to lift over the coordinates
 
         Returns:
             DataFrame: Look up table between variants in build hg38 and their coordinates in the LD Matrix
         """
-        ld_index_38 = liftover_loci(ld_index_raw, grch37_to_grch38_chain_path, "GRCh38")
+        ht_37 = ld_index_raw
+        ht_lo = hl.read_table(liftover_ht_path).key_by(
+            "original_locus", "original_alleles"
+        )
+        ld_index_38 = ht_37.join(ht_lo, how="inner")
 
         return (
             ld_index_38.to_spark()
             # Filter out variants where the liftover failed
-            .filter(f.col("`locus_GRCh38.position`").isNotNull())
+            .filter(f.col("`locus_1.position`").isNotNull())
             .select(
-                f.regexp_replace("`locus_GRCh38.contig`", "chr", "").alias(
-                    "chromosome"
-                ),
-                f.col("`locus_GRCh38.position`").alias("position"),
+                f.regexp_replace("`locus_1.contig`", "chr", "").alias("chromosome"),
+                f.col("`locus_1.position`").alias("position"),
                 f.concat_ws(
                     "_",
-                    f.regexp_replace("`locus_GRCh38.contig`", "chr", ""),
-                    f.col("`locus_GRCh38.position`"),
-                    f.col("`alleles`").getItem(0),
-                    f.col("`alleles`").getItem(1),
+                    f.regexp_replace("`locus_1.contig`", "chr", ""),
+                    f.col("`locus_1.position`"),
+                    f.col("`alleles_1`").getItem(0),
+                    f.col("`alleles_1`").getItem(1),
                 ).alias("variantId"),
                 f.col("idx"),
             )
-            # Filter out ambiguous liftover results: multiple indices for the same variant
-            .withColumn("count", f.count("*").over(Window.partitionBy(["variantId"])))
-            .filter(f.col("count") == 1)
-            .drop("count")
+            .filter(
+                f.col("chromosome").isin([str(i) for i in range(1, 23)] + ["X", "Y"])
+            )
         )
 
     @staticmethod
@@ -286,7 +287,7 @@ class GnomADLDMatrix:
                     pop,
                     ld_matrix_path,
                     ld_index_raw_path.format(pop),
-                    self.grch37_to_grch38_chain_path,
+                    self.liftover_ht_path,
                     min_r2,
                 )
                 ld_indices_unaggregated.append(pop_ld_index)
@@ -328,7 +329,7 @@ class GnomADLDMatrix:
         ld_index_df = (
             self._process_variant_indices(
                 hl.read_table(self.ld_index_raw_template.format(POP=gnomad_ancestry)),
-                self.grch37_to_grch38_chain_path,
+                self.liftover_ht_path,
             )
             .filter(
                 (f.col("chromosome") == chromosome)
@@ -468,8 +469,8 @@ class GnomADLDMatrix:
                 & (liftover_ht.locus.position <= end)
             )
             .key_by()
-            .select("locus", "alleles", "original_locus")
-            .key_by("original_locus", "alleles")
+            .select("locus", "alleles", "original_locus", "original_alleles")
+            .key_by("original_locus", "original_alleles")
             .naive_coalesce(20)
         )
 
@@ -500,9 +501,7 @@ class GnomADLDMatrix:
         idx = [row["idx"] for row in locus_index.select("idx").collect()]
 
         half_matrix = (
-            BlockMatrix.read(
-                self.ld_matrix_template.format(POP=gnomad_ancestry)
-            )
+            BlockMatrix.read(self.ld_matrix_template.format(POP=gnomad_ancestry))
             .filter(idx, idx)
             .to_numpy()
         )
@@ -544,12 +543,23 @@ class GnomADLDMatrix:
         return joined_index
 
     def _filter_liftover_by_locus(
-        self,
+        self: GnomADLDMatrix,
         liftover_ht: hl.Table,
         chromosome: str,
         start: int,
-        end: int
-        ) -> hl.Table:
+        end: int,
+    ) -> hl.Table:
+        """Filter liftover hail table by locus.
+
+        Args:
+            liftover_ht (hl.Table): Liftover hail table
+            chromosome (str): Chromosome of locus
+            start (int): Start position for locus
+            end (int): End position for locus
+
+        Returns:
+            hl.Table: Filtered liftover hail table
+        """
         liftover_ht = (
             liftover_ht.filter(
                 (liftover_ht.locus.contig == chromosome)
@@ -557,8 +567,8 @@ class GnomADLDMatrix:
                 & (liftover_ht.locus.position <= end)
             )
             .key_by()
-            .select("locus", "alleles", "original_locus")
-            .key_by("original_locus", "alleles")
+            .select("locus", "alleles", "original_locus", "original_alleles")
+            .key_by("original_locus", "original_alleles")
             .naive_coalesce(20)
         )
 
