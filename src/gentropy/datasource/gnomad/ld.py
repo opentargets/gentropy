@@ -191,6 +191,9 @@ class GnomADLDMatrix:
                 ).alias("variantId"),
                 f.col("idx"),
             )
+            .filter(
+                f.col("chromosome").isin([str(i) for i in range(1, 23)] + ["X", "Y"])
+            )
         )
 
     @staticmethod
@@ -540,7 +543,11 @@ class GnomADLDMatrix:
         return joined_index
 
     def _filter_liftover_by_locus(
-        self: GnomADLDMatrix, liftover_ht: hl.Table, chromosome: str, start: int, end: int
+        self: GnomADLDMatrix,
+        liftover_ht: hl.Table,
+        chromosome: str,
+        start: int,
+        end: int,
     ) -> hl.Table:
         """Filter liftover hail table by locus.
 
