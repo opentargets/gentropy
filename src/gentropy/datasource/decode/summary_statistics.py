@@ -4,15 +4,15 @@ from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor
 
-from gentropy.common.processing import normalize_chromosome
-from gentropy.dataset.variant_direction import VariantDirection
+from pyspark.sql import DataFrame
 from pyspark.sql import functions as f
 from pyspark.sql import types as t
 
 from gentropy import Session, SummaryStatistics
-from gentropy.datasource.decode import deCODEDataSource
-from pyspark.sql import DataFrame
+from gentropy.common.processing import normalize_chromosome
 from gentropy.common.stats import pvalue_from_neglogpval
+from gentropy.dataset.variant_direction import VariantDirection
+from gentropy.datasource.decode import deCODEDataSource
 
 
 class deCODESummaryStatistics:
@@ -148,8 +148,11 @@ class deCODESummaryStatistics:
 
         """
         vd = (
-            variant_direction.df.select(
+            # Need only positive strand variants
+            variant_direction.df.filter(f.col("strand") == 1)
+            .select(
                 f.col("chromosome"),
+                f.col("rangeId"),
                 f.col("originalVariantId"),
                 f.col("variantId"),
                 f.col("direction"),

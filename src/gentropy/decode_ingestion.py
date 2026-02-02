@@ -81,25 +81,26 @@ class deCODESummaryStatisticsIngestionStep:
         )
 
 
-# class deCODESummaryStatisticsHarmonisationStep:
-#     """deCODE SummaryStatistics harmonisation step."""
+class deCODESummaryStatisticsHarmonisationStep:
+    """deCODE SummaryStatistics harmonisation step."""
 
-#     def __init__(
-#         self,
-#         session: Session,
-#         gnomad_variant_index_path: str,
-#         raw_summary_statistics_path: str,
-#     ) -> None:
-#         """Run deCODE SummaryStatistics harmonisation step."""
-#         gvi = VariantIndex.from_parquet(session=session, path=gnomad_variant_index_path)
-#         gvd = VariantDirection.from_variant_index(variant_index=gvi)
-#         raw_summary_statistics = session.spark.read.parquet(raw_summary_statistics_path)
-#         harmonised_summary_statistics = deCODESummaryStatistics.from_source(
-#             raw_summary_statistics, **sumstat_harmonisation_config
-#         )
-#         harmonised_summary_statistics.df.write.mode(session.write_mode).parquet(
-#             harmonised_summary_statistics_path
-#         )
+    def __init__(
+        self,
+        session: Session,
+        raw_summary_statistics_path: str,
+        gnomad_variant_direction_path: str,
+        sumstat_harmonisation_config: dict,
+        harmonised_summary_statistics_path: str,
+    ) -> None:
+        """Run deCODE SummaryStatistics harmonisation step."""
+        gvd = VariantDirection.from_parquet(session, gnomad_variant_direction_path)
+        raw_summary_statistics = session.spark.read.parquet(raw_summary_statistics_path)
+        harmonised_summary_statistics = deCODESummaryStatistics.from_source(
+            raw_summary_statistics, gvd, **sumstat_harmonisation_config
+        )
+        harmonised_summary_statistics.df.write.mode(session.write_mode).parquet(
+            harmonised_summary_statistics_path
+        )
 
 
 # class deCODESummaryStatisticsQCStep:
