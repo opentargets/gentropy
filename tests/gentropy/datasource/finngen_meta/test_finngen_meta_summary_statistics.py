@@ -295,6 +295,7 @@ class TestFinnGenUkbMvpMetaSummaryStatistics:
             assert "session.spark.use_enhanced_bgzip_codec" in str(e.value)
 
     @pytest.mark.long_test()
+    @pytest.mark.skip_default_spark()
     def test_bgzip_from_parquet_with_codec(self, tmp_path: Path) -> None:
         """Test bgzip codec usage on multiple tsv.gz files with different schemas.
 
