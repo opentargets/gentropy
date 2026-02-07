@@ -32,7 +32,7 @@ class EqtlCatalogueStep:
             eqtl_catalogue_paths_imported (str): Input eQTL Catalogue fine mapping results path.
             eqtl_catalogue_study_index_out (str): Output eQTL Catalogue study index path.
             eqtl_catalogue_credible_sets_out (str): Output eQTL Catalogue credible sets path.
-            eqtl_catalogue_metadata_path: str = Path to the data_table hosted on the eQTL Catalogue github. Defaults to EqtlCatalogueConfig().eqtl_catalogue_metadata_path
+            eqtl_catalogue_metadata_path (str): Path to the data_table hosted on the eQTL Catalogue github. Defaults to EqtlCatalogueConfig().eqtl_catalogue_metadata_path
             eqtl_lead_pvalue_threshold (float, optional): Lead p-value threshold. Defaults to EqtlCatalogueConfig().eqtl_lead_pvalue_threshold.
         """
         # Extract

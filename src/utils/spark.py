@@ -37,8 +37,4 @@ def get_spark_testing_conf() -> SparkConf:
         .set("spark.executor.extraClassPath", "./hail-all-spark.jar")
         .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
         .set("spark.kryo.registrator", "is.hail.kryo.HailKryoRegistrator")
-        # Enhanced bgzip codec
-        .set("spark.gentropy.enhancedBgzipCodec", "true")
-        .set("spark.io.compression.codec", "org.apache.spark.io.LZ4CompressionCodec")
-        .set("spark.jars.packages", "org.seqdoop:hadoop-bam:7.10.0")
     )

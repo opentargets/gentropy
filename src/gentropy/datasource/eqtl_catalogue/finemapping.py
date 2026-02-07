@@ -16,7 +16,7 @@ from pyspark.sql.types import (
 )
 
 from gentropy.common.processing import normalize_chromosome
-from gentropy.common.session import Session
+from gentropy.common.session import NativeFileFormat, Session
 from gentropy.common.spark import clean_strings_from_symbols
 from gentropy.common.stats import split_pvalue_column
 from gentropy.dataset.study_locus import FinemappingMethod, StudyLocus
@@ -275,7 +275,11 @@ class EqtlCatalogueFinemapping:
         """
         session = Session.find()
         return (
-            session.load_data(credible_set_path, schema=cls.raw_credible_set_schema)
+            session.load_data(
+                credible_set_path,
+                schema=cls.raw_credible_set_schema,
+                format=NativeFileFormat.TSV,
+            )
             .withColumns(
                 {
                     # Adding dataset id based on the input file name:
@@ -306,7 +310,11 @@ class EqtlCatalogueFinemapping:
         """
         session = Session.find()
         return (
-            session.load_data(lbf_path, schema=cls.raw_lbf_schema)
+            session.load_data(
+                lbf_path,
+                schema=cls.raw_lbf_schema,
+                format=NativeFileFormat.TSV,
+            )
             .withColumn(
                 "dataset_id",
                 cls._extract_dataset_id_from_file_path(f.input_file_name()),

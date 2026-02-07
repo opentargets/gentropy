@@ -165,8 +165,17 @@ class Dataset(ABC):
         return {}
 
     @classmethod
-    def read(cls, path: str | list[str], **kwargs) -> Self:
-        """Reads dataset into a Dataset with a given schema."""
+    def read(cls, path: str | list[str], **kwargs: Any) -> Self:
+        """Reads dataset into a Dataset with a given schema.
+
+        All kwargs are passed to the spark.read method, so they can be used to specify format, schema, etc.
+
+        Args:
+            path (str | list[str]): Path to the dataset
+            **kwargs (Any): Additional arguments to pass to spark.read
+        Returns:
+            Self: Dataset with the file contents
+        """
         session = Session.find()
         schema = cls.get_schema()
         return cls(

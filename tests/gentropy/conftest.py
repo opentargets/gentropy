@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Generator
 from pathlib import Path
 
 import dbldatagen as dg
@@ -33,27 +34,25 @@ from gentropy.datasource.gwas_catalog.study_index import StudyIndexGWASCatalog
 from utils.spark import get_spark_testing_conf
 
 
-@pytest.fixture(scope="session", autouse=True)
-def spark(tmp_path_factory: pytest.TempPathFactory) -> SparkSession:
-    """Local spark session for testing purposes.
-
-    Args:
-        tmp_path_factory (pytest.TempPathFactory): pytest fixture
-
-    Returns:
-        SparkSession: local spark session
-    """
-    return (
+@pytest.fixture(scope="session")
+def spark() -> Generator[SparkSession | None, None, None]:
+    """Local spark session for testing purposes."""
+    spark = (
         SparkSession.Builder()
         .config(conf=get_spark_testing_conf())
         .master("local[1]")
         .appName("test")
         .getOrCreate()
     )
+    yield spark
+
+    spark = SparkSession.getActiveSession()
+    if spark is not None:
+        spark.stop()
 
 
 @pytest.fixture()
-def session() -> Session:
+def session(spark: SparkSession) -> Session:
     """Return gentropy Session object."""
     return Session()
 

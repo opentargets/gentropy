@@ -12,6 +12,7 @@ import pytest
 from pyspark.sql import DataFrame, Row, SparkSession
 from pyspark.sql import functions as f
 
+from gentropy import Session
 from gentropy.datasource.gnomad.ld import GnomADLDMatrix
 
 
@@ -94,10 +95,10 @@ class TestGnomADLDMatrixVariants:
 
     @pytest.fixture(autouse=True)
     def _setup(
-        self: TestGnomADLDMatrixVariants, spark: SparkSession, tmp_path: Path
+        self: TestGnomADLDMatrixVariants, session: Session, tmp_path: Path
     ) -> None:
         """Prepares fixtures for the test."""
-        hl.init(sc=spark.sparkContext, log="/dev/null", idempotent=True)
+        hl.init(sc=session.spark.sparkContext, log="/dev/null", idempotent=True)
 
         ld_test_population = "test-pop"
         liftover_path = str(tmp_path / "mock_liftover.ht")
@@ -189,9 +190,9 @@ class TestGnomADLDMatrixSlice:
         ), "The matrix is not symmetric."
 
     @pytest.fixture(autouse=True)
-    def _setup(self: TestGnomADLDMatrixSlice, spark: SparkSession) -> None:
+    def _setup(self: TestGnomADLDMatrixSlice, session: Session) -> None:
         """Prepares fixtures for the test."""
-        hl.init(sc=spark.sparkContext, log="/dev/null", idempotent=True)
+        hl.init(sc=session.spark.sparkContext, log="/dev/null", idempotent=True)
         gnomad_ld_matrix = GnomADLDMatrix(
             ld_matrix_template="tests/gentropy/data_samples/example_{POP}.bm"
         )

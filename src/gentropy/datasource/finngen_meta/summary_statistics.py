@@ -202,7 +202,7 @@ class FinnGenUkbMvpMetaSummaryStatistics:
         if len(summary_statistics_list) == 0:
             session.logger.warning("No summary statistics paths found to process.")
             return
-        if not session.conf.get("spark.gentropy.enhancedBgzipCodec", None):
+        if not session.conf.get("spark.gentropy.useEnhancedBgzipCodec", None):
             session.logger.error(
                 "The use_enhanced_bgzip_codec is set to False. This will lead to inefficient reading of block gzipped files."
             )
@@ -289,13 +289,15 @@ class FinnGenUkbMvpMetaSummaryStatistics:
             f"Converting gzipped summary statistics from {summary_statistics_list} to Parquet at {raw_summary_statistics_output_path}."
         )
         with ThreadPoolExecutor(max_workers=n_threads) as pool:
-            pool.map(
-                lambda path: process_one(
-                    path,
-                    session=session,
-                    output_path=raw_summary_statistics_output_path,
-                ),
-                summary_statistics_list,
+            list(
+                pool.map(
+                    lambda path: process_one(
+                        path,
+                        session=session,
+                        output_path=raw_summary_statistics_output_path,
+                    ),
+                    summary_statistics_list,
+                )
             )
 
     @classmethod

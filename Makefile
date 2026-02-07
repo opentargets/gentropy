@@ -38,9 +38,22 @@ check: ## Lint and format code
 	@uv run pydoclint --config=pyproject.toml src
 	@uv run pydoclint --config=pyproject.toml --skip-checking-short-docstrings=true tests
 
-test: ## Run tests
-	@echo "Running Tests..."
-	@uv run pytest
+test-no-spark: ## Run tests that do not require Spark
+	@echo "Running no_spark tests..."
+	@COVERAGE_FILE=.coverage.no_spark uv run pytest -m "no_spark and not webtest" -n0 --cov-report=
+
+test-spark: ## Run tests that require Spark
+	@echo "Running Spark tests..."
+	@COVERAGE_FILE=.coverage.spark uv run pytest -m "not no_spark and not webtest" --cov-report=
+
+test-web: ## Run tests that require Spark and access to the web to download dependencies
+	@echo "Running webtest Spark tests..."
+	@COVERAGE_FILE=.coverage.spark uv run pytest -m "webtest" --cov-report=
+
+test: test-no-spark test-spark ## Run tests
+	@uv run coverage combine .coverage.spark .coverage.no_spark
+	@uv run coverage xml
+	@rm -f .coverage.spark .coverage.no_spark
 
 build-documentation: ## Create local server with documentation
 	@echo "Building Documentation..."
