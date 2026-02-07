@@ -24,13 +24,13 @@ class NativeFileFormat(StrEnum):
     JSON = "json"
 
     @classmethod
-    def uri_parallelizable(cls) -> list[NativeFileFormat]:
+    def uri_parallelizable(cls) -> list[str]:
         """Get the list of file formats that can be parallelized when loading from a URI.
 
         Returns:
-            list[NativeFileFormat]: List of file formats that can be parallelized when loading from a URI.
+            list[str]: List of file formats that can be parallelized when loading from a URI.
         """
-        return [NativeFileFormat.CSV, NativeFileFormat.TSV]
+        return [NativeFileFormat.CSV.value, NativeFileFormat.TSV.value]
 
 
 class SparkWriteMode(StrEnum):
@@ -215,8 +215,10 @@ class Session:
     def find(cls) -> Session:
         """Finds the current active Spark session.
 
+        If no active Spark session is found, the method will raise an AttributeError.
+
         Returns:
-            Session: Current active Spark session or a new one.
+            Session: Current active Spark session.
 
         Raises:
             AttributeError: If no active Spark session is found.
@@ -250,7 +252,8 @@ class Session:
                 _c = Session._append_to_driver_classpath(_c, value)
             if key == "spark.executor.extraClassPath":
                 _c = Session._append_to_executor_classpath(_c, value)
-            _c = _c.set(key, value)
+            else:
+                _c = _c.set(key, value)
         return _c
 
     @staticmethod
@@ -464,7 +467,7 @@ class Session:
     def load_data(
         self: Session,
         path: str | list[str],
-        format: str,
+        fmt: str,
         schema: StructType | str | None = None,
         **kwargs: bool | float | int | str | None,
     ) -> DataFrame:
@@ -474,7 +477,7 @@ class Session:
 
         Args:
             path (str | list[str]): path to the dataset
-            format (str): file format. Defaults to parquet.
+            fmt (str): file format. Defaults to parquet.
             schema (StructType | str | None): Schema to use when reading the data.
             **kwargs (bool | float | int | str | None): Additional arguments to pass to spark.read.load. `mergeSchema` is set to True, `recursiveFileLookup` is set to False by default.
 
@@ -482,24 +485,25 @@ class Session:
             DataFrame: Dataframe containing the loaded data.
         """
         # Set default kwargs
-        match format:
-            case NativeFileFormat.PARQUET:
+        _format = fmt.lower()
+        match _format:
+            case "parquet":
                 _fmt = NativeFileFormat.PARQUET.value
-            case NativeFileFormat.TSV:
+            case "tsv":
                 _fmt = NativeFileFormat.CSV.value
                 kwargs.setdefault("sep", "\t")
                 kwargs.setdefault("header", True)
-            case NativeFileFormat.CSV:
+            case "csv":
                 _fmt = NativeFileFormat.CSV.value
                 kwargs.setdefault("header", True)
-            case NativeFileFormat.JSON:
+            case "json" | "jsonl" | "jsonlines":
                 _fmt = NativeFileFormat.JSON.value
             case _:
                 raise ValueError(f"Unsupported file format: {format}")
 
         match path:
             case list():
-                all_strings = len(path) > 0 & all(isinstance(p, str) for p in path)
+                all_strings = len(path) > 0 and all(isinstance(p, str) for p in path)
                 assert all_strings, "Path must be a non-empty list of strings."
             case str():
                 if path.startswith(("http://", "https://")):
@@ -537,9 +541,10 @@ class Session:
         if not schema:
             kwargs.setdefault("inferSchema", "true")
 
-        csv_data = urlopen(url).read().decode("utf8").splitlines()
-        rdd = self.spark.sparkContext.parallelize(csv_data)
-        return self.spark.read.csv(rdd, schema=schema, **kwargs)
+        with urlopen(url) as response:
+            csv_data = response.read().decode("utf8").splitlines()
+            rdd = self.spark.sparkContext.parallelize(csv_data)
+            return self.spark.read.csv(rdd, schema=schema, **kwargs)
 
 
 class JavaLogger(Protocol):
@@ -551,7 +556,6 @@ class JavaLogger(Protocol):
         Args:
             message (str): The error message to log.
         """
-        ...
 
     def warn(self, message: str) -> None:
         """Log a warning message.
@@ -559,7 +563,6 @@ class JavaLogger(Protocol):
         Args:
             message (str): The error message to log.
         """
-        ...
 
     def info(self, message: str) -> None:
         """Log an info message.
@@ -567,7 +570,6 @@ class JavaLogger(Protocol):
         Args:
             message (str): The error message to log.
         """
-        ...
 
 
 class Log4j:

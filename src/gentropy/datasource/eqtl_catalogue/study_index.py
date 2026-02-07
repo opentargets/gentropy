@@ -155,8 +155,5 @@ class EqtlCatalogueStudyIndex:
                     + f"Available options are: {list(cls.method_to_qtl_type_mapping.keys())}"
                 )
         return session.load_data(
-            metadata_path,
-            schema=cls.raw_studies_metadata_schema,
-            format="tsv",
-            header=True,
+            metadata_path, schema=cls.raw_studies_metadata_schema, fmt="tsv"
         ).filter(~(f.col("quant_method").isin(mqtl_quantification_methods_blacklist)))

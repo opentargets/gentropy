@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 
 import pyspark.sql.types as t
 import pytest
-from pyspark.sql import DataFrame, Row, SparkSession
+from pyspark.sql import DataFrame, Row
 
 from gentropy import Session, VariantIndex
 from gentropy.dataset.variant_direction import VariantDirection
@@ -17,8 +17,6 @@ from gentropy.datasource.finngen_meta import (
 from gentropy.datasource.finngen_meta.summary_statistics import (
     FinnGenUkbMvpMetaSummaryStatistics,
 )
-
-_NO_SPARK_ACTIVE = SparkSession.getActiveSession() is not None
 
 
 class TestFinnGenUkbMvpMetaSummaryStatistics:

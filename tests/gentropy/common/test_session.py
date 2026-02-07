@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 
 import pandas as pd
 import pytest
+from pyspark.errors import PySparkException
 from pyspark.sql import SparkSession
 
 from gentropy.common.session import Log4j, Session
@@ -45,7 +46,9 @@ def mock_data_files(tmp_path: Path) -> Generator[Path, None, None]:
     data.to_json(tmp_files[3], orient="records", lines=True)
 
     tmp_files_nested = [tmp_dir / "part.1.parquet", tmp_dir / "part.2.parquet"]
-    [data.to_parquet(f) for f in tmp_files_nested]
+    for d in tmp_files_nested:
+        d.parent.mkdir(exist_ok=True)
+        data.to_parquet(d)
 
     yield tmp_path
 
@@ -55,7 +58,7 @@ def mock_data_files(tmp_path: Path) -> Generator[Path, None, None]:
 
 
 @pytest.mark.parametrize(
-    ["path", "format", "kwargs"],
+    ["path", "fmt", "kwargs"],
     [
         pytest.param("test_path.parquet", "parquet", {}, id="parquet"),
         pytest.param("test_path.csv", "csv", {}, id="csv"),
@@ -67,20 +70,20 @@ def mock_data_files(tmp_path: Path) -> Generator[Path, None, None]:
 def test_load_data(
     session: Session,
     path: str,
-    format: str,
+    fmt: str,
     kwargs: dict[str, str],
     mock_data_files: Path,
 ) -> None:
     """Test Session.load_data method."""
     full_path = mock_data_files / path
     try:
-        session.load_data(full_path.as_posix(), format=format, **kwargs)
-    except Exception as e:
+        session.load_data(full_path.as_posix(), fmt=fmt, **kwargs)
+    except PySparkException as e:
         pytest.fail(f"Session.load_data raised an exception: {e}")
 
 
 @pytest.mark.parametrize(
-    ["url", "format", "error"],
+    ["url", "fmt", "error"],
     [
         pytest.param(
             "https://some_example.com/data.parquet",
@@ -102,7 +105,7 @@ def test_load_data(
         ),
     ],
 )
-def test_load_from_url(url: str, format: str, error: str, session: Session) -> None:
+def test_load_from_url(url: str, fmt: str, error: str, session: Session) -> None:
     """Test Session.load_data method with URL input."""
     with pytest.MonkeyPatch.context() as m:
         m.setattr(
@@ -111,7 +114,7 @@ def test_load_from_url(url: str, format: str, error: str, session: Session) -> N
         )
         if error:
             with pytest.raises(AssertionError, match=error):
-                session.load_data(url, format=format)
+                session.load_data(url, fmt=fmt)
         else:
-            df = session.load_data(url, format=format)
+            df = session.load_data(url, fmt=fmt)
             assert df.count() == 1

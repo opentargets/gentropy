@@ -278,7 +278,7 @@ class EqtlCatalogueFinemapping:
             session.load_data(
                 credible_set_path,
                 schema=cls.raw_credible_set_schema,
-                format=NativeFileFormat.TSV,
+                fmt=NativeFileFormat.TSV.value,
             )
             .withColumns(
                 {
@@ -313,7 +313,7 @@ class EqtlCatalogueFinemapping:
             session.load_data(
                 lbf_path,
                 schema=cls.raw_lbf_schema,
-                format=NativeFileFormat.TSV,
+                fmt=NativeFileFormat.TSV.value,
             )
             .withColumn(
                 "dataset_id",
