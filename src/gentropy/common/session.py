@@ -190,6 +190,18 @@ class Session:
         self.conf = spark.sparkContext.getConf()
 
     @property
+    def use_enhanced_bgzip_codec(self) -> bool:
+        """Check if the session is configured to use the BGZFEnhancedGzipCodec for reading block gzipped files.
+
+        Returns:
+            bool: True if the session is configured to use the BGZFEnhancedGzipCodec, False otherwise.
+        """
+        return (
+            self.conf.get("spark.gentropy.useEnhancedBgzipCodec", "false").lower()
+            == "true"
+        )
+
+    @property
     def output_partitions(self) -> int:
         """Get the number of output partitions.
 
@@ -244,16 +256,17 @@ class Session:
             SparkConf: Updated SparkConf object with extended configuration included.
         """
         for key, value in extended_spark_conf.items():
-            if key == "spark.jars":
-                _c = Session._append_jar(_c, value)
-            if key == "spark.jars.packages":
-                _c = Session._append_package(_c, value)
-            if key == "spark.driver.extraClassPath":
-                _c = Session._append_to_driver_classpath(_c, value)
-            if key == "spark.executor.extraClassPath":
-                _c = Session._append_to_executor_classpath(_c, value)
-            else:
-                _c = _c.set(key, value)
+            match key:
+                case "spark.jars":
+                    _c = Session._append_jar(_c, value)
+                case "spark.jars.packages":
+                    _c = Session._append_package(_c, value)
+                case "spark.driver.extraClassPath":
+                    _c = Session._append_to_driver_classpath(_c, value)
+                case "spark.executor.extraClassPath":
+                    _c = Session._append_to_executor_classpath(_c, value)
+                case _:
+                    _c = _c.set(key, value)
         return _c
 
     @staticmethod
@@ -467,7 +480,7 @@ class Session:
     def load_data(
         self: Session,
         path: str | list[str],
-        fmt: str,
+        fmt: str = "parquet",
         schema: StructType | str | None = None,
         **kwargs: bool | float | int | str | None,
     ) -> DataFrame:
@@ -479,13 +492,34 @@ class Session:
             path (str | list[str]): path to the dataset
             fmt (str): file format. Defaults to parquet.
             schema (StructType | str | None): Schema to use when reading the data.
-            **kwargs (bool | float | int | str | None): Additional arguments to pass to spark.read.load. `mergeSchema` is set to True, `recursiveFileLookup` is set to False by default.
+            **kwargs (bool | float | int | str | None): Additional arguments to pass to spark.read.load.
 
         Returns:
             DataFrame: Dataframe containing the loaded data.
+
+        !!! note "Default options for supported formats"
+            By default `mergeSchema` is set to True, `recursiveFileLookup` is set to False.
+            For `tsv` format `sep` and `header` options are set to tab and `True` respectively.
+            For `csv` format `header` is set to `True`.
+
+        !!! warning "Loading data from URL"
+            If the provided path is a URL (starting with http:// or https://), the method will attempt to load the data
+            and parallelize it for processing, this can be very slow it the file is large. Consider downloading the data
+            to a distributed file system and loading it from there instead. Only supported formats for loading from URL are `csv` and `tsv`.
+            Loading does not allow for recursive file lookup, nor supports multiple URLs.
+
+        !!! note "Supported formats"
+            Supported file formats are
+            - parquet
+            - csv
+            - tsv
+            - json (including jsonl/jsonlines)
+            - tsv
         """
         # Set default kwargs
         _format = fmt.lower()
+        kwargs.setdefault("mergeSchema", True)
+        kwargs.setdefault("recursiveFileLookup", False)
         match _format:
             case "parquet":
                 _fmt = NativeFileFormat.PARQUET.value

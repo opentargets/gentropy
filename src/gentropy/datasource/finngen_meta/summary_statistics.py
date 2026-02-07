@@ -202,7 +202,7 @@ class FinnGenUkbMvpMetaSummaryStatistics:
         if len(summary_statistics_list) == 0:
             session.logger.warning("No summary statistics paths found to process.")
             return
-        if not session.conf.get("spark.gentropy.useEnhancedBgzipCodec", None):
+        if not session.use_enhanced_bgzip_codec:
             session.logger.error(
                 "The use_enhanced_bgzip_codec is set to False. This will lead to inefficient reading of block gzipped files."
             )
