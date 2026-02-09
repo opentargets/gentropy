@@ -22,11 +22,6 @@ def _stop_active_spark() -> None:
     if spark is not None:
         spark.stop()
 
-    if hasattr(SparkSession, "_instantiatedSession"):
-        SparkSession._instantiatedSession = None
-    if hasattr(SparkSession, "_activeSession"):
-        SparkSession._activeSession = None
-
 
 @pytest.fixture(scope="function")
 def _no_spark_session() -> Generator[None, None, None]:
@@ -58,7 +53,7 @@ class TestNoSpark:
             extended_spark_conf=self.ex_conf,
         )
         assert session.output_partitions == 5
-        assert session.write_mode == "overwrite"
+        assert session.write_mode == SparkWriteMode.OVERWRITE
 
     @pytest.mark.usefixtures("_no_spark_session")
     def test_bgzip_configuration(self) -> None:

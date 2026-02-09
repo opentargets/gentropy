@@ -292,7 +292,7 @@ class TestFinnGenUkbMvpMetaSummaryStatistics:
                 raw_summary_statistics_output_path=output_path.as_posix(),
             )
 
-            assert "session.spark.use_enhanced_bgzip_codec" in str(e.value)
+        assert "use_enhanced_bgzip_codec" in str(e.value)
 
     @pytest.mark.parametrize(
         ["params"],

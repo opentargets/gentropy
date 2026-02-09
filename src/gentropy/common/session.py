@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from enum import StrEnum
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Protocol
@@ -142,52 +143,97 @@ class Session:
 
         """
         # Provide sane defaults for extended configurations
-        extended_hail_conf = extended_hail_conf or {}
-        extended_spark_conf = extended_spark_conf or {}
-        write_mode = write_mode or SparkWriteMode.ERROR_IF_EXISTS
-        output_partitions = output_partitions or 200
+        self._extended_hail_conf = extended_hail_conf or {}
+        self._extended_spark_conf = extended_spark_conf or {}
+        self._write_mode = write_mode or SparkWriteMode.ERROR_IF_EXISTS
+        self._output_partitions = output_partitions or 200
+        self._hail_home = hail_home
+        # Build the requested config, small overhead, but we
+        # can report if existing session is up to date with provided configuration.
+        _c = self._build_config(
+            dynamic_allocation=dynamic_allocation,
+            start_hail=start_hail,
+            use_enhanced_bgzip_codec=use_enhanced_bgzip_codec,
+        )
+        # Create or retrieve the Spark session
+        _spark_exists = isinstance(SparkSession.getActiveSession(), SparkSession)
+        if _spark_exists:
+            self.spark = (
+                SparkSession.Builder().master(spark_uri).appName(app_name).getOrCreate()
+            )
+            self.logger = Log4j(self.spark)
+            self.conf = self.spark.sparkContext.getConf()
+            # Check existing configuration against requested
+            self._compare_conf(current=self.conf, requested=_c)
+        else:
+            # The sparkSession does not exist yet, initialize the spark session with new configuration
+            self.spark = (
+                SparkSession.Builder()
+                .config(conf=_c)
+                .master(spark_uri)
+                .appName(app_name)
+                .getOrCreate()
+            )
+            # Initialize Hail if requested
+            if start_hail:
+                import hail as hl
 
+                self._extended_hail_conf.setdefault("log", "/dev/null")
+                self._extended_hail_conf.setdefault("quiet", True)
+                self._extended_hail_conf.setdefault("idempotent", True)
+                hl.init(sc=self.spark.sparkContext, **self._extended_hail_conf)
+
+            self.logger = Log4j(self.spark)
+            self.conf = self.spark.sparkContext.getConf()
+
+    def _build_config(
+        self,
+        dynamic_allocation: bool,
+        start_hail: bool,
+        use_enhanced_bgzip_codec: bool,
+    ) -> SparkConf:
+        """Prepare the SparkConf object with the requested configuration.
+
+        Args:
+            dynamic_allocation (bool): Whether to enable Spark dynamic allocation.
+            start_hail (bool): Whether to include Hail configuration.
+            use_enhanced_bgzip_codec (bool): Whether to include enhanced BGZIP codec configuration.
+
+        Returns:
+            SparkConf: SparkConf object with the requested configuration.
+
+        """
         # Create a fresh SparkConf object...
         _c = SparkConf(loadDefaults=False)
         # ...and update it with requested parameters
-        _c = self._setup_output_config(_c, output_partitions, write_mode)
+        _c = self._setup_output_config(_c, self._output_partitions, self._write_mode)
         _c = self._setup_log4j_config(_c)
         if dynamic_allocation:
             _c = self._setup_dynamic_allocation_config(_c)
         if start_hail:
-            _c = self._setup_hail_config(_c, hail_home)
+            _c = self._setup_hail_config(_c, self._hail_home)
         if use_enhanced_bgzip_codec:
             _c = self._setup_enhanced_bgzip_config(_c)
-        if extended_spark_conf:
-            # If any additional packages or jars, ensure they are included along existing ones instead of overwritten
-            _c = self._setup_extended_spark_conf(extended_spark_conf, _c)
-        # Create or retrieve the Spark session
-        # if the session does not exist yet, the new configuration will be used ...
-        _spark_exists = isinstance(SparkSession.getActiveSession(), SparkSession)
-        spark = (
-            SparkSession.Builder()
-            .config(conf=_c)
-            .master(spark_uri)
-            .appName(app_name)
-            .getOrCreate()
-        )
-        self.logger = Log4j(spark)
-        self.spark = spark
-        # ...otherwise set the revitalized configuration to the existing session
-        # NOTE: this will only work for certain parameters that can be set at runtime
-        if _spark_exists:
-            self._update_runtime_conf(spark, _c)
+        # If any additional packages or jars, ensure they are included along existing ones instead of overwritten
+        if self._extended_spark_conf:
+            _c = self._setup_extended_spark_conf(self._extended_spark_conf, _c)
+        return _c
 
-        # Initialize Hail if requested
-        if start_hail:
-            import hail as hl
+    def _compare_conf(self, current: SparkConf, requested: SparkConf) -> None:
+        """Compare current Spark configuration with the requested configuration.
 
-            extended_hail_conf.setdefault("log", "/dev/null")
-            extended_hail_conf.setdefault("quiet", True)
-            extended_hail_conf.setdefault("idempotent", True)
-            hl.init(sc=spark.sparkContext, **extended_hail_conf)
+        This method will log a warning for each configuration key that is present in the requested configuration but has a different value in the current configuration.
 
-        self.conf = spark.sparkContext.getConf()
+        Args:
+            current (SparkConf): Current Spark configuration.
+            requested (SparkConf): Requested Spark configuration.
+        """
+        for key, value in requested.getAll():
+            current_value = current.get(key, None)
+            if current_value != value:
+                self.logger.warning(
+                    f"Consider rebuilding SparkSession to apply requested configuration: '{key}' has value '{current_value}' but '{value}' was requested."
+                )
 
     @property
     def use_enhanced_bgzip_codec(self) -> bool:
@@ -329,6 +375,7 @@ class Session:
             )
         c = Session._append_jar(c, jar_path)
         c = Session._append_to_driver_classpath(c, jar_path)
+        # NOTE: the docs mention to not use full path for exectuor classPath
         c = Session._append_to_executor_classpath(c, "./hail-all-spark.jar")
         return (
             c.set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
@@ -411,8 +458,9 @@ class Session:
             SparkConf: Adjusted spark configuration with the new jar included in the driver and executor classpath.
         """
         existing_executor_cp = c.get("spark.executor.extraClassPath", "")
+        # NOTE: use os.pathsep, as it should default to ';' on windows and ':' on unix based systems.
         new_executor_cp = (
-            f"{existing_executor_cp},{jar}" if existing_executor_cp else jar
+            f"{existing_executor_cp}{os.pathsep}{jar}" if existing_executor_cp else jar
         )
         if jar not in existing_executor_cp:
             return c.set("spark.executor.extraClassPath", new_executor_cp)
@@ -430,7 +478,10 @@ class Session:
             SparkConf: Adjusted spark configuration with the new jar included in the driver classpath.
         """
         existing_driver_cp = c.get("spark.driver.extraClassPath", "")
-        new_driver_cp = f"{existing_driver_cp},{jar}" if existing_driver_cp else jar
+        # NOTE: use os.pathsep, as it should default to ';' on windows and ':' on unix based systems.
+        new_driver_cp = (
+            f"{existing_driver_cp}{os.pathsep}{jar}" if existing_driver_cp else jar
+        )
         if jar not in existing_driver_cp:
             return c.set("spark.driver.extraClassPath", new_driver_cp)
         return c
@@ -458,24 +509,6 @@ class Session:
         prop = str(pkg_resources.files(asf).joinpath("log4j.properties"))
         c.set("spark.driver.extraJavaOptions", f"-Dlog4j.configuration=file:{prop}")
         return c
-
-    def _update_runtime_conf(self, spark: SparkSession, c: SparkConf) -> None:
-        """Update runtime Spark configuration.
-
-        This method will attempt to modify in place SparkSession.conf with the provided SparkConf.
-
-        Args:
-            spark (SparkSession): Spark session to update.
-            c (SparkConf): Spark configuration with desired settings.
-
-        """
-        for key, value in c.getAll():
-            if not spark.conf.isModifiable(key) or key.startswith("spark.gentropy."):
-                self.logger.warning(
-                    f"Spark configuration '{key}' is not modifiable at runtime and will be skipped."
-                )
-                continue
-            spark.conf.set(key, value)
 
     def load_data(
         self: Session,
@@ -518,11 +551,12 @@ class Session:
         """
         # Set default kwargs
         _format = fmt.lower()
-        kwargs.setdefault("mergeSchema", True)
         kwargs.setdefault("recursiveFileLookup", False)
+
         match _format:
             case "parquet":
                 _fmt = NativeFileFormat.PARQUET.value
+                kwargs.setdefault("mergeSchema", True)
             case "tsv":
                 _fmt = NativeFileFormat.CSV.value
                 kwargs.setdefault("sep", "\t")
@@ -533,7 +567,7 @@ class Session:
             case "json" | "jsonl" | "jsonlines":
                 _fmt = NativeFileFormat.JSON.value
             case _:
-                raise ValueError(f"Unsupported file format: {format}")
+                raise ValueError(f"Unsupported file format: {_format}")
 
         match path:
             case list():
@@ -557,7 +591,7 @@ class Session:
         """Load CSV/TSV data from a URL into a Spark DataFrame.
 
         Args:
-            url (str): URL or list of URLs to load data from.
+            url (str): single URL to load data from.
             fmt (str): File format. Currently only 'csv' is supported.
             schema (StructType | str | None): Schema to use when reading the data.
             **kwargs (str): Additional arguments to pass to spark.read.csv.
