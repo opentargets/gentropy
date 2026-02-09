@@ -196,14 +196,14 @@ class deCODESummaryStatistics:
         _sumstats = (
             raw_summary_statistics.select(
                 normalize_chromosome(f.col("Chrom")).alias("chromosome"),
-                f.col("Pos").alias("position"),
+                f.col("Pos").cast(t.IntegerType()).alias("position"),
                 f.col("effectAllele").alias("alt"),
                 f.col("otherAllele").alias("ref"),
-                f.col("Beta").alias("beta"),
+                f.col("Beta").cast(t.DoubleType()).alias("beta"),
                 f.col("minus_log10_pval").alias("neglogPval"),
-                f.col("SE").alias("standardError"),
-                f.col("N").alias("sampleSize"),
-                f.col("impMAF").alias("imputedMinorAlleleFrequencyFromSource"),
+                f.col("SE").cast(t.DoubleType()).alias("standardError"),
+                f.col("N").cast(t.IntegerType()).alias("sampleSize"),
+                f.col("impMAF").cast(t.FloatType()).alias("impMAF"),
                 f.col("studyId"),
             )
             .select(
@@ -212,8 +212,8 @@ class deCODESummaryStatistics:
                     "_",
                     f.col("chromosome"),
                     f.col("position"),
-                    f.col("otherAllele"),
-                    f.col("effectAllele"),
+                    f.col("alt"),
+                    f.col("ref"),
                 ).alias("variantId"),
                 f.col("chromosome"),
                 f.col("position"),
@@ -221,17 +221,16 @@ class deCODESummaryStatistics:
                 f.col("sampleSize"),
                 pval.mantissa.alias("pValueMantissa"),
                 pval.exponent.alias("pValueExponent"),
-                f.col("imputedMinorAlleleFrequencyFromSource"),
+                f.col("impMAF"),
                 f.col("standardError"),
+                (f.col("position") / flipping_window_size)
+                .cast(t.LongType())
+                .alias("rangeId"),
             )
             # Apply filtering on MAC and sample size
             # This should reduce the number of variants from ~33mln to ~25mln
             .filter(f.col("sampleSize") >= min_sample_size_threshold)
-            .filter(
-                mac(f.col("imputedMinorAlleleFrequencyFromSource"), f.col("sampleSize"))
-                >= min_mac_threshold
-            )
-            .withColumn("rangeId", f.floor(f.col("position") / flipping_window_size))
+            .filter(mac(f.col("impMAF"), f.col("sampleSize")) >= min_mac_threshold)
             .repartitionByRange(40_000, "chromosome", "rangeId")
             .persist()
             .alias("sumstats")
@@ -251,7 +250,9 @@ class deCODESummaryStatistics:
                     f.col("originalAlleleFrequencies"),
                     lambda x: x.getField("populationName") == "nfe_adj",
                 )
+                .getItem(0)
                 .getField("alleleFrequency")
+                .cast(t.FloatType())
                 .alias("eur_af"),
             )
             # NOTE: repartition("chromosome") produces very uneven partitions,
@@ -261,39 +262,39 @@ class deCODESummaryStatistics:
             .persist()
             .alias("vd")
         )
-        _sumstats.join(
-            _vd, on=["chromosome", "rangeId", "variantId"], how="left"
-        ).select(
-            f.col("sumstats.studyId").alias("studyId"),
-            f.coalesce(
-                f.col("vd.originalVariantId"), f.col("sumstats.variantId")
-            ).alias("variantId"),
-            f.col("sumstats.chromosome").alias("chromosome"),
-            f.col("sumstats.position").alias("position"),
-            (f.col("sumstats.beta") * f.coalesce(f.col("vd.direction"), f.lit(1)))
-            .cast("double")
-            .alias("beta"),
-            f.col("sumstats.sampleSize").alias("sampleSize"),
-            f.col("sumstats.pValueMantissa").alias("pValueMantissa"),
-            f.col("sumstats.pValueExponent").alias("pValueExponent"),
-            cls._infer_allele_frequency(
-                f.col("sumstats.imputedMinorAlleleFrequencyFromSource"),
-                f.col("vd.eur_af"),
-            ).alias("effectAlleleFrequencyFromSource"),
-            f.col("sumstats.standardError").alias("standardError"),
+        _flipped = (
+            _sumstats.join(_vd, on=["chromosome", "rangeId", "variantId"], how="left")
+            .select(
+                f.col("sumstats.studyId").alias("studyId"),
+                f.coalesce(
+                    f.col("vd.originalVariantId"), f.col("sumstats.variantId")
+                ).alias("variantId"),
+                f.col("sumstats.chromosome").alias("chromosome"),
+                f.col("sumstats.position").alias("position"),
+                (f.col("sumstats.beta") * f.coalesce(f.col("vd.direction"), f.lit(1)))
+                .cast("double")
+                .alias("beta"),
+                f.col("sumstats.sampleSize").alias("sampleSize"),
+                f.col("sumstats.pValueMantissa").alias("pValueMantissa"),
+                f.col("sumstats.pValueExponent").alias("pValueExponent"),
+                cls._infer_allele_frequency(
+                    f.col("sumstats.impMAF"), f.col("vd.eur_af")
+                ).alias("effectAlleleFrequencyFromSource"),
+                f.col("sumstats.standardError").alias("standardError"),
+            )
+            .select(
+                f.col("studyId"),
+                f.col("variantId"),
+                f.col("chromosome"),
+                f.col("position"),
+                f.col("beta"),
+                f.col("sampleSize"),
+                f.col("pValueMantissa"),
+                f.col("pValueExponent"),
+                f.col("effectAlleleFrequencyFromSource"),
+                f.col("standardError"),
+            )
+            .sortWithinPartitions("chromosome", "position")
         )
 
-        _sumstats = raw_summary_statistics.select(
-            f.col("studyId"),
-            f.col("variantId"),
-            f.col("chromosome"),
-            f.col("position"),
-            f.col("beta"),
-            f.col("sampleSize"),
-            f.col("pValueMantissa"),
-            f.col("pValueExponent"),
-            f.col("effectAlleleFrequencyFromSource"),
-            f.col("standardError"),
-        )
-
-        return SummaryStatistics(_sumstats)
+        return SummaryStatistics(_flipped)

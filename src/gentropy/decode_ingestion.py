@@ -104,7 +104,9 @@ class deCODESummaryStatisticsHarmonisationStep:
         harmonised_summary_statistics = deCODESummaryStatistics.from_source(
             raw_summary_statistics, gvd, **sumstat_harmonisation_config
         )
-        harmonised_summary_statistics.df.write.mode(session.write_mode).parquet(
+        harmonised_summary_statistics.df.write.mode(session.write_mode).partitionBy(
+            "studyId"
+        ).option("maxRecordsPerFile", 5_000_000).parquet(
             harmonised_summary_statistics_path
         )
 
