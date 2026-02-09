@@ -549,7 +549,6 @@ class Session:
             - csv
             - tsv
             - json (including jsonl/jsonlines)
-            - csv
         """
         # Set default kwargs
         _format = fmt.lower()
