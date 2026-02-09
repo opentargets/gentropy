@@ -106,9 +106,7 @@ class deCODESummaryStatisticsHarmonisationStep:
         )
         harmonised_summary_statistics.df.write.mode(session.write_mode).partitionBy(
             "studyId"
-        ).option("maxRecordsPerFile", 5_000_000).parquet(
-            harmonised_summary_statistics_path
-        )
+        ).parquet(harmonised_summary_statistics_path)
 
 
 class deCODESummaryStatisticsQCStep:

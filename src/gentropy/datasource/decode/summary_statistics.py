@@ -74,7 +74,7 @@ class deCODESummaryStatistics:
             )
         if n_threads > cls.N_THREAD_MAX:
             session.logger.warning(
-                f"Using high n_threads value: {n_threads}, this may lead to overloading spark driver. Limiting to 32."
+                f"Using high n_threads value: {n_threads}, this may lead to overloading spark driver."
             )
             n_threads = cls.N_THREAD_MAX
 
@@ -231,7 +231,7 @@ class deCODESummaryStatistics:
             # This should reduce the number of variants from ~33mln to ~25mln
             .filter(f.col("sampleSize") >= min_sample_size_threshold)
             .filter(mac(f.col("impMAF"), f.col("sampleSize")) >= min_mac_threshold)
-            .repartitionByRange(40_000, "chromosome", "rangeId")
+            .repartitionByRange(10_000, "chromosome", "rangeId")
             .persist()
             .alias("sumstats")
         )
@@ -294,7 +294,9 @@ class deCODESummaryStatistics:
                 f.col("effectAlleleFrequencyFromSource"),
                 f.col("standardError"),
             )
-            .sortWithinPartitions("chromosome", "position")
+            .sort("studyId", "chromosome", "position")
+            # Approximate number of partitions = 15 * number of studies
+            .repartitionByRange(5012 * 10, "studyId", "chromosome", "position")
         )
 
         return SummaryStatistics(_flipped)
