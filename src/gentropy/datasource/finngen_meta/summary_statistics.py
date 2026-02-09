@@ -289,15 +289,13 @@ class FinnGenUkbMvpMetaSummaryStatistics:
             f"Converting gzipped summary statistics from {summary_statistics_list} to Parquet at {raw_summary_statistics_output_path}."
         )
         with ThreadPoolExecutor(max_workers=n_threads) as pool:
-            list(
-                pool.map(
-                    lambda path: process_one(
-                        path,
-                        session=session,
-                        output_path=raw_summary_statistics_output_path,
-                    ),
-                    summary_statistics_list,
-                )
+            pool.map(
+                lambda path: process_one(
+                    path,
+                    session=session,
+                    output_path=raw_summary_statistics_output_path,
+                ),
+                summary_statistics_list,
             )
 
     @classmethod

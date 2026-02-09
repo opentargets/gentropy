@@ -23,7 +23,7 @@ from gentropy.dataset.study_locus import FinemappingMethod, StudyLocus
 from gentropy.datasource.eqtl_catalogue.study_index import EqtlCatalogueStudyIndex
 
 if TYPE_CHECKING:
-    from pyspark.sql import DataFrame
+    pass
 
 
 @dataclass
