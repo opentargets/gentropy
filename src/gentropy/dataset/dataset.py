@@ -21,7 +21,6 @@ if TYPE_CHECKING:
     from pyspark.sql import Column
     from pyspark.sql.types import StructType
 
-    from gentropy.common.session import Session
 
 T = TypeVar("T", bound="Dataset")
 P = ParamSpec("P")
@@ -165,7 +164,13 @@ class Dataset(ABC):
         return {}
 
     @classmethod
-    def read(cls, path: str | list[str], fmt: str = "parquet", **kwargs: Any) -> Self:
+    def read(
+        cls,
+        path: str | list[str],
+        fmt: str = "parquet",
+        session: Session | None = None,
+        **kwargs: Any,
+    ) -> Self:
         """Reads dataset into a Dataset with a given schema.
 
         All kwargs are passed to the spark.read method, so they can be used to specify format, schema, etc.
@@ -173,11 +178,13 @@ class Dataset(ABC):
         Args:
             path (str | list[str]): Path to the dataset
             fmt (str): Format of the dataset, default is "parquet"
+            session (Session | None): Spark session to use for reading the dataset.
+               If None, gentropy will attempt to find an active session or result in Exception.
             **kwargs (Any): Additional arguments to pass to spark.read
         Returns:
             Self: Dataset with the file contents
         """
-        session = Session.find()
+        session = session or Session.find()
         schema = cls.get_schema()
         return cls(
             _df=session.load_data(

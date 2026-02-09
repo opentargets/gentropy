@@ -185,7 +185,7 @@ class EqtlCatalogueFinemapping:
                     )
                 ).alias("studyId"),
                 f.col("tissue_id").alias("biosampleFromSourceId"),
-                EqtlCatalogueStudyIndex._identify_study_type().alias("studyType"),
+                EqtlCatalogueStudyIndex.identify_study_type().alias("studyType"),
                 f.col("study_label").alias("projectId"),
                 f.concat_ws(
                     "/",
@@ -299,16 +299,18 @@ class EqtlCatalogueFinemapping:
     def read_lbf_from_source(
         cls: type[EqtlCatalogueFinemapping],
         lbf_path: str | list[str],
+        session: Session | None = None,
     ) -> DataFrame:
         """Load raw log Bayes Factors from eQTL Catalogue.
 
         Args:
             lbf_path (str | list[str]): Path to raw table(s) containing Log Bayes Factors for each variant.
+            session (Session, optional): Spark session to use for loading the data. If None, the default session will be used. Defaults to None.
 
         Returns:
             DataFrame: Log Bayes Factors DataFrame.
         """
-        session = Session.find()
+        session = session or Session.find()
         return (
             session.load_data(
                 lbf_path,

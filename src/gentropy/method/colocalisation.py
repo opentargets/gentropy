@@ -269,11 +269,10 @@ class Coloc(ColocalisationMethodInterface):
         priorc12 = kwargs.get("priorc12") or 1e-5
         priors = [priorc1, priorc2, priorc12]
         if any(not isinstance(prior, float) for prior in priors):
+            err_expr = {type(p): p for p in priors}
             raise TypeError(
-                "Passed incorrect type(s) for prior parameters. got %s",
-                {type(p): p for p in priors},
+                f"Passed incorrect type(s) for prior parameters. got {err_expr}"
             )
-
         # register udfs
         logsum = f.udf(get_logsum, DoubleType())
         posteriors = f.udf(Coloc._get_posteriors, VectorUDT())
@@ -557,9 +556,9 @@ class ColocPIP(ColocalisationMethodInterface):
         priorc12 = kwargs.get("priorc12") or 1e-5
         priors = [priorc1, priorc2, priorc12]
         if any(not isinstance(prior, float) for prior in priors):
+            err_expr = {type(p): p for p in priors}
             raise TypeError(
-                "Passed incorrect type(s) for prior parameters. got %s",
-                {type(p): p for p in priors},
+                f"Passed incorrect type(s) for prior parameters. got {err_expr}",
             )
 
         # Register UDF for calculating posteriors from PIPs
@@ -642,3 +641,90 @@ class ColocPIP(ColocalisationMethodInterface):
             ),
             _schema=Colocalisation.get_schema(),
         )
+
+    @staticmethod
+    def merge_ecaviar_results(
+        coloc_pip_results: Colocalisation, ecaviar_results: Colocalisation
+    ) -> Colocalisation:
+        """Merge coloc pip results with eCAVIAR results.
+
+        This is an inner join of both colocalisation dataframes.
+
+        Args:
+            coloc_pip_results (Colocalisation): Coloc PIP colocalisation results.
+            ecaviar_results (Colocalisation): eCAVIAR colocalisation results.
+        """
+        join_keys = [
+            "leftStudyLocusId",
+            "rightStudyLocusId",
+            "chromosome",
+            "rightStudyType",
+        ]
+
+        return Colocalisation(
+            _df=coloc_pip_results.df.alias("pip")
+            .join(
+                ecaviar_results.df.alias("ecav").select(
+                    *join_keys,
+                    f.col("clpp").alias("clpp_ecaviar"),
+                    f.col("numberColocalisingVariants").alias(
+                        "numberColocalisingVariants_ecaviar"
+                    ),
+                ),
+                on=join_keys,
+                how="inner",
+            )
+            .select(
+                f.col("pip.leftStudyLocusId"),
+                f.col("pip.rightStudyLocusId"),
+                f.col("pip.rightStudyType"),
+                f.col("pip.chromosome"),
+                # Use a combined method name
+                f.lit("COLOC_PIP_ECAVIAR").alias("colocalisationMethod"),
+                # Use the max number of colocalising variants from both methods
+                f.greatest(
+                    f.col("pip.numberColocalisingVariants"),
+                    f.col("numberColocalisingVariants_ecaviar"),
+                ).alias("numberColocalisingVariants"),
+                # Keep h3 and h4 from ColocPIP
+                f.col("pip.h3"),
+                f.col("pip.h4"),
+                # Add clpp from eCAVIAR
+                f.col("clpp_ecaviar").alias("clpp"),
+                # Keep beta ratio from ColocPIP
+                f.col("pip.betaRatioSignAverage"),
+            ),
+            _schema=Colocalisation.get_schema(),
+        )
+
+
+class ColocalisationMethodRegistry:
+    """Registry for accessing colocalisation methods."""
+
+    __coloc_methods__ = {
+        method.METHOD_NAME.lower(): method for method in [Coloc, ECaviar, ColocPIP]
+    }
+
+    @classmethod
+    def get_colocalisation_class(
+        cls, method: str
+    ) -> type[ColocalisationMethodInterface]:
+        """Get colocalisation class.
+
+        Args:
+            method (str): Colocalisation method.
+
+        Returns:
+            type[ColocalisationMethodInterface]: Class that implements the ColocalisationMethodInterface.
+
+        Raises:
+            ValueError: if method not available.
+
+        Examples:
+            >>> ColocalisationStep._get_colocalisation_class("ECaviar")
+            <class 'gentropy.method.colocalisation.ECaviar'>
+        """
+        method = method.lower()
+        if method not in cls.__coloc_methods__:
+            raise ValueError(f"Colocalisation method {method} not available.")
+        return cls.__coloc_methods__[method]

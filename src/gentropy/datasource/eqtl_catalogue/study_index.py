@@ -8,9 +8,9 @@ from typing import TYPE_CHECKING
 import pyspark.sql.functions as f
 from pyspark.sql.types import IntegerType, StringType, StructField, StructType
 
+from gentropy.common.qtl import QuantificationMethod
 from gentropy.common.session import Session
 from gentropy.dataset.study_index import StudyIndex
-from gentropy.datasource.eqtl_catalogue import QuantificationMethod, StudyType
 
 if TYPE_CHECKING:
     from pyspark.sql import DataFrame
@@ -30,6 +30,8 @@ class EqtlCatalogueStudyIndex:
 
     """
 
+    method_qtl_type_mapping = QuantificationMethod.method_to_qcl_type_mapping()
+
     raw_studies_metadata_schema: StructType = StructType(
         [
             StructField("study_id", StringType(), True),
@@ -45,18 +47,9 @@ class EqtlCatalogueStudyIndex:
             StructField("study_type", StringType(), True),
         ]
     )
-    method_to_qtl_type_mapping = {
-        QuantificationMethod.GE.value: StudyType.EQTL.value,
-        QuantificationMethod.EXON.value: StudyType.EQTL.value,
-        QuantificationMethod.TX.value: StudyType.EQTL.value,
-        QuantificationMethod.MICROARRAY.value: StudyType.EQTL.value,
-        QuantificationMethod.LEAFCUTTER.value: StudyType.SQTL.value,
-        QuantificationMethod.APTAMER.value: StudyType.PQTL.value,
-        QuantificationMethod.TXREV.value: StudyType.TUQTL.value,
-    }
 
     @classmethod
-    def _identify_study_type(
+    def identify_study_type(
         cls: type[EqtlCatalogueStudyIndex],
     ) -> Column:
         """Identify the qtl type based on the quantification method and eqtl catalogue study type.
@@ -66,7 +59,7 @@ class EqtlCatalogueStudyIndex:
 
         Examples:
             >>> df = spark.createDataFrame([("ge", "bulk"), ("leafcutter", "bulk"), ("tx", "single-cell")], ["quant_method", "study_type"])
-            >>> df.withColumn("studyType", EqtlCatalogueStudyIndex._identify_study_type()).show()
+            >>> df.withColumn("studyType", EqtlCatalogueStudyIndex.identify_study_type()).show()
             +------------+-----------+---------+
             |quant_method| study_type|studyType|
             +------------+-----------+---------+
@@ -77,7 +70,7 @@ class EqtlCatalogueStudyIndex:
             <BLANKLINE>
         """
         qtl_type_mapping = f.create_map(
-            *[f.lit(x) for x in chain(*cls.method_to_qtl_type_mapping.items())]
+            *[f.lit(x) for x in chain(*cls.method_qtl_type_mapping.items())]
         )[f.col("quant_method")]
         return f.when(
             f.col("study_type") == "single-cell",
@@ -132,12 +125,14 @@ class EqtlCatalogueStudyIndex:
         cls: type[EqtlCatalogueStudyIndex],
         metadata_path: str,
         mqtl_quantification_methods_blacklist: list[str],
+        session: Session | None = None,
     ) -> DataFrame:
         """Read raw studies metadata from eQTL Catalogue.
 
         Args:
             metadata_path (str): Path to the studies metadata file.
             mqtl_quantification_methods_blacklist (list[str]): Molecular trait quantification methods that we don't want to ingest. Available options in https://github.com/eQTL-Catalogue/eQTL-Catalogue-resources/blob/master/data_tables/dataset_metadata.tsv
+            session (Session, optional): Spark session to use for loading the data. If None, the default session will be used. Defaults to None.
 
         Returns:
             DataFrame: raw studies metadata.
@@ -147,12 +142,12 @@ class EqtlCatalogueStudyIndex:
 
         Example metadata_path: "https://raw.githubusercontent.com/eQTL-Catalogue/eQTL-Catalogue-resources/fe3c4b4ed911b3a184271a6aadcd8c8769a66aba/data_tables/dataset_metadata.tsv"
         """
-        session = Session.find()
+        session = session or Session.find()
         for method in mqtl_quantification_methods_blacklist:
-            if method not in cls.method_to_qtl_type_mapping:
+            if method not in cls.method_qtl_type_mapping:
                 raise ValueError(
                     f"Quantification method '{method}' is not supported. "
-                    + f"Available options are: {list(cls.method_to_qtl_type_mapping.keys())}"
+                    + f"Available options are: {list(cls.method_qtl_type_mapping.keys())}"
                 )
         return session.load_data(
             metadata_path, schema=cls.raw_studies_metadata_schema, fmt="tsv"

@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from functools import reduce
 from typing import TYPE_CHECKING
 
 import pyspark.sql.functions as f
 
+from gentropy.common.qtl import QTLStudyType
 from gentropy.common.schemas import parse_spark_schema
+from gentropy.common.spark import get_record_with_maximum_value
 from gentropy.dataset.dataset import Dataset
 from gentropy.dataset.study_locus import StudyLocus
 
@@ -16,9 +19,6 @@ if TYPE_CHECKING:
     from pyspark.sql.types import StructType
 
     from gentropy.dataset.study_index import StudyIndex
-    from gentropy.dataset.study_locus import StudyLocus
-
-from functools import reduce
 
 
 @dataclass
@@ -56,18 +56,9 @@ class Colocalisation(Dataset):
         Raises:
             ValueError: if filter_by_qtl is not in the list of valid QTL types or is not in the list of valid colocalisation methods
         """
-        from gentropy.colocalisation import ColocalisationStep
-        from gentropy.common.spark import get_record_with_maximum_value
-        from gentropy.datasource.eqtl_catalogue.study_index import (
-            EqtlCatalogueStudyIndex,
-        )
+        from gentropy.method.colocalisation import ColocalisationMethodRegistry
 
-        valid_qtls = list(
-            set(EqtlCatalogueStudyIndex.method_to_qtl_type_mapping.values())
-        ) + [
-            f"sc{qtl}"
-            for qtl in set(EqtlCatalogueStudyIndex.method_to_qtl_type_mapping.values())
-        ]
+        valid_qtls = QTLStudyType.valid_qtl_types()
 
         if filter_by_qtls:
             filter_by_qtls = (
@@ -78,10 +69,7 @@ class Colocalisation(Dataset):
             if any(qtl not in valid_qtls for qtl in filter_by_qtls):
                 raise ValueError(f"There are no studies with QTL type {filter_by_qtls}")
 
-        if filter_by_colocalisation_method not in [
-            "ECaviar",
-            "Coloc",
-        ]:  # TODO: Write helper class to retrieve coloc method names
+        if filter_by_colocalisation_method not in ["ECaviar", "Coloc"]:
             raise ValueError(
                 f"Colocalisation method {filter_by_colocalisation_method} is not supported."
             )
@@ -90,9 +78,11 @@ class Colocalisation(Dataset):
             filter_by_colocalisation_method.lower(),  # original method name Coloc or ECaviar to ensure backward compatibility
             "coloc_pip_ecaviar",  # combined method name, coloc_pip_ecaviar contains both CLPP and H4
         ]
-        method_colocalisation_metric = ColocalisationStep._get_colocalisation_class(
-            filter_by_colocalisation_method
-        ).METHOD_METRIC
+        method_colocalisation_metric = (
+            ColocalisationMethodRegistry.get_colocalisation_class(
+                filter_by_colocalisation_method
+            ).METHOD_METRIC
+        )
 
         coloc_filtering_expr = [
             f.col("rightGeneId").isNotNull(),
