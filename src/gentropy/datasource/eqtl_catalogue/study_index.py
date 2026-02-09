@@ -132,12 +132,14 @@ class EqtlCatalogueStudyIndex:
         cls: type[EqtlCatalogueStudyIndex],
         metadata_path: str,
         mqtl_quantification_methods_blacklist: list[str],
+        session: Session | None = None,
     ) -> DataFrame:
         """Read raw studies metadata from eQTL Catalogue.
 
         Args:
             metadata_path (str): Path to the studies metadata file.
             mqtl_quantification_methods_blacklist (list[str]): Molecular trait quantification methods that we don't want to ingest. Available options in https://github.com/eQTL-Catalogue/eQTL-Catalogue-resources/blob/master/data_tables/dataset_metadata.tsv
+            session (Session | None, optional): Session object. If not provided, the method will try to find an active session. Defaults to None.
 
         Returns:
             DataFrame: raw studies metadata.
@@ -147,7 +149,7 @@ class EqtlCatalogueStudyIndex:
 
         Example metadata_path: "https://raw.githubusercontent.com/eQTL-Catalogue/eQTL-Catalogue-resources/fe3c4b4ed911b3a184271a6aadcd8c8769a66aba/data_tables/dataset_metadata.tsv"
         """
-        session = Session.find()
+        session = session or Session.find()
         for method in mqtl_quantification_methods_blacklist:
             if method not in cls.method_to_qtl_type_mapping:
                 raise ValueError(

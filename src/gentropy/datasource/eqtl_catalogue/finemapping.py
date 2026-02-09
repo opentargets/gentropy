@@ -264,16 +264,18 @@ class EqtlCatalogueFinemapping:
     def read_credible_set_from_source(
         cls: type[EqtlCatalogueFinemapping],
         credible_set_path: str | list[str],
+        session: Session | None = None,
     ) -> DataFrame:
         """Load raw credible sets from eQTL Catalogue.
 
         Args:
             credible_set_path (str | list[str]): Path to raw table(s) containing finemapping results for any variant belonging to a credible set.
+            session (Session | None, optional): Session object. If not provided, the method will try to find an active session. Defaults to None.
 
         Returns:
             DataFrame: Credible sets DataFrame.
         """
-        session = Session.find()
+        session = session or Session.find()
         return (
             session.load_data(
                 credible_set_path,
@@ -299,16 +301,18 @@ class EqtlCatalogueFinemapping:
     def read_lbf_from_source(
         cls: type[EqtlCatalogueFinemapping],
         lbf_path: str | list[str],
+        session: Session | None = None,
     ) -> DataFrame:
         """Load raw log Bayes Factors from eQTL Catalogue.
 
         Args:
             lbf_path (str | list[str]): Path to raw table(s) containing Log Bayes Factors for each variant.
+            session (Session | None, optional): Session object. If not provided, the method will try to find an active session. Defaults to None.
 
         Returns:
             DataFrame: Log Bayes Factors DataFrame.
         """
-        session = Session.find()
+        session = session or Session.find()
         return (
             session.load_data(
                 lbf_path,

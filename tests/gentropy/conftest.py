@@ -46,9 +46,7 @@ def spark() -> Generator[SparkSession | None, None, None]:
     )
     yield spark
 
-    spark = SparkSession.getActiveSession()
-    if spark is not None:
-        spark.stop()
+    spark.stop()
 
 
 @pytest.fixture()

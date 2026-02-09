@@ -531,9 +531,11 @@ class Session:
             DataFrame: Dataframe containing the loaded data.
 
         !!! note "Default options for supported formats"
-            By default `mergeSchema` is set to True, `recursiveFileLookup` is set to False.
-            For `tsv` format `sep` and `header` options are set to tab and `True` respectively.
-            For `csv` format `header` is set to `True`.
+            By default:
+            - `mergeSchema` is set to True for parquet format.
+            - `recursiveFileLookup` is set to False.
+            - For `tsv` format `sep` and `header` options are set to tab and `True` respectively.
+            - For `csv` format `header` is set to `True`.
 
         !!! warning "Loading data from URL"
             If the provided path is a URL (starting with http:// or https://), the method will attempt to load the data
@@ -547,7 +549,7 @@ class Session:
             - csv
             - tsv
             - json (including jsonl/jsonlines)
-            - tsv
+            - csv
         """
         # Set default kwargs
         _format = fmt.lower()
@@ -561,9 +563,13 @@ class Session:
                 _fmt = NativeFileFormat.CSV.value
                 kwargs.setdefault("sep", "\t")
                 kwargs.setdefault("header", True)
+                if not schema:
+                    kwargs.setdefault("inferSchema", "true")
             case "csv":
                 _fmt = NativeFileFormat.CSV.value
                 kwargs.setdefault("header", True)
+                if not schema:
+                    kwargs.setdefault("inferSchema", "true")
             case "json" | "jsonl" | "jsonlines":
                 _fmt = NativeFileFormat.JSON.value
             case _:
@@ -578,7 +584,6 @@ class Session:
                     return self._load_from_url(path, fmt=_fmt, schema=schema, **kwargs)  # type: ignore[arg-type]
             case _:
                 raise ValueError("Path must be a string or a list of strings.")
-
         return self.spark.read.load(path, format=_fmt, schema=schema, **kwargs)
 
     def _load_from_url(
@@ -592,7 +597,7 @@ class Session:
 
         Args:
             url (str): single URL to load data from.
-            fmt (str): File format. Currently only 'csv' is supported.
+            fmt (str): File format. Currently only 'csv' or 'tsv' are supported for loading from URL.
             schema (StructType | str | None): Schema to use when reading the data.
             **kwargs (str): Additional arguments to pass to spark.read.csv.
 
@@ -606,8 +611,6 @@ class Session:
         assert fmt in NativeFileFormat.uri_parallelizable(), (
             "Only 'csv' and 'tsv' formats are supported for loading data from URL."
         )
-        if not schema:
-            kwargs.setdefault("inferSchema", "true")
 
         with urlopen(url) as response:
             csv_data = response.read().decode("utf8").splitlines()
