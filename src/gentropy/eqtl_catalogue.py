@@ -39,6 +39,7 @@ class EqtlCatalogueStep:
         studies_metadata = EqtlCatalogueStudyIndex.read_studies_from_source(
             eqtl_catalogue_metadata_path,
             list(mqtl_quantification_methods_blacklist),
+            session=session,
         )
 
         # Load raw data only for the studies we are interested in ingestion. This makes the proces much lighter.
@@ -56,6 +57,7 @@ class EqtlCatalogueStep:
                 f"{eqtl_catalogue_paths_imported}/{qtd_id}.lbf_variable.txt"
                 for qtd_id in studies_to_ingest
             ],
+            session=session,
         )
 
         # Transform

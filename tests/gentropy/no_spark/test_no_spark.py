@@ -1,4 +1,4 @@
-"""Test functionalities that requires to set up their own Spark session."""
+"""Tests that need to create their own Spark session."""
 
 from collections.abc import Generator
 from pathlib import Path
