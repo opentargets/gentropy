@@ -127,7 +127,7 @@ class Session:
         hail_home: str | None = None,
         start_hail: bool = False,
         extended_spark_conf: dict[str, str] | None = None,
-        extended_hail_conf: dict[str, str | int | bool] | None = None,
+        extended_hail_conf: dict[str, Any] | None = None,
         output_partitions: int = 200,
         use_enhanced_bgzip_codec: bool = False,
         dynamic_allocation: bool = True,
@@ -147,7 +147,7 @@ class Session:
             hail_home (str | None): Path to Hail installation. Defaults to None.
             start_hail (bool): Whether to start Hail. Defaults to False.
             extended_spark_conf (dict[str, str] | None): Extended Spark configuration. Defaults to None.
-            extended_hail_conf (dict[str, str | int | bool] | None): Extended Hail configuration. Defaults to None.
+            extended_hail_conf (dict[str, Any] | None): Extended Hail configuration. Defaults to None.
             output_partitions (int): Number of partitions for output datasets. Defaults to 200.
             use_enhanced_bgzip_codec (bool): Whether to use the BGZFEnhancedGzipCodec for reading block gzipped files. Defaults to False.
             dynamic_allocation (bool): Whether to enable Spark dynamic allocation. Defaults to True.

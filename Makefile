@@ -48,7 +48,7 @@ test-shared-spark-session: ## Run tests that can use shared SparkSession fixture
 
 test-no-shared-spark-session-web-dependencies: ## Run tests that require to download spark dependency jars from the web (not run by default).
 	@echo "Running tests that can not rely on shared SparkSession and require downloading jar dependencies from web..."
-	@COVERAGE_FILE=.coverage.no_shared_spark_web_deps uv run pytest -m "download_jars_from_web" --cov-report=
+	@COVERAGE_FILE=.coverage.no_shared_spark_web_deps uv run pytest -n0 -m "download_jars_from_web" --cov-report=
 
 test: test-no-shared-spark-session test-shared-spark-session ## Run default test suite
 	@uv run coverage combine .coverage.shared_spark .coverage.no_shared_spark

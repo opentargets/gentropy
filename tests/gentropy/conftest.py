@@ -35,7 +35,7 @@ from utils.spark import get_spark_testing_conf
 
 
 @pytest.fixture(scope="session")
-def spark() -> Generator[SparkSession | None, None, None]:
+def spark() -> Generator[SparkSession, None, None]:
     """Local spark session for testing purposes."""
     spark = (
         SparkSession.Builder()

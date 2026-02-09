@@ -40,8 +40,8 @@ class TestNoSpark:
     @pytest.mark.usefixtures("_no_spark_session")
     def test_session_creation(self) -> None:
         """Test session creation with mock data."""
-        spark = Session(spark_uri="local[1]", extended_spark_conf=self.ex_conf)
-        assert isinstance(spark, Session)
+        session = Session(spark_uri="local[1]", extended_spark_conf=self.ex_conf)
+        assert isinstance(session, Session)
 
     @pytest.mark.usefixtures("_no_spark_session")
     def test_output_partition(self) -> None:
