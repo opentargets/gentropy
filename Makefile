@@ -38,22 +38,22 @@ check: ## Lint and format code
 	@uv run pydoclint --config=pyproject.toml src
 	@uv run pydoclint --config=pyproject.toml --skip-checking-short-docstrings=true tests
 
-test-no-spark: ## Run tests that do not require Spark
-	@echo "Running no_spark tests..."
-	@COVERAGE_FILE=.coverage.no_spark uv run pytest -m "no_spark and not webtest" -n0 --cov-report=
+test-no-shared-spark-session: ## Run tests that can not rely on shared SparkSession.
+	@echo "Running tests that can not rely on shared SparkSession fixture..."
+	@COVERAGE_FILE=.coverage.no_shared_spark uv run pytest -m "no_shared_spark and not download_jars_from_web" -n0 --cov-report=
 
-test-spark: ## Run tests that require Spark
-	@echo "Running Spark tests..."
-	@COVERAGE_FILE=.coverage.spark uv run pytest -m "not no_spark and not webtest" --cov-report=
+test-shared-spark-session: ## Run tests that can use shared SparkSession fixture.
+	@echo "Running tests that can share SparkSession fixture..."
+	@COVERAGE_FILE=.coverage.shared_spark uv run pytest --cov-report=
 
-test-web: ## Run tests that require Spark and access to the web to download dependencies
-	@echo "Running webtest Spark tests..."
-	@COVERAGE_FILE=.coverage.spark uv run pytest -m "webtest" --cov-report=
+test-no-shared-spark-session-web-dependencies: ## Run tests that require to download spark dependency jars from the web (not run by default).
+	@echo "Running tests that can not rely on shared SparkSession and require downloading jar dependencies from web..."
+	@COVERAGE_FILE=.coverage.no_shared_spark_web_deps uv run pytest -m "download_jars_from_web" --cov-report=
 
-test: test-no-spark test-spark ## Run tests
-	@uv run coverage combine .coverage.spark .coverage.no_spark
+test: test-no-shared-spark-session test-shared-spark-session ## Run default test suite
+	@uv run coverage combine .coverage.shared_spark .coverage.no_shared_spark
 	@uv run coverage xml
-	@rm -f .coverage.spark .coverage.no_spark
+	@rm -f .coverage.shared_spark .coverage.no_shared_spark
 
 build-documentation: ## Create local server with documentation
 	@echo "Building Documentation..."

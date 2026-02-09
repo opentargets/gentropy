@@ -113,7 +113,7 @@ def test_load_from_url(url: str, fmt: str, error: str, session: Session) -> None
             lambda url: io.BytesIO(b"col1,col2\nval1,val2\n"),
         )
         if error:
-            with pytest.raises(AssertionError, match=error):
+            with pytest.raises(ValueError, match=error):
                 session.load_data(url, fmt=fmt)
         else:
             df = session.load_data(url, fmt=fmt)

@@ -583,6 +583,7 @@ def sample_eqtl_catalogue_finemapping_credible_sets(session: Session) -> DataFra
     """Sample raw eQTL Catalogue credible sets outputted by SuSIE."""
     return EqtlCatalogueFinemapping.read_credible_set_from_source(
         credible_set_path=["tests/gentropy/data_samples/QTD000584.credible_sets.tsv"],
+        session=session,
     )
 
 
@@ -591,6 +592,7 @@ def sample_eqtl_catalogue_finemapping_lbf(session: Session) -> DataFrame:
     """Sample raw eQTL Catalogue table with logBayesFactors outputted by SuSIE."""
     return EqtlCatalogueFinemapping.read_lbf_from_source(
         lbf_path=["tests/gentropy/data_samples/QTD000584.lbf_variable.txt"],
+        session=session,
     )
 
 

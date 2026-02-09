@@ -99,6 +99,13 @@ class Session:
 
         >>> session = Session(
         ...     output_partitions=100,
+        ...     write_mode=SparkWriteMode.OVERWRITE
+        ... ) # doctest: +SKIP
+
+        Specify via string (auto-converted to SparkWriteMode) if possible
+
+        >>> session = Session(
+        ...     output_partitions=100,
         ...     write_mode="overwrite"
         ... ) # doctest: +SKIP
 
@@ -128,6 +135,10 @@ class Session:
         """Initialises spark session and logger.
 
         The wrapper over SparkSession will either connect to an existing active Spark session or create a new one with the provided configuration.
+
+        If spark session already exists, the provided configuration will have no effect on the session.
+        If any parameters will be different between existing session config and requested config,
+          a warning will be logged to suggest rebuilding the session with the new configuration.
 
         Args:
             spark_uri (str): Spark URI. Defaults to "local[*]".
@@ -330,7 +341,7 @@ class Session:
             SparkConf: adjusted spark configuration with output settings.
         """
         return c.set("spark.gentropy.outputPartitions", str(output_partitions)).set(
-            "spark.gentropy.writeMode", write_mode
+            "spark.gentropy.writeMode", str(write_mode)
         )
 
     @staticmethod
@@ -607,9 +618,10 @@ class Session:
             "Reading data over HTTP/HTTPS. This may be slow for large datasets. Consider downloading the data to a distributed file system."
         )
 
-        assert fmt in NativeFileFormat.uri_parallelizable(), (
-            "Only 'csv' and 'tsv' formats are supported for loading data from URL."
-        )
+        if fmt not in NativeFileFormat.uri_parallelizable():
+            raise ValueError(
+                "Only 'csv' and 'tsv' formats are supported for loading data from URL."
+            )
 
         with urlopen(url) as response:
             csv_data = response.read().decode("utf8").splitlines()
@@ -645,15 +657,16 @@ class JavaLogger(Protocol):
 class Log4j:
     """Log4j logger class."""
 
-    def __init__(self, spark: SparkSession, level: str = "ERROR") -> None:
+    def __init__(self, spark: SparkSession, level: str | None = None) -> None:
         """Log4j logger class. This class provides a wrapper around the Log4j logging system.
 
         Args:
             spark (SparkSession): The Spark session used to access Spark context and Log4j logging.
-            level (str): Logging level. Defaults to "ERROR".
+            level (str | None): Logging level. Defaults to provided by spark
         """
         log4j: Any = spark.sparkContext._jvm.org.apache.log4j  # pyright: ignore[reportAttributeAccessIssue, reportOptionalMemberAccess]
-        spark.sparkContext.setLogLevel(level)
+        if level:
+            spark.sparkContext.setLogLevel(level)
         # Cast to our protocol type for type safety
         self.logger: JavaLogger = log4j.LogManager.getLogger(__name__)
 

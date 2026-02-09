@@ -51,6 +51,7 @@ class EqtlCatalogueStep:
                 f"{eqtl_catalogue_paths_imported}/{qtd_id}.credible_sets.tsv"
                 for qtd_id in studies_to_ingest
             ],
+            session=session,
         )
         lbf_df = EqtlCatalogueFinemapping.read_lbf_from_source(
             lbf_path=[

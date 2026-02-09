@@ -31,7 +31,7 @@ def _no_spark_session() -> Generator[None, None, None]:
     _stop_active_spark()
 
 
-@pytest.mark.no_spark
+@pytest.mark.no_shared_spark
 class TestNoSpark:
     """Test functionalities that require the spark session stopped."""
 
@@ -83,7 +83,6 @@ class TestNoSpark:
             spark_uri="local[1]",
             hail_home=hail_home,
             start_hail=True,
-            extended_spark_conf=self.ex_conf,
         )
 
         expected_hail_conf = {
@@ -100,7 +99,7 @@ class TestNoSpark:
                 f"Expected {key} to be set to {value}"
             )
 
-    @pytest.mark.webtest
+    @pytest.mark.download_jars_from_web
     @pytest.mark.usefixtures("_no_spark_session")
     def test_bgzip_from_parquet_with_codec(self, tmp_path: Path) -> None:
         """Test bgzip codec usage on multiple tsv.gz files with different schemas.
