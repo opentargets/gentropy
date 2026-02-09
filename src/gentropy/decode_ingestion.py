@@ -8,7 +8,6 @@ from gentropy import (
     SummaryStatistics,
     SummaryStatisticsQC,
     TargetIndex,
-    VariantIndex,
 )
 from gentropy.dataset.variant_direction import VariantDirection
 from gentropy.datasource.decode import deCODEManifest
@@ -89,10 +88,17 @@ class deCODESummaryStatisticsHarmonisationStep:
         session: Session,
         raw_summary_statistics_path: str,
         gnomad_variant_direction_path: str,
-        sumstat_harmonisation_config: dict,
         harmonised_summary_statistics_path: str,
+        min_mac_threshold: int = 50,
+        min_sample_size_threshold: int = 30_000,
+        flipping_window_size: int = 10_000_000,
     ) -> None:
         """Run deCODE SummaryStatistics harmonisation step."""
+        sumstat_harmonisation_config = {
+            "min_mac_threshold": min_mac_threshold,
+            "min_sample_size_threshold": min_sample_size_threshold,
+            "flipping_window_size": flipping_window_size,
+        }
         gvd = VariantDirection.from_parquet(session, gnomad_variant_direction_path)
         raw_summary_statistics = session.spark.read.parquet(raw_summary_statistics_path)
         harmonised_summary_statistics = deCODESummaryStatistics.from_source(
@@ -103,40 +109,43 @@ class deCODESummaryStatisticsHarmonisationStep:
         )
 
 
-# class deCODESummaryStatisticsQCStep:
-#     """deCODE SummaryStatistics QC step."""
+class deCODESummaryStatisticsQCStep:
+    """deCODE SummaryStatistics QC step."""
 
-#     def __init__(
-#         self,
-#         session: Session,
-#         harmonised_summary_statistics_path: str,
-#         qc_summary_statistics_path: str,
-#         study_index_path: str,
-#     ) -> None:
-#         """Run deCODE SummaryStatistics QC step."""
-#         harmonised_summary_statistics = SummaryStatistics.from_parquet(
-#             session=session,
-#             path=harmonised_summary_statistics_path,
-#         )
+    def __init__(
+        self,
+        session: Session,
+        harmonised_summary_statistics_path: str,
+        harmonised_summary_statistics_qc_output_path: str,
+        qc_summary_statistics_path: str,
+        study_index_path: str,
+        study_index_with_qc_output_path: str,
+        qc_threshold: float = 1e-6,
+    ) -> None:
+        """Run deCODE SummaryStatistics QC step."""
+        harmonised_summary_statistics = SummaryStatistics.from_parquet(
+            session=session,
+            path=harmonised_summary_statistics_path,
+        )
 
-#         summary_statistics_qc = SummaryStatisticsQC.from_summary_statistics(
-#             gwas=harmonised_summary_statistics,
-#             pval_threshold=qc_threshold,
-#         )
+        summary_statistics_qc = SummaryStatisticsQC.from_summary_statistics(
+            gwas=harmonised_summary_statistics,
+            pval_threshold=qc_threshold,
+        )
 
-#         summary_statistics_qc.df.repartition(1).write.mode(session.write_mode).parquet(
-#             harmonised_summary_statistics_qc_output_path
-#         )
+        summary_statistics_qc.df.repartition(1).write.mode(session.write_mode).parquet(
+            harmonised_summary_statistics_qc_output_path
+        )
 
-#         summary_statistics_qc.df.write.mode(session.write_mode).parquet(
-#             qc_summary_statistics_path
-#         )
+        summary_statistics_qc.df.write.mode(session.write_mode).parquet(
+            qc_summary_statistics_path
+        )
 
-#         session.logger.info("Reading study index.")
-#         study_index = StudyIndex.from_parquet(session=session, path=study_index_path)
-#         session.logger.info("Annotating study index with QC information.")
-#         study_index = study_index.annotate_sumstats_qc(summary_statistics_qc)
-#         session.logger.info("Writing updated study index.")
-#         study_index.df.repartition(1).write.mode(session.write_mode).parquet(
-#             study_index_path
-#         )
+        session.logger.info("Reading study index.")
+        study_index = StudyIndex.from_parquet(session=session, path=study_index_path)
+        session.logger.info("Annotating study index with QC information.")
+        study_index = study_index.annotate_sumstats_qc(summary_statistics_qc)
+        session.logger.info("Writing updated study index.")
+        study_index.persist().df.repartition(1).write.mode(session.write_mode).parquet(
+            study_index_with_qc_output_path
+        )
