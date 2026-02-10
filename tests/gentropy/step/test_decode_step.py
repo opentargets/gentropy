@@ -11,6 +11,9 @@ from gentropy import Session
 from gentropy.decode_ingestion import (
     deCODEManifestGenerationStep,
     deCODEStudyIndexGenerationStep,
+    deCODESummaryStatisticsHarmonisationStep,
+    deCODESummaryStatisticsIngestionStep,
+    deCODESummaryStatisticsQCStep,
 )
 
 
@@ -88,7 +91,32 @@ def decode_study_index_df(session: Session) -> DataFrame:
 
 @pytest.fixture
 def decode_summary_statistics_df(session: Session) -> DataFrame:
-    pass
+    """SummaryStatistics example DataFrame fixture."""
+    data = [
+        Row(
+            studyId="deCODE-proteomics-raw_Proteomics_PC0_10006_7_RAF1_c_Raf_05314415",
+            variantId="1_100_A_G",
+            chromosome="1",
+            position=100,
+            beta=0.5,
+            standardError=0.1,
+            pValueMantissa=1.5,
+            pValueExponent=-8,
+            effectAlleleFrequencyFromSource=0.3,
+        ),
+        Row(
+            studyId="deCODE-proteomics-raw_Proteomics_PC0_10003_15_ZNF41_ZNF41_05242112",
+            variantId="2_200_C_T",
+            chromosome="2",
+            position=200,
+            beta=-0.3,
+            standardError=0.15,
+            pValueMantissa=2.5,
+            pValueExponent=-7,
+            effectAlleleFrequencyFromSource=0.45,
+        ),
+    ]
+    return session.spark.createDataFrame(data)
 
 
 class TestdeCODEIngestionStep:
@@ -190,16 +218,168 @@ class TestdeCODESummaryStatisticsIngestionStep:
         summary_statistics_mock: MagicMock,
         session: Session,
         tmp_path: Path,
-        decode_summary_statistics_df: DataFrame,
+        decode_study_index_df: DataFrame,
     ):
         """Test deCODESummaryStatisticsIngestionStep."""
-        pass
+        study_index_path = (tmp_path / "study_index.parquet").as_posix()
+        raw_summary_statistics_path = (
+            tmp_path / "raw_summary_statistics.parquet"
+        ).as_posix()
+
+        # Mock the study index instance
+        study_index_instance = MagicMock()
+        summary_statistics_paths = [
+            "s3a://some_bucket/some_folder/Proteomics_PC0_10006_7_RAF1_c_Raf_05314415.txt.gz",
+            "s3a://some_bucket/some_folder/Proteomics_PC0_10003_15_ZNF41_ZNF41_05242112.txt.gz",
+        ]
+        study_index_instance.get_summary_statistics_paths.return_value = (
+            summary_statistics_paths
+        )
+
+        # Link the instance to return_value from the constructor
+        study_index_mock.from_parquet.return_value = study_index_instance
+
+        # Mock the txtgz_to_parquet method
+        summary_statistics_mock.txtgz_to_parquet = MagicMock()
+        summary_statistics_mock.N_THREAD_MAX = 4
+
+        deCODESummaryStatisticsIngestionStep(
+            session=session,
+            study_index_path=study_index_path,
+            raw_summary_statistics_path=raw_summary_statistics_path,
+        )
+
+        study_index_mock.from_parquet.assert_called_once_with(session, study_index_path)
+        study_index_instance.get_summary_statistics_paths.assert_called_once()
+        summary_statistics_mock.txtgz_to_parquet.assert_called_once_with(
+            session=session,
+            summary_statistics_list=summary_statistics_paths,
+            raw_summary_statistics_output_path=raw_summary_statistics_path,
+            n_threads=4,
+        )
 
 
-# class TestdeCODESummaryStatisticsHarmonisationStep:
-#     """Test deCODESummaryStatisticsHarmonizationStep."""
+class TestdeCODESummaryStatisticsHarmonisationStep:
+    """Test deCODESummaryStatisticsHarmonisationStep."""
 
-#     @pytest.mark.skip(reason="Not implemented yet")
-#     def test_decode_summary_statistics_harmonization_step(self):
-#         """Test deCODESummaryStatisticsHarmonizationStep."""
-#         pass
+    @patch("gentropy.decode_ingestion.deCODESummaryStatistics")
+    @patch("gentropy.decode_ingestion.VariantDirection")
+    def test_decode_summary_statistics_harmonisation_step(
+        self,
+        variant_direction_mock: MagicMock,
+        summary_statistics_mock: MagicMock,
+        session: Session,
+        tmp_path: Path,
+        decode_summary_statistics_df: DataFrame,
+    ):
+        """Test deCODESummaryStatisticsHarmonisationStep."""
+        raw_summary_statistics_path = (
+            tmp_path / "raw_summary_statistics.parquet"
+        ).as_posix()
+        gnomad_variant_direction_path = (
+            tmp_path / "gnomad_variant_direction.parquet"
+        ).as_posix()
+        harmonised_summary_statistics_path = (
+            tmp_path / "harmonised_summary_statistics"
+        ).as_posix()
+
+        # Create mock raw summary statistics file
+        decode_summary_statistics_df.write.mode("overwrite").parquet(
+            raw_summary_statistics_path
+        )
+
+        # Mock the variant direction instance
+        variant_direction_instance = MagicMock()
+        variant_direction_mock.from_parquet.return_value = variant_direction_instance
+
+        # Mock the harmonised summary statistics instance
+        harmonised_instance = MagicMock()
+        harmonised_instance.df = decode_summary_statistics_df
+        summary_statistics_mock.from_source.return_value = harmonised_instance
+
+        deCODESummaryStatisticsHarmonisationStep(
+            session=session,
+            raw_summary_statistics_path=raw_summary_statistics_path,
+            gnomad_variant_direction_path=gnomad_variant_direction_path,
+            harmonised_summary_statistics_path=harmonised_summary_statistics_path,
+            min_mac_threshold=50,
+            min_sample_size_threshold=30_000,
+            flipping_window_size=10_000_000,
+        )
+
+        variant_direction_mock.from_parquet.assert_called_once_with(
+            session, gnomad_variant_direction_path
+        )
+        summary_statistics_mock.from_source.assert_called_once()
+        assert Path(harmonised_summary_statistics_path).exists()
+
+
+class TestdeCODESummaryStatisticsQCStep:
+    """Test deCODESummaryStatisticsQCStep."""
+
+    @patch("gentropy.decode_ingestion.SummaryStatistics")
+    @patch("gentropy.decode_ingestion.SummaryStatisticsQC")
+    @patch("gentropy.decode_ingestion.StudyIndex")
+    def test_decode_summary_statistics_qc_step(
+        self,
+        study_index_mock: MagicMock,
+        summary_statistics_qc_mock: MagicMock,
+        summary_statistics_mock: MagicMock,
+        session: Session,
+        tmp_path: Path,
+        decode_summary_statistics_df: DataFrame,
+        decode_study_index_df: DataFrame,
+    ):
+        """Test deCODESummaryStatisticsQCStep."""
+        harmonised_summary_statistics_path = (
+            tmp_path / "harmonised_summary_statistics.parquet"
+        ).as_posix()
+        harmonised_summary_statistics_qc_output_path = (
+            tmp_path / "harmonised_summary_statistics_qc"
+        ).as_posix()
+        qc_summary_statistics_path = (tmp_path / "qc_summary_statistics").as_posix()
+        study_index_path = (tmp_path / "study_index.parquet").as_posix()
+        study_index_with_qc_output_path = (tmp_path / "study_index_with_qc").as_posix()
+
+        # Mock the harmonised summary statistics instance
+        harmonised_ss_instance = MagicMock()
+        harmonised_ss_instance.df = decode_summary_statistics_df
+        summary_statistics_mock.from_parquet.return_value = harmonised_ss_instance
+
+        # Mock the summary statistics QC instance
+        qc_instance = MagicMock()
+        qc_instance.df = decode_summary_statistics_df
+        summary_statistics_qc_mock.from_summary_statistics.return_value = qc_instance
+
+        # Mock the study index instances
+        study_index_instance = MagicMock()
+        study_index_instance.df = decode_study_index_df
+        study_index_instance.annotate_sumstats_qc.return_value = study_index_instance
+        study_index_instance.persist.return_value = study_index_instance
+        study_index_mock.from_parquet.return_value = study_index_instance
+
+        deCODESummaryStatisticsQCStep(
+            session=session,
+            harmonised_summary_statistics_path=harmonised_summary_statistics_path,
+            harmonised_summary_statistics_qc_output_path=harmonised_summary_statistics_qc_output_path,
+            qc_summary_statistics_path=qc_summary_statistics_path,
+            study_index_path=study_index_path,
+            study_index_with_qc_output_path=study_index_with_qc_output_path,
+            qc_threshold=1e-6,
+        )
+
+        summary_statistics_mock.from_parquet.assert_called_once_with(
+            session=session,
+            path=harmonised_summary_statistics_path,
+        )
+        summary_statistics_qc_mock.from_summary_statistics.assert_called_once_with(
+            gwas=harmonised_ss_instance,
+            pval_threshold=1e-6,
+        )
+        study_index_mock.from_parquet.assert_called_once_with(
+            session=session, path=study_index_path
+        )
+        study_index_instance.annotate_sumstats_qc.assert_called_once_with(qc_instance)
+        assert Path(harmonised_summary_statistics_qc_output_path).exists()
+        assert Path(qc_summary_statistics_path).exists()
+        assert Path(study_index_with_qc_output_path).exists()
