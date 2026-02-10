@@ -11,7 +11,7 @@ from itertools import chain
 from typing import TYPE_CHECKING, cast
 
 from pyspark.sql import functions as f
-from pyspark.sql.types import ArrayType, StringType, StructType
+from pyspark.sql import types as t
 from pyspark.sql.window import Window
 
 from gentropy.assets import data
@@ -652,9 +652,9 @@ class StudyIndex(Dataset):
         )
 
         # Annotate study index with QC information:
-        return StudyIndex(
+        return self.__class__(
             _df=df,
-            _schema=StudyIndex.get_schema(),
+            _schema=self.__class__.get_schema(),
         )
 
     @qc_test
@@ -708,7 +708,7 @@ class StudyIndex(Dataset):
                     "qualityControls",
                     f.when(
                         f.col("qualityControls").isNull(),
-                        f.array().cast(ArrayType(StringType())),
+                        f.array().cast(t.ArrayType(t.StringType())),
                     ).otherwise(f.col("qualityControls")),
                 )
                 # Keeping top hit studies unless the same study is available from a summmary statistics source:
@@ -820,7 +820,7 @@ class StudyIndex(Dataset):
                     "traitFromSource",
                     f.last(f.col("traitFromSource"), True).over(full_study_id_window),
                 )
-                # Distinct study types are joined together into a string. So, if there's ambiguite, the study will be flagged when the study type is validated:
+                # Distinct study types are joined together into a string. So, if there's ambiguity, the study will be flagged when the study type is validated:
                 .withColumn(
                     "studyType",
                     f.concat_ws(
@@ -848,3 +848,89 @@ class StudyIndex(Dataset):
         )
         paths = [row["summarystatsLocation"] for row in paths_df.collect()]
         return paths
+
+
+class ProteinQuantitativeTraitLocusStudyIndex(StudyIndex):
+    """Protein quantitative trait locus (pQTL) study index dataset.
+
+    A pQTL study index dataset captures all the metadata for pQTL studies.
+    """
+
+    @classmethod
+    def get_schema(cls: type[ProteinQuantitativeTraitLocusStudyIndex]) -> StructType:
+        """Provide the schema for the ProteinQuantitativeTraitLocusStudyIndex dataset.
+
+        Returns:
+            StructType: The schema of the ProteinQuantitativeTraitLocusStudyIndex dataset.
+        """
+        study_schema = parse_spark_schema("study_index.json")
+        return study_schema.add(
+            t.StructField(
+                "targetsFromSource",
+                t.ArrayType(
+                    t.StructType(
+                        [
+                            t.StructField("proteinId", t.StringType(), nullable=True),
+                            t.StructField("proteinName", t.StringType(), nullable=True),
+                            t.StructField("geneId", t.StringType(), nullable=True),
+                            t.StructField("geneSymbol", t.StringType(), nullable=True),
+                        ]
+                    ),
+                    containsNull=True,
+                ),
+                nullable=True,
+            ),
+        ).add(t.StructField("molecularComplexId", t.StringType(), nullable=True))
+
+    def to_study(
+        self: ProteinQuantitativeTraitLocusStudyIndex, target: TargetIndex
+    ) -> StudyIndex:
+        """Convert ProteinQuantitativeTraitLocusStudyIndex to StudyIndex.
+
+        This method maps the pQTL-specific fields to the corresponding fields in the StudyIndex dataset and returns a StudyIndex instance.
+        Map proteinIds to geneIds and coalesce geneIds and then explode the list of targets to have one row per target.
+
+        Args:
+            target (TargetIndex): Target index containing the reference gene identifiers (Ensembl gene identifiers)
+
+        Returns:
+            StudyIndex: A StudyIndex instance with mapped fields from ProteinQuantitativeTraitLocusStudyIndex.
+        """
+        symbol_id_lut = target.symbols_lut().persist()
+
+        _symbol_annot_si = (
+            self.df.withColumn("targetFromSource", f.explode("targetsFromSource"))
+            .select(
+                *StudyIndex.get_schema().fieldNames(),
+                f.col("targetFromSource.geneId").alias("geneIdFromSource"),
+                f.col("targetFromSource.geneSymbol").alias("geneSymbol"),
+                f.col("targetFromSource.proteinId").alias("proteinId"),
+            )
+            .join(symbol_id_lut, on="geneSymbol", how="left")
+            .withColumn("geneId", f.coalesce("geneIdFromSource", "geneId"))
+            .withColumn(
+                "ambiguousGeneIdMapping",
+                f.size(f.collect_set("geneId").over(Window.partitionBy("geneSymbol")))
+                > 1,
+            )
+            .drop("geneIdFromSource", "geneSymbol")
+            .persist()
+        )
+        symbol_id_lut.unpersist()
+        protein_id_lut = target.protein_id_lut().persist()
+        non_ambiguous_df = (
+            _symbol_annot_si.filter(~f.col("ambiguousGeneIdMapping"))
+            .drop("ambiguousGeneIdMapping")
+            .select(StudyIndex.get_schema().fieldNames())
+        )
+        ambiguous_df = (
+            _symbol_annot_si.filter(f.col("ambiguousGeneIdMapping"))
+            .drop("ambiguousGeneIdMapping", "geneId")
+            .join(protein_id_lut, on="proteinId", how="left")
+            .select(StudyIndex.get_schema().fieldNames())
+        )
+
+        return StudyIndex(
+            _df=non_ambiguous_df.unionByName(ambiguous_df),
+            _schema=StudyIndex.get_schema(),
+        )

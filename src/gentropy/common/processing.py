@@ -226,6 +226,17 @@ def mac(maf: Column, n: Column) -> Column:
         |v4       |0.3 |NULL|
         +---------+----+----+
         <BLANKLINE>
+
+        >>> df.withColumn("mac", mac(f.col("maf"), f.col("n"))).show(truncate=False)
+        +---------+----+----+----+
+        |variantId|maf |n   |mac |
+        +---------+----+----+----+
+        |v1       |0.1 |100 |20  |
+        |v2       |0.2 |200 |80  |
+        |v3       |NULL|150 |NULL|
+        |v4       |0.3 |NULL|NULL|
+        +---------+----+----+----+
+        <BLANKLINE>
     """
     return (
         f.when(maf.isNotNull() & n.isNotNull(), (maf * n * 2).cast(t.IntegerType()))

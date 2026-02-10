@@ -1,5 +1,5 @@
 ---
-title: colocalisation
+title: Colocalisation
 ---
 
 ::: gentropy.colocalisation.ColocalisationStep
