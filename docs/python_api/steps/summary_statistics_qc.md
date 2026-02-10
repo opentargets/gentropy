@@ -1,5 +1,5 @@
 ---
-title: summary_statistics_qc
+title: Summary Statistics QC
 ---
 
 ::: gentropy.sumstat_qc_step.SummaryStatisticsQCStep

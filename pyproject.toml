@@ -27,6 +27,7 @@ dependencies = [
   "xgboost>=3.0.4 ; platform_machine == 'x86_64' and sys_platform == 'darwin'",
   "huggingface-hub>=0.27.1",
   "wandb (>=0.19.4, <0.26.0)",
+  "pydantic>=2.12.4",
 ]
 classifiers = [
   "Programming Language :: Python :: 3.11",
