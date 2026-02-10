@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 import pyspark.sql.functions as f
+from pyspark.sql import Window
 from pyspark.sql import types as t
 
 from gentropy.common.schemas import parse_spark_schema
@@ -76,6 +77,59 @@ class TargetIndex(Dataset):
             f.col("genomicLocation.chromosome").alias("chromosome"),
             "tss",
         )
+
+    def protein_id_lut(
+        self: TargetIndex,
+        include_par_chr: str = "X",
+    ) -> DataFrame:
+        """Mapping between gene id and protein id.
+
+        Args:
+            include_par_chr (str): Chromosome to include PAR (pseudo-autosomal region)
+                genes from. Must be ``"X"`` or ``"Y"``. Defaults to ``"X"``.
+
+        Returns:
+            DataFrame: Gene LUT for UniProt mapping containing `geneId`, `proteinId` columns.
+
+        Raises:
+            ValueError: If ``include_par_chr`` is not ``"X"`` or ``"Y"``.
+
+        !!! note "PAR gene mapping"
+            For the PAR (pseudo autosomal region) genes we want to keep only one mapping by default for chromosome X
+            to avoid the confusion of having the same geneSymbol mapped to two ensembl ids.
+
+        """
+        if include_par_chr not in ("X", "Y"):
+            raise ValueError("include_par_chromosome must be either 'X' or 'Y'")
+
+        # Condition checks if there are multiple chromosomes for the same proteinId, example: ASMTL gene
+        # [ENSG00000169093, ENSG00000292339] mapped to X and Y due to PAR region.
+        is_par = f.concat_ws(
+            ",",
+            f.sort_array(
+                f.collect_set("chromosome").over(Window.partitionBy("proteinId"))
+            ),
+        ) == f.lit("X,Y")
+
+        _df = (
+            self.df.select(
+                f.col("id").alias("geneId"),
+                f.inline("proteinIds"),
+                f.col("canonicalTranscript.chromosome").alias("chromosome"),
+            )
+            .withColumnRenamed("id", "proteinId")
+            .select(
+                "geneId",
+                "proteinId",
+                is_par.alias("isPAR"),
+            )
+        )
+        if include_par_chr:
+            _df = _df.filter(
+                ~((f.col("isPAR")) & (~f.col("chromosome").isin([include_par_chr])))
+            ).drop("isPAR", "chromosome")
+
+        return _df
 
     def tss_lut(self: TargetIndex) -> DataFrame:
         """Gene TSS lookup table.
