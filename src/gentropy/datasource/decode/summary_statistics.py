@@ -299,4 +299,4 @@ class deCODESummaryStatistics:
             .repartitionByRange(5012 * 10, "studyId", "chromosome", "position")
         )
 
-        return SummaryStatistics(_flipped)
+        return SummaryStatistics(_flipped).sanity_filter()
