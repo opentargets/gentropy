@@ -131,6 +131,7 @@ class Session:
         output_partitions: int = 200,
         use_enhanced_bgzip_codec: bool = False,
         dynamic_allocation: bool = True,
+        log_level: str | None = "INFO",
     ) -> None:
         """Initialises spark session and logger.
 
@@ -151,7 +152,7 @@ class Session:
             output_partitions (int): Number of partitions for output datasets. Defaults to 200.
             use_enhanced_bgzip_codec (bool): Whether to use the BGZFEnhancedGzipCodec for reading block gzipped files. Defaults to False.
             dynamic_allocation (bool): Whether to enable Spark dynamic allocation. Defaults to True.
-
+            log_level (str | None): Spark log level. Defaults to "INFO".
         """
         # Provide sane defaults for extended configurations
         self._extended_hail_conf = extended_hail_conf or {}
@@ -172,7 +173,7 @@ class Session:
             self.spark = (
                 SparkSession.Builder().master(spark_uri).appName(app_name).getOrCreate()
             )
-            self.logger = Log4j(self.spark)
+            self.logger = Log4j(self.spark, level=log_level)
             self.conf = self.spark.sparkContext.getConf()
             # Check existing configuration against requested
             self._compare_conf(current=self.conf, requested=_c)
@@ -194,7 +195,7 @@ class Session:
                 self._extended_hail_conf.setdefault("idempotent", True)
                 hl.init(sc=self.spark.sparkContext, **self._extended_hail_conf)
 
-            self.logger = Log4j(self.spark)
+            self.logger = Log4j(self.spark, level=log_level)
             self.conf = self.spark.sparkContext.getConf()
 
     def _build_config(
