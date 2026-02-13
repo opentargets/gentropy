@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import io
 from typing import TYPE_CHECKING
 
 import pandas as pd
@@ -15,6 +14,7 @@ from gentropy.common.session import Log4j, Session
 if TYPE_CHECKING:
     from collections.abc import Generator
     from pathlib import Path
+    from typing import Any
 
 
 def test_log4j_creation(spark: SparkSession) -> None:
@@ -88,14 +88,14 @@ def test_load_data(
         pytest.param(
             "https://some_example.com/data.parquet",
             "parquet",
-            "Only 'csv' and 'tsv' formats are supported for loading data from URL",
+            "Only csv, tsv and json are URL supported formats",
             id="unsupported format parquet",
         ),
         pytest.param(
             "https://some_example.com/data.json",
             "json",
-            "Only 'csv' and 'tsv' formats are supported for loading data from URL",
-            id="unsupported format json",
+            None,
+            id="supported format json",
         ),
         pytest.param(
             "http://some_example.com/data.csv",
@@ -107,11 +107,18 @@ def test_load_data(
 )
 def test_load_from_url(url: str, fmt: str, error: str, session: Session) -> None:
     """Test Session.load_data method with URL input."""
-    with pytest.MonkeyPatch.context() as m:
-        m.setattr(
-            "gentropy.common.session.urlopen",
-            lambda url: io.BytesIO(b"col1,col2\nval1,val2\n"),
+
+    def mock_read(*args: Any, **kwargs: Any) -> pd.DataFrame:
+        return pd.DataFrame(
+            [
+                ("val1", "val2"),
+            ],
+            columns=["col1", "col2"],
         )
+
+    with pytest.MonkeyPatch.context() as m:
+        m.setattr("gentropy.common.session.pd.read_csv", mock_read)
+        m.setattr("gentropy.common.session.pd.read_json", mock_read)
         if error:
             with pytest.raises(ValueError, match=error):
                 session.load_data(url, fmt=fmt)

@@ -6,8 +6,8 @@ import os
 from enum import StrEnum
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Protocol
-from urllib.request import urlopen
 
+import pandas as pd
 from pyspark.conf import SparkConf
 from pyspark.sql import SparkSession
 
@@ -24,15 +24,6 @@ class NativeFileFormat(StrEnum):
     TSV = "tsv"
     JSON = "json"
 
-    @classmethod
-    def uri_parallelizable(cls) -> list[str]:
-        """Get the list of file formats that can be parallelized when loading from a URI.
-
-        Returns:
-            list[str]: List of file formats that can be parallelized when loading from a URI.
-        """
-        return [NativeFileFormat.CSV.value, NativeFileFormat.TSV.value]
-
 
 class SparkWriteMode(StrEnum):
     """Enum for Spark write modes."""
@@ -41,6 +32,31 @@ class SparkWriteMode(StrEnum):
     OVERWRITE = "overwrite"
     IGNORE = "ignore"
     ERROR_IF_EXISTS = "errorifexists"
+
+    @classmethod
+    def ensure(cls, v: str | None) -> str:
+        """Ensure the writeMode is correct.
+
+        Args:
+            v (str | None): input value
+
+        Returns:
+            str: mapping
+
+        Raises:
+            ValueError: when the value is not found.
+        """
+        match v:
+            case "append":
+                return cls.APPEND.value
+            case "overwrite":
+                return cls.OVERWRITE.value
+            case "ignore":
+                return cls.IGNORE.value
+            case "errorifexists" | None:
+                return cls.ERROR_IF_EXISTS.value
+            case _:
+                raise ValueError("Incorrect writeMode specified to Session object.")
 
 
 class Session:
@@ -123,7 +139,7 @@ class Session:
         self: Session,
         spark_uri: str = "local[*]",
         app_name: str = "gentropy",
-        write_mode: SparkWriteMode = SparkWriteMode.ERROR_IF_EXISTS,
+        write_mode: str = SparkWriteMode.ERROR_IF_EXISTS.value,
         hail_home: str | None = None,
         start_hail: bool = False,
         extended_spark_conf: dict[str, str] | None = None,
@@ -144,7 +160,7 @@ class Session:
         Args:
             spark_uri (str): Spark URI. Defaults to "local[*]".
             app_name (str): Spark application name. Defaults to "gentropy".
-            write_mode (SparkWriteMode): Spark write mode. Defaults to SparkWriteMode.ERROR_IF_EXISTS.
+            write_mode (str): Spark write mode. Defaults to SparkWriteMode.ERROR_IF_EXISTS.
             hail_home (str | None): Path to Hail installation. Defaults to None.
             start_hail (bool): Whether to start Hail. Defaults to False.
             extended_spark_conf (dict[str, str] | None): Extended Spark configuration. Defaults to None.
@@ -155,9 +171,10 @@ class Session:
             log_level (str | None): Spark log level. Defaults to "INFO".
         """
         # Provide sane defaults for extended configurations
+
         self._extended_hail_conf = extended_hail_conf or {}
         self._extended_spark_conf = extended_spark_conf or {}
-        self._write_mode = write_mode or SparkWriteMode.ERROR_IF_EXISTS
+        self._write_mode = SparkWriteMode.ensure(write_mode)
         self._output_partitions = output_partitions or 200
         self._hail_home = hail_home
         # Build the requested config, small overhead, but we
@@ -329,14 +346,14 @@ class Session:
 
     @staticmethod
     def _setup_output_config(
-        c: SparkConf, output_partitions: int, write_mode: SparkWriteMode
+        c: SparkConf, output_partitions: int, write_mode: str
     ) -> SparkConf:
         """Output spark configuration.
 
         Args:
             c (SparkConf): Existing Spark configuration.
             output_partitions (int): Number of output partitions.
-            write_mode (SparkWriteMode): Spark write mode.
+            write_mode (str): Spark write mode.
 
         Returns:
             SparkConf: adjusted spark configuration with output settings.
@@ -592,7 +609,7 @@ class Session:
                 assert all_strings, "Path must be a non-empty list of strings."
             case str():
                 if path.startswith(("http://", "https://")):
-                    return self._load_from_url(path, fmt=_fmt, schema=schema, **kwargs)  # type: ignore[arg-type]
+                    return self._load_from_url(path, fmt=_fmt, schema=schema, **kwargs)
             case _:
                 raise ValueError("Path must be a string or a list of strings.")
         return self.spark.read.load(path, format=_fmt, schema=schema, **kwargs)
@@ -602,15 +619,15 @@ class Session:
         url: str,
         fmt: str,
         schema: StructType | str | None = None,
-        **kwargs: str,
+        **kwargs: Any,
     ) -> DataFrame:
-        """Load CSV/TSV data from a URL into a Spark DataFrame.
+        """Load CSV/TSV/JSON data from a URL into a Spark DataFrame.
 
         Args:
             url (str): single URL to load data from.
-            fmt (str): File format. Currently only 'csv' or 'tsv' are supported for loading from URL.
+            fmt (str): File format. Currently only 'csv', 'tsv' or 'json' are supported for loading from URL.
             schema (StructType | str | None): Schema to use when reading the data.
-            **kwargs (str): Additional arguments to pass to spark.read.csv.
+            **kwargs (Any): Additional arguments to pass to spark.read.csv.
 
         Returns:
             DataFrame: Dataframe containing the loaded data.
@@ -619,15 +636,23 @@ class Session:
             "Reading data over HTTP/HTTPS. This may be slow for large datasets. Consider downloading the data to a distributed file system."
         )
 
-        if fmt not in NativeFileFormat.uri_parallelizable():
-            raise ValueError(
-                "Only 'csv' and 'tsv' formats are supported for loading data from URL."
+        match fmt:
+            case "csv":
+                header = kwargs.get("header", True)
+                df = pd.read_csv(url, header=header)
+            case "tsv":
+                header = kwargs.get("header", True)
+                df = pd.read_csv(url, header=header, sep="\t")
+            case "json":
+                df = pd.read_json(url)
+            case _:
+                raise ValueError("Only csv, tsv and json are URL supported formats")
+        if schema is None:
+            return self.spark.createDataFrame(
+                data=df,
+                samplingRatio=kwargs.get("samplingRation", 0.4),
             )
-
-        with urlopen(url) as response:
-            csv_data = response.read().decode("utf8").splitlines()
-            rdd = self.spark.sparkContext.parallelize(csv_data)
-            return self.spark.read.csv(rdd, schema=schema, **kwargs)
+        return self.spark.createDataFrame(data=df, schema=schema, verifySchema=True)
 
 
 class JavaLogger(Protocol):
