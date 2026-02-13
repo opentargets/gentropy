@@ -17,7 +17,7 @@ from pyspark.sql.window import Window
 from gentropy.assets import data
 from gentropy.common.schemas import parse_spark_schema
 from gentropy.common.spark import convert_from_wide_to_long, filter_array_struct
-from gentropy.dataset.dataset import Dataset
+from gentropy.dataset.dataset import Dataset, qc_test
 
 if TYPE_CHECKING:
     from pyspark.sql import Column, DataFrame
@@ -57,6 +57,7 @@ class StudyQualityCheck(Enum):
         FAILED_GC_LAMBDA_CHECK (str): Flagging if the GC lambda value is not within the expected range.
         SMALL_NUMBER_OF_SNPS (str): Flagging if the number of SNPs in the study is below the expected threshold.
         CASE_CASE_STUDY_DESIGN (str): Flagging if the study design is case-case.
+        DEPRECATED_PROJECT (str): Flagging if the projectId is deprecated.
     """
 
     UNRESOLVED_TARGET = "Target/gene identifier could not match to reference"
@@ -75,6 +76,7 @@ class StudyQualityCheck(Enum):
         "The number of SNPs in the study is below the expected threshold"
     )
     CASE_CASE_STUDY_DESIGN = "Case-case study design"
+    DEPRECATED_PROJECT = "Deprecated project"
 
 
 @dataclass
@@ -273,6 +275,7 @@ class StudyIndex(Dataset):
         """
         return self.df.hasSumstats
 
+    @qc_test
     def validate_unique_study_id(self: StudyIndex) -> StudyIndex:
         """Validating the uniqueness of study identifiers and flagging duplicated studies.
 
@@ -286,6 +289,35 @@ class StudyIndex(Dataset):
                     f.col("qualityControls"),
                     self.flag_duplicates(f.col("studyId")),
                     StudyQualityCheck.DUPLICATED_STUDY,
+                ),
+            ),
+            _schema=StudyIndex.get_schema(),
+        )
+
+    @qc_test
+    def validate_project_id(
+        self: StudyIndex, deprecated_project_ids: list[str]
+    ) -> StudyIndex:
+        """Validate project id(s).
+
+        Given list of deprecated projectId(s) add a `DEPRECATED_PROJECT` to qualityControls
+        when the projectId is in the deprecated list.
+
+        Args:
+            deprecated_project_ids (list[str]): List of deprecated projectId(s)
+
+        Returns:
+            StudyIndex: dataset with updated `qualityControls` field when projectId is in deprecated_project_ids
+        """
+        if len(deprecated_project_ids) == 0:
+            return self
+        return StudyIndex(
+            _df=self.df.withColumn(
+                "qualityControls",
+                self.update_quality_flag(
+                    f.col("qualityControls"),
+                    f.col("projectId").isin(*deprecated_project_ids),
+                    StudyQualityCheck.DEPRECATED_PROJECT,
                 ),
             ),
             _schema=StudyIndex.get_schema(),
@@ -328,6 +360,7 @@ class StudyIndex(Dataset):
             )
         )
 
+    @qc_test
     def validate_disease(self: StudyIndex, disease_map: DataFrame) -> StudyIndex:
         """Validate diseases in the study index dataset.
 
@@ -399,6 +432,7 @@ class StudyIndex(Dataset):
             _schema=StudyIndex.get_schema(),
         )
 
+    @qc_test
     def validate_study_type(self: StudyIndex) -> StudyIndex:
         """Validating study type and flag unsupported types.
 
@@ -423,6 +457,7 @@ class StudyIndex(Dataset):
         )
         return StudyIndex(_df=validated_df, _schema=StudyIndex.get_schema())
 
+    @qc_test
     def validate_target(self: StudyIndex, target_index: TargetIndex) -> StudyIndex:
         """Validating gene identifiers in the study index against the provided target index.
 
@@ -462,6 +497,7 @@ class StudyIndex(Dataset):
 
         return StudyIndex(_df=validated_df, _schema=StudyIndex.get_schema())
 
+    @qc_test
     def validate_biosample(
         self: StudyIndex, biosample_index: BiosampleIndex
     ) -> StudyIndex:
@@ -511,6 +547,7 @@ class StudyIndex(Dataset):
 
         return StudyIndex(_df=validated_df, _schema=StudyIndex.get_schema())
 
+    @qc_test
     def annotate_sumstats_qc(
         self: StudyIndex,
         sumstats_qc: SummaryStatisticsQC,
@@ -620,6 +657,7 @@ class StudyIndex(Dataset):
             _schema=StudyIndex.get_schema(),
         )
 
+    @qc_test
     def validate_analysis_flags(self: StudyIndex) -> StudyIndex:
         """Validating analysis flags in the study index dataset.
 
@@ -641,6 +679,7 @@ class StudyIndex(Dataset):
         )
         return StudyIndex(_df=df, _schema=StudyIndex.get_schema())
 
+    @qc_test
     def deconvolute_studies(self: StudyIndex) -> StudyIndex:
         """Deconvolute the study index dataset.
 

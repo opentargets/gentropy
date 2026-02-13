@@ -67,13 +67,13 @@ test = [
 ]
 
 dev = [
-  "ipython >=8.19.0, <8.38.0",
+  "ipython >=8.19.0, <9.9.0",
   "pydoclint >=0.3.8,<0.9.0",
   "ipykernel >=6.28.0, <6.31.0",
   "prettier >=0.0.7, <0.1.0",
   "deptry >=0.22.0, <0.25.0",
   "yamllint >=1.33.0, <1.38.0",
-  "pre-commit >=4.0.0, <4.4.0",
+  "pre-commit >=4.0.0, <4.6.0",
   "mypy >=1.13, <1.19",
   "pep8-naming >=0.14.1, <0.16.0",
   "interrogate >=1.7.0, <1.8.0",
@@ -130,13 +130,12 @@ color = true
 exclude = ["dist"]
 
 [tool.pytest.ini_options]
-addopts = "-n auto --doctest-modules --cov=src/ --cov-report=xml --cache-clear"
+addopts = "-n auto --doctest-modules --cov=src/ --cov-report=xml --cache-clear -m 'not download_jars_from_web and not no_shared_spark'"
 pythonpath = ["."]
 testpaths = ["tests/gentropy", "src/gentropy"]
-markers = ["step_test", "long_test"]
+markers = ["step_test", "download_jars_from_web", "no_shared_spark"]
 filterwarnings = [
   "ignore:.*it is preferred to specify type hints for pandas UDF.*:UserWarning"
-
 ]
 
 # Semi-strict mode for mypy

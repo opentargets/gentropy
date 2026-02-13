@@ -76,12 +76,16 @@ class SummaryStatistics(Dataset):
         """
         from gentropy.method.window_based_clumping import WindowBasedClumping
 
-        return WindowBasedClumping.clump(
-            # Before clumping, we filter the summary statistics by p-value:
-            self.pvalue_filter(gwas_significance),
-            distance=distance,
-            # After applying the clumping, we filter the clumped loci by the flag:
-        ).valid_rows(["WINDOW_CLUMPED"])
+        return (
+            WindowBasedClumping.clump(
+                # Before clumping, we filter the summary statistics by p-value:
+                self.pvalue_filter(gwas_significance),
+                distance=distance,
+                # After applying the clumping, we filter the clumped loci by the flag:
+            )
+            .valid_rows(["WINDOW_CLUMPED"])
+            .valid
+        )
 
     def locus_breaker_clumping(
         self: SummaryStatistics,
