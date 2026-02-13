@@ -133,6 +133,63 @@ class Session:
 
         >>> session.spark.sparkContext.uiWebUrl # doctest: +SKIP
 
+        Example session with hadoop connector for S3 compatible storage
+
+        >>> session = Session(
+        ...     extended_spark_conf={
+        ...         # Executor
+        ...         'spark.executor.memory': '32g',
+        ...         'spark.executor.cores': '8',
+        ...         'spark.excutor.memoryOverhead': '4g',
+        ...         'spark.dynamicAllocation.enabled': 'true',
+        ...         'spark.sql.files.maxPartitionBytes': '512m',
+        ...         # Driver
+        ...         'spark.driver.memory': '25g',
+        ...         'spark.executor.extraJavaOptions': '-XX:+UseG1GC -XX:MaxGCPauseMillis=200 -XX:+ParallelRefProcEnabled -XX:+AlwaysPreTouch',
+        ...         'spark.jars.packages': 'org.apache.hadoop:hadoop-aws:3.3.6,com.amazonaws:aws-java-sdk-bundle:1.12.367',
+        ...         'spark.hadoop.fs.s3a.impl': 'org.apache.hadoop.fs.s3a.S3AFileSystem',
+        ...         'spark.hadoop.fs.s3a.endpoint': f'https://{credentials.s3_host_url}:{credentials.s3_host_port}',
+        ...         'spark.hadoop.fs.s3a.path.style.access': 'true',
+        ...         'spark.hadoop.fs.s3a.connection.ssl.enabled': 'true',
+        ...         'spark.hadoop.fs.s3a.access.key': f'{credentials.access_key_id}',
+        ...         'spark.hadoop.fs.s3a.secret.key': f'{credentials.secret_access_key}',
+        ...         # Throughput tuning
+        ...         'spark.hadoop.fs.s3a.connection.maximum': '1000',
+        ...         'spark.hadoop.fs.s3a.threads.max': '1024',
+        ...         'spark.hadoop.fs.s3a.attempts.maximum': '20',
+        ...         'spark.hadoop.fs.s3a.connection.timeout': '600000',  # 10min
+        ...     }
+        ... ) # doctest: +SKIP
+
+        Example session with hadoop connector for Google Cloud Storage
+
+        >>> session = Session(
+        ...     extended_spark_conf={
+        ...        'spark.driver.maxResultSize': '0',
+        ...        'spark.debug.maxToStringFields': '2000',
+        ...        'spark.sql.broadcastTimeout': '3000',
+        ...        'spark.sql.adaptive.enabled': 'true',
+        ...        'spark.sql.adaptive.coalescePartitions.enabled': 'true',
+        ...        'spark.serializer': 'org.apache.spark.serializer.KryoSerializer',
+        ...        # google cloud storage connector
+        ...        'spark.jars.packages': 'com.google.cloud.bigdataoss:gcs-connector:hadoop3-2.2.21',
+        ...        'spark.network.timeout': '10s',
+        ...        'spark.network.timeoutInterval': '10s',
+        ...        'spark.executor.heartbeatInterval': '6s',
+        ...        'spark.hadoop.fs.gs.block.size': '134217728',
+        ...        'spark.hadoop.fs.gs.inputstream.buffer.size': '8388608',
+        ...        'spark.hadoop.fs.gs.outputstream.buffer.size': '8388608',
+        ...        'spark.hadoop.fs.gs.outputstream.sync.min.interval.ms': '2000',
+        ...        'spark.hadoop.fs.gs.status.parallel.enable': 'true',
+        ...        'spark.hadoop.fs.gs.glob.algorithm': 'CONCURRENT',
+        ...        'spark.hadoop.fs.gs.copy.with.rewrite.enable': 'true',
+        ...        'spark.hadoop.fs.gs.metadata.cache.enable': 'false',
+        ...        'spark.hadoop.fs.gs.auth.type': 'APPLICATION_DEFAULT',
+        ...        'spark.hadoop.fs.gs.impl': 'com.google.cloud.hadoop.fs.gcs.GoogleHadoopFileSystem',
+        ...        'spark.hadoop.fs.AbstractFileSystem.gs.impl': 'com.google.cloud.hadoop.fs.gcs.GoogleHadoopFS',
+        ...     }
+        ... ) # doctest: +SKIP
+
     """
 
     def __init__(
@@ -579,10 +636,22 @@ class Session:
             - tsv
             - json (including jsonl/jsonlines)
 
-
-
         Examples:
-            >>> session.load_data("https://some_file)
+            Load single tsv file from url, the header is expected at the 0-th row
+
+            >>> session.load_data('https://some_file.tsv', fmt='tsv') # doctest: +SKIP
+
+            Load single csv file from url, no header, expected schema
+
+            >>> session.load_data('https://some_file.csv', fmt='csv', header=False, schema="A int, B int") # doctest: +SKIP
+
+            Load the parquet dataset from google cloud storage, note that the Hadoop connector is required in Session
+
+            >>> session.load_data('gs://your_bucket/dataset') # doctest: +SKIP
+
+            Load multiple json files from s3 storage, note that the Hadoop connector is required in Session
+
+            >>> session.load_data(['s3a://some_bucket/file1.jsonl', 's3a://some_bucket/file2.jsonl'], fmt='json') # doctest: +SKIP
         """
         # Set default kwargs
         _format = fmt.lower()
