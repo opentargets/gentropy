@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from math import sqrt
+from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock, patch
 
@@ -11,6 +12,7 @@ import pytest
 from pyspark.sql import DataFrame, Row, SparkSession
 from pyspark.sql import functions as f
 
+from gentropy import Session
 from gentropy.datasource.gnomad.ld import GnomADLDMatrix
 
 
@@ -92,16 +94,33 @@ class TestGnomADLDMatrixVariants:
             assert sqrt(self.ld_slice.count()) == int(sqrt(self.ld_slice.count()))
 
     @pytest.fixture(autouse=True)
-    def _setup(self: TestGnomADLDMatrixVariants, spark: SparkSession) -> None:
+    def _setup(
+        self: TestGnomADLDMatrixVariants, session: Session, tmp_path: Path
+    ) -> None:
         """Prepares fixtures for the test."""
-        hl.init(sc=spark.sparkContext, log="/dev/null", idempotent=True)
+        hl.init(sc=session.spark.sparkContext, log="/dev/null", idempotent=True)
 
         ld_test_population = "test-pop"
+        liftover_path = str(tmp_path / "mock_liftover.ht")
+        ld_index_path = str(tmp_path / "example_test-pop.ht")
+
+        # Create a mock liftover table that maps 1:1 and ensure LD index is keyed
+        ht = hl.read_table("tests/gentropy/data_samples/example_test-pop.ht")
+        ht = ht.key_by("locus", "alleles")
+        ht.write(ld_index_path, overwrite=True)
+
+        ht_lo = ht.annotate(
+            original_locus=ht.locus,
+            original_alleles=ht.alleles,
+            locus_1=ht.locus,
+            alleles_1=ht.alleles,
+        )
+        ht_lo.write(liftover_path, overwrite=True)
 
         gnomad_ld_matrix = GnomADLDMatrix(
             ld_matrix_template="tests/gentropy/data_samples/example_{POP}.bm",
-            ld_index_raw_template="tests/gentropy/data_samples/example_{POP}.ht",
-            grch37_to_grch38_chain_path="tests/gentropy/data_samples/grch37_to_grch38.over.chain",
+            ld_index_raw_template=str(tmp_path) + "/example_{POP}.ht",
+            liftover_ht_path=liftover_path,
         )
         self.ld_slice = gnomad_ld_matrix.get_ld_variants(
             gnomad_ancestry=ld_test_population,
@@ -171,9 +190,9 @@ class TestGnomADLDMatrixSlice:
         ), "The matrix is not symmetric."
 
     @pytest.fixture(autouse=True)
-    def _setup(self: TestGnomADLDMatrixSlice, spark: SparkSession) -> None:
+    def _setup(self: TestGnomADLDMatrixSlice, session: Session) -> None:
         """Prepares fixtures for the test."""
-        hl.init(sc=spark.sparkContext, log="/dev/null", idempotent=True)
+        hl.init(sc=session.spark.sparkContext, log="/dev/null", idempotent=True)
         gnomad_ld_matrix = GnomADLDMatrix(
             ld_matrix_template="tests/gentropy/data_samples/example_{POP}.bm"
         )

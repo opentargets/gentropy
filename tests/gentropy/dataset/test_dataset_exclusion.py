@@ -62,9 +62,7 @@ class TestDataExclusion:
         """Test valid rows."""
         passing_studies = [
             study["studyId"]
-            for study in self.study_index.valid_rows(
-                filter_, invalid=False
-            ).df.collect()
+            for study in self.study_index.valid_rows(filter_).valid.df.collect()
         ]
 
         assert passing_studies == expected
@@ -82,7 +80,7 @@ class TestDataExclusion:
         """Test invalid rows."""
         failing_studies = [
             study["studyId"]
-            for study in self.study_index.valid_rows(filter_, invalid=True).df.collect()
+            for study in self.study_index.valid_rows(filter_).invalid.df.collect()
         ]
 
         assert failing_studies == expected
@@ -90,7 +88,7 @@ class TestDataExclusion:
     def test_failing_quality_flag(self: TestDataExclusion) -> None:
         """Test invalid quality flag."""
         with pytest.raises(ValueError):
-            self.study_index.valid_rows(self.INCORRECT_FLAG, invalid=True).df.collect()
+            self.study_index.valid_rows(self.INCORRECT_FLAG).invalid.df.collect()
 
         with pytest.raises(ValueError):
-            self.study_index.valid_rows(self.INCORRECT_FLAG, invalid=False).df.collect()
+            self.study_index.valid_rows(self.INCORRECT_FLAG).valid.df.collect()

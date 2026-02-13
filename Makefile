@@ -38,9 +38,22 @@ check: ## Lint and format code
 	@uv run pydoclint --config=pyproject.toml src
 	@uv run pydoclint --config=pyproject.toml --skip-checking-short-docstrings=true tests
 
-test: ## Run tests
-	@echo "Running Tests..."
-	@uv run pytest
+test-no-shared-spark-session: ## Run tests that can not rely on shared SparkSession.
+	@echo "Running tests that can not rely on shared SparkSession fixture..."
+	@COVERAGE_FILE=.coverage.no_shared_spark uv run pytest -m "no_shared_spark and not download_jars_from_web" -n0 --cov-report=
+
+test-shared-spark-session: ## Run tests that can use shared SparkSession fixture.
+	@echo "Running tests that can share SparkSession fixture..."
+	@COVERAGE_FILE=.coverage.shared_spark uv run pytest --cov-report=
+
+test-no-shared-spark-session-web-dependencies: ## Run tests that require to download spark dependency jars from the web (not run by default).
+	@echo "Running tests that can not rely on shared SparkSession and require downloading jar dependencies from web..."
+	@COVERAGE_FILE=.coverage.no_shared_spark_web_deps uv run pytest -n0 -m "download_jars_from_web" --cov-report=
+
+test: test-no-shared-spark-session test-shared-spark-session ## Run default test suite
+	@uv run coverage combine .coverage.shared_spark .coverage.no_shared_spark
+	@uv run coverage xml
+	@rm -f .coverage.shared_spark .coverage.no_shared_spark
 
 build-documentation: ## Create local server with documentation
 	@echo "Building Documentation..."

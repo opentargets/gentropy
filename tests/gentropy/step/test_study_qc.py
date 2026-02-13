@@ -98,5 +98,4 @@ class TestStudyQcStep:
         study_index.validate_analysis_flags.assert_called_once()
 
         # Assert valid_rows
-        study_index.valid_rows.assert_any_call(invalid_qc_reasons, invalid=True)
         study_index.valid_rows.assert_any_call(invalid_qc_reasons)
