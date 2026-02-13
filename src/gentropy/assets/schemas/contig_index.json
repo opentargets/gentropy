@@ -1,0 +1,23 @@
+{
+  "fields": [
+    {
+      "metadata": {},
+      "name": "id",
+      "nullable": false,
+      "type": "string"
+    },
+    {
+      "metadata": {},
+      "name": "start",
+      "nullable": false,
+      "type": "long"
+    },
+    {
+      "metadata": {},
+      "name": "end",
+      "nullable": false,
+      "type": "long"
+    }
+  ],
+  "type": "struct"
+}
