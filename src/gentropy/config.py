@@ -131,7 +131,7 @@ class EqtlCatalogueConfig(StepConfig):
     eqtl_catalogue_paths_imported: str = MISSING
     eqtl_catalogue_study_index_out: str = MISSING
     eqtl_catalogue_credible_sets_out: str = MISSING
-    eqtl_catalogue_metadata_path: str = "https://raw.githubusercontent.com/eQTL-Catalogue/eQTL-Catalogue-resources/fe3c4b4ed911b3a184271a6aadcd8c8769a66aba/data_tables/dataset_metadata.tsv"
+    eqtl_catalogue_metadata_path: str = MISSING
     mqtl_quantification_methods_blacklist: list[str] = field(default_factory=lambda: [])
     eqtl_lead_pvalue_threshold: float = 1e-3
     _target_: str = "gentropy.eqtl_catalogue.EqtlCatalogueStep"
@@ -147,13 +147,13 @@ class FinngenStudiesConfig(StepConfig):
         }
     )
     finngen_study_index_out: str = MISSING
-    finngen_phenotype_table_url: str = "https://r11.finngen.fi/api/phenos"
+    finngen_phenotype_table_url: str = MISSING
     finngen_release_prefix: str = "FINNGEN_R11_"
     finngen_summary_stats_url_prefix: str = (
         "gs://finngen-public-data-r11/summary_stats/finngen_R11_"
     )
     finngen_summary_stats_url_suffix: str = ".gz"
-    efo_curation_mapping_url: str = "https://raw.githubusercontent.com/opentargets/curation/24.09.1/mappings/disease/manual_string.tsv"
+    efo_curation_mapping_url: str = MISSING
     # https://www.finngen.fi/en/access_results#:~:text=Total%20sample%20size%3A%C2%A0453%2C733%C2%A0(254%2C618%C2%A0females%20and%C2%A0199%2C115%20males)
     sample_size: int = 453733
     _target_: str = "gentropy.finngen_studies.FinnGenStudiesStep"
