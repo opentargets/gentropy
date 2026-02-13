@@ -578,6 +578,11 @@ class Session:
             - csv
             - tsv
             - json (including jsonl/jsonlines)
+
+
+
+        Examples:
+            >>> session.load_data("https://some_file)
         """
         # Set default kwargs
         _format = fmt.lower()
@@ -638,11 +643,9 @@ class Session:
 
         match fmt:
             case "csv":
-                header = kwargs.get("header", True)
-                df = pd.read_csv(url, header=header)
-            case "tsv":
-                header = kwargs.get("header", True)
-                df = pd.read_csv(url, header=header, sep="\t")
+                _header = kwargs.get("header", False)
+                header = 0 if _header else None
+                df = pd.read_csv(url, header=header, sep=kwargs.get("sep"))
             case "json":
                 df = pd.read_json(url)
             case _:
