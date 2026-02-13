@@ -15,6 +15,7 @@ from pyspark.sql import types as t
 from pyspark.sql.window import Window
 
 from gentropy.common.schemas import SchemaValidationError, compare_struct_schemas
+from gentropy.common.session import Session
 
 if TYPE_CHECKING:
     from pyspark.sql import Column
@@ -164,6 +165,31 @@ class Dataset(ABC):
         return {}
 
     @classmethod
+    def read(cls, path: str | list[str], fmt: str = "parquet", **kwargs: Any) -> Self:
+        """Reads dataset into a Dataset with a given schema.
+
+        All kwargs are passed to the spark.read method, so they can be used to specify format, schema, etc.
+
+        Args:
+            path (str | list[str]): Path to the dataset
+            fmt (str): Format of the dataset, default is "parquet"
+            **kwargs (Any): Additional arguments to pass to spark.read
+        Returns:
+            Self: Dataset with the file contents
+        """
+        session = Session.find()
+        schema = cls.get_schema()
+        return cls(
+            _df=session.load_data(
+                path=path,
+                fmt=fmt,
+                schema=schema,
+                **kwargs,
+            ),
+            _schema=schema,
+        )
+
+    @classmethod
     def from_parquet(
         cls: type[Self],
         session: Session,
@@ -188,7 +214,7 @@ class Dataset(ABC):
         # Separate class params from spark params
         class_params, spark_params = cls._process_class_params(kwargs)
 
-        df = session.load_data(path, format="parquet", schema=schema, **spark_params)
+        df = session.load_data(path, fmt="parquet", schema=schema, **spark_params)
         if df.isEmpty():
             raise ValueError(f"Parquet file is empty: {path}")
         return cls(_df=df, _schema=schema, **class_params)

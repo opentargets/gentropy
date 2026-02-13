@@ -39,7 +39,7 @@ jobs:
       - name: Check dependencies
         run: uv run deptry .
       - name: Run tests
-        run: uv run pytest
+        run: make test
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
         with:

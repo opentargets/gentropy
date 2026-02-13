@@ -207,7 +207,7 @@ class FinnGenUkbMvpMetaSummaryStatistics:
                 "The use_enhanced_bgzip_codec is set to False. This will lead to inefficient reading of block gzipped files."
             )
             raise KeyError(
-                "Please set `session.spark.use_enhanced_bgzip_codec` to True in the Session configuration."
+                "Please set `use_enhanced_bgzip_codec` to True in the Session configuration."
             )
 
         # Handle n_threads limits and warnings
@@ -365,13 +365,13 @@ class FinnGenUkbMvpMetaSummaryStatistics:
             SummaryStatistics: Processed summary statistics dataset.
         """
         if perform_min_allele_count_filter:
-            assert (
-                min_allele_count_threshold > 0
-            ), "Allele count threshold should be positive."
+            assert min_allele_count_threshold > 0, (
+                "Allele count threshold should be positive."
+            )
         if perform_min_allele_frequency_filter:
-            assert (
-                0.0 <= min_allele_frequency_threshold <= 0.5
-            ), "MAF needs to be between 0 and 0.5."
+            assert 0.0 <= min_allele_frequency_threshold <= 0.5, (
+                "MAF needs to be between 0 and 0.5."
+            )
 
         if perform_min_allele_count_filter and perform_min_allele_frequency_filter:
             # NOTE - MAC filter would be more stringent at low allele frequencies, so no
@@ -469,9 +469,9 @@ class FinnGenUkbMvpMetaSummaryStatistics:
 
         # Filter out variants with low INFO score
         if perform_imputation_score_filter:
-            assert (
-                imputation_score_threshold >= 0.0
-            ), "Imputation score threshold should be positive."
+            assert imputation_score_threshold >= 0.0, (
+                "Imputation score threshold should be positive."
+            )
             sumstats = (
                 sumstats.withColumn(
                     "hasLowImputationScore",
