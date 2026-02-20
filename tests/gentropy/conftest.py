@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Generator
 from pathlib import Path
 
 import dbldatagen as dg
@@ -33,26 +34,23 @@ from gentropy.datasource.gwas_catalog.study_index import StudyIndexGWASCatalog
 from utils.spark import get_spark_testing_conf
 
 
-@pytest.fixture(scope="session", autouse=True)
-def spark(tmp_path_factory: pytest.TempPathFactory) -> SparkSession:
-    """Local spark session for testing purposes.
-
-    Args:
-        tmp_path_factory (pytest.TempPathFactory): pytest fixture
-
-    Returns:
-        SparkSession: local spark session
-    """
-    return (
-        SparkSession.builder.config(conf=get_spark_testing_conf())
+@pytest.fixture(scope="session")
+def spark() -> Generator[SparkSession, None, None]:
+    """Local spark session for testing purposes."""
+    spark = (
+        SparkSession.Builder()
+        .config(conf=get_spark_testing_conf())
         .master("local[1]")
         .appName("test")
         .getOrCreate()
     )
+    yield spark
+
+    spark.stop()
 
 
 @pytest.fixture()
-def session() -> Session:
+def session(spark: SparkSession) -> Session:
     """Return gentropy Session object."""
     return Session()
 
@@ -584,8 +582,8 @@ def sample_finngen_studies(spark: SparkSession) -> DataFrame:
 def sample_eqtl_catalogue_finemapping_credible_sets(session: Session) -> DataFrame:
     """Sample raw eQTL Catalogue credible sets outputted by SuSIE."""
     return EqtlCatalogueFinemapping.read_credible_set_from_source(
-        session,
         credible_set_path=["tests/gentropy/data_samples/QTD000584.credible_sets.tsv"],
+        session=session,
     )
 
 
@@ -593,8 +591,8 @@ def sample_eqtl_catalogue_finemapping_credible_sets(session: Session) -> DataFra
 def sample_eqtl_catalogue_finemapping_lbf(session: Session) -> DataFrame:
     """Sample raw eQTL Catalogue table with logBayesFactors outputted by SuSIE."""
     return EqtlCatalogueFinemapping.read_lbf_from_source(
-        session,
         lbf_path=["tests/gentropy/data_samples/QTD000584.lbf_variable.txt"],
+        session=session,
     )
 
 
@@ -621,7 +619,7 @@ def sample_ukbiobank_studies(spark: SparkSession) -> DataFrame:
 
 
 @pytest.fixture()
-def study_locus_sample_for_colocalisation(spark: SparkSession) -> DataFrame:
+def study_locus_sample_for_colocalisation(spark: SparkSession) -> StudyLocus:
     """Sample study locus data for colocalisation."""
     return StudyLocus(
         _df=spark.read.parquet("tests/gentropy/data_samples/coloc_test.parquet"),
