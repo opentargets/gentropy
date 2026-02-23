@@ -241,7 +241,7 @@ class LocusToGeneModel:
         if not path.endswith(".skops"):
             raise ValueError("Path should end with .skops")
         if path.startswith("gs://"):
-            local_path = path.split("/")[-1]
+            local_path = path.rsplit("/", maxsplit=1)[-1]
             sio.dump(self.model, local_path)
             copy_to_gcs(local_path, path)
         else:

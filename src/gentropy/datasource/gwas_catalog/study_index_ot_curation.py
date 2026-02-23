@@ -85,6 +85,6 @@ class StudyIndexGWASCatalogOTCuration:
 
         return cls._parser(
             session.spark.read.csv(
-                SparkFiles.get(curation_url.split("/")[-1]), sep="\t", header=True
+                SparkFiles.get(curation_url.rsplit("/", maxsplit=1)[-1]), sep="\t", header=True
             )
         )
