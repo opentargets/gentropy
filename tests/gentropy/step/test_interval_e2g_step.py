@@ -17,13 +17,15 @@ class TestIntervalE2GStep:
     def test_interval_e2g_step_initialization(
         self, session: Session, tmp_path: Path
     ) -> None:
-        """Test that IntervalE2GStep can be initialized without errors."""
+        """Test that IntervalE2GStep raises an exception when files don't exist."""
         # Create temporary paths
         target_index_path = str(tmp_path / "target_index")
         biosample_mapping_path = str(tmp_path / "biosample_mapping.csv")
         biosample_index_path = str(tmp_path / "biosample_index")
+        chromosome_contig_index_path = str(tmp_path / "chromosome_contig_index")
         interval_source = str(tmp_path / "interval_source")
-        interval_e2g_path = str(tmp_path / "interval_e2g")
+        valid_output_path = str(tmp_path / "valid_output")
+        invalid_output_path = str(tmp_path / "invalid_output")
 
         # This test verifies that the step raises an exception when files don't exist
         with pytest.raises(Exception):
@@ -33,8 +35,10 @@ class TestIntervalE2GStep:
                 target_index_path=target_index_path,
                 biosample_mapping_path=biosample_mapping_path,
                 biosample_index_path=biosample_index_path,
+                chromosome_contig_index_path=chromosome_contig_index_path,
                 interval_source=interval_source,
-                interval_e2g_path=interval_e2g_path,
+                valid_output_path=valid_output_path,
+                invalid_output_path=invalid_output_path,
             )
 
     def test_interval_e2g_step_parameters(self) -> None:
@@ -52,8 +56,10 @@ class TestIntervalE2GStep:
             "target_index_path",
             "biosample_mapping_path",
             "biosample_index_path",
+            "chromosome_contig_index_path",
             "interval_source",
-            "interval_e2g_path",
+            "valid_output_path",
+            "invalid_output_path",
         ]
 
         for param in expected_params:

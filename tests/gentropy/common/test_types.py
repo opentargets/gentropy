@@ -52,60 +52,6 @@ class TestTypes:
         assert b == mock_beta
         assert s == mock_se
 
-    def test_ld_population_type_values(self) -> None:
-        """Test that LD_Population type is correctly defined."""
-        # These are valid population values
-        valid_populations: list[str] = [
-            "afr",
-            "amr",
-            "asj",
-            "eas",
-            "est",
-            "fin",
-            "nfe",
-            "nwe",
-            "seu",
-        ]
-
-        for pop in valid_populations:
-            # Just verify the type hints are correct by checking they're strings
-            assert isinstance(pop, str)
-
-    def test_variant_population_type_values(self) -> None:
-        """Test that VariantPopulation type is correctly defined."""
-        # These are valid variant population values
-        valid_populations: list[str] = [
-            "afr",
-            "amr",
-            "ami",
-            "asj",
-            "eas",
-            "fin",
-            "nfe",
-            "mid",
-            "sas",
-            "remaining",
-        ]
-
-        for pop in valid_populations:
-            assert isinstance(pop, str)
-
-    def test_data_source_type_values(self) -> None:
-        """Test that DataSourceType is correctly defined."""
-        # These are valid data source types
-        valid_sources: list[str] = [
-            "gnomad",
-            "finngen",
-            "gwas_catalog",
-            "eqtl_catalog",
-            "ukbiobank",
-            "open_targets",
-            "intervals",
-        ]
-
-        for source in valid_sources:
-            assert isinstance(source, str)
-
     def test_pval_components_named_access(self) -> None:
         """Test named access to PValComponents fields."""
         pval = PValComponents(mantissa=0.5, exponent=-8)
