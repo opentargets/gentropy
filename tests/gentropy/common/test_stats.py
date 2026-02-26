@@ -13,7 +13,6 @@ import pytest
 from gentropy.common.stats import get_logsum, split_pvalue
 
 
-@pytest.mark.usefixtures("session")
 class TestStats:
     """Test common statistics functions - edge cases and additional coverage."""
 
