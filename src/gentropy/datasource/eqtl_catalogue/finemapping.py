@@ -15,14 +15,15 @@ from pyspark.sql.types import (
     StructType,
 )
 
-from gentropy.common.session import Session
+from gentropy.common.processing import normalize_chromosome
+from gentropy.common.session import NativeFileFormat, Session
 from gentropy.common.spark import clean_strings_from_symbols
 from gentropy.common.stats import split_pvalue_column
 from gentropy.dataset.study_locus import FinemappingMethod, StudyLocus
 from gentropy.datasource.eqtl_catalogue.study_index import EqtlCatalogueStudyIndex
 
 if TYPE_CHECKING:
-    from pyspark.sql import DataFrame
+    pass
 
 
 @dataclass
@@ -124,6 +125,7 @@ class EqtlCatalogueFinemapping:
         credible_sets: DataFrame,
         lbf: DataFrame,
         studies_metadata: DataFrame,
+        ss_ftp_path_template: str = "https://ftp.ebi.ac.uk/pub/databases/spot/eQTL/sumstats",
     ) -> DataFrame:
         """Parse the SuSIE results into a DataFrame containing the finemapping statistics and metadata about the studies.
 
@@ -131,11 +133,11 @@ class EqtlCatalogueFinemapping:
             credible_sets (DataFrame): DataFrame containing raw statistics of all variants in the credible sets.
             lbf (DataFrame): DataFrame containing the raw log Bayes Factors for all variants.
             studies_metadata (DataFrame): DataFrame containing the study metadata.
+            ss_ftp_path_template (str, optional): eQTL Catalogue FTP path template for summary statistics. Defaults to "https://ftp.ebi.ac.uk/pub/databases/spot/eQTL/sumstats".
 
         Returns:
             DataFrame: Processed SuSIE results to contain metadata about the studies and the finemapping statistics.
         """
-        ss_ftp_path_template = "https://ftp.ebi.ac.uk/pub/databases/spot/eQTL/sumstats"
         return (
             lbf.join(
                 credible_sets.join(f.broadcast(studies_metadata), on="dataset_id"),
@@ -158,7 +160,7 @@ class EqtlCatalogueFinemapping:
             .select(
                 f.regexp_replace(f.col("variant"), r"chr", "").alias("variantId"),
                 f.col("region"),
-                f.col("chromosome"),
+                normalize_chromosome(f.col("chromosome")).alias("chromosome"),
                 f.col("position"),
                 f.col("pip").alias("posteriorProbability"),
                 *split_pvalue_column(f.col("pvalue")),
@@ -261,24 +263,24 @@ class EqtlCatalogueFinemapping:
     @classmethod
     def read_credible_set_from_source(
         cls: type[EqtlCatalogueFinemapping],
-        session: Session,
         credible_set_path: str | list[str],
+        session: Session | None = None,
     ) -> DataFrame:
         """Load raw credible sets from eQTL Catalogue.
 
         Args:
-            session (Session): Spark session.
             credible_set_path (str | list[str]): Path to raw table(s) containing finemapping results for any variant belonging to a credible set.
+            session (Session | None, optional): Session object. If not provided, the method will try to find an active session. Defaults to None.
 
         Returns:
             DataFrame: Credible sets DataFrame.
         """
+        session = session or Session.find()
         return (
-            session.spark.read.csv(
+            session.load_data(
                 credible_set_path,
-                sep="\t",
-                header=True,
                 schema=cls.raw_credible_set_schema,
+                fmt=NativeFileFormat.TSV.value,
             )
             .withColumns(
                 {
@@ -298,24 +300,24 @@ class EqtlCatalogueFinemapping:
     @classmethod
     def read_lbf_from_source(
         cls: type[EqtlCatalogueFinemapping],
-        session: Session,
         lbf_path: str | list[str],
+        session: Session | None = None,
     ) -> DataFrame:
         """Load raw log Bayes Factors from eQTL Catalogue.
 
         Args:
-            session (Session): Spark session.
             lbf_path (str | list[str]): Path to raw table(s) containing Log Bayes Factors for each variant.
+            session (Session | None, optional): Session object. If not provided, the method will try to find an active session. Defaults to None.
 
         Returns:
             DataFrame: Log Bayes Factors DataFrame.
         """
+        session = session or Session.find()
         return (
-            session.spark.read.csv(
+            session.load_data(
                 lbf_path,
-                sep="\t",
-                header=True,
                 schema=cls.raw_lbf_schema,
+                fmt=NativeFileFormat.TSV.value,
             )
             .withColumn(
                 "dataset_id",

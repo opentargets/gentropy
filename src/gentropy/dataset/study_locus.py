@@ -19,7 +19,7 @@ from gentropy.common.spark import (
 )
 from gentropy.common.stats import get_logsum, neglogpval_from_pvalue
 from gentropy.config import WindowBasedClumpingStepConfig
-from gentropy.dataset.dataset import Dataset
+from gentropy.dataset.dataset import Dataset, qc_test
 from gentropy.dataset.study_index import StudyQualityCheck
 from gentropy.dataset.study_locus_overlap import StudyLocusOverlap
 from gentropy.dataset.variant_index import VariantIndex
@@ -156,6 +156,7 @@ class StudyLocus(Dataset):
     This dataset captures associations between study/traits and a genetic loci as provided by finemapping methods.
     """
 
+    @qc_test
     def validate_study(self: StudyLocus, study_index: StudyIndex) -> StudyLocus:
         """Flagging study loci if the corresponding study has issues.
 
@@ -228,6 +229,7 @@ class StudyLocus(Dataset):
             _schema=self.get_schema(),
         )
 
+    @qc_test
     def annotate_study_type(self: StudyLocus, study_index: StudyIndex) -> StudyLocus:
         """Gets study type from study index and adds it to study locus.
 
@@ -246,6 +248,7 @@ class StudyLocus(Dataset):
             _schema=self.get_schema(),
         )
 
+    @qc_test
     def validate_chromosome_label(self: StudyLocus) -> StudyLocus:
         """Flagging study loci, where chromosome is coded not as 1:22, X, Y, Xy and MT.
 
@@ -274,6 +277,7 @@ class StudyLocus(Dataset):
             _schema=self.get_schema(),
         )
 
+    @qc_test
     def validate_variant_identifiers(
         self: StudyLocus, variant_index: VariantIndex
     ) -> StudyLocus:
@@ -333,6 +337,7 @@ class StudyLocus(Dataset):
             _schema=self.get_schema(),
         )
 
+    @qc_test
     def validate_lead_pvalue(self: StudyLocus, pvalue_cutoff: float) -> StudyLocus:
         """Flag associations below significant threshold.
 
@@ -370,6 +375,7 @@ class StudyLocus(Dataset):
             _schema=self.get_schema(),
         )
 
+    @qc_test
     def validate_unique_study_locus_id(self: StudyLocus) -> StudyLocus:
         """Validating the uniqueness of study-locus identifiers and flagging duplicated studyloci.
 
@@ -429,6 +435,7 @@ class StudyLocus(Dataset):
             StudyLocusQualityCheck.SUBSIGNIFICANT_FLAG,
         )
 
+    @qc_test
     def qc_abnormal_pips(
         self: StudyLocus,
         sum_pips_lower_threshold: float = 0.99,
@@ -1169,6 +1176,7 @@ class StudyLocus(Dataset):
             _schema=StudyLocus.get_schema(),
         )
 
+    @qc_test
     def qc_MHC_region(self: StudyLocus) -> StudyLocus:
         """Adds qualityControl flag when lead overlaps with MHC region.
 
@@ -1192,6 +1200,7 @@ class StudyLocus(Dataset):
         )
         return self
 
+    @qc_test
     def qc_redundant_top_hits_from_PICS(self: StudyLocus) -> StudyLocus:
         """Flag associations from top hits when the study contains other PICS associations from summary statistics.
 
@@ -1230,6 +1239,7 @@ class StudyLocus(Dataset):
             _schema=StudyLocus.get_schema(),
         )
 
+    @qc_test
     def qc_explained_by_SuSiE(self: StudyLocus) -> StudyLocus:
         """Flag associations that are explained by SuSiE associations.
 
@@ -1308,6 +1318,7 @@ class StudyLocus(Dataset):
             _schema=StudyLocus.get_schema(),
         )
 
+    @qc_test
     def _qc_no_population(self: StudyLocus) -> StudyLocus:
         """Flag associations where the study doesn't have population information to resolve LD.
 

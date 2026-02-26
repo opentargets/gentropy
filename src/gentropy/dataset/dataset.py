@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum
 from functools import reduce
-from typing import TYPE_CHECKING, Any, Self
+from typing import TYPE_CHECKING, Any, Generic, NamedTuple, ParamSpec, Self, TypeVar
 
 from pyspark.sql import DataFrame
 from pyspark.sql import functions as f
@@ -14,14 +15,37 @@ from pyspark.sql import types as t
 from pyspark.sql.window import Window
 
 from gentropy.common.schemas import SchemaValidationError, compare_struct_schemas
+from gentropy.common.session import Session
 
 if TYPE_CHECKING:
-    from enum import Enum
-
     from pyspark.sql import Column
     from pyspark.sql.types import StructType
 
     from gentropy.common.session import Session
+
+T = TypeVar("T", bound="Dataset")
+P = ParamSpec("P")
+
+
+class DatasetValidationResult(NamedTuple, Generic[T]):
+    """Dataset validation result."""
+
+    valid: T
+    invalid: T
+
+
+def qc_test(func: Callable[P, T]) -> Callable[P, T]:
+    """Decorator to mark methods as quality control tests.
+
+    Args:
+        func (Callable[P, T]): Function to be decorated. The function should take any parameters and return Dataset derivative.
+
+    Returns:
+        Callable[P, T]: Decorated function.
+    """
+    setattr(func, "__is_qc_test__", True)
+
+    return func
 
 
 @dataclass
@@ -141,6 +165,31 @@ class Dataset(ABC):
         return {}
 
     @classmethod
+    def read(cls, path: str | list[str], fmt: str = "parquet", **kwargs: Any) -> Self:
+        """Reads dataset into a Dataset with a given schema.
+
+        All kwargs are passed to the spark.read method, so they can be used to specify format, schema, etc.
+
+        Args:
+            path (str | list[str]): Path to the dataset
+            fmt (str): Format of the dataset, default is "parquet"
+            **kwargs (Any): Additional arguments to pass to spark.read
+        Returns:
+            Self: Dataset with the file contents
+        """
+        session = Session.find()
+        schema = cls.get_schema()
+        return cls(
+            _df=session.load_data(
+                path=path,
+                fmt=fmt,
+                schema=schema,
+                **kwargs,
+            ),
+            _schema=schema,
+        )
+
+    @classmethod
     def from_parquet(
         cls: type[Self],
         session: Session,
@@ -165,7 +214,7 @@ class Dataset(ABC):
         # Separate class params from spark params
         class_params, spark_params = cls._process_class_params(kwargs)
 
-        df = session.load_data(path, format="parquet", schema=schema, **spark_params)
+        df = session.load_data(path, fmt="parquet", schema=schema, **spark_params)
         if df.isEmpty():
             raise ValueError(f"Parquet file is empty: {path}")
         return cls(_df=df, _schema=schema, **class_params)
@@ -200,7 +249,9 @@ class Dataset(ABC):
                 f"Schema validation failed for {type(self).__name__}", discrepancies
             )
 
-    def valid_rows(self: Self, invalid_flags: list[str], invalid: bool = False) -> Self:
+    def valid_rows(
+        self: Self, invalid_flags: list[str]
+    ) -> DatasetValidationResult[Self]:
         """Filters `Dataset` according to a list of quality control flags. Only `Dataset` classes with a QC column can be validated.
 
         This method checks do following steps:
@@ -210,10 +261,9 @@ class Dataset(ABC):
 
         Args:
             invalid_flags (list[str]): List of quality control flags to be excluded.
-            invalid (bool): If True returns the invalid rows, instead of the valid. Defaults to False.
 
         Returns:
-            Self: filtered dataset.
+            DatasetValidationResult[Self]: A named tuple with valid and invalid Datasets.
 
         Raises:
             ValueError: If the Dataset does not contain a QC column or if the invalid_flags elements do not exist in QC mappings flags.
@@ -243,10 +293,10 @@ class Dataset(ABC):
             f.array([f.lit(i) for i in invalid_reasons]), qc
         )
         # Returning the filtered dataset:
-        if invalid:
-            return self.filter(~filterCondition)
-        else:
-            return self.filter(filterCondition)
+        return DatasetValidationResult(
+            valid=self.filter(filterCondition),
+            invalid=self.filter(~filterCondition),
+        )
 
     def drop_infinity_values(self: Self, *cols: str) -> Self:
         """Drop infinity values from Double typed column.
@@ -404,3 +454,17 @@ class Dataset(ABC):
             for column in uniqueness_defining_columns
         ]
         return f.md5(f.concat(*hashable_columns))
+
+    @classmethod
+    def qc_tests(cls: type[Self]) -> list[Callable[..., Self]]:
+        """Get all quality control test methods defined in the Dataset class.
+
+        Returns:
+            list[Callable[..., Self]]: List of quality control test methods.
+        """
+        qc_methods = []
+        for attribute_name in dir(cls):
+            attribute = getattr(cls, attribute_name)
+            if callable(attribute) and getattr(attribute, "__is_qc_test__", False):
+                qc_methods.append(attribute)
+        return qc_methods
