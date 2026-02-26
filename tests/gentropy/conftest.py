@@ -345,7 +345,6 @@ def mock_intervals(spark: SparkSession) -> Intervals:
         .withColumnSpec("pmid", percentNulls=0.1)
         .withColumnSpec("resourceScore", percentNulls=0.1)
         .withColumnSpec("score", percentNulls=0.1)
-        .withColumnSpec("biofeature", percentNulls=0.1)
     )
 
     return Intervals(_df=data_spec.build(), _schema=interval_schema)
