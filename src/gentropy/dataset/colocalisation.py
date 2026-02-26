@@ -8,10 +8,8 @@ from typing import TYPE_CHECKING
 import pyspark.sql.functions as f
 
 from gentropy.common.schemas import parse_spark_schema
-from gentropy.common.spark import get_record_with_maximum_value
 from gentropy.dataset.dataset import Dataset
 from gentropy.dataset.study_locus import StudyLocus
-from gentropy.datasource.eqtl_catalogue.study_index import EqtlCatalogueStudyIndex
 
 if TYPE_CHECKING:
     from pyspark.sql import DataFrame
@@ -59,6 +57,10 @@ class Colocalisation(Dataset):
             ValueError: if filter_by_qtl is not in the list of valid QTL types or is not in the list of valid colocalisation methods
         """
         from gentropy.colocalisation import ColocalisationStep
+        from gentropy.common.spark import get_record_with_maximum_value
+        from gentropy.datasource.eqtl_catalogue.study_index import (
+            EqtlCatalogueStudyIndex,
+        )
 
         valid_qtls = list(
             set(EqtlCatalogueStudyIndex.method_to_qtl_type_mapping.values())

@@ -753,11 +753,10 @@ class TestE2GIntervalFeatures:
                 "datasourceId": "dummy",
                 "intervalType": "pchic",
                 "pmid": None,
-                "biofeature": None,
                 "biosampleName": None,
                 "biosampleId": None,
                 "studyId": None,
-                "intervalId": None,
+                "intervalId": "1",
             },
             {
                 "chromosome": "1",
@@ -770,11 +769,10 @@ class TestE2GIntervalFeatures:
                 "datasourceId": "dummy",
                 "intervalType": "pchic",
                 "pmid": None,
-                "biofeature": None,
                 "biosampleName": None,
                 "biosampleId": None,
                 "studyId": None,
-                "intervalId": None,
+                "intervalId": "2",
             },
             # Another gene overlapping the kept variant position
             {
@@ -788,11 +786,10 @@ class TestE2GIntervalFeatures:
                 "datasourceId": "dummy",
                 "intervalType": "pchic",
                 "pmid": None,
-                "biofeature": None,
                 "biosampleName": None,
                 "biosampleId": None,
                 "studyId": None,
-                "intervalId": None,
+                "intervalId": "3",
             },
             # Interval near low-PP variant (won't contribute because PP threshold filters it before the join)
             {
@@ -806,11 +803,10 @@ class TestE2GIntervalFeatures:
                 "datasourceId": "dummy",
                 "intervalType": "pchic",
                 "pmid": None,
-                "biofeature": None,
                 "biosampleName": None,
                 "biosampleId": None,
                 "studyId": None,
-                "intervalId": None,
+                "intervalId": "4",
             },
         ]
         self.sample_intervals = Intervals(

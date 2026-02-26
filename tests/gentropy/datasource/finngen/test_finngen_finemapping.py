@@ -6,7 +6,6 @@ from pathlib import Path
 
 import hail as hl
 import pytest
-from pyspark.sql import SparkSession
 
 from gentropy.common.session import Session
 from gentropy.dataset.study_locus import StudyLocus
@@ -33,15 +32,15 @@ from gentropy.finngen_finemapping_ingestion import FinnGenFinemappingIngestionSt
     ],
 )
 def test_finngen_finemapping_from_finngen_susie_finemapping(
-    spark: SparkSession,
+    session: Session,
     finngen_susie_finemapping_snp_files: str,
     finngen_susie_finemapping_cs_summary_files: str,
 ) -> None:
     """Test finemapping results (SuSie) from source."""
-    hl.init(sc=spark.sparkContext, log="/dev/null", idempotent=True)
+    hl.init(sc=session.spark.sparkContext, log="/dev/null", idempotent=True)
     assert isinstance(
         FinnGenFinemapping.from_finngen_susie_finemapping(
-            spark=spark,
+            spark=session.spark,
             finngen_susie_finemapping_snp_files=finngen_susie_finemapping_snp_files,
             finngen_susie_finemapping_cs_summary_files=finngen_susie_finemapping_cs_summary_files,
             finngen_release_prefix="FINNGEN_R11",

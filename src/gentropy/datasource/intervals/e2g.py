@@ -4,10 +4,11 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, ClassVar
 
-import pyspark.sql.functions as f
+from pyspark.sql import functions as f
+from pyspark.sql import types as t
 
-from gentropy.dataset.biosample_index import BiosampleIndex
-from gentropy.dataset.intervals import Intervals
+from gentropy.common.processing import normalize_chromosome
+from gentropy.dataset.intervals import IntervalDataSource, Intervals
 from gentropy.dataset.target_index import TargetIndex
 
 if TYPE_CHECKING:
@@ -17,9 +18,7 @@ if TYPE_CHECKING:
 class IntervalsE2G:
     """Interval dataset from E2G."""
 
-    DATASET_NAME: ClassVar[str] = "E2G"
     PMID: ClassVar[str] = "38014075"  # PMID for the E2G paper
-    VALID_INTERVAL_TYPES: ClassVar[list[str]] = ["promoter", "genic", "intergenic"]
 
     @staticmethod
     def read(spark: SparkSession, path: str) -> DataFrame:
@@ -45,7 +44,6 @@ class IntervalsE2G:
         raw_e2g_df: DataFrame,
         biosample_mapping: DataFrame,
         target_index: TargetIndex,
-        biosample_index: BiosampleIndex,
     ) -> Intervals:
         """Parse E2G dataset.
 
@@ -53,20 +51,27 @@ class IntervalsE2G:
             raw_e2g_df (DataFrame): Raw E2G DataFrame.
             biosample_mapping (DataFrame): Biosample mapping DataFrame.
             target_index (TargetIndex): Target index.
-            biosample_index (BiosampleIndex): Biosample index.
 
         Returns:
             Intervals: Parsed Intervals dataset.
         """
+        if "#chr" in raw_e2g_df.columns:
+            chr_col = "#chr"
+        else:
+            chr_col = "chr"
         base = (
             raw_e2g_df.withColumn(
                 "studyId", f.regexp_extract(f.col("file_path"), r"([^/]+)\.bed\.gz$", 1)
             )
-            .withColumn("chromosome", f.regexp_replace(f.col("chr"), "^chr", ""))
+            .withColumn("chromosome", normalize_chromosome(f.col(chr_col)))
+            .withColumn("start", f.col("start").cast("long"))
+            .withColumn("end", f.col("end").cast("long"))
             .withColumnRenamed("TargetGeneEnsemblID", "geneId")
             .withColumnRenamed("CellType", "biosampleName")
             .withColumnRenamed("Score", "score")
+            .withColumn("score", f.col("score").cast("double"))
             .withColumnRenamed("class", "intervalType")
+            .withColumn("intervalType", f.lower(f.trim(f.col("intervalType"))))
             .withColumn(
                 "resourceScore",
                 f.array(
@@ -82,91 +87,52 @@ class IntervalsE2G:
                     ),
                 ),
             )
-            .withColumn("start", f.col("start").cast("long"))
-            .withColumn("end", f.col("end").cast("long"))
         )
 
-        base = base.withColumn(
-            "intervalType", f.lower(f.trim(f.col("intervalType")))
-        ).filter(f.col("intervalType").isin(cls.VALID_INTERVAL_TYPES))
-
-        # Target Index: preferred TSS + fallbacks (canonical transcript, genomicLocation)
-        ti = target_index._df.select(
-            f.col("id").alias("geneId"),
-            f.col("tss").cast("long").alias("tss_primary"),
-            f.col("canonicalTranscript.chromosome").alias("ct_chr"),
-            f.col("canonicalTranscript.start").cast("long").alias("ct_start"),
-            f.col("canonicalTranscript.end").cast("long").alias("ct_end"),
-            f.col("canonicalTranscript.strand").alias("ct_strand"),
-            f.col("genomicLocation.chromosome").alias("gl_chr"),
-            f.col("genomicLocation.start").cast("long").alias("gl_start"),
-            f.col("genomicLocation.end").cast("long").alias("gl_end"),
-            f.col("genomicLocation.strand").cast("int").alias("gl_strand"),
+        tss_lut = target_index.tss_lut()
+        biosample_lut = biosample_mapping.select("biosampleName", "biosampleId")
+        # Add distance to TSS from interval bounds
+        joined = (
+            base.alias("iv")
+            .join(tss_lut.alias("ti"), on="geneId", how="left")
+            .join(biosample_lut.alias("bl"), on="biosampleName", how="left")
         )
-
-        ct_tss = f.when(f.col("ct_strand") == "+", f.col("ct_start")).when(
-            f.col("ct_strand") == "-", f.col("ct_end")
-        )
-        gl_tss = f.when(f.col("gl_strand") == 1, f.col("gl_start")).when(
-            f.col("gl_strand") == -1, f.col("gl_end")
-        )
-
-        ti_with_tss = ti.withColumn(
-            "tss_coalesced", f.coalesce(f.col("tss_primary"), ct_tss, gl_tss)
-        )
-
-        # Join & recompute distanceToTss
-        joined = base.alias("iv").join(
-            ti_with_tss.alias("ti"), on="geneId", how="inner"
-        )
-        tss = f.col("ti.tss_coalesced")
-
-        dist_core = f.when(
-            (tss >= f.col("iv.start")) & (tss <= f.col("iv.end")), f.lit(0)
-        ).otherwise(
-            f.least(f.abs(tss - f.col("iv.start")), f.abs(tss - f.col("iv.end")))
-        )
-        distance_expr = (
-            f.when(f.col("iv.intervalType") == "promoter", f.lit(0))
-            .when(tss.isNull(), f.lit(None).cast("long"))
-            .otherwise(dist_core)
-        )
-
         parsed = (
-            joined.withColumn("distanceToTss", distance_expr.cast("double"))
-            .withColumn(
-                "intervalId",
-                f.sha1(
-                    f.concat_ws("_", "chromosome", "start", "end", "geneId", "studyId")
+            joined.withColumn(
+                "distanceToTss",
+                Intervals.distance_to_tss(
+                    f.col("iv.start"),
+                    f.col("iv.end"),
+                    f.col("iv.intervalType"),
+                    f.col("ti.tss"),
                 ),
             )
-            .join(
-                biosample_mapping.select("biosampleName", "biosampleId"),
-                on="biosampleName",
-                how="left",
+            .withColumn(
+                "intervalId",
+                Intervals.generate_identifier(Intervals.id_cols),
             )
-            .join(
-                biosample_index.df.select("biosampleId"), on="biosampleId", how="inner"
-            )
+            .withColumn("qualityControls", f.array().cast("array<string>"))
         )
 
         return Intervals(
             _df=(
                 parsed.select(
                     f.col("chromosome"),
-                    f.col("start").cast("integer"),
-                    f.col("end").cast("integer"),
+                    f.col("start"),
+                    f.col("end"),
                     f.col("geneId"),
-                    f.col("biosampleName"),
-                    f.col("intervalType"),
-                    f.col("distanceToTss").cast("integer"),
-                    f.col("score").cast("double"),
+                    f.col("score"),
+                    f.col("distanceToTss"),
                     f.col("resourceScore"),
-                    f.lit(cls.DATASET_NAME).alias("datasourceId"),
+                    f.lit(IntervalDataSource.E2G.value).alias("datasourceId"),
+                    f.col("intervalType"),
                     f.lit(cls.PMID).alias("pmid"),
-                    f.col("studyId"),
+                    f.col("biosampleName"),
+                    f.lit(None).cast(t.StringType()).alias("biosampleFromSourceId"),
                     f.col("biosampleId"),
+                    f.col("studyId"),
                     f.col("intervalId"),
+                    f.col("qualityControls"),
                 )
             ),
             _schema=Intervals.get_schema(),
