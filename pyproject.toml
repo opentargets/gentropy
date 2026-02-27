@@ -251,9 +251,11 @@ ignore = [
   "PLW2901", # Outer {outer_kind} variable {name} overwritten by inner {inner_kind} target
   "UP006",   # keep type annotation style as is
   "UP007",   # keep type annotation style as is
+  "UP042", # use of the str and Enum (double inheritance) for strEnum
+  "PLW0108", # Use of lambda expression assigned to variable. Use a def instead.
   # Ignored due to performance: https://github.com/charliermarsh/ruff/issues/2923
   "UP038", # Use `X | Y` in `isinstance` call instead of `(X, Y)`
-  "G004", # f-string used in logging function
+  "G004" # f-string used in logging function
 
 ]
 
