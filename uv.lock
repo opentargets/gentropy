@@ -1090,7 +1090,7 @@ dev = [
     { name = "darglint", specifier = ">=1.8.1,<1.9.0" },
     { name = "deptry", specifier = ">=0.22.0,<0.25.0" },
     { name = "interrogate", specifier = ">=1.7.0,<1.8.0" },
-    { name = "ipykernel", specifier = ">=6.28.0,<6.31.0" },
+    { name = "ipykernel", specifier = ">=6.28.0,<7.3.0" },
     { name = "ipython", specifier = ">=8.19.0,<9.9.0" },
     { name = "isort", specifier = ">=5.13.2,<6.1.0" },
     { name = "mypy", specifier = ">=1.13,<1.19" },
@@ -1098,7 +1098,7 @@ dev = [
     { name = "pre-commit", specifier = ">=4.0.0,<4.6.0" },
     { name = "prettier", specifier = ">=0.0.7,<0.1.0" },
     { name = "pydoclint", specifier = ">=0.3.8,<0.9.0" },
-    { name = "ruff", specifier = ">=0.8.1,<0.15.0" },
+    { name = "ruff", specifier = ">=0.8.1,<0.16.0" },
     { name = "yamllint", specifier = ">=1.33.0,<1.38.0" },
 ]
 docs = [
