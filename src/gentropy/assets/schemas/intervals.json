@@ -10,13 +10,13 @@
       "metadata": {},
       "name": "start",
       "nullable": false,
-      "type": "string"
+      "type": "long"
     },
     {
       "metadata": {},
       "name": "end",
       "nullable": false,
-      "type": "string"
+      "type": "long"
     },
     {
       "metadata": {},
@@ -82,13 +82,13 @@
     },
     {
       "metadata": {},
-      "name": "biofeature",
+      "name": "biosampleName",
       "nullable": true,
       "type": "string"
     },
     {
       "metadata": {},
-      "name": "biosampleName",
+      "name": "biosampleFromSourceId",
       "nullable": true,
       "type": "string"
     },
@@ -107,8 +107,18 @@
     {
       "metadata": {},
       "name": "intervalId",
-      "nullable": true,
+      "nullable": false,
       "type": "string"
+    },
+    {
+      "metadata": {},
+      "name": "qualityControls",
+      "type": {
+        "type": "array",
+        "elementType": "string",
+        "containsNull": true
+      },
+      "nullable": true
     }
   ],
   "type": "struct"

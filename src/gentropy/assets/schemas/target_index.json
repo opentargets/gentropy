@@ -682,25 +682,25 @@
               "metadata": {},
               "name": "probeMinerScore",
               "nullable": true,
-              "type": "long"
+              "type": "double"
             },
             {
               "metadata": {},
               "name": "probesDrugsScore",
               "nullable": true,
-              "type": "long"
+              "type": "double"
             },
             {
               "metadata": {},
               "name": "scoreInCells",
               "nullable": true,
-              "type": "long"
+              "type": "double"
             },
             {
               "metadata": {},
               "name": "scoreInOrganisms",
               "nullable": true,
-              "type": "long"
+              "type": "double"
             },
             {
               "metadata": {},
