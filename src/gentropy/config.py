@@ -22,6 +22,7 @@ class SessionConfig:
     output_partitions: int = 200
     use_enhanced_bgzip_codec: bool = False
     dynamic_allocation: bool = True
+    log_level: str = "ERROR"
     _target_: str = "gentropy.common.session.Session"
 
 
