@@ -26,7 +26,7 @@ dependencies = [
   "xgboost-cpu>=3.0.4 ; (platform_machine == 'amd64' and sys_platform != 'darwin') or (platform_machine == 'x86_64' and sys_platform != 'darwin')",
   "xgboost>=3.0.4 ; platform_machine == 'x86_64' and sys_platform == 'darwin'",
   "huggingface-hub>=0.27.1",
-  "wandb (>=0.19.4, <0.23.0)",
+  "wandb (>=0.19.4, <0.26.0)",
 ]
 classifiers = [
   "Programming Language :: Python :: 3.11",
@@ -69,7 +69,7 @@ test = [
 dev = [
   "ipython >=8.19.0, <9.9.0",
   "pydoclint >=0.3.8,<0.9.0",
-  "ipykernel >=6.28.0, <6.31.0",
+  "ipykernel >=6.28.0, <7.3.0",
   "prettier >=0.0.7, <0.1.0",
   "deptry >=0.22.0, <0.25.0",
   "yamllint >=1.33.0, <1.38.0",
@@ -77,9 +77,9 @@ dev = [
   "mypy >=1.13, <1.19",
   "pep8-naming >=0.14.1, <0.16.0",
   "interrogate >=1.7.0, <1.8.0",
-  "isort >=5.13.2, <6.1.0",
+  "isort >=5.13.2, <7.1.0",
   "darglint >=1.8.1, <1.9.0",
-  "ruff >=0.8.1, <0.15.0",
+  "ruff >=0.8.1, <0.16.0",
 ]
 [tool.semantic_release]
 logging_use_named_masks = true
@@ -251,9 +251,11 @@ ignore = [
   "PLW2901", # Outer {outer_kind} variable {name} overwritten by inner {inner_kind} target
   "UP006",   # keep type annotation style as is
   "UP007",   # keep type annotation style as is
+  "UP042", # use of the str and Enum (double inheritance) for strEnum
+  "PLW0108", # Use of lambda expression assigned to variable. Use a def instead.
   # Ignored due to performance: https://github.com/charliermarsh/ruff/issues/2923
   "UP038", # Use `X | Y` in `isinstance` call instead of `(X, Y)`
-  "G004", # f-string used in logging function
+  "G004" # f-string used in logging function
 
 ]
 

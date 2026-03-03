@@ -127,7 +127,6 @@ class IntervalsE2G:
                     f.lit(IntervalDataSource.E2G.value).alias("datasourceId"),
                     f.col("intervalType"),
                     f.lit(cls.PMID).alias("pmid"),
-                    f.lit(None).cast(t.StringType()).alias("biofeature"),
                     f.col("biosampleName"),
                     f.lit(None).cast(t.StringType()).alias("biosampleFromSourceId"),
                     f.col("biosampleId"),

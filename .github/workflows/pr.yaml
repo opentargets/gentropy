@@ -16,7 +16,7 @@ jobs:
         python-version: ["3.11", "3.12", "3.13"]
         os: [ubuntu-latest, ubuntu-22.04-arm] # macos-latest is arm64
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 1
       - name: Set up Python

@@ -42,7 +42,7 @@ def filename_to_study_identifier(path: str) -> str:
             ...
         ValueError: Path ("wrong/path") does not contain GWAS Catalog study identifier.
     """
-    file_name = path.split("/")[-1]
+    file_name = path.rsplit("/", maxsplit=1)[-1]
     study_id_matches = re.search(r"(GCST\d+)", file_name)
 
     if not study_id_matches:
