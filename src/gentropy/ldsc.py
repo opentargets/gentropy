@@ -24,7 +24,7 @@ class HeritabilityEstimateStep:
         ldscore_base_path: str,
         heritability_output_path: str,
         ldscore_template: str = (
-            "gnomad.genomes.r2.1.1.{ancestry}.adj.ld_scores.ldscore_hg38_hm3.csv.gz"
+            "gnomad_r2.1.1_{ancestry}_hg38.csv.gz"
         ),
         twostep: float = 30.0,
         n_blocks: int = 200,
@@ -70,7 +70,6 @@ class HeritabilityEstimateStep:
 
         spark = session.spark
 
-        # Fixed column names in the joined dataset
         beta_col = "beta"
         se_col = "standardError"
         n_col = "sampleSize"
@@ -78,9 +77,6 @@ class HeritabilityEstimateStep:
         pos_col = "position"
         study_col = "studyId"
 
-        # ------------------------------------------------------------------
-        # 0. Identify the studyId in this sumstats file
-        # ------------------------------------------------------------------
         sumstats_df = spark.read.parquet(summary_statistics_input_path)
         study_ids = [
             r[study_col] for r in sumstats_df.select(study_col).distinct().collect()
@@ -90,11 +86,8 @@ class HeritabilityEstimateStep:
             raise ValueError(
                 f"Expected one study in summary statistics, got {len(study_ids)}: {study_ids}"
             )
-        study_id = study_ids[0]
 
-        # ------------------------------------------------------------------
-        # 0b. Read study index and infer LD ancestry from ldPopulationStructure
-        # ------------------------------------------------------------------
+        study_id = study_ids[0]
         study_index_df = spark.read.parquet(study_index_input_path)
 
         row = (
@@ -112,9 +105,6 @@ class HeritabilityEstimateStep:
         # e.g. "gs://.../gnomad.genomes.r2.1.1.nfe.adj.ld_scores.ldscore_hg38_hm3.csv.gz"
         ldscore_input_path = f"{ldscore_base_path.rstrip('/')}/{ldscore_template.format(ancestry=ancestry)}"
 
-        # ------------------------------------------------------------------
-        # 1. Fill sample size from study index
-        # ------------------------------------------------------------------
         # Join nSamples in, then define sampleSize as existing sampleSize or nSamples
         n_df = study_index_df.select("studyId", "nSamples")
 
@@ -125,12 +115,8 @@ class HeritabilityEstimateStep:
             ),
         )
 
-        # ------------------------------------------------------------------
-        # 2. Read LD scores (hg38 + HM3-filtered)
-        # ------------------------------------------------------------------
         ld_df = spark.read.csv(ldscore_input_path, header=True, sep="\t")
 
-        # Use BP_hg38 if present, otherwise BP as hg38 coordinate
         if "BP_hg38" in ld_df.columns:
             ld_df = ld_df.withColumnRenamed("BP_hg38", pos_col)
         else:
@@ -142,29 +128,19 @@ class HeritabilityEstimateStep:
         elif chrom_col not in ld_df.columns:
             raise ValueError("LD score file must contain 'CHR' or 'chromosome' column.")
 
-        # Ensure L2 is numeric
         ld_df = ld_df.withColumn("L2", F.col("L2").cast("double"))
 
-        # ------------------------------------------------------------------
-        # 3. Merge sumstats with LD reference on chrom + pos
-        # ------------------------------------------------------------------
         merged_ld = sumstats.join(
             ld_df.select(chrom_col, pos_col, "L2"),
             on=[chrom_col, pos_col],
             how="inner",
         )
 
-        # ------------------------------------------------------------------
-        # 4. Deduplicate (if needed)
-        # ------------------------------------------------------------------
         if "rsID" in merged_ld.columns:
             dedup = merged_ld.dropDuplicates(["rsID"])
         else:
             dedup = merged_ld.dropDuplicates([chrom_col, pos_col])
 
-        # ------------------------------------------------------------------
-        # 5. Convert to pandas
-        # ------------------------------------------------------------------
         pdf = dedup.select(
             beta_col,
             se_col,
@@ -184,18 +160,13 @@ class HeritabilityEstimateStep:
         N = pdf[n_col].values
         ld = pdf["L2"].values
 
-        # ------------------------------------------------------------------
-        # 6. Heuristic regression weights based on LD scores
-        # ------------------------------------------------------------------
+        # Heuristic regression weights based on LD scores
         w_raw = 1.0 / np.maximum(ld, 1.0)
         w_ld = w_raw / np.mean(w_raw)
 
         # Define M_ldsc as the number of SNPs actually used in the regression
         M_ldsc = float(len(beta))
 
-        # ------------------------------------------------------------------
-        # 7. Run LDSC
-        # ------------------------------------------------------------------
         res = run_ldsc_h2_from_arrays(
             beta=beta,
             se=se,
@@ -210,9 +181,6 @@ class HeritabilityEstimateStep:
 
         self.results = res
 
-        # ------------------------------------------------------------------
-        # 8. Write output
-        # ------------------------------------------------------------------
         out_dict: dict[str, list[Any]] = {
             "studyId": [study_id],
             "ld_ancestry": [ancestry],
@@ -229,11 +197,9 @@ class HeritabilityEstimateStep:
         out_pdf = pd.DataFrame(out_dict)
         out_sdf = spark.createDataFrame(out_pdf)
 
-        out_sdf.write.mode(session.write_mode).parquet(heritability_output_path)
+        out_sdf.write.mode("overwrite").parquet(heritability_output_path)
 
-     # ------------------------------------------------------------------
     # Helper to infer LD ancestry from ldPopulationStructure
-    # ------------------------------------------------------------------
 
     @staticmethod
     def _extract_population_and_weight(entry: Any) -> tuple[str | None, float | None]:

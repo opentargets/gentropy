@@ -631,10 +631,6 @@ class LD_Score_Regression:
 
         self._extract_results(jknife, M, Nbar)
 
-    # ------------------------------------------------------------------
-    # Step 1: validation and basic state
-    # ------------------------------------------------------------------
-
     def _validate_and_init_state(
         self,
         y: np.ndarray,
@@ -678,10 +674,6 @@ class LD_Score_Regression:
         self.intercept: float | None = intercept
         self.n_blocks: int = n_blocks
         self.twostep_filtered: int | None = None
-
-    # ------------------------------------------------------------------
-    # Step 2: initial weights and design scaling
-    # ------------------------------------------------------------------
 
     def _prepare_design(
         self,
@@ -755,10 +747,6 @@ class LD_Score_Regression:
             raise ValueError("twostep is not compatible with constrained intercept.")
         if self.n_annot > 1:
             raise ValueError("twostep not compatible with partitioned LD Score yet.")
-
-    # ------------------------------------------------------------------
-    # Step 3: choose regression path and fit jackknife
-    # ------------------------------------------------------------------
 
     def _fit_jackknife(
         self,
@@ -998,10 +986,6 @@ class LD_Score_Regression:
             slow=slow,
             w=initial_w,
         )
-
-    # ------------------------------------------------------------------
-    # Step 4: extract results
-    # ------------------------------------------------------------------
 
     def _extract_results(
         self,
@@ -1444,12 +1428,6 @@ class Hsq(LD_Score_Regression):
         oc_w = 1.0 / w_ld
         w = np.multiply(het_w, oc_w)
         return w
-
-
-# --------------------------------------------------------------------
-# Convenience wrapper on arrays
-# --------------------------------------------------------------------
-
 
 def run_ldsc_h2_from_arrays(
     beta: np.ndarray,
