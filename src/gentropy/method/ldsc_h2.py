@@ -1,4 +1,3 @@
-# mypy: ignore-errors
 """Minimal self-contained LDSC-style SNP-heritability estimation on arrays.
 
 Ported and adapted from the original LDSC code. Implements:
@@ -18,12 +17,6 @@ from typing import Any
 import numpy as np
 
 np.seterr(divide="raise", invalid="raise")
-
-
-# --------------------------------------------------------------------
-# Jackknife utilities
-# --------------------------------------------------------------------
-
 
 def _check_shape(x: np.ndarray, y: np.ndarray) -> tuple[int, int]:
     """Check that arrays have compatible 2D shapes for regression jackknives.
@@ -318,12 +311,6 @@ class LstsqJackknifeFast(Jackknife):
             )
         return delete_values
 
-
-# --------------------------------------------------------------------
-# IRWLS
-# --------------------------------------------------------------------
-
-
 class IRWLS:
     """Iteratively re-weighted least squares with block jackknife.
 
@@ -336,7 +323,7 @@ class IRWLS:
         self,
         x: np.ndarray,
         y: np.ndarray,
-        update_func: Callable[[tuple], np.ndarray],
+        update_func: Callable[[tuple[Any, ...]], np.ndarray],
         n_blocks: int,
         w: np.ndarray | None = None,
         slow: bool = False,
@@ -347,7 +334,7 @@ class IRWLS:
         Args:
             x (np.ndarray): Design matrix of shape (n, p).
             y (np.ndarray): Response vector of shape (n, 1).
-            update_func (Callable[[tuple], np.ndarray]): Callable taking the output of
+            update_func (Callable[[tuple[Any, ...]], np.ndarray]): Callable taking the output of
                 `np.linalg.lstsq` and returning new weights of shape (n, 1).
             n_blocks (int): Number of jackknife blocks.
             w (np.ndarray | None): Initial weights of shape (n, 1). If None,
@@ -390,7 +377,7 @@ class IRWLS:
         cls,
         x: np.ndarray,
         y: np.ndarray,
-        update_func: Callable[[tuple], np.ndarray],
+        update_func: Callable[[tuple[Any, ...]], np.ndarray],
         n_blocks: int,
         w: np.ndarray,
         separators: Sequence[int] | None = None,
@@ -407,7 +394,7 @@ class IRWLS:
         Args:
             x (np.ndarray): Design matrix of shape (n, p).
             y (np.ndarray): Response vector of shape (n, 1).
-            update_func (Callable[[tuple], np.ndarray]): Callable taking the output of
+            update_func (Callable[[tuple[Any, ...]], np.ndarray]): Callable taking the output of
                 `np.linalg.lstsq` and returning new weights of shape (n, 1).
             n_blocks (int): Number of jackknife blocks.
             w (np.ndarray): Initial weights of shape (n, 1).
@@ -441,7 +428,7 @@ class IRWLS:
         return jknife
 
     @classmethod
-    def wls(cls, x: np.ndarray, y: np.ndarray, w: np.ndarray) -> tuple:
+    def wls(cls, x: np.ndarray, y: np.ndarray, w: np.ndarray) -> tuple[Any, ...]:
         """Compute weighted least squares using `np.linalg.lstsq`.
 
         Args:
@@ -450,7 +437,7 @@ class IRWLS:
             w (np.ndarray): Weights of shape (n, 1) on 1/CVF scale.
 
         Returns:
-            tuple: The output of `np.linalg.lstsq(x_w, y_w, rcond=-1)`, where
+            tuple[Any, ...]: The output of `np.linalg.lstsq(x_w, y_w, rcond=-1)`, where
             `x_w` and `y_w` are weight-normalised versions of `x` and `y`.
 
         Raises:
@@ -490,12 +477,6 @@ class IRWLS:
         w_n = w / float(np.sum(w))
         return np.multiply(x, w_n)
 
-
-# --------------------------------------------------------------------
-# LDSC heritability regression classes
-# --------------------------------------------------------------------
-
-
 def append_intercept(x: np.ndarray) -> np.ndarray:
     """Append a column of ones as an intercept term to the design matrix.
 
@@ -534,7 +515,8 @@ def update_separators(s: np.ndarray, ii: np.ndarray) -> np.ndarray:
     t = np.hstack((0, t, len(ii)))
     return t
 
-
+def _as_float_or_none(x: Any) -> float | None:
+    return None if x is None else float(x)
 class LD_Score_Regression:
     """Base class for LD Score regression (heritability and genetic covariance).
 
@@ -711,7 +693,7 @@ class LD_Score_Regression:
         x_tot = np.sum(x, axis=1).reshape((n_snp, 1))
 
         tot_agg: float = self.aggregate(y, x_tot, N, M_tot, intercept)
-        initial_w = self._update_weights(x_tot, w, N, M_tot, tot_agg, intercept)
+        initial_w = self._update_weights(x_tot, w, N, M_tot, tot_agg, intercept)  # type: ignore[attr-defined]
 
         Nbar: float = float(np.mean(N))  # keep condition number low
         x = np.multiply(N, x) / Nbar
@@ -721,7 +703,7 @@ class LD_Score_Regression:
             x_tot = append_intercept(x_tot)
             yp = y
         else:
-            yp = y - intercept  # type: ignore[operator]
+            yp = y - intercept
             self.intercept_se = "NA"
 
         return x, x_tot, yp, Nbar, M_tot, initial_w
@@ -1050,7 +1032,7 @@ class LD_Score_Regression:
 
     def _update_func(
         self,
-        x: tuple,
+        x: tuple[Any, ...],
         ref_ld_tot: np.ndarray,
         w_ld: np.ndarray,
         N: np.ndarray,
@@ -1064,7 +1046,7 @@ class LD_Score_Regression:
         This must be implemented by subclasses such as `Hsq`.
 
         Args:
-            x (tuple): Output of `np.linalg.lstsq`.
+            x (tuple[Any, ...]): Output of `np.linalg.lstsq`.
             ref_ld_tot (np.ndarray): Reference LD design matrix used to
                 construct weights.
             w_ld (np.ndarray): LD-based weighting LD scores of shape (n_snp, 1).
@@ -1123,14 +1105,14 @@ class LD_Score_Regression:
         tot_se = float(np.sqrt(max(tot_cov, 0.0)))
         return tot, tot_cov, tot_se
 
-    def _intercept(self, jknife: Any) -> tuple[float, float]:
+    def _intercept(self, jknife: Any) -> tuple[Any, ...]:
         """Extract intercept and its standard error from jackknife.
 
         Args:
             jknife (Any): Jackknife object with `est` and `jknife_se` attributes.
 
         Returns:
-            tuple[float, float]: Intercept and its standard error.
+            tuple[Any, ...]: Intercept and its standard error.
         """
         n_annot = self.n_annot
         intercept = float(jknife.est[0, n_annot])
@@ -1177,7 +1159,7 @@ class LD_Score_Regression:
         pseudovalues = Jackknife.delete_values_to_pseudovalues(delete_values, est)
         jknife_est, jknife_var, jknife_se, jknife_cov = Jackknife.jknife(pseudovalues)
         Jknife = namedtuple(
-            "jknife",
+            "Jknife",
             [
                 "est",
                 "jknife_se",
@@ -1261,11 +1243,11 @@ class Hsq(LD_Score_Regression):
                 float(self.intercept), float(self.intercept_se), self.mean_chisq  # type: ignore[arg-type]
             )
         else:
-            self.ratio, self.ratio_se = "NA", "NA"
+            self.ratio, self.ratio_se = None, None
 
     def _update_func(
         self,
-        x: tuple,
+        x: tuple[Any, ...],
         ref_ld_tot: np.ndarray,
         w_ld: np.ndarray,
         N: np.ndarray,
@@ -1277,7 +1259,7 @@ class Hsq(LD_Score_Regression):
         """Update function for IRWLS used in LDSC heritability regression.
 
         Args:
-            x (tuple): Output of `np.linalg.lstsq`, where `x[0]` is the
+            x (tuple[Any, ...]): Output of `np.linalg.lstsq`, where `x[0]` is the
                 coefficient vector and the last element is the intercept when free.
             ref_ld_tot (np.ndarray): Total LD design matrix of shape
                 (n_snp, 1) or (n_snp, 2) if an intercept column is included.
@@ -1305,20 +1287,6 @@ class Hsq(LD_Score_Regression):
         ld = ref_ld_tot[:, 0].reshape(w_ld.shape)
         w = self.weights(ld, w_ld, N, M, float(hsq), intercept_eff, ii)
 
-        # debug summary of weights and coefficients
-        # w_np = np.asarray(w).ravel()
-        # w_mean = float(w_np.mean())
-        # w_min = float(w_np.min())
-        # w_max = float(w_np.max())
-        # q10, q50, q90 = np.quantile(w_np, [0.1, 0.5, 0.9])
-
-        # print(
-        #     f"[LDSC_Hsq] h2={float(hsq):.6g}, "
-        #     f"intercept={float(intercept_eff):.6g}, "
-        #     f"slope={float(x[0][0]):.6g}, "
-        #     f"w_mean={w_mean:.6g}, w_min={w_min:.6g}, w_max={w_max:.6g}, "
-        #     f"w_q10={q10:.6g}, w_q50={q50:.6g}, w_q90={q90:.6g}"
-        # )
         return w
 
     def _summarise_chisq(self, chisq: np.ndarray) -> tuple[float, float]:
@@ -1336,7 +1304,7 @@ class Hsq(LD_Score_Regression):
 
     def _ratio(
         self, intercept: float, intercept_se: float, mean_chisq: float
-    ) -> tuple[float | str, float | str]:
+    ) -> tuple[float | None, float | None]:
         """Compute LDSC ratio (intercept - 1) / (mean chi-square - 1).
 
         Args:
@@ -1345,15 +1313,15 @@ class Hsq(LD_Score_Regression):
             mean_chisq (float): Mean chi-square across SNPs.
 
         Returns:
-            tuple[float | str, float | str]:
-                ratio, ratio_se, or ("NA", "NA") if mean chi-square <= 1.
+            tuple[float | None, float | None]:
+                ratio, ratio_se, or (None, None) if mean chi-square <= 1.
         """
         if mean_chisq > 1:
             ratio_se = intercept_se / (mean_chisq - 1)
             ratio = (intercept - 1) / (mean_chisq - 1)
         else:
-            ratio = "NA"
-            ratio_se = "NA"
+            ratio = None
+            ratio_se = None
         return ratio, ratio_se
 
     def _update_weights(
@@ -1511,7 +1479,7 @@ def run_ldsc_h2_from_arrays(
     out: dict[str, Any] = {
         "h2": float(hsqhat.tot),
         "h2_se": float(hsqhat.tot_se),
-        "intercept": float(hsqhat.intercept),
+        "intercept": _as_float_or_none(hsqhat.intercept),
         "intercept_se": float(hsqhat.intercept_se),
         "slope": float(hsqhat.coef[0]),
         "slope_se": float(hsqhat.coef_se[0]),
