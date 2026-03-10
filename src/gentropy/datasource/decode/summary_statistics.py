@@ -347,8 +347,8 @@ class deCODESummaryStatistics:
             .alias("vd")
         )
         # Get the estimated number of distinct studies to set the number of partitions for the final join
-        n_sumstats = _sumstats.select("studyId").distinct().count()
-
+        n_sumstats = decode_study_index.df.count()
+        
         _flipped = (
             _sumstats.join(_vd, on=["chromosome", "rangeId", "variantId"], how="left")
             .select(
