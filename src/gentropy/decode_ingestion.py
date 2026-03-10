@@ -306,7 +306,7 @@ class deCODESummaryStatisticsHarmonisationStep:
         min_mac_threshold: int = 50,
         min_sample_size_threshold: int = 30_000,
         flipping_window_size: int = 10_000_000,
-        pval_threshold: float = 1e-6,
+        pval_threshold: float = 5e-8,
     ) -> None:
         """Initialise and execute the deCODE summary-statistics harmonisation step.
 
@@ -385,7 +385,7 @@ class deCODESummaryStatisticsHarmonisationStep:
         )
 
 
-class pQTLStudyIndexTrasformationStep:
+class pQTLStudyIndexTransformationStep:
     """Transform a `ProteinQuantitativeTraitLocusStudyIndex` into a standard `StudyIndex`.
 
     This step resolves gene-level annotations from the

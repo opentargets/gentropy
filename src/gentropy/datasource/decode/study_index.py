@@ -418,7 +418,7 @@ class deCODEStudyIndex:
                 # f.lit(None)
                 # .cast("array<struct<sampleSize:int,ancestry:string>>")
                 # .alias("replicationSamples"),
-                # f.lit(None).cast("array<string>").alias("qualityControls"),
+                f.lit(None).cast("array<string>").alias("qualityControls"),
                 # f.lit(None).cast("array<string>").alias("aalysisFlags"),
                 "summarystatsLocation",
                 "hasSumstats",
@@ -448,6 +448,9 @@ class deCODEStudyIndex:
         {projectId}_{datasourceType}_{aptamerId}_{geneSymbols}_{proteinNames}
 
         Where geneSymbols and proteinNames are comma-joined values from the targets array.
+        
+        In case the geneSymbol or proteinName are missing, we use the placeholder value "_NA" 
+        to maintain the structure of the study ID.
         """
         study_id_parts = deCODEStudyIdParts.extract_study_id_parts(study_id)
         return f.concat_ws(
@@ -455,6 +458,6 @@ class deCODEStudyIndex:
             study_id_parts.project_id,
             study_id_parts.datasource_type,
             study_id_parts.aptamer_id,
-            f.concat_ws(",", f.transform(targets, lambda x: x.getField("geneSymbol"))),
-            f.concat_ws(",", f.transform(targets, lambda x: x.getField("proteinName"))),
+            f.concat_ws(",", f.transform(targets, lambda x: f.coalesce(x.getField("geneSymbol"), f.lit("_NA")))),
+            f.concat_ws(",", f.transform(targets, lambda x: f.coalesce(x.getField("proteinId"), f.lit("_NA")))),
         ).alias("updatedStudyId")

@@ -50,7 +50,7 @@ class deCODEPublicationMetadata(BaseModel):
     """Title of the deCODE proteomics publication."""
     PUB_FIRST_AUTHOR: str = "Eldjarn GH, Ferkingstad E"
     """First author(s) of the deCODE proteomics publication."""
-    PUB_DATE: str = "2024"
+    PUB_DATE: str = "2023"
     """Publication date of the deCODE proteomics study."""
     PUB_JOURNAL: str = "Nature"
     """Journal where the deCODE proteomics study was published."""

@@ -25,7 +25,7 @@ def assert_sumstat_equal(l1: list[Row], l2: list[Row]) -> bool:
     for row1, row2 in zip(sorted_l1, sorted_l2, strict=True):
         for field in SummaryStatistics.get_schema().fieldNames():
             if isinstance(row1[field], float) and isinstance(row2[field], float):
-                cmp = row1[field] - row2[field] == pytest.approx(0, abs=1e5)
+                cmp = row1[field] - row2[field] == pytest.approx(0, abs=1e-5)
             else:
                 cmp = row1[field] == row2[field]
             assert cmp, (

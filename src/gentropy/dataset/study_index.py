@@ -652,9 +652,9 @@ class StudyIndex(Dataset):
         )
 
         # Annotate study index with QC information:
-        return StudyIndex(
+        return self.__class__(
             _df=df,
-            _schema=StudyIndex.get_schema(),
+            _schema=self.__class__.get_schema(),
         )
 
     @qc_test
@@ -908,12 +908,12 @@ class ProteinQuantitativeTraitLocusStudyIndex(StudyIndex):
             )
             .join(symbol_id_lut, on="geneSymbol", how="left")
             .withColumn("geneId", f.coalesce("geneIdFromSource", "geneId"))
-            .drop("geneIdFromSource", "geneSymbol")
             .withColumn(
                 "ambiguousGeneIdMapping",
                 f.size(f.collect_set("geneId").over(Window.partitionBy("geneSymbol")))
                 > 1,
             )
+            .drop("geneIdFromSource", "geneSymbol")
             .persist()
         )
         symbol_id_lut.unpersist()

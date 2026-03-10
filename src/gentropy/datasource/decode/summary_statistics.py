@@ -134,7 +134,7 @@ class deCODESummaryStatistics:
                 f"Converting gzipped summary statistics to Parquet from {input_path} to {output_path}."
             )
             project_id = f.when(
-                f.input_file_name().contains("PROTEOMICS_SMP"),
+                f.input_file_name().contains("Proteomics_SMP"),
                 f.lit(deCODEDataSource.DECODE_PROTEOMICS_SMP.value),
             ).otherwise(deCODEDataSource.DECODE_PROTEOMICS_RAW.value)
             (
@@ -170,7 +170,7 @@ class deCODESummaryStatistics:
                     ),
                 )
                 # Ensure that the size of each partition is ~100Mb
-                .repartitionByRange(15, "Chrom", "POS")
+                .repartitionByRange(15, "Chrom", "Pos")
                 .write.mode("append")
                 .partitionBy("studyId")
                 .parquet(output_path)
@@ -179,7 +179,7 @@ class deCODESummaryStatistics:
         with ThreadPoolExecutor(max_workers=n_threads) as pool:
             pool.map(
                 lambda path: process_one(path, raw_summary_statistics_output_path),
-                summary_statistics_list[:2],
+                summary_statistics_list,
             )
 
     @classmethod
@@ -346,6 +346,9 @@ class deCODESummaryStatistics:
             .persist()
             .alias("vd")
         )
+        # Get the estimated number of distinct studies to set the number of partitions for the final join
+        n_sumstats = _sumstats.select("studyId").distinct().count()
+        
         _flipped = (
             _sumstats.join(_vd, on=["chromosome", "rangeId", "variantId"], how="left")
             .select(
@@ -380,7 +383,7 @@ class deCODESummaryStatistics:
             )
             .sort("studyId", "chromosome", "position")
             # Approximate number of partitions = 15 * number of studies
-            .repartitionByRange(5012 * 10, "studyId", "chromosome", "position")
+            .repartitionByRange(n_sumstats * 10, "studyId", "chromosome", "position")
         )
 
         si = decode_study_index.df.withColumn(
@@ -389,6 +392,8 @@ class deCODESummaryStatistics:
                 f.col("studyId"), f.col("targetsFromSource")
             ),
         )
+        _vd.unpersist()
+        _sumstats.unpersist()
 
         _harmonised = SummaryStatistics(
             _df=SummaryStatistics(_flipped)
@@ -398,12 +403,16 @@ class deCODESummaryStatistics:
                 on="studyId",
                 how="left",
             )
-            .drop("studyId")
-            .withColumnRenamed("updatedStudyId", "studyId")
+            # In case the sumstat was not found in studyIndex, resolve with original studyId
+            # To avoid losing summary statistics data.
+            .withColumn("studyId", f.coalesce(f.col("updatedStudyId"), f.col("studyId")))
+            .drop("updatedStudyId")
+            .persist()
         )
 
         _pqtl_si = ProteinQuantitativeTraitLocusStudyIndex(
             _df=si.drop("studyId").withColumnRenamed("updatedStudyId", "studyId")
+            .persist()
         )
 
         return (_harmonised, _pqtl_si)

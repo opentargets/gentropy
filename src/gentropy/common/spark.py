@@ -973,5 +973,6 @@ def safe_split(c: Column, char: str) -> Column:
     """
     if not isinstance(char, str):
         raise TypeError("`char` must be a string.")
+    char = re.escape(char)
     pat = rf"{char}?\s+{char}?"
     return f.split(f.regexp_replace(f.trim(c), pat, char), char)
