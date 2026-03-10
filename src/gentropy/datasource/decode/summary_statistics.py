@@ -318,7 +318,7 @@ class deCODESummaryStatistics:
             # This should reduce the number of variants from ~33mln to ~25mln
             .filter(f.col("sampleSize") >= config.min_sample_size)
             .filter(mac(f.col("impMAF"), f.col("sampleSize")) >= config.min_mac)
-            .repartitionByRange(n_sumstats * 300 * 22, "chromosome", "rangeId", "studyId", "variantId")            
+            .repartitionByRange(n_sumstats * 300 * 22, "chromosome", "rangeId", "studyId", "variantId")
             .persist()
             .alias("sumstats")
         )
@@ -349,7 +349,7 @@ class deCODESummaryStatistics:
             .alias("vd")
         )
 
-        
+
         _flipped = (
             _sumstats.join(_vd, on=["chromosome", "rangeId", "variantId"], how="left")
             .select(
