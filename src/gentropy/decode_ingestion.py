@@ -363,7 +363,9 @@ class deCODESummaryStatisticsHarmonisationStep:
         rss.unpersist()
         gvd.unpersist()
 
-        hss.df.write.mode(session.write_mode).partitionBy("studyId").parquet(
+        hss.df.write.mode(session.write_mode).partitionBy("studyId").option(
+            "maxRecordsPerFile", 50_000_000
+        ).parquet(
             harmonised_summary_statistics_path
         )
 
