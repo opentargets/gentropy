@@ -354,14 +354,12 @@ class deCODESummaryStatisticsHarmonisationStep:
         mc.unpersist()
 
         # 2. Produce harmonised summary statistics
-        gvd = VariantDirection.from_parquet(session, variant_direction_path).persist()
-        rss = session.spark.read.parquet(raw_summary_statistics_path).persist()
+        gvd = VariantDirection.from_parquet(session, variant_direction_path)
+        rss = session.spark.read.parquet(raw_summary_statistics_path)
         hss, pqtl_si = deCODESummaryStatistics.from_source(rss, gvd, _pqtl_si, config)
 
         hss.persist()
         pqtl_si.persist()
-        rss.unpersist()
-        gvd.unpersist()
 
         hss.df.write.mode(session.write_mode).partitionBy("studyId").option(
             "maxRecordsPerFile", 50_000_000

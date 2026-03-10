@@ -277,6 +277,8 @@ class deCODESummaryStatistics:
                 A 2-tuple of the harmonised summary statistics and the study index
                 with updated, curated study IDs.
         """
+        # Get the estimated number of distinct studies to set the number of partitions for the final join
+        n_sumstats = decode_study_index.df.count()
         pval = pvalue_from_neglogpval(f.col("neglogPval"))
         _sumstats = (
             raw_summary_statistics.select(
@@ -316,7 +318,7 @@ class deCODESummaryStatistics:
             # This should reduce the number of variants from ~33mln to ~25mln
             .filter(f.col("sampleSize") >= config.min_sample_size)
             .filter(mac(f.col("impMAF"), f.col("sampleSize")) >= config.min_mac)
-            .repartitionByRange(10_000, "chromosome", "rangeId")
+            .repartitionByRange(n_sumstats * 300 * 22, "chromosome", "rangeId", "studyId", "variantId")            
             .persist()
             .alias("sumstats")
         )
@@ -342,13 +344,12 @@ class deCODESummaryStatistics:
             # NOTE: repartition("chromosome") produces very uneven partitions,
             # Spark attempts then to fall back to `dynamic partitioning` algorithm
             # which fails after N failures.
-            .repartitionByRange(10_000, "chromosome", "rangeId")
+            .repartitionByRange(n_sumstats * 300 * 22, "chromosome", "rangeId", "variantId")
             .persist()
             .alias("vd")
         )
-        # Get the estimated number of distinct studies to set the number of partitions for the final join
-        n_sumstats = decode_study_index.df.count()
 
+        
         _flipped = (
             _sumstats.join(_vd, on=["chromosome", "rangeId", "variantId"], how="left")
             .select(
