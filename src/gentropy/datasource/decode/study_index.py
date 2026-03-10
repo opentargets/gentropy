@@ -448,8 +448,8 @@ class deCODEStudyIndex:
         {projectId}_{datasourceType}_{aptamerId}_{geneSymbols}_{proteinNames}
 
         Where geneSymbols and proteinNames are comma-joined values from the targets array.
-        
-        In case the geneSymbol or proteinName are missing, we use the placeholder value "_NA" 
+
+        In case the geneSymbol or proteinName are missing, we use the placeholder value "_NA"
         to maintain the structure of the study ID.
         """
         study_id_parts = deCODEStudyIdParts.extract_study_id_parts(study_id)
