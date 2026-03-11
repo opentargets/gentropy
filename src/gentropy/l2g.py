@@ -21,8 +21,8 @@ from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import StudyLocus
 from gentropy.dataset.target_index import TargetIndex
 from gentropy.dataset.variant_index import VariantIndex
-from gentropy.external.hf_hub.credentials import HuggingFaceHubCredentials
-from gentropy.external.wandb.credentials import WandbCredentials
+from gentropy.external.hf_hub import HuggingFaceHubCredentials
+from gentropy.external.wandb import WandbCredentials
 from gentropy.method.l2g.feature_factory import L2GFeatureInputLoader
 from gentropy.method.l2g.model import LocusToGeneModel
 from gentropy.method.l2g.trainer import LocusToGeneTrainer
