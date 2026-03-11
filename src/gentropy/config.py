@@ -297,6 +297,8 @@ class LocusToGeneConfig(StepConfig):
     download_from_hub: bool = True
     cross_validate: bool = True
     explain_predictions: bool | None = False
+    wandb_credentials_path: str | None = None
+    hf_hub_credentials_path: str | None = None
     _target_: str = "gentropy.l2g.LocusToGeneStep"
 
 
