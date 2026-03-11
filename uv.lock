@@ -1003,7 +1003,6 @@ name = "gentropy"
 version = "0.0.0"
 source = { editable = "." }
 dependencies = [
-    { name = "google-cloud-secret-manager" },
     { name = "google-cloud-storage" },
     { name = "hail" },
     { name = "huggingface-hub" },
@@ -1012,6 +1011,7 @@ dependencies = [
     { name = "numpy" },
     { name = "omegaconf" },
     { name = "pandas", extra = ["gcp", "parquet"] },
+    { name = "pydantic" },
     { name = "pyliftover" },
     { name = "pyspark", extra = ["pandas-on-spark"] },
     { name = "scikit-learn" },
@@ -1064,7 +1064,6 @@ test = [
 
 [package.metadata]
 requires-dist = [
-    { name = "google-cloud-secret-manager", specifier = ">=2.12.6,<2.26.0" },
     { name = "google-cloud-storage", specifier = ">=2.14.0,<3.4.0" },
     { name = "hail", specifier = ">=0.2.136" },
     { name = "huggingface-hub", specifier = ">=0.27.1" },
@@ -1073,6 +1072,7 @@ requires-dist = [
     { name = "numpy", specifier = ">=2.3.0" },
     { name = "omegaconf", specifier = ">=2.3.0,<2.4.0" },
     { name = "pandas", extras = ["gcp", "parquet"], specifier = ">=2.2.3,<2.4.0" },
+    { name = "pydantic", specifier = ">=2.0.0,<3.0.0" },
     { name = "pyliftover", specifier = ">=0.4.1,<0.5.0" },
     { name = "pyspark", extras = ["pandas-on-spark"], specifier = ">=3.5.0,<3.6" },
     { name = "scikit-learn", specifier = ">=1.6.1,<1.8.0" },
@@ -1241,23 +1241,6 @@ wheels = [
 ]
 
 [[package]]
-name = "google-cloud-secret-manager"
-version = "2.25.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "google-api-core", extra = ["grpc"] },
-    { name = "google-auth" },
-    { name = "grpc-google-iam-v1" },
-    { name = "grpcio" },
-    { name = "proto-plus" },
-    { name = "protobuf" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/c3/7c/be2d11415eec83c400d315cf9876ba29742bc7af90df391d357763463cd2/google_cloud_secret_manager-2.25.0.tar.gz", hash = "sha256:a3792bb1cb307326908297a61536031ac94852c22248f04ae112ff51a853b561", size = 269853, upload-time = "2025-10-14T15:42:59.511Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/fe/74/bf87966a6ee48c98d1b8a6a1839256911e9a2a205be76b21e54f58171615/google_cloud_secret_manager-2.25.0-py3-none-any.whl", hash = "sha256:eaf1adce3ff5dc0f24335709eba3410dc7e9d20aeea3e8df5b758e27080ebf14", size = 218548, upload-time = "2025-10-14T15:42:47.839Z" },
-]
-
-[[package]]
 name = "google-cloud-storage"
 version = "3.3.1"
 source = { registry = "https://pypi.org/simple" }
@@ -1325,11 +1308,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/c4/ab/09169d5a4612a5f92490806649ac8d41e3ec9129c636754575b3553f4ea4/googleapis_common_protos-1.72.0-py3-none-any.whl", hash = "sha256:4299c5a82d5ae1a9702ada957347726b167f9f8d1fc352477702a1e851ff4038", size = 297515, upload-time = "2025-11-06T18:29:13.14Z" },
 ]
 
-[package.optional-dependencies]
-grpc = [
-    { name = "grpcio" },
-]
-
 [[package]]
 name = "griffe"
 version = "1.15.0"
@@ -1340,20 +1318,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/0d/0c/3a471b6e31951dce2360477420d0a8d1e00dea6cf33b70f3e8c3ab6e28e1/griffe-1.15.0.tar.gz", hash = "sha256:7726e3afd6f298fbc3696e67958803e7ac843c1cfe59734b6251a40cdbfb5eea", size = 424112, upload-time = "2025-11-10T15:03:15.52Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/9c/83/3b1d03d36f224edded98e9affd0467630fc09d766c0e56fb1498cbb04a9b/griffe-1.15.0-py3-none-any.whl", hash = "sha256:6f6762661949411031f5fcda9593f586e6ce8340f0ba88921a0f2ef7a81eb9a3", size = 150705, upload-time = "2025-11-10T15:03:13.549Z" },
-]
-
-[[package]]
-name = "grpc-google-iam-v1"
-version = "0.14.3"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "googleapis-common-protos", extra = ["grpc"] },
-    { name = "grpcio" },
-    { name = "protobuf" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/76/1e/1011451679a983f2f5c6771a1682542ecb027776762ad031fd0d7129164b/grpc_google_iam_v1-0.14.3.tar.gz", hash = "sha256:879ac4ef33136c5491a6300e27575a9ec760f6cdf9a2518798c1b8977a5dc389", size = 23745, upload-time = "2025-10-15T21:14:53.318Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/4a/bd/330a1bbdb1afe0b96311249e699b6dc9cfc17916394fd4503ac5aca2514b/grpc_google_iam_v1-0.14.3-py3-none-any.whl", hash = "sha256:7a7f697e017a067206a3dfef44e4c634a34d3dee135fe7d7a4613fe3e59217e6", size = 32690, upload-time = "2025-10-15T21:14:51.72Z" },
 ]
 
 [[package]]

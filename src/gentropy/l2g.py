@@ -21,7 +21,8 @@ from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import StudyLocus
 from gentropy.dataset.target_index import TargetIndex
 from gentropy.dataset.variant_index import VariantIndex
-from gentropy.external.gcs import access_gcp_secret
+from gentropy.external.hf_hub import HuggingFaceHubCredentials
+from gentropy.external.wandb import WandbCredentials
 from gentropy.method.l2g.feature_factory import L2GFeatureInputLoader
 from gentropy.method.l2g.model import LocusToGeneModel
 from gentropy.method.l2g.trainer import LocusToGeneTrainer
@@ -152,6 +153,8 @@ class LocusToGeneStep:
         hf_model_commit_message: str | None = "chore: update model",
         hf_model_version: str | None = None,
         explain_predictions: bool | None = None,
+        wandb_credentials_path: str | None = None,
+        hf_hub_credentials_path: str | None = None,
     ) -> None:
         """Initialise the step and run the logic based on mode.
 
@@ -175,6 +178,8 @@ class LocusToGeneStep:
             hf_model_commit_message (str | None): Commit message when we upload the model to the Hugging Face Hub
             hf_model_version (str | None): Tag, branch, or commit hash to download the model from the Hub. If None, the latest commit is downloaded.
             explain_predictions (bool | None): Whether to extract SHAP importances for the L2G predictions. This is computationally expensive.
+            wandb_credentials_path (str | None): Path to a JSON file containing W&B credentials (``{"api_key": "..."}``) . When None, W&B tracking is skipped even if *wandb_run_name* is set.
+            hf_hub_credentials_path (str | None): Path to a JSON file containing Hugging Face Hub credentials (``{"token": "..."}``) . When None, model download/upload via the Hub is skipped.
 
         Raises:
             ValueError: If run_mode is not 'train' or 'predict'
@@ -205,6 +210,8 @@ class LocusToGeneStep:
         )
         self.hf_model_version = hf_model_version
         self.explain_predictions = explain_predictions
+        self.wandb_credentials_path = wandb_credentials_path
+        self.hf_hub_credentials_path = hf_hub_credentials_path
 
         # Load common inputs
         self.credible_set = StudyLocus.from_parquet(
@@ -350,9 +357,37 @@ class LocusToGeneStep:
         self.session.logger.info("L2G predictions saved successfully.")
 
     def _get_hf_token(self) -> str | None:
-        if self.download_from_hub:
-            return access_gcp_secret("hfhub-key", "open-targets-genetics-dev")
-        return None
+        """Return the Hugging Face Hub token when Hub access is required.
+
+        Resolution order when *download_from_hub* is True:
+        1. Load from *hf_hub_credentials_path* JSON file (if provided).
+        2. Fall back to the ``HF_TOKEN`` environment variable.
+        3. Raise :class:`ValueError` if neither source is available.
+
+        Returns:
+            str | None: The HF Hub token, or ``None`` when *download_from_hub*
+                is ``False``.
+
+        Raises:
+            ValueError: When *download_from_hub* is ``True`` but no credentials
+                file was provided and the ``HF_TOKEN`` environment variable is
+                not set.
+        """
+        import os
+
+        if not self.download_from_hub:
+            return None
+        if self.hf_hub_credentials_path:
+            return HuggingFaceHubCredentials.from_json(
+                self.hf_hub_credentials_path
+            ).token
+        env_token = os.environ.get("HF_TOKEN")
+        if env_token:
+            return env_token
+        raise ValueError(
+            "Hugging Face Hub token is required when download_from_hub=True. "
+            "Provide hf_hub_credentials_path or set the HF_TOKEN environment variable."
+        )
 
     def run_train(self) -> None:
         """Run the training step.
@@ -364,8 +399,20 @@ class LocusToGeneStep:
             raise ValueError("Features list is required for model training.")
         # Initialize access to weights and biases
         if self.wandb_run_name:
-            wandb_key = access_gcp_secret("wandb-key", "open-targets-genetics-dev")
-            wandb_login(key=wandb_key)
+            if self.wandb_credentials_path:
+                wandb_login(
+                    key=WandbCredentials.from_json(self.wandb_credentials_path).api_key
+                )
+            else:
+                import os
+
+                wandb_key = os.environ.get("WANDB_API_KEY")
+                if not wandb_key:
+                    raise ValueError(
+                        "W&B API key is required when wandb_run_name is set. "
+                        "Provide wandb_credentials_path or set the WANDB_API_KEY environment variable."
+                    )
+                wandb_login(key=wandb_key)
 
         # Instantiate classifier and train model
         l2g_model = LocusToGeneModel(
@@ -385,10 +432,8 @@ class LocusToGeneStep:
         # Export the model
         if trained_model.training_data and trained_model.model and self.model_path:
             trained_model.save(self.model_path)
-            if self.hf_hub_repo_id and self.hf_model_commit_message:
-                hf_hub_token = access_gcp_secret(
-                    "hfhub-key", "open-targets-genetics-dev"
-                )
+            hf_hub_token = self._get_hf_token()
+            if self.hf_hub_repo_id and self.hf_model_commit_message and hf_hub_token:
                 trained_model.export_to_hugging_face_hub(
                     # we upload the model saved in the filesystem
                     self.model_path.split("/")[-1],
