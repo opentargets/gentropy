@@ -126,12 +126,9 @@ from __future__ import annotations
 from gentropy import (
     Session,
     SummaryStatisticsQC,
-    TargetIndex,
 )
 from gentropy.dataset.molecular_complex import MolecularComplex
-from gentropy.dataset.study_index import ProteinQuantitativeTraitLocusStudyIndex
 from gentropy.dataset.variant_direction import VariantDirection
-from gentropy.datasource.complex_portal import ComplexTab
 from gentropy.datasource.decode.aptamer_metadata import AptamerMetadata
 from gentropy.datasource.decode.manifest import deCODEManifest
 from gentropy.datasource.decode.study_index import deCODEStudyIndex
@@ -241,40 +238,6 @@ class deCODESummaryStatisticsIngestionStep:
         )
 
 
-class MolecularComplexIngestionStep:
-    """Ingest predicted and experimental protein-complex data into a `MolecularComplex` Parquet dataset.
-
-    The molecular complex dataset is used during study-index creation to annotate
-    multi-protein aptamers with a ``molecularComplexId``.
-    """
-
-    def __init__(
-        self,
-        session: Session,
-        predicted_complex_tab_path: str,
-        experimental_complex_tab_path: str,
-        output_path: str,
-    ) -> None:
-        """Initialise and execute the molecular complex ingestion step.
-
-        Args:
-            session (Session): Active Gentropy Spark session.
-            predicted_complex_tab_path (str): Path to the predicted protein-complex
-                tab-separated file.
-            experimental_complex_tab_path (str): Path to the experimental protein-complex
-                tab-separated file.
-            output_path (str): Destination path for the merged
-                `MolecularComplex` Parquet dataset.
-        """
-        ComplexTab.from_complex_tab(
-            session=session,
-            experimental=experimental_complex_tab_path,
-            predicted=predicted_complex_tab_path,
-        ).coalesce(session.output_partitions).df.write.mode("overwrite").parquet(
-            output_path
-        )
-
-
 class deCODESummaryStatisticsHarmonisationStep:
     """Harmonise ingested deCODE summary statistics and generate pQTL study-index and QC outputs.
 
@@ -363,9 +326,7 @@ class deCODESummaryStatisticsHarmonisationStep:
 
         hss.df.write.mode(session.write_mode).partitionBy("studyId").option(
             "maxRecordsPerFile", 50_000_000
-        ).parquet(
-            harmonised_summary_statistics_path
-        )
+        ).parquet(harmonised_summary_statistics_path)
 
         # 3. Run QualityControl
         hss_qc = SummaryStatisticsQC.from_summary_statistics(
@@ -381,40 +342,3 @@ class deCODESummaryStatisticsHarmonisationStep:
             .write.mode(session.write_mode)
             .parquet(protein_qtl_study_index_path)
         )
-
-
-class pQTLStudyIndexTransformationStep:
-    """Transform a `ProteinQuantitativeTraitLocusStudyIndex` into a standard `StudyIndex`.
-
-    This step resolves gene-level annotations from the
-    `TargetIndex` (e.g. Ensembl gene IDs) and
-    writes a study index compatible with the downstream Open Targets genetics pipeline.
-    """
-
-    def __init__(
-        self,
-        session: Session,
-        protein_study_index_path: str,
-        study_index_path: str,
-        target_index_path: str,
-    ) -> None:
-        """Initialise and execute the pQTL study-index transformation step.
-
-        Args:
-            session (Session): Active Gentropy Spark session.
-            protein_study_index_path (str): Path to the
-                `ProteinQuantitativeTraitLocusStudyIndex`
-                Parquet dataset produced by `deCODESummaryStatisticsHarmonisationStep`.
-            study_index_path (str): Destination path for the resolved
-                `StudyIndex` Parquet dataset.
-            target_index_path (str): Path to the
-                `TargetIndex` Parquet dataset used
-                to map gene symbols to Ensembl gene IDs.
-        """
-        pqtl = ProteinQuantitativeTraitLocusStudyIndex.from_parquet(
-            session, protein_study_index_path
-        )
-        ti = TargetIndex.from_parquet(session, target_index_path)
-
-        s = pqtl.to_study(ti)
-        s.df.coalesce(1).write.mode(session.write_mode).parquet(study_index_path)
