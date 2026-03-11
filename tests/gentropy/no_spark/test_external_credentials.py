@@ -6,10 +6,10 @@ import json
 from pathlib import Path
 
 import pytest
+from gentropy.external.wandb import WandbCredentials
 from pydantic import ValidationError
 
 from gentropy.external.hf_hub import HuggingFaceHubCredentials
-from gentropy.external.wandb import WandbCredentials
 
 DATA_SAMPLES = Path(__file__).parent.parent / "data_samples"
 WANDB_CREDENTIALS_PATH = DATA_SAMPLES / "wandb_credentials.json"
