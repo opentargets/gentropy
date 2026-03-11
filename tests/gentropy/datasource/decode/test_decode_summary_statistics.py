@@ -182,7 +182,7 @@ class TestdeCODESummaryStatistics:
     expected_harm_rows = [
         # This allele is flipped with regards to source (variantId + beta sign)
         Row(
-            studyId="deCODE-proteomics-smp_Proteomics_SMP_PC0_10000-2_GENE1_PROTEIN1",
+            studyId="deCODE-proteomics-smp_Proteomics_SMP_PC0_10000-2_GENE1_P12345",
             variantId="1_1111_T_C",
             chromosome="1",
             position=1111,
@@ -195,7 +195,7 @@ class TestdeCODESummaryStatistics:
         ),
         # This allele does not have anything changed, is found in variant direction
         Row(
-            studyId="deCODE-proteomics-smp_Proteomics_SMP_PC0_10000-2_GENE1_PROTEIN1",
+            studyId="deCODE-proteomics-smp_Proteomics_SMP_PC0_10000-2_GENE1_P12345",
             variantId="1_455948_G_C",
             chromosome="1",
             position=455948,
@@ -208,7 +208,7 @@ class TestdeCODESummaryStatistics:
         ),
         # This allele does not have anything changed, is not found in variant direction
         Row(
-            studyId="deCODE-proteomics-smp_Proteomics_SMP_PC0_10000-2_GENE1_PROTEIN1",
+            studyId="deCODE-proteomics-smp_Proteomics_SMP_PC0_10000-2_GENE1_P12345",
             variantId="1_455949_G_C",
             chromosome="1",
             position=455949,
@@ -305,7 +305,7 @@ class TestdeCODESummaryStatistics:
         session.spark.createDataFrame(self.expected_harm_rows).toPandas().to_csv(
             input_path, sep="\t", compression="gzip"
         )
-        assert input_path, "Parquet file should be created"
+        assert input_path.exists(), "Parquet file should be created"
         deCODESummaryStatistics.txtgz_to_parquet(
             session, [input_path.as_posix()], output_path.as_posix(), n_threads=1
         )

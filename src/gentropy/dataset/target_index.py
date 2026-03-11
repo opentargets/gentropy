@@ -100,7 +100,7 @@ class TargetIndex(Dataset):
 
         """
         if include_par_chr not in ("X", "Y"):
-            raise ValueError("include_par_chromosome must be either 'X' or 'Y'")
+            raise ValueError("include_par_chr must be either 'X' or 'Y'")
 
         # Condition checks if there are multiple chromosomes for the same proteinId, example: ASMTL gene
         # [ENSG00000169093, ENSG00000292339] mapped to X and Y due to PAR region.
@@ -119,9 +119,10 @@ class TargetIndex(Dataset):
             )
             .withColumnRenamed("id", "proteinId")
             .select(
-                "geneId",
-                "proteinId",
+                f.col("geneId"),
+                f.col("proteinId"),
                 is_par.alias("isPAR"),
+                f.col("chromosome"),
             )
         )
         if include_par_chr:

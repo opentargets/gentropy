@@ -22,7 +22,7 @@ must be executed in order:
 3. **Ingest protein-complex data** from predicted and experimental files using `MolecularComplexIngestionStep`.
 4. **Ingest raw summary statistics** from the `txt.gz` files to Parquet using `deCODESummaryStatisticsIngestionStep`.
 5. **Harmonise summary statistics** (including study-index creation and QC) using `deCODESummaryStatisticsHarmonisationStep`.
-6. **Transform the pQTL study index** into a standard study index using `pQTLStudyIndexTrasformationStep`.
+6. **Transform the pQTL study index** into a standard study index using `pQTLStudyIndexTransformationStep`.
 
 !!! note "Filtering variants"
     During the harmonisation step, variants with minor allele count (MAC) < 50 and sample size < 30,000
@@ -95,7 +95,7 @@ flowchart TD
   HARM --> O2
   HARM --> O3
 
-  O2 --> TRANS[pQTLStudyIndexTrasformationStep]
+  O2 --> TRANS[pQTLStudyIndexTransformationStep]
   A7 --> TRANS
   TRANS --> O4
 
@@ -109,7 +109,7 @@ flowchart TD
     - [x] **AptamerMetadata** — SomaScan study table mapping aptamer IDs to gene symbols and UniProt IDs.
     - [x] **gnomAD VariantDirection** — used for allele flipping and EAF inference during harmonisation.
     - [x] **Protein-complex tables** — predicted and experimental files for `MolecularComplexIngestionStep`.
-    - [x] **TargetIndex** — Ensembl gene annotations used by `pQTLStudyIndexTrasformationStep`.
+    - [x] **TargetIndex** — Ensembl gene annotations used by `pQTLStudyIndexTransformationStep`.
 
 ??? tip "Outputs"
     This pipeline produces 4 artefacts:

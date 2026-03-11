@@ -160,7 +160,7 @@ class TestdeCODEStudyIndexUpdateStudyId:
             t.StructType(
                 [
                     t.StructField("geneSymbol", t.StringType()),
-                    t.StructField("proteinName", t.StringType()),
+                    t.StructField("proteinId", t.StringType()),
                 ]
             )
         )
@@ -171,7 +171,7 @@ class TestdeCODEStudyIndexUpdateStudyId:
             ]
         )
         df = session.spark.createDataFrame(
-            [(study_id, [Row(geneSymbol="GENE1", proteinName="PROTEIN1")])],
+            [(study_id, [Row(geneSymbol="GENE1", proteinId="PROTEIN1")])],
             schema=schema,
         )
         row = df.select(
@@ -191,7 +191,7 @@ class TestdeCODEStudyIndexUpdateStudyId:
             t.StructType(
                 [
                     t.StructField("geneSymbol", t.StringType()),
-                    t.StructField("proteinName", t.StringType()),
+                    t.StructField("proteinId", t.StringType()),
                 ]
             )
         )
@@ -206,8 +206,8 @@ class TestdeCODEStudyIndexUpdateStudyId:
                 (
                     study_id,
                     [
-                        Row(geneSymbol="GENEA", proteinName="PROTEINA"),
-                        Row(geneSymbol="GENEB", proteinName="PROTEINB"),
+                        Row(geneSymbol="GENEA", proteinId="PROTEINA"),
+                        Row(geneSymbol="GENEB", proteinId="PROTEINB"),
                     ],
                 )
             ],

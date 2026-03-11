@@ -16,6 +16,10 @@ This section contains information about the data source harmonisation tools avai
 2. [UKB PPP (EUR)](ukb_ppp_eur/_ukb_ppp_eur.md)
 3. [deCODE proteomics](deCODE/_decode.md)
 
+## Protein complexes
+
+1. [Complex Portal](complex_portal/_complex_portal.md)
+
 ## Interaction / Interval-based Experiments
 
 1. [Intervals](intervals/_intervals.md)-based datasets, informing about the relationships between genetic elements and their functional implications.
