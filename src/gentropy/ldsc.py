@@ -133,6 +133,10 @@ class HeritabilityEstimateStep:
 
         ld_df = ld_df.withColumn("L2", F.col("L2").cast("double"))
 
+        M_ldsc = float(ld_df.select(chrom_col, pos_col, "ref", "alt")
+                     .dropDuplicates()
+                     .count())
+
         merged_ld = sumstats.join(
             ld_df.select(chrom_col, pos_col, "ref", "alt", "L2"),
             on=[chrom_col, pos_col, "ref", "alt"],
@@ -168,7 +172,7 @@ class HeritabilityEstimateStep:
         w_ld = w_raw / np.mean(w_raw)
 
         # Define M_ldsc as the number of SNPs actually used in the regression
-        M_ldsc = float(len(beta))
+        # M_ldsc = float(len(beta))
 
         res = run_ldsc_h2_from_arrays(
             beta=beta,
