@@ -92,14 +92,14 @@ class HeritabilityEstimateStep:
 
         row = (
             study_index_df.filter(F.col("studyId") == study_id)
-            .select("ldPopulationStructure")
+            .select("ldPopulationStructure", "analysisFlags")
             .first()
         )
+
         if row is None:
             raise ValueError(f"studyId {study_id} not found in study index")
 
-        ld_pop_struct = row["ldPopulationStructure"]
-        ancestry = self._infer_ld_ancestry(ld_pop_struct)
+        ancestry = self._get_study_ancestry(study_index_df, study_id)
 
         # Build LDscore path for this ancestry
         # e.g. "gs://.../gnomad.genomes.r2.1.1.nfe.adj.ld_scores.ldscore_hg38_hm3.csv.gz"
@@ -113,7 +113,10 @@ class HeritabilityEstimateStep:
             F.when(F.col(n_col).isNull(), F.col("nSamples").cast("double")).otherwise(
                 F.col(n_col).cast("double")
             ),
-        )
+        ).withColumn("variant_parts", F.split(F.col("variantId"), "_")
+        ).withColumn("ref", F.col("variant_parts").getItem(2)
+        ).withColumn("alt", F.col("variant_parts").getItem(3)
+        ).drop("variant_parts").filter(F.col("effectAlleleFrequencyFromSource") > 0.01)
 
         ld_df = spark.read.csv(ldscore_input_path, header=True, sep="\t")
 
@@ -131,8 +134,8 @@ class HeritabilityEstimateStep:
         ld_df = ld_df.withColumn("L2", F.col("L2").cast("double"))
 
         merged_ld = sumstats.join(
-            ld_df.select(chrom_col, pos_col, "L2"),
-            on=[chrom_col, pos_col],
+            ld_df.select(chrom_col, pos_col, "ref", "alt", "L2"),
+            on=[chrom_col, pos_col, "ref", "alt"],
             how="inner",
         )
 
@@ -263,7 +266,6 @@ class HeritabilityEstimateStep:
             "eas": "eas",
             "fin": "fin",
             "nfe": "nfe",
-            "asj": "nfe",
         }
 
         agg: dict[str, float] = {}
@@ -288,3 +290,31 @@ class HeritabilityEstimateStep:
             )
 
         return max(agg.items(), key=lambda kv: kv[1])[0]
+
+    def _get_study_ancestry(self, study_index_df: Any, study_id: str) -> str:
+        """Get study ancestry after validating study metadata.
+
+        Args:
+            study_index_df (Any): Study index DataFrame.
+            study_id (str): Study ID to validate and inspect.
+
+        Returns:
+            str: Canonical LD ancestry label inferred from ldPopulationStructure.
+        """
+        row = (
+            study_index_df.filter(F.col("studyId") == study_id)
+            .select("ldPopulationStructure", "analysisFlags")
+            .first()
+        )
+
+        if row is None:
+            raise ValueError(f"studyId {study_id} not found in study index")
+
+        analysis_flags = row["analysisFlags"]
+        if analysis_flags is not None and len(analysis_flags) > 0:
+            raise ValueError(
+                f"studyId {study_id} excluded from LDSC heritability estimation "
+                f"because analysisFlags={analysis_flags}"
+            )
+
+        return self._infer_ld_ancestry(row["ldPopulationStructure"])
