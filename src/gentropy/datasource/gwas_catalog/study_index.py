@@ -33,200 +33,26 @@ class StudyIndexGWASCatalogParser:
 
     """
 
-    @staticmethod
-    def _parse_discovery_samples(discovery_samples: Column) -> Column:
-        """Parse discovery sample sizes from GWAS Catalog.
-
-        This is a curated field. From publication sometimes it is not clear how the samples were split
-        across the reported ancestries. In such cases we are assuming the ancestries were evenly presented
-        and the total sample size is split:
-
-        ["European, African", 100] -> ["European, 50], ["African", 50]
+    @classmethod
+    def from_source(
+        cls: type[StudyIndexGWASCatalogParser],
+        catalog_studies: DataFrame,
+        ancestry_file: DataFrame,
+    ) -> StudyIndexGWASCatalog:
+        """Ingests study level metadata from the GWAS Catalog.
 
         Args:
-            discovery_samples (Column): Raw discovery sample sizes
+            catalog_studies (DataFrame): GWAS Catalog raw study table
+            ancestry_file (DataFrame): GWAS Catalog ancestry table.
 
         Returns:
-            Column: Parsed and de-duplicated list of discovery ancestries with sample size.
-
-        Examples:
-            >>> data = [('s1', "European", 10), ('s1', "African", 10), ('s2', "European, African, Asian", 100), ('s2', "European", 50)]
-            >>> df = (
-            ...    spark.createDataFrame(data, ['studyId', 'ancestry', 'sampleSize'])
-            ...    .groupBy('studyId')
-            ...    .agg(
-            ...        f.collect_set(
-            ...            f.struct('ancestry', 'sampleSize')
-            ...        ).alias('discoverySampleSize')
-            ...    )
-            ...    .orderBy('studyId')
-            ...    .withColumn('discoverySampleSize', StudyIndexGWASCatalogParser._parse_discovery_samples(f.col('discoverySampleSize')))
-            ...    .select('discoverySampleSize')
-            ...    .show(truncate=False)
-            ... )
-            +--------------------------------------------+
-            |discoverySampleSize                         |
-            +--------------------------------------------+
-            |[{African, 10}, {European, 10}]             |
-            |[{European, 83}, {African, 33}, {Asian, 33}]|
-            +--------------------------------------------+
-            <BLANKLINE>
+            StudyIndexGWASCatalog: Parsed and annotated GWAS Catalog study table.
         """
-        # To initialize return objects for aggregate functions, schema has to be defined:
-        schema = t.ArrayType(
-            t.StructType(
-                [
-                    t.StructField("ancestry", t.StringType(), True),
-                    t.StructField("sampleSize", t.IntegerType(), True),
-                ]
-            )
-        )
-
-        # Splitting comma separated ancestries:
-        exploded_ancestries = f.transform(
-            discovery_samples,
-            lambda sample: f.split(sample.ancestry, r",\s(?![^()]*\))"),
-        )
-
-        # Initialize discoverySample object from unique list of ancestries:
-        unique_ancestries = f.transform(
-            f.aggregate(
-                exploded_ancestries,
-                f.array().cast(t.ArrayType(t.StringType())),
-                lambda x, y: f.array_union(x, y),
-                f.array_distinct,
-            ),
-            lambda ancestry: f.struct(
-                ancestry.alias("ancestry"),
-                f.lit(0).alias("sampleSize"),
-            ),
-        )
-
-        # Computing sample sizes for ancestries when splitting is needed:
-        resolved_sample_count = f.transform(
-            f.arrays_zip(
-                f.transform(exploded_ancestries, lambda pop: f.size(pop)).alias(
-                    "pop_size"
-                ),
-                f.transform(discovery_samples, lambda pop: pop.sampleSize).alias(
-                    "pop_count"
-                ),
-            ),
-            lambda pop: (pop.pop_count / pop.pop_size).cast(t.IntegerType()),
-        )
-
-        # Flattening out ancestries with sample sizes:
-        parsed_sample_size = f.aggregate(
-            f.transform(
-                f.arrays_zip(
-                    exploded_ancestries.alias("ancestries"),
-                    resolved_sample_count.alias("sample_count"),
-                ),
-                StudyIndexGWASCatalogParser._merge_ancestries_and_counts,
-            ),
-            f.array().cast(schema),
-            lambda x, y: f.array_union(x, y),
-        )
-
-        # Normalize ancestries:
-        return f.aggregate(
-            parsed_sample_size,
-            unique_ancestries,
-            StudyIndexGWASCatalogParser._normalize_ancestries,
-        )
-
-    @staticmethod
-    def _normalize_ancestries(merged: Column, ancestry: Column) -> Column:
-        """Normalize ancestries from a list of structs.
-
-        As some ancestry label might be repeated with different sample counts,
-        these counts need to be collected.
-
-        Args:
-            merged (Column): Resulting list of struct with unique ancestries.
-            ancestry (Column): One ancestry object coming from raw.
-
-        Returns:
-            Column: Unique list of ancestries with the sample counts.
-        """
-        # Iterating over the list of unique ancestries and adding the sample size if label matches:
-        return f.transform(
-            merged,
-            lambda a: f.when(
-                a.ancestry == ancestry.ancestry,
-                f.struct(
-                    a.ancestry.alias("ancestry"),
-                    (a.sampleSize + ancestry.sampleSize)
-                    .cast(t.IntegerType())
-                    .alias("sampleSize"),
-                ),
-            ).otherwise(a),
-        )
-
-    @staticmethod
-    def _merge_ancestries_and_counts(ancestry_group: Column) -> Column:
-        """Merge ancestries with sample sizes.
-
-        After splitting ancestry annotations, all resulting ancestries needs to be assigned
-        with the proper sample size.
-
-        Args:
-            ancestry_group (Column): Each element is a struct with `sample_count` (int) and `ancestries` (list)
-
-        Returns:
-            Column: a list of structs with `ancestry` and `sampleSize` fields.
-
-        Examples:
-            >>> data = [(12, ['African', 'European']),(12, ['African'])]
-            >>> (
-            ...     spark.createDataFrame(data, ['sample_count', 'ancestries'])
-            ...     .select(StudyIndexGWASCatalogParser._merge_ancestries_and_counts(f.struct('sample_count', 'ancestries')).alias('test'))
-            ...     .show(truncate=False)
-            ... )
-            +-------------------------------+
-            |test                           |
-            +-------------------------------+
-            |[{African, 12}, {European, 12}]|
-            |[{African, 12}]                |
-            +-------------------------------+
-            <BLANKLINE>
-        """
-        # Extract sample size for the ancestry group:
-        count = ancestry_group.sample_count
-
-        # We need to loop through the ancestries:
-        return f.transform(
-            ancestry_group.ancestries,
-            lambda ancestry: f.struct(
-                ancestry.alias("ancestry"),
-                count.alias("sampleSize"),
-            ),
-        )
-
-    @staticmethod
-    def parse_cohorts(raw_cohort: Column) -> Column:
-        """Return a list of unique cohort labels from pipe separated list if provided.
-
-        Args:
-            raw_cohort (Column): Cohort list column, where labels are separated by `|` sign.
-
-        Returns:
-            Column: an array colun with string elements.
-
-        Examples:
-        >>> data = [('BioME|CaPS|Estonia|FHS|UKB|GERA|GERA|GERA',),(None,),]
-        >>> spark.createDataFrame(data, ['cohorts']).select(StudyIndexGWASCatalogParser.parse_cohorts(f.col('cohorts')).alias('parsedCohorts')).show(truncate=False)
-        +--------------------------------------+
-        |parsedCohorts                         |
-        +--------------------------------------+
-        |[BioME, CaPS, Estonia, FHS, UKB, GERA]|
-        |NULL                                  |
-        +--------------------------------------+
-        <BLANKLINE>
-        """
-        return f.when(
-            (raw_cohort.isNotNull()) & (raw_cohort != ""),
-            f.array_distinct(f.split(raw_cohort, r"\|")),
+        # Read GWAS Catalogue raw data
+        return (
+            cls._parse_study_table(catalog_studies)
+            .annotate_ancestries(ancestry_file)
+            .annotate_discovery_sample_sizes()
         )
 
     @classmethod
@@ -261,31 +87,35 @@ class StudyIndexGWASCatalogParser:
                 parse_efos(f.col("MAPPED BACKGROUND TRAIT URI")).alias(
                     "backgroundTraitFromSourceMappedIds"
                 ),
-                cls.parse_cohorts(f.col("COHORT")).alias("cohorts"),
+                cls._parse_cohorts(f.col("COHORT")).alias("cohorts"),
             ),
             _schema=StudyIndexGWASCatalog.get_schema(),
         )
 
-    @classmethod
-    def from_source(
-        cls: type[StudyIndexGWASCatalogParser],
-        catalog_studies: DataFrame,
-        ancestry_file: DataFrame,
-    ) -> StudyIndexGWASCatalog:
-        """Ingests study level metadata from the GWAS Catalog.
+    @staticmethod
+    def _parse_cohorts(raw_cohort: Column) -> Column:
+        """Return a list of unique cohort labels from pipe separated list if provided.
 
         Args:
-            catalog_studies (DataFrame): GWAS Catalog raw study table
-            ancestry_file (DataFrame): GWAS Catalog ancestry table.
+            raw_cohort (Column): Cohort list column, where labels are separated by `|` sign.
 
         Returns:
-            StudyIndexGWASCatalog: Parsed and annotated GWAS Catalog study table.
+            Column: an array colun with string elements.
+
+        Examples:
+        >>> data = [('BioME|CaPS|Estonia|FHS|UKB|GERA|GERA|GERA',),(None,),]
+        >>> spark.createDataFrame(data, ['cohorts']).select(StudyIndexGWASCatalogParser._parse_cohorts(f.col('cohorts')).alias('parsedCohorts')).show(truncate=False)
+        +--------------------------------------+
+        |parsedCohorts                         |
+        +--------------------------------------+
+        |[BioME, CaPS, Estonia, FHS, UKB, GERA]|
+        |NULL                                  |
+        +--------------------------------------+
+        <BLANKLINE>
         """
-        # Read GWAS Catalogue raw data
-        return (
-            cls._parse_study_table(catalog_studies)
-            .annotate_ancestries(ancestry_file)
-            .annotate_discovery_sample_sizes()
+        return f.when(
+            (raw_cohort.isNotNull()) & (raw_cohort != ""),
+            f.array_distinct(f.split(raw_cohort, r"\|")),
         )
 
 
@@ -472,6 +302,136 @@ class StudyIndexGWASCatalog(StudyIndex):
             )
         )
 
+    @staticmethod
+    def mark_ancestry(df: DataFrame, ancestry: str, ancestry_pattern: str) -> DataFrame:
+        """Mark if a specific ancestry is present.
+
+        Args:
+            df (DataFrame): Dataframe with ancestryFlag column.
+            ancestry (str): Ancestry to check for presence.
+            ancestry_pattern (str): Regex pattern to match ancestry in initialSampleDescription column.
+
+        Returns:
+            DataFrame: Dataframe with updated ancestryFlag column.
+        """
+        return df.withColumn(
+            "ancestryFlag",
+            f.when(
+                f.col("initialSampleDescription").rlike(ancestry_pattern),
+                f.array_distinct(
+                    f.array_append(
+                        f.col("ancestryFlag"), f.lit(ancestry).alias("name")
+                    ),
+                ),
+            ).otherwise(f.col("ancestryFlag")),
+        )
+
+    @staticmethod
+    def mark_single_ancestries(df: DataFrame, ancestry: str) -> DataFrame:
+        """Mark if only Finnish ancestry is present.
+
+        Args:
+            df (DataFrame): Dataframe with ancestryFlag column
+            ancestry (str): Ancestry to check for single presence
+
+        Returns:
+            DataFrame: Dataframe with new column `<ancestry>Only`
+        """
+        return df.withColumn(
+            f"{ancestry}Only",
+            (f.size(f.col("ancestryFlag")) == 1)
+            & (f.col("ancestryFlag")[0] == ancestry),
+        )
+
+    @staticmethod
+    def mark_other_ancestries(df: DataFrame) -> DataFrame:
+        """Mark if other ancestries are present.
+
+        Args:
+            df (DataFrame): Dataframe with ancestryFlag column.
+
+        Returns:
+            DataFrame: Dataframe with updated ancestryFlag column.
+        """
+        return df.withColumn(
+            "ancestryFlag",
+            f.when(
+                f.size(f.col("ancestryFlag")) == 0,
+                f.array_append(
+                    f.col("ancestryFlag"),
+                    f.lit("other").alias("name"),
+                ),
+            ).otherwise(f.col("ancestryFlag")),
+        )
+
+    @staticmethod
+    def mark_multi_ancestries(df: DataFrame) -> DataFrame:
+        """Mark if only Finnish ancestry is present.
+
+        Args:
+            df (DataFrame): Dataframe with ancestryFlag.
+
+        Returns:
+            DataFrame: Dataframe with new column `multiAncestry`.
+        """
+        return df.withColumn("multiAncestry", f.size(f.col("ancestryFlag")) > 1)
+
+    @staticmethod
+    def collate_other_ancestries(df: DataFrame) -> DataFrame:
+        """Collate ancestries into a single column.
+
+        Args:
+            df (DataFrame): Dataframe with ancestryFlag and multiAncestry columns.
+
+        Returns:
+            DataFrame: Dataframe with new column `ancestry`.
+        """
+        return df.withColumn(
+            "ancestry",
+            f.when(f.col("multiAncestry"), f.lit("European")).otherwise(
+                f.col("ancestryFlag").getItem(0)
+            ),
+        )
+
+    @classmethod
+    def deconvolute_european_ancestry(cls, ancestry: DataFrame) -> DataFrame:
+        """Deconvolute european ancestries from the initial sample description.
+
+        Args:
+            ancestry (DataFrame): Ancestry table as downloaded from the GWAS Catalog
+
+        Returns:
+            DataFrame: Deconvoluted ancestries with Finnish and European labels.
+
+        """
+        return (
+            ancestry.filter(f.col("stage") == "initial")
+            .filter(f.col("broadAncestralCategory").isin(["European"]))
+            .withColumn("ancestryFlag", f.array().cast(t.ArrayType(t.StringType())))
+            # First mark finnish ancestry
+            .transform(
+                cls.mark_ancestry,
+                "Finnish",
+                r"(?i)(?<!non[-\s])finnish([-\s]european)?",
+            )
+            # Next mark all other ancestries as other
+            .transform(cls.mark_other_ancestries)
+            # Next find where the Finnish ancestry is the only one present
+            # NOTE: this will only work when single-ancestries are all marked previously
+            .transform(cls.mark_single_ancestries, "Finnish")
+            # Next find where multiple ancestries are present
+            .transform(cls.mark_multi_ancestries)
+            # Next collate ancestries to get Finnish vs European
+            .transform(cls.collate_other_ancestries)
+            .select(
+                "studyId",
+                f.when(f.col("ancestry") == f.lit("Finnish"), f.lit("Finnish"))
+                .otherwise(f.lit("European"))
+                .alias("deconvolutedBroadAncestralCategory"),
+                f.lit("European").alias("broadAncestralCategory"),
+            )
+        )
+
     def annotate_ancestries(
         self: StudyIndexGWASCatalog, ancestry_lut: DataFrame
     ) -> StudyIndexGWASCatalog:
@@ -486,10 +446,6 @@ class StudyIndexGWASCatalog(StudyIndex):
         Returns:
             StudyIndexGWASCatalog: Slimmed and cleaned version of the ancestry annotation.
         """
-        from gentropy.datasource.gwas_catalog.study_index import (
-            StudyIndexGWASCatalogParser as GWASCatalogStudyIndexParser,
-        )
-
         ancestry = (
             ancestry_lut
             # Convert column headers to camelcase:
@@ -501,7 +457,23 @@ class StudyIndexGWASCatalog(StudyIndex):
                 "studyAccession", "studyId"
             )  # studyId has not been split yet
         )
-
+        # NOTE: Since we allow for two different european ancestries (Finnish and non-Finnish) LD,
+        # We need to deconvolute these:
+        # - Finnish - mapped to Finnish LD
+        # - Finnish + european - mapped to European LD
+        # - European - mapped to European LD
+        deconvoluted_ancestry = self.deconvolute_european_ancestry(ancestry)
+        ancestry = ancestry.join(
+            deconvoluted_ancestry,
+            on=["studyId", "broadAncestralCategory"],
+            how="left",
+        ).withColumn(
+            "broadAncestralCategory",
+            f.coalesce(
+                f.col("deconvolutedBroadAncestralCategory"),
+                f.col("broadAncestralCategory"),
+            ),
+        )
         # Get a high resolution dataset on experimental stage:
         ancestry_stages = (
             ancestry.groupBy("studyId")
@@ -518,9 +490,12 @@ class StudyIndexGWASCatalog(StudyIndex):
             )
             .withColumn(
                 "discoverySamples",
-                GWASCatalogStudyIndexParser._parse_discovery_samples(f.col("initial")),
+                self._parse_discovery_samples(f.col("initial")),
             )
             .withColumnRenamed("replication", "replicationSamples")
+        )
+        ancestry_stages = (
+            ancestry_stages
             # Mapping discovery stage ancestries to LD reference:
             .withColumn(
                 "ldPopulationStructure",
@@ -530,64 +505,7 @@ class StudyIndexGWASCatalog(StudyIndex):
             .persist()
         )
 
-        # Generate information on the ancestry composition of the discovery stage, and calculate
-        # the proportion of the Europeans:
-        europeans_deconvoluted = (
-            ancestry
-            # Focus on discovery stage:
-            .filter(f.col("stage") == "initial")
-            # Sorting ancestries if European:
-            .withColumn(
-                "ancestryFlag",
-                # Excluding finnish:
-                f.when(
-                    f.col("initialSampleDescription").contains("Finnish"),
-                    f.lit("other"),
-                )
-                # Excluding Icelandic population:
-                .when(
-                    f.col("initialSampleDescription").contains("Icelandic"),
-                    f.lit("other"),
-                )
-                # Including European ancestry:
-                .when(f.col("broadAncestralCategory") == "European", f.lit("european"))
-                # Exclude all other population:
-                .otherwise("other"),
-            )
-            # Grouping by study accession and initial sample description:
-            .groupBy("studyId")
-            .pivot("ancestryFlag")
-            .agg(
-                # Summarizing sample sizes for all ancestries:
-                f.sum(f.col("numberOfIndividuals"))
-            )
-            # Do arithmetics to make sure we have the right proportion of european in the set:
-            .withColumn(
-                "initialSampleCountEuropean",
-                f.when(f.col("european").isNull(), f.lit(0)).otherwise(
-                    f.col("european")
-                ),
-            )
-            .withColumn(
-                "initialSampleCountOther",
-                f.when(f.col("other").isNull(), f.lit(0)).otherwise(f.col("other")),
-            )
-            .withColumn(
-                "initialSampleCount",
-                f.col("initialSampleCountEuropean") + f.col("other"),
-            )
-            .drop(
-                "european",
-                "other",
-                "initialSampleCount",
-                "initialSampleCountEuropean",
-                "initialSampleCountOther",
-            )
-        )
-
-        parsed_ancestry_lut = ancestry_stages.join(
-            europeans_deconvoluted, on="studyId", how="outer"
-        ).select(
+        parsed_ancestry_lut = ancestry_stages.select(
             "studyId", "discoverySamples", "ldPopulationStructure", "replicationSamples"
         )
         self.df = self.df.join(parsed_ancestry_lut, on="studyId", how="left")
@@ -687,3 +605,176 @@ class StudyIndexGWASCatalog(StudyIndex):
         """
         accesions = f.expr(rf"regexp_extract_all({sumstats_path_column}, '(GCST\\d+)')")
         return accesions[f.size(accesions) - 1]
+
+    @staticmethod
+    def _parse_discovery_samples(discovery_samples: Column) -> Column:
+        """Parse discovery sample sizes from GWAS Catalog.
+
+        This is a curated field. From publication sometimes it is not clear how the samples were split
+        across the reported ancestries. In such cases we are assuming the ancestries were evenly presented
+        and the total sample size is split:
+
+        ["European, African", 100] -> ["European, 50], ["African", 50]
+
+        In the cases where the `initial_sample_size` field contains `Finnish` ancestry and the broad ancestry is European,
+        we are assuming the Finnish ancestry.
+
+        Args:
+            discovery_samples (Column): Raw discovery sample sizes
+
+        Returns:
+            Column: Parsed and de-duplicated list of discovery ancestries with sample size.
+
+        Examples:
+            >>> data = [('s1', "European", 10), ('s1', "African", 10), ('s2', "European, African, Asian", 100), ('s2', "European", 50)]
+            >>> df = (
+            ...    spark.createDataFrame(data, ['studyId', 'ancestry', 'sampleSize'])
+            ...    .groupBy('studyId')
+            ...    .agg(
+            ...        f.collect_set(
+            ...            f.struct('ancestry', 'sampleSize')
+            ...        ).alias('discoverySampleSize')
+            ...    )
+            ...    .orderBy('studyId')
+            ...    .withColumn('discoverySampleSize', StudyIndexGWASCatalog._parse_discovery_samples(f.col('discoverySampleSize')))
+            ...    .select('discoverySampleSize')
+            ...    .show(truncate=False)
+            ... )
+            +--------------------------------------------+
+            |discoverySampleSize                         |
+            +--------------------------------------------+
+            |[{African, 10}, {European, 10}]             |
+            |[{European, 83}, {African, 33}, {Asian, 33}]|
+            +--------------------------------------------+
+            <BLANKLINE>
+        """
+        # To initialize return objects for aggregate functions, schema has to be defined:
+        schema = t.ArrayType(
+            t.StructType(
+                [
+                    t.StructField("ancestry", t.StringType(), True),
+                    t.StructField("sampleSize", t.IntegerType(), True),
+                ]
+            )
+        )
+
+        # Splitting comma separated ancestries:
+        exploded_ancestries = f.transform(
+            discovery_samples,
+            lambda sample: f.split(sample.ancestry, r",\s(?![^()]*\))"),
+        )
+
+        # Initialize discoverySample object from unique list of ancestries:
+        unique_ancestries = f.transform(
+            f.aggregate(
+                exploded_ancestries,
+                f.array().cast(t.ArrayType(t.StringType())),
+                lambda x, y: f.array_union(x, y),
+                f.array_distinct,
+            ),
+            lambda ancestry: f.struct(
+                ancestry.alias("ancestry"),
+                f.lit(0).alias("sampleSize"),
+            ),
+        )
+
+        # Computing sample sizes for ancestries when splitting is needed:
+        resolved_sample_count = f.transform(
+            f.arrays_zip(
+                f.transform(exploded_ancestries, lambda pop: f.size(pop)).alias(
+                    "pop_size"
+                ),
+                f.transform(discovery_samples, lambda pop: pop.sampleSize).alias(
+                    "pop_count"
+                ),
+            ),
+            lambda pop: (pop.pop_count / pop.pop_size).cast(t.IntegerType()),
+        )
+
+        # Flattening out ancestries with sample sizes:
+        parsed_sample_size = f.aggregate(
+            f.transform(
+                f.arrays_zip(
+                    exploded_ancestries.alias("ancestries"),
+                    resolved_sample_count.alias("sample_count"),
+                ),
+                StudyIndexGWASCatalog._merge_ancestries_and_counts,
+            ),
+            f.array().cast(schema),
+            lambda x, y: f.array_union(x, y),
+        )
+
+        # Normalize ancestries:
+        return f.aggregate(
+            parsed_sample_size,
+            unique_ancestries,
+            StudyIndexGWASCatalog._normalize_ancestries,
+        )
+
+    @staticmethod
+    def _normalize_ancestries(merged: Column, ancestry: Column) -> Column:
+        """Normalize ancestries from a list of structs.
+
+        As some ancestry label might be repeated with different sample counts,
+        these counts need to be collected.
+
+        Args:
+            merged (Column): Resulting list of struct with unique ancestries.
+            ancestry (Column): One ancestry object coming from raw.
+
+        Returns:
+            Column: Unique list of ancestries with the sample counts.
+        """
+        # Iterating over the list of unique ancestries and adding the sample size if label matches:
+        return f.transform(
+            merged,
+            lambda a: f.when(
+                a.ancestry == ancestry.ancestry,
+                f.struct(
+                    a.ancestry.alias("ancestry"),
+                    (a.sampleSize + ancestry.sampleSize)
+                    .cast(t.IntegerType())
+                    .alias("sampleSize"),
+                ),
+            ).otherwise(a),
+        )
+
+    @staticmethod
+    def _merge_ancestries_and_counts(ancestry_group: Column) -> Column:
+        """Merge ancestries with sample sizes.
+
+        After splitting ancestry annotations, all resulting ancestries needs to be assigned
+        with the proper sample size.
+
+        Args:
+            ancestry_group (Column): Each element is a struct with `sample_count` (int) and `ancestries` (list)
+
+        Returns:
+            Column: a list of structs with `ancestry` and `sampleSize` fields.
+
+        Examples:
+            >>> data = [(12, ['African', 'European']),(12, ['African'])]
+            >>> (
+            ...     spark.createDataFrame(data, ['sample_count', 'ancestries'])
+            ...     .select(StudyIndexGWASCatalog._merge_ancestries_and_counts(f.struct('sample_count', 'ancestries')).alias('test'))
+            ...     .show(truncate=False)
+            ... )
+            +-------------------------------+
+            |test                           |
+            +-------------------------------+
+            |[{African, 12}, {European, 12}]|
+            |[{African, 12}]                |
+            +-------------------------------+
+            <BLANKLINE>
+        """
+        # Extract sample size for the ancestry group:
+        count = ancestry_group.sample_count
+
+        # We need to loop through the ancestries:
+        return f.transform(
+            ancestry_group.ancestries,
+            lambda ancestry: f.struct(
+                ancestry.alias("ancestry"),
+                count.alias("sampleSize"),
+            ),
+        )
