@@ -1553,6 +1553,27 @@
   
   
     <li class="md-nav__item">
+      <a href="../../datasets/l2g_features/intervals/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Epigenetic regulatory region features
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../datasets/l2g_features/other/" class="md-nav__link">
         
   
@@ -3775,7 +3796,16 @@ when target of disease validation fails.</p>
 <span class="normal">75</span>
 <span class="normal">76</span>
 <span class="normal">77</span>
-<span class="normal">78</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">StudyLocusValidationStep</span><span class="p">:</span>
+<span class="normal">78</span>
+<span class="normal">79</span>
+<span class="normal">80</span>
+<span class="normal">81</span>
+<span class="normal">82</span>
+<span class="normal">83</span>
+<span class="normal">84</span>
+<span class="normal">85</span>
+<span class="normal">86</span>
+<span class="normal">87</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">StudyLocusValidationStep</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Study index validation step.</span>
 
 <span class="sd">    This step reads and outputs a study index dataset with flagged studies</span>
@@ -3824,25 +3854,34 @@ when target of disease validation fails.</p>
             <span class="o">.</span><span class="n">filter_credible_set</span><span class="p">(</span><span class="n">credible_interval</span><span class="o">=</span><span class="n">CredibleInterval</span><span class="o">.</span><span class="n">IS95</span><span class="p">)</span>
             <span class="c1"># Flagging credible sets with PIP &gt; 1 or PIP &lt; 0.95</span>
             <span class="o">.</span><span class="n">qc_abnormal_pips</span><span class="p">(</span>
-                <span class="n">sum_pips_lower_threshold</span><span class="o">=</span><span class="mf">0.95</span><span class="p">,</span> <span class="n">sum_pips_upper_threshold</span><span class="o">=</span><span class="mf">1.0001</span>
+                <span class="n">sum_pips_lower_threshold</span><span class="o">=</span><span class="mf">0.95</span><span class="p">,</span>
+                <span class="n">sum_pips_upper_threshold</span><span class="o">=</span><span class="mf">1.0001</span><span class="p">,</span>
             <span class="p">)</span>
             <span class="c1"># Annotate credible set confidence:</span>
             <span class="o">.</span><span class="n">assign_confidence</span><span class="p">()</span>
             <span class="c1"># Flagging trans qtls:</span>
             <span class="o">.</span><span class="n">flag_trans_qtls</span><span class="p">(</span><span class="n">study_index</span><span class="p">,</span> <span class="n">target_index</span><span class="p">,</span> <span class="n">trans_qtl_threshold</span><span class="p">)</span>
-        <span class="p">)</span><span class="o">.</span><span class="n">persist</span><span class="p">()</span>  <span class="c1"># we will need this for 2 types of outputs</span>
+            <span class="o">.</span><span class="n">persist</span><span class="p">()</span>  <span class="c1"># we will need this for 2 types of outputs</span>
+        <span class="p">)</span>
 
-        <span class="c1"># Valid study locus partitioned to simplify the finding of overlaps</span>
-        <span class="n">study_locus_with_qc</span><span class="o">.</span><span class="n">valid_rows</span><span class="p">(</span><span class="n">invalid_qc_reasons</span><span class="p">)</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">repartitionByRange</span><span class="p">(</span>
-            <span class="n">session</span><span class="o">.</span><span class="n">output_partitions</span><span class="p">,</span> <span class="s2">&quot;chromosome&quot;</span><span class="p">,</span> <span class="s2">&quot;position&quot;</span>
-        <span class="p">)</span><span class="o">.</span><span class="n">sortWithinPartitions</span><span class="p">(</span><span class="s2">&quot;chromosome&quot;</span><span class="p">,</span> <span class="s2">&quot;position&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">write</span><span class="o">.</span><span class="n">mode</span><span class="p">(</span>
-            <span class="n">session</span><span class="o">.</span><span class="n">write_mode</span>
-        <span class="p">)</span><span class="o">.</span><span class="n">parquet</span><span class="p">(</span><span class="n">valid_study_locus_path</span><span class="p">)</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">study_locus_with_qc</span><span class="o">.</span><span class="n">valid_rows</span><span class="p">(</span><span class="n">invalid_qc_reasons</span><span class="p">)</span>
 
-        <span class="c1"># Invalid study locus</span>
-        <span class="n">study_locus_with_qc</span><span class="o">.</span><span class="n">valid_rows</span><span class="p">(</span><span class="n">invalid_qc_reasons</span><span class="p">,</span> <span class="n">invalid</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">coalesce</span><span class="p">(</span>
-            <span class="n">session</span><span class="o">.</span><span class="n">output_partitions</span>
-        <span class="p">)</span><span class="o">.</span><span class="n">write</span><span class="o">.</span><span class="n">mode</span><span class="p">(</span><span class="n">session</span><span class="o">.</span><span class="n">write_mode</span><span class="p">)</span><span class="o">.</span><span class="n">parquet</span><span class="p">(</span><span class="n">invalid_study_locus_path</span><span class="p">)</span>
+        <span class="p">(</span>
+            <span class="c1"># Valid study locus partitioned to simplify the finding of overlaps</span>
+            <span class="n">result</span><span class="o">.</span><span class="n">valid</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">repartitionByRange</span><span class="p">(</span>
+                <span class="n">session</span><span class="o">.</span><span class="n">output_partitions</span><span class="p">,</span>
+                <span class="s2">&quot;chromosome&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;position&quot;</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="o">.</span><span class="n">sortWithinPartitions</span><span class="p">(</span><span class="s2">&quot;chromosome&quot;</span><span class="p">,</span> <span class="s2">&quot;position&quot;</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">write</span><span class="o">.</span><span class="n">mode</span><span class="p">(</span><span class="n">session</span><span class="o">.</span><span class="n">write_mode</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">parquet</span><span class="p">(</span><span class="n">valid_study_locus_path</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="p">(</span>
+            <span class="n">result</span><span class="o">.</span><span class="n">invalid</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">coalesce</span><span class="p">(</span><span class="n">session</span><span class="o">.</span><span class="n">output_partitions</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">write</span><span class="o">.</span><span class="n">mode</span><span class="p">(</span><span class="n">session</span><span class="o">.</span><span class="n">write_mode</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">parquet</span><span class="p">(</span><span class="n">invalid_study_locus_path</span><span class="p">)</span>
+        <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
               </details>
 
@@ -4077,7 +4116,16 @@ when target of disease validation fails.</p>
 <span class="normal">75</span>
 <span class="normal">76</span>
 <span class="normal">77</span>
-<span class="normal">78</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+<span class="normal">78</span>
+<span class="normal">79</span>
+<span class="normal">80</span>
+<span class="normal">81</span>
+<span class="normal">82</span>
+<span class="normal">83</span>
+<span class="normal">84</span>
+<span class="normal">85</span>
+<span class="normal">86</span>
+<span class="normal">87</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
     <span class="n">session</span><span class="p">:</span> <span class="n">Session</span><span class="p">,</span>
     <span class="n">study_locus_path</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
@@ -4119,25 +4167,34 @@ when target of disease validation fails.</p>
         <span class="o">.</span><span class="n">filter_credible_set</span><span class="p">(</span><span class="n">credible_interval</span><span class="o">=</span><span class="n">CredibleInterval</span><span class="o">.</span><span class="n">IS95</span><span class="p">)</span>
         <span class="c1"># Flagging credible sets with PIP &gt; 1 or PIP &lt; 0.95</span>
         <span class="o">.</span><span class="n">qc_abnormal_pips</span><span class="p">(</span>
-            <span class="n">sum_pips_lower_threshold</span><span class="o">=</span><span class="mf">0.95</span><span class="p">,</span> <span class="n">sum_pips_upper_threshold</span><span class="o">=</span><span class="mf">1.0001</span>
+            <span class="n">sum_pips_lower_threshold</span><span class="o">=</span><span class="mf">0.95</span><span class="p">,</span>
+            <span class="n">sum_pips_upper_threshold</span><span class="o">=</span><span class="mf">1.0001</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="c1"># Annotate credible set confidence:</span>
         <span class="o">.</span><span class="n">assign_confidence</span><span class="p">()</span>
         <span class="c1"># Flagging trans qtls:</span>
         <span class="o">.</span><span class="n">flag_trans_qtls</span><span class="p">(</span><span class="n">study_index</span><span class="p">,</span> <span class="n">target_index</span><span class="p">,</span> <span class="n">trans_qtl_threshold</span><span class="p">)</span>
-    <span class="p">)</span><span class="o">.</span><span class="n">persist</span><span class="p">()</span>  <span class="c1"># we will need this for 2 types of outputs</span>
+        <span class="o">.</span><span class="n">persist</span><span class="p">()</span>  <span class="c1"># we will need this for 2 types of outputs</span>
+    <span class="p">)</span>
 
-    <span class="c1"># Valid study locus partitioned to simplify the finding of overlaps</span>
-    <span class="n">study_locus_with_qc</span><span class="o">.</span><span class="n">valid_rows</span><span class="p">(</span><span class="n">invalid_qc_reasons</span><span class="p">)</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">repartitionByRange</span><span class="p">(</span>
-        <span class="n">session</span><span class="o">.</span><span class="n">output_partitions</span><span class="p">,</span> <span class="s2">&quot;chromosome&quot;</span><span class="p">,</span> <span class="s2">&quot;position&quot;</span>
-    <span class="p">)</span><span class="o">.</span><span class="n">sortWithinPartitions</span><span class="p">(</span><span class="s2">&quot;chromosome&quot;</span><span class="p">,</span> <span class="s2">&quot;position&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">write</span><span class="o">.</span><span class="n">mode</span><span class="p">(</span>
-        <span class="n">session</span><span class="o">.</span><span class="n">write_mode</span>
-    <span class="p">)</span><span class="o">.</span><span class="n">parquet</span><span class="p">(</span><span class="n">valid_study_locus_path</span><span class="p">)</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">study_locus_with_qc</span><span class="o">.</span><span class="n">valid_rows</span><span class="p">(</span><span class="n">invalid_qc_reasons</span><span class="p">)</span>
 
-    <span class="c1"># Invalid study locus</span>
-    <span class="n">study_locus_with_qc</span><span class="o">.</span><span class="n">valid_rows</span><span class="p">(</span><span class="n">invalid_qc_reasons</span><span class="p">,</span> <span class="n">invalid</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">coalesce</span><span class="p">(</span>
-        <span class="n">session</span><span class="o">.</span><span class="n">output_partitions</span>
-    <span class="p">)</span><span class="o">.</span><span class="n">write</span><span class="o">.</span><span class="n">mode</span><span class="p">(</span><span class="n">session</span><span class="o">.</span><span class="n">write_mode</span><span class="p">)</span><span class="o">.</span><span class="n">parquet</span><span class="p">(</span><span class="n">invalid_study_locus_path</span><span class="p">)</span>
+    <span class="p">(</span>
+        <span class="c1"># Valid study locus partitioned to simplify the finding of overlaps</span>
+        <span class="n">result</span><span class="o">.</span><span class="n">valid</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">repartitionByRange</span><span class="p">(</span>
+            <span class="n">session</span><span class="o">.</span><span class="n">output_partitions</span><span class="p">,</span>
+            <span class="s2">&quot;chromosome&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;position&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="o">.</span><span class="n">sortWithinPartitions</span><span class="p">(</span><span class="s2">&quot;chromosome&quot;</span><span class="p">,</span> <span class="s2">&quot;position&quot;</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">write</span><span class="o">.</span><span class="n">mode</span><span class="p">(</span><span class="n">session</span><span class="o">.</span><span class="n">write_mode</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">parquet</span><span class="p">(</span><span class="n">valid_study_locus_path</span><span class="p">)</span>
+    <span class="p">)</span>
+    <span class="p">(</span>
+        <span class="n">result</span><span class="o">.</span><span class="n">invalid</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">coalesce</span><span class="p">(</span><span class="n">session</span><span class="o">.</span><span class="n">output_partitions</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">write</span><span class="o">.</span><span class="n">mode</span><span class="p">(</span><span class="n">session</span><span class="o">.</span><span class="n">write_mode</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">parquet</span><span class="p">(</span><span class="n">invalid_study_locus_path</span><span class="p">)</span>
+    <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>

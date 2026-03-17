@@ -1491,6 +1491,15 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#gentropy.dataset.target_index.TargetIndex.tss_lut" class="md-nav__link">
+    <span class="md-ellipsis">
+      tss_lut
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1635,6 +1644,27 @@
   
   <span class="md-ellipsis">
     From distance
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../l2g_features/intervals/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Epigenetic regulatory region features
   </span>
   
 
@@ -3720,6 +3750,15 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#gentropy.dataset.target_index.TargetIndex.tss_lut" class="md-nav__link">
+    <span class="md-ellipsis">
+      tss_lut
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -3785,66 +3824,91 @@
 
               <details class="quote">
                 <summary>Source code in <code>src/gentropy/dataset/target_index.py</code></summary>
-                <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">17</span>
-<span class="normal">18</span>
-<span class="normal">19</span>
-<span class="normal">20</span>
-<span class="normal">21</span>
-<span class="normal">22</span>
-<span class="normal">23</span>
-<span class="normal">24</span>
-<span class="normal">25</span>
-<span class="normal">26</span>
-<span class="normal">27</span>
-<span class="normal">28</span>
-<span class="normal">29</span>
-<span class="normal">30</span>
-<span class="normal">31</span>
-<span class="normal">32</span>
-<span class="normal">33</span>
-<span class="normal">34</span>
-<span class="normal">35</span>
-<span class="normal">36</span>
-<span class="normal">37</span>
-<span class="normal">38</span>
-<span class="normal">39</span>
-<span class="normal">40</span>
-<span class="normal">41</span>
-<span class="normal">42</span>
-<span class="normal">43</span>
-<span class="normal">44</span>
-<span class="normal">45</span>
-<span class="normal">46</span>
-<span class="normal">47</span>
-<span class="normal">48</span>
-<span class="normal">49</span>
-<span class="normal">50</span>
-<span class="normal">51</span>
-<span class="normal">52</span>
-<span class="normal">53</span>
-<span class="normal">54</span>
-<span class="normal">55</span>
-<span class="normal">56</span>
-<span class="normal">57</span>
-<span class="normal">58</span>
-<span class="normal">59</span>
-<span class="normal">60</span>
-<span class="normal">61</span>
-<span class="normal">62</span>
-<span class="normal">63</span>
-<span class="normal">64</span>
-<span class="normal">65</span>
-<span class="normal">66</span>
-<span class="normal">67</span>
-<span class="normal">68</span>
-<span class="normal">69</span>
-<span class="normal">70</span>
-<span class="normal">71</span>
-<span class="normal">72</span>
-<span class="normal">73</span>
-<span class="normal">74</span>
-<span class="normal">75</span>
-<span class="normal">76</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
+                <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 19</span>
+<span class="normal"> 20</span>
+<span class="normal"> 21</span>
+<span class="normal"> 22</span>
+<span class="normal"> 23</span>
+<span class="normal"> 24</span>
+<span class="normal"> 25</span>
+<span class="normal"> 26</span>
+<span class="normal"> 27</span>
+<span class="normal"> 28</span>
+<span class="normal"> 29</span>
+<span class="normal"> 30</span>
+<span class="normal"> 31</span>
+<span class="normal"> 32</span>
+<span class="normal"> 33</span>
+<span class="normal"> 34</span>
+<span class="normal"> 35</span>
+<span class="normal"> 36</span>
+<span class="normal"> 37</span>
+<span class="normal"> 38</span>
+<span class="normal"> 39</span>
+<span class="normal"> 40</span>
+<span class="normal"> 41</span>
+<span class="normal"> 42</span>
+<span class="normal"> 43</span>
+<span class="normal"> 44</span>
+<span class="normal"> 45</span>
+<span class="normal"> 46</span>
+<span class="normal"> 47</span>
+<span class="normal"> 48</span>
+<span class="normal"> 49</span>
+<span class="normal"> 50</span>
+<span class="normal"> 51</span>
+<span class="normal"> 52</span>
+<span class="normal"> 53</span>
+<span class="normal"> 54</span>
+<span class="normal"> 55</span>
+<span class="normal"> 56</span>
+<span class="normal"> 57</span>
+<span class="normal"> 58</span>
+<span class="normal"> 59</span>
+<span class="normal"> 60</span>
+<span class="normal"> 61</span>
+<span class="normal"> 62</span>
+<span class="normal"> 63</span>
+<span class="normal"> 64</span>
+<span class="normal"> 65</span>
+<span class="normal"> 66</span>
+<span class="normal"> 67</span>
+<span class="normal"> 68</span>
+<span class="normal"> 69</span>
+<span class="normal"> 70</span>
+<span class="normal"> 71</span>
+<span class="normal"> 72</span>
+<span class="normal"> 73</span>
+<span class="normal"> 74</span>
+<span class="normal"> 75</span>
+<span class="normal"> 76</span>
+<span class="normal"> 77</span>
+<span class="normal"> 78</span>
+<span class="normal"> 79</span>
+<span class="normal"> 80</span>
+<span class="normal"> 81</span>
+<span class="normal"> 82</span>
+<span class="normal"> 83</span>
+<span class="normal"> 84</span>
+<span class="normal"> 85</span>
+<span class="normal"> 86</span>
+<span class="normal"> 87</span>
+<span class="normal"> 88</span>
+<span class="normal"> 89</span>
+<span class="normal"> 90</span>
+<span class="normal"> 91</span>
+<span class="normal"> 92</span>
+<span class="normal"> 93</span>
+<span class="normal"> 94</span>
+<span class="normal"> 95</span>
+<span class="normal"> 96</span>
+<span class="normal"> 97</span>
+<span class="normal"> 98</span>
+<span class="normal"> 99</span>
+<span class="normal">100</span>
+<span class="normal">101</span>
+<span class="normal">102</span>
+<span class="normal">103</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@dataclass</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">TargetIndex</span><span class="p">(</span><span class="n">Dataset</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Target index dataset.</span>
 
@@ -3904,6 +3968,31 @@
             <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;genomicLocation.chromosome&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;chromosome&quot;</span><span class="p">),</span>
             <span class="s2">&quot;tss&quot;</span><span class="p">,</span>
         <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">tss_lut</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">TargetIndex</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Gene TSS lookup table.</span>
+
+<span class="sd">        The TSS is determined using the following priority:</span>
+<span class="sd">        1. preferred TSS from target index</span>
+<span class="sd">        2. canonical transcript start|end based on strand</span>
+<span class="sd">        3. genomic location start|end based on strand</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            DataFrame: Gene LUT for TSS mapping containing `geneId` and `tss` columns.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">ct_tss</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">when</span><span class="p">(</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;canonicalTranscript.strand&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;+&quot;</span><span class="p">,</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;canonicalTranscript.start&quot;</span><span class="p">),</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">when</span><span class="p">(</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;canonicalTranscript.strand&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;-&quot;</span><span class="p">,</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;canonicalTranscript.end&quot;</span><span class="p">),</span>
+        <span class="p">)</span>
+        <span class="n">gl_tss</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">when</span><span class="p">(</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;genomicLocation.strand&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;genomicLocation.start&quot;</span><span class="p">)</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">when</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;genomicLocation.strand&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;genomicLocation.end&quot;</span><span class="p">))</span>
+
+        <span class="n">tss</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">coalesce</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;tss&quot;</span><span class="p">),</span> <span class="n">ct_tss</span><span class="p">,</span> <span class="n">gl_tss</span><span class="p">)</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">LongType</span><span class="p">())</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;tss&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;id&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;geneId&quot;</span><span class="p">),</span> <span class="n">tss</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
               </details>
 
@@ -3989,9 +4078,7 @@
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/dataset/target_index.py</code></summary>
-              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">33</span>
-<span class="normal">34</span>
-<span class="normal">35</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">35</span>
 <span class="normal">36</span>
 <span class="normal">37</span>
 <span class="normal">38</span>
@@ -3999,7 +4086,9 @@
 <span class="normal">40</span>
 <span class="normal">41</span>
 <span class="normal">42</span>
-<span class="normal">43</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">filter_by_biotypes</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">TargetIndex</span><span class="p">,</span> <span class="n">biotypes</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">TargetIndex</span><span class="p">:</span>
+<span class="normal">43</span>
+<span class="normal">44</span>
+<span class="normal">45</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">filter_by_biotypes</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">TargetIndex</span><span class="p">,</span> <span class="n">biotypes</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">TargetIndex</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Filter by approved biotypes.</span>
 
 <span class="sd">    Args:</span>
@@ -4059,14 +4148,14 @@
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/dataset/target_index.py</code></summary>
-              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">24</span>
-<span class="normal">25</span>
-<span class="normal">26</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">26</span>
 <span class="normal">27</span>
 <span class="normal">28</span>
 <span class="normal">29</span>
 <span class="normal">30</span>
-<span class="normal">31</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
+<span class="normal">31</span>
+<span class="normal">32</span>
+<span class="normal">33</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">get_schema</span><span class="p">(</span><span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">TargetIndex</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">StructType</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Provides the schema for the TargetIndex dataset.</span>
 
@@ -4119,9 +4208,7 @@
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/dataset/target_index.py</code></summary>
-              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">45</span>
-<span class="normal">46</span>
-<span class="normal">47</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">47</span>
 <span class="normal">48</span>
 <span class="normal">49</span>
 <span class="normal">50</span>
@@ -4132,7 +4219,9 @@
 <span class="normal">55</span>
 <span class="normal">56</span>
 <span class="normal">57</span>
-<span class="normal">58</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">locations_lut</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">TargetIndex</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataFrame</span><span class="p">:</span>
+<span class="normal">58</span>
+<span class="normal">59</span>
+<span class="normal">60</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">locations_lut</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">TargetIndex</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataFrame</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Gene location information.</span>
 
 <span class="sd">    Returns:</span>
@@ -4193,9 +4282,7 @@ obsoleted gene symbols.</p>
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/dataset/target_index.py</code></summary>
-              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">60</span>
-<span class="normal">61</span>
-<span class="normal">62</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">62</span>
 <span class="normal">63</span>
 <span class="normal">64</span>
 <span class="normal">65</span>
@@ -4209,7 +4296,9 @@ obsoleted gene symbols.</p>
 <span class="normal">73</span>
 <span class="normal">74</span>
 <span class="normal">75</span>
-<span class="normal">76</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">symbols_lut</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">TargetIndex</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataFrame</span><span class="p">:</span>
+<span class="normal">76</span>
+<span class="normal">77</span>
+<span class="normal">78</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">symbols_lut</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">TargetIndex</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataFrame</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Gene symbol lookup table.</span>
 
 <span class="sd">    Pre-processess gene/target dataset to create lookup table of gene symbols, including</span>
@@ -4226,6 +4315,102 @@ obsoleted gene symbols.</p>
         <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;genomicLocation.chromosome&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;chromosome&quot;</span><span class="p">),</span>
         <span class="s2">&quot;tss&quot;</span><span class="p">,</span>
     <span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="gentropy.dataset.target_index.TargetIndex.tss_lut" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">tss_lut</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">DataFrame</span></code>
+
+<a href="#gentropy.dataset.target_index.TargetIndex.tss_lut" class="headerlink" title="Permanent link">&para;</a></h4>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Gene TSS lookup table.</p>
+<p>The TSS is determined using the following priority:
+1. preferred TSS from target index
+2. canonical transcript start|end based on strand
+3. genomic location start|end based on strand</p>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>DataFrame</code></td>            <td>
+                  <code><span title="pyspark.sql.DataFrame">DataFrame</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Gene LUT for TSS mapping containing <code>geneId</code> and <code>tss</code> columns.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+            <details class="quote">
+              <summary>Source code in <code>src/gentropy/dataset/target_index.py</code></summary>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 80</span>
+<span class="normal"> 81</span>
+<span class="normal"> 82</span>
+<span class="normal"> 83</span>
+<span class="normal"> 84</span>
+<span class="normal"> 85</span>
+<span class="normal"> 86</span>
+<span class="normal"> 87</span>
+<span class="normal"> 88</span>
+<span class="normal"> 89</span>
+<span class="normal"> 90</span>
+<span class="normal"> 91</span>
+<span class="normal"> 92</span>
+<span class="normal"> 93</span>
+<span class="normal"> 94</span>
+<span class="normal"> 95</span>
+<span class="normal"> 96</span>
+<span class="normal"> 97</span>
+<span class="normal"> 98</span>
+<span class="normal"> 99</span>
+<span class="normal">100</span>
+<span class="normal">101</span>
+<span class="normal">102</span>
+<span class="normal">103</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">tss_lut</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">TargetIndex</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Gene TSS lookup table.</span>
+
+<span class="sd">    The TSS is determined using the following priority:</span>
+<span class="sd">    1. preferred TSS from target index</span>
+<span class="sd">    2. canonical transcript start|end based on strand</span>
+<span class="sd">    3. genomic location start|end based on strand</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        DataFrame: Gene LUT for TSS mapping containing `geneId` and `tss` columns.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">ct_tss</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">when</span><span class="p">(</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;canonicalTranscript.strand&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;+&quot;</span><span class="p">,</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;canonicalTranscript.start&quot;</span><span class="p">),</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">when</span><span class="p">(</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;canonicalTranscript.strand&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;-&quot;</span><span class="p">,</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;canonicalTranscript.end&quot;</span><span class="p">),</span>
+    <span class="p">)</span>
+    <span class="n">gl_tss</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">when</span><span class="p">(</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;genomicLocation.strand&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;genomicLocation.start&quot;</span><span class="p">)</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">when</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;genomicLocation.strand&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;genomicLocation.end&quot;</span><span class="p">))</span>
+
+    <span class="n">tss</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">coalesce</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;tss&quot;</span><span class="p">),</span> <span class="n">ct_tss</span><span class="p">,</span> <span class="n">gl_tss</span><span class="p">)</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">LongType</span><span class="p">())</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;tss&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;id&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;geneId&quot;</span><span class="p">),</span> <span class="n">tss</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -4349,10 +4534,10 @@ obsoleted gene symbols.</p>
  |    |    |    |-- element: string (containsNull = true)
  |    |    |-- origin: array (nullable = true)
  |    |    |    |-- element: string (containsNull = true)
- |    |    |-- probeMinerScore: long (nullable = true)
- |    |    |-- probesDrugsScore: long (nullable = true)
- |    |    |-- scoreInCells: long (nullable = true)
- |    |    |-- scoreInOrganisms: long (nullable = true)
+ |    |    |-- probeMinerScore: double (nullable = true)
+ |    |    |-- probesDrugsScore: double (nullable = true)
+ |    |    |-- scoreInCells: double (nullable = true)
+ |    |    |-- scoreInOrganisms: double (nullable = true)
  |    |    |-- targetFromSourceId: string (nullable = true)
  |    |    |-- urls: array (nullable = true)
  |    |    |    |-- element: struct (containsNull = true)

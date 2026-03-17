@@ -1861,6 +1861,27 @@
   
   
     <li class="md-nav__item">
+      <a href="../../datasets/l2g_features/intervals/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Epigenetic regulatory region features
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../datasets/l2g_features/other/" class="md-nav__link">
         
   
@@ -8438,7 +8459,7 @@ def my_function() -&gt; t.StructType:
 <span class="sd">        +---+---------+---------+</span>
 <span class="sd">        &lt;BLANKLINE&gt;</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="n">df</span><span class="o">.</span><span class="n">groupBy</span><span class="p">(</span><span class="n">id_vars</span><span class="p">)</span><span class="o">.</span><span class="n">pivot</span><span class="p">(</span><span class="n">var_name</span><span class="p">)</span><span class="o">.</span><span class="n">agg</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">first</span><span class="p">(</span><span class="n">value_name</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">df</span><span class="o">.</span><span class="n">groupBy</span><span class="p">(</span><span class="o">*</span><span class="n">id_vars</span><span class="p">)</span><span class="o">.</span><span class="n">pivot</span><span class="p">(</span><span class="n">var_name</span><span class="p">)</span><span class="o">.</span><span class="n">agg</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">first</span><span class="p">(</span><span class="n">value_name</span><span class="p">))</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>

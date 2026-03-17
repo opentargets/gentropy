@@ -1553,6 +1553,27 @@
   
   
     <li class="md-nav__item">
+      <a href="../../datasets/l2g_features/intervals/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Epigenetic regulatory region features
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../datasets/l2g_features/other/" class="md-nav__link">
         
   
@@ -3775,7 +3796,12 @@
 <span class="normal">76</span>
 <span class="normal">77</span>
 <span class="normal">78</span>
-<span class="normal">79</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">EqtlCatalogueStep</span><span class="p">:</span>
+<span class="normal">79</span>
+<span class="normal">80</span>
+<span class="normal">81</span>
+<span class="normal">82</span>
+<span class="normal">83</span>
+<span class="normal">84</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">EqtlCatalogueStep</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;eQTL Catalogue ingestion step.</span>
 
 <span class="sd">    From SuSIE fine mapping results (available at [their FTP](https://ftp.ebi.ac.uk/pub/databases/spot/eQTL/susie/) ), we extract credible sets and study index datasets from gene expression QTL studies.</span>
@@ -3788,6 +3814,7 @@
         <span class="n">eqtl_catalogue_paths_imported</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">eqtl_catalogue_study_index_out</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">eqtl_catalogue_credible_sets_out</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">eqtl_catalogue_metadata_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">EqtlCatalogueConfig</span><span class="p">()</span><span class="o">.</span><span class="n">eqtl_catalogue_metadata_path</span><span class="p">,</span>
         <span class="n">eqtl_lead_pvalue_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">EqtlCatalogueConfig</span><span class="p">()</span><span class="o">.</span><span class="n">eqtl_lead_pvalue_threshold</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Run eQTL Catalogue ingestion step.</span>
@@ -3798,11 +3825,14 @@
 <span class="sd">            eqtl_catalogue_paths_imported (str): Input eQTL Catalogue fine mapping results path.</span>
 <span class="sd">            eqtl_catalogue_study_index_out (str): Output eQTL Catalogue study index path.</span>
 <span class="sd">            eqtl_catalogue_credible_sets_out (str): Output eQTL Catalogue credible sets path.</span>
+<span class="sd">            eqtl_catalogue_metadata_path (str): Path to the data_table hosted on the eQTL Catalogue github. Defaults to EqtlCatalogueConfig().eqtl_catalogue_metadata_path</span>
 <span class="sd">            eqtl_lead_pvalue_threshold (float, optional): Lead p-value threshold. Defaults to EqtlCatalogueConfig().eqtl_lead_pvalue_threshold.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1"># Extract</span>
         <span class="n">studies_metadata</span> <span class="o">=</span> <span class="n">EqtlCatalogueStudyIndex</span><span class="o">.</span><span class="n">read_studies_from_source</span><span class="p">(</span>
-            <span class="n">session</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="n">mqtl_quantification_methods_blacklist</span><span class="p">)</span>
+            <span class="n">eqtl_catalogue_metadata_path</span><span class="p">,</span>
+            <span class="nb">list</span><span class="p">(</span><span class="n">mqtl_quantification_methods_blacklist</span><span class="p">),</span>
+            <span class="n">session</span><span class="o">=</span><span class="n">session</span><span class="p">,</span>
         <span class="p">)</span>
 
         <span class="c1"># Load raw data only for the studies we are interested in ingestion. This makes the proces much lighter.</span>
@@ -3810,18 +3840,18 @@
             <span class="n">studies_metadata</span>
         <span class="p">)</span>
         <span class="n">credible_sets_df</span> <span class="o">=</span> <span class="n">EqtlCatalogueFinemapping</span><span class="o">.</span><span class="n">read_credible_set_from_source</span><span class="p">(</span>
-            <span class="n">session</span><span class="p">,</span>
             <span class="n">credible_set_path</span><span class="o">=</span><span class="p">[</span>
                 <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">eqtl_catalogue_paths_imported</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">qtd_id</span><span class="si">}</span><span class="s2">.credible_sets.tsv&quot;</span>
                 <span class="k">for</span> <span class="n">qtd_id</span> <span class="ow">in</span> <span class="n">studies_to_ingest</span>
             <span class="p">],</span>
+            <span class="n">session</span><span class="o">=</span><span class="n">session</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="n">lbf_df</span> <span class="o">=</span> <span class="n">EqtlCatalogueFinemapping</span><span class="o">.</span><span class="n">read_lbf_from_source</span><span class="p">(</span>
-            <span class="n">session</span><span class="p">,</span>
             <span class="n">lbf_path</span><span class="o">=</span><span class="p">[</span>
                 <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">eqtl_catalogue_paths_imported</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">qtd_id</span><span class="si">}</span><span class="s2">.lbf_variable.txt&quot;</span>
                 <span class="k">for</span> <span class="n">qtd_id</span> <span class="ow">in</span> <span class="n">studies_to_ingest</span>
             <span class="p">],</span>
+            <span class="n">session</span><span class="o">=</span><span class="n">session</span><span class="p">,</span>
         <span class="p">)</span>
 
         <span class="c1"># Transform</span>
@@ -3832,6 +3862,7 @@
         <span class="p">(</span>
             <span class="n">EqtlCatalogueStudyIndex</span><span class="o">.</span><span class="n">from_susie_results</span><span class="p">(</span><span class="n">processed_susie_df</span><span class="p">)</span>
             <span class="c1"># Writing the output:</span>
+            <span class="o">.</span><span class="n">coalesce</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
             <span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">write</span><span class="o">.</span><span class="n">mode</span><span class="p">(</span><span class="n">session</span><span class="o">.</span><span class="n">write_mode</span><span class="p">)</span>
             <span class="o">.</span><span class="n">parquet</span><span class="p">(</span><span class="n">eqtl_catalogue_study_index_out</span><span class="p">)</span>
         <span class="p">)</span>
@@ -3863,7 +3894,7 @@
 
 
 <h4 id="gentropy.eqtl_catalogue.EqtlCatalogueStep.__init__" class="doc doc-heading">
-            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">session</span><span class="p">:</span> <span class="n">Session</span><span class="p">,</span> <span class="n">mqtl_quantification_methods_blacklist</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">eqtl_catalogue_paths_imported</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">eqtl_catalogue_study_index_out</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">eqtl_catalogue_credible_sets_out</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">eqtl_lead_pvalue_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">EqtlCatalogueConfig</span><span class="p">()</span><span class="o">.</span><span class="n">eqtl_lead_pvalue_threshold</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span></code>
+            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">session</span><span class="p">:</span> <span class="n">Session</span><span class="p">,</span> <span class="n">mqtl_quantification_methods_blacklist</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">eqtl_catalogue_paths_imported</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">eqtl_catalogue_study_index_out</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">eqtl_catalogue_credible_sets_out</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">eqtl_catalogue_metadata_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">EqtlCatalogueConfig</span><span class="p">()</span><span class="o">.</span><span class="n">eqtl_catalogue_metadata_path</span><span class="p">,</span> <span class="n">eqtl_lead_pvalue_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">EqtlCatalogueConfig</span><span class="p">()</span><span class="o">.</span><span class="n">eqtl_lead_pvalue_threshold</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span></code>
 
 <a href="#gentropy.eqtl_catalogue.EqtlCatalogueStep.__init__" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -3966,6 +3997,22 @@
           </tr>
           <tr class="doc-section-item">
             <td>
+                <code>eqtl_catalogue_metadata_path</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to the data_table hosted on the eQTL Catalogue github. Defaults to EqtlCatalogueConfig().eqtl_catalogue_metadata_path</p>
+              </div>
+            </td>
+            <td>
+                  <code><span title="eqtl_catalogue_metadata_path">eqtl_catalogue_metadata_path</span></code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
                 <code>eqtl_lead_pvalue_threshold</code>
             </td>
             <td>
@@ -4048,13 +4095,19 @@
 <span class="normal">76</span>
 <span class="normal">77</span>
 <span class="normal">78</span>
-<span class="normal">79</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+<span class="normal">79</span>
+<span class="normal">80</span>
+<span class="normal">81</span>
+<span class="normal">82</span>
+<span class="normal">83</span>
+<span class="normal">84</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
     <span class="n">session</span><span class="p">:</span> <span class="n">Session</span><span class="p">,</span>
     <span class="n">mqtl_quantification_methods_blacklist</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
     <span class="n">eqtl_catalogue_paths_imported</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">eqtl_catalogue_study_index_out</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">eqtl_catalogue_credible_sets_out</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">eqtl_catalogue_metadata_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">EqtlCatalogueConfig</span><span class="p">()</span><span class="o">.</span><span class="n">eqtl_catalogue_metadata_path</span><span class="p">,</span>
     <span class="n">eqtl_lead_pvalue_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">EqtlCatalogueConfig</span><span class="p">()</span><span class="o">.</span><span class="n">eqtl_lead_pvalue_threshold</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Run eQTL Catalogue ingestion step.</span>
@@ -4065,11 +4118,14 @@
 <span class="sd">        eqtl_catalogue_paths_imported (str): Input eQTL Catalogue fine mapping results path.</span>
 <span class="sd">        eqtl_catalogue_study_index_out (str): Output eQTL Catalogue study index path.</span>
 <span class="sd">        eqtl_catalogue_credible_sets_out (str): Output eQTL Catalogue credible sets path.</span>
+<span class="sd">        eqtl_catalogue_metadata_path (str): Path to the data_table hosted on the eQTL Catalogue github. Defaults to EqtlCatalogueConfig().eqtl_catalogue_metadata_path</span>
 <span class="sd">        eqtl_lead_pvalue_threshold (float, optional): Lead p-value threshold. Defaults to EqtlCatalogueConfig().eqtl_lead_pvalue_threshold.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># Extract</span>
     <span class="n">studies_metadata</span> <span class="o">=</span> <span class="n">EqtlCatalogueStudyIndex</span><span class="o">.</span><span class="n">read_studies_from_source</span><span class="p">(</span>
-        <span class="n">session</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="n">mqtl_quantification_methods_blacklist</span><span class="p">)</span>
+        <span class="n">eqtl_catalogue_metadata_path</span><span class="p">,</span>
+        <span class="nb">list</span><span class="p">(</span><span class="n">mqtl_quantification_methods_blacklist</span><span class="p">),</span>
+        <span class="n">session</span><span class="o">=</span><span class="n">session</span><span class="p">,</span>
     <span class="p">)</span>
 
     <span class="c1"># Load raw data only for the studies we are interested in ingestion. This makes the proces much lighter.</span>
@@ -4077,18 +4133,18 @@
         <span class="n">studies_metadata</span>
     <span class="p">)</span>
     <span class="n">credible_sets_df</span> <span class="o">=</span> <span class="n">EqtlCatalogueFinemapping</span><span class="o">.</span><span class="n">read_credible_set_from_source</span><span class="p">(</span>
-        <span class="n">session</span><span class="p">,</span>
         <span class="n">credible_set_path</span><span class="o">=</span><span class="p">[</span>
             <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">eqtl_catalogue_paths_imported</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">qtd_id</span><span class="si">}</span><span class="s2">.credible_sets.tsv&quot;</span>
             <span class="k">for</span> <span class="n">qtd_id</span> <span class="ow">in</span> <span class="n">studies_to_ingest</span>
         <span class="p">],</span>
+        <span class="n">session</span><span class="o">=</span><span class="n">session</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">lbf_df</span> <span class="o">=</span> <span class="n">EqtlCatalogueFinemapping</span><span class="o">.</span><span class="n">read_lbf_from_source</span><span class="p">(</span>
-        <span class="n">session</span><span class="p">,</span>
         <span class="n">lbf_path</span><span class="o">=</span><span class="p">[</span>
             <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">eqtl_catalogue_paths_imported</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">qtd_id</span><span class="si">}</span><span class="s2">.lbf_variable.txt&quot;</span>
             <span class="k">for</span> <span class="n">qtd_id</span> <span class="ow">in</span> <span class="n">studies_to_ingest</span>
         <span class="p">],</span>
+        <span class="n">session</span><span class="o">=</span><span class="n">session</span><span class="p">,</span>
     <span class="p">)</span>
 
     <span class="c1"># Transform</span>
@@ -4099,6 +4155,7 @@
     <span class="p">(</span>
         <span class="n">EqtlCatalogueStudyIndex</span><span class="o">.</span><span class="n">from_susie_results</span><span class="p">(</span><span class="n">processed_susie_df</span><span class="p">)</span>
         <span class="c1"># Writing the output:</span>
+        <span class="o">.</span><span class="n">coalesce</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
         <span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">write</span><span class="o">.</span><span class="n">mode</span><span class="p">(</span><span class="n">session</span><span class="o">.</span><span class="n">write_mode</span><span class="p">)</span>
         <span class="o">.</span><span class="n">parquet</span><span class="p">(</span><span class="n">eqtl_catalogue_study_index_out</span><span class="p">)</span>
     <span class="p">)</span>

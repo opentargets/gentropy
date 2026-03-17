@@ -1553,6 +1553,27 @@
   
   
     <li class="md-nav__item">
+      <a href="../../../datasets/l2g_features/intervals/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Epigenetic regulatory region features
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../../datasets/l2g_features/other/" class="md-nav__link">
         
   
@@ -5359,7 +5380,7 @@
                 <span class="s2">&quot;The use_enhanced_bgzip_codec is set to False. This will lead to inefficient reading of block gzipped files.&quot;</span>
             <span class="p">)</span>
             <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span>
-                <span class="s2">&quot;Please set `session.spark.use_enhanced_bgzip_codec` to True in the Session configuration.&quot;</span>
+                <span class="s2">&quot;Please set `use_enhanced_bgzip_codec` to True in the Session configuration.&quot;</span>
             <span class="p">)</span>
 
         <span class="c1"># Handle n_threads limits and warnings</span>
@@ -5517,13 +5538,13 @@
 <span class="sd">            SummaryStatistics: Processed summary statistics dataset.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">perform_min_allele_count_filter</span><span class="p">:</span>
-            <span class="k">assert</span> <span class="p">(</span>
-                <span class="n">min_allele_count_threshold</span> <span class="o">&gt;</span> <span class="mi">0</span>
-            <span class="p">),</span> <span class="s2">&quot;Allele count threshold should be positive.&quot;</span>
+            <span class="k">assert</span> <span class="n">min_allele_count_threshold</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="p">(</span>
+                <span class="s2">&quot;Allele count threshold should be positive.&quot;</span>
+            <span class="p">)</span>
         <span class="k">if</span> <span class="n">perform_min_allele_frequency_filter</span><span class="p">:</span>
-            <span class="k">assert</span> <span class="p">(</span>
-                <span class="mf">0.0</span> <span class="o">&lt;=</span> <span class="n">min_allele_frequency_threshold</span> <span class="o">&lt;=</span> <span class="mf">0.5</span>
-            <span class="p">),</span> <span class="s2">&quot;MAF needs to be between 0 and 0.5.&quot;</span>
+            <span class="k">assert</span> <span class="mf">0.0</span> <span class="o">&lt;=</span> <span class="n">min_allele_frequency_threshold</span> <span class="o">&lt;=</span> <span class="mf">0.5</span><span class="p">,</span> <span class="p">(</span>
+                <span class="s2">&quot;MAF needs to be between 0 and 0.5.&quot;</span>
+            <span class="p">)</span>
 
         <span class="k">if</span> <span class="n">perform_min_allele_count_filter</span> <span class="ow">and</span> <span class="n">perform_min_allele_frequency_filter</span><span class="p">:</span>
             <span class="c1"># NOTE - MAC filter would be more stringent at low allele frequencies, so no</span>
@@ -5621,9 +5642,9 @@
 
         <span class="c1"># Filter out variants with low INFO score</span>
         <span class="k">if</span> <span class="n">perform_imputation_score_filter</span><span class="p">:</span>
-            <span class="k">assert</span> <span class="p">(</span>
-                <span class="n">imputation_score_threshold</span> <span class="o">&gt;=</span> <span class="mf">0.0</span>
-            <span class="p">),</span> <span class="s2">&quot;Imputation score threshold should be positive.&quot;</span>
+            <span class="k">assert</span> <span class="n">imputation_score_threshold</span> <span class="o">&gt;=</span> <span class="mf">0.0</span><span class="p">,</span> <span class="p">(</span>
+                <span class="s2">&quot;Imputation score threshold should be positive.&quot;</span>
+            <span class="p">)</span>
             <span class="n">sumstats</span> <span class="o">=</span> <span class="p">(</span>
                 <span class="n">sumstats</span><span class="o">.</span><span class="n">withColumn</span><span class="p">(</span>
                     <span class="s2">&quot;hasLowImputationScore&quot;</span><span class="p">,</span>
@@ -7056,7 +7077,7 @@ a distributed environment.</p>
             <span class="s2">&quot;The use_enhanced_bgzip_codec is set to False. This will lead to inefficient reading of block gzipped files.&quot;</span>
         <span class="p">)</span>
         <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span>
-            <span class="s2">&quot;Please set `session.spark.use_enhanced_bgzip_codec` to True in the Session configuration.&quot;</span>
+            <span class="s2">&quot;Please set `use_enhanced_bgzip_codec` to True in the Session configuration.&quot;</span>
         <span class="p">)</span>
 
     <span class="c1"># Handle n_threads limits and warnings</span>
@@ -8484,13 +8505,13 @@ smaller cohorts, like MVP_AFR (nSamples ~120k) and MVP_HIS (~60k).</li>
 <span class="sd">        SummaryStatistics: Processed summary statistics dataset.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">perform_min_allele_count_filter</span><span class="p">:</span>
-        <span class="k">assert</span> <span class="p">(</span>
-            <span class="n">min_allele_count_threshold</span> <span class="o">&gt;</span> <span class="mi">0</span>
-        <span class="p">),</span> <span class="s2">&quot;Allele count threshold should be positive.&quot;</span>
+        <span class="k">assert</span> <span class="n">min_allele_count_threshold</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="p">(</span>
+            <span class="s2">&quot;Allele count threshold should be positive.&quot;</span>
+        <span class="p">)</span>
     <span class="k">if</span> <span class="n">perform_min_allele_frequency_filter</span><span class="p">:</span>
-        <span class="k">assert</span> <span class="p">(</span>
-            <span class="mf">0.0</span> <span class="o">&lt;=</span> <span class="n">min_allele_frequency_threshold</span> <span class="o">&lt;=</span> <span class="mf">0.5</span>
-        <span class="p">),</span> <span class="s2">&quot;MAF needs to be between 0 and 0.5.&quot;</span>
+        <span class="k">assert</span> <span class="mf">0.0</span> <span class="o">&lt;=</span> <span class="n">min_allele_frequency_threshold</span> <span class="o">&lt;=</span> <span class="mf">0.5</span><span class="p">,</span> <span class="p">(</span>
+            <span class="s2">&quot;MAF needs to be between 0 and 0.5.&quot;</span>
+        <span class="p">)</span>
 
     <span class="k">if</span> <span class="n">perform_min_allele_count_filter</span> <span class="ow">and</span> <span class="n">perform_min_allele_frequency_filter</span><span class="p">:</span>
         <span class="c1"># NOTE - MAC filter would be more stringent at low allele frequencies, so no</span>
@@ -8588,9 +8609,9 @@ smaller cohorts, like MVP_AFR (nSamples ~120k) and MVP_HIS (~60k).</li>
 
     <span class="c1"># Filter out variants with low INFO score</span>
     <span class="k">if</span> <span class="n">perform_imputation_score_filter</span><span class="p">:</span>
-        <span class="k">assert</span> <span class="p">(</span>
-            <span class="n">imputation_score_threshold</span> <span class="o">&gt;=</span> <span class="mf">0.0</span>
-        <span class="p">),</span> <span class="s2">&quot;Imputation score threshold should be positive.&quot;</span>
+        <span class="k">assert</span> <span class="n">imputation_score_threshold</span> <span class="o">&gt;=</span> <span class="mf">0.0</span><span class="p">,</span> <span class="p">(</span>
+            <span class="s2">&quot;Imputation score threshold should be positive.&quot;</span>
+        <span class="p">)</span>
         <span class="n">sumstats</span> <span class="o">=</span> <span class="p">(</span>
             <span class="n">sumstats</span><span class="o">.</span><span class="n">withColumn</span><span class="p">(</span>
                 <span class="s2">&quot;hasLowImputationScore&quot;</span><span class="p">,</span>

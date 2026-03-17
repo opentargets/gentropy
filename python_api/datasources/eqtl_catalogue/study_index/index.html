@@ -1553,6 +1553,27 @@
   
   
     <li class="md-nav__item">
+      <a href="../../../datasets/l2g_features/intervals/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Epigenetic regulatory region features
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../../datasets/l2g_features/other/" class="md-nav__link">
         
   
@@ -3880,7 +3901,19 @@
 <span class="normal">147</span>
 <span class="normal">148</span>
 <span class="normal">149</span>
-<span class="normal">150</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">EqtlCatalogueStudyIndex</span><span class="p">:</span>
+<span class="normal">150</span>
+<span class="normal">151</span>
+<span class="normal">152</span>
+<span class="normal">153</span>
+<span class="normal">154</span>
+<span class="normal">155</span>
+<span class="normal">156</span>
+<span class="normal">157</span>
+<span class="normal">158</span>
+<span class="normal">159</span>
+<span class="normal">160</span>
+<span class="normal">161</span>
+<span class="normal">162</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">EqtlCatalogueStudyIndex</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Study index dataset from eQTL Catalogue.</span>
 
 <span class="sd">    We extract study level metadata from eQTL Catalogue&#39;s fine mapping results. All available studies can be found [here](https://www.ebi.ac.uk/eqtl/Studies/).</span>
@@ -3908,15 +3941,15 @@
             <span class="n">StructField</span><span class="p">(</span><span class="s2">&quot;study_type&quot;</span><span class="p">,</span> <span class="n">StringType</span><span class="p">(),</span> <span class="kc">True</span><span class="p">),</span>
         <span class="p">]</span>
     <span class="p">)</span>
-    <span class="n">raw_studies_metadata_path</span> <span class="o">=</span> <span class="s2">&quot;https://raw.githubusercontent.com/eQTL-Catalogue/eQTL-Catalogue-resources/fe3c4b4ed911b3a184271a6aadcd8c8769a66aba/data_tables/dataset_metadata.tsv&quot;</span>
     <span class="n">method_to_qtl_type_mapping</span> <span class="o">=</span> <span class="p">{</span>
-        <span class="s2">&quot;ge&quot;</span><span class="p">:</span> <span class="s2">&quot;eqtl&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;exon&quot;</span><span class="p">:</span> <span class="s2">&quot;eqtl&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;tx&quot;</span><span class="p">:</span> <span class="s2">&quot;eqtl&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;microarray&quot;</span><span class="p">:</span> <span class="s2">&quot;eqtl&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;leafcutter&quot;</span><span class="p">:</span> <span class="s2">&quot;sqtl&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;aptamer&quot;</span><span class="p">:</span> <span class="s2">&quot;pqtl&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;txrev&quot;</span><span class="p">:</span> <span class="s2">&quot;tuqtl&quot;</span><span class="p">,</span>
+        <span class="n">QuantificationMethod</span><span class="o">.</span><span class="n">GE</span><span class="o">.</span><span class="n">value</span><span class="p">:</span> <span class="n">StudyType</span><span class="o">.</span><span class="n">EQTL</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
+        <span class="n">QuantificationMethod</span><span class="o">.</span><span class="n">EXON</span><span class="o">.</span><span class="n">value</span><span class="p">:</span> <span class="n">StudyType</span><span class="o">.</span><span class="n">EQTL</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
+        <span class="n">QuantificationMethod</span><span class="o">.</span><span class="n">TX</span><span class="o">.</span><span class="n">value</span><span class="p">:</span> <span class="n">StudyType</span><span class="o">.</span><span class="n">EQTL</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
+        <span class="n">QuantificationMethod</span><span class="o">.</span><span class="n">MICROARRAY</span><span class="o">.</span><span class="n">value</span><span class="p">:</span> <span class="n">StudyType</span><span class="o">.</span><span class="n">EQTL</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
+        <span class="n">QuantificationMethod</span><span class="o">.</span><span class="n">LEAFCUTTER</span><span class="o">.</span><span class="n">value</span><span class="p">:</span> <span class="n">StudyType</span><span class="o">.</span><span class="n">SQTL</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
+        <span class="n">QuantificationMethod</span><span class="o">.</span><span class="n">APTAMER</span><span class="o">.</span><span class="n">value</span><span class="p">:</span> <span class="n">StudyType</span><span class="o">.</span><span class="n">PQTL</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
+        <span class="n">QuantificationMethod</span><span class="o">.</span><span class="n">TXREV</span><span class="o">.</span><span class="n">value</span><span class="p">:</span> <span class="n">StudyType</span><span class="o">.</span><span class="n">TUQTL</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
+        <span class="n">QuantificationMethod</span><span class="o">.</span><span class="n">MAJIQ</span><span class="o">.</span><span class="n">value</span><span class="p">:</span> <span class="n">StudyType</span><span class="o">.</span><span class="n">SQTL</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
     <span class="p">}</span>
 
     <span class="nd">@classmethod</span>
@@ -3994,22 +4027,34 @@
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">read_studies_from_source</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">EqtlCatalogueStudyIndex</span><span class="p">],</span>
-        <span class="n">session</span><span class="p">:</span> <span class="n">Session</span><span class="p">,</span>
+        <span class="n">metadata_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">mqtl_quantification_methods_blacklist</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+        <span class="n">session</span><span class="p">:</span> <span class="n">Session</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataFrame</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Read raw studies metadata from eQTL Catalogue.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            session (Session): Spark session.</span>
+<span class="sd">            metadata_path (str): Path to the studies metadata file.</span>
 <span class="sd">            mqtl_quantification_methods_blacklist (list[str]): Molecular trait quantification methods that we don&#39;t want to ingest. Available options in https://github.com/eQTL-Catalogue/eQTL-Catalogue-resources/blob/master/data_tables/dataset_metadata.tsv</span>
+<span class="sd">            session (Session | None, optional): Session object. If not provided, the method will try to find an active session. Defaults to None.</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            DataFrame: raw studies metadata.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: If an invalid quantification method is provided in the blacklist.</span>
+
+<span class="sd">        Example metadata_path: &quot;https://raw.githubusercontent.com/eQTL-Catalogue/eQTL-Catalogue-resources/fe3c4b4ed911b3a184271a6aadcd8c8769a66aba/data_tables/dataset_metadata.tsv&quot;</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="o">.</span><span class="n">iteritems</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="o">.</span><span class="n">items</span>
-        <span class="k">return</span> <span class="n">session</span><span class="o">.</span><span class="n">spark</span><span class="o">.</span><span class="n">createDataFrame</span><span class="p">(</span>
-            <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">raw_studies_metadata_path</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">&quot;</span><span class="p">),</span>
-            <span class="n">schema</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">raw_studies_metadata_schema</span><span class="p">,</span>
+        <span class="n">session</span> <span class="o">=</span> <span class="n">session</span> <span class="ow">or</span> <span class="n">Session</span><span class="o">.</span><span class="n">find</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">method</span> <span class="ow">in</span> <span class="n">mqtl_quantification_methods_blacklist</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">method</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="n">method_to_qtl_type_mapping</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Quantification method &#39;</span><span class="si">{</span><span class="n">method</span><span class="si">}</span><span class="s2">&#39; is not supported. &quot;</span>
+                    <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;Available options are: </span><span class="si">{</span><span class="nb">list</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">method_to_qtl_type_mapping</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
+        <span class="k">return</span> <span class="n">session</span><span class="o">.</span><span class="n">load_data</span><span class="p">(</span>
+            <span class="n">metadata_path</span><span class="p">,</span> <span class="n">schema</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">raw_studies_metadata_schema</span><span class="p">,</span> <span class="n">fmt</span><span class="o">=</span><span class="s2">&quot;tsv&quot;</span>
         <span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="o">~</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;quant_method&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">mqtl_quantification_methods_blacklist</span><span class="p">)))</span>
 </code></pre></div></td></tr></table></div>
               </details>
@@ -4270,7 +4315,7 @@
 
 
 <h4 id="gentropy.datasource.eqtl_catalogue.study_index.EqtlCatalogueStudyIndex.read_studies_from_source" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">read_studies_from_source</span><span class="p">(</span><span class="n">session</span><span class="p">:</span> <span class="n">Session</span><span class="p">,</span> <span class="n">mqtl_quantification_methods_blacklist</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">DataFrame</span></code>
+            <code class="highlight language-python"><span class="n">read_studies_from_source</span><span class="p">(</span><span class="n">metadata_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">mqtl_quantification_methods_blacklist</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">session</span><span class="p">:</span> <span class="n">Session</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataFrame</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
@@ -4297,14 +4342,14 @@
       <tbody>
           <tr class="doc-section-item">
             <td>
-                <code>session</code>
+                <code>metadata_path</code>
             </td>
             <td>
-                  <code><a class="autorefs autorefs-internal" title="gentropy.common.session.Session" href="../../../common/session/#gentropy.common.session.Session">Session</a></code>
+                  <code><span title="str">str</span></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Spark session.</p>
+                <p>Path to the studies metadata file.</p>
               </div>
             </td>
             <td>
@@ -4325,6 +4370,22 @@
             </td>
             <td>
                 <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>session</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="gentropy.common.session.Session" href="../../../common/session/#gentropy.common.session.Session">Session</a> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Session object. If not provided, the method will try to find an active session. Defaults to None.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
             </td>
           </tr>
       </tbody>
@@ -4354,6 +4415,30 @@
     </table>
 
 
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="ValueError">ValueError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If an invalid quantification method is provided in the blacklist.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+        <p>Example metadata_path: "https://raw.githubusercontent.com/eQTL-Catalogue/eQTL-Catalogue-resources/fe3c4b4ed911b3a184271a6aadcd8c8769a66aba/data_tables/dataset_metadata.tsv"</p>
+
+
             <details class="quote">
               <summary>Source code in <code>src/gentropy/datasource/eqtl_catalogue/study_index.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">131</span>
@@ -4375,25 +4460,49 @@
 <span class="normal">147</span>
 <span class="normal">148</span>
 <span class="normal">149</span>
-<span class="normal">150</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
+<span class="normal">150</span>
+<span class="normal">151</span>
+<span class="normal">152</span>
+<span class="normal">153</span>
+<span class="normal">154</span>
+<span class="normal">155</span>
+<span class="normal">156</span>
+<span class="normal">157</span>
+<span class="normal">158</span>
+<span class="normal">159</span>
+<span class="normal">160</span>
+<span class="normal">161</span>
+<span class="normal">162</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">read_studies_from_source</span><span class="p">(</span>
     <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">EqtlCatalogueStudyIndex</span><span class="p">],</span>
-    <span class="n">session</span><span class="p">:</span> <span class="n">Session</span><span class="p">,</span>
+    <span class="n">metadata_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">mqtl_quantification_methods_blacklist</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">session</span><span class="p">:</span> <span class="n">Session</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataFrame</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Read raw studies metadata from eQTL Catalogue.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        session (Session): Spark session.</span>
+<span class="sd">        metadata_path (str): Path to the studies metadata file.</span>
 <span class="sd">        mqtl_quantification_methods_blacklist (list[str]): Molecular trait quantification methods that we don&#39;t want to ingest. Available options in https://github.com/eQTL-Catalogue/eQTL-Catalogue-resources/blob/master/data_tables/dataset_metadata.tsv</span>
+<span class="sd">        session (Session | None, optional): Session object. If not provided, the method will try to find an active session. Defaults to None.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        DataFrame: raw studies metadata.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError: If an invalid quantification method is provided in the blacklist.</span>
+
+<span class="sd">    Example metadata_path: &quot;https://raw.githubusercontent.com/eQTL-Catalogue/eQTL-Catalogue-resources/fe3c4b4ed911b3a184271a6aadcd8c8769a66aba/data_tables/dataset_metadata.tsv&quot;</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="o">.</span><span class="n">iteritems</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="o">.</span><span class="n">items</span>
-    <span class="k">return</span> <span class="n">session</span><span class="o">.</span><span class="n">spark</span><span class="o">.</span><span class="n">createDataFrame</span><span class="p">(</span>
-        <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">raw_studies_metadata_path</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">&quot;</span><span class="p">),</span>
-        <span class="n">schema</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">raw_studies_metadata_schema</span><span class="p">,</span>
+    <span class="n">session</span> <span class="o">=</span> <span class="n">session</span> <span class="ow">or</span> <span class="n">Session</span><span class="o">.</span><span class="n">find</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">method</span> <span class="ow">in</span> <span class="n">mqtl_quantification_methods_blacklist</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">method</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="n">method_to_qtl_type_mapping</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Quantification method &#39;</span><span class="si">{</span><span class="n">method</span><span class="si">}</span><span class="s2">&#39; is not supported. &quot;</span>
+                <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;Available options are: </span><span class="si">{</span><span class="nb">list</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">method_to_qtl_type_mapping</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+    <span class="k">return</span> <span class="n">session</span><span class="o">.</span><span class="n">load_data</span><span class="p">(</span>
+        <span class="n">metadata_path</span><span class="p">,</span> <span class="n">schema</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">raw_studies_metadata_schema</span><span class="p">,</span> <span class="n">fmt</span><span class="o">=</span><span class="s2">&quot;tsv&quot;</span>
     <span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="o">~</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;quant_method&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">mqtl_quantification_methods_blacklist</span><span class="p">)))</span>
 </code></pre></div></td></tr></table></div>
             </details>

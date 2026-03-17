@@ -1553,6 +1553,27 @@
   
   
     <li class="md-nav__item">
+      <a href="../../datasets/l2g_features/intervals/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Epigenetic regulatory region features
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../datasets/l2g_features/other/" class="md-nav__link">
         
   
@@ -3786,7 +3807,10 @@ when target of disease validation fails.</p>
 <span class="normal">88</span>
 <span class="normal">89</span>
 <span class="normal">90</span>
-<span class="normal">91</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">StudyValidationStep</span><span class="p">:</span>
+<span class="normal">91</span>
+<span class="normal">92</span>
+<span class="normal">93</span>
+<span class="normal">94</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">StudyValidationStep</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Study index validation step.</span>
 
 <span class="sd">    This step reads and outputs a study index dataset with flagged studies</span>
@@ -3829,7 +3853,7 @@ when target of disease validation fails.</p>
         <span class="n">target_index</span> <span class="o">=</span> <span class="n">TargetIndex</span><span class="o">.</span><span class="n">from_parquet</span><span class="p">(</span><span class="n">session</span><span class="p">,</span> <span class="n">target_index_path</span><span class="p">)</span>
         <span class="n">biosample_index</span> <span class="o">=</span> <span class="n">BiosampleIndex</span><span class="o">.</span><span class="n">from_parquet</span><span class="p">(</span><span class="n">session</span><span class="p">,</span> <span class="n">biosample_index_path</span><span class="p">)</span>
         <span class="c1"># Reading disease index and pre-process.</span>
-        <span class="c1"># This logic does not belong anywhere, but gentorpy has no disease dataset yet.</span>
+        <span class="c1"># This logic does not belong anywhere, but gentropy has no disease dataset yet.</span>
         <span class="n">disease_index</span> <span class="o">=</span> <span class="p">(</span>
             <span class="n">session</span><span class="o">.</span><span class="n">spark</span><span class="o">.</span><span class="n">read</span><span class="o">.</span><span class="n">parquet</span><span class="p">(</span><span class="n">disease_index_path</span><span class="p">)</span>
             <span class="o">.</span><span class="n">select</span><span class="p">(</span>
@@ -3852,19 +3876,22 @@ when target of disease validation fails.</p>
             <span class="o">.</span><span class="n">validate_project_id</span><span class="p">(</span><span class="n">deprecated_project_ids</span><span class="p">)</span>  <span class="c1"># Flag obsolete projectIds</span>
             <span class="o">.</span><span class="n">validate_target</span><span class="p">(</span><span class="n">target_index</span><span class="p">)</span>  <span class="c1"># Flagging QTL studies with invalid targets</span>
             <span class="o">.</span><span class="n">validate_disease</span><span class="p">(</span><span class="n">disease_index</span><span class="p">)</span>  <span class="c1"># Flagging invalid EFOs</span>
-            <span class="o">.</span><span class="n">validate_biosample</span><span class="p">(</span>
-                <span class="n">biosample_index</span>
-            <span class="p">)</span>  <span class="c1"># Flagging QTL studies with invalid biosamples</span>
+            <span class="o">.</span><span class="n">validate_biosample</span><span class="p">(</span><span class="n">biosample_index</span><span class="p">)</span>  <span class="c1"># Flagging invalid biosample in QTLs</span>
             <span class="o">.</span><span class="n">validate_analysis_flags</span><span class="p">()</span>  <span class="c1"># Flagging studies with case case design</span>
-        <span class="p">)</span><span class="o">.</span><span class="n">persist</span><span class="p">()</span>  <span class="c1"># we will need this for 2 types of outputs</span>
+            <span class="o">.</span><span class="n">persist</span><span class="p">()</span>  <span class="c1"># we will need this for 2 types of outputs</span>
+        <span class="p">)</span>
 
-        <span class="n">study_index_with_qc</span><span class="o">.</span><span class="n">valid_rows</span><span class="p">(</span><span class="n">invalid_qc_reasons</span><span class="p">,</span> <span class="n">invalid</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">coalesce</span><span class="p">(</span>
-            <span class="n">session</span><span class="o">.</span><span class="n">output_partitions</span>
-        <span class="p">)</span><span class="o">.</span><span class="n">write</span><span class="o">.</span><span class="n">mode</span><span class="p">(</span><span class="n">session</span><span class="o">.</span><span class="n">write_mode</span><span class="p">)</span><span class="o">.</span><span class="n">parquet</span><span class="p">(</span><span class="n">invalid_study_index_path</span><span class="p">)</span>
-
-        <span class="n">study_index_with_qc</span><span class="o">.</span><span class="n">valid_rows</span><span class="p">(</span><span class="n">invalid_qc_reasons</span><span class="p">)</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">coalesce</span><span class="p">(</span>
-            <span class="n">session</span><span class="o">.</span><span class="n">output_partitions</span>
-        <span class="p">)</span><span class="o">.</span><span class="n">write</span><span class="o">.</span><span class="n">mode</span><span class="p">(</span><span class="n">session</span><span class="o">.</span><span class="n">write_mode</span><span class="p">)</span><span class="o">.</span><span class="n">parquet</span><span class="p">(</span><span class="n">valid_study_index_path</span><span class="p">)</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">study_index_with_qc</span><span class="o">.</span><span class="n">valid_rows</span><span class="p">(</span><span class="n">invalid_qc_reasons</span><span class="p">)</span>
+        <span class="p">(</span>
+            <span class="n">result</span><span class="o">.</span><span class="n">valid</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">coalesce</span><span class="p">(</span><span class="n">session</span><span class="o">.</span><span class="n">output_partitions</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">write</span><span class="o">.</span><span class="n">mode</span><span class="p">(</span><span class="n">session</span><span class="o">.</span><span class="n">write_mode</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">parquet</span><span class="p">(</span><span class="n">valid_study_index_path</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="p">(</span>
+            <span class="n">result</span><span class="o">.</span><span class="n">invalid</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">coalesce</span><span class="p">(</span><span class="n">session</span><span class="o">.</span><span class="n">output_partitions</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">write</span><span class="o">.</span><span class="n">mode</span><span class="p">(</span><span class="n">session</span><span class="o">.</span><span class="n">write_mode</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">parquet</span><span class="p">(</span><span class="n">invalid_study_index_path</span><span class="p">)</span>
+        <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
               </details>
 
@@ -4126,7 +4153,10 @@ when target of disease validation fails.</p>
 <span class="normal">88</span>
 <span class="normal">89</span>
 <span class="normal">90</span>
-<span class="normal">91</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+<span class="normal">91</span>
+<span class="normal">92</span>
+<span class="normal">93</span>
+<span class="normal">94</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
     <span class="n">session</span><span class="p">:</span> <span class="n">Session</span><span class="p">,</span>
     <span class="n">study_index_path</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
@@ -4162,7 +4192,7 @@ when target of disease validation fails.</p>
     <span class="n">target_index</span> <span class="o">=</span> <span class="n">TargetIndex</span><span class="o">.</span><span class="n">from_parquet</span><span class="p">(</span><span class="n">session</span><span class="p">,</span> <span class="n">target_index_path</span><span class="p">)</span>
     <span class="n">biosample_index</span> <span class="o">=</span> <span class="n">BiosampleIndex</span><span class="o">.</span><span class="n">from_parquet</span><span class="p">(</span><span class="n">session</span><span class="p">,</span> <span class="n">biosample_index_path</span><span class="p">)</span>
     <span class="c1"># Reading disease index and pre-process.</span>
-    <span class="c1"># This logic does not belong anywhere, but gentorpy has no disease dataset yet.</span>
+    <span class="c1"># This logic does not belong anywhere, but gentropy has no disease dataset yet.</span>
     <span class="n">disease_index</span> <span class="o">=</span> <span class="p">(</span>
         <span class="n">session</span><span class="o">.</span><span class="n">spark</span><span class="o">.</span><span class="n">read</span><span class="o">.</span><span class="n">parquet</span><span class="p">(</span><span class="n">disease_index_path</span><span class="p">)</span>
         <span class="o">.</span><span class="n">select</span><span class="p">(</span>
@@ -4185,19 +4215,22 @@ when target of disease validation fails.</p>
         <span class="o">.</span><span class="n">validate_project_id</span><span class="p">(</span><span class="n">deprecated_project_ids</span><span class="p">)</span>  <span class="c1"># Flag obsolete projectIds</span>
         <span class="o">.</span><span class="n">validate_target</span><span class="p">(</span><span class="n">target_index</span><span class="p">)</span>  <span class="c1"># Flagging QTL studies with invalid targets</span>
         <span class="o">.</span><span class="n">validate_disease</span><span class="p">(</span><span class="n">disease_index</span><span class="p">)</span>  <span class="c1"># Flagging invalid EFOs</span>
-        <span class="o">.</span><span class="n">validate_biosample</span><span class="p">(</span>
-            <span class="n">biosample_index</span>
-        <span class="p">)</span>  <span class="c1"># Flagging QTL studies with invalid biosamples</span>
+        <span class="o">.</span><span class="n">validate_biosample</span><span class="p">(</span><span class="n">biosample_index</span><span class="p">)</span>  <span class="c1"># Flagging invalid biosample in QTLs</span>
         <span class="o">.</span><span class="n">validate_analysis_flags</span><span class="p">()</span>  <span class="c1"># Flagging studies with case case design</span>
-    <span class="p">)</span><span class="o">.</span><span class="n">persist</span><span class="p">()</span>  <span class="c1"># we will need this for 2 types of outputs</span>
+        <span class="o">.</span><span class="n">persist</span><span class="p">()</span>  <span class="c1"># we will need this for 2 types of outputs</span>
+    <span class="p">)</span>
 
-    <span class="n">study_index_with_qc</span><span class="o">.</span><span class="n">valid_rows</span><span class="p">(</span><span class="n">invalid_qc_reasons</span><span class="p">,</span> <span class="n">invalid</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">coalesce</span><span class="p">(</span>
-        <span class="n">session</span><span class="o">.</span><span class="n">output_partitions</span>
-    <span class="p">)</span><span class="o">.</span><span class="n">write</span><span class="o">.</span><span class="n">mode</span><span class="p">(</span><span class="n">session</span><span class="o">.</span><span class="n">write_mode</span><span class="p">)</span><span class="o">.</span><span class="n">parquet</span><span class="p">(</span><span class="n">invalid_study_index_path</span><span class="p">)</span>
-
-    <span class="n">study_index_with_qc</span><span class="o">.</span><span class="n">valid_rows</span><span class="p">(</span><span class="n">invalid_qc_reasons</span><span class="p">)</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">coalesce</span><span class="p">(</span>
-        <span class="n">session</span><span class="o">.</span><span class="n">output_partitions</span>
-    <span class="p">)</span><span class="o">.</span><span class="n">write</span><span class="o">.</span><span class="n">mode</span><span class="p">(</span><span class="n">session</span><span class="o">.</span><span class="n">write_mode</span><span class="p">)</span><span class="o">.</span><span class="n">parquet</span><span class="p">(</span><span class="n">valid_study_index_path</span><span class="p">)</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">study_index_with_qc</span><span class="o">.</span><span class="n">valid_rows</span><span class="p">(</span><span class="n">invalid_qc_reasons</span><span class="p">)</span>
+    <span class="p">(</span>
+        <span class="n">result</span><span class="o">.</span><span class="n">valid</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">coalesce</span><span class="p">(</span><span class="n">session</span><span class="o">.</span><span class="n">output_partitions</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">write</span><span class="o">.</span><span class="n">mode</span><span class="p">(</span><span class="n">session</span><span class="o">.</span><span class="n">write_mode</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">parquet</span><span class="p">(</span><span class="n">valid_study_index_path</span><span class="p">)</span>
+    <span class="p">)</span>
+    <span class="p">(</span>
+        <span class="n">result</span><span class="o">.</span><span class="n">invalid</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">coalesce</span><span class="p">(</span><span class="n">session</span><span class="o">.</span><span class="n">output_partitions</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">write</span><span class="o">.</span><span class="n">mode</span><span class="p">(</span><span class="n">session</span><span class="o">.</span><span class="n">write_mode</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">parquet</span><span class="p">(</span><span class="n">invalid_study_index_path</span><span class="p">)</span>
+    <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>

@@ -9,10 +9,10 @@
       
       
       
-        <link rel="prev" href="../other/">
+        <link rel="prev" href="../distance/">
       
       
-        <link rel="next" href="../../../datasources/_datasources/">
+        <link rel="next" href="../other/">
       
       
       <link rel="icon" href="../../../../assets/imgs/favicon.png">
@@ -20,7 +20,7 @@
     
     
       
-        <title>From VEP - Open Targets Gentropy</title>
+        <title>Epigenetic regulatory region features - Open Targets Gentropy</title>
       
     
     
@@ -113,7 +113,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              From VEP
+              Epigenetic regulatory region features
             
           </span>
         </div>
@@ -1554,10 +1554,28 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../intervals/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Epigenetic regulatory region features
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   <span class="md-ellipsis">
@@ -1566,6 +1584,120 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#list-of-features" class="md-nav__link">
+    <span class="md-ellipsis">
+      List of features
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="List of features">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#gentropy.dataset.l2g_features.intervals.E2gMeanFeature" class="md-nav__link">
+    <span class="md-ellipsis">
+      E2gMeanFeature
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="E2gMeanFeature">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#gentropy.dataset.l2g_features.intervals.E2gMeanFeature.compute" class="md-nav__link">
+    <span class="md-ellipsis">
+      compute
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gentropy.dataset.l2g_features.intervals.E2gMeanNeighbourhoodFeature" class="md-nav__link">
+    <span class="md-ellipsis">
+      E2gMeanNeighbourhoodFeature
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="E2gMeanNeighbourhoodFeature">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#gentropy.dataset.l2g_features.intervals.E2gMeanNeighbourhoodFeature.compute" class="md-nav__link">
+    <span class="md-ellipsis">
+      compute
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#common-logic" class="md-nav__link">
+    <span class="md-ellipsis">
+      Common logic
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Common logic">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#gentropy.dataset.l2g_features.intervals.e2g_interval_feature_wide_logic" class="md-nav__link">
+    <span class="md-ellipsis">
+      e2g_interval_feature_wide_logic
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gentropy.dataset.l2g_features.intervals.get_or_make_e2g_wide" class="md-nav__link">
+    <span class="md-ellipsis">
+      get_or_make_e2g_wide
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -1596,28 +1728,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  <span class="md-ellipsis">
-    From VEP
-  </span>
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../vep/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1626,168 +1740,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#list-of-features" class="md-nav__link">
-    <span class="md-ellipsis">
-      List of features
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="List of features">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#gentropy.dataset.l2g_features.vep.VepMeanFeature" class="md-nav__link">
-    <span class="md-ellipsis">
-      VepMeanFeature
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="VepMeanFeature">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#gentropy.dataset.l2g_features.vep.VepMeanFeature.compute" class="md-nav__link">
-    <span class="md-ellipsis">
-      compute
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#gentropy.dataset.l2g_features.vep.VepMeanNeighbourhoodFeature" class="md-nav__link">
-    <span class="md-ellipsis">
-      VepMeanNeighbourhoodFeature
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="VepMeanNeighbourhoodFeature">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#gentropy.dataset.l2g_features.vep.VepMeanNeighbourhoodFeature.compute" class="md-nav__link">
-    <span class="md-ellipsis">
-      compute
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#gentropy.dataset.l2g_features.vep.VepMaximumFeature" class="md-nav__link">
-    <span class="md-ellipsis">
-      VepMaximumFeature
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="VepMaximumFeature">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#gentropy.dataset.l2g_features.vep.VepMaximumFeature.compute" class="md-nav__link">
-    <span class="md-ellipsis">
-      compute
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#gentropy.dataset.l2g_features.vep.VepMaximumNeighbourhoodFeature" class="md-nav__link">
-    <span class="md-ellipsis">
-      VepMaximumNeighbourhoodFeature
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="VepMaximumNeighbourhoodFeature">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#gentropy.dataset.l2g_features.vep.VepMaximumNeighbourhoodFeature.compute" class="md-nav__link">
-    <span class="md-ellipsis">
-      compute
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#common-logic" class="md-nav__link">
-    <span class="md-ellipsis">
-      Common logic
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Common logic">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#gentropy.dataset.l2g_features.vep.common_vep_feature_logic" class="md-nav__link">
-    <span class="md-ellipsis">
-      common_vep_feature_logic
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#gentropy.dataset.l2g_features.vep.common_neighbourhood_vep_feature_logic" class="md-nav__link">
-    <span class="md-ellipsis">
-      common_neighbourhood_vep_feature_logic
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -3792,17 +3744,17 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#gentropy.dataset.l2g_features.vep.VepMeanFeature" class="md-nav__link">
+  <a href="#gentropy.dataset.l2g_features.intervals.E2gMeanFeature" class="md-nav__link">
     <span class="md-ellipsis">
-      VepMeanFeature
+      E2gMeanFeature
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="VepMeanFeature">
+    <nav class="md-nav" aria-label="E2gMeanFeature">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#gentropy.dataset.l2g_features.vep.VepMeanFeature.compute" class="md-nav__link">
+  <a href="#gentropy.dataset.l2g_features.intervals.E2gMeanFeature.compute" class="md-nav__link">
     <span class="md-ellipsis">
       compute
     </span>
@@ -3816,65 +3768,17 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#gentropy.dataset.l2g_features.vep.VepMeanNeighbourhoodFeature" class="md-nav__link">
+  <a href="#gentropy.dataset.l2g_features.intervals.E2gMeanNeighbourhoodFeature" class="md-nav__link">
     <span class="md-ellipsis">
-      VepMeanNeighbourhoodFeature
+      E2gMeanNeighbourhoodFeature
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="VepMeanNeighbourhoodFeature">
+    <nav class="md-nav" aria-label="E2gMeanNeighbourhoodFeature">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#gentropy.dataset.l2g_features.vep.VepMeanNeighbourhoodFeature.compute" class="md-nav__link">
-    <span class="md-ellipsis">
-      compute
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#gentropy.dataset.l2g_features.vep.VepMaximumFeature" class="md-nav__link">
-    <span class="md-ellipsis">
-      VepMaximumFeature
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="VepMaximumFeature">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#gentropy.dataset.l2g_features.vep.VepMaximumFeature.compute" class="md-nav__link">
-    <span class="md-ellipsis">
-      compute
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#gentropy.dataset.l2g_features.vep.VepMaximumNeighbourhoodFeature" class="md-nav__link">
-    <span class="md-ellipsis">
-      VepMaximumNeighbourhoodFeature
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="VepMaximumNeighbourhoodFeature">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#gentropy.dataset.l2g_features.vep.VepMaximumNeighbourhoodFeature.compute" class="md-nav__link">
+  <a href="#gentropy.dataset.l2g_features.intervals.E2gMeanNeighbourhoodFeature.compute" class="md-nav__link">
     <span class="md-ellipsis">
       compute
     </span>
@@ -3903,18 +3807,18 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#gentropy.dataset.l2g_features.vep.common_vep_feature_logic" class="md-nav__link">
+  <a href="#gentropy.dataset.l2g_features.intervals.e2g_interval_feature_wide_logic" class="md-nav__link">
     <span class="md-ellipsis">
-      common_vep_feature_logic
+      e2g_interval_feature_wide_logic
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#gentropy.dataset.l2g_features.vep.common_neighbourhood_vep_feature_logic" class="md-nav__link">
+  <a href="#gentropy.dataset.l2g_features.intervals.get_or_make_e2g_wide" class="md-nav__link">
     <span class="md-ellipsis">
-      common_neighbourhood_vep_feature_logic
+      get_or_make_e2g_wide
     </span>
   </a>
   
@@ -3943,7 +3847,7 @@
   
 
 
-  <h1>From VEP</h1>
+  <h1>Epigenetic regulatory region features</h1>
 
 <h2 id="list-of-features">List of features<a class="headerlink" href="#list-of-features" title="Permanent link">&para;</a></h2>
 
@@ -3952,15 +3856,15 @@
 
 
 
-<h3 id="gentropy.dataset.l2g_features.vep.VepMeanFeature" class="doc doc-heading">
-            <code>gentropy.dataset.l2g_features.vep.VepMeanFeature</code>
+<h3 id="gentropy.dataset.l2g_features.intervals.E2gMeanFeature" class="doc doc-heading">
+            <code>gentropy.dataset.l2g_features.intervals.E2gMeanFeature</code>
 
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-dataclass"><code>dataclass</code></small>
   </span>
 
-<a href="#gentropy.dataset.l2g_features.vep.VepMeanFeature" class="headerlink" title="Permanent link">&para;</a></h3>
+<a href="#gentropy.dataset.l2g_features.intervals.E2gMeanFeature" class="headerlink" title="Permanent link">&para;</a></h3>
 
 
     <div class="doc doc-contents first">
@@ -3968,8 +3872,7 @@
               Bases: <code><a class="autorefs autorefs-internal" title="gentropy.dataset.l2g_features.l2g_feature.L2GFeature" href="../_l2g_feature/#gentropy.dataset.l2g_features.l2g_feature.L2GFeature">L2GFeature</a></code></p>
 
 
-        <p>Average functional consequence score among all variants in a credible set for a studyLocus/gene.</p>
-<p>The mean severity score is weighted by the posterior probability of each variant.</p>
+        <p>e2gMean feature from E2G intervals.</p>
 
 
 
@@ -3978,80 +3881,78 @@
 
 
               <details class="quote">
-                <summary>Source code in <code>src/gentropy/dataset/l2g_features/vep.py</code></summary>
-                <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">199</span>
-<span class="normal">200</span>
-<span class="normal">201</span>
-<span class="normal">202</span>
-<span class="normal">203</span>
-<span class="normal">204</span>
-<span class="normal">205</span>
-<span class="normal">206</span>
-<span class="normal">207</span>
-<span class="normal">208</span>
-<span class="normal">209</span>
-<span class="normal">210</span>
-<span class="normal">211</span>
-<span class="normal">212</span>
-<span class="normal">213</span>
-<span class="normal">214</span>
-<span class="normal">215</span>
-<span class="normal">216</span>
-<span class="normal">217</span>
-<span class="normal">218</span>
-<span class="normal">219</span>
-<span class="normal">220</span>
-<span class="normal">221</span>
-<span class="normal">222</span>
-<span class="normal">223</span>
-<span class="normal">224</span>
-<span class="normal">225</span>
-<span class="normal">226</span>
-<span class="normal">227</span>
-<span class="normal">228</span>
-<span class="normal">229</span>
-<span class="normal">230</span>
-<span class="normal">231</span>
-<span class="normal">232</span>
-<span class="normal">233</span>
-<span class="normal">234</span>
-<span class="normal">235</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">VepMeanFeature</span><span class="p">(</span><span class="n">L2GFeature</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Average functional consequence score among all variants in a credible set for a studyLocus/gene.</span>
+                <summary>Source code in <code>src/gentropy/dataset/l2g_features/intervals.py</code></summary>
+                <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">388</span>
+<span class="normal">389</span>
+<span class="normal">390</span>
+<span class="normal">391</span>
+<span class="normal">392</span>
+<span class="normal">393</span>
+<span class="normal">394</span>
+<span class="normal">395</span>
+<span class="normal">396</span>
+<span class="normal">397</span>
+<span class="normal">398</span>
+<span class="normal">399</span>
+<span class="normal">400</span>
+<span class="normal">401</span>
+<span class="normal">402</span>
+<span class="normal">403</span>
+<span class="normal">404</span>
+<span class="normal">405</span>
+<span class="normal">406</span>
+<span class="normal">407</span>
+<span class="normal">408</span>
+<span class="normal">409</span>
+<span class="normal">410</span>
+<span class="normal">411</span>
+<span class="normal">412</span>
+<span class="normal">413</span>
+<span class="normal">414</span>
+<span class="normal">415</span>
+<span class="normal">416</span>
+<span class="normal">417</span>
+<span class="normal">418</span>
+<span class="normal">419</span>
+<span class="normal">420</span>
+<span class="normal">421</span>
+<span class="normal">422</span>
+<span class="normal">423</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">E2gMeanFeature</span><span class="p">(</span><span class="n">L2GFeature</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;e2gMean feature from E2G intervals.&quot;&quot;&quot;</span>
 
-<span class="sd">    The mean severity score is weighted by the posterior probability of each variant.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-
-    <span class="n">feature_dependency_type</span> <span class="o">=</span> <span class="n">VariantIndex</span>
-    <span class="n">feature_name</span> <span class="o">=</span> <span class="s2">&quot;vepMean&quot;</span>
+    <span class="n">feature_dependency_type</span> <span class="o">=</span> <span class="n">Intervals</span>
+    <span class="n">feature_name</span> <span class="o">=</span> <span class="s2">&quot;e2gMean&quot;</span>
 
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span>
-        <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">VepMeanFeature</span><span class="p">],</span>
+        <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">E2gMeanFeature</span><span class="p">],</span>
         <span class="n">study_loci_to_annotate</span><span class="p">:</span> <span class="n">StudyLocus</span> <span class="o">|</span> <span class="n">L2GGoldStandard</span><span class="p">,</span>
         <span class="n">feature_dependency</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">VepMeanFeature</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Computes the feature.</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">E2gMeanFeature</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Compute e2gMean feature.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation</span>
-<span class="sd">            feature_dependency (dict[str, Any]): Dataset that contains the functional consequence information</span>
+<span class="sd">            study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci</span>
+<span class="sd">                that will be used for annotation</span>
+<span class="sd">            feature_dependency (dict[str, Any]): Dataset that contains the e2g information, expecting intervals</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            VepMeanFeature: Feature dataset</span>
+<span class="sd">            E2gMeanFeature: Computed e2gMean feature.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
-            <span class="n">_df</span><span class="o">=</span><span class="n">convert_from_wide_to_long</span><span class="p">(</span>
-                <span class="n">common_vep_feature_logic</span><span class="p">(</span>
-                    <span class="n">study_loci_to_annotate</span><span class="o">=</span><span class="n">study_loci_to_annotate</span><span class="p">,</span>
-                    <span class="n">feature_name</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">feature_name</span><span class="p">,</span>
-                    <span class="o">**</span><span class="n">feature_dependency</span><span class="p">,</span>
-                <span class="p">),</span>
-                <span class="n">id_vars</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;studyLocusId&quot;</span><span class="p">,</span> <span class="s2">&quot;geneId&quot;</span><span class="p">),</span>
-                <span class="n">var_name</span><span class="o">=</span><span class="s2">&quot;featureName&quot;</span><span class="p">,</span>
-                <span class="n">value_name</span><span class="o">=</span><span class="s2">&quot;featureValue&quot;</span><span class="p">,</span>
-            <span class="p">),</span>
-            <span class="n">_schema</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">get_schema</span><span class="p">(),</span>
+        <span class="n">wide</span> <span class="o">=</span> <span class="n">get_or_make_e2g_wide</span><span class="p">(</span>
+            <span class="n">study_loci_to_annotate</span><span class="p">,</span>
+            <span class="n">feature_dependency</span><span class="o">=</span><span class="n">feature_dependency</span><span class="p">,</span>
+            <span class="n">base_name</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">feature_name</span><span class="p">,</span>
+            <span class="n">use_binned</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
         <span class="p">)</span>
+        <span class="n">df_long</span> <span class="o">=</span> <span class="n">convert_from_wide_to_long</span><span class="p">(</span>
+            <span class="n">wide</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="s2">&quot;studyLocusId&quot;</span><span class="p">,</span> <span class="s2">&quot;geneId&quot;</span><span class="p">,</span> <span class="bp">cls</span><span class="o">.</span><span class="n">feature_name</span><span class="p">),</span>
+            <span class="n">id_vars</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;studyLocusId&quot;</span><span class="p">,</span> <span class="s2">&quot;geneId&quot;</span><span class="p">),</span>
+            <span class="n">var_name</span><span class="o">=</span><span class="s2">&quot;featureName&quot;</span><span class="p">,</span>
+            <span class="n">value_name</span><span class="o">=</span><span class="s2">&quot;featureValue&quot;</span><span class="p">,</span>
+            <span class="n">value_vars</span><span class="o">=</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">feature_name</span><span class="p">,),</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">_df</span><span class="o">=</span><span class="n">df_long</span><span class="p">,</span> <span class="n">_schema</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">get_schema</span><span class="p">())</span>
 </code></pre></div></td></tr></table></div>
               </details>
 
@@ -4070,19 +3971,19 @@
 <div class="doc doc-object doc-function">
 
 
-<h4 id="gentropy.dataset.l2g_features.vep.VepMeanFeature.compute" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">compute</span><span class="p">(</span><span class="n">study_loci_to_annotate</span><span class="p">:</span> <span class="n">StudyLocus</span> <span class="o">|</span> <span class="n">L2GGoldStandard</span><span class="p">,</span> <span class="n">feature_dependency</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">VepMeanFeature</span></code>
+<h4 id="gentropy.dataset.l2g_features.intervals.E2gMeanFeature.compute" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">compute</span><span class="p">(</span><span class="n">study_loci_to_annotate</span><span class="p">:</span> <span class="n">StudyLocus</span> <span class="o">|</span> <span class="n">L2GGoldStandard</span><span class="p">,</span> <span class="n">feature_dependency</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">E2gMeanFeature</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
   </span>
 
-<a href="#gentropy.dataset.l2g_features.vep.VepMeanFeature.compute" class="headerlink" title="Permanent link">&para;</a></h4>
+<a href="#gentropy.dataset.l2g_features.intervals.E2gMeanFeature.compute" class="headerlink" title="Permanent link">&para;</a></h4>
 
 
     <div class="doc doc-contents ">
 
-        <p>Computes the feature.</p>
+        <p>Compute e2gMean feature.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -4105,7 +4006,8 @@
             </td>
             <td>
               <div class="doc-md-description">
-                <p>The dataset containing study loci that will be used for annotation</p>
+                <p>The dataset containing study loci
+that will be used for annotation</p>
               </div>
             </td>
             <td>
@@ -4121,7 +4023,7 @@
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Dataset that contains the functional consequence information</p>
+                <p>Dataset that contains the e2g information, expecting intervals</p>
               </div>
             </td>
             <td>
@@ -4142,12 +4044,12 @@
       </thead>
       <tbody>
           <tr class="doc-section-item">
-<td><code>VepMeanFeature</code></td>            <td>
-                  <code><a class="autorefs autorefs-internal" title="gentropy.dataset.l2g_features.vep.VepMeanFeature" href="#gentropy.dataset.l2g_features.vep.VepMeanFeature">VepMeanFeature</a></code>
+<td><code>E2gMeanFeature</code></td>            <td>
+                  <code><a class="autorefs autorefs-internal" title="gentropy.dataset.l2g_features.intervals.E2gMeanFeature" href="#gentropy.dataset.l2g_features.intervals.E2gMeanFeature">E2gMeanFeature</a></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Feature dataset</p>
+                <p>Computed e2gMean feature.</p>
               </div>
             </td>
           </tr>
@@ -4156,10 +4058,572 @@
 
 
             <details class="quote">
-              <summary>Source code in <code>src/gentropy/dataset/l2g_features/vep.py</code></summary>
-              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">208</span>
-<span class="normal">209</span>
-<span class="normal">210</span>
+              <summary>Source code in <code>src/gentropy/dataset/l2g_features/intervals.py</code></summary>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">394</span>
+<span class="normal">395</span>
+<span class="normal">396</span>
+<span class="normal">397</span>
+<span class="normal">398</span>
+<span class="normal">399</span>
+<span class="normal">400</span>
+<span class="normal">401</span>
+<span class="normal">402</span>
+<span class="normal">403</span>
+<span class="normal">404</span>
+<span class="normal">405</span>
+<span class="normal">406</span>
+<span class="normal">407</span>
+<span class="normal">408</span>
+<span class="normal">409</span>
+<span class="normal">410</span>
+<span class="normal">411</span>
+<span class="normal">412</span>
+<span class="normal">413</span>
+<span class="normal">414</span>
+<span class="normal">415</span>
+<span class="normal">416</span>
+<span class="normal">417</span>
+<span class="normal">418</span>
+<span class="normal">419</span>
+<span class="normal">420</span>
+<span class="normal">421</span>
+<span class="normal">422</span>
+<span class="normal">423</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span>
+    <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">E2gMeanFeature</span><span class="p">],</span>
+    <span class="n">study_loci_to_annotate</span><span class="p">:</span> <span class="n">StudyLocus</span> <span class="o">|</span> <span class="n">L2GGoldStandard</span><span class="p">,</span>
+    <span class="n">feature_dependency</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">E2gMeanFeature</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute e2gMean feature.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci</span>
+<span class="sd">            that will be used for annotation</span>
+<span class="sd">        feature_dependency (dict[str, Any]): Dataset that contains the e2g information, expecting intervals</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        E2gMeanFeature: Computed e2gMean feature.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">wide</span> <span class="o">=</span> <span class="n">get_or_make_e2g_wide</span><span class="p">(</span>
+        <span class="n">study_loci_to_annotate</span><span class="p">,</span>
+        <span class="n">feature_dependency</span><span class="o">=</span><span class="n">feature_dependency</span><span class="p">,</span>
+        <span class="n">base_name</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">feature_name</span><span class="p">,</span>
+        <span class="n">use_binned</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">df_long</span> <span class="o">=</span> <span class="n">convert_from_wide_to_long</span><span class="p">(</span>
+        <span class="n">wide</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="s2">&quot;studyLocusId&quot;</span><span class="p">,</span> <span class="s2">&quot;geneId&quot;</span><span class="p">,</span> <span class="bp">cls</span><span class="o">.</span><span class="n">feature_name</span><span class="p">),</span>
+        <span class="n">id_vars</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;studyLocusId&quot;</span><span class="p">,</span> <span class="s2">&quot;geneId&quot;</span><span class="p">),</span>
+        <span class="n">var_name</span><span class="o">=</span><span class="s2">&quot;featureName&quot;</span><span class="p">,</span>
+        <span class="n">value_name</span><span class="o">=</span><span class="s2">&quot;featureValue&quot;</span><span class="p">,</span>
+        <span class="n">value_vars</span><span class="o">=</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">feature_name</span><span class="p">,),</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">_df</span><span class="o">=</span><span class="n">df_long</span><span class="p">,</span> <span class="n">_schema</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">get_schema</span><span class="p">())</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="gentropy.dataset.l2g_features.intervals.E2gMeanNeighbourhoodFeature" class="doc doc-heading">
+            <code>gentropy.dataset.l2g_features.intervals.E2gMeanNeighbourhoodFeature</code>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-dataclass"><code>dataclass</code></small>
+  </span>
+
+<a href="#gentropy.dataset.l2g_features.intervals.E2gMeanNeighbourhoodFeature" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents first">
+            <p class="doc doc-class-bases">
+              Bases: <code><a class="autorefs autorefs-internal" title="gentropy.dataset.l2g_features.l2g_feature.L2GFeature" href="../_l2g_feature/#gentropy.dataset.l2g_features.l2g_feature.L2GFeature">L2GFeature</a></code></p>
+
+
+        <p>e2gMeanNeighbourhood feature from E2G intervals.</p>
+
+
+
+
+
+
+
+              <details class="quote">
+                <summary>Source code in <code>src/gentropy/dataset/l2g_features/intervals.py</code></summary>
+                <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">426</span>
+<span class="normal">427</span>
+<span class="normal">428</span>
+<span class="normal">429</span>
+<span class="normal">430</span>
+<span class="normal">431</span>
+<span class="normal">432</span>
+<span class="normal">433</span>
+<span class="normal">434</span>
+<span class="normal">435</span>
+<span class="normal">436</span>
+<span class="normal">437</span>
+<span class="normal">438</span>
+<span class="normal">439</span>
+<span class="normal">440</span>
+<span class="normal">441</span>
+<span class="normal">442</span>
+<span class="normal">443</span>
+<span class="normal">444</span>
+<span class="normal">445</span>
+<span class="normal">446</span>
+<span class="normal">447</span>
+<span class="normal">448</span>
+<span class="normal">449</span>
+<span class="normal">450</span>
+<span class="normal">451</span>
+<span class="normal">452</span>
+<span class="normal">453</span>
+<span class="normal">454</span>
+<span class="normal">455</span>
+<span class="normal">456</span>
+<span class="normal">457</span>
+<span class="normal">458</span>
+<span class="normal">459</span>
+<span class="normal">460</span>
+<span class="normal">461</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">E2gMeanNeighbourhoodFeature</span><span class="p">(</span><span class="n">L2GFeature</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;e2gMeanNeighbourhood feature from E2G intervals.&quot;&quot;&quot;</span>
+
+    <span class="n">feature_dependency_type</span> <span class="o">=</span> <span class="n">Intervals</span>
+    <span class="n">feature_name</span> <span class="o">=</span> <span class="s2">&quot;e2gMeanNeighbourhood&quot;</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">E2gMeanNeighbourhoodFeature</span><span class="p">],</span>
+        <span class="n">study_loci_to_annotate</span><span class="p">:</span> <span class="n">StudyLocus</span> <span class="o">|</span> <span class="n">L2GGoldStandard</span><span class="p">,</span>
+        <span class="n">feature_dependency</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">E2gMeanNeighbourhoodFeature</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Compute e2gMeanNeighbourhood feature.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci</span>
+<span class="sd">                that will be used for annotation</span>
+<span class="sd">            feature_dependency (dict[str, Any]): Dataset that contains the e2g information, expecting intervals</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            E2gMeanNeighbourhoodFeature: Computed e2gMeanNeighbourhood feature.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">wide</span> <span class="o">=</span> <span class="n">get_or_make_e2g_wide</span><span class="p">(</span>
+            <span class="n">study_loci_to_annotate</span><span class="p">,</span>
+            <span class="n">feature_dependency</span><span class="o">=</span><span class="n">feature_dependency</span><span class="p">,</span>
+            <span class="n">base_name</span><span class="o">=</span><span class="s2">&quot;e2gMean&quot;</span><span class="p">,</span>
+            <span class="n">use_binned</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">df_long</span> <span class="o">=</span> <span class="n">convert_from_wide_to_long</span><span class="p">(</span>
+            <span class="n">wide</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="s2">&quot;studyLocusId&quot;</span><span class="p">,</span> <span class="s2">&quot;geneId&quot;</span><span class="p">,</span> <span class="bp">cls</span><span class="o">.</span><span class="n">feature_name</span><span class="p">),</span>
+            <span class="n">id_vars</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;studyLocusId&quot;</span><span class="p">,</span> <span class="s2">&quot;geneId&quot;</span><span class="p">),</span>
+            <span class="n">var_name</span><span class="o">=</span><span class="s2">&quot;featureName&quot;</span><span class="p">,</span>
+            <span class="n">value_name</span><span class="o">=</span><span class="s2">&quot;featureValue&quot;</span><span class="p">,</span>
+            <span class="n">value_vars</span><span class="o">=</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">feature_name</span><span class="p">,),</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">_df</span><span class="o">=</span><span class="n">df_long</span><span class="p">,</span> <span class="n">_schema</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">get_schema</span><span class="p">())</span>
+</code></pre></div></td></tr></table></div>
+              </details>
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="gentropy.dataset.l2g_features.intervals.E2gMeanNeighbourhoodFeature.compute" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">compute</span><span class="p">(</span><span class="n">study_loci_to_annotate</span><span class="p">:</span> <span class="n">StudyLocus</span> <span class="o">|</span> <span class="n">L2GGoldStandard</span><span class="p">,</span> <span class="n">feature_dependency</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">E2gMeanNeighbourhoodFeature</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
+  </span>
+
+<a href="#gentropy.dataset.l2g_features.intervals.E2gMeanNeighbourhoodFeature.compute" class="headerlink" title="Permanent link">&para;</a></h4>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Compute e2gMeanNeighbourhood feature.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>study_loci_to_annotate</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="gentropy.dataset.study_locus.StudyLocus" href="../../study_locus/#gentropy.dataset.study_locus.StudyLocus">StudyLocus</a> | <a class="autorefs autorefs-internal" title="gentropy.dataset.l2g_gold_standard.L2GGoldStandard" href="../../l2g_gold_standard/#gentropy.dataset.l2g_gold_standard.L2GGoldStandard">L2GGoldStandard</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The dataset containing study loci
+that will be used for annotation</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>feature_dependency</code>
+            </td>
+            <td>
+                  <code><span title="dict">dict</span>[<span title="str">str</span>, <span title="typing.Any">Any</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Dataset that contains the e2g information, expecting intervals</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>E2gMeanNeighbourhoodFeature</code></td>            <td>
+                  <code><a class="autorefs autorefs-internal" title="gentropy.dataset.l2g_features.intervals.E2gMeanNeighbourhoodFeature" href="#gentropy.dataset.l2g_features.intervals.E2gMeanNeighbourhoodFeature">E2gMeanNeighbourhoodFeature</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Computed e2gMeanNeighbourhood feature.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+            <details class="quote">
+              <summary>Source code in <code>src/gentropy/dataset/l2g_features/intervals.py</code></summary>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">432</span>
+<span class="normal">433</span>
+<span class="normal">434</span>
+<span class="normal">435</span>
+<span class="normal">436</span>
+<span class="normal">437</span>
+<span class="normal">438</span>
+<span class="normal">439</span>
+<span class="normal">440</span>
+<span class="normal">441</span>
+<span class="normal">442</span>
+<span class="normal">443</span>
+<span class="normal">444</span>
+<span class="normal">445</span>
+<span class="normal">446</span>
+<span class="normal">447</span>
+<span class="normal">448</span>
+<span class="normal">449</span>
+<span class="normal">450</span>
+<span class="normal">451</span>
+<span class="normal">452</span>
+<span class="normal">453</span>
+<span class="normal">454</span>
+<span class="normal">455</span>
+<span class="normal">456</span>
+<span class="normal">457</span>
+<span class="normal">458</span>
+<span class="normal">459</span>
+<span class="normal">460</span>
+<span class="normal">461</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span>
+    <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">E2gMeanNeighbourhoodFeature</span><span class="p">],</span>
+    <span class="n">study_loci_to_annotate</span><span class="p">:</span> <span class="n">StudyLocus</span> <span class="o">|</span> <span class="n">L2GGoldStandard</span><span class="p">,</span>
+    <span class="n">feature_dependency</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">E2gMeanNeighbourhoodFeature</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute e2gMeanNeighbourhood feature.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci</span>
+<span class="sd">            that will be used for annotation</span>
+<span class="sd">        feature_dependency (dict[str, Any]): Dataset that contains the e2g information, expecting intervals</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        E2gMeanNeighbourhoodFeature: Computed e2gMeanNeighbourhood feature.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">wide</span> <span class="o">=</span> <span class="n">get_or_make_e2g_wide</span><span class="p">(</span>
+        <span class="n">study_loci_to_annotate</span><span class="p">,</span>
+        <span class="n">feature_dependency</span><span class="o">=</span><span class="n">feature_dependency</span><span class="p">,</span>
+        <span class="n">base_name</span><span class="o">=</span><span class="s2">&quot;e2gMean&quot;</span><span class="p">,</span>
+        <span class="n">use_binned</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">df_long</span> <span class="o">=</span> <span class="n">convert_from_wide_to_long</span><span class="p">(</span>
+        <span class="n">wide</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="s2">&quot;studyLocusId&quot;</span><span class="p">,</span> <span class="s2">&quot;geneId&quot;</span><span class="p">,</span> <span class="bp">cls</span><span class="o">.</span><span class="n">feature_name</span><span class="p">),</span>
+        <span class="n">id_vars</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;studyLocusId&quot;</span><span class="p">,</span> <span class="s2">&quot;geneId&quot;</span><span class="p">),</span>
+        <span class="n">var_name</span><span class="o">=</span><span class="s2">&quot;featureName&quot;</span><span class="p">,</span>
+        <span class="n">value_name</span><span class="o">=</span><span class="s2">&quot;featureValue&quot;</span><span class="p">,</span>
+        <span class="n">value_vars</span><span class="o">=</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">feature_name</span><span class="p">,),</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">_df</span><span class="o">=</span><span class="n">df_long</span><span class="p">,</span> <span class="n">_schema</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">get_schema</span><span class="p">())</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div><h2 id="common-logic">Common logic<a class="headerlink" href="#common-logic" title="Permanent link">&para;</a></h2>
+
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="gentropy.dataset.l2g_features.intervals.e2g_interval_feature_wide_logic" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">gentropy</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">l2g_features</span><span class="o">.</span><span class="n">intervals</span><span class="o">.</span><span class="n">e2g_interval_feature_wide_logic</span><span class="p">(</span><span class="n">study_loci_to_annotate</span><span class="p">:</span> <span class="n">StudyLocus</span> <span class="o">|</span> <span class="n">L2GGoldStandard</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">intervals</span><span class="p">:</span> <span class="n">Intervals</span><span class="p">,</span> <span class="n">base_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;e2gMean&#39;</span><span class="p">,</span> <span class="n">use_binned</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">pp_min</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.001</span><span class="p">,</span> <span class="n">bin_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">50000</span><span class="p">,</span> <span class="n">max_bins_per_interval</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">200</span><span class="p">,</span> <span class="n">repartitions_variants</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">repartitions_intervals</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataFrame</span></code>
+
+<a href="#gentropy.dataset.l2g_features.intervals.e2g_interval_feature_wide_logic" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents first">
+
+        <p>Wrapper that defaults to the binned implementation.</p>
+<p>Set use_binned=False to fall back to a plain overlap if ever needed.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>study_loci_to_annotate</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="gentropy.dataset.study_locus.StudyLocus" href="../../study_locus/#gentropy.dataset.study_locus.StudyLocus">StudyLocus</a> | <a class="autorefs autorefs-internal" title="gentropy.dataset.l2g_gold_standard.L2GGoldStandard" href="../../l2g_gold_standard/#gentropy.dataset.l2g_gold_standard.L2GGoldStandard">L2GGoldStandard</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The dataset containing study loci
+that will be used for annotation</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>intervals</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="gentropy.dataset.intervals.Intervals" href="../../intervals/#gentropy.dataset.intervals.Intervals">Intervals</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The dataset containing interval information</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>base_name</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The base name of the feature</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#39;e2gMean&#39;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>use_binned</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Whether to use the binned overlap logic</p>
+              </div>
+            </td>
+            <td>
+                  <code>True</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>pp_min</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Minimum posterior probability to consider a variant</p>
+              </div>
+            </td>
+            <td>
+                  <code>0.001</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>bin_size</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Size of bins for the binned overlap</p>
+              </div>
+            </td>
+            <td>
+                  <code>50000</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>max_bins_per_interval</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Maximum number of bins to explode per interval</p>
+              </div>
+            </td>
+            <td>
+                  <code>200</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>repartitions_variants</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Number of repartitions for variant side</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>repartitions_intervals</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Number of repartitions for interval side</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>DataFrame</code></td>            <td>
+                  <code><span title="pyspark.sql.DataFrame">DataFrame</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>a WIDE DF with studyLocusId, geneId, e2gMean, e2gMeanNeighbourhood, neighbourhood is ratio-centred:</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+<td></td>            <td>
+                  <code><span title="pyspark.sql.DataFrame">DataFrame</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>e2gMeanNeighbourhood = e2gMean / mean(e2gMean within locus)</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+            <details class="quote">
+              <summary>Source code in <code>src/gentropy/dataset/l2g_features/intervals.py</code></summary>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">210</span>
 <span class="normal">211</span>
 <span class="normal">212</span>
 <span class="normal">213</span>
@@ -4184,80 +4648,10 @@
 <span class="normal">232</span>
 <span class="normal">233</span>
 <span class="normal">234</span>
-<span class="normal">235</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span>
-    <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">VepMeanFeature</span><span class="p">],</span>
-    <span class="n">study_loci_to_annotate</span><span class="p">:</span> <span class="n">StudyLocus</span> <span class="o">|</span> <span class="n">L2GGoldStandard</span><span class="p">,</span>
-    <span class="n">feature_dependency</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">VepMeanFeature</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Computes the feature.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">        study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation</span>
-<span class="sd">        feature_dependency (dict[str, Any]): Dataset that contains the functional consequence information</span>
-
-<span class="sd">    Returns:</span>
-<span class="sd">        VepMeanFeature: Feature dataset</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
-        <span class="n">_df</span><span class="o">=</span><span class="n">convert_from_wide_to_long</span><span class="p">(</span>
-            <span class="n">common_vep_feature_logic</span><span class="p">(</span>
-                <span class="n">study_loci_to_annotate</span><span class="o">=</span><span class="n">study_loci_to_annotate</span><span class="p">,</span>
-                <span class="n">feature_name</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">feature_name</span><span class="p">,</span>
-                <span class="o">**</span><span class="n">feature_dependency</span><span class="p">,</span>
-            <span class="p">),</span>
-            <span class="n">id_vars</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;studyLocusId&quot;</span><span class="p">,</span> <span class="s2">&quot;geneId&quot;</span><span class="p">),</span>
-            <span class="n">var_name</span><span class="o">=</span><span class="s2">&quot;featureName&quot;</span><span class="p">,</span>
-            <span class="n">value_name</span><span class="o">=</span><span class="s2">&quot;featureValue&quot;</span><span class="p">,</span>
-        <span class="p">),</span>
-        <span class="n">_schema</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">get_schema</span><span class="p">(),</span>
-    <span class="p">)</span>
-</code></pre></div></td></tr></table></div>
-            </details>
-    </div>
-
-</div>
-
-
-
-  </div>
-
-    </div>
-
-</div>
-
-<div class="doc doc-object doc-class">
-
-
-
-<h3 id="gentropy.dataset.l2g_features.vep.VepMeanNeighbourhoodFeature" class="doc doc-heading">
-            <code>gentropy.dataset.l2g_features.vep.VepMeanNeighbourhoodFeature</code>
-
-
-  <span class="doc doc-labels">
-      <small class="doc doc-label doc-label-dataclass"><code>dataclass</code></small>
-  </span>
-
-<a href="#gentropy.dataset.l2g_features.vep.VepMeanNeighbourhoodFeature" class="headerlink" title="Permanent link">&para;</a></h3>
-
-
-    <div class="doc doc-contents first">
-            <p class="doc doc-class-bases">
-              Bases: <code><a class="autorefs autorefs-internal" title="gentropy.dataset.l2g_features.l2g_feature.L2GFeature" href="../_l2g_feature/#gentropy.dataset.l2g_features.l2g_feature.L2GFeature">L2GFeature</a></code></p>
-
-
-        <p>Mean functional consequence score among all variants in a credible set for a studyLocus/gene relative to the mean VEP score across all protein coding genes in the vicinity.</p>
-<p>The mean severity score is weighted by the posterior probability of each variant.</p>
-
-
-
-
-
-
-
-              <details class="quote">
-                <summary>Source code in <code>src/gentropy/dataset/l2g_features/vep.py</code></summary>
-                <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">238</span>
+<span class="normal">235</span>
+<span class="normal">236</span>
+<span class="normal">237</span>
+<span class="normal">238</span>
 <span class="normal">239</span>
 <span class="normal">240</span>
 <span class="normal">241</span>
@@ -4293,967 +4687,183 @@
 <span class="normal">271</span>
 <span class="normal">272</span>
 <span class="normal">273</span>
-<span class="normal">274</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">VepMeanNeighbourhoodFeature</span><span class="p">(</span><span class="n">L2GFeature</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Mean functional consequence score among all variants in a credible set for a studyLocus/gene relative to the mean VEP score across all protein coding genes in the vicinity.</span>
-
-<span class="sd">    The mean severity score is weighted by the posterior probability of each variant.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-
-    <span class="n">feature_dependency_type</span> <span class="o">=</span> <span class="p">[</span><span class="n">VariantIndex</span><span class="p">,</span> <span class="n">TargetIndex</span><span class="p">]</span>
-    <span class="n">feature_name</span> <span class="o">=</span> <span class="s2">&quot;vepMeanNeighbourhood&quot;</span>
-
-    <span class="nd">@classmethod</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span>
-        <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">VepMeanNeighbourhoodFeature</span><span class="p">],</span>
-        <span class="n">study_loci_to_annotate</span><span class="p">:</span> <span class="n">StudyLocus</span> <span class="o">|</span> <span class="n">L2GGoldStandard</span><span class="p">,</span>
-        <span class="n">feature_dependency</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">VepMeanNeighbourhoodFeature</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Computes the feature.</span>
-
-<span class="sd">        Args:</span>
-<span class="sd">            study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation</span>
-<span class="sd">            feature_dependency (dict[str, Any]): Dataset that contains the functional consequence information</span>
-
-<span class="sd">        Returns:</span>
-<span class="sd">            VepMeanNeighbourhoodFeature: Feature dataset</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
-            <span class="n">_df</span><span class="o">=</span><span class="n">convert_from_wide_to_long</span><span class="p">(</span>
-                <span class="n">common_neighbourhood_vep_feature_logic</span><span class="p">(</span>
-                    <span class="n">study_loci_to_annotate</span><span class="p">,</span>
-                    <span class="n">feature_name</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">feature_name</span><span class="p">,</span>
-                    <span class="o">**</span><span class="n">feature_dependency</span><span class="p">,</span>
-                <span class="p">),</span>
-                <span class="n">id_vars</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;studyLocusId&quot;</span><span class="p">,</span> <span class="s2">&quot;geneId&quot;</span><span class="p">),</span>
-                <span class="n">var_name</span><span class="o">=</span><span class="s2">&quot;featureName&quot;</span><span class="p">,</span>
-                <span class="n">value_name</span><span class="o">=</span><span class="s2">&quot;featureValue&quot;</span><span class="p">,</span>
-            <span class="p">),</span>
-            <span class="n">_schema</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">get_schema</span><span class="p">(),</span>
-        <span class="p">)</span>
-</code></pre></div></td></tr></table></div>
-              </details>
-
-
-
-  <div class="doc doc-children">
-
-
-
-
-
-
-
-
-
-<div class="doc doc-object doc-function">
-
-
-<h4 id="gentropy.dataset.l2g_features.vep.VepMeanNeighbourhoodFeature.compute" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">compute</span><span class="p">(</span><span class="n">study_loci_to_annotate</span><span class="p">:</span> <span class="n">StudyLocus</span> <span class="o">|</span> <span class="n">L2GGoldStandard</span><span class="p">,</span> <span class="n">feature_dependency</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">VepMeanNeighbourhoodFeature</span></code>
-
-  <span class="doc doc-labels">
-      <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
-  </span>
-
-<a href="#gentropy.dataset.l2g_features.vep.VepMeanNeighbourhoodFeature.compute" class="headerlink" title="Permanent link">&para;</a></h4>
-
-
-    <div class="doc doc-contents ">
-
-        <p>Computes the feature.</p>
-
-
-<p><span class="doc-section-title">Parameters:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Type</th>
-          <th>Description</th>
-          <th>Default</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                <code>study_loci_to_annotate</code>
-            </td>
-            <td>
-                  <code><a class="autorefs autorefs-internal" title="gentropy.dataset.study_locus.StudyLocus" href="../../study_locus/#gentropy.dataset.study_locus.StudyLocus">StudyLocus</a> | <a class="autorefs autorefs-internal" title="gentropy.dataset.l2g_gold_standard.L2GGoldStandard" href="../../l2g_gold_standard/#gentropy.dataset.l2g_gold_standard.L2GGoldStandard">L2GGoldStandard</a></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>The dataset containing study loci that will be used for annotation</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>feature_dependency</code>
-            </td>
-            <td>
-                  <code><span title="dict">dict</span>[<span title="str">str</span>, <span title="typing.Any">Any</span>]</code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Dataset that contains the functional consequence information</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-    <p><span class="doc-section-title">Returns:</span></p>
-    <table>
-      <thead>
-        <tr>
-<th>Name</th>          <th>Type</th>
-          <th>Description</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-<td><code>VepMeanNeighbourhoodFeature</code></td>            <td>
-                  <code><a class="autorefs autorefs-internal" title="gentropy.dataset.l2g_features.vep.VepMeanNeighbourhoodFeature" href="#gentropy.dataset.l2g_features.vep.VepMeanNeighbourhoodFeature">VepMeanNeighbourhoodFeature</a></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Feature dataset</p>
-              </div>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-            <details class="quote">
-              <summary>Source code in <code>src/gentropy/dataset/l2g_features/vep.py</code></summary>
-              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">247</span>
-<span class="normal">248</span>
-<span class="normal">249</span>
-<span class="normal">250</span>
-<span class="normal">251</span>
-<span class="normal">252</span>
-<span class="normal">253</span>
-<span class="normal">254</span>
-<span class="normal">255</span>
-<span class="normal">256</span>
-<span class="normal">257</span>
-<span class="normal">258</span>
-<span class="normal">259</span>
-<span class="normal">260</span>
-<span class="normal">261</span>
-<span class="normal">262</span>
-<span class="normal">263</span>
-<span class="normal">264</span>
-<span class="normal">265</span>
-<span class="normal">266</span>
-<span class="normal">267</span>
-<span class="normal">268</span>
-<span class="normal">269</span>
-<span class="normal">270</span>
-<span class="normal">271</span>
-<span class="normal">272</span>
-<span class="normal">273</span>
-<span class="normal">274</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span>
-    <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">VepMeanNeighbourhoodFeature</span><span class="p">],</span>
+<span class="normal">274</span>
+<span class="normal">275</span>
+<span class="normal">276</span>
+<span class="normal">277</span>
+<span class="normal">278</span>
+<span class="normal">279</span>
+<span class="normal">280</span>
+<span class="normal">281</span>
+<span class="normal">282</span>
+<span class="normal">283</span>
+<span class="normal">284</span>
+<span class="normal">285</span>
+<span class="normal">286</span>
+<span class="normal">287</span>
+<span class="normal">288</span>
+<span class="normal">289</span>
+<span class="normal">290</span>
+<span class="normal">291</span>
+<span class="normal">292</span>
+<span class="normal">293</span>
+<span class="normal">294</span>
+<span class="normal">295</span>
+<span class="normal">296</span>
+<span class="normal">297</span>
+<span class="normal">298</span>
+<span class="normal">299</span>
+<span class="normal">300</span>
+<span class="normal">301</span>
+<span class="normal">302</span>
+<span class="normal">303</span>
+<span class="normal">304</span>
+<span class="normal">305</span>
+<span class="normal">306</span>
+<span class="normal">307</span>
+<span class="normal">308</span>
+<span class="normal">309</span>
+<span class="normal">310</span>
+<span class="normal">311</span>
+<span class="normal">312</span>
+<span class="normal">313</span>
+<span class="normal">314</span>
+<span class="normal">315</span>
+<span class="normal">316</span>
+<span class="normal">317</span>
+<span class="normal">318</span>
+<span class="normal">319</span>
+<span class="normal">320</span>
+<span class="normal">321</span>
+<span class="normal">322</span>
+<span class="normal">323</span>
+<span class="normal">324</span>
+<span class="normal">325</span>
+<span class="normal">326</span>
+<span class="normal">327</span>
+<span class="normal">328</span>
+<span class="normal">329</span>
+<span class="normal">330</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">e2g_interval_feature_wide_logic</span><span class="p">(</span>
     <span class="n">study_loci_to_annotate</span><span class="p">:</span> <span class="n">StudyLocus</span> <span class="o">|</span> <span class="n">L2GGoldStandard</span><span class="p">,</span>
-    <span class="n">feature_dependency</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">VepMeanNeighbourhoodFeature</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Computes the feature.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">        study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation</span>
-<span class="sd">        feature_dependency (dict[str, Any]): Dataset that contains the functional consequence information</span>
-
-<span class="sd">    Returns:</span>
-<span class="sd">        VepMeanNeighbourhoodFeature: Feature dataset</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
-        <span class="n">_df</span><span class="o">=</span><span class="n">convert_from_wide_to_long</span><span class="p">(</span>
-            <span class="n">common_neighbourhood_vep_feature_logic</span><span class="p">(</span>
-                <span class="n">study_loci_to_annotate</span><span class="p">,</span>
-                <span class="n">feature_name</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">feature_name</span><span class="p">,</span>
-                <span class="o">**</span><span class="n">feature_dependency</span><span class="p">,</span>
-            <span class="p">),</span>
-            <span class="n">id_vars</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;studyLocusId&quot;</span><span class="p">,</span> <span class="s2">&quot;geneId&quot;</span><span class="p">),</span>
-            <span class="n">var_name</span><span class="o">=</span><span class="s2">&quot;featureName&quot;</span><span class="p">,</span>
-            <span class="n">value_name</span><span class="o">=</span><span class="s2">&quot;featureValue&quot;</span><span class="p">,</span>
-        <span class="p">),</span>
-        <span class="n">_schema</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">get_schema</span><span class="p">(),</span>
-    <span class="p">)</span>
-</code></pre></div></td></tr></table></div>
-            </details>
-    </div>
-
-</div>
-
-
-
-  </div>
-
-    </div>
-
-</div>
-
-<div class="doc doc-object doc-class">
-
-
-
-<h3 id="gentropy.dataset.l2g_features.vep.VepMaximumFeature" class="doc doc-heading">
-            <code>gentropy.dataset.l2g_features.vep.VepMaximumFeature</code>
-
-
-  <span class="doc doc-labels">
-      <small class="doc doc-label doc-label-dataclass"><code>dataclass</code></small>
-  </span>
-
-<a href="#gentropy.dataset.l2g_features.vep.VepMaximumFeature" class="headerlink" title="Permanent link">&para;</a></h3>
-
-
-    <div class="doc doc-contents first">
-            <p class="doc doc-class-bases">
-              Bases: <code><a class="autorefs autorefs-internal" title="gentropy.dataset.l2g_features.l2g_feature.L2GFeature" href="../_l2g_feature/#gentropy.dataset.l2g_features.l2g_feature.L2GFeature">L2GFeature</a></code></p>
-
-
-        <p>Maximum functional consequence score among all variants in a credible set for a studyLocus/gene.</p>
-
-
-
-
-
-
-
-              <details class="quote">
-                <summary>Source code in <code>src/gentropy/dataset/l2g_features/vep.py</code></summary>
-                <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">127</span>
-<span class="normal">128</span>
-<span class="normal">129</span>
-<span class="normal">130</span>
-<span class="normal">131</span>
-<span class="normal">132</span>
-<span class="normal">133</span>
-<span class="normal">134</span>
-<span class="normal">135</span>
-<span class="normal">136</span>
-<span class="normal">137</span>
-<span class="normal">138</span>
-<span class="normal">139</span>
-<span class="normal">140</span>
-<span class="normal">141</span>
-<span class="normal">142</span>
-<span class="normal">143</span>
-<span class="normal">144</span>
-<span class="normal">145</span>
-<span class="normal">146</span>
-<span class="normal">147</span>
-<span class="normal">148</span>
-<span class="normal">149</span>
-<span class="normal">150</span>
-<span class="normal">151</span>
-<span class="normal">152</span>
-<span class="normal">153</span>
-<span class="normal">154</span>
-<span class="normal">155</span>
-<span class="normal">156</span>
-<span class="normal">157</span>
-<span class="normal">158</span>
-<span class="normal">159</span>
-<span class="normal">160</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">VepMaximumFeature</span><span class="p">(</span><span class="n">L2GFeature</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Maximum functional consequence score among all variants in a credible set for a studyLocus/gene.&quot;&quot;&quot;</span>
-
-    <span class="n">feature_dependency_type</span> <span class="o">=</span> <span class="n">VariantIndex</span>
-    <span class="n">feature_name</span> <span class="o">=</span> <span class="s2">&quot;vepMaximum&quot;</span>
-
-    <span class="nd">@classmethod</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span>
-        <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">VepMaximumFeature</span><span class="p">],</span>
-        <span class="n">study_loci_to_annotate</span><span class="p">:</span> <span class="n">StudyLocus</span> <span class="o">|</span> <span class="n">L2GGoldStandard</span><span class="p">,</span>
-        <span class="n">feature_dependency</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">VepMaximumFeature</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Computes the feature.</span>
-
-<span class="sd">        Args:</span>
-<span class="sd">            study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation</span>
-<span class="sd">            feature_dependency (dict[str, Any]): Dataset that contains the functional consequence information</span>
-
-<span class="sd">        Returns:</span>
-<span class="sd">            VepMaximumFeature: Feature dataset</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
-            <span class="n">_df</span><span class="o">=</span><span class="n">convert_from_wide_to_long</span><span class="p">(</span>
-                <span class="n">common_vep_feature_logic</span><span class="p">(</span>
-                    <span class="n">study_loci_to_annotate</span><span class="o">=</span><span class="n">study_loci_to_annotate</span><span class="p">,</span>
-                    <span class="n">feature_name</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">feature_name</span><span class="p">,</span>
-                    <span class="o">**</span><span class="n">feature_dependency</span><span class="p">,</span>
-                <span class="p">),</span>
-                <span class="n">id_vars</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;studyLocusId&quot;</span><span class="p">,</span> <span class="s2">&quot;geneId&quot;</span><span class="p">),</span>
-                <span class="n">var_name</span><span class="o">=</span><span class="s2">&quot;featureName&quot;</span><span class="p">,</span>
-                <span class="n">value_name</span><span class="o">=</span><span class="s2">&quot;featureValue&quot;</span><span class="p">,</span>
-            <span class="p">),</span>
-            <span class="n">_schema</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">get_schema</span><span class="p">(),</span>
-        <span class="p">)</span>
-</code></pre></div></td></tr></table></div>
-              </details>
-
-
-
-  <div class="doc doc-children">
-
-
-
-
-
-
-
-
-
-<div class="doc doc-object doc-function">
-
-
-<h4 id="gentropy.dataset.l2g_features.vep.VepMaximumFeature.compute" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">compute</span><span class="p">(</span><span class="n">study_loci_to_annotate</span><span class="p">:</span> <span class="n">StudyLocus</span> <span class="o">|</span> <span class="n">L2GGoldStandard</span><span class="p">,</span> <span class="n">feature_dependency</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">VepMaximumFeature</span></code>
-
-  <span class="doc doc-labels">
-      <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
-  </span>
-
-<a href="#gentropy.dataset.l2g_features.vep.VepMaximumFeature.compute" class="headerlink" title="Permanent link">&para;</a></h4>
-
-
-    <div class="doc doc-contents ">
-
-        <p>Computes the feature.</p>
-
-
-<p><span class="doc-section-title">Parameters:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Type</th>
-          <th>Description</th>
-          <th>Default</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                <code>study_loci_to_annotate</code>
-            </td>
-            <td>
-                  <code><a class="autorefs autorefs-internal" title="gentropy.dataset.study_locus.StudyLocus" href="../../study_locus/#gentropy.dataset.study_locus.StudyLocus">StudyLocus</a> | <a class="autorefs autorefs-internal" title="gentropy.dataset.l2g_gold_standard.L2GGoldStandard" href="../../l2g_gold_standard/#gentropy.dataset.l2g_gold_standard.L2GGoldStandard">L2GGoldStandard</a></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>The dataset containing study loci that will be used for annotation</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>feature_dependency</code>
-            </td>
-            <td>
-                  <code><span title="dict">dict</span>[<span title="str">str</span>, <span title="typing.Any">Any</span>]</code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Dataset that contains the functional consequence information</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-    <p><span class="doc-section-title">Returns:</span></p>
-    <table>
-      <thead>
-        <tr>
-<th>Name</th>          <th>Type</th>
-          <th>Description</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-<td><code>VepMaximumFeature</code></td>            <td>
-                  <code><a class="autorefs autorefs-internal" title="gentropy.dataset.l2g_features.vep.VepMaximumFeature" href="#gentropy.dataset.l2g_features.vep.VepMaximumFeature">VepMaximumFeature</a></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Feature dataset</p>
-              </div>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-            <details class="quote">
-              <summary>Source code in <code>src/gentropy/dataset/l2g_features/vep.py</code></summary>
-              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">133</span>
-<span class="normal">134</span>
-<span class="normal">135</span>
-<span class="normal">136</span>
-<span class="normal">137</span>
-<span class="normal">138</span>
-<span class="normal">139</span>
-<span class="normal">140</span>
-<span class="normal">141</span>
-<span class="normal">142</span>
-<span class="normal">143</span>
-<span class="normal">144</span>
-<span class="normal">145</span>
-<span class="normal">146</span>
-<span class="normal">147</span>
-<span class="normal">148</span>
-<span class="normal">149</span>
-<span class="normal">150</span>
-<span class="normal">151</span>
-<span class="normal">152</span>
-<span class="normal">153</span>
-<span class="normal">154</span>
-<span class="normal">155</span>
-<span class="normal">156</span>
-<span class="normal">157</span>
-<span class="normal">158</span>
-<span class="normal">159</span>
-<span class="normal">160</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span>
-    <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">VepMaximumFeature</span><span class="p">],</span>
-    <span class="n">study_loci_to_annotate</span><span class="p">:</span> <span class="n">StudyLocus</span> <span class="o">|</span> <span class="n">L2GGoldStandard</span><span class="p">,</span>
-    <span class="n">feature_dependency</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">VepMaximumFeature</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Computes the feature.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">        study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation</span>
-<span class="sd">        feature_dependency (dict[str, Any]): Dataset that contains the functional consequence information</span>
-
-<span class="sd">    Returns:</span>
-<span class="sd">        VepMaximumFeature: Feature dataset</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
-        <span class="n">_df</span><span class="o">=</span><span class="n">convert_from_wide_to_long</span><span class="p">(</span>
-            <span class="n">common_vep_feature_logic</span><span class="p">(</span>
-                <span class="n">study_loci_to_annotate</span><span class="o">=</span><span class="n">study_loci_to_annotate</span><span class="p">,</span>
-                <span class="n">feature_name</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">feature_name</span><span class="p">,</span>
-                <span class="o">**</span><span class="n">feature_dependency</span><span class="p">,</span>
-            <span class="p">),</span>
-            <span class="n">id_vars</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;studyLocusId&quot;</span><span class="p">,</span> <span class="s2">&quot;geneId&quot;</span><span class="p">),</span>
-            <span class="n">var_name</span><span class="o">=</span><span class="s2">&quot;featureName&quot;</span><span class="p">,</span>
-            <span class="n">value_name</span><span class="o">=</span><span class="s2">&quot;featureValue&quot;</span><span class="p">,</span>
-        <span class="p">),</span>
-        <span class="n">_schema</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">get_schema</span><span class="p">(),</span>
-    <span class="p">)</span>
-</code></pre></div></td></tr></table></div>
-            </details>
-    </div>
-
-</div>
-
-
-
-  </div>
-
-    </div>
-
-</div>
-
-<div class="doc doc-object doc-class">
-
-
-
-<h3 id="gentropy.dataset.l2g_features.vep.VepMaximumNeighbourhoodFeature" class="doc doc-heading">
-            <code>gentropy.dataset.l2g_features.vep.VepMaximumNeighbourhoodFeature</code>
-
-
-  <span class="doc doc-labels">
-      <small class="doc doc-label doc-label-dataclass"><code>dataclass</code></small>
-  </span>
-
-<a href="#gentropy.dataset.l2g_features.vep.VepMaximumNeighbourhoodFeature" class="headerlink" title="Permanent link">&para;</a></h3>
-
-
-    <div class="doc doc-contents first">
-            <p class="doc doc-class-bases">
-              Bases: <code><a class="autorefs autorefs-internal" title="gentropy.dataset.l2g_features.l2g_feature.L2GFeature" href="../_l2g_feature/#gentropy.dataset.l2g_features.l2g_feature.L2GFeature">L2GFeature</a></code></p>
-
-
-        <p>Maximum functional consequence score among all variants in a credible set for a studyLocus/gene relative to the mean VEP score across all protein coding genes in the vicinity.</p>
-
-
-
-
-
-
-
-              <details class="quote">
-                <summary>Source code in <code>src/gentropy/dataset/l2g_features/vep.py</code></summary>
-                <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">163</span>
-<span class="normal">164</span>
-<span class="normal">165</span>
-<span class="normal">166</span>
-<span class="normal">167</span>
-<span class="normal">168</span>
-<span class="normal">169</span>
-<span class="normal">170</span>
-<span class="normal">171</span>
-<span class="normal">172</span>
-<span class="normal">173</span>
-<span class="normal">174</span>
-<span class="normal">175</span>
-<span class="normal">176</span>
-<span class="normal">177</span>
-<span class="normal">178</span>
-<span class="normal">179</span>
-<span class="normal">180</span>
-<span class="normal">181</span>
-<span class="normal">182</span>
-<span class="normal">183</span>
-<span class="normal">184</span>
-<span class="normal">185</span>
-<span class="normal">186</span>
-<span class="normal">187</span>
-<span class="normal">188</span>
-<span class="normal">189</span>
-<span class="normal">190</span>
-<span class="normal">191</span>
-<span class="normal">192</span>
-<span class="normal">193</span>
-<span class="normal">194</span>
-<span class="normal">195</span>
-<span class="normal">196</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">VepMaximumNeighbourhoodFeature</span><span class="p">(</span><span class="n">L2GFeature</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Maximum functional consequence score among all variants in a credible set for a studyLocus/gene relative to the mean VEP score across all protein coding genes in the vicinity.&quot;&quot;&quot;</span>
-
-    <span class="n">feature_dependency_type</span> <span class="o">=</span> <span class="p">[</span><span class="n">VariantIndex</span><span class="p">,</span> <span class="n">TargetIndex</span><span class="p">]</span>
-    <span class="n">feature_name</span> <span class="o">=</span> <span class="s2">&quot;vepMaximumNeighbourhood&quot;</span>
-
-    <span class="nd">@classmethod</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span>
-        <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">VepMaximumNeighbourhoodFeature</span><span class="p">],</span>
-        <span class="n">study_loci_to_annotate</span><span class="p">:</span> <span class="n">StudyLocus</span> <span class="o">|</span> <span class="n">L2GGoldStandard</span><span class="p">,</span>
-        <span class="n">feature_dependency</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">VepMaximumNeighbourhoodFeature</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Computes the feature.</span>
-
-<span class="sd">        Args:</span>
-<span class="sd">            study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation</span>
-<span class="sd">            feature_dependency (dict[str, Any]): Dataset that contains the functional consequence information</span>
-
-<span class="sd">        Returns:</span>
-<span class="sd">            VepMaximumNeighbourhoodFeature: Feature dataset</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
-            <span class="n">_df</span><span class="o">=</span><span class="n">convert_from_wide_to_long</span><span class="p">(</span>
-                <span class="n">common_neighbourhood_vep_feature_logic</span><span class="p">(</span>
-                    <span class="n">study_loci_to_annotate</span><span class="p">,</span>
-                    <span class="n">feature_name</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">feature_name</span><span class="p">,</span>
-                    <span class="o">**</span><span class="n">feature_dependency</span><span class="p">,</span>
-                <span class="p">),</span>
-                <span class="n">id_vars</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;studyLocusId&quot;</span><span class="p">,</span> <span class="s2">&quot;geneId&quot;</span><span class="p">),</span>
-                <span class="n">var_name</span><span class="o">=</span><span class="s2">&quot;featureName&quot;</span><span class="p">,</span>
-                <span class="n">value_name</span><span class="o">=</span><span class="s2">&quot;featureValue&quot;</span><span class="p">,</span>
-            <span class="p">),</span>
-            <span class="n">_schema</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">get_schema</span><span class="p">(),</span>
-        <span class="p">)</span>
-</code></pre></div></td></tr></table></div>
-              </details>
-
-
-
-  <div class="doc doc-children">
-
-
-
-
-
-
-
-
-
-<div class="doc doc-object doc-function">
-
-
-<h4 id="gentropy.dataset.l2g_features.vep.VepMaximumNeighbourhoodFeature.compute" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">compute</span><span class="p">(</span><span class="n">study_loci_to_annotate</span><span class="p">:</span> <span class="n">StudyLocus</span> <span class="o">|</span> <span class="n">L2GGoldStandard</span><span class="p">,</span> <span class="n">feature_dependency</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">VepMaximumNeighbourhoodFeature</span></code>
-
-  <span class="doc doc-labels">
-      <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
-  </span>
-
-<a href="#gentropy.dataset.l2g_features.vep.VepMaximumNeighbourhoodFeature.compute" class="headerlink" title="Permanent link">&para;</a></h4>
-
-
-    <div class="doc doc-contents ">
-
-        <p>Computes the feature.</p>
-
-
-<p><span class="doc-section-title">Parameters:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Type</th>
-          <th>Description</th>
-          <th>Default</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                <code>study_loci_to_annotate</code>
-            </td>
-            <td>
-                  <code><a class="autorefs autorefs-internal" title="gentropy.dataset.study_locus.StudyLocus" href="../../study_locus/#gentropy.dataset.study_locus.StudyLocus">StudyLocus</a> | <a class="autorefs autorefs-internal" title="gentropy.dataset.l2g_gold_standard.L2GGoldStandard" href="../../l2g_gold_standard/#gentropy.dataset.l2g_gold_standard.L2GGoldStandard">L2GGoldStandard</a></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>The dataset containing study loci that will be used for annotation</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>feature_dependency</code>
-            </td>
-            <td>
-                  <code><span title="dict">dict</span>[<span title="str">str</span>, <span title="typing.Any">Any</span>]</code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Dataset that contains the functional consequence information</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-    <p><span class="doc-section-title">Returns:</span></p>
-    <table>
-      <thead>
-        <tr>
-<th>Name</th>          <th>Type</th>
-          <th>Description</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-<td><code>VepMaximumNeighbourhoodFeature</code></td>            <td>
-                  <code><a class="autorefs autorefs-internal" title="gentropy.dataset.l2g_features.vep.VepMaximumNeighbourhoodFeature" href="#gentropy.dataset.l2g_features.vep.VepMaximumNeighbourhoodFeature">VepMaximumNeighbourhoodFeature</a></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Feature dataset</p>
-              </div>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-            <details class="quote">
-              <summary>Source code in <code>src/gentropy/dataset/l2g_features/vep.py</code></summary>
-              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">169</span>
-<span class="normal">170</span>
-<span class="normal">171</span>
-<span class="normal">172</span>
-<span class="normal">173</span>
-<span class="normal">174</span>
-<span class="normal">175</span>
-<span class="normal">176</span>
-<span class="normal">177</span>
-<span class="normal">178</span>
-<span class="normal">179</span>
-<span class="normal">180</span>
-<span class="normal">181</span>
-<span class="normal">182</span>
-<span class="normal">183</span>
-<span class="normal">184</span>
-<span class="normal">185</span>
-<span class="normal">186</span>
-<span class="normal">187</span>
-<span class="normal">188</span>
-<span class="normal">189</span>
-<span class="normal">190</span>
-<span class="normal">191</span>
-<span class="normal">192</span>
-<span class="normal">193</span>
-<span class="normal">194</span>
-<span class="normal">195</span>
-<span class="normal">196</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span>
-    <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">VepMaximumNeighbourhoodFeature</span><span class="p">],</span>
-    <span class="n">study_loci_to_annotate</span><span class="p">:</span> <span class="n">StudyLocus</span> <span class="o">|</span> <span class="n">L2GGoldStandard</span><span class="p">,</span>
-    <span class="n">feature_dependency</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">VepMaximumNeighbourhoodFeature</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Computes the feature.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">        study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation</span>
-<span class="sd">        feature_dependency (dict[str, Any]): Dataset that contains the functional consequence information</span>
-
-<span class="sd">    Returns:</span>
-<span class="sd">        VepMaximumNeighbourhoodFeature: Feature dataset</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
-        <span class="n">_df</span><span class="o">=</span><span class="n">convert_from_wide_to_long</span><span class="p">(</span>
-            <span class="n">common_neighbourhood_vep_feature_logic</span><span class="p">(</span>
-                <span class="n">study_loci_to_annotate</span><span class="p">,</span>
-                <span class="n">feature_name</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">feature_name</span><span class="p">,</span>
-                <span class="o">**</span><span class="n">feature_dependency</span><span class="p">,</span>
-            <span class="p">),</span>
-            <span class="n">id_vars</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;studyLocusId&quot;</span><span class="p">,</span> <span class="s2">&quot;geneId&quot;</span><span class="p">),</span>
-            <span class="n">var_name</span><span class="o">=</span><span class="s2">&quot;featureName&quot;</span><span class="p">,</span>
-            <span class="n">value_name</span><span class="o">=</span><span class="s2">&quot;featureValue&quot;</span><span class="p">,</span>
-        <span class="p">),</span>
-        <span class="n">_schema</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">get_schema</span><span class="p">(),</span>
-    <span class="p">)</span>
-</code></pre></div></td></tr></table></div>
-            </details>
-    </div>
-
-</div>
-
-
-
-  </div>
-
-    </div>
-
-</div><h2 id="common-logic">Common logic<a class="headerlink" href="#common-logic" title="Permanent link">&para;</a></h2>
-
-
-<div class="doc doc-object doc-function">
-
-
-<h3 id="gentropy.dataset.l2g_features.vep.common_vep_feature_logic" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">gentropy</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">l2g_features</span><span class="o">.</span><span class="n">vep</span><span class="o">.</span><span class="n">common_vep_feature_logic</span><span class="p">(</span><span class="n">study_loci_to_annotate</span><span class="p">:</span> <span class="n">L2GGoldStandard</span> <span class="o">|</span> <span class="n">StudyLocus</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">variant_index</span><span class="p">:</span> <span class="n">VariantIndex</span><span class="p">,</span> <span class="n">feature_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataFrame</span></code>
-
-<a href="#gentropy.dataset.l2g_features.vep.common_vep_feature_logic" class="headerlink" title="Permanent link">&para;</a></h3>
-
-
-    <div class="doc doc-contents first">
-
-        <p>Extracts variant severity score computed from VEP.</p>
-
-
-<p><span class="doc-section-title">Parameters:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Type</th>
-          <th>Description</th>
-          <th>Default</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                <code>study_loci_to_annotate</code>
-            </td>
-            <td>
-                  <code><a class="autorefs autorefs-internal" title="gentropy.dataset.l2g_gold_standard.L2GGoldStandard" href="../../l2g_gold_standard/#gentropy.dataset.l2g_gold_standard.L2GGoldStandard">L2GGoldStandard</a> | <a class="autorefs autorefs-internal" title="gentropy.dataset.study_locus.StudyLocus" href="../../study_locus/#gentropy.dataset.study_locus.StudyLocus">StudyLocus</a></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>The dataset containing study loci that will be used for annotation</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>variant_index</code>
-            </td>
-            <td>
-                  <code><a class="autorefs autorefs-internal" title="gentropy.dataset.variant_index.VariantIndex" href="../../variant_index/#gentropy.dataset.variant_index.VariantIndex">VariantIndex</a></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>The dataset containing functional consequence information</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>feature_name</code>
-            </td>
-            <td>
-                  <code><span title="str">str</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>The name of the feature</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-    <p><span class="doc-section-title">Returns:</span></p>
-    <table>
-      <thead>
-        <tr>
-<th>Name</th>          <th>Type</th>
-          <th>Description</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-<td><code>DataFrame</code></td>            <td>
-                  <code><span title="pyspark.sql.DataFrame">DataFrame</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Feature dataset</p>
-              </div>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-            <details class="quote">
-              <summary>Source code in <code>src/gentropy/dataset/l2g_features/vep.py</code></summary>
-              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">21</span>
-<span class="normal">22</span>
-<span class="normal">23</span>
-<span class="normal">24</span>
-<span class="normal">25</span>
-<span class="normal">26</span>
-<span class="normal">27</span>
-<span class="normal">28</span>
-<span class="normal">29</span>
-<span class="normal">30</span>
-<span class="normal">31</span>
-<span class="normal">32</span>
-<span class="normal">33</span>
-<span class="normal">34</span>
-<span class="normal">35</span>
-<span class="normal">36</span>
-<span class="normal">37</span>
-<span class="normal">38</span>
-<span class="normal">39</span>
-<span class="normal">40</span>
-<span class="normal">41</span>
-<span class="normal">42</span>
-<span class="normal">43</span>
-<span class="normal">44</span>
-<span class="normal">45</span>
-<span class="normal">46</span>
-<span class="normal">47</span>
-<span class="normal">48</span>
-<span class="normal">49</span>
-<span class="normal">50</span>
-<span class="normal">51</span>
-<span class="normal">52</span>
-<span class="normal">53</span>
-<span class="normal">54</span>
-<span class="normal">55</span>
-<span class="normal">56</span>
-<span class="normal">57</span>
-<span class="normal">58</span>
-<span class="normal">59</span>
-<span class="normal">60</span>
-<span class="normal">61</span>
-<span class="normal">62</span>
-<span class="normal">63</span>
-<span class="normal">64</span>
-<span class="normal">65</span>
-<span class="normal">66</span>
-<span class="normal">67</span>
-<span class="normal">68</span>
-<span class="normal">69</span>
-<span class="normal">70</span>
-<span class="normal">71</span>
-<span class="normal">72</span>
-<span class="normal">73</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">common_vep_feature_logic</span><span class="p">(</span>
-    <span class="n">study_loci_to_annotate</span><span class="p">:</span> <span class="n">L2GGoldStandard</span> <span class="o">|</span> <span class="n">StudyLocus</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
-    <span class="n">variant_index</span><span class="p">:</span> <span class="n">VariantIndex</span><span class="p">,</span>
-    <span class="n">feature_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">intervals</span><span class="p">:</span> <span class="n">Intervals</span><span class="p">,</span>
+    <span class="n">base_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;e2gMean&quot;</span><span class="p">,</span>
+    <span class="n">use_binned</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">pp_min</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.001</span><span class="p">,</span>
+    <span class="n">bin_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">50_000</span><span class="p">,</span>
+    <span class="n">max_bins_per_interval</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">200</span><span class="p">,</span>
+    <span class="n">repartitions_variants</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">repartitions_intervals</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataFrame</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Extracts variant severity score computed from VEP.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Wrapper that defaults to the binned implementation.</span>
+
+<span class="sd">    Set use_binned=False to fall back to a plain overlap if ever needed.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        study_loci_to_annotate (L2GGoldStandard | StudyLocus): The dataset containing study loci that will be used for annotation</span>
-<span class="sd">        variant_index (VariantIndex): The dataset containing functional consequence information</span>
-<span class="sd">        feature_name (str): The name of the feature</span>
+<span class="sd">        study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci</span>
+<span class="sd">            that will be used for annotation</span>
+<span class="sd">        intervals (Intervals): The dataset containing interval information</span>
+<span class="sd">        base_name (str): The base name of the feature</span>
+<span class="sd">        use_binned (bool): Whether to use the binned overlap logic</span>
+<span class="sd">        pp_min (float): Minimum posterior probability to consider a variant</span>
+<span class="sd">        bin_size (int): Size of bins for the binned overlap</span>
+<span class="sd">        max_bins_per_interval (int): Maximum number of bins to explode per interval</span>
+<span class="sd">        repartitions_variants (int | None): Number of repartitions for variant side</span>
+<span class="sd">        repartitions_intervals (int | None): Number of repartitions for interval side</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        DataFrame: Feature dataset</span>
+<span class="sd">        DataFrame: a WIDE DF with studyLocusId, geneId, e2gMean, e2gMeanNeighbourhood, neighbourhood is ratio-centred:</span>
+<span class="sd">        e2gMeanNeighbourhood = e2gMean / mean(e2gMean within locus)</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="c1"># Variant/Target/Severity dataframe</span>
-    <span class="n">consequences_dataset</span> <span class="o">=</span> <span class="n">variant_index</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">withColumn</span><span class="p">(</span>
-        <span class="s2">&quot;transcriptConsequence&quot;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">explode</span><span class="p">(</span><span class="s2">&quot;transcriptConsequences&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">use_binned</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">e2g_interval_feature_wide_logic_binned</span><span class="p">(</span>
+            <span class="n">study_loci_to_annotate</span><span class="p">,</span>
+            <span class="n">intervals</span><span class="o">=</span><span class="n">intervals</span><span class="p">,</span>
+            <span class="n">base_name</span><span class="o">=</span><span class="n">base_name</span><span class="p">,</span>
+            <span class="n">pp_min</span><span class="o">=</span><span class="n">pp_min</span><span class="p">,</span>
+            <span class="n">bin_size</span><span class="o">=</span><span class="n">bin_size</span><span class="p">,</span>
+            <span class="n">max_bins_per_interval</span><span class="o">=</span><span class="n">max_bins_per_interval</span><span class="p">,</span>
+            <span class="n">repartitions_variants</span><span class="o">=</span><span class="n">repartitions_variants</span><span class="p">,</span>
+            <span class="n">repartitions_intervals</span><span class="o">=</span><span class="n">repartitions_intervals</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="c1"># Fallback: original plain overlap logic (kept for completeness)</span>
+    <span class="n">sl</span> <span class="o">=</span> <span class="n">study_loci_to_annotate</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;sl&quot;</span><span class="p">)</span>
+    <span class="n">iv</span> <span class="o">=</span> <span class="n">intervals</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;iv&quot;</span><span class="p">)</span>
+    <span class="n">study_loci_exploded</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">sl</span><span class="o">.</span><span class="n">withColumn</span><span class="p">(</span><span class="s2">&quot;variantInLocus&quot;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">explode_outer</span><span class="p">(</span><span class="s2">&quot;locus&quot;</span><span class="p">))</span>
+        <span class="o">.</span><span class="n">withColumn</span><span class="p">(</span>
+            <span class="s2">&quot;chromosome&quot;</span><span class="p">,</span>
+            <span class="n">extract_chromosome</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;variantInLocus&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">getField</span><span class="p">(</span><span class="s2">&quot;variantId&quot;</span><span class="p">)),</span>
+        <span class="p">)</span>
+        <span class="o">.</span><span class="n">withColumn</span><span class="p">(</span>
+            <span class="s2">&quot;position&quot;</span><span class="p">,</span>
+            <span class="n">extract_position</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;variantInLocus&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">getField</span><span class="p">(</span><span class="s2">&quot;variantId&quot;</span><span class="p">))</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="s2">&quot;int&quot;</span><span class="p">),</span>
+        <span class="p">)</span>
+        <span class="o">.</span><span class="n">withColumn</span><span class="p">(</span>
+            <span class="s2">&quot;posteriorProbability&quot;</span><span class="p">,</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;variantInLocus.posteriorProbability&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="s2">&quot;double&quot;</span><span class="p">),</span>
+        <span class="p">)</span>
+        <span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;posteriorProbability&quot;</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="n">pp_min</span><span class="p">))</span>
+        <span class="o">.</span><span class="n">select</span><span class="p">(</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;studyLocusId&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;studyLocusId&quot;</span><span class="p">),</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;chromosome&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;sl_chromosome&quot;</span><span class="p">),</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;position&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;position&quot;</span><span class="p">),</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;posteriorProbability&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;pp&quot;</span><span class="p">),</span>
+        <span class="p">)</span>
+        <span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;slx&quot;</span><span class="p">)</span>
+    <span class="p">)</span>
+    <span class="n">intervals_filtered</span> <span class="o">=</span> <span class="n">iv</span><span class="o">.</span><span class="n">select</span><span class="p">(</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;chromosome&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;iv_chromosome&quot;</span><span class="p">),</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;start&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="s2">&quot;int&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;start&quot;</span><span class="p">),</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;end&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="s2">&quot;int&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;end&quot;</span><span class="p">),</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;geneId&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;geneId&quot;</span><span class="p">),</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;score&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;score&quot;</span><span class="p">),</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;ivf&quot;</span><span class="p">)</span>
+
+    <span class="n">joined</span> <span class="o">=</span> <span class="n">study_loci_exploded</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+        <span class="n">intervals_filtered</span><span class="p">,</span>
+        <span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;slx.sl_chromosome&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;ivf.iv_chromosome&quot;</span><span class="p">))</span>
+        <span class="o">&amp;</span> <span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;position&quot;</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;start&quot;</span><span class="p">))</span>
+        <span class="o">&amp;</span> <span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;position&quot;</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;end&quot;</span><span class="p">)),</span>
+        <span class="s2">&quot;inner&quot;</span><span class="p">,</span>
     <span class="p">)</span><span class="o">.</span><span class="n">select</span><span class="p">(</span>
-        <span class="s2">&quot;variantId&quot;</span><span class="p">,</span>
-        <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;transcriptConsequence.targetId&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;geneId&quot;</span><span class="p">),</span>
-        <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;transcriptConsequence.consequenceScore&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;severityScore&quot;</span><span class="p">),</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;studyLocusId&quot;</span><span class="p">),</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;slx.sl_chromosome&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;chromosome&quot;</span><span class="p">),</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;position&quot;</span><span class="p">),</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;pp&quot;</span><span class="p">),</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;geneId&quot;</span><span class="p">),</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;score&quot;</span><span class="p">),</span>
     <span class="p">)</span>
-    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">study_loci_to_annotate</span><span class="p">,</span> <span class="n">StudyLocus</span><span class="p">):</span>
-        <span class="n">variants_df</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="n">study_loci_to_annotate</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">withColumn</span><span class="p">(</span>
-                <span class="s2">&quot;variantInLocus&quot;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">explode_outer</span><span class="p">(</span><span class="s2">&quot;locus&quot;</span><span class="p">)</span>
-            <span class="p">)</span>
-            <span class="o">.</span><span class="n">select</span><span class="p">(</span>
-                <span class="s2">&quot;studyLocusId&quot;</span><span class="p">,</span>
-                <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;variantInLocus.variantId&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;variantId&quot;</span><span class="p">),</span>
-                <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;variantInLocus.posteriorProbability&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span>
-                    <span class="s2">&quot;posteriorProbability&quot;</span>
-                <span class="p">),</span>
-            <span class="p">)</span>
-            <span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">consequences_dataset</span><span class="p">,</span> <span class="s2">&quot;variantId&quot;</span><span class="p">)</span>
-        <span class="p">)</span>
-    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">study_loci_to_annotate</span><span class="p">,</span> <span class="n">L2GGoldStandard</span><span class="p">):</span>
-        <span class="n">variants_df</span> <span class="o">=</span> <span class="n">study_loci_to_annotate</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">select</span><span class="p">(</span>
-            <span class="s2">&quot;studyLocusId&quot;</span><span class="p">,</span> <span class="s2">&quot;variantId&quot;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="mf">1.0</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;posteriorProbability&quot;</span><span class="p">)</span>
-        <span class="p">)</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">consequences_dataset</span><span class="p">,</span> <span class="s2">&quot;variantId&quot;</span><span class="p">)</span>
 
-    <span class="k">if</span> <span class="s2">&quot;Maximum&quot;</span> <span class="ow">in</span> <span class="n">feature_name</span><span class="p">:</span>
-        <span class="n">agg_expr</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="s2">&quot;severityScore&quot;</span><span class="p">)</span>
-    <span class="k">elif</span> <span class="s2">&quot;Mean&quot;</span> <span class="ow">in</span> <span class="n">feature_name</span><span class="p">:</span>
-        <span class="n">variants_df</span> <span class="o">=</span> <span class="n">variants_df</span><span class="o">.</span><span class="n">withColumn</span><span class="p">(</span>
-            <span class="s2">&quot;weightedScore&quot;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;severityScore&quot;</span><span class="p">)</span> <span class="o">*</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;posteriorProbability&quot;</span><span class="p">)</span>
-        <span class="p">)</span>
-        <span class="n">agg_expr</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="s2">&quot;weightedScore&quot;</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">variants_df</span><span class="o">.</span><span class="n">groupBy</span><span class="p">(</span><span class="s2">&quot;studyLocusId&quot;</span><span class="p">,</span> <span class="s2">&quot;geneId&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">agg</span><span class="p">(</span>
-        <span class="n">agg_expr</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="n">feature_name</span><span class="p">)</span>
+    <span class="n">per_variant_gene</span> <span class="o">=</span> <span class="n">joined</span><span class="o">.</span><span class="n">groupBy</span><span class="p">(</span>
+        <span class="s2">&quot;studyLocusId&quot;</span><span class="p">,</span> <span class="s2">&quot;chromosome&quot;</span><span class="p">,</span> <span class="s2">&quot;position&quot;</span><span class="p">,</span> <span class="s2">&quot;geneId&quot;</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">agg</span><span class="p">(</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="s2">&quot;score&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;maxScore&quot;</span><span class="p">),</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">first</span><span class="p">(</span><span class="s2">&quot;pp&quot;</span><span class="p">,</span> <span class="n">ignorenulls</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;pp&quot;</span><span class="p">),</span>
     <span class="p">)</span>
+
+    <span class="n">base_df</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">per_variant_gene</span><span class="o">.</span><span class="n">withColumn</span><span class="p">(</span>
+            <span class="s2">&quot;weightedIntervalScore&quot;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;maxScore&quot;</span><span class="p">)</span> <span class="o">*</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;pp&quot;</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="o">.</span><span class="n">groupBy</span><span class="p">(</span><span class="s2">&quot;studyLocusId&quot;</span><span class="p">,</span> <span class="s2">&quot;geneId&quot;</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">agg</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="s2">&quot;weightedIntervalScore&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="n">base_name</span><span class="p">))</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">persist</span><span class="p">()</span>
+
+    <span class="n">w</span> <span class="o">=</span> <span class="n">Window</span><span class="o">.</span><span class="n">partitionBy</span><span class="p">(</span><span class="s2">&quot;studyLocusId&quot;</span><span class="p">)</span>
+    <span class="n">with_max</span> <span class="o">=</span> <span class="n">base_df</span><span class="o">.</span><span class="n">withColumn</span><span class="p">(</span><span class="s2">&quot;regional_max&quot;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">base_name</span><span class="p">)</span><span class="o">.</span><span class="n">over</span><span class="p">(</span><span class="n">w</span><span class="p">))</span>
+    <span class="n">neigh_ratio</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">when</span><span class="p">(</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;regional_max&quot;</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="n">base_name</span><span class="p">)</span> <span class="o">/</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;regional_max&quot;</span><span class="p">)</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">otherwise</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="mf">0.0</span><span class="p">))</span>
+
+    <span class="n">wide</span> <span class="o">=</span> <span class="n">with_max</span><span class="o">.</span><span class="n">select</span><span class="p">(</span>
+        <span class="s2">&quot;studyLocusId&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;geneId&quot;</span><span class="p">,</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="n">base_name</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="n">base_name</span><span class="p">),</span>
+        <span class="n">neigh_ratio</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">base_name</span><span class="si">}</span><span class="s2">Neighbourhood&quot;</span><span class="p">),</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">wide</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -5263,15 +4873,24 @@
 <div class="doc doc-object doc-function">
 
 
-<h3 id="gentropy.dataset.l2g_features.vep.common_neighbourhood_vep_feature_logic" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">gentropy</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">l2g_features</span><span class="o">.</span><span class="n">vep</span><span class="o">.</span><span class="n">common_neighbourhood_vep_feature_logic</span><span class="p">(</span><span class="n">study_loci_to_annotate</span><span class="p">:</span> <span class="n">StudyLocus</span> <span class="o">|</span> <span class="n">L2GGoldStandard</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">variant_index</span><span class="p">:</span> <span class="n">VariantIndex</span><span class="p">,</span> <span class="n">target_index</span><span class="p">:</span> <span class="n">TargetIndex</span><span class="p">,</span> <span class="n">feature_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataFrame</span></code>
+<h3 id="gentropy.dataset.l2g_features.intervals.get_or_make_e2g_wide" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">gentropy</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">l2g_features</span><span class="o">.</span><span class="n">intervals</span><span class="o">.</span><span class="n">get_or_make_e2g_wide</span><span class="p">(</span><span class="n">study_loci_to_annotate</span><span class="p">:</span> <span class="n">StudyLocus</span> <span class="o">|</span> <span class="n">L2GGoldStandard</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">feature_dependency</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">base_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;e2gMean&#39;</span><span class="p">,</span> <span class="n">use_binned</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">pp_min</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.001</span><span class="p">,</span> <span class="n">bin_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">50000</span><span class="p">,</span> <span class="n">max_bins_per_interval</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">200</span><span class="p">,</span> <span class="n">repartitions_variants</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">repartitions_intervals</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataFrame</span></code>
 
-<a href="#gentropy.dataset.l2g_features.vep.common_neighbourhood_vep_feature_logic" class="headerlink" title="Permanent link">&para;</a></h3>
+<a href="#gentropy.dataset.l2g_features.intervals.get_or_make_e2g_wide" class="headerlink" title="Permanent link">&para;</a></h3>
 
 
     <div class="doc doc-contents first">
 
-        <p>Extracts variant severity score computed from VEP for any gene, based on what is the max score for protein coding genes that are nearby the locus.</p>
+        <p>Compute or retrieve the e2g wide feature DataFrame with optional binned join settings.</p>
+<p>This method implements a caching registry within the <code>feature_dependency</code> dictionary object defined by parent caller.
+The method stores the reference to wide e2g dataframe execution plan under specific cache_key,
+so subsequent feature factory calls to the E2GFeature.compute() can reference the cached resource instead of recomputing the plan.</p>
+
+
+<details class="note" open>
+  <summary>Note</summary>
+  <p>The caching mechanism acts on the <code>feature_dependency</code> dictionary and modifies it in place as of side effect.</p>
+</details>        <p>The cache key incorporates parameters that affect output.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -5294,7 +4913,8 @@
             </td>
             <td>
               <div class="doc-md-description">
-                <p>The dataset containing study loci that will be used for annotation</p>
+                <p>The dataset containing study loci
+that will be used for annotation</p>
               </div>
             </td>
             <td>
@@ -5303,14 +4923,14 @@
           </tr>
           <tr class="doc-section-item">
             <td>
-                <code>variant_index</code>
+                <code>feature_dependency</code>
             </td>
             <td>
-                  <code><a class="autorefs autorefs-internal" title="gentropy.dataset.variant_index.VariantIndex" href="../../variant_index/#gentropy.dataset.variant_index.VariantIndex">VariantIndex</a></code>
+                  <code><span title="dict">dict</span>[<span title="str">str</span>, <span title="typing.Any">Any</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>The dataset containing functional consequence information</p>
+                <p>Dataset that contains the e2g information</p>
               </div>
             </td>
             <td>
@@ -5319,34 +4939,114 @@
           </tr>
           <tr class="doc-section-item">
             <td>
-                <code>target_index</code>
-            </td>
-            <td>
-                  <code><a class="autorefs autorefs-internal" title="gentropy.dataset.target_index.TargetIndex" href="../../target_index/#gentropy.dataset.target_index.TargetIndex">TargetIndex</a></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>The dataset containing the gene biotype</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>feature_name</code>
+                <code>base_name</code>
             </td>
             <td>
                   <code><span title="str">str</span></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>The name of the feature</p>
+                <p>The base name of the feature</p>
               </div>
             </td>
             <td>
-                <em>required</em>
+                  <code>&#39;e2gMean&#39;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>use_binned</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Whether to use the binned overlap logic</p>
+              </div>
+            </td>
+            <td>
+                  <code>True</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>pp_min</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Minimum posterior probability to consider a variant</p>
+              </div>
+            </td>
+            <td>
+                  <code>0.001</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>bin_size</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Size of bins for the binned overlap</p>
+              </div>
+            </td>
+            <td>
+                  <code>50000</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>max_bins_per_interval</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Maximum number of bins to explode per interval</p>
+              </div>
+            </td>
+            <td>
+                  <code>200</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>repartitions_variants</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Number of repartitions for variant side</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>repartitions_intervals</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Number of repartitions for interval side</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
             </td>
           </tr>
       </tbody>
@@ -5368,7 +5068,7 @@
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Feature dataset</p>
+                <p>Features dataset</p>
               </div>
             </td>
           </tr>
@@ -5377,104 +5077,112 @@
 
 
             <details class="quote">
-              <summary>Source code in <code>src/gentropy/dataset/l2g_features/vep.py</code></summary>
-              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 76</span>
-<span class="normal"> 77</span>
-<span class="normal"> 78</span>
-<span class="normal"> 79</span>
-<span class="normal"> 80</span>
-<span class="normal"> 81</span>
-<span class="normal"> 82</span>
-<span class="normal"> 83</span>
-<span class="normal"> 84</span>
-<span class="normal"> 85</span>
-<span class="normal"> 86</span>
-<span class="normal"> 87</span>
-<span class="normal"> 88</span>
-<span class="normal"> 89</span>
-<span class="normal"> 90</span>
-<span class="normal"> 91</span>
-<span class="normal"> 92</span>
-<span class="normal"> 93</span>
-<span class="normal"> 94</span>
-<span class="normal"> 95</span>
-<span class="normal"> 96</span>
-<span class="normal"> 97</span>
-<span class="normal"> 98</span>
-<span class="normal"> 99</span>
-<span class="normal">100</span>
-<span class="normal">101</span>
-<span class="normal">102</span>
-<span class="normal">103</span>
-<span class="normal">104</span>
-<span class="normal">105</span>
-<span class="normal">106</span>
-<span class="normal">107</span>
-<span class="normal">108</span>
-<span class="normal">109</span>
-<span class="normal">110</span>
-<span class="normal">111</span>
-<span class="normal">112</span>
-<span class="normal">113</span>
-<span class="normal">114</span>
-<span class="normal">115</span>
-<span class="normal">116</span>
-<span class="normal">117</span>
-<span class="normal">118</span>
-<span class="normal">119</span>
-<span class="normal">120</span>
-<span class="normal">121</span>
-<span class="normal">122</span>
-<span class="normal">123</span>
-<span class="normal">124</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">common_neighbourhood_vep_feature_logic</span><span class="p">(</span>
+              <summary>Source code in <code>src/gentropy/dataset/l2g_features/intervals.py</code></summary>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">333</span>
+<span class="normal">334</span>
+<span class="normal">335</span>
+<span class="normal">336</span>
+<span class="normal">337</span>
+<span class="normal">338</span>
+<span class="normal">339</span>
+<span class="normal">340</span>
+<span class="normal">341</span>
+<span class="normal">342</span>
+<span class="normal">343</span>
+<span class="normal">344</span>
+<span class="normal">345</span>
+<span class="normal">346</span>
+<span class="normal">347</span>
+<span class="normal">348</span>
+<span class="normal">349</span>
+<span class="normal">350</span>
+<span class="normal">351</span>
+<span class="normal">352</span>
+<span class="normal">353</span>
+<span class="normal">354</span>
+<span class="normal">355</span>
+<span class="normal">356</span>
+<span class="normal">357</span>
+<span class="normal">358</span>
+<span class="normal">359</span>
+<span class="normal">360</span>
+<span class="normal">361</span>
+<span class="normal">362</span>
+<span class="normal">363</span>
+<span class="normal">364</span>
+<span class="normal">365</span>
+<span class="normal">366</span>
+<span class="normal">367</span>
+<span class="normal">368</span>
+<span class="normal">369</span>
+<span class="normal">370</span>
+<span class="normal">371</span>
+<span class="normal">372</span>
+<span class="normal">373</span>
+<span class="normal">374</span>
+<span class="normal">375</span>
+<span class="normal">376</span>
+<span class="normal">377</span>
+<span class="normal">378</span>
+<span class="normal">379</span>
+<span class="normal">380</span>
+<span class="normal">381</span>
+<span class="normal">382</span>
+<span class="normal">383</span>
+<span class="normal">384</span>
+<span class="normal">385</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_or_make_e2g_wide</span><span class="p">(</span>
     <span class="n">study_loci_to_annotate</span><span class="p">:</span> <span class="n">StudyLocus</span> <span class="o">|</span> <span class="n">L2GGoldStandard</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
-    <span class="n">variant_index</span><span class="p">:</span> <span class="n">VariantIndex</span><span class="p">,</span>
-    <span class="n">target_index</span><span class="p">:</span> <span class="n">TargetIndex</span><span class="p">,</span>
-    <span class="n">feature_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">feature_dependency</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+    <span class="n">base_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;e2gMean&quot;</span><span class="p">,</span>
+    <span class="n">use_binned</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">pp_min</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.001</span><span class="p">,</span>
+    <span class="n">bin_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">50_000</span><span class="p">,</span>
+    <span class="n">max_bins_per_interval</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">200</span><span class="p">,</span>
+    <span class="n">repartitions_variants</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">repartitions_intervals</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataFrame</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Extracts variant severity score computed from VEP for any gene, based on what is the max score for protein coding genes that are nearby the locus.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute or retrieve the e2g wide feature DataFrame with optional binned join settings.</span>
+
+<span class="sd">    This method implements a caching registry within the `feature_dependency` dictionary object defined by parent caller.</span>
+<span class="sd">    The method stores the reference to wide e2g dataframe execution plan under specific cache_key,</span>
+<span class="sd">    so subsequent feature factory calls to the E2GFeature.compute() can reference the cached resource instead of recomputing the plan.</span>
+
+<span class="sd">    Note:</span>
+<span class="sd">        The caching mechanism acts on the `feature_dependency` dictionary and modifies it in place as of side effect.</span>
+
+<span class="sd">    The cache key incorporates parameters that affect output.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation</span>
-<span class="sd">        variant_index (VariantIndex): The dataset containing functional consequence information</span>
-<span class="sd">        target_index (TargetIndex): The dataset containing the gene biotype</span>
-<span class="sd">        feature_name (str): The name of the feature</span>
+<span class="sd">        study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci</span>
+<span class="sd">            that will be used for annotation</span>
+<span class="sd">        feature_dependency (dict[str, Any]): Dataset that contains the e2g information</span>
+<span class="sd">        base_name (str): The base name of the feature</span>
+<span class="sd">        use_binned (bool): Whether to use the binned overlap logic</span>
+<span class="sd">        pp_min (float): Minimum posterior probability to consider a variant</span>
+<span class="sd">        bin_size (int): Size of bins for the binned overlap</span>
+<span class="sd">        max_bins_per_interval (int): Maximum number of bins to explode per interval</span>
+<span class="sd">        repartitions_variants (int | None): Number of repartitions for variant side</span>
+<span class="sd">        repartitions_intervals (int | None): Number of repartitions for interval side</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        DataFrame: Feature dataset</span>
+<span class="sd">        DataFrame: Features dataset</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">local_feature_name</span> <span class="o">=</span> <span class="n">feature_name</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;Neighbourhood&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
-    <span class="n">local_metric</span> <span class="o">=</span> <span class="n">common_vep_feature_logic</span><span class="p">(</span>
-        <span class="n">study_loci_to_annotate</span><span class="p">,</span>
-        <span class="n">feature_name</span><span class="o">=</span><span class="n">local_feature_name</span><span class="p">,</span>
-        <span class="n">variant_index</span><span class="o">=</span><span class="n">variant_index</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="k">return</span> <span class="p">(</span>
-        <span class="n">local_metric</span>
-        <span class="c1"># Compute average score in the vicinity (feature will be the same for any gene associated with a studyLocus)</span>
-        <span class="c1"># (non protein coding genes in the vicinity are excluded see #3552)</span>
-        <span class="o">.</span><span class="n">join</span><span class="p">(</span>
-            <span class="n">target_index</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;biotype&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;protein_coding&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">select</span><span class="p">(</span>
-                <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;id&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;geneId&quot;</span><span class="p">)</span>
-            <span class="p">),</span>
-            <span class="s2">&quot;geneId&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;inner&quot;</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="o">.</span><span class="n">withColumn</span><span class="p">(</span>
-            <span class="s2">&quot;regional_max&quot;</span><span class="p">,</span>
-            <span class="n">f</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">local_feature_name</span><span class="p">)</span><span class="o">.</span><span class="n">over</span><span class="p">(</span><span class="n">Window</span><span class="o">.</span><span class="n">partitionBy</span><span class="p">(</span><span class="s2">&quot;studyLocusId&quot;</span><span class="p">)),</span>
-        <span class="p">)</span>
-        <span class="o">.</span><span class="n">withColumn</span><span class="p">(</span>
-            <span class="n">feature_name</span><span class="p">,</span>
-            <span class="n">f</span><span class="o">.</span><span class="n">when</span><span class="p">(</span>
-                <span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;regional_max&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">isNotNull</span><span class="p">())</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;regional_max&quot;</span><span class="p">)</span> <span class="o">!=</span> <span class="mf">0.0</span><span class="p">),</span>
-                <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="n">local_feature_name</span><span class="p">)</span>
-                <span class="o">/</span> <span class="n">f</span><span class="o">.</span><span class="n">coalesce</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;regional_max&quot;</span><span class="p">),</span> <span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="mf">0.0</span><span class="p">)),</span>
-            <span class="p">)</span><span class="o">.</span><span class="n">otherwise</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="mf">0.0</span><span class="p">)),</span>
-        <span class="p">)</span>
-        <span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="s2">&quot;regional_max&quot;</span><span class="p">,</span> <span class="n">local_feature_name</span><span class="p">)</span>
-    <span class="p">)</span>
+    <span class="n">cache_key</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;_e2g_wide::</span><span class="si">{</span><span class="n">base_name</span><span class="si">}</span><span class="s2">::binned=</span><span class="si">{</span><span class="n">use_binned</span><span class="si">}</span><span class="s2">::ppmin=</span><span class="si">{</span><span class="n">pp_min</span><span class="si">}</span><span class="s2">::bin=</span><span class="si">{</span><span class="n">bin_size</span><span class="si">}</span><span class="s2">::cap=</span><span class="si">{</span><span class="n">max_bins_per_interval</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="k">if</span> <span class="n">cache_key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">feature_dependency</span><span class="p">:</span>
+        <span class="n">wide</span> <span class="o">=</span> <span class="n">e2g_interval_feature_wide_logic</span><span class="p">(</span>
+            <span class="n">study_loci_to_annotate</span><span class="p">,</span>
+            <span class="n">intervals</span><span class="o">=</span><span class="n">feature_dependency</span><span class="p">[</span><span class="s2">&quot;intervals&quot;</span><span class="p">],</span>
+            <span class="n">base_name</span><span class="o">=</span><span class="n">base_name</span><span class="p">,</span>
+            <span class="n">use_binned</span><span class="o">=</span><span class="n">use_binned</span><span class="p">,</span>
+            <span class="n">pp_min</span><span class="o">=</span><span class="n">pp_min</span><span class="p">,</span>
+            <span class="n">bin_size</span><span class="o">=</span><span class="n">bin_size</span><span class="p">,</span>
+            <span class="n">max_bins_per_interval</span><span class="o">=</span><span class="n">max_bins_per_interval</span><span class="p">,</span>
+            <span class="n">repartitions_variants</span><span class="o">=</span><span class="n">repartitions_variants</span><span class="p">,</span>
+            <span class="n">repartitions_intervals</span><span class="o">=</span><span class="n">repartitions_intervals</span><span class="p">,</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">persist</span><span class="p">()</span>
+        <span class="n">feature_dependency</span><span class="p">[</span><span class="n">cache_key</span><span class="p">]</span> <span class="o">=</span> <span class="n">wide</span>
+    <span class="k">return</span> <span class="n">feature_dependency</span><span class="p">[</span><span class="n">cache_key</span><span class="p">]</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -5495,14 +5203,14 @@
         <span class="icon twemoji">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M14.47 15.08 11 13V7h1.5v5.25l3.08 1.83c-.41.28-.79.62-1.11 1m-1.39 4.84c-.36.05-.71.08-1.08.08-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8c0 .37-.03.72-.08 1.08.69.1 1.33.32 1.92.64.1-.56.16-1.13.16-1.72 0-5.5-4.5-10-10-10S2 6.5 2 12s4.47 10 10 10c.59 0 1.16-.06 1.72-.16-.32-.59-.54-1.23-.64-1.92M18 15v3h-3v2h3v3h2v-3h3v-2h-3v-3h-2Z"/></svg>
         </span>
-        <span class="label"> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="October 3, 2024 16:33:42 UTC"><span class="timeago" datetime="2024-10-03T16:33:42+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 3, 2024 16:33:42 UTC">2024-10-03</span> </span>
+        <span class="label"> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="January 14, 2026 13:58:27 UTC"><span class="timeago" datetime="2026-01-14T13:58:27+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="January 14, 2026 13:58:27 UTC">2026-01-14</span> </span>
       </li>
        
       <li>
         <span class="icon twemoji">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1-2.1-2M12.5 7v5.2l4 2.4-1 1L11 13V7h1.5M11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2v1.8Z"/></svg>
         </span>
-        <span class="label"> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="October 3, 2024 16:33:42 UTC"><span class="timeago" datetime="2024-10-03T16:33:42+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 3, 2024 16:33:42 UTC">2024-10-03</span> </span>
+        <span class="label"> <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="January 14, 2026 13:58:27 UTC"><span class="timeago" datetime="2026-01-14T13:58:27+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="January 14, 2026 13:58:27 UTC">2026-01-14</span> </span>
       </li>
       
 
@@ -5515,11 +5223,11 @@
       <li class="contributors-holder">
         <ul class="contributors" data-bi-name="contributors"><li>
             <a
-              href="https://github.com/ireneisdoomed"
-              title="ireneisdoomed"
+              href="https://github.com/xyg123"
+              title="xyg123"
               data-bi-name="contributorprofile"
               target="_blank"
-              ><img src="https://avatars.githubusercontent.com/u/45119610?v=4" alt="ireneisdoomed"
+              ><img src="https://avatars.githubusercontent.com/u/33658607?v=4" alt="xyg123"
             /></a>
           </li><li>
             <a

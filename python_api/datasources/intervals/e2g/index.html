@@ -1553,6 +1553,27 @@
   
   
     <li class="md-nav__item">
+      <a href="../../../datasets/l2g_features/intervals/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Epigenetic regulatory region features
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../../datasets/l2g_features/other/" class="md-nav__link">
         
   
@@ -3726,8 +3747,7 @@
 
               <details class="quote">
                 <summary>Source code in <code>src/gentropy/datasource/intervals/e2g.py</code></summary>
-                <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 17</span>
-<span class="normal"> 18</span>
+                <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 18</span>
 <span class="normal"> 19</span>
 <span class="normal"> 20</span>
 <span class="normal"> 21</span>
@@ -3848,46 +3868,10 @@
 <span class="normal">136</span>
 <span class="normal">137</span>
 <span class="normal">138</span>
-<span class="normal">139</span>
-<span class="normal">140</span>
-<span class="normal">141</span>
-<span class="normal">142</span>
-<span class="normal">143</span>
-<span class="normal">144</span>
-<span class="normal">145</span>
-<span class="normal">146</span>
-<span class="normal">147</span>
-<span class="normal">148</span>
-<span class="normal">149</span>
-<span class="normal">150</span>
-<span class="normal">151</span>
-<span class="normal">152</span>
-<span class="normal">153</span>
-<span class="normal">154</span>
-<span class="normal">155</span>
-<span class="normal">156</span>
-<span class="normal">157</span>
-<span class="normal">158</span>
-<span class="normal">159</span>
-<span class="normal">160</span>
-<span class="normal">161</span>
-<span class="normal">162</span>
-<span class="normal">163</span>
-<span class="normal">164</span>
-<span class="normal">165</span>
-<span class="normal">166</span>
-<span class="normal">167</span>
-<span class="normal">168</span>
-<span class="normal">169</span>
-<span class="normal">170</span>
-<span class="normal">171</span>
-<span class="normal">172</span>
-<span class="normal">173</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">IntervalsE2G</span><span class="p">:</span>
+<span class="normal">139</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">IntervalsE2G</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Interval dataset from E2G.&quot;&quot;&quot;</span>
 
-    <span class="n">DATASET_NAME</span><span class="p">:</span> <span class="n">ClassVar</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;E2G&quot;</span>
     <span class="n">PMID</span><span class="p">:</span> <span class="n">ClassVar</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;38014075&quot;</span>  <span class="c1"># PMID for the E2G paper</span>
-    <span class="n">VALID_INTERVAL_TYPES</span><span class="p">:</span> <span class="n">ClassVar</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;promoter&quot;</span><span class="p">,</span> <span class="s2">&quot;genic&quot;</span><span class="p">,</span> <span class="s2">&quot;intergenic&quot;</span><span class="p">]</span>
 
     <span class="nd">@staticmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">read</span><span class="p">(</span><span class="n">spark</span><span class="p">:</span> <span class="n">SparkSession</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataFrame</span><span class="p">:</span>
@@ -3913,7 +3897,6 @@
         <span class="n">raw_e2g_df</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span>
         <span class="n">biosample_mapping</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span>
         <span class="n">target_index</span><span class="p">:</span> <span class="n">TargetIndex</span><span class="p">,</span>
-        <span class="n">biosample_index</span><span class="p">:</span> <span class="n">BiosampleIndex</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Intervals</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Parse E2G dataset.</span>
 
@@ -3921,20 +3904,27 @@
 <span class="sd">            raw_e2g_df (DataFrame): Raw E2G DataFrame.</span>
 <span class="sd">            biosample_mapping (DataFrame): Biosample mapping DataFrame.</span>
 <span class="sd">            target_index (TargetIndex): Target index.</span>
-<span class="sd">            biosample_index (BiosampleIndex): Biosample index.</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            Intervals: Parsed Intervals dataset.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="s2">&quot;#chr&quot;</span> <span class="ow">in</span> <span class="n">raw_e2g_df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+            <span class="n">chr_col</span> <span class="o">=</span> <span class="s2">&quot;#chr&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">chr_col</span> <span class="o">=</span> <span class="s2">&quot;chr&quot;</span>
         <span class="n">base</span> <span class="o">=</span> <span class="p">(</span>
             <span class="n">raw_e2g_df</span><span class="o">.</span><span class="n">withColumn</span><span class="p">(</span>
                 <span class="s2">&quot;studyId&quot;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">regexp_extract</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;file_path&quot;</span><span class="p">),</span> <span class="sa">r</span><span class="s2">&quot;([^/]+)\.bed\.gz$&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
             <span class="p">)</span>
-            <span class="o">.</span><span class="n">withColumn</span><span class="p">(</span><span class="s2">&quot;chromosome&quot;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">regexp_replace</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;chr&quot;</span><span class="p">),</span> <span class="s2">&quot;^chr&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">))</span>
+            <span class="o">.</span><span class="n">withColumn</span><span class="p">(</span><span class="s2">&quot;chromosome&quot;</span><span class="p">,</span> <span class="n">normalize_chromosome</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="n">chr_col</span><span class="p">)))</span>
+            <span class="o">.</span><span class="n">withColumn</span><span class="p">(</span><span class="s2">&quot;start&quot;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;start&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="s2">&quot;long&quot;</span><span class="p">))</span>
+            <span class="o">.</span><span class="n">withColumn</span><span class="p">(</span><span class="s2">&quot;end&quot;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;end&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="s2">&quot;long&quot;</span><span class="p">))</span>
             <span class="o">.</span><span class="n">withColumnRenamed</span><span class="p">(</span><span class="s2">&quot;TargetGeneEnsemblID&quot;</span><span class="p">,</span> <span class="s2">&quot;geneId&quot;</span><span class="p">)</span>
             <span class="o">.</span><span class="n">withColumnRenamed</span><span class="p">(</span><span class="s2">&quot;CellType&quot;</span><span class="p">,</span> <span class="s2">&quot;biosampleName&quot;</span><span class="p">)</span>
             <span class="o">.</span><span class="n">withColumnRenamed</span><span class="p">(</span><span class="s2">&quot;Score&quot;</span><span class="p">,</span> <span class="s2">&quot;score&quot;</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">withColumn</span><span class="p">(</span><span class="s2">&quot;score&quot;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;score&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="s2">&quot;double&quot;</span><span class="p">))</span>
             <span class="o">.</span><span class="n">withColumnRenamed</span><span class="p">(</span><span class="s2">&quot;class&quot;</span><span class="p">,</span> <span class="s2">&quot;intervalType&quot;</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">withColumn</span><span class="p">(</span><span class="s2">&quot;intervalType&quot;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">lower</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">trim</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;intervalType&quot;</span><span class="p">))))</span>
             <span class="o">.</span><span class="n">withColumn</span><span class="p">(</span>
                 <span class="s2">&quot;resourceScore&quot;</span><span class="p">,</span>
                 <span class="n">f</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
@@ -3950,91 +3940,52 @@
                     <span class="p">),</span>
                 <span class="p">),</span>
             <span class="p">)</span>
-            <span class="o">.</span><span class="n">withColumn</span><span class="p">(</span><span class="s2">&quot;start&quot;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;start&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="s2">&quot;long&quot;</span><span class="p">))</span>
-            <span class="o">.</span><span class="n">withColumn</span><span class="p">(</span><span class="s2">&quot;end&quot;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;end&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="s2">&quot;long&quot;</span><span class="p">))</span>
         <span class="p">)</span>
 
-        <span class="n">base</span> <span class="o">=</span> <span class="n">base</span><span class="o">.</span><span class="n">withColumn</span><span class="p">(</span>
-            <span class="s2">&quot;intervalType&quot;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">lower</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">trim</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;intervalType&quot;</span><span class="p">)))</span>
-        <span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;intervalType&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">VALID_INTERVAL_TYPES</span><span class="p">))</span>
-
-        <span class="c1"># Target Index: preferred TSS + fallbacks (canonical transcript, genomicLocation)</span>
-        <span class="n">ti</span> <span class="o">=</span> <span class="n">target_index</span><span class="o">.</span><span class="n">_df</span><span class="o">.</span><span class="n">select</span><span class="p">(</span>
-            <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;id&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;geneId&quot;</span><span class="p">),</span>
-            <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;tss&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="s2">&quot;long&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;tss_primary&quot;</span><span class="p">),</span>
-            <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;canonicalTranscript.chromosome&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;ct_chr&quot;</span><span class="p">),</span>
-            <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;canonicalTranscript.start&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="s2">&quot;long&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;ct_start&quot;</span><span class="p">),</span>
-            <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;canonicalTranscript.end&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="s2">&quot;long&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;ct_end&quot;</span><span class="p">),</span>
-            <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;canonicalTranscript.strand&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;ct_strand&quot;</span><span class="p">),</span>
-            <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;genomicLocation.chromosome&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;gl_chr&quot;</span><span class="p">),</span>
-            <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;genomicLocation.start&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="s2">&quot;long&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;gl_start&quot;</span><span class="p">),</span>
-            <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;genomicLocation.end&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="s2">&quot;long&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;gl_end&quot;</span><span class="p">),</span>
-            <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;genomicLocation.strand&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="s2">&quot;int&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;gl_strand&quot;</span><span class="p">),</span>
+        <span class="n">tss_lut</span> <span class="o">=</span> <span class="n">target_index</span><span class="o">.</span><span class="n">tss_lut</span><span class="p">()</span>
+        <span class="n">biosample_lut</span> <span class="o">=</span> <span class="n">biosample_mapping</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="s2">&quot;biosampleName&quot;</span><span class="p">,</span> <span class="s2">&quot;biosampleId&quot;</span><span class="p">)</span>
+        <span class="c1"># Add distance to TSS from interval bounds</span>
+        <span class="n">joined</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">base</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;iv&quot;</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tss_lut</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;ti&quot;</span><span class="p">),</span> <span class="n">on</span><span class="o">=</span><span class="s2">&quot;geneId&quot;</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s2">&quot;left&quot;</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">biosample_lut</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;bl&quot;</span><span class="p">),</span> <span class="n">on</span><span class="o">=</span><span class="s2">&quot;biosampleName&quot;</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s2">&quot;left&quot;</span><span class="p">)</span>
         <span class="p">)</span>
-
-        <span class="n">ct_tss</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">when</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;ct_strand&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;+&quot;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;ct_start&quot;</span><span class="p">))</span><span class="o">.</span><span class="n">when</span><span class="p">(</span>
-            <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;ct_strand&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;-&quot;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;ct_end&quot;</span><span class="p">)</span>
-        <span class="p">)</span>
-        <span class="n">gl_tss</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">when</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;gl_strand&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;gl_start&quot;</span><span class="p">))</span><span class="o">.</span><span class="n">when</span><span class="p">(</span>
-            <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;gl_strand&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;gl_end&quot;</span><span class="p">)</span>
-        <span class="p">)</span>
-
-        <span class="n">ti_with_tss</span> <span class="o">=</span> <span class="n">ti</span><span class="o">.</span><span class="n">withColumn</span><span class="p">(</span>
-            <span class="s2">&quot;tss_coalesced&quot;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">coalesce</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;tss_primary&quot;</span><span class="p">),</span> <span class="n">ct_tss</span><span class="p">,</span> <span class="n">gl_tss</span><span class="p">)</span>
-        <span class="p">)</span>
-
-        <span class="c1"># Join &amp; recompute distanceToTss</span>
-        <span class="n">joined</span> <span class="o">=</span> <span class="n">base</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;iv&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
-            <span class="n">ti_with_tss</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;ti&quot;</span><span class="p">),</span> <span class="n">on</span><span class="o">=</span><span class="s2">&quot;geneId&quot;</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s2">&quot;inner&quot;</span>
-        <span class="p">)</span>
-        <span class="n">tss</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;ti.tss_coalesced&quot;</span><span class="p">)</span>
-
-        <span class="n">dist_core</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">when</span><span class="p">(</span>
-            <span class="p">(</span><span class="n">tss</span> <span class="o">&gt;=</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;iv.start&quot;</span><span class="p">))</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">tss</span> <span class="o">&lt;=</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;iv.end&quot;</span><span class="p">)),</span> <span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-        <span class="p">)</span><span class="o">.</span><span class="n">otherwise</span><span class="p">(</span>
-            <span class="n">f</span><span class="o">.</span><span class="n">least</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">tss</span> <span class="o">-</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;iv.start&quot;</span><span class="p">)),</span> <span class="n">f</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">tss</span> <span class="o">-</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;iv.end&quot;</span><span class="p">)))</span>
-        <span class="p">)</span>
-        <span class="n">distance_expr</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="n">f</span><span class="o">.</span><span class="n">when</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;iv.intervalType&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;promoter&quot;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
-            <span class="o">.</span><span class="n">when</span><span class="p">(</span><span class="n">tss</span><span class="o">.</span><span class="n">isNull</span><span class="p">(),</span> <span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="s2">&quot;long&quot;</span><span class="p">))</span>
-            <span class="o">.</span><span class="n">otherwise</span><span class="p">(</span><span class="n">dist_core</span><span class="p">)</span>
-        <span class="p">)</span>
-
         <span class="n">parsed</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="n">joined</span><span class="o">.</span><span class="n">withColumn</span><span class="p">(</span><span class="s2">&quot;distanceToTss&quot;</span><span class="p">,</span> <span class="n">distance_expr</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="s2">&quot;double&quot;</span><span class="p">))</span>
-            <span class="o">.</span><span class="n">withColumn</span><span class="p">(</span>
-                <span class="s2">&quot;intervalId&quot;</span><span class="p">,</span>
-                <span class="n">f</span><span class="o">.</span><span class="n">sha1</span><span class="p">(</span>
-                    <span class="n">f</span><span class="o">.</span><span class="n">concat_ws</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">,</span> <span class="s2">&quot;chromosome&quot;</span><span class="p">,</span> <span class="s2">&quot;start&quot;</span><span class="p">,</span> <span class="s2">&quot;end&quot;</span><span class="p">,</span> <span class="s2">&quot;geneId&quot;</span><span class="p">,</span> <span class="s2">&quot;studyId&quot;</span><span class="p">)</span>
+            <span class="n">joined</span><span class="o">.</span><span class="n">withColumn</span><span class="p">(</span>
+                <span class="s2">&quot;distanceToTss&quot;</span><span class="p">,</span>
+                <span class="n">Intervals</span><span class="o">.</span><span class="n">distance_to_tss</span><span class="p">(</span>
+                    <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;iv.start&quot;</span><span class="p">),</span>
+                    <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;iv.end&quot;</span><span class="p">),</span>
+                    <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;iv.intervalType&quot;</span><span class="p">),</span>
+                    <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;ti.tss&quot;</span><span class="p">),</span>
                 <span class="p">),</span>
             <span class="p">)</span>
-            <span class="o">.</span><span class="n">join</span><span class="p">(</span>
-                <span class="n">biosample_mapping</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="s2">&quot;biosampleName&quot;</span><span class="p">,</span> <span class="s2">&quot;biosampleId&quot;</span><span class="p">),</span>
-                <span class="n">on</span><span class="o">=</span><span class="s2">&quot;biosampleName&quot;</span><span class="p">,</span>
-                <span class="n">how</span><span class="o">=</span><span class="s2">&quot;left&quot;</span><span class="p">,</span>
+            <span class="o">.</span><span class="n">withColumn</span><span class="p">(</span>
+                <span class="s2">&quot;intervalId&quot;</span><span class="p">,</span>
+                <span class="n">Intervals</span><span class="o">.</span><span class="n">generate_identifier</span><span class="p">(</span><span class="n">Intervals</span><span class="o">.</span><span class="n">id_cols</span><span class="p">),</span>
             <span class="p">)</span>
-            <span class="o">.</span><span class="n">join</span><span class="p">(</span>
-                <span class="n">biosample_index</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="s2">&quot;biosampleId&quot;</span><span class="p">),</span> <span class="n">on</span><span class="o">=</span><span class="s2">&quot;biosampleId&quot;</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s2">&quot;inner&quot;</span>
-            <span class="p">)</span>
+            <span class="o">.</span><span class="n">withColumn</span><span class="p">(</span><span class="s2">&quot;qualityControls&quot;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">array</span><span class="p">()</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="s2">&quot;array&lt;string&gt;&quot;</span><span class="p">))</span>
         <span class="p">)</span>
 
         <span class="k">return</span> <span class="n">Intervals</span><span class="p">(</span>
             <span class="n">_df</span><span class="o">=</span><span class="p">(</span>
                 <span class="n">parsed</span><span class="o">.</span><span class="n">select</span><span class="p">(</span>
                     <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;chromosome&quot;</span><span class="p">),</span>
-                    <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;start&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="s2">&quot;string&quot;</span><span class="p">),</span>
-                    <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;end&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="s2">&quot;string&quot;</span><span class="p">),</span>
+                    <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;start&quot;</span><span class="p">),</span>
+                    <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;end&quot;</span><span class="p">),</span>
                     <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;geneId&quot;</span><span class="p">),</span>
-                    <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;biosampleName&quot;</span><span class="p">),</span>
-                    <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;intervalType&quot;</span><span class="p">),</span>
-                    <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;distanceToTss&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="s2">&quot;integer&quot;</span><span class="p">),</span>
-                    <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;score&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="s2">&quot;double&quot;</span><span class="p">),</span>
+                    <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;score&quot;</span><span class="p">),</span>
+                    <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;distanceToTss&quot;</span><span class="p">),</span>
                     <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;resourceScore&quot;</span><span class="p">),</span>
-                    <span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">DATASET_NAME</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;datasourceId&quot;</span><span class="p">),</span>
+                    <span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="n">IntervalDataSource</span><span class="o">.</span><span class="n">E2G</span><span class="o">.</span><span class="n">value</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;datasourceId&quot;</span><span class="p">),</span>
+                    <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;intervalType&quot;</span><span class="p">),</span>
                     <span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">PMID</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;pmid&quot;</span><span class="p">),</span>
-                    <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;studyId&quot;</span><span class="p">),</span>
+                    <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;biosampleName&quot;</span><span class="p">),</span>
+                    <span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">StringType</span><span class="p">())</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;biosampleFromSourceId&quot;</span><span class="p">),</span>
                     <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;biosampleId&quot;</span><span class="p">),</span>
+                    <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;studyId&quot;</span><span class="p">),</span>
                     <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;intervalId&quot;</span><span class="p">),</span>
+                    <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;qualityControls&quot;</span><span class="p">),</span>
                 <span class="p">)</span>
             <span class="p">),</span>
             <span class="n">_schema</span><span class="o">=</span><span class="n">Intervals</span><span class="o">.</span><span class="n">get_schema</span><span class="p">(),</span>
@@ -4058,7 +4009,7 @@
 
 
 <h4 id="gentropy.datasource.intervals.e2g.IntervalsE2G.parse" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">parse</span><span class="p">(</span><span class="n">raw_e2g_df</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span> <span class="n">biosample_mapping</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span> <span class="n">target_index</span><span class="p">:</span> <span class="n">TargetIndex</span><span class="p">,</span> <span class="n">biosample_index</span><span class="p">:</span> <span class="n">BiosampleIndex</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Intervals</span></code>
+            <code class="highlight language-python"><span class="n">parse</span><span class="p">(</span><span class="n">raw_e2g_df</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span> <span class="n">biosample_mapping</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span> <span class="n">target_index</span><span class="p">:</span> <span class="n">TargetIndex</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Intervals</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
@@ -4131,22 +4082,6 @@
                 <em>required</em>
             </td>
           </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>biosample_index</code>
-            </td>
-            <td>
-                  <code><a class="autorefs autorefs-internal" title="gentropy.dataset.biosample_index.BiosampleIndex" href="../../../datasets/biosample_index/#gentropy.dataset.biosample_index.BiosampleIndex">BiosampleIndex</a></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Biosample index.</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
       </tbody>
     </table>
 
@@ -4176,7 +4111,8 @@
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/datasource/intervals/e2g.py</code></summary>
-              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 42</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 41</span>
+<span class="normal"> 42</span>
 <span class="normal"> 43</span>
 <span class="normal"> 44</span>
 <span class="normal"> 45</span>
@@ -4273,47 +4209,12 @@
 <span class="normal">136</span>
 <span class="normal">137</span>
 <span class="normal">138</span>
-<span class="normal">139</span>
-<span class="normal">140</span>
-<span class="normal">141</span>
-<span class="normal">142</span>
-<span class="normal">143</span>
-<span class="normal">144</span>
-<span class="normal">145</span>
-<span class="normal">146</span>
-<span class="normal">147</span>
-<span class="normal">148</span>
-<span class="normal">149</span>
-<span class="normal">150</span>
-<span class="normal">151</span>
-<span class="normal">152</span>
-<span class="normal">153</span>
-<span class="normal">154</span>
-<span class="normal">155</span>
-<span class="normal">156</span>
-<span class="normal">157</span>
-<span class="normal">158</span>
-<span class="normal">159</span>
-<span class="normal">160</span>
-<span class="normal">161</span>
-<span class="normal">162</span>
-<span class="normal">163</span>
-<span class="normal">164</span>
-<span class="normal">165</span>
-<span class="normal">166</span>
-<span class="normal">167</span>
-<span class="normal">168</span>
-<span class="normal">169</span>
-<span class="normal">170</span>
-<span class="normal">171</span>
-<span class="normal">172</span>
-<span class="normal">173</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
+<span class="normal">139</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@classmethod</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">parse</span><span class="p">(</span>
     <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">[</span><span class="n">IntervalsE2G</span><span class="p">],</span>
     <span class="n">raw_e2g_df</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span>
     <span class="n">biosample_mapping</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span>
     <span class="n">target_index</span><span class="p">:</span> <span class="n">TargetIndex</span><span class="p">,</span>
-    <span class="n">biosample_index</span><span class="p">:</span> <span class="n">BiosampleIndex</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Intervals</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Parse E2G dataset.</span>
 
@@ -4321,20 +4222,27 @@
 <span class="sd">        raw_e2g_df (DataFrame): Raw E2G DataFrame.</span>
 <span class="sd">        biosample_mapping (DataFrame): Biosample mapping DataFrame.</span>
 <span class="sd">        target_index (TargetIndex): Target index.</span>
-<span class="sd">        biosample_index (BiosampleIndex): Biosample index.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        Intervals: Parsed Intervals dataset.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="s2">&quot;#chr&quot;</span> <span class="ow">in</span> <span class="n">raw_e2g_df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+        <span class="n">chr_col</span> <span class="o">=</span> <span class="s2">&quot;#chr&quot;</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">chr_col</span> <span class="o">=</span> <span class="s2">&quot;chr&quot;</span>
     <span class="n">base</span> <span class="o">=</span> <span class="p">(</span>
         <span class="n">raw_e2g_df</span><span class="o">.</span><span class="n">withColumn</span><span class="p">(</span>
             <span class="s2">&quot;studyId&quot;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">regexp_extract</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;file_path&quot;</span><span class="p">),</span> <span class="sa">r</span><span class="s2">&quot;([^/]+)\.bed\.gz$&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
         <span class="p">)</span>
-        <span class="o">.</span><span class="n">withColumn</span><span class="p">(</span><span class="s2">&quot;chromosome&quot;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">regexp_replace</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;chr&quot;</span><span class="p">),</span> <span class="s2">&quot;^chr&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">))</span>
+        <span class="o">.</span><span class="n">withColumn</span><span class="p">(</span><span class="s2">&quot;chromosome&quot;</span><span class="p">,</span> <span class="n">normalize_chromosome</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="n">chr_col</span><span class="p">)))</span>
+        <span class="o">.</span><span class="n">withColumn</span><span class="p">(</span><span class="s2">&quot;start&quot;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;start&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="s2">&quot;long&quot;</span><span class="p">))</span>
+        <span class="o">.</span><span class="n">withColumn</span><span class="p">(</span><span class="s2">&quot;end&quot;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;end&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="s2">&quot;long&quot;</span><span class="p">))</span>
         <span class="o">.</span><span class="n">withColumnRenamed</span><span class="p">(</span><span class="s2">&quot;TargetGeneEnsemblID&quot;</span><span class="p">,</span> <span class="s2">&quot;geneId&quot;</span><span class="p">)</span>
         <span class="o">.</span><span class="n">withColumnRenamed</span><span class="p">(</span><span class="s2">&quot;CellType&quot;</span><span class="p">,</span> <span class="s2">&quot;biosampleName&quot;</span><span class="p">)</span>
         <span class="o">.</span><span class="n">withColumnRenamed</span><span class="p">(</span><span class="s2">&quot;Score&quot;</span><span class="p">,</span> <span class="s2">&quot;score&quot;</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">withColumn</span><span class="p">(</span><span class="s2">&quot;score&quot;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;score&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="s2">&quot;double&quot;</span><span class="p">))</span>
         <span class="o">.</span><span class="n">withColumnRenamed</span><span class="p">(</span><span class="s2">&quot;class&quot;</span><span class="p">,</span> <span class="s2">&quot;intervalType&quot;</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">withColumn</span><span class="p">(</span><span class="s2">&quot;intervalType&quot;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">lower</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">trim</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;intervalType&quot;</span><span class="p">))))</span>
         <span class="o">.</span><span class="n">withColumn</span><span class="p">(</span>
             <span class="s2">&quot;resourceScore&quot;</span><span class="p">,</span>
             <span class="n">f</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
@@ -4350,91 +4258,52 @@
                 <span class="p">),</span>
             <span class="p">),</span>
         <span class="p">)</span>
-        <span class="o">.</span><span class="n">withColumn</span><span class="p">(</span><span class="s2">&quot;start&quot;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;start&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="s2">&quot;long&quot;</span><span class="p">))</span>
-        <span class="o">.</span><span class="n">withColumn</span><span class="p">(</span><span class="s2">&quot;end&quot;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;end&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="s2">&quot;long&quot;</span><span class="p">))</span>
     <span class="p">)</span>
 
-    <span class="n">base</span> <span class="o">=</span> <span class="n">base</span><span class="o">.</span><span class="n">withColumn</span><span class="p">(</span>
-        <span class="s2">&quot;intervalType&quot;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">lower</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">trim</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;intervalType&quot;</span><span class="p">)))</span>
-    <span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;intervalType&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">VALID_INTERVAL_TYPES</span><span class="p">))</span>
-
-    <span class="c1"># Target Index: preferred TSS + fallbacks (canonical transcript, genomicLocation)</span>
-    <span class="n">ti</span> <span class="o">=</span> <span class="n">target_index</span><span class="o">.</span><span class="n">_df</span><span class="o">.</span><span class="n">select</span><span class="p">(</span>
-        <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;id&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;geneId&quot;</span><span class="p">),</span>
-        <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;tss&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="s2">&quot;long&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;tss_primary&quot;</span><span class="p">),</span>
-        <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;canonicalTranscript.chromosome&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;ct_chr&quot;</span><span class="p">),</span>
-        <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;canonicalTranscript.start&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="s2">&quot;long&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;ct_start&quot;</span><span class="p">),</span>
-        <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;canonicalTranscript.end&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="s2">&quot;long&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;ct_end&quot;</span><span class="p">),</span>
-        <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;canonicalTranscript.strand&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;ct_strand&quot;</span><span class="p">),</span>
-        <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;genomicLocation.chromosome&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;gl_chr&quot;</span><span class="p">),</span>
-        <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;genomicLocation.start&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="s2">&quot;long&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;gl_start&quot;</span><span class="p">),</span>
-        <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;genomicLocation.end&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="s2">&quot;long&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;gl_end&quot;</span><span class="p">),</span>
-        <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;genomicLocation.strand&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="s2">&quot;int&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;gl_strand&quot;</span><span class="p">),</span>
+    <span class="n">tss_lut</span> <span class="o">=</span> <span class="n">target_index</span><span class="o">.</span><span class="n">tss_lut</span><span class="p">()</span>
+    <span class="n">biosample_lut</span> <span class="o">=</span> <span class="n">biosample_mapping</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="s2">&quot;biosampleName&quot;</span><span class="p">,</span> <span class="s2">&quot;biosampleId&quot;</span><span class="p">)</span>
+    <span class="c1"># Add distance to TSS from interval bounds</span>
+    <span class="n">joined</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">base</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;iv&quot;</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tss_lut</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;ti&quot;</span><span class="p">),</span> <span class="n">on</span><span class="o">=</span><span class="s2">&quot;geneId&quot;</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s2">&quot;left&quot;</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">biosample_lut</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;bl&quot;</span><span class="p">),</span> <span class="n">on</span><span class="o">=</span><span class="s2">&quot;biosampleName&quot;</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s2">&quot;left&quot;</span><span class="p">)</span>
     <span class="p">)</span>
-
-    <span class="n">ct_tss</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">when</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;ct_strand&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;+&quot;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;ct_start&quot;</span><span class="p">))</span><span class="o">.</span><span class="n">when</span><span class="p">(</span>
-        <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;ct_strand&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;-&quot;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;ct_end&quot;</span><span class="p">)</span>
-    <span class="p">)</span>
-    <span class="n">gl_tss</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">when</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;gl_strand&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;gl_start&quot;</span><span class="p">))</span><span class="o">.</span><span class="n">when</span><span class="p">(</span>
-        <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;gl_strand&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;gl_end&quot;</span><span class="p">)</span>
-    <span class="p">)</span>
-
-    <span class="n">ti_with_tss</span> <span class="o">=</span> <span class="n">ti</span><span class="o">.</span><span class="n">withColumn</span><span class="p">(</span>
-        <span class="s2">&quot;tss_coalesced&quot;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">coalesce</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;tss_primary&quot;</span><span class="p">),</span> <span class="n">ct_tss</span><span class="p">,</span> <span class="n">gl_tss</span><span class="p">)</span>
-    <span class="p">)</span>
-
-    <span class="c1"># Join &amp; recompute distanceToTss</span>
-    <span class="n">joined</span> <span class="o">=</span> <span class="n">base</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;iv&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
-        <span class="n">ti_with_tss</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;ti&quot;</span><span class="p">),</span> <span class="n">on</span><span class="o">=</span><span class="s2">&quot;geneId&quot;</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s2">&quot;inner&quot;</span>
-    <span class="p">)</span>
-    <span class="n">tss</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;ti.tss_coalesced&quot;</span><span class="p">)</span>
-
-    <span class="n">dist_core</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">when</span><span class="p">(</span>
-        <span class="p">(</span><span class="n">tss</span> <span class="o">&gt;=</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;iv.start&quot;</span><span class="p">))</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">tss</span> <span class="o">&lt;=</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;iv.end&quot;</span><span class="p">)),</span> <span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-    <span class="p">)</span><span class="o">.</span><span class="n">otherwise</span><span class="p">(</span>
-        <span class="n">f</span><span class="o">.</span><span class="n">least</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">tss</span> <span class="o">-</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;iv.start&quot;</span><span class="p">)),</span> <span class="n">f</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">tss</span> <span class="o">-</span> <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;iv.end&quot;</span><span class="p">)))</span>
-    <span class="p">)</span>
-    <span class="n">distance_expr</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">f</span><span class="o">.</span><span class="n">when</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;iv.intervalType&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;promoter&quot;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
-        <span class="o">.</span><span class="n">when</span><span class="p">(</span><span class="n">tss</span><span class="o">.</span><span class="n">isNull</span><span class="p">(),</span> <span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="s2">&quot;long&quot;</span><span class="p">))</span>
-        <span class="o">.</span><span class="n">otherwise</span><span class="p">(</span><span class="n">dist_core</span><span class="p">)</span>
-    <span class="p">)</span>
-
     <span class="n">parsed</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">joined</span><span class="o">.</span><span class="n">withColumn</span><span class="p">(</span><span class="s2">&quot;distanceToTss&quot;</span><span class="p">,</span> <span class="n">distance_expr</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="s2">&quot;double&quot;</span><span class="p">))</span>
-        <span class="o">.</span><span class="n">withColumn</span><span class="p">(</span>
-            <span class="s2">&quot;intervalId&quot;</span><span class="p">,</span>
-            <span class="n">f</span><span class="o">.</span><span class="n">sha1</span><span class="p">(</span>
-                <span class="n">f</span><span class="o">.</span><span class="n">concat_ws</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">,</span> <span class="s2">&quot;chromosome&quot;</span><span class="p">,</span> <span class="s2">&quot;start&quot;</span><span class="p">,</span> <span class="s2">&quot;end&quot;</span><span class="p">,</span> <span class="s2">&quot;geneId&quot;</span><span class="p">,</span> <span class="s2">&quot;studyId&quot;</span><span class="p">)</span>
+        <span class="n">joined</span><span class="o">.</span><span class="n">withColumn</span><span class="p">(</span>
+            <span class="s2">&quot;distanceToTss&quot;</span><span class="p">,</span>
+            <span class="n">Intervals</span><span class="o">.</span><span class="n">distance_to_tss</span><span class="p">(</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;iv.start&quot;</span><span class="p">),</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;iv.end&quot;</span><span class="p">),</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;iv.intervalType&quot;</span><span class="p">),</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;ti.tss&quot;</span><span class="p">),</span>
             <span class="p">),</span>
         <span class="p">)</span>
-        <span class="o">.</span><span class="n">join</span><span class="p">(</span>
-            <span class="n">biosample_mapping</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="s2">&quot;biosampleName&quot;</span><span class="p">,</span> <span class="s2">&quot;biosampleId&quot;</span><span class="p">),</span>
-            <span class="n">on</span><span class="o">=</span><span class="s2">&quot;biosampleName&quot;</span><span class="p">,</span>
-            <span class="n">how</span><span class="o">=</span><span class="s2">&quot;left&quot;</span><span class="p">,</span>
+        <span class="o">.</span><span class="n">withColumn</span><span class="p">(</span>
+            <span class="s2">&quot;intervalId&quot;</span><span class="p">,</span>
+            <span class="n">Intervals</span><span class="o">.</span><span class="n">generate_identifier</span><span class="p">(</span><span class="n">Intervals</span><span class="o">.</span><span class="n">id_cols</span><span class="p">),</span>
         <span class="p">)</span>
-        <span class="o">.</span><span class="n">join</span><span class="p">(</span>
-            <span class="n">biosample_index</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="s2">&quot;biosampleId&quot;</span><span class="p">),</span> <span class="n">on</span><span class="o">=</span><span class="s2">&quot;biosampleId&quot;</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s2">&quot;inner&quot;</span>
-        <span class="p">)</span>
+        <span class="o">.</span><span class="n">withColumn</span><span class="p">(</span><span class="s2">&quot;qualityControls&quot;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">array</span><span class="p">()</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="s2">&quot;array&lt;string&gt;&quot;</span><span class="p">))</span>
     <span class="p">)</span>
 
     <span class="k">return</span> <span class="n">Intervals</span><span class="p">(</span>
         <span class="n">_df</span><span class="o">=</span><span class="p">(</span>
             <span class="n">parsed</span><span class="o">.</span><span class="n">select</span><span class="p">(</span>
                 <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;chromosome&quot;</span><span class="p">),</span>
-                <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;start&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="s2">&quot;string&quot;</span><span class="p">),</span>
-                <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;end&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="s2">&quot;string&quot;</span><span class="p">),</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;start&quot;</span><span class="p">),</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;end&quot;</span><span class="p">),</span>
                 <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;geneId&quot;</span><span class="p">),</span>
-                <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;biosampleName&quot;</span><span class="p">),</span>
-                <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;intervalType&quot;</span><span class="p">),</span>
-                <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;distanceToTss&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="s2">&quot;integer&quot;</span><span class="p">),</span>
-                <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;score&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="s2">&quot;double&quot;</span><span class="p">),</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;score&quot;</span><span class="p">),</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;distanceToTss&quot;</span><span class="p">),</span>
                 <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;resourceScore&quot;</span><span class="p">),</span>
-                <span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">DATASET_NAME</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;datasourceId&quot;</span><span class="p">),</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="n">IntervalDataSource</span><span class="o">.</span><span class="n">E2G</span><span class="o">.</span><span class="n">value</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;datasourceId&quot;</span><span class="p">),</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;intervalType&quot;</span><span class="p">),</span>
                 <span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">PMID</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;pmid&quot;</span><span class="p">),</span>
-                <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;studyId&quot;</span><span class="p">),</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;biosampleName&quot;</span><span class="p">),</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">StringType</span><span class="p">())</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">&quot;biosampleFromSourceId&quot;</span><span class="p">),</span>
                 <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;biosampleId&quot;</span><span class="p">),</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;studyId&quot;</span><span class="p">),</span>
                 <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;intervalId&quot;</span><span class="p">),</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;qualityControls&quot;</span><span class="p">),</span>
             <span class="p">)</span>
         <span class="p">),</span>
         <span class="n">_schema</span><span class="o">=</span><span class="n">Intervals</span><span class="o">.</span><span class="n">get_schema</span><span class="p">(),</span>
@@ -4535,7 +4404,8 @@
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/datasource/intervals/e2g.py</code></summary>
-              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">24</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">23</span>
+<span class="normal">24</span>
 <span class="normal">25</span>
 <span class="normal">26</span>
 <span class="normal">27</span>
@@ -4550,8 +4420,7 @@
 <span class="normal">36</span>
 <span class="normal">37</span>
 <span class="normal">38</span>
-<span class="normal">39</span>
-<span class="normal">40</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@staticmethod</span>
+<span class="normal">39</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@staticmethod</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">read</span><span class="p">(</span><span class="n">spark</span><span class="p">:</span> <span class="n">SparkSession</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DataFrame</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Read E2G dataset.</span>
 
