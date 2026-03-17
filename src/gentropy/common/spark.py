@@ -93,7 +93,7 @@ def convert_from_long_to_wide(
         +---+---------+---------+
         <BLANKLINE>
     """
-    return df.groupBy(id_vars).pivot(var_name).agg(f.first(value_name))
+    return df.groupBy(*id_vars).pivot(var_name).agg(f.first(value_name))
 
 
 def nullify_empty_array(column: Column) -> Column:
