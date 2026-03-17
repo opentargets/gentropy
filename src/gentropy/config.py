@@ -53,9 +53,9 @@ class ColocalisationConfig(StepConfig):
 class deCODEManifestGenerationConfig(StepConfig):
     """deCODE data ingestion step configuration."""
 
-    s3_config_path: str = MISSING
     bucket_listing_path: str = MISSING
     output_path: str = MISSING
+    s3_config_path: str | None = None
     _target_: str = "gentropy.decode_ingestion.deCODEManifestGenerationStep"
 
 

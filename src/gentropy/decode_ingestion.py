@@ -150,19 +150,20 @@ class deCODEManifestGenerationStep:
     def __init__(
         self,
         session: Session,
-        s3_config_path: str,
         bucket_listing_path: str,
         output_path: str,
+        s3_config_path: str | None = None,
     ) -> None:
         """Initialise and execute the deCODE manifest generation step.
 
         Args:
             session (Session): Active Gentropy Spark session.
-            s3_config_path (str): Path to the S3 configuration file containing
-                the bucket name used to construct fully-qualified ``s3a://`` paths.
             bucket_listing_path (str): Path to the text file produced by
                 ``aws s3 ls --recursive --human-readable --summarize``.
             output_path (str): Destination path for the manifest Parquet dataset.
+            s3_config_path (str | None): Optional path to the S3 configuration file containing
+                the bucket name used to construct fully-qualified ``s3a://`` paths. If not provided,
+                the method will attempt to load from environment variables.
         """
         manifest = deCODEManifest.from_bucket_listing(
             session=session,

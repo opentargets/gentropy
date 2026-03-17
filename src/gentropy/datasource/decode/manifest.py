@@ -84,7 +84,7 @@ class deCODEManifest(Dataset):
         cls,
         session: Session,
         path: str,
-        s3_config_path: str,
+        s3_config_path: str | None = None,
     ) -> deCODEManifest:
         r"""Create a `deCODEManifest` from an ``aws s3 ls`` bucket listing file.
 
@@ -107,13 +107,13 @@ class deCODEManifest(Dataset):
         Args:
             session (Session): Active Gentropy Spark session.
             path (str): Path to the ``aws s3 ls`` output text file.
-            s3_config_path (str): Path to the S3 configuration file (used to resolve
+            s3_config_path (str | None): Path to the S3 configuration file (used to resolve
                 the bucket name for constructing absolute ``s3a://`` URIs).
 
         Returns:
             deCODEManifest: Populated manifest dataset.
         """
-        config = S3Config.from_file(s3_config_path)
+        config = S3Config.read(s3_config_path)
         project_id = f.when(
             f.col("relativePath").contains("Proteomics_SMP_"),
             f.lit(deCODEDataSource.DECODE_PROTEOMICS_SMP.value),
