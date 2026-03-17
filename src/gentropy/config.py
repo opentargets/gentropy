@@ -84,7 +84,9 @@ class deCODESummaryStatisticsHarmonisationConfig(StepConfig):
     # config
     min_mac_threshold: int = 50
     min_sample_size_threshold: int = 30_000
-    flipping_window_size: int = 10_000_000
+    flipping_window_size: int = (
+        10_000_000  # must match variant_direction.DEFAULT_WINDOW_SIZE
+    )
     pval_threshold: float = 5e-8
     _target_: str = "gentropy.decode_ingestion.deCODESummaryStatisticsHarmonisationStep"
 

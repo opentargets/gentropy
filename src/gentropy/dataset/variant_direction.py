@@ -13,6 +13,11 @@ from gentropy import VariantIndex
 from gentropy.common.schemas import parse_spark_schema
 from gentropy.dataset.dataset import Dataset
 
+#: Default genomic window size (bp) used to partition the VariantDirection dataset.
+#: This constant must be used consistently when creating the VariantDirection
+#: (via ``from_variant_index``) and when joining against it during harmonisation.
+DEFAULT_WINDOW_SIZE: int = 10_000_000
+
 
 class Direction(int, Enum):
     """Allele direction.
@@ -383,7 +388,7 @@ class VariantDirection(Dataset):
 
     @classmethod
     def from_variant_index(
-        cls, variant_index: VariantIndex, window_size: int = 10_000_000
+        cls, variant_index: VariantIndex, window_size: int = DEFAULT_WINDOW_SIZE
     ) -> VariantDirection:
         """Prepare the variant direction DataFrame with DIRECT and FLIPPED entries.
 

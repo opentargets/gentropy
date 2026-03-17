@@ -27,7 +27,7 @@ from gentropy import Session, SummaryStatistics
 from gentropy.common.processing import mac, normalize_chromosome
 from gentropy.common.stats import pvalue_from_neglogpval
 from gentropy.dataset.study_index import ProteinQuantitativeTraitLocusStudyIndex
-from gentropy.dataset.variant_direction import VariantDirection
+from gentropy.dataset.variant_direction import DEFAULT_WINDOW_SIZE, VariantDirection
 from gentropy.datasource.decode import deCODEDataSource
 from gentropy.datasource.decode.study_index import deCODEStudyIndex
 
@@ -38,14 +38,19 @@ class deCODEHarmonisationConfig(BaseModel):
     !!! note "Variant flipping logic"
         The flipping window size has to be the same as the one used for
         creating the variant direction dataset, otherwise the join will produce incorrect results.
+        The default value is sourced from `gentropy.dataset.variant_direction.DEFAULT_WINDOW_SIZE`
+        to keep both sides in sync.
     """
 
     min_mac: int
     """Minimal value of Minor Allelic Count to include in harmonisation."""
     min_sample_size: int
-    """Minimal value of Sample Size to include in harmoniation."""
-    flipping_window_size: int
-    """Window size (bp) used to partition the VariantDirection dataset (exact match only!)."""
+    """Minimal value of Sample Size to include in harmonisation."""
+    flipping_window_size: int = DEFAULT_WINDOW_SIZE
+    """Window size (bp) used to partition the VariantDirection dataset (exact match only!).
+
+    Defaults to `DEFAULT_WINDOW_SIZE` from `gentropy.dataset.variant_direction`.
+    """
 
 
 class deCODESummaryStatistics:
@@ -95,7 +100,7 @@ class deCODESummaryStatistics:
         session: Session,
         summary_statistics_list: list[str],
         raw_summary_statistics_output_path: str,
-        n_threads: int = 500,  # across all pyspark workers
+        n_threads: int = N_THREAD_OPTIMAL,
     ) -> None:
         """Convert txt.gz (tsv) summary statistics to Parquet format.
 
@@ -142,22 +147,7 @@ class deCODESummaryStatistics:
                     input_path,
                     sep="\t",
                     header=True,
-                    schema=t.StructType(
-                        [
-                            t.StructField("Chrom", t.StringType()),
-                            t.StructField("Pos", t.LongType()),
-                            t.StructField("Name", t.StringType()),
-                            t.StructField("rsids", t.StringType()),
-                            t.StructField("effectAllele", t.StringType()),
-                            t.StructField("otherAllele", t.StringType()),
-                            t.StructField("Beta", t.DoubleType()),
-                            t.StructField("Pval", t.DoubleType()),
-                            t.StructField("minus_log10_pval", t.DoubleType()),
-                            t.StructField("SE", t.DoubleType()),
-                            t.StructField("N", t.LongType()),
-                            t.StructField("impMAF", t.DoubleType()),
-                        ]
-                    ),
+                    schema=cls.raw_schema,
                 )
                 .withColumn(
                     "studyId",
@@ -419,5 +409,7 @@ class deCODESummaryStatistics:
             .withColumnRenamed("updatedStudyId", "studyId")
             .persist()
         )
+
+        return (_harmonised, _pqtl_si)
 
         return (_harmonised, _pqtl_si)
