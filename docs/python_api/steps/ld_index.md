@@ -1,5 +1,5 @@
 ---
-title: GnomAD Linkage Disequilibrium Index generation
+title: GnomAD Linkage data ingestion
 ---
 
 ::: gentropy.gnomad_ingestion.LDIndexStep

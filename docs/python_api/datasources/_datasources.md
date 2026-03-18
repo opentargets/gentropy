@@ -14,11 +14,6 @@ This section contains information about the data source harmonisation tools avai
 
 1. [GTEx (eQTL catalogue)](eqtl_catalogue/_eqtl_catalogue.md)
 2. [UKB PPP (EUR)](ukb_ppp_eur/_ukb_ppp_eur.md)
-3. [deCODE proteomics](deCODE/_decode.md)
-
-## Protein complexes
-
-1. [Complex Portal](complex_portal/_complex_portal.md)
 
 ## Interaction / Interval-based Experiments
 
@@ -44,4 +39,5 @@ This section contains information about the data source harmonisation tools avai
 
 ## Biological samples
 
-1. [Uberon and Cell Ontology](biosample_ontologies/_biosample_ontologies.md)
+1. [Uberon](biosample_ontologies/_uberon.md)
+2. [Cell Ontology](biosample_ontologies/_cell_ontology.md)

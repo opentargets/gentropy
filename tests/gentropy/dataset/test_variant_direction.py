@@ -84,7 +84,6 @@ class TestVariantDirection:
         exp_data = [
             Row(
                 chromosome="1",
-                rangeId=0,
                 originalVariantId="1_100_A_C",
                 type=1,
                 variantId="1_100_A_C",
@@ -98,7 +97,6 @@ class TestVariantDirection:
             ),
             Row(
                 chromosome="1",
-                rangeId=0,
                 originalVariantId="1_100_A_C",
                 type=1,
                 variantId="1_100_C_A",
@@ -112,7 +110,6 @@ class TestVariantDirection:
             ),
             Row(
                 chromosome="1",
-                rangeId=0,
                 originalVariantId="1_100_A_C",
                 type=1,
                 variantId="1_100_T_G",
@@ -126,7 +123,6 @@ class TestVariantDirection:
             ),
             Row(
                 chromosome="1",
-                rangeId=0,
                 originalVariantId="1_100_A_C",
                 type=1,
                 variantId="1_100_G_T",
@@ -140,7 +136,6 @@ class TestVariantDirection:
             ),
             Row(
                 chromosome="1",
-                rangeId=0,
                 originalVariantId="1_100_ACT_G",
                 type=3,
                 variantId="1_100_ACT_G",
@@ -154,7 +149,6 @@ class TestVariantDirection:
             ),
             Row(
                 chromosome="1",
-                rangeId=0,
                 originalVariantId="1_100_ACT_G",
                 type=3,
                 variantId="1_100_G_ACT",
@@ -168,7 +162,6 @@ class TestVariantDirection:
             ),
             Row(
                 chromosome="1",
-                rangeId=0,
                 originalVariantId="1_100_ACT_G",
                 type=3,
                 variantId="1_100_AGT_C",
@@ -182,7 +175,6 @@ class TestVariantDirection:
             ),
             Row(
                 chromosome="1",
-                rangeId=0,
                 originalVariantId="1_100_ACT_G",
                 type=3,
                 variantId="1_100_C_AGT",
@@ -196,7 +188,6 @@ class TestVariantDirection:
             ),
             Row(
                 chromosome="1",
-                rangeId=0,
                 originalVariantId="1_100_A_T",
                 type=1,
                 variantId="1_100_A_T",
@@ -210,7 +201,6 @@ class TestVariantDirection:
             ),
             Row(
                 chromosome="1",
-                rangeId=0,
                 originalVariantId="1_100_A_T",
                 type=1,
                 variantId="1_100_T_A",
@@ -224,5 +214,6 @@ class TestVariantDirection:
             ),
         ]
         exp_df = session.spark.createDataFrame(exp_data, VariantDirection.get_schema())
-        asserted = variant_direction.df.select(exp_df.columns).collect()
-        assert exp_df.collect() == asserted, "should collect expected rows"
+        assert (
+            variant_direction.df.select(exp_df.columns).collect() == exp_df.collect()
+        ), "data does not match expected"

@@ -1,5 +1,5 @@
 ---
-title: Biosample Index Generation
+title: biosample_index
 ---
 
 ::: gentropy.biosample_index.BiosampleIndexStep

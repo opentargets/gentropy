@@ -1,5 +1,5 @@
 ---
-title: Credible Set Quality Control
+title: credible_set_qc
 ---
 
 ::: gentropy.credible_set_qc.CredibleSetQCStep

@@ -1,5 +1,5 @@
 ---
-title: eQTL Catalogue ingestion
+title: eQTL Catalogue
 ---
 
 ::: gentropy.eqtl_catalogue.EqtlCatalogueStep

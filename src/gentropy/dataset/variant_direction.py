@@ -13,11 +13,6 @@ from gentropy import VariantIndex
 from gentropy.common.schemas import parse_spark_schema
 from gentropy.dataset.dataset import Dataset
 
-#: Default genomic window size (bp) used to partition the VariantDirection dataset.
-#: This constant must be used consistently when creating the VariantDirection
-#: (via ``from_variant_index``) and when joining against it during harmonisation.
-DEFAULT_WINDOW_SIZE: int = 10_000_000
-
 
 class Direction(int, Enum):
     """Allele direction.
@@ -98,16 +93,16 @@ class VariantDirection(Dataset):
         >>> variant_index = VariantIndex(_df=df)
         >>> variant_direction = VariantDirection.from_variant_index(variant_index)
         >>> variant_direction.df.show(truncate=False)
-        +----------+-------+-----------------+----+---------+---------+------+-----------------+--------------------------------+
-        |chromosome|rangeId|originalVariantId|type|variantId|direction|strand|isStrandAmbiguous|originalAlleleFrequencies       |
-        +----------+-------+-----------------+----+---------+---------+------+-----------------+--------------------------------+
-        |1         |0      |1_100_A_G        |1   |1_100_A_G|1        |1     |false            |[{nfe_adj, 0.1}, {fin_adj, 0.2}]|
-        |1         |0      |1_100_A_G        |1   |1_100_G_A|-1       |1     |false            |[{nfe_adj, 0.1}, {fin_adj, 0.2}]|
-        |1         |0      |1_100_A_G        |1   |1_100_T_C|1        |-1    |false            |[{nfe_adj, 0.1}, {fin_adj, 0.2}]|
-        |1         |0      |1_100_A_G        |1   |1_100_C_T|-1       |-1    |false            |[{nfe_adj, 0.1}, {fin_adj, 0.2}]|
-        |1         |0      |1_100_T_A        |1   |1_100_T_A|1        |1     |true             |[{nfe_adj, 0.1}, {fin_adj, 0.2}]|
-        |1         |0      |1_100_T_A        |1   |1_100_A_T|-1       |1     |true             |[{nfe_adj, 0.1}, {fin_adj, 0.2}]|
-        +----------+-------+-----------------+----+---------+---------+------+-----------------+--------------------------------+
+        +----------+-----------------+----+---------+---------+------+-----------------+--------------------------------+
+        |chromosome|originalVariantId|type|variantId|direction|strand|isStrandAmbiguous|originalAlleleFrequencies       |
+        +----------+-----------------+----+---------+---------+------+-----------------+--------------------------------+
+        |1         |1_100_A_G        |1   |1_100_A_G|1        |1     |false            |[{nfe_adj, 0.1}, {fin_adj, 0.2}]|
+        |1         |1_100_A_G        |1   |1_100_G_A|-1       |1     |false            |[{nfe_adj, 0.1}, {fin_adj, 0.2}]|
+        |1         |1_100_A_G        |1   |1_100_T_C|1        |-1    |false            |[{nfe_adj, 0.1}, {fin_adj, 0.2}]|
+        |1         |1_100_A_G        |1   |1_100_C_T|-1       |-1    |false            |[{nfe_adj, 0.1}, {fin_adj, 0.2}]|
+        |1         |1_100_T_A        |1   |1_100_T_A|1        |1     |true             |[{nfe_adj, 0.1}, {fin_adj, 0.2}]|
+        |1         |1_100_T_A        |1   |1_100_A_T|-1       |1     |true             |[{nfe_adj, 0.1}, {fin_adj, 0.2}]|
+        +----------+-----------------+----+---------+---------+------+-----------------+--------------------------------+
         <BLANKLINE>
 
     """
@@ -387,23 +382,17 @@ class VariantDirection(Dataset):
         return f.concat_ws("_", chrom, pos, ref, alt)
 
     @classmethod
-    def from_variant_index(
-        cls, variant_index: VariantIndex, window_size: int = DEFAULT_WINDOW_SIZE
-    ) -> VariantDirection:
+    def from_variant_index(cls, variant_index: VariantIndex) -> VariantDirection:
         """Prepare the variant direction DataFrame with DIRECT and FLIPPED entries.
 
         Args:
             variant_index (VariantIndex): Variant index dataset.
-            window_size (int): Window size for partitioning. Defaults to 10_000,000.
 
         Returns:
             VariantDirection: Variant direction dataset.
         """
         lut = variant_index.df.select(
             f.col("chromosome"),
-            f.floor(f.col("position") / window_size)
-            .cast(t.IntegerType())
-            .alias("rangeId"),
             f.col("variantId").alias("originalVariantId"),
             cls.variant_type(f.col("referenceAllele"), f.col("alternateAllele")).alias(
                 "type"
@@ -419,7 +408,6 @@ class VariantDirection(Dataset):
             ).alias("allele"),
         ).select(
             f.col("chromosome"),
-            f.col("rangeId"),
             f.col("originalVariantId"),
             f.col("type"),
             f.col("allele.variantId").alias("variantId"),

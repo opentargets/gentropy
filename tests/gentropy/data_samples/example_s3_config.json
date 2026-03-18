@@ -1,7 +1,0 @@
-{
-  "bucket_name": "my_bucket",
-  "access_key_id": "my_access_key",
-  "secret_access_key": "my_secret_access",
-  "s3_host_url": "https://some_host_url.com",
-  "s3_host_port": 1234
-}

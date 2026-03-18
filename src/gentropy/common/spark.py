@@ -946,33 +946,3 @@ def filter_array_struct(
         .getField(value_column)
         .alias(value_column)
     )
-
-
-def safe_split(c: Column, char: str) -> Column:
-    """Safe split string and trim white characters.
-
-    Args:
-        c (Column): Column to split.
-        char (str): character to use for splitting.
-
-    Returns:
-        Column: Column after splitting.
-
-    Examples:
-        >>> data = [("a,a",), ("a, a",), ("a ,a",)]
-        >>> df = spark.createDataFrame(data, ["A"])
-        >>> df.withColumn("S", safe_split(f.col("A"), ",")).show()
-        +----+------+
-        |   A|     S|
-        +----+------+
-        | a,a|[a, a]|
-        |a, a|[a, a]|
-        |a ,a|[a, a]|
-        +----+------+
-        <BLANKLINE>
-    """
-    if not isinstance(char, str):
-        raise TypeError("`char` must be a string.")
-    char = re.escape(char)
-    pat = rf"{char}?\s+{char}?"
-    return f.split(f.regexp_replace(f.trim(c), pat, char), char)
