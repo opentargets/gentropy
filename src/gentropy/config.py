@@ -50,6 +50,48 @@ class ColocalisationConfig(StepConfig):
 
 
 @dataclass
+class deCODEManifestGenerationConfig(StepConfig):
+    """deCODE data ingestion step configuration."""
+
+    bucket_listing_path: str = MISSING
+    output_path: str = MISSING
+    s3_config_path: str | None = None
+    _target_: str = "gentropy.decode_ingestion.deCODEManifestGenerationStep"
+
+
+@dataclass
+class deCODESummaryStatisticsIngestionConfig(StepConfig):
+    """deCODE summary statistics ingestion step configuration."""
+
+    decode_manifest_path: str = MISSING
+    raw_summary_statistics_path: str = MISSING
+    _target_: str = "gentropy.decode_ingestion.deCODESummaryStatisticsIngestionStep"
+
+
+@dataclass
+class deCODESummaryStatisticsHarmonisationConfig(StepConfig):
+    """deCODE summary statistics harmonisation step configuration."""
+
+    raw_summary_statistics_path: str = MISSING
+    manifest_path: str = MISSING
+    aptamer_metadata_path: str = MISSING
+    variant_direction_path: str = MISSING
+    molecular_complex_path: str = MISSING
+    # outputs
+    harmonised_summary_statistics_path: str = MISSING
+    protein_qtl_study_index_path: str = MISSING
+    qc_summary_statistics_path: str = MISSING
+    # config
+    min_mac_threshold: int = 50
+    min_sample_size_threshold: int = 30_000
+    flipping_window_size: int = (
+        10_000_000  # must match variant_direction.DEFAULT_WINDOW_SIZE
+    )
+    pval_threshold: float = 5e-8
+    _target_: str = "gentropy.decode_ingestion.deCODESummaryStatisticsHarmonisationStep"
+
+
+@dataclass
 class BiosampleIndexConfig(StepConfig):
     """Biosample index step configuration."""
 
@@ -706,6 +748,27 @@ class StudyLocusValidationStepConfig(StepConfig):
 
 
 @dataclass
+class pQTLStudyIndexTransformationConfig(StepConfig):
+    """pQTL study index transformation step configuration."""
+
+    protein_study_index_path: str = MISSING
+    study_index_path: str = MISSING
+    target_index_path: str = MISSING
+    _target_: str = "gentropy.pqtl_study.pQTLStudyIndexTransformationStep"
+
+
+@dataclass
+class MolecularComplexIngestionConfig(StepConfig):
+    """Molecular complex ingestion step configuration."""
+
+    predicted_complex_tab_path: str = MISSING
+    experimental_complex_tab_path: str = MISSING
+    output_path: str = MISSING
+
+    _target_: str = "gentropy.molecular_complex.MolecularComplexIngestionStep"
+
+
+@dataclass
 class Config:
     """Application configuration."""
 
@@ -803,3 +866,28 @@ def register_config() -> None:
     cs.store(group="step", name="credible_set_qc", node=CredibleSetQCStepConfig)
     cs.store(group="step", name="foldx_integration", node=FoldXVariantAnnotationConfig)
     cs.store(group="step", name="interval_e2g", node=IntervalE2GStepConfig)
+    cs.store(
+        group="step",
+        name="pQTL_study_index_transformation",
+        node=pQTLStudyIndexTransformationConfig,
+    )
+    cs.store(
+        group="step",
+        name="molecular_complex_ingestion",
+        node=MolecularComplexIngestionConfig,
+    )
+    cs.store(
+        group="step",
+        name="decode_manifest_generation",
+        node=deCODEManifestGenerationConfig,
+    )
+    cs.store(
+        group="step",
+        name="decode_summary_statistics_ingestion",
+        node=deCODESummaryStatisticsIngestionConfig,
+    )
+    cs.store(
+        group="step",
+        name="decode_summary_statistics_harmonisation",
+        node=deCODESummaryStatisticsHarmonisationConfig,
+    )

@@ -1,5 +1,5 @@
 ---
-title: gwas_catalog_study_inclusion
+title: GWAS Catalog Study Inclusion
 ---
 
 ::: gentropy.gwas_catalog_study_index.GWASCatalogStudyIndexGenerationStep

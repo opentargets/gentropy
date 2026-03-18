@@ -1,5 +1,5 @@
 ---
-title: pics
+title: PICS
 ---
 
 ::: gentropy.pics.PICSStep
