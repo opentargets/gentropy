@@ -17,3 +17,4 @@ hail*.log
 .python-version
 .idea
 .venv/
+notebooks

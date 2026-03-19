@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 import pyspark.sql.functions as f
+from pyspark.sql import DataFrame as SparkDataFrame
 from pyspark.sql import Window
 
 from gentropy.common.spark import convert_from_wide_to_long
@@ -753,11 +754,14 @@ def common_trans_pqtl_colocalisation_feature_logic(
     colocalisation: Colocalisation,
     study_index: StudyIndex,
     study_locus: StudyLocus,
+    interactions: DataFrame,
 ) -> DataFrame:
     """Wrapper to call the logic that creates trans-pQTL colocalisation features.
 
-    This function is specifically for trans-pQTL colocalizations and filters for significant
-    colocalizations (H4 > 0.8 or CLPP > 0.01).
+    This function is specifically for trans-pQTL colocalizations and keeps genes in the
+    locus that:
+    - have significant local pQTL colocalisation (H4 > 0.8 or CLPP >= 0.01)
+    - interact with a gene from a significant trans-pQTL colocalisation (H4 > 0.8)
 
     Args:
         study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
@@ -767,6 +771,7 @@ def common_trans_pqtl_colocalisation_feature_logic(
         colocalisation (Colocalisation): Dataset with the colocalisation results
         study_index (StudyIndex): Study index to fetch study type and gene
         study_locus (StudyLocus): Study locus to traverse between colocalisation and study index
+        interactions (DataFrame): Gene-gene interaction dataset with at least targetA and targetB columns
 
     Returns:
         DataFrame: Feature annotation in long format with the columns: studyLocusId, geneId, featureName, featureValue
@@ -777,71 +782,107 @@ def common_trans_pqtl_colocalisation_feature_logic(
         else ["studyLocusId"]
     )
 
-    # Get trans-pQTL study loci
-    trans_pqtl_study_loci = study_locus.filter(
-        (f.col("isTransQtl").isNotNull()) & (f.col("isTransQtl"))
-    ).df.select("studyLocusId")
+    trans_h4_threshold = 0.8
+    local_clpp_threshold = 0.01
+    interaction_score_threshold = 0.8
+    interaction_source_database = "string"
+    qtl_types = ["pqtl", "scpqtl"]
+    coloc_methods = [colocalisation_method.lower(), "coloc_pip_ecaviar"]
 
-    # Filter colocalisation for trans-pQTL results
-    filtered_colocalisation = colocalisation.df.join(
-        trans_pqtl_study_loci,
-        colocalisation.df.rightStudyLocusId == trans_pqtl_study_loci.studyLocusId,
-        "inner",
-    ).drop("studyLocusId")  # drop the trans_pqtl_study_loci.studyLocusId
-
-    # Get gene information for trans-pQTL studies
-    trans_pqtl_gene_mapping = (
-        study_locus.df.select("studyLocusId", "studyId")
-        .withColumnRenamed("studyLocusId", "rightStudyLocusId")
-        .withColumnRenamed("studyId", "rightStudyId")
-        .join(
-            f.broadcast(
-                study_index.df.select(
-                    "studyId", f.col("geneId").alias("rightGeneId"), "studyType"
-                )
-            ),
-            f.col("rightStudyId") == f.col("studyId"),
+    # Significant local pQTL colocalisations (cis) define genes within the locus.
+    significant_local_pqtl_genes = (
+        colocalisation.drop_trans_effects(study_locus)
+        .extract_maximum_coloc_probability_per_region_and_gene(
+            study_locus,
+            study_index,
+            filter_by_colocalisation_method=colocalisation_method,
+            filter_by_qtls=qtl_types,
         )
-        .select("rightStudyLocusId", "rightGeneId")
-    )
-
-    # Join with gene information
-    colocalisation_w_metadata = filtered_colocalisation.join(
-        trans_pqtl_gene_mapping, "rightStudyLocusId"
-    ).filter(f.col("rightGeneId").isNotNull())
-
-    # Get maximum colocalisation score per (left study locus, right gene)
-    max_coloc_per_gene = (
-        colocalisation_w_metadata.withColumn(
-            "row_number",
-            f.row_number().over(
-                Window.partitionBy("leftStudyLocusId", "rightGeneId").orderBy(
-                    f.col(colocalisation_metric).desc()
-                )
-            ),
+        .filter(
+            (f.col("h4") > f.lit(trans_h4_threshold))
+            | (f.col("clpp") >= f.lit(local_clpp_threshold))
         )
-        .filter(f.col("row_number") == 1)
-        .drop("row_number")
-        .selectExpr(
-            "leftStudyLocusId as studyLocusId",
-            "rightGeneId as geneId",
-            f"{colocalisation_metric} as {feature_name}",
-        )
+        .selectExpr("studyLocusId", "geneId as localGeneId")
         .distinct()
     )
 
-    # Join back to the study_loci_to_annotate
-    return (
-        study_loci_to_annotate.df.join(
-            max_coloc_per_gene,
-            on=joining_cols,
-            how="left",
+    trans_pqtl_study_loci = study_locus.filter(
+        (f.col("isTransQtl").isNotNull()) & f.col("isTransQtl")
+    ).df.selectExpr("studyLocusId as rightStudyLocusId")
+
+    trans_study_to_gene = (
+        study_locus.df.selectExpr(
+            "studyLocusId as rightStudyLocusId", "studyId as rightStudyId"
+        )
+        .join(
+            f.broadcast(
+                study_index.df.select(
+                    "studyId",
+                    f.col("geneId").alias("rightGeneId"),
+                )
+            ),
+            f.col("rightStudyId") == f.col("studyId"),
+            "inner",
+        )
+        .select("rightStudyLocusId", "rightGeneId")
+        .filter(f.col("rightGeneId").isNotNull())
+        .distinct()
+    )
+
+    significant_trans_pqtl_coloc = (
+        colocalisation.df.join(trans_pqtl_study_loci, "rightStudyLocusId", "inner")
+        .join(trans_study_to_gene, "rightStudyLocusId", "inner")
+        .filter(f.lower("colocalisationMethod").isin(coloc_methods))
+        .filter(f.lower("rightStudyType").isin(qtl_types))
+        .filter(f.col("h4") > f.lit(trans_h4_threshold))
+        .groupBy("leftStudyLocusId", "rightGeneId")
+        .agg(f.max(colocalisation_metric).alias("transColocScore"))
+    )
+
+    filtered_interactions = interactions
+    if "sourceDatabase" in interactions.columns:
+        filtered_interactions = filtered_interactions.filter(
+            f.col("sourceDatabase") == interaction_source_database
+        )
+    if "scoring" in interactions.columns:
+        filtered_interactions = filtered_interactions.filter(
+            f.col("scoring") >= interaction_score_threshold
+        )
+
+    filtered_interactions = filtered_interactions.selectExpr(
+        "targetA as localGeneId",
+        "targetB as rightGeneId",
+    ).distinct()
+
+    trans_interaction_feature = (
+        significant_local_pqtl_genes.alias("local")
+        .join(
+            filtered_interactions.alias("inter"),
+            f.col("local.localGeneId") == f.col("inter.localGeneId"),
+            "inner",
+        )
+        .join(
+            significant_trans_pqtl_coloc.alias("trans"),
+            (f.col("local.studyLocusId") == f.col("trans.leftStudyLocusId"))
+            & (f.col("inter.rightGeneId") == f.col("trans.rightGeneId")),
+            "inner",
         )
         .selectExpr(
-            "studyLocusId",
-            "geneId",
-            f"coalesce({feature_name}, 0.0) as {feature_name}",
+            "local.studyLocusId as studyLocusId",
+            "local.localGeneId as geneId",
+            "trans.transColocScore as transColocScore",
         )
+        .groupBy("studyLocusId", "geneId")
+        .agg(f.max("transColocScore").alias(feature_name))
+    )
+
+    return (
+        study_loci_to_annotate.df.join(
+            trans_interaction_feature,
+            on=joining_cols,
+            how="inner",
+        )
+        .selectExpr("studyLocusId", "geneId", feature_name)
         .distinct()
     )
 
@@ -849,7 +890,7 @@ def common_trans_pqtl_colocalisation_feature_logic(
 class TransPQtlColocH4MaximumFeature(L2GFeature):
     """Max H4 for each (study, locus, gene) aggregating over all trans-pQTLs."""
 
-    feature_dependency_type = [Colocalisation, StudyIndex, StudyLocus]
+    feature_dependency_type = [Colocalisation, StudyIndex, StudyLocus, SparkDataFrame]
     feature_name = "transPQtlColocH4Maximum"
 
     @classmethod
@@ -867,6 +908,11 @@ class TransPQtlColocH4MaximumFeature(L2GFeature):
         Returns:
             TransPQtlColocH4MaximumFeature: Feature dataset
         """
+        if "interactions" not in feature_dependency:
+            raise ValueError(
+                "Interactions dataframe is required for TransPQtlColocH4MaximumFeature."
+            )
+
         colocalisation_method = "Coloc"
         colocalisation_metric = "h4"
 
