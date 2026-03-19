@@ -81,18 +81,15 @@ features = feature_factory.generate_features(
 All tests are located in `tests/gentropy/dataset/test_l2g_feature.py` under `TestTransPQtlColocH4Feature` class:
 
 1. **`test_trans_pqtl_coloc_h4_maximum`**
-
    - Verifies feature computation with trans-pQTL data
    - Tests correct column structure
    - Tests feature name in long format DataFrame
 
 2. **`test_trans_pqtl_coloc_with_no_trans_qtls`**
-
    - Verifies genes without trans-pQTL colocalizations receive score 0
    - Tests handling of cis-only study loci
 
 3. **`test_trans_pqtl_feature_factory_inclusion`**
-
    - Tests feature factory registration
    - Verifies correct class mapping
    - Validates feature discoverability
@@ -150,13 +147,11 @@ trained_model = trainer.fit()
 ## Files Modified
 
 1. **src/gentropy/dataset/l2g_features/colocalisation.py**
-
    - Added `common_trans_pqtl_colocalisation_feature_logic()` function
    - Added `TransPQtlColocH4MaximumFeature` class
    - Total: ~140 lines added
 
 2. **src/gentropy/method/l2g/feature_factory.py**
-
    - Updated import to include `TransPQtlColocH4MaximumFeature`
    - Added feature to `feature_mapper` dictionary
    - Total: 2 lines added
