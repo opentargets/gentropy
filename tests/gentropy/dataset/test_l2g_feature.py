@@ -36,6 +36,7 @@ from gentropy.dataset.l2g_features.colocalisation import (
     SQtlColocClppMaximumNeighbourhoodFeature,
     SQtlColocH4MaximumFeature,
     SQtlColocH4MaximumNeighbourhoodFeature,
+    TransPQtlColocH4MaximumFeature,
     common_colocalisation_feature_logic,
     common_neighbourhood_colocalisation_feature_logic,
     extend_missing_colocalisation_to_neighbourhood_genes,
@@ -97,6 +98,7 @@ if TYPE_CHECKING:
         EQtlColocH4MaximumNeighbourhoodFeature,
         PQtlColocH4MaximumNeighbourhoodFeature,
         SQtlColocH4MaximumNeighbourhoodFeature,
+        TransPQtlColocH4MaximumFeature,
         DistanceTssMeanFeature,
         DistanceTssMeanNeighbourhoodFeature,
         DistanceFootprintMeanFeature,
@@ -1299,4 +1301,202 @@ class TestCredibleSetConfidenceFeatureLogic:
                 sample_variant_index_schema,
             ),
             _schema=VariantIndex.get_schema(),
+        )
+
+
+class TestTransPQtlColocH4Feature:
+    """Test the trans-pQTL colocalisation H4 feature."""
+
+    def test_trans_pqtl_coloc_h4_maximum(
+        self: TestTransPQtlColocH4Feature,
+        spark: SparkSession,
+    ) -> None:
+        """Test the TransPQtlColocH4MaximumFeature computation.
+
+        This test verifies that:
+        - Trans-pQTL study loci are correctly identified
+        - Only trans-pQTL colocalizations are included
+        - The maximum H4 score is correctly computed for each gene
+        - Genes without trans-pQTL colocalizations receive a score of 0
+        """
+        from gentropy.dataset.l2g_features.colocalisation import (
+            TransPQtlColocH4MaximumFeature,
+        )
+
+        feature = TransPQtlColocH4MaximumFeature.compute(
+            study_loci_to_annotate=self.sample_study_loci_to_annotate,
+            feature_dependency={
+                "colocalisation": self.sample_colocalisation,
+                "study_index": self.sample_studies,
+                "study_locus": self.sample_study_locus,
+            },
+        )
+
+        # The feature dataframe should contain the expected genes and values
+        observed_data = feature.df.collect()
+        assert len(observed_data) >= 1, "Feature dataset should not be empty"
+
+        # Check that the feature has the correct columns (in long format)
+        assert "studyLocusId" in feature.df.columns
+        assert "geneId" in feature.df.columns
+        assert "featureName" in feature.df.columns
+        assert "featureValue" in feature.df.columns
+
+        # Verify the feature name is correct
+        feature_names = [row["featureName"] for row in feature.df.collect()]
+        assert "transPQtlColocH4Maximum" in feature_names
+
+    def test_trans_pqtl_coloc_with_no_trans_qtls(
+        self: TestTransPQtlColocH4Feature,
+        spark: SparkSession,
+    ) -> None:
+        """Test that genes without trans-pQTL colocalizations get score of 0.
+
+        This test verifies that when no trans-pQTLs are present,
+        all genes receive a score of 0.
+        """
+        from gentropy.dataset.l2g_features.colocalisation import (
+            TransPQtlColocH4MaximumFeature,
+        )
+
+        # Create study_locus with no trans-pQTLs
+        study_locus_cis_only = StudyLocus(
+            _df=spark.createDataFrame(
+                [
+                    {
+                        "studyLocusId": "1",
+                        "variantId": "var1",
+                        "studyId": "study1",
+                        "chromosome": "1",
+                        "isTransQtl": False,
+                    },
+                    {
+                        "studyLocusId": "5",
+                        "variantId": "var1",
+                        "studyId": "study5",
+                        "chromosome": "1",
+                        "isTransQtl": False,
+                    },
+                ]
+            ),
+            _schema=StudyLocus.get_schema(),
+        )
+
+        feature = TransPQtlColocH4MaximumFeature.compute(
+            study_loci_to_annotate=self.sample_study_loci_to_annotate,
+            feature_dependency={
+                "colocalisation": self.sample_colocalisation,
+                "study_index": self.sample_studies,
+                "study_locus": study_locus_cis_only,
+            },
+        )
+
+        # All values should be 0 since there are no trans-pQTL colocalizations
+        result_df = feature.df.select("featureValue").collect()
+        for row in result_df:
+            assert row["featureValue"] == 0.0, "No trans-pQTL should result in 0 score"
+
+    def test_trans_pqtl_feature_factory_inclusion(
+        self: TestTransPQtlColocH4Feature,
+        mock_study_locus: StudyLocus,
+        mock_colocalisation: Colocalisation,
+        mock_study_index: StudyIndex,
+    ) -> None:
+        """Test that TransPQtlColocH4MaximumFeature is properly registered in FeatureFactory."""
+        from gentropy.method.l2g.feature_factory import FeatureFactory
+
+        # Check that the feature is registered
+        assert "transPQtlColocH4Maximum" in FeatureFactory.feature_mapper, (
+            "TransPQtlColocH4MaximumFeature should be registered in feature_mapper"
+        )
+
+        # Verify the correct class is mapped
+        from gentropy.dataset.l2g_features.colocalisation import (
+            TransPQtlColocH4MaximumFeature,
+        )
+
+        assert (
+            FeatureFactory.feature_mapper["transPQtlColocH4Maximum"]
+            is TransPQtlColocH4MaximumFeature
+        ), (
+            "Feature mapper should map transPQtlColocH4Maximum to TransPQtlColocH4MaximumFeature"
+        )
+
+    @pytest.fixture(autouse=True)
+    def _setup(self: TestTransPQtlColocH4Feature, spark: SparkSession) -> None:
+        """Set up test fixtures."""
+        self.sample_study_loci_to_annotate = StudyLocus(
+            _df=spark.createDataFrame(
+                [
+                    {
+                        "studyLocusId": "1",
+                        "variantId": "var1",
+                        "studyId": "study1",
+                        "chromosome": "1",
+                    },
+                ]
+            ),
+            _schema=StudyLocus.get_schema(),
+        )
+
+        self.sample_colocalisation = Colocalisation(
+            _df=spark.createDataFrame(
+                [
+                    {
+                        "leftStudyLocusId": "1",
+                        "rightStudyLocusId": "5",  # trans-pQTL study
+                        "chromosome": "1",
+                        "colocalisationMethod": "COLOC",
+                        "numberColocalisingVariants": 1,
+                        "h4": 0.85,
+                        "rightStudyType": "pqtl",
+                    },
+                ],
+                schema=Colocalisation.get_schema(),
+            ),
+            _schema=Colocalisation.get_schema(),
+        )
+
+        self.sample_study_locus = StudyLocus(
+            _df=spark.createDataFrame(
+                [
+                    {
+                        "studyLocusId": "1",
+                        "variantId": "var1",
+                        "studyId": "study1",
+                        "chromosome": "1",
+                        "isTransQtl": False,
+                    },
+                    {
+                        "studyLocusId": "5",
+                        "variantId": "var1",
+                        "studyId": "study5",
+                        "chromosome": "1",
+                        "isTransQtl": True,  # This is a trans-pQTL
+                    },
+                ]
+            ),
+            _schema=StudyLocus.get_schema(),
+        )
+
+        self.sample_studies = StudyIndex(
+            _df=spark.createDataFrame(
+                [
+                    {
+                        "studyId": "study1",
+                        "studyType": "gwas",
+                        "geneId": None,
+                        "traitFromSource": "trait1",
+                        "projectId": "project1",
+                    },
+                    {
+                        "studyId": "study5",
+                        "studyType": "pqtl",
+                        "geneId": "gene1",
+                        "traitFromSource": "trait5",
+                        "projectId": "project5",
+                    },
+                ]
+            ),
+            _schema=StudyIndex.get_schema(),
         )

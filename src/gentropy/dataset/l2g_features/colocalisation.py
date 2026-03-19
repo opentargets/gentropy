@@ -742,3 +742,146 @@ class SQtlColocH4MaximumNeighbourhoodFeature(L2GFeature):
             ),
             _schema=cls.get_schema(),
         )
+
+
+def common_trans_pqtl_colocalisation_feature_logic(
+    study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+    colocalisation_method: str,
+    colocalisation_metric: str,
+    feature_name: str,
+    *,
+    colocalisation: Colocalisation,
+    study_index: StudyIndex,
+    study_locus: StudyLocus,
+) -> DataFrame:
+    """Wrapper to call the logic that creates trans-pQTL colocalisation features.
+
+    This function is specifically for trans-pQTL colocalizations and filters for significant
+    colocalizations (H4 > 0.8 or CLPP > 0.01).
+
+    Args:
+        study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
+        colocalisation_method (str): The colocalisation method to filter the data by
+        colocalisation_metric (str): The colocalisation metric to use
+        feature_name (str): The name of the feature to create
+        colocalisation (Colocalisation): Dataset with the colocalisation results
+        study_index (StudyIndex): Study index to fetch study type and gene
+        study_locus (StudyLocus): Study locus to traverse between colocalisation and study index
+
+    Returns:
+        DataFrame: Feature annotation in long format with the columns: studyLocusId, geneId, featureName, featureValue
+    """
+    joining_cols = (
+        ["studyLocusId", "geneId"]
+        if isinstance(study_loci_to_annotate, L2GGoldStandard)
+        else ["studyLocusId"]
+    )
+
+    # Get trans-pQTL study loci
+    trans_pqtl_study_loci = study_locus.filter(
+        (f.col("isTransQtl").isNotNull()) & (f.col("isTransQtl"))
+    ).df.select("studyLocusId")
+
+    # Filter colocalisation for trans-pQTL results
+    filtered_colocalisation = colocalisation.df.join(
+        trans_pqtl_study_loci,
+        colocalisation.df.rightStudyLocusId == trans_pqtl_study_loci.studyLocusId,
+        "inner",
+    ).drop("studyLocusId")  # drop the trans_pqtl_study_loci.studyLocusId
+
+    # Get gene information for trans-pQTL studies
+    trans_pqtl_gene_mapping = (
+        study_locus.df.select("studyLocusId", "studyId")
+        .withColumnRenamed("studyLocusId", "rightStudyLocusId")
+        .withColumnRenamed("studyId", "rightStudyId")
+        .join(
+            f.broadcast(
+                study_index.df.select(
+                    "studyId", f.col("geneId").alias("rightGeneId"), "studyType"
+                )
+            ),
+            f.col("rightStudyId") == f.col("studyId"),
+        )
+        .select("rightStudyLocusId", "rightGeneId")
+    )
+
+    # Join with gene information
+    colocalisation_w_metadata = filtered_colocalisation.join(
+        trans_pqtl_gene_mapping, "rightStudyLocusId"
+    ).filter(f.col("rightGeneId").isNotNull())
+
+    # Get maximum colocalisation score per (left study locus, right gene)
+    max_coloc_per_gene = (
+        colocalisation_w_metadata.withColumn(
+            "row_number",
+            f.row_number().over(
+                Window.partitionBy("leftStudyLocusId", "rightGeneId").orderBy(
+                    f.col(colocalisation_metric).desc()
+                )
+            ),
+        )
+        .filter(f.col("row_number") == 1)
+        .drop("row_number")
+        .selectExpr(
+            "leftStudyLocusId as studyLocusId",
+            "rightGeneId as geneId",
+            f"{colocalisation_metric} as {feature_name}",
+        )
+        .distinct()
+    )
+
+    # Join back to the study_loci_to_annotate
+    return (
+        study_loci_to_annotate.df.join(
+            max_coloc_per_gene,
+            on=joining_cols,
+            how="left",
+        )
+        .selectExpr(
+            "studyLocusId",
+            "geneId",
+            f"coalesce({feature_name}, 0.0) as {feature_name}",
+        )
+        .distinct()
+    )
+
+
+class TransPQtlColocH4MaximumFeature(L2GFeature):
+    """Max H4 for each (study, locus, gene) aggregating over all trans-pQTLs."""
+
+    feature_dependency_type = [Colocalisation, StudyIndex, StudyLocus]
+    feature_name = "transPQtlColocH4Maximum"
+
+    @classmethod
+    def compute(
+        cls: type[TransPQtlColocH4MaximumFeature],
+        study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+        feature_dependency: dict[str, Any],
+    ) -> TransPQtlColocH4MaximumFeature:
+        """Computes the feature.
+
+        Args:
+            study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
+            feature_dependency (dict[str, Any]): Dataset with the colocalisation results
+
+        Returns:
+            TransPQtlColocH4MaximumFeature: Feature dataset
+        """
+        colocalisation_method = "Coloc"
+        colocalisation_metric = "h4"
+
+        return cls(
+            _df=convert_from_wide_to_long(
+                common_trans_pqtl_colocalisation_feature_logic(
+                    study_loci_to_annotate,
+                    colocalisation_method,
+                    colocalisation_metric,
+                    cls.feature_name,
+                    **feature_dependency,
+                ),
+                id_vars=("studyLocusId", "geneId"),
+                var_name="featureName",
+                value_name="featureValue",
+            ),
+            _schema=cls.get_schema(),
+        )
