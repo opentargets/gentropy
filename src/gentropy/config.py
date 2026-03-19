@@ -361,6 +361,7 @@ class LocusToGeneFeatureMatrixConfig(StepConfig):
     study_index_path: str | None = None
     target_index_path: str | None = None
     intervals_path: str | None = None
+    gene_interactions_path: str | None = None
     feature_matrix_path: str = MISSING
     features_list: list[str] = field(
         default_factory=lambda: [
