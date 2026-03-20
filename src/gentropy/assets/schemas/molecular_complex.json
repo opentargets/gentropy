@@ -1,0 +1,104 @@
+{
+  "fields": [
+    { "metadata": {}, "name": "id", "nullable": true, "type": "string" },
+    {
+      "metadata": {},
+      "name": "description",
+      "nullable": true,
+      "type": "string"
+    },
+    {
+      "metadata": {},
+      "name": "properties",
+      "nullable": true,
+      "type": "string"
+    },
+    { "metadata": {}, "name": "assembly", "nullable": true, "type": "string" },
+    {
+      "metadata": {},
+      "name": "components",
+      "nullable": true,
+      "type": {
+        "containsNull": false,
+        "elementType": {
+          "fields": [
+            {
+              "metadata": {},
+              "name": "id",
+              "nullable": false,
+              "type": "string"
+            },
+            {
+              "metadata": {},
+              "name": "stoichiometry",
+              "nullable": false,
+              "type": "string"
+            },
+            {
+              "metadata": {},
+              "name": "source",
+              "nullable": false,
+              "type": "string"
+            }
+          ],
+          "type": "struct"
+        },
+        "type": "array"
+      }
+    },
+    {
+      "metadata": {},
+      "name": "evidenceCodes",
+      "nullable": true,
+      "type": {
+        "containsNull": false,
+        "elementType": "string",
+        "type": "array"
+      }
+    },
+    {
+      "metadata": {},
+      "name": "crossReferences",
+      "nullable": true,
+      "type": {
+        "containsNull": false,
+        "elementType": {
+          "fields": [
+            {
+              "metadata": {},
+              "name": "source",
+              "nullable": false,
+              "type": "string"
+            },
+            {
+              "metadata": {},
+              "name": "id",
+              "nullable": false,
+              "type": "string"
+            }
+          ],
+          "type": "struct"
+        },
+        "type": "array"
+      }
+    },
+    {
+      "metadata": {},
+      "name": "source",
+      "nullable": false,
+      "type": {
+        "fields": [
+          { "metadata": {}, "name": "id", "nullable": true, "type": "string" },
+          {
+            "metadata": {},
+            "name": "source",
+            "nullable": true,
+            "type": "string"
+          }
+        ],
+        "type": "struct"
+      }
+    }
+  ],
+  "type": "struct"
+}
