@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 from pyspark.sql import DataFrame
 from pyspark.sql import functions as F
+from pyspark.sql.types import ArrayType, DoubleType, StringType, StructField, StructType
 
 from gentropy.common.session import Session
 from gentropy.method.ldsc_h2 import run_ldsc_h2_from_arrays
@@ -289,9 +290,23 @@ class HeritabilityEstimateStep:
             "mean_chisq": [result["mean_chisq"] if result and "mean_chisq" in result else None],
             "lambda_gc": [result["lambda_gc"] if result and "lambda_gc" in result else None],
         }
-
+        schema = StructType([
+            StructField("studyId", StringType(), True),
+            StructField("runStatus", StringType(), True),
+            StructField("skipReasons", ArrayType(StringType()), True),
+            StructField("analysisFlags", ArrayType(StringType()), True),
+            StructField("ld_ancestry", StringType(), True),
+            StructField("M_ldsc", DoubleType(), True),
+            StructField("n_snps_used", DoubleType(), True),
+            StructField("h2", DoubleType(), True),
+            StructField("intercept", DoubleType(), True),
+            StructField("h2_se", DoubleType(), True),
+            StructField("intercept_se", DoubleType(), True),
+            StructField("mean_chisq", DoubleType(), True),
+            StructField("lambda_gc", DoubleType(), True),
+        ])
         out_pdf = pd.DataFrame(out_dict)
-        out_sdf = self.session.spark.createDataFrame(out_pdf)
+        out_sdf = self.session.spark.createDataFrame(out_pdf, schema=schema)
         out_sdf.write.mode("overwrite").parquet(heritability_output_path)
 
     def _validate_study(
