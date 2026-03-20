@@ -9,7 +9,14 @@ import numpy as np
 import pandas as pd
 from pyspark.sql import DataFrame
 from pyspark.sql import functions as F
-from pyspark.sql.types import ArrayType, DoubleType, StringType, StructField, StructType
+from pyspark.sql.types import (
+    ArrayType,
+    DoubleType,
+    IntegerType,
+    StringType,
+    StructField,
+    StructType,
+)
 
 from gentropy.common.session import Session
 from gentropy.method.ldsc_h2 import run_ldsc_h2_from_arrays
@@ -32,7 +39,7 @@ class HeritabilityEstimateStep:
         max_rows_for_collection: int = 1_500_000,
         min_samples: int = 10_000,
     ) -> None:
-        """Run LDSC heritability estimation as a pipeline step.
+        """Initialise the LDSC heritability estimation step.
 
         Args:
             session (Session): Gentropy session object.
@@ -48,56 +55,36 @@ class HeritabilityEstimateStep:
             min_samples (int): Minimum allowed sample size for running LDSC.
         """
         self.session = session
+        self.summary_statistics_input_path = summary_statistics_input_path
+        self.study_index_input_path = study_index_input_path
+        self.ldscore_base_path = ldscore_base_path
+        self.heritability_output_path = heritability_output_path
+        self.ldscore_template = ldscore_template
+        self.twostep = twostep
+        self.n_blocks = n_blocks
+        self.intercept = intercept
+        self.max_rows_for_collection = max_rows_for_collection
+        self.min_samples = min_samples
         self.results: dict[str, Any] | None = None
 
-        spark = session.spark
+        self._run()
 
-        beta_col = "beta"
-        se_col = "standardError"
-        n_col = "sampleSize"
-        chrom_col = "chromosome"
-        pos_col = "position"
-        study_col = "studyId"
+    def _run(self) -> None:
+        """Execute the LDSC heritability estimation pipeline."""
+        sumstats_df = self._read_sumstats()
+        study_id = self._extract_single_study_id(sumstats_df)
 
-        sumstats_df = (
-            spark.read.parquet(summary_statistics_input_path)
-            .select(
-                study_col,
-                "variantId",
-                chrom_col,
-                pos_col,
-                beta_col,
-                se_col,
-                n_col,
-                "effectAlleleFrequencyFromSource",
-            )
-        )
-
-        study_ids = [r[study_col] for r in sumstats_df.select(study_col).distinct().collect()]
-        if len(study_ids) != 1:
-            raise ValueError(
-                f"Expected one study in summary statistics, got {len(study_ids)}: {study_ids}"
-            )
-
-        study_id = study_ids[0]
-
-        study_index_df = spark.read.parquet(study_index_input_path).select(
-            "studyId",
-            "nSamples",
-            "ldPopulationStructure",
-            "analysisFlags",
-        )
-
+        study_index_df = self._read_study_index()
         validation = self._validate_study(
             study_index_df=study_index_df,
             study_id=study_id,
-            min_samples=min_samples,
+            min_samples=self.min_samples,
         )
 
         if validation["run_status"] == "skipped":
             self._write_result_row(
                 study_id=study_id,
-                heritability_output_path=heritability_output_path,
+                heritability_output_path=self.heritability_output_path,
                 run_status="skipped",
                 skip_reasons=validation["skip_reasons"],
                 analysis_flags=validation["analysis_flags"],
@@ -109,13 +96,169 @@ class HeritabilityEstimateStep:
             return
 
         ancestry = validation["ancestry"]
-        ldscore_input_path = (
-            f"{ldscore_base_path.rstrip('/')}/{ldscore_template.format(ancestry=ancestry)}"
+        ldscore_input_path = self._build_ldscore_input_path(ancestry)
+
+        prepared_sumstats = self._prepare_sumstats(
+            sumstats_df=sumstats_df,
+            study_index_df=study_index_df,
         )
+        ld_df = self._read_and_prepare_ld_scores(ldscore_input_path)
+
+        dedup_df, m_ldsc = self._merge_with_ld_scores(
+            prepared_sumstats=prepared_sumstats,
+            ld_df=ld_df,
+        )
+
+        n_rows = dedup_df.count()
+
+        if n_rows == 0:
+            self._write_result_row(
+                study_id=study_id,
+                heritability_output_path=self.heritability_output_path,
+                run_status="skipped",
+                skip_reasons=["No overlapping SNPs between summary statistics and LD scores"],
+                analysis_flags=validation["analysis_flags"],
+                ld_ancestry=ancestry,
+                result=None,
+                m_ldsc=m_ldsc,
+                n_snps_used=0,
+            )
+            return
+
+        if n_rows > self.max_rows_for_collection:
+            self._write_result_row(
+                study_id=study_id,
+                heritability_output_path=self.heritability_output_path,
+                run_status="skipped",
+                skip_reasons=[
+                    (
+                        "Too many joined SNPs for collection: "
+                        f"{n_rows} > {self.max_rows_for_collection}"
+                    )
+                ],
+                analysis_flags=validation["analysis_flags"],
+                ld_ancestry=ancestry,
+                result=None,
+                m_ldsc=m_ldsc,
+                n_snps_used=n_rows,
+            )
+            return
+
+        beta, se, n_array, ld = self._collect_ldsc_arrays(
+            dedup_df=dedup_df,
+            study_id=study_id,
+        )
+        result = self._run_ldsc(
+            beta=beta,
+            se=se,
+            n_array=n_array,
+            ld=ld,
+            m_ldsc=m_ldsc,
+        )
+
+        self.results = result
+
+        self._write_result_row(
+            study_id=study_id,
+            heritability_output_path=self.heritability_output_path,
+            run_status="success",
+            skip_reasons=[],
+            analysis_flags=validation["analysis_flags"],
+            ld_ancestry=ancestry,
+            result=result,
+            m_ldsc=m_ldsc,
+            n_snps_used=len(beta),
+        )
+
+    def _read_sumstats(self) -> DataFrame:
+        """Read the input summary statistics parquet.
+
+        Returns:
+            DataFrame: Summary statistics dataframe with the columns required for LDSC.
+        """
+        return self.session.spark.read.parquet(self.summary_statistics_input_path).select(
+            "studyId",
+            "variantId",
+            "chromosome",
+            "position",
+            "beta",
+            "standardError",
+            "sampleSize",
+            "effectAlleleFrequencyFromSource",
+        )
+
+    def _extract_single_study_id(self, sumstats_df: DataFrame) -> str:
+        """Extract and validate that exactly one studyId is present.
+
+        Args:
+            sumstats_df (DataFrame): Summary statistics dataframe.
+
+        Returns:
+            str: The single study identifier present in the dataframe.
+
+        Raises:
+            ValueError: If the dataframe contains zero or multiple study identifiers.
+        """
+        study_ids = [row["studyId"] for row in sumstats_df.select("studyId").distinct().collect()]
+
+        if len(study_ids) != 1:
+            raise ValueError(
+                f"Expected one study in summary statistics, got {len(study_ids)}: {study_ids}"
+            )
+
+        return study_ids[0]
+
+    def _read_study_index(self) -> DataFrame:
+        """Read the study index parquet.
+
+        Returns:
+            DataFrame: Study index dataframe with metadata required for validation.
+        """
+        return self.session.spark.read.parquet(self.study_index_input_path).select(
+            "studyId",
+            "nSamples",
+            "ldPopulationStructure",
+            "analysisFlags",
+        )
+
+    def _build_ldscore_input_path(self, ancestry: str) -> str:
+        """Build the LD-score file path for a given ancestry.
+
+        Args:
+            ancestry (str): Canonical ancestry label used in the LD-score filename.
+
+        Returns:
+            str: Fully resolved path to the LD-score file.
+        """
+        return (
+            f"{self.ldscore_base_path.rstrip('/')}/"
+            f"{self.ldscore_template.format(ancestry=ancestry)}"
+        )
+
+    def _prepare_sumstats(self, sumstats_df: DataFrame, study_index_df: DataFrame) -> DataFrame:
+        """Prepare summary statistics for LDSC.
+
+        This step fills missing sample sizes from the study index, extracts ref/alt
+        alleles from ``variantId``, filters invalid rows, and deduplicates variants.
+
+        Args:
+            sumstats_df (DataFrame): Raw summary statistics dataframe.
+            study_index_df (DataFrame): Study index dataframe containing fallback sample sizes.
+
+        Returns:
+            DataFrame: Filtered and deduplicated summary statistics dataframe ready for joining
+                with LD scores.
+        """
+        beta_col = "beta"
+        se_col = "standardError"
+        n_col = "sampleSize"
+        chrom_col = "chromosome"
+        pos_col = "position"
+        study_col = "studyId"
 
         n_df = study_index_df.select("studyId", "nSamples")
 
-        sumstats = (
+        return (
             sumstats_df.join(n_df, on=study_col, how="left")
             .withColumn(
                 n_col,
@@ -139,7 +282,23 @@ class HeritabilityEstimateStep:
             .dropDuplicates([study_col, chrom_col, pos_col, "ref", "alt"])
         )
 
-        ld_df = spark.read.csv(ldscore_input_path, header=True, sep="\t")
+    def _read_and_prepare_ld_scores(self, ldscore_input_path: str) -> DataFrame:
+        """Read and standardise LD-score input data.
+
+        Args:
+            ldscore_input_path (str): Path to the LD-score file.
+
+        Returns:
+            DataFrame: Standardised LD-score dataframe containing chromosome, position,
+                ref, alt, and L2 columns.
+
+        Raises:
+            ValueError: If required LD-score columns are missing.
+        """
+        chrom_col = "chromosome"
+        pos_col = "position"
+
+        ld_df = self.session.spark.read.csv(ldscore_input_path, header=True, sep="\t")
 
         if "BP_hg38" in ld_df.columns:
             ld_df = ld_df.withColumnRenamed("BP_hg38", pos_col)
@@ -158,55 +317,68 @@ class HeritabilityEstimateStep:
                 f"LD score file is missing required columns: {sorted(missing_ld_cols)}"
             )
 
-        ld_df = (
+        return (
             ld_df.select(chrom_col, pos_col, "ref", "alt", "L2")
             .withColumn("L2", F.col("L2").cast("double"))
             .filter(F.col("L2").isNotNull())
             .dropDuplicates([chrom_col, pos_col, "ref", "alt"])
         )
 
+    def _merge_with_ld_scores(
+        self,
+        prepared_sumstats: DataFrame,
+        ld_df: DataFrame,
+    ) -> tuple[DataFrame, float]:
+        """Join prepared summary statistics to LD scores.
+
+        Args:
+            prepared_sumstats (DataFrame): Prepared summary statistics dataframe.
+            ld_df (DataFrame): Prepared LD-score dataframe.
+
+        Returns:
+            tuple[DataFrame, float]: A tuple containing:
+                - the joined and deduplicated dataframe
+                - the total number of SNPs in the LD-score universe
+        """
+        chrom_col = "chromosome"
+        pos_col = "position"
+
         m_ldsc = float(ld_df.count())
 
-        merged_ld = sumstats.join(
+        merged_ld = prepared_sumstats.join(
             ld_df,
             on=[chrom_col, pos_col, "ref", "alt"],
             how="inner",
         )
 
-        dedup = merged_ld.dropDuplicates([chrom_col, pos_col, "ref", "alt"])
+        dedup_df = merged_ld.dropDuplicates([chrom_col, pos_col, "ref", "alt"])
 
-        n_rows = dedup.count()
-        if n_rows == 0:
-            self._write_result_row(
-                study_id=study_id,
-                heritability_output_path=heritability_output_path,
-                run_status="skipped",
-                skip_reasons=["No overlapping SNPs between summary statistics and LD scores"],
-                analysis_flags=validation["analysis_flags"],
-                ld_ancestry=ancestry,
-                result=None,
-                m_ldsc=m_ldsc,
-                n_snps_used=0,
-            )
-            return
+        return dedup_df, m_ldsc
 
-        if n_rows > max_rows_for_collection:
-            self._write_result_row(
-                study_id=study_id,
-                heritability_output_path=heritability_output_path,
-                run_status="skipped",
-                skip_reasons=[
-                    f"Too many joined SNPs for collection: {n_rows} > {max_rows_for_collection}"
-                ],
-                analysis_flags=validation["analysis_flags"],
-                ld_ancestry=ancestry,
-                result=None,
-                m_ldsc=m_ldsc,
-                n_snps_used=n_rows,
-            )
-            return
+    def _collect_ldsc_arrays(
+        self,
+        dedup_df: DataFrame,
+        study_id: str,
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+        """Collect joined SNP data into numpy arrays for LDSC.
 
-        rows = dedup.select(beta_col, se_col, n_col, "L2", study_col).collect()
+        Args:
+            dedup_df (DataFrame): Joined summary statistics and LD-score dataframe.
+            study_id (str): Study identifier used for validation and error messages.
+
+        Returns:
+            tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]: Arrays for beta,
+                standard error, sample size, and LD score.
+
+        Raises:
+            ValueError: If multiple study identifiers are found or no valid rows remain.
+        """
+        beta_col = "beta"
+        se_col = "standardError"
+        n_col = "sampleSize"
+        study_col = "studyId"
+
+        rows = dedup_df.select(beta_col, se_col, n_col, "L2", study_col).collect()
 
         study_ids_rows = {row[study_col] for row in rows}
         if len(study_ids_rows) != 1:
@@ -214,38 +386,69 @@ class HeritabilityEstimateStep:
                 f"Expected one study in merged data, got {len(study_ids_rows)}: {study_ids_rows}"
             )
 
-        beta = np.array([row[beta_col] for row in rows], dtype=float)
-        se = np.array([row[se_col] for row in rows], dtype=float)
-        n_array = np.array([row[n_col] for row in rows], dtype=float)
-        ld = np.array([row["L2"] for row in rows], dtype=float)
+        beta_list: list[float] = []
+        se_list: list[float] = []
+        n_list: list[float] = []
+        ld_list: list[float] = []
 
+        for row in rows:
+            if (
+                row[beta_col] is None
+                or row[se_col] is None
+                or row[n_col] is None
+                or row["L2"] is None
+            ):
+                continue
+
+            beta_list.append(row[beta_col])
+            se_list.append(row[se_col])
+            n_list.append(row[n_col])
+            ld_list.append(row["L2"])
+
+        if not beta_list:
+            raise ValueError(f"No valid rows after filtering for studyId {study_id}")
+
+        beta = np.array(beta_list, dtype=float)
+        se = np.array(se_list, dtype=float)
+        n_array = np.array(n_list, dtype=float)
+        ld = np.array(ld_list, dtype=float)
+
+        return beta, se, n_array, ld
+
+    def _run_ldsc(
+        self,
+        beta: np.ndarray,
+        se: np.ndarray,
+        n_array: np.ndarray,
+        ld: np.ndarray,
+        m_ldsc: float,
+    ) -> dict[str, Any]:
+        """Run LDSC on prepared arrays.
+
+        Args:
+            beta (np.ndarray): Effect-size estimates.
+            se (np.ndarray): Standard errors corresponding to ``beta``.
+            n_array (np.ndarray): Per-variant sample sizes.
+            ld (np.ndarray): LD scores for the matched variants.
+            m_ldsc (float): Number of SNPs in the LD-score universe.
+
+        Returns:
+            dict[str, Any]: LDSC result dictionary returned by
+                ``run_ldsc_h2_from_arrays``.
+        """
         w_raw = 1.0 / np.maximum(ld, 1.0)
         w_ld = w_raw / np.mean(w_raw)
 
-        res = run_ldsc_h2_from_arrays(
+        return run_ldsc_h2_from_arrays(
             beta=beta,
             se=se,
             N=n_array,
             ld=ld,
             w_ld=w_ld,
             M_ldsc_scalar=m_ldsc,
-            intercept=intercept,
-            twostep=twostep,
-            n_blocks=n_blocks,
-        )
-
-        self.results = res
-
-        self._write_result_row(
-            study_id=study_id,
-            heritability_output_path=heritability_output_path,
-            run_status="success",
-            skip_reasons=[],
-            analysis_flags=validation["analysis_flags"],
-            ld_ancestry=ancestry,
-            result=res,
-            m_ldsc=m_ldsc,
-            n_snps_used=len(beta),
+            intercept=self.intercept,
+            twostep=self.twostep,
+            n_blocks=self.n_blocks,
         )
 
     def _write_result_row(
@@ -283,28 +486,30 @@ class HeritabilityEstimateStep:
             "n_snps_used": [n_snps_used],
             "h2": [result["h2"] if result else None],
             "intercept": [result["intercept"] if result else None],
-            "h2_se": [result["h2_se"] if result and "h2_se" in result else None],
-            "intercept_se": [
-                result["intercept_se"] if result and "intercept_se" in result else None
-            ],
-            "mean_chisq": [result["mean_chisq"] if result and "mean_chisq" in result else None],
-            "lambda_gc": [result["lambda_gc"] if result and "lambda_gc" in result else None],
+            "h2_se": [result["h2_se"] if result else None],
+            "intercept_se": [result["intercept_se"] if result else None],
+            "mean_chisq": [result["mean_chisq"] if result else None],
+            "lambda_gc": [result["lambda_gc"] if result else None],
         }
-        schema = StructType([
-            StructField("studyId", StringType(), True),
-            StructField("runStatus", StringType(), True),
-            StructField("skipReasons", ArrayType(StringType()), True),
-            StructField("analysisFlags", ArrayType(StringType()), True),
-            StructField("ld_ancestry", StringType(), True),
-            StructField("M_ldsc", DoubleType(), True),
-            StructField("n_snps_used", DoubleType(), True),
-            StructField("h2", DoubleType(), True),
-            StructField("intercept", DoubleType(), True),
-            StructField("h2_se", DoubleType(), True),
-            StructField("intercept_se", DoubleType(), True),
-            StructField("mean_chisq", DoubleType(), True),
-            StructField("lambda_gc", DoubleType(), True),
-        ])
+
+        schema = StructType(
+            [
+                StructField("studyId", StringType(), True),
+                StructField("runStatus", StringType(), True),
+                StructField("skipReasons", ArrayType(StringType()), True),
+                StructField("analysisFlags", ArrayType(StringType()), True),
+                StructField("ld_ancestry", StringType(), True),
+                StructField("M_ldsc", DoubleType(), True),
+                StructField("n_snps_used", IntegerType(), True),
+                StructField("h2", DoubleType(), True),
+                StructField("intercept", DoubleType(), True),
+                StructField("h2_se", DoubleType(), True),
+                StructField("intercept_se", DoubleType(), True),
+                StructField("mean_chisq", DoubleType(), True),
+                StructField("lambda_gc", DoubleType(), True),
+            ]
+        )
+
         out_pdf = pd.DataFrame(out_dict)
         out_sdf = self.session.spark.createDataFrame(out_pdf, schema=schema)
         out_sdf.write.mode("overwrite").parquet(heritability_output_path)
@@ -481,7 +686,7 @@ class HeritabilityEstimateStep:
 
         Allowed cases:
             - no flags
-            - only 'metabolite'
+            - any flags except 'metabolite'
 
         Args:
             analysis_flags (Any): Raw analysis flags.
@@ -489,8 +694,5 @@ class HeritabilityEstimateStep:
         Returns:
             bool: Whether the study is allowed.
         """
-        flags = HeritabilityEstimateStep._normalise_analysis_flags(analysis_flags)
-        if not flags:
-            return True
-
-        return set(flags) == {"metabolite"}
+        flags = set(HeritabilityEstimateStep._normalise_analysis_flags(analysis_flags))
+        return "metabolite" not in flags
