@@ -746,6 +746,22 @@ class StudyLocusValidationStepConfig(StepConfig):
     trans_qtl_threshold: int = MISSING
     _target_: str = "gentropy.study_locus_validation.StudyLocusValidationStep"
 
+@dataclass
+class HeritabilityEstimateConfig(StepConfig):
+    """Configuration for LDSC-based heritability estimation.
+
+    This wraps :class:`gentropy.ldsc.HeritabilityEstimateStep` and exposes
+    the parameters required for SNP-heritability estimation on summary statistics.
+    """
+    summary_statistics_input_path: str = MISSING
+    study_index_input_path: str = MISSING
+    ldscore_base_path: str = MISSING
+    heritability_output_path: str = MISSING
+    ldscore_template: str = "gnomad_r2.1.1_{ancestry}_hg38.csv.gz"
+    twostep: float = 30.0
+    n_blocks: int = 200
+    intercept: float | None = None
+    _target_: str = "gentropy.ldsc.HeritabilityEstimateStep"
 
 @dataclass
 class pQTLStudyIndexTransformationConfig(StepConfig):
@@ -866,6 +882,7 @@ def register_config() -> None:
     cs.store(group="step", name="credible_set_qc", node=CredibleSetQCStepConfig)
     cs.store(group="step", name="foldx_integration", node=FoldXVariantAnnotationConfig)
     cs.store(group="step", name="interval_e2g", node=IntervalE2GStepConfig)
+    cs.store(group="step", name="heritability_estimate", node=HeritabilityEstimateConfig)
     cs.store(
         group="step",
         name="pQTL_study_index_transformation",
