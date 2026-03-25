@@ -241,8 +241,8 @@ class TestHsqAndWrapper:
         assert hsq.constrain_intercept is True
         assert hsq.intercept == pytest.approx(float(d["intercept_true"]))
         assert hsq.intercept_se == "NA"
-        assert hsq.ratio == "NA"
-        assert hsq.ratio_se == "NA"
+        assert hsq.ratio is None
+        assert hsq.ratio_se is None
 
     def test_hsq_weights_are_positive_and_finite(self) -> None:
         """Check that Hsq.weights returns positive finite weights with expected trend."""
