@@ -74,7 +74,7 @@ class SummaryStatisticsQC(Dataset):
     def from_summary_statistics(
         cls: type[SummaryStatisticsQC],
         gwas: SummaryStatistics,
-        pval_threshold: float = 1e-8,
+        pval_threshold: float = 5e-8,
     ) -> SummaryStatisticsQC:
         """The function calculates the quality control metrics for the summary statistics.
 

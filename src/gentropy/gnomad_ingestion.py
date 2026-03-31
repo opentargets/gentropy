@@ -124,7 +124,7 @@ class GnomadVariantDirectionStep:
         variant_index_path: str,
         variant_direction_path: str,
         window_size: int = DEFAULT_WINDOW_SIZE,
-    ):
+    ) -> None:
         """Run variant direction step.
 
         Args:

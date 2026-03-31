@@ -304,7 +304,7 @@ class deCODESummaryStatisticsHarmonisationStep:
                 VariantDirection dataset for the allele-flipping join.  Must match the value
                 used when building the VariantDirection dataset. Defaults to 10,000,000.
             pval_threshold (float): P-value threshold used by `SummaryStatisticsQC`.
-                Defaults to 1e-6.
+                Defaults to 5e-8.
             remove_star_alleles (bool): Whether to remove variants with `*` alleles during harmonisation.
                 Defaults to `True`.
             remove_equal_alleles (bool): Whether to remove variants with equal effect and other alleles during harmonisation. Defaults to `True`.

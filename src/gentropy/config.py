@@ -479,6 +479,7 @@ class GnomadVariantDirectionStepConfig(StepConfig):
     variant_index_path: str = MISSING
     variant_direction_path: str = MISSING
     window_size: int = 10_000_000
+    _target_: str = "gentropy.gnomad_ingestion.GnomadVariantDirectionStep"
 
 
 @dataclass
