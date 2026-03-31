@@ -88,6 +88,10 @@ class deCODESummaryStatisticsHarmonisationConfig(StepConfig):
         10_000_000  # must match variant_direction.DEFAULT_WINDOW_SIZE
     )
     pval_threshold: float = 5e-8
+    remove_star_alleles: bool = True
+    remove_equal_alleles: bool = True
+    remove_multiallelics: bool = True
+    verify_atgc: bool = True
     _target_: str = "gentropy.decode_ingestion.deCODESummaryStatisticsHarmonisationStep"
 
 
@@ -461,6 +465,21 @@ class FinngenUkbMvpMetaSummaryStatisticsIngestionConfig(StepConfig):
     _target_: str = (
         "gentropy.finngen_ukb_mvp_meta.FinngenUkbMvpMetaSummaryStatisticsIngestionStep"
     )
+
+
+@dataclass
+class GnomadVariantDirectionStepConfig(StepConfig):
+    """GnomAD variant direction step configuration."""
+
+    session: Any = field(
+        default_factory=lambda: {
+            "start_hail": True,
+        }
+    )
+    variant_index_path: str = MISSING
+    variant_direction_path: str = MISSING
+    window_size: int = 10_000_000
+    _target_: str = "gentropy.gnomad_ingestion.GnomadVariantDirectionStep"
 
 
 @dataclass
