@@ -271,6 +271,10 @@ class deCODESummaryStatisticsHarmonisationStep:
         min_sample_size_threshold: int = 30_000,
         flipping_window_size: int = 10_000_000,
         pval_threshold: float = 5e-8,
+        remove_star_alleles: bool = True,
+        remove_equal_alleles: bool = True,
+        remove_multiallelics: bool = True,
+        verify_atgc: bool = True,
     ) -> None:
         """Initialise and execute the deCODE summary-statistics harmonisation step.
 
@@ -301,11 +305,21 @@ class deCODESummaryStatisticsHarmonisationStep:
                 used when building the VariantDirection dataset. Defaults to 10,000,000.
             pval_threshold (float): P-value threshold used by `SummaryStatisticsQC`.
                 Defaults to 1e-6.
+            remove_star_alleles (bool): Whether to remove variants with `*` alleles during harmonisation.
+                Defaults to `True`.
+            remove_equal_alleles (bool): Whether to remove variants with equal effect and other alleles during harmonisation. Defaults to `True`.
+            remove_multiallelics (bool): Whether to remove variants with multiple other alleles during harmonisation. Defaults to `True`.
+            verify_atgc (bool): Whether to verify that all alleles are A/T/G/C during harmonisation. Defaults to `True`.
+
         """
         config = deCODEHarmonisationConfig(
             min_mac=min_mac_threshold,
             min_sample_size=min_sample_size_threshold,
             flipping_window_size=flipping_window_size,
+            remove_star_alleles=remove_star_alleles,
+            remove_equal_alleles=remove_equal_alleles,
+            remove_multiallelics=remove_multiallelics,
+            verify_atgc=verify_atgc,
         )
 
         # 1. Produce the PQTLStudyIndex
