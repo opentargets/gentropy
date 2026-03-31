@@ -620,6 +620,7 @@ class WindowBasedClumpingStepConfig(StepConfig):
     collect_locus: bool = False
     collect_locus_distance: int = 500_000
     inclusion_list_path: str | None = None
+    recursive_file_lookup: bool = True
     _target_: str = "gentropy.window_based_clumping.WindowBasedClumpingStep"
 
 
