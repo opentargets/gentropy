@@ -5,6 +5,8 @@ from __future__ import annotations
 from gentropy.common.session import Session
 from gentropy.common.types import LD_Population, VariantPopulation
 from gentropy.config import GnomadVariantConfig, LDIndexConfig
+from gentropy.dataset.variant_direction import DEFAULT_WINDOW_SIZE, VariantDirection
+from gentropy.dataset.variant_index import VariantIndex
 from gentropy.datasource.gnomad.ld import GnomADLDMatrix
 from gentropy.datasource.gnomad.variants import (
     GnomADVariantFrequencies,
@@ -110,4 +112,42 @@ class GnomadVariantIndexStep:
             .sortWithinPartitions("chromosome", "position")
             .write.mode(session.write_mode)
             .parquet(variant_annotation_path)
+        )
+
+
+class GnomadVariantDirectionStep:
+    """A step to generate variant direction dataset from gnomad variant index."""
+
+    def __init__(
+        self,
+        session: Session,
+        variant_index_path: str,
+        variant_direction_path: str,
+        window_size: int = DEFAULT_WINDOW_SIZE,
+    ) -> None:
+        """Run variant direction step.
+
+        Args:
+            session (Session): Session object.
+            variant_index_path (str): Path to the variant index dataset.
+            variant_direction_path (str): Output path for the variant direction dataset.
+            window_size (int): Window size to consider when determining variant direction.
+
+        """
+        # amend data source version to output path
+        session.logger.info("Gnomad variant direction path:")
+        session.logger.info(variant_direction_path)
+
+        # Parse variant info from source.
+        (
+            VariantDirection.from_variant_index(
+                variant_index=VariantIndex.from_parquet(
+                    session=session, path=variant_index_path
+                ),
+                window_size=window_size,
+            )
+            .df.write.mode(session.write_mode)
+            .partitionBy("strand", "chromosome", "rangeId")
+            .option("maxRecordsPerFile", 50_000_000)
+            .parquet(variant_direction_path)
         )
