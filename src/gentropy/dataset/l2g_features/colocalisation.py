@@ -760,8 +760,8 @@ def common_trans_pqtl_colocalisation_feature_logic(
 
     This function is specifically for trans-pQTL colocalizations and keeps genes in the
     locus that:
-    - have significant local pQTL colocalisation (H4 > 0.8 or CLPP >= 0.01)
-    - interact with a gene from a significant trans-pQTL colocalisation (H4 > 0.8)
+    - have significant local pQTL colocalisation (H4 >= 0.8 or CLPP >= 0.01)
+    - interact with a gene from a significant trans-pQTL colocalisation (H4 >= 0.8)
 
     Args:
         study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
@@ -784,7 +784,7 @@ def common_trans_pqtl_colocalisation_feature_logic(
 
     trans_h4_threshold = 0.8
     local_clpp_threshold = 0.01
-    interaction_score_threshold = 0.8
+    interaction_score_threshold = 0.5
     interaction_source_database = "string"
     qtl_types = ["pqtl", "scpqtl"]
     coloc_methods = [colocalisation_method.lower(), "coloc_pip_ecaviar"]
@@ -799,7 +799,7 @@ def common_trans_pqtl_colocalisation_feature_logic(
             filter_by_qtls=qtl_types,
         )
         .filter(
-            (f.col("h4") > f.lit(trans_h4_threshold))
+            (f.col("h4") >= f.lit(trans_h4_threshold))
             | (f.col("clpp") >= f.lit(local_clpp_threshold))
         )
         .selectExpr("studyLocusId", "geneId as localGeneId")
@@ -834,7 +834,7 @@ def common_trans_pqtl_colocalisation_feature_logic(
         .join(trans_study_to_gene, "rightStudyLocusId", "inner")
         .filter(f.lower("colocalisationMethod").isin(coloc_methods))
         .filter(f.lower("rightStudyType").isin(qtl_types))
-        .filter(f.col("h4") > f.lit(trans_h4_threshold))
+        .filter(f.col("h4") >= f.lit(trans_h4_threshold))
         .groupBy("leftStudyLocusId", "rightGeneId")
         .agg(f.max(colocalisation_metric).alias("transColocScore"))
     )
@@ -846,7 +846,7 @@ def common_trans_pqtl_colocalisation_feature_logic(
         )
     if "scoring" in interactions.columns:
         filtered_interactions = filtered_interactions.filter(
-            f.col("scoring") >= interaction_score_threshold
+            f.col("scoring") > interaction_score_threshold
         )
 
     filtered_interactions = filtered_interactions.selectExpr(
