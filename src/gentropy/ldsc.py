@@ -36,7 +36,7 @@ class HeritabilityEstimateStep:
         twostep: float = 30.0,
         n_blocks: int = 200,
         intercept: float | None = None,
-        max_rows_for_collection: int = 1_500_000,
+        max_rows_for_collection: int = 15_000_000,
         min_samples: int = 10_000,
     ) -> None:
         """Initialise the LDSC heritability estimation step.
