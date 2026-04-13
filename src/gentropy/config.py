@@ -781,6 +781,7 @@ class HeritabilityEstimateConfig(StepConfig):
     twostep: float = 30.0
     n_blocks: int = 200
     intercept: float | None = None
+    max_rows_for_collection: int = 15_000_000
     _target_: str = "gentropy.ldsc.HeritabilityEstimateStep"
 
 @dataclass
