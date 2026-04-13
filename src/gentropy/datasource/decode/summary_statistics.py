@@ -48,9 +48,19 @@ class deCODEHarmonisationConfig(BaseModel):
     """Minimal value of Sample Size to include in harmonisation."""
     flipping_window_size: int = DEFAULT_WINDOW_SIZE
     """Window size (bp) used to partition the VariantDirection dataset (exact match only!).
-
-    Defaults to `DEFAULT_WINDOW_SIZE` from `gentropy.dataset.variant_direction`.
+        Defaults to `DEFAULT_WINDOW_SIZE` from `gentropy.dataset.variant_direction`.
     """
+    remove_star_alleles: bool = True
+    """Whether to remove variants with `*` alleles during harmonisation."""
+    remove_equal_alleles: bool = True
+    """Whether to remove variants with equal effect and other alleles during harmonisation."""
+    remove_multiallelics: bool = True
+    """Whether to remove variants with multiple other alleles during harmonisation.
+        These alleles are marked as ! in summary statistics. For the sake of flipping, we
+        remove these from both effect and other allele columns.
+    """
+    verify_atgc: bool = True
+    """Whether to verify that all alleles are A/T/G/C during harmonisation."""
 
 
 class deCODESummaryStatistics:
@@ -269,7 +279,17 @@ class deCODESummaryStatistics:
         """
         # Get the estimated number of distinct studies to set the number of partitions for the final join
         n_sumstats = decode_study_index.df.count()
+        # Pre-filtering on alleles based on configuration.
+        if config.remove_star_alleles:
+            raw_summary_statistics = cls._remove_star_alleles(raw_summary_statistics)
+        if config.remove_equal_alleles:
+            raw_summary_statistics = cls._remove_equal_alleles(raw_summary_statistics)
+        if config.remove_multiallelics:
+            raw_summary_statistics = cls._remove_multiallelics(raw_summary_statistics)
+        if config.verify_atgc:
+            raw_summary_statistics = cls._verify_atgc(raw_summary_statistics)
         pval = pvalue_from_neglogpval(f.col("neglogPval"))
+        # Prepare summary statistics format (column renaming, p-value conversion) and add join keys for variant flipping.
         _sumstats = (
             raw_summary_statistics.select(
                 normalize_chromosome(f.col("Chrom")).alias("chromosome"),
@@ -412,4 +432,105 @@ class deCODESummaryStatistics:
 
         return (_harmonised, _pqtl_si)
 
-        return (_harmonised, _pqtl_si)
+    @staticmethod
+    def _remove_star_alleles(df: DataFrame) -> DataFrame:
+        """Remove variants with `*` alleles from the summary statistics DataFrame.
+
+        Args:
+            df (DataFrame): Input DataFrame containing summary statistics with `effectAllele` and `otherAllele` columns.
+
+        Returns:
+            DataFrame: Filtered DataFrame with rows containing `*` in either `effectAllele` or `otherAllele` removed.
+
+        Examples:
+            >>> data = [("A", "T"), ("G", "C"), ("*", "A"), ("A", "*")]
+            >>> df = spark.createDataFrame(data, ["effectAllele", "otherAllele"])
+            >>> deCODESummaryStatistics._remove_star_alleles(df).show()
+            +------------+-----------+
+            |effectAllele|otherAllele|
+            +------------+-----------+
+            |           A|          T|
+            |           G|          C|
+            +------------+-----------+
+            <BLANKLINE>
+        """
+        return df.filter(
+            ~f.col("effectAllele").contains("*") & ~f.col("otherAllele").contains("*")
+        )
+
+    @staticmethod
+    def _remove_multiallelics(df: DataFrame) -> DataFrame:
+        """Remove variants with multiple alleles (marked as `!`) from the summary statistics DataFrame.
+
+        Args:
+            df (DataFrame): Input DataFrame containing summary statistics with `effectAllele` and `otherAllele` columns.
+
+        Returns:
+            DataFrame: Filtered DataFrame with rows containing `!` in either `effectAllele` or `otherAllele` removed.
+
+        Examples:
+            >>> data = [("A", "T"), ("G", "C"), ("!", "A"), ("A", "!")]
+            >>> df = spark.createDataFrame(data, ["effectAllele", "otherAllele"])
+            >>> deCODESummaryStatistics._remove_multiallelics(df).show()
+            +------------+-----------+
+            |effectAllele|otherAllele|
+            +------------+-----------+
+            |           A|          T|
+            |           G|          C|
+            +------------+-----------+
+            <BLANKLINE>
+        """
+        return df.filter(
+            ~f.col("effectAllele").contains("!") & ~f.col("otherAllele").contains("!")
+        )
+
+    @staticmethod
+    def _remove_equal_alleles(df: DataFrame) -> DataFrame:
+        """Remove variants with equal effect and other alleles from the summary statistics DataFrame.
+
+        Args:
+            df (DataFrame): Input DataFrame containing summary statistics with `effectAllele` and `otherAllele` columns.
+
+        Returns:
+            DataFrame: Filtered DataFrame with rows where `effectAllele` equals `otherAllele` removed.
+
+        Examples:
+            >>> data = [("AT", "T"), ("G", "C"), ("A", "A"), ("T", "T")]
+            >>> df = spark.createDataFrame(data, ["effectAllele", "otherAllele"])
+            >>> deCODESummaryStatistics._remove_equal_alleles(df).show()
+            +------------+-----------+
+            |effectAllele|otherAllele|
+            +------------+-----------+
+            |          AT|          T|
+            |           G|          C|
+            +------------+-----------+
+            <BLANKLINE>
+        """
+        return df.filter(f.col("effectAllele") != f.col("otherAllele"))
+
+    @staticmethod
+    def _verify_atgc(df: DataFrame) -> DataFrame:
+        """Verify that all alleles in the summary statistics DataFrame are A/T/G/C.
+
+        Args:
+            df (DataFrame): Input DataFrame containing summary statistics with `effectAllele` and `otherAllele` columns.
+
+        Returns:
+            DataFrame: Filtered DataFrame with rows containing non-ATGC alleles removed.
+
+        Examples:
+            >>> data = [("AT", "T"), ("G", "C"), ("N", "A"), ("A", "X")]
+            >>> df = spark.createDataFrame(data, ["effectAllele", "otherAllele"])
+            >>> deCODESummaryStatistics._verify_atgc(df).show()
+            +------------+-----------+
+            |effectAllele|otherAllele|
+            +------------+-----------+
+            |          AT|          T|
+            |           G|          C|
+            +------------+-----------+
+            <BLANKLINE>
+        """
+        return df.filter(
+            f.col("effectAllele").rlike(r"^[ATGC]+$")
+            & f.col("otherAllele").rlike(r"^[ATGC]+$")
+        )

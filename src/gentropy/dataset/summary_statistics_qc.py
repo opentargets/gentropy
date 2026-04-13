@@ -74,13 +74,13 @@ class SummaryStatisticsQC(Dataset):
     def from_summary_statistics(
         cls: type[SummaryStatisticsQC],
         gwas: SummaryStatistics,
-        pval_threshold: float = 1e-8,
+        pval_threshold: float = 5e-8,
     ) -> SummaryStatisticsQC:
         """The function calculates the quality control metrics for the summary statistics.
 
         Args:
             gwas (SummaryStatistics): The instance of the SummaryStatistics class.
-            pval_threshold (float): The p-value threshold for the QC. Default is 1e-8.
+            pval_threshold (float): The p-value threshold for the QC. Default is 5e-8.
 
         Returns:
             SummaryStatisticsQC: Dataset with quality control metrics for the summary statistics.
