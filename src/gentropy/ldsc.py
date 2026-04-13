@@ -270,7 +270,7 @@ class HeritabilityEstimateStep:
             .withColumn("ref", F.col("variant_parts").getItem(2))
             .withColumn("alt", F.col("variant_parts").getItem(3))
             .drop("variant_parts", "nSamples")
-            .filter(F.col("effectAlleleFrequencyFromSource") > 0.01)
+            #.filter(F.col("effectAlleleFrequencyFromSource") > 0.01)
             .filter(F.col(beta_col).isNotNull())
             .filter(F.col(se_col).isNotNull())
             .filter(F.col(n_col).isNotNull())
