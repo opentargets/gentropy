@@ -328,10 +328,6 @@ class deCODESummaryStatistics:
             # This should reduce the number of variants from ~33mln to ~25mln
             .filter(f.col("sampleSize") >= config.min_sample_size)
             .filter(mac(f.col("impMAF"), f.col("sampleSize")) >= config.min_mac)
-            # .repartitionByRange(
-            #     n_sumstats * 300 * 22, "studyId", "chromosome", "rangeId"
-            # )
-            # .persist()
             .alias("sumstats")
         )
 
@@ -356,7 +352,6 @@ class deCODESummaryStatistics:
             # NOTE: repartition("chromosome") produces very uneven partitions,
             # Spark attempts then to fall back to `dynamic partitioning` algorithm
             # which fails after N failures.
-            # .repartitionByRange(n_sumstats * 300 * 22, "chromosome", "rangeId")
             .persist()
             .alias("vd")
         )
@@ -405,7 +400,6 @@ class deCODESummaryStatistics:
             ),
         )
         _vd.unpersist()
-        # _sumstats.unpersist()
 
         _harmonised = SummaryStatistics(
             _df=SummaryStatistics(_flipped)
