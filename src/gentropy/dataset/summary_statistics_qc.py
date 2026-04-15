@@ -121,6 +121,7 @@ class SummaryStatisticsQC(Dataset):
             +-------+---------+------------+----------+---------+----------+--------------+
             <BLANKLINE>
         """
+        gwas.persist()
         n_variants: Callable[[DataFrame], DataFrame] = lambda df: number_of_variants(
             df, pval_threshold
         )

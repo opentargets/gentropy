@@ -21,8 +21,9 @@ must be executed in order:
 2. **Generate the manifest** from the bucket listing using `deCODEManifestGenerationStep`.
 3. **Ingest protein-complex data** from predicted and experimental files using `MolecularComplexIngestionStep`.
 4. **Ingest raw summary statistics** from the `txt.gz` files to Parquet using `deCODESummaryStatisticsIngestionStep`.
-5. **Harmonise summary statistics** (including study-index creation and QC) using `deCODESummaryStatisticsHarmonisationStep`.
-6. **Transform the pQTL study index** into a standard study index using `pQTLStudyIndexTransformationStep`.
+5. **Harmonise summary statistics** (including pQTL study-index creation) using `deCODESummaryStatisticsHarmonisationStep`.
+6. **Run summary-statistics QC** and annotate the pQTL study index using `deCODESummaryStatisticsQCStep`.
+7. **Transform the QC-annotated pQTL study index** into a standard study index using `pQTLStudyIndexTransformationStep`.
 
 !!! note "Filtering variants"
     During the harmonisation step, variants with minor allele count (MAC) < 50 and sample size < 30,000
@@ -74,33 +75,37 @@ flowchart TD
     O4[study_index]
   end
 
-  A1 --> MGEN[deCODEManifestGenerationStep]
-  A2 --> MGEN
-  MGEN --> P1[manifest]
+    A1 --> MGEN[deCODEManifestGenerationStep]
+    A2 --> MGEN
+    MGEN --> P1[manifest]
 
-  A5 --> MCGEN[MolecularComplexIngestionStep]
-  A6 --> MCGEN
-  MCGEN --> P2[molecular_complex]
+    A5 --> MCGEN[MolecularComplexIngestionStep]
+    A6 --> MCGEN
+    MCGEN --> P2[molecular_complex]
 
-  P1 --> INGEST[deCODESummaryStatisticsIngestionStep]
-  INGEST --> P3[raw_summary_statistics]
+    P1 --> INGEST[deCODESummaryStatisticsIngestionStep]
+    INGEST --> P3[raw_summary_statistics]
 
-  P3 --> HARM[deCODESummaryStatisticsHarmonisationStep]
-  P1 --> HARM
-  A3 --> HARM
-  A4 --> HARM
-  P2 --> HARM
+    P3 --> HARM[deCODESummaryStatisticsHarmonisationStep]
+    P1 --> HARM
+    A3 --> HARM
+    A4 --> HARM
+    P2 --> HARM
 
-  HARM --> O1
-  HARM --> O2
-  HARM --> O3
+    HARM --> O1
+    HARM --> O2
 
-  O2 --> TRANS[pQTLStudyIndexTransformationStep]
-  A7 --> TRANS
-  TRANS --> O4
+    O1 --> QC[deCODESummaryStatisticsQCStep]
+    O2 --> QC
+    QC --> O3
+    QC --> O2B[protein_qtl_study_index_qc_annotated]
 
-  classDef parquet fill:#bd757c,stroke:#73343A,color:#333
-  class A1,A2,A3,A4,A5,A6,A7,P1,P2,P3,O1,O2,O3,O4 parquet
+    O2B --> TRANS[pQTLStudyIndexTransformationStep]
+    A7 --> TRANS
+    TRANS --> O4
+
+    classDef parquet fill:#bd757c,stroke:#73343A,color:#333
+    class A1,A2,A3,A4,A5,A6,A7,P1,P2,P3,O1,O2,O2B,O3,O4 parquet
 ```
 
 ??? tip "Inputs"
@@ -125,9 +130,11 @@ from __future__ import annotations
 
 from gentropy import (
     Session,
+    SummaryStatistics,
     SummaryStatisticsQC,
 )
 from gentropy.dataset.molecular_complex import MolecularComplex
+from gentropy.dataset.study_index import ProteinQuantitativeTraitLocusStudyIndex
 from gentropy.dataset.variant_direction import VariantDirection
 from gentropy.datasource.decode.aptamer_metadata import AptamerMetadata
 from gentropy.datasource.decode.manifest import deCODEManifest
@@ -240,7 +247,7 @@ class deCODESummaryStatisticsIngestionStep:
 
 
 class deCODESummaryStatisticsHarmonisationStep:
-    """Harmonise ingested deCODE summary statistics and generate pQTL study-index and QC outputs.
+    """Harmonise ingested deCODE summary statistics and generate the pQTL study index.
 
     The step performs the following operations in sequence:
 
@@ -249,8 +256,8 @@ class deCODESummaryStatisticsHarmonisationStep:
     2. Runs the harmonisation pipeline (`deCODESummaryStatistics.from_source`)
        which includes schema alignment, MAC/sample-size filtering, allele flipping
        against gnomAD EUR AF, EAF inference, sanity filtering, and study-ID update.
-    3. Executes `SummaryStatisticsQC` and writes per-study QC metrics to Parquet.
-    4. Annotates the pQTL study index with QC results and writes it to Parquet.
+    QC calculation and study-index QC annotation are executed in
+    `deCODESummaryStatisticsQCStep`.
     """
 
     def __init__(
@@ -265,12 +272,10 @@ class deCODESummaryStatisticsHarmonisationStep:
         # outputs
         harmonised_summary_statistics_path: str,
         protein_qtl_study_index_path: str,
-        qc_summary_statistics_path: str,
         # config
         min_mac_threshold: int = 50,
         min_sample_size_threshold: int = 30_000,
         flipping_window_size: int = 10_000_000,
-        pval_threshold: float = 5e-8,
         remove_star_alleles: bool = True,
         remove_equal_alleles: bool = True,
         remove_multiallelics: bool = True,
@@ -294,8 +299,6 @@ class deCODESummaryStatisticsHarmonisationStep:
                 summary-statistics Parquet dataset, partitioned by ``studyId``.
             protein_qtl_study_index_path (str): Destination path for the pQTL study index
                 Parquet dataset annotated with QC results.
-            qc_summary_statistics_path (str): Destination path for the per-study QC metrics
-                Parquet dataset.
             min_mac_threshold (int): Minimum minor allele count (MAC) required to retain a
                 variant. Defaults to 50.
             min_sample_size_threshold (int): Minimum sample size required to retain a variant.
@@ -303,8 +306,6 @@ class deCODESummaryStatisticsHarmonisationStep:
             flipping_window_size (int): Genomic window size (bp) used to partition the
                 VariantDirection dataset for the allele-flipping join.  Must match the value
                 used when building the VariantDirection dataset. Defaults to 10,000,000.
-            pval_threshold (float): P-value threshold used by `SummaryStatisticsQC`.
-                Defaults to 5e-8.
             remove_star_alleles (bool): Whether to remove variants with `*` alleles during harmonisation.
                 Defaults to `True`.
             remove_equal_alleles (bool): Whether to remove variants with equal effect and other alleles during harmonisation. Defaults to `True`.
@@ -336,18 +337,50 @@ class deCODESummaryStatisticsHarmonisationStep:
         rss = session.spark.read.parquet(raw_summary_statistics_path)
         hss, pqtl_si = deCODESummaryStatistics.from_source(rss, gvd, _pqtl_si, config)
 
-        hss.persist()
-        pqtl_si.persist()
-
         hss.df.write.mode(session.write_mode).partitionBy("studyId").option(
             "maxRecordsPerFile", 50_000_000
         ).parquet(harmonised_summary_statistics_path)
+        pqtl_si.df.coalesce(1).write.mode(session.write_mode).parquet(
+            protein_qtl_study_index_path
+        )
 
-        # 3. Run QualityControl
+
+class deCODESummaryStatisticsQCStep:
+    """Step to calculate quality control metrics on the harmonised deCODE summary statistics."""
+
+    def __init__(
+        self,
+        session: Session,
+        # inputs
+        harmonised_summary_statistics_path: str,
+        protein_qtl_study_index_path: str,
+        # outputs
+        qc_summary_statistics_path: str,
+        protein_qtl_study_index_qc_annotated_path: str,
+        # config
+        pval_threshold: float = 5e-8,
+    ):
+        """Run quality control on the harmonised deCODE summary statistics and annotate the pQTL study index with QC results.
+
+        Args:
+            session (Session): Active Gentropy Spark session.
+            harmonised_summary_statistics_path (str): Path to the harmonised summary-statistics Parquet dataset produced by `deCODESummaryStatisticsHarmonisationStep`.
+            protein_qtl_study_index_path (str): Path to the pQTL study index Parquet dataset produced by `deCODESummaryStatisticsHarmonisationStep`.
+            qc_summary_statistics_path (str): Destination path for the QC summary-statistics Parquet dataset, partitioned by ``studyId``.
+            protein_qtl_study_index_qc_annotated_path (str): Destination path for the pQTL study index Parquet dataset annotated with QC results.
+            pval_threshold (float): P-value threshold used to define significant variants for QC purposes. Defaults to 5e-8.
+
+        """
+        hss = SummaryStatistics.from_parquet(
+            session, harmonised_summary_statistics_path
+        ).persist()
         hss_qc = SummaryStatisticsQC.from_summary_statistics(
             hss, pval_threshold
         ).persist()
         hss.unpersist()
+        pqtl_si = ProteinQuantitativeTraitLocusStudyIndex.from_parquet(
+            session, protein_qtl_study_index_path
+        ).persist()
         hss_qc.df.coalesce(1).write.mode(session.write_mode).parquet(
             qc_summary_statistics_path
         )
@@ -355,5 +388,5 @@ class deCODESummaryStatisticsHarmonisationStep:
             pqtl_si.annotate_sumstats_qc(hss_qc)
             .df.coalesce(1)
             .write.mode(session.write_mode)
-            .parquet(protein_qtl_study_index_path)
+            .parquet(protein_qtl_study_index_qc_annotated_path)
         )
