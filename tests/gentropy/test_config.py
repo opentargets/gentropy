@@ -145,8 +145,8 @@ class TestLocusToGeneConfig:
     def test_locus_to_gene_config_has_train_test_parquet_fields(self) -> None:
         """Test that LocusToGeneConfig exposes train and test parquet output paths."""
         config_fields = {f.name for f in fields(LocusToGeneConfig)}
-        assert "train_parquet_path" in config_fields
-        assert "test_parquet_path" in config_fields
+        assert "training_set" in config_fields
+        assert "test_set" in config_fields
 
 
 def test_register_config() -> None:
