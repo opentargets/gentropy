@@ -427,7 +427,7 @@ class LocusToGeneStep:
             split_df.to_parquet(output_path, index=False)
         except (OSError, ValueError, ImportError, PermissionError) as error:
             raise ValueError(
-                f"Failed to write split parquet to '{output_path}'. For gs:// paths, ensure pandas parquet and GCS access are configured: {error}"
+                f"Failed to write split parquet to '{output_path}'. Ensure parquet dependencies and path access are configured: {error}"
             ) from error
 
     def _annotate_gold_standards_w_feature_matrix(self) -> L2GFeatureMatrix:
