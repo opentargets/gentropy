@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import pyspark.sql.functions as f
 from wandb.sdk.wandb_login import login as wandb_login
@@ -26,6 +26,9 @@ from gentropy.external.gcs import access_gcp_secret
 from gentropy.method.l2g.feature_factory import L2GFeatureInputLoader
 from gentropy.method.l2g.model import LocusToGeneModel
 from gentropy.method.l2g.trainer import LocusToGeneTrainer
+
+if TYPE_CHECKING:
+    import pandas as pd
 
 
 class LocusToGeneFeatureMatrixStep:
@@ -413,17 +416,23 @@ class LocusToGeneStep:
                     commit_message=self.hf_model_commit_message,
                 )
 
-    def _save_split_parquet(self, split_df: Any, output_path: str) -> None:
+    def _save_split_parquet(self, split_df: pd.DataFrame, output_path: str) -> None:
         """Persist train/test split data to parquet using pandas or Spark.
 
         Args:
-            split_df (Any): Dataframe-like object expected to be a pandas DataFrame.
+            split_df (pd.DataFrame): Split dataframe to be persisted.
             output_path (str): Destination path. Supports local paths and gs:// paths.
         """
         if output_path.startswith("gs://"):
-            self.session.spark.createDataFrame(split_df).coalesce(1).write.mode(
-                self.session.write_mode
-            ).parquet(output_path)
+            try:
+                spark_split_df = self.session.spark.createDataFrame(split_df)
+            except Exception as error:
+                raise ValueError(
+                    f"Could not convert split dataframe to Spark DataFrame for path '{output_path}'."
+                ) from error
+            spark_split_df.coalesce(1).write.mode(self.session.write_mode).parquet(
+                output_path
+            )
             return
 
         output = Path(output_path)
