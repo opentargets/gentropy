@@ -422,13 +422,16 @@ class LocusToGeneStep:
         Args:
             split_df (pd.DataFrame): Split dataframe to be persisted.
             output_path (str): Destination path. Supports local paths and gs:// paths.
+
+        Raises:
+            ValueError: If split dataframe conversion to Spark fails for gs:// output paths.
         """
         if output_path.startswith("gs://"):
             try:
                 spark_split_df = self.session.spark.createDataFrame(split_df)
             except Exception as error:
                 raise ValueError(
-                    f"Could not convert split dataframe to Spark DataFrame for path '{output_path}'."
+                    f"Could not convert split dataframe to Spark DataFrame for path '{output_path}': {error}"
                 ) from error
             spark_split_df.coalesce(1).write.mode(self.session.write_mode).parquet(
                 output_path
