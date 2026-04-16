@@ -139,6 +139,9 @@ filterwarnings = [
   "ignore:.*it is preferred to specify type hints for pandas UDF.*:UserWarning"
 ]
 
+[tool.ty.environment]
+python = ".venv/bin/python"
+
 # Semi-strict mode for mypy
 [tool.mypy]
 check_untyped_defs = true
