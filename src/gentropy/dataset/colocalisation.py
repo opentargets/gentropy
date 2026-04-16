@@ -18,8 +18,6 @@ if TYPE_CHECKING:
     from gentropy.dataset.study_index import StudyIndex
     from gentropy.dataset.study_locus import StudyLocus
 
-from functools import reduce
-
 
 @dataclass
 class Colocalisation(Dataset):
@@ -33,99 +31,6 @@ class Colocalisation(Dataset):
             StructType: Schema for the Colocalisation dataset
         """
         return parse_spark_schema("colocalisation.json")
-
-    def extract_maximum_coloc_probability_per_region_and_gene(
-        self: Colocalisation,
-        study_locus: StudyLocus,
-        study_index: StudyIndex,
-        *,
-        filter_by_colocalisation_method: str,
-        filter_by_qtls: str | list[str] | None = None,
-    ) -> DataFrame:
-        """Get maximum colocalisation probability for a (studyLocus, gene) window.
-
-        Args:
-            study_locus (StudyLocus): Dataset containing study loci to filter the colocalisation dataset on and the geneId linked to the region
-            study_index (StudyIndex): Study index to use to get study metadata
-            filter_by_colocalisation_method (str): optional filter to apply on the colocalisation dataset
-            filter_by_qtls (str | list[str] | None): optional filter to apply on the colocalisation dataset
-
-        Returns:
-            DataFrame: table with the maximum colocalisation scores for the provided study loci
-
-        Raises:
-            ValueError: if filter_by_qtl is not in the list of valid QTL types or is not in the list of valid colocalisation methods
-        """
-        from gentropy.colocalisation import ColocalisationStep
-        from gentropy.common.spark import get_record_with_maximum_value
-        from gentropy.datasource.eqtl_catalogue.study_index import (
-            EqtlCatalogueStudyIndex,
-        )
-
-        valid_qtls = list(
-            set(EqtlCatalogueStudyIndex.method_to_qtl_type_mapping.values())
-        ) + [
-            f"sc{qtl}"
-            for qtl in set(EqtlCatalogueStudyIndex.method_to_qtl_type_mapping.values())
-        ]
-
-        if filter_by_qtls:
-            filter_by_qtls = (
-                list(map(str.lower, [filter_by_qtls]))
-                if isinstance(filter_by_qtls, str)
-                else list(map(str.lower, filter_by_qtls))
-            )
-            if any(qtl not in valid_qtls for qtl in filter_by_qtls):
-                raise ValueError(f"There are no studies with QTL type {filter_by_qtls}")
-
-        if filter_by_colocalisation_method not in [
-            "ECaviar",
-            "Coloc",
-        ]:  # TODO: Write helper class to retrieve coloc method names
-            raise ValueError(
-                f"Colocalisation method {filter_by_colocalisation_method} is not supported."
-            )
-        # Prepare the list of colocalisation methods that contain expected metrics
-        colocalisation_methods = [
-            filter_by_colocalisation_method.lower(),  # original method name Coloc or ECaviar to ensure backward compatibility
-            "coloc_pip_ecaviar",  # combined method name, coloc_pip_ecaviar contains both CLPP and H4
-        ]
-        method_colocalisation_metric = ColocalisationStep._get_colocalisation_class(
-            filter_by_colocalisation_method
-        ).METHOD_METRIC
-
-        coloc_filtering_expr = [
-            f.col("rightGeneId").isNotNull(),
-            (f.lower("colocalisationMethod").isin(colocalisation_methods)),
-        ]
-        if filter_by_qtls:
-            coloc_filtering_expr.append(f.lower("rightStudyType").isin(filter_by_qtls))
-
-        filtered_colocalisation = (
-            # Bring rightStudyType and rightGeneId and filter by rows where the gene is null,
-            # which is equivalent to filtering studyloci from gwas on the right side
-            self.append_study_metadata(
-                study_locus,
-                study_index,
-                metadata_cols=["geneId", "studyType"],
-                colocalisation_side="right",
-            )
-            # it also filters based on method and qtl type
-            .filter(reduce(lambda a, b: a & b, coloc_filtering_expr))
-            # and filters colocalisation results to only include the subset of studylocus that contains gwas studylocusid
-            .join(
-                study_locus.df.selectExpr("studyLocusId as leftStudyLocusId"),
-                "leftStudyLocusId",
-            )
-        )
-
-        return get_record_with_maximum_value(
-            filtered_colocalisation.withColumnRenamed(
-                "leftStudyLocusId", "studyLocusId"
-            ).withColumnRenamed("rightGeneId", "geneId"),
-            ["studyLocusId", "geneId"],
-            method_colocalisation_metric,
-        )
 
     def append_study_metadata(
         self: Colocalisation,

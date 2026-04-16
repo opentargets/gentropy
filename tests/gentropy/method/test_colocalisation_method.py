@@ -11,12 +11,15 @@ from typing import Any, cast
 
 import pytest
 from pandas.testing import assert_frame_equal
-from pyspark.sql import DataFrame, SparkSession
+from pydantic import ValidationError
+from pyspark.sql import SparkSession
 from pyspark.sql.types import DoubleType, StringType, StructField, StructType
 
 from gentropy.dataset.colocalisation import Colocalisation
 from gentropy.dataset.study_locus_overlap import StudyLocusOverlap
-from gentropy.method.colocalisation import Coloc, ColocPIP, ECaviar
+from gentropy.method.colocalisation.coloc import Coloc
+from gentropy.method.colocalisation.coloc_pip import ColocPIP
+from gentropy.method.colocalisation.ecaviar import ECaviar
 
 
 def test_coloc(mock_study_locus_overlap: StudyLocusOverlap) -> None:
@@ -277,12 +280,9 @@ def test_coloc_semantic(
         _schema=StudyLocusOverlap.get_schema(),
     )
 
-    observed_coloc_df = cast(
-        DataFrame,
-        Coloc.colocalise(
-            observed_overlap, overlap_size_cutoff=5, posterior_cutoff=0.1
-        ).df,
-    )
+    observed_coloc_df = Coloc.colocalise(
+        observed_overlap, overlap_size_cutoff=5, posterior_cutoff=0.1
+    ).df
 
     # Define schema for the expected DataFrame
     result_schema = StructType(
@@ -382,7 +382,7 @@ def test_coloc_no_logbf(
         ),
         StudyLocusOverlap.get_schema(),
     )
-    observed_coloc_df = cast(DataFrame, Coloc.colocalise(observed_overlap).df)
+    observed_coloc_df = Coloc.colocalise(observed_overlap).df
     row_h0 = observed_coloc_df.select("h0").collect()[0].asDict()
     assert row_h0["h0"] > minimum_expected_h0, (
         "COLOC should return a high h0 (no association) when the input data has irrelevant logBF."
@@ -448,7 +448,7 @@ def test_coloc_no_betas(spark: SparkSession) -> None:
         ),
         StudyLocusOverlap.get_schema(),
     )
-    observed_coloc_df = cast(DataFrame, Coloc.colocalise(observed_overlap).df)
+    observed_coloc_df = Coloc.colocalise(observed_overlap).df
     beta_ratio_row = (
         observed_coloc_df.select("betaRatioSignAverage").collect()[0].asDict()
     )
@@ -610,7 +610,7 @@ def test_coloc_pip_semantic(
         _schema=StudyLocusOverlap.get_schema(),
     )
 
-    observed_coloc_df = cast(DataFrame, ColocPIP.colocalise(observed_overlap).df)
+    observed_coloc_df = ColocPIP.colocalise(observed_overlap).df
 
     assert not observed_coloc_df.rdd.isEmpty(), (
         "ColocPIP should return results for valid overlaps"
@@ -738,7 +738,7 @@ def test_coloc_pip_priors(spark: SparkSession) -> None:
 
 def test_coloc_pip_type_error(mock_study_locus_overlap: StudyLocusOverlap) -> None:
     """Test that ColocPIP raises TypeError for incorrect prior types."""
-    with pytest.raises(TypeError):
+    with pytest.raises(ValidationError):
         ColocPIP.colocalise(
             mock_study_locus_overlap,
             priorc1="invalid",
