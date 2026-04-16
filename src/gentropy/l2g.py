@@ -429,7 +429,7 @@ class LocusToGeneStep:
         if output_path.startswith("gs://"):
             try:
                 spark_split_df = self.session.spark.createDataFrame(split_df)
-            except Exception as error:
+            except (TypeError, ValueError) as error:
                 raise ValueError(
                     f"Could not convert split dataframe to Spark DataFrame for path '{output_path}': {error}"
                 ) from error
