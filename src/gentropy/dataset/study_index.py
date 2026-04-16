@@ -901,7 +901,7 @@ class ProteinQuantitativeTraitLocusStudyIndex(StudyIndex):
         _symbol_annot_si = (
             self.df.withColumn("targetFromSource", f.explode("targetsFromSource"))
             .select(
-                *StudyIndex.get_schema().fieldNames(),
+                *[n for n in StudyIndex.get_schema().fieldNames() if n != "geneId"],
                 f.col("targetFromSource.geneId").alias("geneIdFromSource"),
                 f.col("targetFromSource.geneSymbol").alias("geneSymbol"),
                 f.col("targetFromSource.proteinId").alias("proteinId"),
