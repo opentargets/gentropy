@@ -11,6 +11,7 @@ from gentropy import Session
 from gentropy.decode_ingestion import (
     deCODEManifestGenerationStep,
     deCODESummaryStatisticsHarmonisationStep,
+    deCODESummaryStatisticsQCStep,
 )
 
 
@@ -155,7 +156,6 @@ class TestdeCODEIngestionStep:
 class TestdeCODESummaryStatisticsHarmonisationStep:
     """Test deCODESummaryStatisticsHarmonisationStep."""
 
-    @patch("gentropy.decode_ingestion.SummaryStatisticsQC")
     @patch("gentropy.decode_ingestion.deCODEStudyIndex")
     @patch("gentropy.decode_ingestion.AptamerMetadata")
     @patch("gentropy.decode_ingestion.MolecularComplex")
@@ -170,7 +170,6 @@ class TestdeCODESummaryStatisticsHarmonisationStep:
         molecular_complex_mock: MagicMock,
         aptamer_metadata_mock: MagicMock,
         study_index_mock: MagicMock,
-        qc_mock: MagicMock,
         session: Session,
         tmp_path: Path,
         decode_summary_statistics_df: DataFrame,
@@ -187,7 +186,6 @@ class TestdeCODESummaryStatisticsHarmonisationStep:
             tmp_path / "harmonised_summary_statistics"
         ).as_posix()
         protein_qtl_study_index_path = (tmp_path / "protein_qtl_study_index").as_posix()
-        qc_summary_statistics_path = (tmp_path / "qc_summary_statistics").as_posix()
 
         # Write raw summary statistics parquet (step reads it via spark.read.parquet)
         decode_summary_statistics_df.write.mode("overwrite").parquet(
@@ -226,19 +224,11 @@ class TestdeCODESummaryStatisticsHarmonisationStep:
 
         pqtl_si_instance = MagicMock()
         pqtl_si_instance.persist.return_value = pqtl_si_instance
-        pqtl_si_instance.annotate_sumstats_qc.return_value.df = (
-            decode_summary_statistics_df
-        )
+        pqtl_si_instance.df = decode_summary_statistics_df
         summary_statistics_mock.from_source.return_value = (
             harmonised_instance,
             pqtl_si_instance,
         )
-
-        # Mock SummaryStatisticsQC
-        qc_instance = MagicMock()
-        qc_instance.df = decode_summary_statistics_df
-        qc_instance.persist.return_value = qc_instance
-        qc_mock.from_summary_statistics.return_value = qc_instance
 
         deCODESummaryStatisticsHarmonisationStep(
             session=session,
@@ -249,7 +239,6 @@ class TestdeCODESummaryStatisticsHarmonisationStep:
             molecular_complex_path=molecular_complex_path,
             harmonised_summary_statistics_path=harmonised_summary_statistics_path,
             protein_qtl_study_index_path=protein_qtl_study_index_path,
-            qc_summary_statistics_path=qc_summary_statistics_path,
             min_mac_threshold=50,
             min_sample_size_threshold=30_000,
             flipping_window_size=10_000_000,
@@ -261,4 +250,66 @@ class TestdeCODESummaryStatisticsHarmonisationStep:
         summary_statistics_mock.from_source.assert_called_once()
         assert Path(harmonised_summary_statistics_path).exists()
         assert Path(protein_qtl_study_index_path).exists()
+
+
+class TestdeCODESummaryStatisticsQCStep:
+    """Test deCODESummaryStatisticsQCStep."""
+
+    @patch("gentropy.decode_ingestion.ProteinQuantitativeTraitLocusStudyIndex")
+    @patch("gentropy.decode_ingestion.SummaryStatisticsQC")
+    @patch("gentropy.decode_ingestion.SummaryStatistics")
+    def test_decode_summary_statistics_qc_step(
+        self,
+        summary_statistics_mock: MagicMock,
+        qc_mock: MagicMock,
+        study_index_mock: MagicMock,
+        session: Session,
+        tmp_path: Path,
+        decode_summary_statistics_df: DataFrame,
+        decode_study_index_df: DataFrame,
+    ) -> None:
+        """Test deCODESummaryStatisticsQCStep."""
+        harmonised_summary_statistics_path = (
+            tmp_path / "harmonised_summary_statistics"
+        ).as_posix()
+        protein_qtl_study_index_path = (tmp_path / "protein_qtl_study_index").as_posix()
+        qc_summary_statistics_path = (tmp_path / "qc_summary_statistics").as_posix()
+        protein_qtl_study_index_qc_annotated_path = (
+            tmp_path / "protein_qtl_study_index_qc_annotated"
+        ).as_posix()
+
+        hss_instance = MagicMock()
+        hss_instance.persist.return_value = hss_instance
+        summary_statistics_mock.from_parquet.return_value = hss_instance
+
+        hss_qc_instance = MagicMock()
+        hss_qc_instance.persist.return_value = hss_qc_instance
+        hss_qc_instance.df = decode_summary_statistics_df
+        qc_mock.from_summary_statistics.return_value = hss_qc_instance
+
+        pqtl_si_instance = MagicMock()
+        pqtl_si_instance.persist.return_value = pqtl_si_instance
+        annotated_pqtl_si_instance = MagicMock()
+        annotated_pqtl_si_instance.df = decode_study_index_df
+        pqtl_si_instance.annotate_sumstats_qc.return_value = annotated_pqtl_si_instance
+        study_index_mock.from_parquet.return_value = pqtl_si_instance
+
+        deCODESummaryStatisticsQCStep(
+            session=session,
+            harmonised_summary_statistics_path=harmonised_summary_statistics_path,
+            protein_qtl_study_index_path=protein_qtl_study_index_path,
+            qc_summary_statistics_path=qc_summary_statistics_path,
+            protein_qtl_study_index_qc_annotated_path=protein_qtl_study_index_qc_annotated_path,
+            pval_threshold=5e-8,
+        )
+
+        summary_statistics_mock.from_parquet.assert_called_once_with(
+            session, harmonised_summary_statistics_path
+        )
+        qc_mock.from_summary_statistics.assert_called_once_with(hss_instance, 5e-8)
+        study_index_mock.from_parquet.assert_called_once_with(
+            session, protein_qtl_study_index_path
+        )
+        pqtl_si_instance.annotate_sumstats_qc.assert_called_once_with(hss_qc_instance)
         assert Path(qc_summary_statistics_path).exists()
+        assert Path(protein_qtl_study_index_qc_annotated_path).exists()

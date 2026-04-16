@@ -52,7 +52,7 @@ class WindowBasedClumpingStep:
             study_ids_to_ingest = [summary_statistics_input_path]
 
         ss = SummaryStatistics.from_parquet(
-            session, study_ids_to_ingest, recursive_file_lookup=recursive_file_lookup
+            session, study_ids_to_ingest, recursiveFileLookup=recursive_file_lookup
         )
 
         # Clumping:
