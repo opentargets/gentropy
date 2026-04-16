@@ -10,6 +10,7 @@ from gentropy.config import (
     BiosampleIndexConfig,
     ColocalisationConfig,
     Config,
+    LocusToGeneConfig,
     SessionConfig,
     StepConfig,
     register_config,
@@ -136,6 +137,16 @@ class TestBiosampleIndexConfig:
 
         for expected in expected_fields:
             assert expected in config_fields, f"Missing field: {expected}"
+
+
+class TestLocusToGeneConfig:
+    """Test LocusToGeneConfig."""
+
+    def test_locus_to_gene_config_has_train_test_parquet_fields(self) -> None:
+        """Test that LocusToGeneConfig exposes train and test parquet output paths."""
+        config_fields = {f.name for f in fields(LocusToGeneConfig)}
+        assert "training_set" in config_fields
+        assert "test_set" in config_fields
 
 
 def test_register_config() -> None:

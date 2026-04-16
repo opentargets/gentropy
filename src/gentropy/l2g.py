@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+import pandas as pd
 import pyspark.sql.functions as f
 from wandb.sdk.wandb_login import login as wandb_login
 from xgboost import XGBClassifier
@@ -151,6 +152,8 @@ class LocusToGeneStep:
         hf_hub_repo_id: str | None = None,
         hf_model_commit_message: str | None = "chore: update model",
         hf_model_version: str | None = None,
+        training_set: str | None = None,
+        test_set: str | None = None,
         explain_predictions: bool | None = None,
     ) -> None:
         """Initialise the step and run the logic based on mode.
@@ -174,6 +177,8 @@ class LocusToGeneStep:
             hf_hub_repo_id (str | None): Hugging Face Hub repository ID. If provided, the model will be uploaded to Hugging Face.
             hf_model_commit_message (str | None): Commit message when we upload the model to the Hugging Face Hub
             hf_model_version (str | None): Tag, branch, or commit hash to download the model from the Hub. If None, the latest commit is downloaded.
+            training_set (str | None): Optional output path where the train parquet split should be saved.
+            test_set (str | None): Optional output path where the test parquet split should be saved.
             explain_predictions (bool | None): Whether to extract SHAP importances for the L2G predictions. This is computationally expensive.
 
         Raises:
@@ -195,6 +200,8 @@ class LocusToGeneStep:
         self.download_from_hub = download_from_hub
         self.hf_model_commit_message = hf_model_commit_message
         self.l2g_threshold = l2g_threshold or 0.0
+        self.training_set = training_set
+        self.test_set = test_set
         self.gold_standard_curation_path = gold_standard_curation_path
         self.gene_interactions_path = gene_interactions_path
         self.variant_index_path = variant_index_path
@@ -378,9 +385,17 @@ class LocusToGeneStep:
         feature_matrix = self._annotate_gold_standards_w_feature_matrix()
 
         # Run the training
-        trained_model = LocusToGeneTrainer(
+        trainer = LocusToGeneTrainer(
             model=l2g_model, feature_matrix=feature_matrix
-        ).train(wandb_run_name=self.wandb_run_name, cross_validate=self.cross_validate)
+        )
+        trained_model = trainer.train(
+            wandb_run_name=self.wandb_run_name, cross_validate=self.cross_validate
+        )
+
+        if self.training_set and trainer.train_df is not None:
+            self._save_split_parquet(trainer.train_df, self.training_set)
+        if self.test_set and trainer.test_df is not None:
+            self._save_split_parquet(trainer.test_df, self.test_set)
 
         # Export the model
         if trained_model.training_data and trained_model.model and self.model_path:
@@ -397,6 +412,23 @@ class LocusToGeneStep:
                     repo_id=self.hf_hub_repo_id,
                     commit_message=self.hf_model_commit_message,
                 )
+
+    def _save_split_parquet(self, split_df: pd.DataFrame, output_path: str) -> None:
+        """Persist train/test split data to parquet using pandas.
+
+        Args:
+            split_df (pd.DataFrame): Split dataframe to be persisted.
+            output_path (str): Destination path. Supports local paths and gs:// paths.
+
+        Raises:
+            ValueError: If writing the split parquet fails.
+        """
+        try:
+            split_df.to_parquet(output_path, index=False)
+        except (OSError, ValueError, ImportError, PermissionError) as error:
+            raise ValueError(
+                f"Failed to write split parquet to '{output_path}'. Ensure parquet dependencies and path access are configured: {error}"
+            ) from error
 
     def _annotate_gold_standards_w_feature_matrix(self) -> L2GFeatureMatrix:
         """Generate the feature matrix of annotated gold standards.
