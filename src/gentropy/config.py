@@ -352,6 +352,8 @@ class LocusToGeneConfig(StepConfig):
     hf_hub_repo_id: str | None = None
     hf_model_commit_message: str | None = None
     hf_model_version: str | None = None
+    train_parquet_path: str | None = None
+    test_parquet_path: str | None = None
     download_from_hub: bool = True
     cross_validate: bool = True
     explain_predictions: bool | None = False
