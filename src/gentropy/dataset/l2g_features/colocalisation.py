@@ -28,7 +28,7 @@ def extract_maximum_coloc_probability_per_region_and_gene(
     study_index: StudyIndex,
     *,
     filter_by_colocalisation_method: str,
-    filter_by_qtls: str | list[str] | None = None,
+    filter_by_qtls: list[str] | None = None,
 ) -> DataFrame:
     """Get maximum colocalisation probability for a (studyLocus, gene) window.
 
@@ -37,13 +37,14 @@ def extract_maximum_coloc_probability_per_region_and_gene(
         study_locus (StudyLocus): Dataset containing study loci to filter the colocalisation dataset on and the geneId linked to the region
         study_index (StudyIndex): Study index to use to get study metadata
         filter_by_colocalisation_method (str): optional filter to apply on the colocalisation dataset
-        filter_by_qtls (str | list[str] | None): optional filter to apply on the colocalisation dataset
+        filter_by_qtls (list[str] | None): optional filter to apply on the colocalisation dataset
 
     Returns:
         DataFrame: table with the maximum colocalisation scores for the provided study loci
 
     Raises:
-        ValueError: if filter_by_qtl is not in the list of valid QTL types or is not in the list of valid colocalisation methods
+        InvalidColocalisationMethodError: if `filter_by_colocalisation_method` is not a valid colocalisation method
+        ValueError: if `filter_by_qtls` is not in the list of valid QTL types
     """
     from gentropy.common.spark import get_record_with_maximum_value
     from gentropy.datasource.eqtl_catalogue import StudyType

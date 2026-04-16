@@ -737,7 +737,7 @@ def test_coloc_pip_priors(spark: SparkSession) -> None:
 
 
 def test_coloc_pip_type_error(mock_study_locus_overlap: StudyLocusOverlap) -> None:
-    """Test that ColocPIP raises TypeError for incorrect prior types."""
+    """Test that ColocPIP raises ValidationError for incorrect prior types."""
     with pytest.raises(ValidationError):
         ColocPIP.colocalise(
             mock_study_locus_overlap,

@@ -223,7 +223,7 @@ class TestColocalisationStep:
         """Test colocalisation method enum."""
         method = ColocalisationMethod.get_method_class(label)
         assert method is expected_method, (
-            "Incorrect colocalisation class returned by ColocalisationStep._get_colocalisation_class(label)"
+            "Incorrect colocalisation class returned by ColocalisationMethod.get_method_class(label)"
         )
 
     def test_label_with_invalid_method(self) -> None:

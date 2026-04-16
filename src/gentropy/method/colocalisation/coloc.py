@@ -86,7 +86,7 @@ class Coloc(ColocalisationMethodInterface):
             Colocalisation: Colocalisation results
 
         Raises:
-            TypeError: When passed incorrect prior argument types.
+            TypeError: When passed incorrect keyword argument types.
         """
         config = _ColocConfig(**kwargs)
         # register udfs

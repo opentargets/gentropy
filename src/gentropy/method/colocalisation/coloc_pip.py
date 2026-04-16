@@ -60,7 +60,7 @@ class ColocPIP(ColocalisationMethodInterface):
             Colocalisation: Colocalisation results
 
         Raises:
-            TypeError: When passed incorrect prior argument types.
+            ValidationError: When passed incorrect prior argument types.
         """
         config = _ColocPIPConfig(**kwargs)
 

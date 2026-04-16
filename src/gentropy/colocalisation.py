@@ -21,7 +21,7 @@ class ColocalisationMethodParams(TypedDict):
     priorc12: NotRequired[float]
     """Prior on variant being causal for both traits. Defaults to 1e-5. For coloc, coloc_pip, coloc_pip_ecaviar method only."""
     overlap_size_cutoff: NotRequired[int]
-    """Minimum number of overlapping variants bfore filtering. Defaults to 0. For coloc method only."""
+    """Minimum number of overlapping variants before filtering. Defaults to 0. For coloc method only."""
     posterior_cutoff: NotRequired[float]
     """Minimum overlapping Posterior probability cutoff for small overlaps. Defaults to 0.0. For coloc method only."""
     pseudocutoff: NotRequired[float]
@@ -63,7 +63,7 @@ class ColocalisationStep:
             priorc1 (float): Prior on variant being causal for trait 1. Defaults to 1e-4. For coloc method only.
             priorc2 (float): Prior on variant being causal for trait 2. Defaults to 1e-4. For coloc method only.
             priorc12 (float): Prior on variant being causal for both traits. Defaults to 1e-5. For coloc method only.
-            overlap_size_cutoff (int): Minimum number of overlapping variants bfore filtering. Defaults to 0.
+            overlap_size_cutoff (int): Minimum number of overlapping variants before filtering. Defaults to 0.
             posterior_cutoff (float): Minimum overlapping Posterior probability cutoff for small overlaps. Defaults to 0.0.
             pseudocutoff (float): Pseudocount to avoid log(0). Defaults to 1e-10. For coloc method only.
         """
