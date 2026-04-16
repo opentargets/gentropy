@@ -216,6 +216,8 @@ class HeritabilityEstimateStep:
         """
         return self.session.spark.read.parquet(self.study_index_input_path).select(
             "studyId",
+            "nCases",
+            "nControls",
             "nSamples",
             "ldPopulationStructure",
             "analysisFlags",
@@ -256,21 +258,33 @@ class HeritabilityEstimateStep:
         pos_col = "position"
         study_col = "studyId"
 
-        n_df = study_index_df.select("studyId", "nSamples")
+        n_df = study_index_df.select("studyId", "nSamples", "nCases", "nControls")
+
+        neff_expr = (
+            4.0
+            * F.col("nCases").cast("double")
+            * F.col("nControls").cast("double")
+            / (F.col("nCases").cast("double") + F.col("nControls").cast("double"))
+        )
+
+        fallback_n_expr = F.when(
+            F.col("nCases").isNotNull()
+            & F.col("nControls").isNotNull()
+            & (F.col("nCases") > 0)
+            & (F.col("nControls") > 0),
+            neff_expr,
+        ).otherwise(F.col("nSamples").cast("double"))
 
         return (
             sumstats_df.join(n_df, on=study_col, how="left")
             .withColumn(
                 n_col,
-                F.when(F.col(n_col).isNull(), F.col("nSamples").cast("double")).otherwise(
-                    F.col(n_col).cast("double")
-                ),
+                F.when(F.col(n_col).isNull(), fallback_n_expr).otherwise(F.col(n_col).cast("double")),
             )
             .withColumn("variant_parts", F.split(F.col("variantId"), "_"))
             .withColumn("ref", F.col("variant_parts").getItem(2))
             .withColumn("alt", F.col("variant_parts").getItem(3))
-            .drop("variant_parts", "nSamples")
-            #.filter(F.col("effectAlleleFrequencyFromSource") > 0.01)
+            .drop("variant_parts", "nSamples", "nCases", "nControls")
             .filter(F.col(beta_col).isNotNull())
             .filter(F.col(se_col).isNotNull())
             .filter(F.col(n_col).isNotNull())
