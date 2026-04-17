@@ -932,14 +932,14 @@ class StudyLocus(Dataset):
 
         left = restrict_studies(loci_to_overlap, restrict_left_studies).persist(StorageLevel.MEMORY_AND_DISK)
         right = restrict_studies(loci_to_overlap, restrict_right_studies).persist(StorageLevel.MEMORY_AND_DISK)
-
+        left.count()  # Action to persist the left dataframe
+        right.count()  # Action to persist the right dataframe
         # overlapping study-locus
         peak_overlaps = self._overlapping_peaks(
             left=left,
             right=right,
             overlap_expression=overlap_expression,
         )
-        loci_to_overlap.unpersist()
 
         # study-locus overlap by aligning overlapping variants
         overlapping_peaks = self._align_overlapping_tags(left, right, peak_overlaps).df.persist(StorageLevel.MEMORY_AND_DISK)
