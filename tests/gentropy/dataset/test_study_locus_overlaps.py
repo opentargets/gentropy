@@ -9,7 +9,7 @@ import pyspark.sql.types as t
 import pytest
 
 from gentropy.dataset.study_locus import StudyLocus
-from gentropy.dataset.study_locus_overlap import StudyLocusOverlap
+from gentropy.dataset.study_locus_overlap import OverlapType, StudyLocusOverlap
 
 if TYPE_CHECKING:
     from pyspark.sql import SparkSession
@@ -26,6 +26,21 @@ def test_study_locus_overlap_from_associations(mock_study_locus: StudyLocus) -> 
     """Test colocalisation creation from mock associations."""
     overlaps = StudyLocusOverlap.from_associations(mock_study_locus)
     assert isinstance(overlaps, StudyLocusOverlap)
+
+
+def _collect_overlap_pairs(df: Any) -> set[tuple[str, str, str, str]]:
+    """Collect overlap rows as a comparable set of tuples."""
+    return {
+        (
+            row["leftStudyLocusId"],
+            row["rightStudyLocusId"],
+            row["rightStudyType"],
+            row["chromosome"],
+        )
+        for row in df.select(
+            "leftStudyLocusId", "rightStudyLocusId", "rightStudyType", "chromosome"
+        ).collect()
+    }
 
 
 @pytest.mark.parametrize(
@@ -84,10 +99,10 @@ def test_study_locus_overlap_from_associations(mock_study_locus: StudyLocus) -> 
                 },
             ],
             "restrict_right_studies": None,
-            "gwas_v_qtl_overlap_only": False,
+            "overlap_type": OverlapType.GWAS_VS_ALL,
         },
         {
-            "id": "gwas_v_qtl_only",
+            "id": "gwas_vs_qtl_only",
             "rows": [
                 {
                     "studyLocusId": "10",
@@ -130,7 +145,7 @@ def test_study_locus_overlap_from_associations(mock_study_locus: StudyLocus) -> 
                 },
             ],
             "restrict_right_studies": None,
-            "gwas_v_qtl_overlap_only": True,
+            "overlap_type": OverlapType.GWAS_VS_QTL,
         },
         {
             "id": "restrict_right_studies_qtl",
@@ -176,7 +191,7 @@ def test_study_locus_overlap_from_associations(mock_study_locus: StudyLocus) -> 
                 },
             ],
             "restrict_right_studies": ["EQTL_B"],
-            "gwas_v_qtl_overlap_only": False,
+            "overlap_type": OverlapType.GWAS_VS_QTL,
         },
         {
             "id": "restrict_right_studies_gwas_right",
@@ -217,7 +232,7 @@ def test_study_locus_overlap_from_associations(mock_study_locus: StudyLocus) -> 
                 },
             ],
             "restrict_right_studies": ["GWAS_REF"],
-            "gwas_v_qtl_overlap_only": False,
+            "overlap_type": OverlapType.GWAS_VS_ALL,
         },
         {
             "id": "no_overlaps",
@@ -241,7 +256,85 @@ def test_study_locus_overlap_from_associations(mock_study_locus: StudyLocus) -> 
             ],
             "expected": [],
             "restrict_right_studies": None,
-            "gwas_v_qtl_overlap_only": False,
+            "overlap_type": OverlapType.GWAS_VS_ALL,
+        },
+        {
+            "id": "gwas_vs_gwas_only",
+            "rows": [
+                {
+                    "studyLocusId": "20",
+                    "studyId": "GWAS_A",
+                    "studyType": "gwas",
+                    "chromosome": "6",
+                    "region": None,
+                    "tagVariantId": "G1",
+                },
+                {
+                    "studyLocusId": "10",
+                    "studyId": "GWAS_B",
+                    "studyType": "gwas",
+                    "chromosome": "6",
+                    "region": None,
+                    "tagVariantId": "G1",
+                },
+                {
+                    "studyLocusId": "30",
+                    "studyId": "EQTL_A",
+                    "studyType": "eqtl",
+                    "chromosome": "6",
+                    "region": None,
+                    "tagVariantId": "G1",
+                },
+            ],
+            "expected": [
+                {
+                    "leftStudyLocusId": "20",
+                    "rightStudyLocusId": "10",
+                    "rightStudyType": "gwas",
+                    "chromosome": "6",
+                },
+            ],
+            "restrict_right_studies": None,
+            "overlap_type": OverlapType.GWAS_VS_GWAS,
+        },
+        {
+            "id": "qtl_vs_qtl_only",
+            "rows": [
+                {
+                    "studyLocusId": "41",
+                    "studyId": "EQTL_A",
+                    "studyType": "eqtl",
+                    "chromosome": "7",
+                    "region": None,
+                    "tagVariantId": "Q1",
+                },
+                {
+                    "studyLocusId": "40",
+                    "studyId": "PQTL_A",
+                    "studyType": "pqtl",
+                    "chromosome": "7",
+                    "region": None,
+                    "tagVariantId": "Q1",
+                },
+                {
+                    "studyLocusId": "50",
+                    "studyId": "GWAS_A",
+                    "studyType": "gwas",
+                    "chromosome": "7",
+                    "region": None,
+                    "tagVariantId": "Q1",
+                },
+            ],
+            "expected": [
+                {
+                    "leftStudyLocusId": "41",
+                    "rightStudyLocusId": "40",
+                    "rightStudyType": "pqtl",
+                    "chromosome": "7",
+                },
+            ],
+            "restrict_right_studies": None,
+            "overlap_type": OverlapType.QTL_VS_QTL,
         },
     ],
     ids=lambda s: s["id"],
@@ -262,14 +355,20 @@ def test_overlapping_peaks_join_conditions(
     )
     df = spark.createDataFrame(scenario["rows"], schema=schema)
 
+    right = (
+        df.filter(f.col("studyId").isin(scenario["restrict_right_studies"]))
+        if scenario["restrict_right_studies"] is not None
+        else df
+    )
+
     result = StudyLocus._overlapping_peaks(
-        df,
-        restrict_right_studies=scenario["restrict_right_studies"],
-        gwas_v_qtl_overlap_only=scenario["gwas_v_qtl_overlap_only"],
-    ).select("leftStudyLocusId", "rightStudyLocusId", "rightStudyType", "chromosome")
+        left=df,
+        right=right,
+        overlap_expression=OverlapType.expression(scenario["overlap_type"]),
+    )
 
     # Collect and compare as sets (ordering not guaranteed)
-    observed = {tuple(r.asDict().items()) for r in result.collect()}
+    observed = _collect_overlap_pairs(result)
     expected_df = spark.createDataFrame(
         scenario["expected"],
         t.StructType(
@@ -281,17 +380,17 @@ def test_overlapping_peaks_join_conditions(
             ]
         ),
     )
-    expected = {tuple(r.asDict().items()) for r in expected_df.collect()}
+    expected = _collect_overlap_pairs(expected_df)
 
     assert observed == expected, (
         f"Scenario {scenario['id']} failed.\nObserved: {observed}\nExpected: {expected}"
     )
 
     # Additional invariant checks
-    if scenario["gwas_v_qtl_overlap_only"]:
+    if scenario["overlap_type"] == OverlapType.GWAS_VS_QTL:
         # Ensure no GWAS-GWAS pairs
         assert result.filter(f.col("rightStudyType") == "gwas").count() == 0, (
-            "GWAS-GWAS pair leaked in gwas_v_qtl_overlap_only mode."
+            "GWAS-GWAS pair leaked in gwas_vs_qtl mode."
         )
 
     if scenario["restrict_right_studies"] is not None:
@@ -313,6 +412,192 @@ def test_overlapping_peaks_join_conditions(
         )
 
 
+def test_overlapping_peaks_restrict_right_studies_column_expression(
+    spark: SparkSession,
+) -> None:
+    """Test overlap filtering when right side restriction is a column expression."""
+    rows = [
+        {
+            "studyLocusId": "40",
+            "studyId": "GWAS_KEEP",
+            "studyType": "gwas",
+            "chromosome": "3",
+            "region": None,
+            "tagVariantId": "Z",
+        },
+        {
+            "studyLocusId": "30",
+            "studyId": "GWAS_DROP",
+            "studyType": "gwas",
+            "chromosome": "3",
+            "region": None,
+            "tagVariantId": "Z",
+        },
+        {
+            "studyLocusId": "20",
+            "studyId": "EQTL_KEEP",
+            "studyType": "eqtl",
+            "chromosome": "3",
+            "region": None,
+            "tagVariantId": "Z",
+        },
+        {
+            "studyLocusId": "10",
+            "studyId": "PQTL_KEEP",
+            "studyType": "pqtl",
+            "chromosome": "3",
+            "region": None,
+            "tagVariantId": "Z",
+        },
+    ]
+    schema = t.StructType(
+        [
+            t.StructField("studyLocusId", t.StringType()),
+            t.StructField("studyId", t.StringType()),
+            t.StructField("studyType", t.StringType()),
+            t.StructField("chromosome", t.StringType()),
+            t.StructField("region", t.StringType()),
+            t.StructField("tagVariantId", t.StringType()),
+        ]
+    )
+    df = spark.createDataFrame(rows, schema=schema)
+
+    result = StudyLocus._overlapping_peaks(
+        left=df,
+        right=df.filter(f.col("studyType") != f.lit("gwas")),
+        overlap_expression=OverlapType.expression("gwas_vs_qtl"),
+    )
+
+    assert _collect_overlap_pairs(result) == {
+        ("40", "20", "eqtl", "3"),
+        ("40", "10", "pqtl", "3"),
+        ("30", "20", "eqtl", "3"),
+        ("30", "10", "pqtl", "3"),
+    }
+
+
+def test_overlapping_peaks_restrict_left_studies_list(spark: SparkSession) -> None:
+    """Test overlap filtering when left side restriction is a list of study IDs."""
+    rows = [
+        {
+            "studyLocusId": "40",
+            "studyId": "GWAS_KEEP",
+            "studyType": "gwas",
+            "chromosome": "3",
+            "region": None,
+            "tagVariantId": "Z",
+        },
+        {
+            "studyLocusId": "30",
+            "studyId": "GWAS_DROP",
+            "studyType": "gwas",
+            "chromosome": "3",
+            "region": None,
+            "tagVariantId": "Z",
+        },
+        {
+            "studyLocusId": "20",
+            "studyId": "EQTL_KEEP",
+            "studyType": "eqtl",
+            "chromosome": "3",
+            "region": None,
+            "tagVariantId": "Z",
+        },
+        {
+            "studyLocusId": "10",
+            "studyId": "PQTL_KEEP",
+            "studyType": "pqtl",
+            "chromosome": "3",
+            "region": None,
+            "tagVariantId": "Z",
+        },
+    ]
+    schema = t.StructType(
+        [
+            t.StructField("studyLocusId", t.StringType()),
+            t.StructField("studyId", t.StringType()),
+            t.StructField("studyType", t.StringType()),
+            t.StructField("chromosome", t.StringType()),
+            t.StructField("region", t.StringType()),
+            t.StructField("tagVariantId", t.StringType()),
+        ]
+    )
+    df = spark.createDataFrame(rows, schema=schema)
+
+    result = StudyLocus._overlapping_peaks(
+        left=df.filter(f.col("studyId").isin(["GWAS_KEEP"])),
+        right=df,
+        overlap_expression=OverlapType.expression("gwas_vs_qtl"),
+    )
+
+    assert _collect_overlap_pairs(result) == {
+        ("40", "20", "eqtl", "3"),
+        ("40", "10", "pqtl", "3"),
+    }
+
+
+def test_overlapping_peaks_restrict_left_studies_column_expression(
+    spark: SparkSession,
+) -> None:
+    """Test overlap filtering when left side restriction is a column expression."""
+    rows = [
+        {
+            "studyLocusId": "40",
+            "studyId": "GWAS_KEEP",
+            "studyType": "gwas",
+            "chromosome": "3",
+            "region": None,
+            "tagVariantId": "Z",
+        },
+        {
+            "studyLocusId": "30",
+            "studyId": "GWAS_DROP",
+            "studyType": "gwas",
+            "chromosome": "3",
+            "region": None,
+            "tagVariantId": "Z",
+        },
+        {
+            "studyLocusId": "20",
+            "studyId": "EQTL_KEEP",
+            "studyType": "eqtl",
+            "chromosome": "3",
+            "region": None,
+            "tagVariantId": "Z",
+        },
+        {
+            "studyLocusId": "10",
+            "studyId": "PQTL_KEEP",
+            "studyType": "pqtl",
+            "chromosome": "3",
+            "region": None,
+            "tagVariantId": "Z",
+        },
+    ]
+    schema = t.StructType(
+        [
+            t.StructField("studyLocusId", t.StringType()),
+            t.StructField("studyId", t.StringType()),
+            t.StructField("studyType", t.StringType()),
+            t.StructField("chromosome", t.StringType()),
+            t.StructField("region", t.StringType()),
+            t.StructField("tagVariantId", t.StringType()),
+        ]
+    )
+    df = spark.createDataFrame(rows, schema=schema)
+
+    result = StudyLocus._overlapping_peaks(
+        left=df.filter(f.col("studyId") == f.lit("GWAS_DROP")),
+        right=df,
+        overlap_expression=OverlapType.expression(OverlapType.GWAS_VS_QTL.value),
+    )
+
+    assert _collect_overlap_pairs(result) == {
+        ("30", "20", "eqtl", "3"),
+        ("30", "10", "pqtl", "3"),
+    }
+
+
 class TestStudyLocusOverlap:
     """Test the overlapping of StudyLocus dataset."""
 
@@ -325,7 +610,9 @@ class TestStudyLocusOverlap:
         self.study_locus = study_locus_sample_for_colocalisation
 
         # Call locus overlap:
-        self.overlaps = study_locus_sample_for_colocalisation.find_overlaps()
+        self.overlaps = study_locus_sample_for_colocalisation.find_overlaps(
+            OverlapType.GWAS_VS_ALL
+        )
 
     def test_coloc_return_type(self: TestStudyLocusOverlap) -> None:
         """Test get_schema."""
@@ -337,4 +624,4 @@ class TestStudyLocusOverlap:
 
     def test_coloc_study_type_not_null(self: TestStudyLocusOverlap) -> None:
         """Test get_schema."""
-        assert self.overlaps.filter(f.col("rightStudyType").isNull()).df.count() == 0
+        assert self.overlaps.df.filter(f.col("rightStudyType").isNull()).count() == 0

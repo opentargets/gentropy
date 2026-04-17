@@ -44,7 +44,7 @@ class ColocalisationConfig(StepConfig):
     coloc_path: str = MISSING
     colocalisation_method: str = MISSING
     restrict_right_studies: list[str] | None = None
-    gwas_v_qtl_overlap_only: bool = False
+    gwas_vs_qtl_overlap_only: bool = False
     colocalisation_method_params: dict[str, Any] = field(default_factory=dict[str, Any])
     _target_: str = "gentropy.colocalisation.ColocalisationStep"
 

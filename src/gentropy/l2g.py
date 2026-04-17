@@ -19,6 +19,7 @@ from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
 from gentropy.dataset.l2g_prediction import L2GPrediction
 from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import StudyLocus
+from gentropy.dataset.study_locus_overlap import OverlapType
 from gentropy.dataset.target_index import TargetIndex
 from gentropy.dataset.variant_index import VariantIndex
 from gentropy.external.gcs import access_gcp_secret
@@ -307,7 +308,7 @@ class LocusToGeneStep:
                         how="inner",
                     ),
                     _schema=StudyLocus.get_schema(),
-                ).find_overlaps()
+                ).find_overlaps(OverlapType.GWAS_VS_ALL)
 
                 return L2GGoldStandard.from_otg_curation(
                     gold_standard_curation=otg_curation,

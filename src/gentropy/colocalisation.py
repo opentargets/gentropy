@@ -8,6 +8,7 @@ import pyspark.sql.functions as f
 
 from gentropy.common.session import Session
 from gentropy.dataset.study_locus import FinemappingMethod, StudyLocus
+from gentropy.dataset.study_locus_overlap import OverlapType
 from gentropy.method.colocalisation import ColocalisationMethod
 
 
@@ -43,7 +44,7 @@ class ColocalisationStep:
             "coloc", "ecaviar", "coloc_pip", "coloc_pip_ecaviar"
         ],
         restrict_right_studies: list[str] | None = None,
-        gwas_v_qtl_overlap_only: bool = False,
+        overlap_mode: Literal["gwas_vs_gwas", "gwas_vs_qtl", "qtl_vs_qtl", "gwas_vs_all"] = "gwas_vs_all",
         colocalisation_method_params: ColocalisationMethodParams | None = None,
     ) -> None:
         """Run Colocalisation step.
@@ -56,7 +57,7 @@ class ColocalisationStep:
             coloc_path (str): Output path.
             colocalisation_method (Literal["coloc", "ecaviar", "coloc_pip", "coloc_pip_ecaviar"]): Colocalisation method. Use 'coloc_pip_ecaviar' to run both ColocPIP and eCAVIAR and merge results.
             restrict_right_studies (list[str] | None): List of study IDs to restrict the right side of the colocalisation overlaps to, e.g. all gwas vs a single studyId. Defaults to None.
-            gwas_v_qtl_overlap_only (bool): If True, restricts the right side of colocalisation overlaps to only molecular-QTL studies, e.g. all gwas vs all molQTLs. Defaults to False.
+            overlap_mode (Literal["gwas_vs_gwas", "gwas_vs_qtl", "qtl_vs_qtl", "gwas_vs_all"]): Mode of overlap for colocalisation analysis. Defaults to "gwas_vs_all".
             colocalisation_method_params (ColocalisationMethodParams | None): Keyword arguments passed to the colocalise method of Colocalisation class. Defaults to None
 
         Keyword Args:
@@ -74,10 +75,9 @@ class ColocalisationStep:
             cs = cs.filter(
                 f.col("finemappingMethod").isin(FinemappingMethod.methods_with_lbf())
             )
-
         overlaps = cs.find_overlaps(
+            overlap_type=OverlapType(overlap_mode),
             restrict_right_studies=restrict_right_studies,
-            gwas_v_qtl_overlap_only=gwas_v_qtl_overlap_only,
         )
         params = colocalisation_method_params or {}
         result = cm.colocalise(overlapping_signals=overlaps, **params)

@@ -31,7 +31,7 @@ from gentropy.dataset.study_locus import (
     StudyLocus,
     StudyLocusQualityCheck,
 )
-from gentropy.dataset.study_locus_overlap import StudyLocusOverlap
+from gentropy.dataset.study_locus_overlap import OverlapType, StudyLocusOverlap
 from gentropy.dataset.summary_statistics import SummaryStatistics
 from gentropy.dataset.target_index import TargetIndex
 from gentropy.dataset.variant_index import VariantIndex
@@ -146,14 +146,18 @@ def test_find_overlaps_semantic(
         "statistics.right_posteriorProbability",
     ]
     assert (
-        credset.find_overlaps().df.select(*cols_to_compare).collect()
+        credset.find_overlaps(OverlapType.GWAS_VS_ALL)
+        .df.select(*cols_to_compare)
+        .collect()
         == expected_overlaps_df.select(*cols_to_compare).collect()
     ), "Overlaps differ from expected."
 
 
 def test_find_overlaps(mock_study_locus: StudyLocus) -> None:
     """Test study locus overlaps."""
-    assert isinstance(mock_study_locus.find_overlaps(), StudyLocusOverlap)
+    assert isinstance(
+        mock_study_locus.find_overlaps(OverlapType.GWAS_VS_ALL), StudyLocusOverlap
+    )
 
 
 def test_annotate_locus_statistics(
