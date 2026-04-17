@@ -529,7 +529,6 @@ class StudyLocus(Dataset):
             "studyId",
             "studyType",
             "chromosome",
-            "region",
             "tagVariantId",
         )
         right = right.select(
@@ -537,7 +536,6 @@ class StudyLocus(Dataset):
             "studyId",
             "studyType",
             "chromosome",
-            "region",
             "tagVariantId",
         )
 
@@ -555,6 +553,7 @@ class StudyLocus(Dataset):
                 f.col("right.studyType").alias("rightStudyType"),
                 f.col("left.chromosome").alias("chromosome"),
             )
+            .repartition("chromosome")
             .distinct()
         )
 
@@ -572,7 +571,6 @@ class StudyLocus(Dataset):
         Returns:
             StudyLocusOverlap: Pairs of overlapping study-locus with aligned tags.
         """
-        # Complete information about all tags in the left study-locus of the overlap
         stats_cols = [
             "logBF",
             "posteriorProbability",
@@ -580,6 +578,11 @@ class StudyLocus(Dataset):
             "pValueMantissa",
             "pValueExponent",
         ]
+        # Persist the overlapping peaks, as this will be used in
+        # rejoining with the left and right dataframes.
+        peak_overlaps = peak_overlaps.persist(StorageLevel.MEMORY_AND_DISK)
+
+        # Complete information about all tags in the left study-locus of the overlap
         overlapping_left = (
             left.select(
                 f.col("chromosome"),
@@ -588,7 +591,6 @@ class StudyLocus(Dataset):
                 *[f.col(col).alias(f"left_{col}") for col in stats_cols],
             )
             .join(peak_overlaps, on=["chromosome", "leftStudyLocusId"], how="inner")
-            .persist(storageLevel=StorageLevel.MEMORY_AND_DISK)
         )
 
         # Complete information about all tags in the right study-locus of the overlap
@@ -600,7 +602,6 @@ class StudyLocus(Dataset):
                 *[f.col(col).alias(f"right_{col}") for col in stats_cols],
             )
             .join(peak_overlaps, on=["chromosome", "rightStudyLocusId"], how="inner")
-            .persist(storageLevel=StorageLevel.MEMORY_AND_DISK)
         )
 
         # Include information about all tag variants in both study-locus aligned by tag variant id
@@ -625,11 +626,9 @@ class StudyLocus(Dataset):
             ).alias("statistics"),
         )
         sio = StudyLocusOverlap(
-            _df=overlaps.persist(storageLevel=StorageLevel.MEMORY_AND_DISK),
+            _df=overlaps,
             _schema=StudyLocusOverlap.get_schema(),
         )
-        overlapping_left.unpersist()
-        overlapping_right.unpersist()
         return sio
 
     @staticmethod
@@ -892,7 +891,7 @@ class StudyLocus(Dataset):
         can restrict the overlaps to just GWAS vs Molecular traits.
 
         Args:
-            overlap_type (OverlapType): Type of overlaps to find. Options are "gwas_vs_qtl", "gwas_vs_all", "gwas_vs_gwas", "qtl_vs_qtl". Default is None, which means all overlaps are computed.
+            overlap_type (OverlapType): Type of overlaps to find. Options are "gwas_vs_qtl", "gwas_vs_all", "gwas_vs_gwas", "qtl_vs_qtl".
             restrict_right_studies (list[str] | Column | None): List of studyIds or column expression to restrict finding overlaps on the right side. Default is None, which means no restriction.
             restrict_left_studies (list[str] | Column | None): List of studyIds or column expression to restrict finding overlaps on the left side. Default is None, which means no restriction.
 
@@ -915,7 +914,7 @@ class StudyLocus(Dataset):
                 f.col("locus.pValueMantissa").alias("pValueMantissa"),
                 f.col("locus.pValueExponent").alias("pValueExponent"),
                 f.col("locus.beta").alias("beta"),
-            )
+            ).persist(StorageLevel.MEMORY_AND_DISK)
         )
 
         def restrict_studies(
@@ -928,6 +927,8 @@ class StudyLocus(Dataset):
                     return df.filter(restrict_studies)
                 case None:
                     return df
+                case _:
+                    raise TypeError("restrict_studies must be either a list of studyIds, a Column expression or None.")
 
         left = restrict_studies(loci_to_overlap, restrict_left_studies)
         right = restrict_studies(loci_to_overlap, restrict_right_studies)
@@ -937,11 +938,12 @@ class StudyLocus(Dataset):
             left=left,
             right=right,
             overlap_expression=overlap_expression,
-        ).persist(StorageLevel.MEMORY_AND_DISK)
+        )
+        peak_overlaps.unpersist()
+        loci_to_overlap.unpersist()
 
         # study-locus overlap by aligning overlapping variants
-        sio = self._align_overlapping_tags(left, right, peak_overlaps)
-        peak_overlaps.unpersist()
+        sio = StudyLocusOverlap(_df=self._align_overlapping_tags(left, right, peak_overlaps).df.persist(StorageLevel.MEMORY_AND_DISK))
         return sio
 
     def unique_variants_in_locus(self: StudyLocus) -> DataFrame:
