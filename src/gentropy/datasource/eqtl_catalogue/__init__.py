@@ -25,3 +25,8 @@ class StudyType(StrEnum):
     EQTL = "eqtl"
     SQTL = "sqtl"
     TUQTL = "tuqtl"
+    # Single-cell QTL types
+    SC_EQTL = "sceqtl"
+    SC_SQTL = "scsqtl"
+    SC_PQTL = "scpqtl"
+    SC_TUQTL = "sctuqtl"
