@@ -938,7 +938,7 @@ class StudyLocus(Dataset):
             right=right,
             overlap_expression=overlap_expression,
         )
-        peak_overlaps.count() # Action to persist the dataframe before rejoining with left and right dataframes in the next step.   
+        peak_overlaps.count() # Action to persist the dataframe before rejoining with left and right dataframes in the next step.
 
         # study-locus overlap by aligning overlapping variants
         overlapping_peaks = self._align_overlapping_tags(left, right, peak_overlaps).df.persist(StorageLevel.MEMORY_AND_DISK)
