@@ -5,7 +5,6 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-import pandas as pd
 import pyspark.sql.functions as f
 from wandb.sdk.wandb_login import login as wandb_login
 from xgboost import XGBClassifier
@@ -392,10 +391,11 @@ class LocusToGeneStep:
             wandb_run_name=self.wandb_run_name, cross_validate=self.cross_validate
         )
 
+        # Export the train and test sets
         if self.training_set and trainer.train_df is not None:
-            self._save_split_parquet(trainer.train_df, self.training_set)
+            trainer.train_df.to_parquet(self.training_set, index=False)
         if self.test_set and trainer.test_df is not None:
-            self._save_split_parquet(trainer.test_df, self.test_set)
+            trainer.test_df.to_parquet(self.test_set, index=False)
 
         # Export the model
         if trained_model.training_data and trained_model.model and self.model_path:
@@ -413,22 +413,6 @@ class LocusToGeneStep:
                     commit_message=self.hf_model_commit_message,
                 )
 
-    def _save_split_parquet(self, split_df: pd.DataFrame, output_path: str) -> None:
-        """Persist train/test split data to parquet using pandas.
-
-        Args:
-            split_df (pd.DataFrame): Split dataframe to be persisted.
-            output_path (str): Destination path. Supports local paths and gs:// paths.
-
-        Raises:
-            ValueError: If writing the split parquet fails.
-        """
-        try:
-            split_df.to_parquet(output_path, index=False)
-        except (OSError, ValueError, ImportError, PermissionError) as error:
-            raise ValueError(
-                f"Failed to write split parquet to '{output_path}'. Ensure parquet dependencies and path access are configured: {error}"
-            ) from error
 
     def _annotate_gold_standards_w_feature_matrix(self) -> L2GFeatureMatrix:
         """Generate the feature matrix of annotated gold standards.
