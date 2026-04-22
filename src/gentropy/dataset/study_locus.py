@@ -148,6 +148,15 @@ class FinemappingMethod(Enum):
     SUSIE = "SuSie"
     SUSIE_INF = "SuSiE-inf"
 
+    @classmethod
+    def methods_with_lbf(cls) -> list[str]:
+        """List of finemapping methods that report log Bayes factors.
+
+        Returns:
+            list[str]: List of finemapping methods that report log Bayes factors.
+        """
+        return [cls.SUSIE.value, cls.SUSIE_INF.value]
+
 
 @dataclass
 class StudyLocus(Dataset):
@@ -817,7 +826,7 @@ class StudyLocus(Dataset):
                 "locus",
                 f.filter(
                     f.col("locus"),
-                    lambda tag: (tag[credible_interval.value]),
+                    lambda tag: tag[credible_interval.value],
                 ),
             ),
             _schema=self._schema,
