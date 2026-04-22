@@ -21,7 +21,10 @@ from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import StudyLocus
 from gentropy.dataset.target_index import TargetIndex
 from gentropy.dataset.variant_index import VariantIndex
-from gentropy.external.hf_hub import HuggingFaceHubCredentials
+from gentropy.external.hf_hub import (
+    HuggingFaceHubCredentials,
+    HuggingFaceModelRepoHandle,
+)
 from gentropy.external.wandb import WandbCredentials
 from gentropy.method.l2g.feature_factory import L2GFeatureInputLoader
 from gentropy.method.l2g.model import LocusToGeneModel
@@ -153,8 +156,6 @@ class LocusToGeneStep:
         hf_model_commit_message: str | None = "chore: update model",
         hf_model_version: str | None = None,
         explain_predictions: bool | None = None,
-        wandb_credentials_path: str | None = None,
-        hf_hub_credentials_path: str | None = None,
     ) -> None:
         """Initialise the step and run the logic based on mode.
 
@@ -178,8 +179,6 @@ class LocusToGeneStep:
             hf_model_commit_message (str | None): Commit message when we upload the model to the Hugging Face Hub
             hf_model_version (str | None): Tag, branch, or commit hash to download the model from the Hub. If None, the latest commit is downloaded.
             explain_predictions (bool | None): Whether to extract SHAP importances for the L2G predictions. This is computationally expensive.
-            wandb_credentials_path (str | None): Path to a JSON file containing W&B credentials (``{"api_key": "..."}``) . When None, W&B tracking is skipped even if *wandb_run_name* is set.
-            hf_hub_credentials_path (str | None): Path to a JSON file containing Hugging Face Hub credentials (``{"token": "..."}``) . When None, model download/upload via the Hub is skipped.
 
         Raises:
             ValueError: If run_mode is not 'train' or 'predict'
@@ -188,30 +187,36 @@ class LocusToGeneStep:
             raise ValueError(
                 f"run_mode must be one of 'train' or 'predict', got {run_mode}"
             )
-
+        # Common parameters
         self.session = session
         self.run_mode = run_mode
-        self.predictions_path = predictions_path
         self.features_list = list(features_list) if features_list else None
-        self.hyperparameters = dict(hyperparameters)
-        self.wandb_run_name = wandb_run_name
-        self.cross_validate = cross_validate
-        self.hf_hub_repo_id = hf_hub_repo_id
-        self.download_from_hub = download_from_hub
-        self.hf_model_commit_message = hf_model_commit_message
-        self.l2g_threshold = l2g_threshold or 0.0
+
+        # Train io
         self.gold_standard_curation_path = gold_standard_curation_path
         self.gene_interactions_path = gene_interactions_path
         self.variant_index_path = variant_index_path
-        self.model_path = (
-            hf_hub_repo_id
-            if not model_path and download_from_hub and hf_hub_repo_id
-            else model_path
-        )
+
+        # Train parameters
+        self.hyperparameters = dict(hyperparameters)
+        self.cross_validate = cross_validate
+
+        # External resource parameters
+        self.hf_hub_repo_id = hf_hub_repo_id
+        self.hf_model_commit_message = hf_model_commit_message
         self.hf_model_version = hf_model_version
+        self.wandb_run_name = wandb_run_name
+
+        # Predict io
+        self.download_from_hub = download_from_hub
+        self.model_path = model_path or "opentargets/locus2gene"
+        if download_from_hub:
+            self.model_path = HuggingFaceModelRepoHandle(handle=self.model_path).handle
+        self.predictions_path = predictions_path
+
+        # Predict parameters
+        self.l2g_threshold = l2g_threshold or 0.05
         self.explain_predictions = explain_predictions
-        self.wandb_credentials_path = wandb_credentials_path
-        self.hf_hub_credentials_path = hf_hub_credentials_path
 
         # Load common inputs
         self.credible_set = StudyLocus.from_parquet(
@@ -220,6 +225,7 @@ class LocusToGeneStep:
         self.feature_matrix = L2GFeatureMatrix(
             _df=session.load_data(feature_matrix_path, "parquet"),
         )
+
 
         if run_mode == "predict":
             self.run_predict()
@@ -331,6 +337,11 @@ class LocusToGeneStep:
         Raises:
             ValueError: If predictions_path is not provided for prediction mode
         """
+        hf_token = None
+        if self.download_from_hub:
+            hf_hub_credentials = HuggingFaceHubCredentials.read()
+            hf_token = hf_hub_credentials.token
+
         if not self.predictions_path:
             raise ValueError("predictions_path must be provided for prediction mode")
         predictions = (
@@ -340,7 +351,7 @@ class LocusToGeneStep:
                 self.feature_matrix,
                 model_path=self.model_path,
                 features_list=self.features_list,
-                hf_token=self._get_hf_token(),
+                hf_token=hf_token,
                 hf_model_version=self.hf_model_version,
                 download_from_hub=self.download_from_hub,
             )
@@ -356,39 +367,6 @@ class LocusToGeneStep:
         ).parquet(self.predictions_path)
         self.session.logger.info("L2G predictions saved successfully.")
 
-    def _get_hf_token(self) -> str | None:
-        """Return the Hugging Face Hub token when Hub access is required.
-
-        Resolution order when *download_from_hub* is True:
-        1. Load from *hf_hub_credentials_path* JSON file (if provided).
-        2. Fall back to the ``HF_TOKEN`` environment variable.
-        3. Raise :class:`ValueError` if neither source is available.
-
-        Returns:
-            str | None: The HF Hub token, or ``None`` when *download_from_hub*
-                is ``False``.
-
-        Raises:
-            ValueError: When *download_from_hub* is ``True`` but no credentials
-                file was provided and the ``HF_TOKEN`` environment variable is
-                not set.
-        """
-        import os
-
-        if not self.download_from_hub:
-            return None
-        if self.hf_hub_credentials_path:
-            return HuggingFaceHubCredentials.from_json(
-                self.hf_hub_credentials_path
-            ).token
-        env_token = os.environ.get("HF_TOKEN")
-        if env_token:
-            return env_token
-        raise ValueError(
-            "Hugging Face Hub token is required when download_from_hub=True. "
-            "Provide hf_hub_credentials_path or set the HF_TOKEN environment variable."
-        )
-
     def run_train(self) -> None:
         """Run the training step.
 
@@ -399,20 +377,15 @@ class LocusToGeneStep:
             raise ValueError("Features list is required for model training.")
         # Initialize access to weights and biases
         if self.wandb_run_name:
-            if self.wandb_credentials_path:
-                wandb_login(
-                    key=WandbCredentials.from_json(self.wandb_credentials_path).api_key
-                )
-            else:
-                import os
+            wandb_credentials = WandbCredentials.read()
+            wandb_login(key=wandb_credentials.api_key)
 
-                wandb_key = os.environ.get("WANDB_API_KEY")
-                if not wandb_key:
-                    raise ValueError(
-                        "W&B API key is required when wandb_run_name is set. "
-                        "Provide wandb_credentials_path or set the WANDB_API_KEY environment variable."
-                    )
-                wandb_login(key=wandb_key)
+        # Initialize access to Hugging Face Hub
+        hf_token = None
+        if self.hf_hub_repo_id and self.hf_model_commit_message:
+            # Fails when the HF_TOKEN env is not set
+            hf_hub_credentials = HuggingFaceHubCredentials.read()
+            hf_token = hf_hub_credentials.token
 
         # Instantiate classifier and train model
         l2g_model = LocusToGeneModel(
@@ -432,12 +405,11 @@ class LocusToGeneStep:
         # Export the model
         if trained_model.training_data and trained_model.model and self.model_path:
             trained_model.save(self.model_path)
-            hf_hub_token = self._get_hf_token()
-            if self.hf_hub_repo_id and self.hf_model_commit_message and hf_hub_token:
+            if self.hf_hub_repo_id and self.hf_model_commit_message and hf_token:
                 trained_model.export_to_hugging_face_hub(
                     # we upload the model saved in the filesystem
                     self.model_path.split("/")[-1],
-                    hf_hub_token,
+                    hf_hub_token=hf_token,
                     feature_matrix=trained_model.training_data,
                     repo_id=self.hf_hub_repo_id,
                     commit_message=self.hf_model_commit_message,

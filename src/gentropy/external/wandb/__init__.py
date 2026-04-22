@@ -7,6 +7,10 @@ from pathlib import Path
 from pydantic import BaseModel
 
 
+class MissingWandbApiKeyError(Exception):
+    """Custom exception raised when the WANDB_API_KEY environment variable is not set."""
+    pass
+
 class WandbCredentials(BaseModel):
     """Credentials for Weights & Biases authentication.
 
@@ -44,3 +48,23 @@ class WandbCredentials(BaseModel):
             ValidationError: If the JSON does not match the expected schema.
         """
         return cls.model_validate_json(Path(path).read_text())
+
+
+    @classmethod
+    def read(cls, path: str | None = None) -> WandbCredentials:
+        """Read W&B credentials from a JSON file or environment variable.
+
+        If *path* is provided, the credentials will be loaded from the specified JSON file.
+        If *path* is None, the method will attempt to read the API key from the WANDB_API_KEY environment variable.
+
+        Args:
+            path (str | None): Optional path to the JSON credentials file. If None, the method will look for the WANDB_API_KEY environment variable.
+        """
+        if path is not None:
+            return cls.from_json(path)
+        else:
+            import os
+            api_key = os.getenv("WANDB_API_KEY")
+            if api_key is None:
+                raise MissingWandbApiKeyError("WANDB_API_KEY environment variable is not set.")
+            return cls(api_key=api_key)
