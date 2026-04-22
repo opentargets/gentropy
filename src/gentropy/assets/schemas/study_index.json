@@ -288,6 +288,65 @@
       },
       "nullable": true,
       "metadata": {}
+    },
+    {
+      "name": "ldscH2",
+      "type": {
+        "type": "struct",
+        "fields": [
+          { "name": "h2", "type": "double", "nullable": true, "metadata": {} },
+          {
+            "name": "h2_se",
+            "type": "double",
+            "nullable": true,
+            "metadata": {}
+          },
+          {
+            "name": "intercept",
+            "type": "double",
+            "nullable": true,
+            "metadata": {}
+          },
+          {
+            "name": "intercept_se",
+            "type": "double",
+            "nullable": true,
+            "metadata": {}
+          },
+          {
+            "name": "mean_chisq",
+            "type": "double",
+            "nullable": true,
+            "metadata": {}
+          },
+          {
+            "name": "lambda_gc",
+            "type": "double",
+            "nullable": true,
+            "metadata": {}
+          },
+          {
+            "name": "n_snps_used",
+            "type": "long",
+            "nullable": true,
+            "metadata": {}
+          },
+          {
+            "name": "M_ldsc",
+            "type": "double",
+            "nullable": true,
+            "metadata": {}
+          },
+          {
+            "name": "ld_ancestry",
+            "type": "string",
+            "nullable": true,
+            "metadata": {}
+          }
+        ]
+      },
+      "nullable": true,
+      "metadata": {}
     }
   ]
 }

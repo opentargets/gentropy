@@ -12,7 +12,7 @@ from pyspark.sql import functions as F
 from pyspark.sql.types import (
     ArrayType,
     DoubleType,
-    IntegerType,
+    LongType,
     StringType,
     StructField,
     StructType,
@@ -38,6 +38,7 @@ class HeritabilityEstimateStep:
         intercept: float | None = None,
         max_rows_for_collection: int = 15_000_000,
         min_samples: int = 10_000,
+        m_ldsc_override: float | None = None,
     ) -> None:
         """Initialise the LDSC heritability estimation step.
 
@@ -53,6 +54,9 @@ class HeritabilityEstimateStep:
             intercept (float | None): Optional fixed intercept.
             max_rows_for_collection (int): Maximum allowed joined SNP row count before collection.
             min_samples (int): Minimum allowed sample size for running LDSC.
+            m_ldsc_override (float | None): If set, use this value as M_ldsc instead of counting
+                SNPs in the LD score file. Use this when supplying a HapMap3-filtered LD score
+                file but want to scale heritability to the full reference panel SNP count.
         """
         self.session = session
         self.summary_statistics_input_path = summary_statistics_input_path
@@ -65,6 +69,7 @@ class HeritabilityEstimateStep:
         self.intercept = intercept
         self.max_rows_for_collection = max_rows_for_collection
         self.min_samples = min_samples
+        self.m_ldsc_override = m_ldsc_override
         self.results: dict[str, Any] | None = None
 
         self._run()
@@ -116,7 +121,9 @@ class HeritabilityEstimateStep:
                 study_id=study_id,
                 heritability_output_path=self.heritability_output_path,
                 run_status="skipped",
-                skip_reasons=["No overlapping SNPs between summary statistics and LD scores"],
+                skip_reasons=[
+                    "No overlapping SNPs between summary statistics and LD scores"
+                ],
                 analysis_flags=validation["analysis_flags"],
                 ld_ancestry=ancestry,
                 result=None,
@@ -176,7 +183,9 @@ class HeritabilityEstimateStep:
         Returns:
             DataFrame: Summary statistics dataframe with the columns required for LDSC.
         """
-        return self.session.spark.read.parquet(self.summary_statistics_input_path).select(
+        return self.session.spark.read.parquet(
+            self.summary_statistics_input_path
+        ).select(
             "studyId",
             "variantId",
             "chromosome",
@@ -184,7 +193,6 @@ class HeritabilityEstimateStep:
             "beta",
             "standardError",
             "sampleSize",
-            "effectAlleleFrequencyFromSource",
         )
 
     def _extract_single_study_id(self, sumstats_df: DataFrame) -> str:
@@ -199,7 +207,9 @@ class HeritabilityEstimateStep:
         Raises:
             ValueError: If the dataframe contains zero or multiple study identifiers.
         """
-        study_ids = [row["studyId"] for row in sumstats_df.select("studyId").distinct().collect()]
+        study_ids = [
+            row["studyId"] for row in sumstats_df.select("studyId").distinct().collect()
+        ]
 
         if len(study_ids) != 1:
             raise ValueError(
@@ -237,7 +247,9 @@ class HeritabilityEstimateStep:
             f"{self.ldscore_template.format(ancestry=ancestry)}"
         )
 
-    def _prepare_sumstats(self, sumstats_df: DataFrame, study_index_df: DataFrame) -> DataFrame:
+    def _prepare_sumstats(
+        self, sumstats_df: DataFrame, study_index_df: DataFrame
+    ) -> DataFrame:
         """Prepare summary statistics for LDSC.
 
         This step fills missing sample sizes from the study index, extracts ref/alt
@@ -279,7 +291,9 @@ class HeritabilityEstimateStep:
             sumstats_df.join(n_df, on=study_col, how="left")
             .withColumn(
                 n_col,
-                F.when(F.col(n_col).isNull(), fallback_n_expr).otherwise(F.col(n_col).cast("double")),
+                F.when(F.col(n_col).isNull(), fallback_n_expr).otherwise(
+                    F.col(n_col).cast("double")
+                ),
             )
             .withColumn("variant_parts", F.split(F.col("variantId"), "_"))
             .withColumn("ref", F.col("variant_parts").getItem(2))
@@ -333,6 +347,8 @@ class HeritabilityEstimateStep:
 
         return (
             ld_df.select(chrom_col, pos_col, "ref", "alt", "L2")
+            .withColumn(pos_col, F.col(pos_col).cast("int"))
+            .withColumn(chrom_col, F.col(chrom_col).cast("string"))
             .withColumn("L2", F.col("L2").cast("double"))
             .filter(F.col("L2").isNotNull())
             .dropDuplicates([chrom_col, pos_col, "ref", "alt"])
@@ -357,7 +373,11 @@ class HeritabilityEstimateStep:
         chrom_col = "chromosome"
         pos_col = "position"
 
-        m_ldsc = float(ld_df.count())
+        m_ldsc = (
+            self.m_ldsc_override
+            if self.m_ldsc_override is not None
+            else float(ld_df.count())
+        )
 
         merged_ld = prepared_sumstats.join(
             ld_df,
@@ -406,14 +426,6 @@ class HeritabilityEstimateStep:
         ld_list: list[float] = []
 
         for row in rows:
-            if (
-                row[beta_col] is None
-                or row[se_col] is None
-                or row[n_col] is None
-                or row["L2"] is None
-            ):
-                continue
-
             beta_list.append(row[beta_col])
             se_list.append(row[se_col])
             n_list.append(row[n_col])
@@ -514,7 +526,7 @@ class HeritabilityEstimateStep:
                 StructField("analysisFlags", ArrayType(StringType()), True),
                 StructField("ld_ancestry", StringType(), True),
                 StructField("M_ldsc", DoubleType(), True),
-                StructField("n_snps_used", IntegerType(), True),
+                StructField("n_snps_used", LongType(), True),
                 StructField("h2", DoubleType(), True),
                 StructField("intercept", DoubleType(), True),
                 StructField("h2_se", DoubleType(), True),
@@ -700,7 +712,7 @@ class HeritabilityEstimateStep:
 
         Allowed cases:
             - no flags
-            - any flags except 'metabolite'
+            - flags are a subset of the allowed set (exwas, wgsgwas, metabolite)
 
         Args:
             analysis_flags (Any): Raw analysis flags.
@@ -708,5 +720,6 @@ class HeritabilityEstimateStep:
         Returns:
             bool: Whether the study is allowed.
         """
+        allowed_flags = {"exwas", "wgsgwas", "metabolite"}
         flags = set(HeritabilityEstimateStep._normalise_analysis_flags(analysis_flags))
-        return "metabolite" not in flags
+        return flags.issubset(allowed_flags)

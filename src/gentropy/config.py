@@ -724,6 +724,7 @@ class StudyValidationStepConfig(StepConfig):
     invalid_study_index_path: str = MISSING
     invalid_qc_reasons: list[str] = MISSING
     deprecated_project_ids: list[str] | None = None
+    heritability_input_path: str | None = None
     _target_: str = "gentropy.study_validation.StudyValidationStep"
 
 
@@ -782,6 +783,7 @@ class HeritabilityEstimateConfig(StepConfig):
     n_blocks: int = 200
     intercept: float | None = None
     max_rows_for_collection: int = 15_000_000
+    m_ldsc_override: float | None = None
     _target_: str = "gentropy.ldsc.HeritabilityEstimateStep"
 
 @dataclass

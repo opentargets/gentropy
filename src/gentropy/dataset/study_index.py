@@ -498,6 +498,39 @@ class StudyIndex(Dataset):
         return StudyIndex(_df=validated_df, _schema=StudyIndex.get_schema())
 
     @qc_test
+    def collect_heritability(self: StudyIndex, heritability_df: DataFrame) -> StudyIndex:
+        """Collecting heritability information from LDSC results.
+
+        Args:
+            heritability_df (DataFrame): A dataframe containing heritability information for a subset of studies.
+
+        Returns:
+            StudyIndex: with heritability information annotated.
+        """
+        h2_annotations = (
+            heritability_df.filter(f.col("runStatus") == "success")
+            .select(
+                "studyId",
+                f.struct(
+                    f.col("h2"),
+                    f.col("h2_se"),
+                    f.col("intercept"),
+                    f.col("intercept_se"),
+                    f.col("mean_chisq"),
+                    f.col("lambda_gc"),
+                    f.col("n_snps_used").cast("long"),
+                    f.col("M_ldsc"),
+                    f.col("ld_ancestry"),
+                ).alias("ldscH2"),
+            )
+        )
+
+        return StudyIndex(
+            _df=self.df.drop("ldscH2").join(h2_annotations, on="studyId", how="left"),
+            _schema=StudyIndex.get_schema(),
+        )
+
+    @qc_test
     def validate_biosample(
         self: StudyIndex, biosample_index: BiosampleIndex
     ) -> StudyIndex:
