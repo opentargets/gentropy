@@ -261,7 +261,11 @@ class LocusToGeneStep:
 
         if run_mode == "predict":
             if download_from_hub:
-                self.model_path = HuggingFaceModelRepoHandle(handle=self.model_path).handle
+                if not self.hf_hub_repo_id or not self.hf_model_version:
+                    raise ValueError(
+                        "hf_hub_repo_id and hf_model_version must be provided when download_from_hub is True"
+                    )
+                self.model_path = HuggingFaceModelRepoHandle(handle=self.hf_hub_repo_id).handle
             self.run_predict()
         elif run_mode == "train":
             self.gold_standard = self.prepare_gold_standard()
