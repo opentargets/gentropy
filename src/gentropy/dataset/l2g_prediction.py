@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 
 import pyspark.sql.functions as f
 import shap
+from pydantic import SecretStr
 from pyspark.sql import DataFrame
 from pyspark.sql.types import StringType, StructType
 
@@ -52,7 +53,7 @@ class L2GPrediction(Dataset):
         feature_matrix: L2GFeatureMatrix,
         model_path: str | None,
         features_list: list[str] | None = None,
-        hf_token: str | None = None,
+        hf_token: SecretStr | None = None,
         hf_model_version: str | None = None,
         download_from_hub: bool = True,
     ) -> L2GPrediction:
@@ -64,7 +65,7 @@ class L2GPrediction(Dataset):
             feature_matrix (L2GFeatureMatrix): Dataset containing all credible sets and their annotations
             model_path (str | None): Path to the model file. It can be either in the filesystem or the name on the Hugging Face Hub (in the form of username/repo_name).
             features_list (list[str] | None): Default list of features the model uses. Only used if the model is not downloaded from the Hub. CAUTION: This default list can differ from the actual list the model was trained on.
-            hf_token (str | None): Hugging Face token to download the model from the Hub. Only required if the model is private.
+            hf_token (SecretStr | None): Hugging Face token to download the model from the Hub. Only required if the model is private.
             hf_model_version (str | None): Tag, branch, or commit hash to download the model from the Hub. If None, the latest commit is downloaded.
             download_from_hub (bool): Whether to download the model from the Hugging Face Hub. Defaults to True.
 
@@ -88,6 +89,10 @@ class L2GPrediction(Dataset):
                 )
             l2g_model = LocusToGeneModel.load_from_disk(
                 session, path=model_path, features_list=features_list
+            )
+        else:
+            raise AttributeError(
+                "model_path is required if the model is not downloaded from the Hub"
             )
 
         # Prepare data
