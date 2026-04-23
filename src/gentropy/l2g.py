@@ -183,7 +183,7 @@ class LocusToGeneStep:
         hf_model_commit_message: str | None = "chore: update model",
         hf_model_version: str | None = None,
         explain_predictions: bool | None = None,
-        hf_hub_credentials_path: str | None = None,
+        hf_credentials_path: str | None = None,
         wandb_credentials_path: str | None = None,
     ) -> None:
         """Initialise the step and run the logic based on mode.
@@ -209,7 +209,7 @@ class LocusToGeneStep:
             hf_model_commit_message (str | None): Commit message when we upload the model to the Hugging Face Hub
             hf_model_version (str | None): Tag, branch, or commit hash to download the model from the Hub. If None, the latest commit is downloaded.
             explain_predictions (bool | None): Whether to extract SHAP importances for the L2G predictions. This is computationally expensive.
-            hf_hub_credentials_path (str | None): Optional path to the Hugging Face Hub credentials JSON file. If not provided, the HF_TOKEN environment variable will be used.
+            hf_credentials_path (str | None): Optional path to the Hugging Face Hub credentials JSON file. If not provided, the HF_TOKEN environment variable will be used.
             wandb_credentials_path (str | None): Optional path to the Weights and Biases credentials JSON file. If not provided, the WANDB_API_KEY environment variable will be used.
 
         Raises:
@@ -238,15 +238,13 @@ class LocusToGeneStep:
         self.hf_hub_repo_id = hf_hub_repo_id
         self.hf_model_commit_message = hf_model_commit_message
         self.hf_model_version = hf_model_version
-        self.hf_hub_credentials_path = hf_hub_credentials_path
+        self.hf_credentials_path = hf_credentials_path
         self.wandb_run_name = wandb_run_name
         self.wandb_credentials_path = wandb_credentials_path
 
         # Predict io
         self.download_from_hub = download_from_hub
         self.model_path = model_path or "opentargets/locus2gene"
-        if download_from_hub:
-            self.model_path = HuggingFaceModelRepoHandle(handle=self.model_path).handle
         self.predictions_path = predictions_path
 
         # Predict parameters
@@ -262,6 +260,8 @@ class LocusToGeneStep:
         )
 
         if run_mode == "predict":
+            if download_from_hub:
+                self.model_path = HuggingFaceModelRepoHandle(handle=self.model_path).handle
             self.run_predict()
         elif run_mode == "train":
             self.gold_standard = self.prepare_gold_standard()
@@ -373,7 +373,7 @@ class LocusToGeneStep:
         """
         hf_token = None
         if self.download_from_hub:
-            hf_hub_credentials = HuggingFaceHubCredentials.read(self.hf_hub_credentials_path)
+            hf_hub_credentials = HuggingFaceHubCredentials.read(self.hf_credentials_path)
             hf_token = hf_hub_credentials.token
 
         if not self.predictions_path:
@@ -412,13 +412,13 @@ class LocusToGeneStep:
         # Initialize access to weights and biases
         if self.wandb_run_name:
             wandb_credentials = WandbCredentials.read(self.wandb_credentials_path)
-            wandb_login(key=wandb_credentials.api_key)
+            wandb_login(key=wandb_credentials.api_key.get_secret_value())
 
         # Initialize access to Hugging Face Hub
         hf_token = None
         if self.hf_hub_repo_id and self.hf_model_commit_message:
             # Fails when the HF_TOKEN env is not set
-            hf_hub_credentials = HuggingFaceHubCredentials.read(self.hf_hub_credentials_path)
+            hf_hub_credentials = HuggingFaceHubCredentials.read(self.hf_credentials_path)
             hf_token = hf_hub_credentials.token
 
         # Instantiate classifier and train model
@@ -447,7 +447,7 @@ class LocusToGeneStep:
                 trained_model.export_to_hugging_face_hub(
                     # we upload the model saved in the filesystem
                     self.model_path.split("/")[-1],
-                    hf_hub_token=hf_token,
+                    hf_token=hf_token,
                     feature_matrix=trained_model.training_data,
                     repo_id=self.hf_hub_repo_id,
                     commit_message=self.hf_model_commit_message,

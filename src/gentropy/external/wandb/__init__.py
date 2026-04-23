@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from pydantic import BaseModel
+from pydantic import BaseModel, SecretStr
 
 
 class MissingWandbApiKeyError(Exception):
@@ -15,7 +15,7 @@ class WandbCredentials(BaseModel):
     """Credentials for Weights & Biases authentication.
 
     Attributes:
-        api_key (str): W&B API key used to authenticate with the W&B service.
+        api_key (SecretStr): W&B API key used to authenticate with the W&B service.
 
     Examples:
         Load credentials from a JSON file:
@@ -25,12 +25,12 @@ class WandbCredentials(BaseModel):
         ...     _ = f.write('{"api_key": "my_key"}')
         ...     path = f.name
         >>> creds = WandbCredentials.from_json(path)
-        >>> creds.api_key
+        >>> creds.api_key.get_secret_value()
         'my_key'
         >>> os.unlink(path)
     """
 
-    api_key: str
+    api_key: SecretStr
 
     @classmethod
     def from_json(cls, path: str) -> WandbCredentials:
@@ -67,4 +67,4 @@ class WandbCredentials(BaseModel):
             api_key = os.getenv("WANDB_API_KEY")
             if api_key is None:
                 raise MissingWandbApiKeyError("WANDB_API_KEY environment variable is not set.")
-            return cls(api_key=api_key)
+            return cls(api_key=SecretStr(api_key))

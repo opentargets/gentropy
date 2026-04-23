@@ -360,7 +360,7 @@ class LocusToGeneConfig(StepConfig):
     train_on_full_dataset: bool = False
     explain_predictions: bool | None = False
     wandb_credentials_path: str | None = None
-    hf_hub_credentials_path: str | None = None
+    hf_credentials_path: str | None = None
     _target_: str = "gentropy.l2g.LocusToGeneStep"
 
 

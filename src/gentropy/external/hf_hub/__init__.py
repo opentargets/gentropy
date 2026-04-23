@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Annotated
 
-from pydantic import BaseModel, StringConstraints
+from pydantic import BaseModel, SecretStr, StringConstraints
 
 
 class MissingHFTokenError(Exception):
@@ -26,12 +26,12 @@ class HuggingFaceHubCredentials(BaseModel):
         ...     _ = f.write('{"token": "hf_abc123"}')
         ...     path = f.name
         >>> creds = HuggingFaceHubCredentials.from_json(path)
-        >>> creds.token
+        >>> creds.token.get_secret_value()
         'hf_abc123'
         >>> os.unlink(path)
     """
 
-    token: str
+    token: SecretStr
 
     @classmethod
     def from_json(cls, path: str) -> HuggingFaceHubCredentials:
@@ -75,7 +75,7 @@ class HuggingFaceHubCredentials(BaseModel):
             token = os.getenv("HF_TOKEN")
             if not token:
                 raise MissingHFTokenError("HF_TOKEN environment variable is not set.")
-            return cls(token=token)
+            return cls(token=SecretStr(token))
 
         return cls.from_json(path)
 

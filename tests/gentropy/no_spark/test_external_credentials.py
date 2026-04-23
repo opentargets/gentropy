@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 
 import pytest
-from pydantic import ValidationError
+from pydantic import SecretStr, ValidationError
 
 from gentropy.external.hf_hub import HuggingFaceHubCredentials, MissingHFTokenError
 from gentropy.external.wandb import MissingWandbApiKeyError, WandbCredentials
@@ -22,7 +22,10 @@ class TestWandbCredentials:
     def test_from_json_loads_api_key(self) -> None:
         """Credentials are loaded correctly from the sample JSON file."""
         creds = WandbCredentials.from_json(str(WANDB_CREDENTIALS_PATH))
-        assert creds.api_key == "test_wandb_api_key_1234567890abcdef"
+        assert isinstance(creds.api_key, SecretStr), (
+            "api_key should be a SecretStr instance"
+        )
+        assert creds.api_key.get_secret_value() == "test_wandb_api_key_1234567890abcdef"
 
     def test_from_json_file_not_found(self, tmp_path: Path) -> None:
         """FileNotFoundError is raised when the credentials file does not exist."""
@@ -47,12 +50,24 @@ class TestWandbCredentials:
         """read() loads credentials from a file when path is provided, and from environment variable when path is None."""
         # Test loading from file
         creds_from_file = WandbCredentials.read(str(WANDB_CREDENTIALS_PATH))
-        assert creds_from_file.api_key == "test_wandb_api_key_1234567890abcdef"
+        assert isinstance(creds_from_file.api_key, SecretStr), (
+            "api_key should be a SecretStr instance"
+        )
+        assert (
+            creds_from_file.api_key.get_secret_value()
+            == "test_wandb_api_key_1234567890abcdef"
+        )
 
         # Test loading from environment variable
         monkeypatch.setenv("WANDB_API_KEY", "env_wandb_api_key_abcdef1234567890")
         creds_from_env = WandbCredentials.read()
-        assert creds_from_env.api_key == "env_wandb_api_key_abcdef1234567890"
+        assert isinstance(creds_from_env.api_key, SecretStr), (
+            "api_key should be a SecretStr instance"
+        )
+        assert (
+            creds_from_env.api_key.get_secret_value()
+            == "env_wandb_api_key_abcdef1234567890"
+        )
 
         # Test error raised when env var is not set and no path provided
         monkeypatch.delenv("WANDB_API_KEY", raising=False)
@@ -66,7 +81,10 @@ class TestHuggingFaceHubCredentials:
     def test_from_json_loads_token(self) -> None:
         """Credentials are loaded correctly from the sample JSON file."""
         creds = HuggingFaceHubCredentials.from_json(str(HF_HUB_CREDENTIALS_PATH))
-        assert creds.token == "hf_test_token_1234567890abcdef"
+        assert isinstance(creds.token, SecretStr), (
+            "token should be a SecretStr instance"
+        )
+        assert creds.token.get_secret_value() == "hf_test_token_1234567890abcdef"
 
     def test_from_json_file_not_found(self, tmp_path: Path) -> None:
         """FileNotFoundError is raised when the credentials file does not exist."""
@@ -91,12 +109,22 @@ class TestHuggingFaceHubCredentials:
         """read() loads credentials from a file when path is provided, and from environment variable when path is None."""
         # Test loading from file
         creds_from_file = HuggingFaceHubCredentials.read(str(HF_HUB_CREDENTIALS_PATH))
-        assert creds_from_file.token == "hf_test_token_1234567890abcdef"
+        assert isinstance(creds_from_file.token, SecretStr), (
+            "token should be a SecretStr instance"
+        )
+        assert (
+            creds_from_file.token.get_secret_value() == "hf_test_token_1234567890abcdef"
+        )
 
         # Test loading from environment variable
         monkeypatch.setenv("HF_TOKEN", "hf_env_token_abcdef1234567890")
         creds_from_env = HuggingFaceHubCredentials.read()
-        assert creds_from_env.token == "hf_env_token_abcdef1234567890"
+        assert isinstance(creds_from_env.token, SecretStr), (
+            "token should be a SecretStr instance"
+        )
+        assert (
+            creds_from_env.token.get_secret_value() == "hf_env_token_abcdef1234567890"
+        )
 
         # Test error raised when env var is not set and no path provided
         monkeypatch.delenv("HF_TOKEN", raising=False)
