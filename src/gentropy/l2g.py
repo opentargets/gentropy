@@ -374,7 +374,7 @@ class LocusToGeneStep:
         hf_token = None
         if self.download_from_hub:
             hf_hub_credentials = HuggingFaceHubCredentials.read(self.hf_credentials_path)
-            hf_token = hf_hub_credentials.token
+            hf_token = hf_hub_credentials.HF_TOKEN
 
         if not self.predictions_path:
             raise ValueError("predictions_path must be provided for prediction mode")
@@ -412,14 +412,14 @@ class LocusToGeneStep:
         # Initialize access to weights and biases
         if self.wandb_run_name:
             wandb_credentials = WandbCredentials.read(self.wandb_credentials_path)
-            wandb_login(key=wandb_credentials.api_key.get_secret_value())
+            wandb_login(key=wandb_credentials.WANDB_API_KEY.get_secret_value())
 
         # Initialize access to Hugging Face Hub
         hf_token = None
         if self.hf_hub_repo_id and self.hf_model_commit_message:
             # Fails when the HF_TOKEN env is not set
             hf_hub_credentials = HuggingFaceHubCredentials.read(self.hf_credentials_path)
-            hf_token = hf_hub_credentials.token
+            hf_token = hf_hub_credentials.HF_TOKEN
 
         # Instantiate classifier and train model
         l2g_model = LocusToGeneModel(

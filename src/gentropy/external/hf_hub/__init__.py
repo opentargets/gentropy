@@ -16,22 +16,22 @@ class HuggingFaceHubCredentials(BaseModel):
     """Credentials for Hugging Face Hub authentication.
 
     Attributes:
-        token (str): HF Hub access token used to authenticate with the Hub API.
+        HF_TOKEN (SecretStr): HF Hub access token used to authenticate with the Hub API.
 
     Examples:
         Load credentials from a JSON file:
 
         >>> import json, tempfile, os
         >>> with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
-        ...     _ = f.write('{"token": "hf_abc123"}')
+        ...     _ = f.write('{"HF_TOKEN": "hf_abc123"}')
         ...     path = f.name
         >>> creds = HuggingFaceHubCredentials.from_json(path)
-        >>> creds.token.get_secret_value()
+        >>> creds.HF_TOKEN.get_secret_value()
         'hf_abc123'
         >>> os.unlink(path)
     """
 
-    token: SecretStr
+    HF_TOKEN: SecretStr
 
     @classmethod
     def from_json(cls, path: str) -> HuggingFaceHubCredentials:
@@ -39,7 +39,7 @@ class HuggingFaceHubCredentials(BaseModel):
 
         Args:
             path (str): Path to the JSON credentials file. The file must contain
-                a ``token`` field.
+                a ``HF_TOKEN`` field.
 
         Returns:
             HuggingFaceHubCredentials: Validated credentials object.
@@ -75,7 +75,7 @@ class HuggingFaceHubCredentials(BaseModel):
             token = os.getenv("HF_TOKEN")
             if not token:
                 raise MissingHFTokenError("HF_TOKEN environment variable is not set.")
-            return cls(token=SecretStr(token))
+            return cls(HF_TOKEN=SecretStr(token))
 
         return cls.from_json(path)
 

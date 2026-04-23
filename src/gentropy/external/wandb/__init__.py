@@ -15,22 +15,22 @@ class WandbCredentials(BaseModel):
     """Credentials for Weights & Biases authentication.
 
     Attributes:
-        api_key (SecretStr): W&B API key used to authenticate with the W&B service.
+        WANDB_API_KEY (SecretStr): W&B API key used to authenticate with the W&B service.
 
     Examples:
         Load credentials from a JSON file:
 
         >>> import json, tempfile, os
         >>> with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
-        ...     _ = f.write('{"api_key": "my_key"}')
+        ...     _ = f.write('{"WANDB_API_KEY": "my_key"}')
         ...     path = f.name
         >>> creds = WandbCredentials.from_json(path)
-        >>> creds.api_key.get_secret_value()
+        >>> creds.WANDB_API_KEY.get_secret_value()
         'my_key'
         >>> os.unlink(path)
     """
 
-    api_key: SecretStr
+    WANDB_API_KEY: SecretStr
 
     @classmethod
     def from_json(cls, path: str) -> WandbCredentials:
@@ -38,7 +38,7 @@ class WandbCredentials(BaseModel):
 
         Args:
             path (str): Path to the JSON credentials file. The file must contain
-                an ``api_key`` field.
+                a ``WANDB_API_KEY`` field.
 
         Returns:
             WandbCredentials: Validated credentials object.
@@ -67,4 +67,4 @@ class WandbCredentials(BaseModel):
             api_key = os.getenv("WANDB_API_KEY")
             if api_key is None:
                 raise MissingWandbApiKeyError("WANDB_API_KEY environment variable is not set.")
-            return cls(api_key=SecretStr(api_key))
+            return cls(WANDB_API_KEY=SecretStr(api_key))
