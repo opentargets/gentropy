@@ -9,7 +9,7 @@ import pandas as pd
 import pytest
 
 from gentropy.common.session import Session
-from gentropy.variant_index import ConvertToVcfStep
+from gentropy.variant_index import ConvertToVcfDefaults, ConvertToVcfStep
 
 if TYPE_CHECKING:
     from typing import Any, Literal
@@ -84,7 +84,13 @@ class TestConvertToVcfStep:
         source_formats = [s["format"] for s in sources]
         output_path = str(tmp_path / "variants")
         ConvertToVcfStep(
-            session, source_paths, source_formats, output_path, partition_size
+            config=ConvertToVcfDefaults(
+                source_paths=source_paths,
+                source_formats=source_formats,
+                output_path=output_path,
+                partition_size=partition_size,
+            ),
+            session=session,
         )
 
         variants_df = session.spark.read.csv(output_path, sep="\t", header=True)
@@ -114,7 +120,15 @@ class TestConvertToVcfStep:
             "tests/gentropy/data_samples/variant_sources/uniprot-test-sort.jsonl"
         )
         output_path = str(tmp_path / "variants")
-        ConvertToVcfStep(session, [source_path], ["json"], output_path, 10)
+        ConvertToVcfStep(
+            config=ConvertToVcfDefaults(
+                source_paths=[source_path],
+                source_formats=["json"],
+                output_path=output_path,
+                partition_size=10,
+            ),
+            session=session,
+        )
         partitions = [
             str(p) for p in Path(output_path).iterdir() if str(p).endswith("csv")
         ]
@@ -153,5 +167,13 @@ class TestConvertToVcfStep:
         Test if passing uneven number of sources to paths, not 1:1 ratio should result in assertion
         """
         with pytest.raises(AssertionError) as e:
-            ConvertToVcfStep(session, ["dummy_path"], ["json", "json"], "output", 10)
+            ConvertToVcfStep(
+                config=ConvertToVcfDefaults(
+                    source_paths=["dummy_path"],
+                    source_formats=["json", "json"],
+                    output_path="output",
+                    partition_size=10,
+                ),
+                session=session,
+            )
             assert e.value[0] == "Must provide format for each source path."

@@ -7,7 +7,7 @@ from pyspark.sql import functions as f
 from pyspark.sql import types as t
 
 from gentropy.common.session import Session
-from gentropy.credible_set_qc import CredibleSetQCStep
+from gentropy.credible_set_qc import CredibleSetQCDefaults, CredibleSetQCStep
 from gentropy.dataset.study_locus import StudyLocus
 
 
@@ -110,22 +110,34 @@ class TestCredibleSetQCStep:
         self.cs_path = str(cs_path)
         self.output_path = str(tmp_path / "clean_credible_sets")
 
+    def test_config_validation(self) -> None:
+        """Test that CredibleSetQCDefaults rejects missing required fields."""
+        from pydantic import ValidationError
+
+        with pytest.raises(ValidationError):
+            CredibleSetQCDefaults(
+                output_path="dummy",
+                p_value_threshold=1e-5,  # noqa: S108
+            )
+
     def test_step(self, session: Session) -> None:
         """Invoke the step to check if it works correctly."""
         assert not Path(self.output_path).exists(), "Input for qc does not exists."
         assert Path(self.cs_path).exists(), "Output of qc is not emptied before test."
         assert self.input_cs_df.count() == 6, "Incorrect number of rows."
         CredibleSetQCStep(
+            config=CredibleSetQCDefaults(
+                credible_sets_path=self.cs_path,
+                output_path=self.output_path,
+                p_value_threshold=self.p_value_threshold,
+                purity_min_r2=self.purity_min_r2,
+                clump=False,
+                ld_index_path=None,
+                study_index_path=None,
+                ld_min_r2=None,
+                n_partitions=self.n_partitions,
+            ),
             session=session,
-            credible_sets_path=self.cs_path,
-            output_path=self.output_path,
-            p_value_threshold=self.p_value_threshold,
-            purity_min_r2=self.purity_min_r2,
-            clump=False,
-            ld_index_path=None,
-            study_index_path=None,
-            ld_min_r2=None,
-            n_partitions=self.n_partitions,
         )
 
         assert Path(self.output_path).exists(), "Output of qc does not exists."

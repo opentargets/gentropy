@@ -91,6 +91,14 @@ make build-docker          # Build Docker image
 ### Pre-commit Hooks
 The repo uses pre-commit with: ruff, ruff-format, mypy, interrogate, pydocstyle, pydoclint, yamllint, commitlint (conventional commits), uv-lock check. Run `pre-commit run --all-files` to validate.
 
+### Post-Change Verification
+After any changes that touch multiple files or cross-references, always run both:
+```bash
+make test                  # Full test suite
+uv run pre-commit run --all-files  # All pre-commit hooks
+```
+This ensures no import breakage, linting issues, or type errors are introduced.
+
 ## Coding Conventions
 
 - **Python 3.11-3.13**, Google-style docstrings (pydocstyle convention)
