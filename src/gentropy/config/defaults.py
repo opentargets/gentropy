@@ -1,12 +1,26 @@
-"""Interface for application configuration."""
+"""Session configuration defaults as a Pydantic model.
 
-import os
+Also re-exports legacy step config dataclasses. These will be migrated
+to co-located Pydantic models in a later PR.
+"""
+
+from __future__ import annotations
+
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any
 
 from hail import __file__ as hail_location
 from hydra.core.config_store import ConfigStore
 from omegaconf import MISSING
+from pydantic import BaseModel, Field
+from typing import Annotated
+
+hail_home_default = Path(hail_location).parent.as_posix()
+
+# ---------------------------------------------------------------------------
+# Legacy step config dataclasses — migrated from config.py in a later PR
+# ---------------------------------------------------------------------------
 
 
 @dataclass
@@ -16,7 +30,7 @@ class SessionConfig:
     spark_uri: str = "local[*]"
     start_hail: bool = False
     write_mode: str = "errorifexists"
-    hail_home: str = os.path.dirname(hail_location)
+    hail_home: str = hail_home_default
     extended_spark_conf: dict[str, str] | None = field(default_factory=dict[str, str])
     extended_hail_conf: dict[str, str] | None = field(default_factory=dict[str, str])
     output_partitions: int = 200
@@ -77,15 +91,11 @@ class deCODESummaryStatisticsHarmonisationConfig(StepConfig):
     aptamer_metadata_path: str = MISSING
     variant_direction_path: str = MISSING
     molecular_complex_path: str = MISSING
-    # outputs
     harmonised_summary_statistics_path: str = MISSING
     protein_qtl_study_index_path: str = MISSING
-    # config
     min_mac_threshold: int = 50
     min_sample_size_threshold: int = 30_000
-    flipping_window_size: int = (
-        10_000_000  # must match variant_direction.DEFAULT_WINDOW_SIZE
-    )
+    flipping_window_size: int = 10_000_000
     remove_star_alleles: bool = True
     remove_equal_alleles: bool = True
     remove_multiallelics: bool = True
@@ -97,10 +107,8 @@ class deCODESummaryStatisticsHarmonisationConfig(StepConfig):
 class deCODESummaryStatisticsQCConfig(StepConfig):
     """deCODE summary statistics QC step configuration."""
 
-    # INPUTS
     harmonised_summary_statistics_path: str = MISSING
     protein_qtl_study_index_path: str = MISSING
-    # OUTPUTS
     qc_summary_statistics_path: str = MISSING
     protein_qtl_study_index_qc_annotated_path: str = MISSING
     pval_threshold: float = 5e-8
@@ -138,9 +146,7 @@ class GWASCatalogStudyIndexGenerationStep(StepConfig):
     study_index_path: str = MISSING
     gwas_catalog_study_curation_file: str | None = None
     sumstats_qc_path: str | None = None
-    _target_: str = (
-        "gentropy.gwas_catalog_study_index.GWASCatalogStudyIndexGenerationStep"
-    )
+    _target_: str = "gentropy.gwas_catalog_study_index.GWASCatalogStudyIndexGenerationStep"
 
 
 @dataclass
@@ -162,9 +168,7 @@ class GWASCatalogSumstatsPreprocessConfig(StepConfig):
 
     raw_sumstats_path: str = MISSING
     out_sumstats_path: str = MISSING
-    _target_: str = (
-        "gentropy.gwas_catalog_sumstat_preprocess.GWASCatalogSumstatsPreprocessStep"
-    )
+    _target_: str = "gentropy.gwas_catalog_sumstat_preprocess.GWASCatalogSumstatsPreprocessStep"
 
 
 @dataclass
@@ -174,7 +178,6 @@ class FoldXVariantAnnotationConfig(StepConfig):
     foldx_dataset_path: str = MISSING
     plddt_threshold: float = 0.7
     annotation_path: str = MISSING
-
     _target_: str = "gentropy.foldx_ingestion.FoldXIngestionStep"
 
 
@@ -182,11 +185,7 @@ class FoldXVariantAnnotationConfig(StepConfig):
 class EqtlCatalogueConfig(StepConfig):
     """eQTL Catalogue step configuration."""
 
-    session: Any = field(
-        default_factory=lambda: {
-            "start_hail": True,
-        }
-    )
+    session: Any = field(default_factory=lambda: {"start_hail": True})
     eqtl_catalogue_paths_imported: str = MISSING
     eqtl_catalogue_study_index_out: str = MISSING
     eqtl_catalogue_credible_sets_out: str = MISSING
@@ -200,20 +199,13 @@ class EqtlCatalogueConfig(StepConfig):
 class FinngenStudiesConfig(StepConfig):
     """FinnGen study index step configuration."""
 
-    session: Any = field(
-        default_factory=lambda: {
-            "start_hail": True,
-        }
-    )
+    session: Any = field(default_factory=lambda: {"start_hail": True})
     finngen_study_index_out: str = MISSING
     finngen_phenotype_table_url: str = MISSING
     finngen_release_prefix: str = "FINNGEN_R11_"
-    finngen_summary_stats_url_prefix: str = (
-        "gs://finngen-public-data-r11/summary_stats/finngen_R11_"
-    )
+    finngen_summary_stats_url_prefix: str = "gs://finngen-public-data-r11/summary_stats/finngen_R11_"
     finngen_summary_stats_url_suffix: str = ".gz"
     efo_curation_mapping_url: str = MISSING
-    # https://www.finngen.fi/en/access_results#:~:text=Total%20sample%20size%3A%C2%A0453%2C733%C2%A0(254%2C618%C2%A0females%20and%C2%A0199%2C115%20males)
     sample_size: int = 453733
     _target_: str = "gentropy.finngen_studies.FinnGenStudiesStep"
 
@@ -222,50 +214,28 @@ class FinngenStudiesConfig(StepConfig):
 class FinngenFinemappingConfig(StepConfig):
     """FinnGen fine mapping ingestion step configuration."""
 
-    session: Any = field(
-        default_factory=lambda: {
-            "start_hail": True,
-        }
-    )
-    finngen_susie_finemapping_snp_files: str = (
-        "gs://finngen-public-data-r11/finemap/full/susie/*.snp.bgz"
-    )
-    finngen_susie_finemapping_cs_summary_files: str = (
-        "gs://finngen-public-data-r11/finemap/summary/*SUSIE.cred.summary.tsv"
-    )
+    session: Any = field(default_factory=lambda: {"start_hail": True})
+    finngen_susie_finemapping_snp_files: str = "gs://finngen-public-data-r11/finemap/full/susie/*.snp.bgz"
+    finngen_susie_finemapping_cs_summary_files: str = "gs://finngen-public-data-r11/finemap/summary/*SUSIE.cred.summary.tsv"
     finngen_finemapping_out: str = MISSING
     finngen_finemapping_lead_pvalue_threshold: float = 1e-5
     finngen_release_prefix: str = "FINNGEN_R11"
-    _target_: str = (
-        "gentropy.finngen_finemapping_ingestion.FinnGenFinemappingIngestionStep"
-    )
+    _target_: str = "gentropy.finngen_finemapping_ingestion.FinnGenFinemappingIngestionStep"
 
 
 @dataclass
 class LDIndexConfig(StepConfig):
     """LD index step configuration."""
 
-    session: Any = field(
-        default_factory=lambda: {
-            "start_hail": True,
-        }
-    )
+    session: Any = field(default_factory=lambda: {"start_hail": True})
     ld_index_out: str = MISSING
     min_r2: float = 0.5
     ld_matrix_template: str = "gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.{POP}.common.adj.ld.bm"
     ld_index_raw_template: str = "gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.{POP}.common.ld.variant_indices.ht"
     liftover_ht_path: str = "gs://gcp-public-data--gnomad/release/2.1.1/liftover_grch38/ht/genomes/gnomad.genomes.r2.1.1.sites.liftover_grch38.ht"
-    grch37_to_grch38_chain_path: str = (
-        "gs://hail-common/references/grch37_to_grch38.over.chain.gz"
-    )
+    grch37_to_grch38_chain_path: str = "gs://hail-common/references/grch37_to_grch38.over.chain.gz"
     ld_populations: list[str] = field(
-        default_factory=lambda: [
-            "afr",  # African-American
-            "amr",  # American Admixed/Latino
-            "eas",  # East Asian
-            "fin",  # Finnish
-            "nfe",  # Non-Finnish European
-        ]
+        default_factory=lambda: ["afr", "amr", "eas", "fin", "nfe"]
     )
     _target_: str = "gentropy.gnomad_ingestion.LDIndexStep"
 
@@ -296,56 +266,26 @@ class LocusToGeneConfig(StepConfig):
     gene_interactions_path: str | None = None
     features_list: list[str] = field(
         default_factory=lambda: [
-            # max CLPP for each (study, locus, gene) aggregating over a specific qtl type
-            "eQtlColocClppMaximum",
-            "pQtlColocClppMaximum",
-            "sQtlColocClppMaximum",
-            # max H4 for each (study, locus, gene) aggregating over a specific qtl type
-            "eQtlColocH4Maximum",
-            "pQtlColocH4Maximum",
-            "sQtlColocH4Maximum",
-            # max CLPP for each (study, locus, gene) aggregating over a specific qtl type and in relation with the mean in the vicinity
-            "eQtlColocClppMaximumNeighbourhood",
-            "pQtlColocClppMaximumNeighbourhood",
+            "eQtlColocClppMaximum", "pQtlColocClppMaximum", "sQtlColocClppMaximum",
+            "eQtlColocH4Maximum", "pQtlColocH4Maximum", "sQtlColocH4Maximum",
+            "eQtlColocClppMaximumNeighbourhood", "pQtlColocClppMaximumNeighbourhood",
             "sQtlColocClppMaximumNeighbourhood",
-            # max H4 for each (study, locus, gene) aggregating over a specific qtl type and in relation with the mean in the vicinity
-            "eQtlColocH4MaximumNeighbourhood",
-            "pQtlColocH4MaximumNeighbourhood",
+            "eQtlColocH4MaximumNeighbourhood", "pQtlColocH4MaximumNeighbourhood",
             "sQtlColocH4MaximumNeighbourhood",
-            # distance to gene footprint
-            "distanceSentinelFootprint",
-            "distanceSentinelFootprintNeighbourhood",
-            "distanceFootprintMean",
-            "distanceFootprintMeanNeighbourhood",
-            # distance to gene tss
-            "distanceTssMean",
-            "distanceTssMeanNeighbourhood",
-            "distanceSentinelTss",
-            "distanceSentinelTssNeighbourhood",
-            # vep
-            "vepMaximum",
-            "vepMaximumNeighbourhood",
-            "vepMean",
-            "vepMeanNeighbourhood",
-            # intervals
-            "e2gMean",
-            "e2gMeanNeighbourhood",
-            # other
-            "geneCount500kb",
-            "proteinGeneCount500kb",
-            "credibleSetConfidence",
+            "distanceSentinelFootprint", "distanceSentinelFootprintNeighbourhood",
+            "distanceFootprintMean", "distanceFootprintMeanNeighbourhood",
+            "distanceTssMean", "distanceTssMeanNeighbourhood",
+            "distanceSentinelTss", "distanceSentinelTssNeighbourhood",
+            "vepMaximum", "vepMaximumNeighbourhood", "vepMean", "vepMeanNeighbourhood",
+            "e2gMean", "e2gMeanNeighbourhood",
+            "geneCount500kb", "proteinGeneCount500kb", "credibleSetConfidence",
         ]
     )
     hyperparameters: dict[str, Any] = field(
         default_factory=lambda: {
-            "max_depth": 5,
-            "reg_alpha": 1,  # L1 regularization
-            "reg_lambda": 1.0,  # L2 regularization
-            "subsample": 0.8,
-            "colsample_bytree": 0.8,
-            "eta": 0.05,
-            "min_child_weight": 10,
-            "scale_pos_weight": 0.8,
+            "max_depth": 5, "reg_alpha": 1, "reg_lambda": 1.0,
+            "subsample": 0.8, "colsample_bytree": 0.8, "eta": 0.05,
+            "min_child_weight": 10, "scale_pos_weight": 0.8,
         }
     )
     wandb_run_name: str | None = None
@@ -380,44 +320,19 @@ class LocusToGeneFeatureMatrixConfig(StepConfig):
     feature_matrix_path: str = MISSING
     features_list: list[str] = field(
         default_factory=lambda: [
-            # max CLPP for each (study, locus, gene) aggregating over a specific qtl type
-            "eQtlColocClppMaximum",
-            "pQtlColocClppMaximum",
-            "sQtlColocClppMaximum",
-            # max H4 for each (study, locus, gene) aggregating over a specific qtl type
-            "eQtlColocH4Maximum",
-            "pQtlColocH4Maximum",
-            "sQtlColocH4Maximum",
-            # max CLPP for each (study, locus, gene) aggregating over a specific qtl type and in relation with the mean in the vicinity
-            "eQtlColocClppMaximumNeighbourhood",
-            "pQtlColocClppMaximumNeighbourhood",
+            "eQtlColocClppMaximum", "pQtlColocClppMaximum", "sQtlColocClppMaximum",
+            "eQtlColocH4Maximum", "pQtlColocH4Maximum", "sQtlColocH4Maximum",
+            "eQtlColocClppMaximumNeighbourhood", "pQtlColocClppMaximumNeighbourhood",
             "sQtlColocClppMaximumNeighbourhood",
-            # max H4 for each (study, locus, gene) aggregating over a specific qtl type and in relation with the mean in the vicinity
-            "eQtlColocH4MaximumNeighbourhood",
-            "pQtlColocH4MaximumNeighbourhood",
+            "eQtlColocH4MaximumNeighbourhood", "pQtlColocH4MaximumNeighbourhood",
             "sQtlColocH4MaximumNeighbourhood",
-            # distance to gene footprint
-            "distanceSentinelFootprint",
-            "distanceSentinelFootprintNeighbourhood",
-            "distanceFootprintMean",
-            "distanceFootprintMeanNeighbourhood",
-            # distance to gene tss
-            "distanceTssMean",
-            "distanceTssMeanNeighbourhood",
-            "distanceSentinelTss",
-            "distanceSentinelTssNeighbourhood",
-            # vep
-            "vepMaximum",
-            "vepMaximumNeighbourhood",
-            "vepMean",
-            "vepMeanNeighbourhood",
-            # intervals
-            "e2gMean",
-            "e2gMeanNeighbourhood",
-            # other
-            "geneCount500kb",
-            "proteinGeneCount500kb",
-            "credibleSetConfidence",
+            "distanceSentinelFootprint", "distanceSentinelFootprintNeighbourhood",
+            "distanceFootprintMean", "distanceFootprintMeanNeighbourhood",
+            "distanceTssMean", "distanceTssMeanNeighbourhood",
+            "distanceSentinelTss", "distanceSentinelTssNeighbourhood",
+            "vepMaximum", "vepMaximumNeighbourhood", "vepMean", "vepMeanNeighbourhood",
+            "e2gMean", "e2gMeanNeighbourhood",
+            "geneCount500kb", "proteinGeneCount500kb", "credibleSetConfidence",
             "isProteinCoding",
         ]
     )
@@ -451,21 +366,14 @@ class UkbPppEurConfig(StepConfig):
 class FinngenUkbMvpMetaSummaryStatisticsIngestionConfig(StepConfig):
     """FinnGen UKB meta-analysis ingestion step configuration."""
 
-    session: Any = field(
-        default_factory=lambda: {
-            "use_enhanced_bgzip_codec": True,
-        }
-    )
-    # Inputs
+    session: Any = field(default_factory=lambda: {"use_enhanced_bgzip_codec": True})
     source_manifest_path: str = MISSING
     efo_curation_path: str = MISSING
     gnomad_variant_index_path: str = MISSING
-    # Outputs
     study_index_output_path: str = MISSING
     raw_summary_statistics_output_path: str = MISSING
     harmonised_summary_statistics_output_path: str = MISSING
     harmonised_summary_statistics_qc_output_path: str = MISSING
-    # Harmonisation config
     perform_meta_analysis_filter: bool = True
     imputation_score_threshold: float = 0.8
     perform_imputation_score_filter: bool = True
@@ -474,20 +382,14 @@ class FinngenUkbMvpMetaSummaryStatisticsIngestionConfig(StepConfig):
     min_allele_frequency_threshold: float = 1e-4
     perform_min_allele_frequency_filter: bool = False
     filter_out_ambiguous_variants: bool = False
-    _target_: str = (
-        "gentropy.finngen_ukb_mvp_meta.FinngenUkbMvpMetaSummaryStatisticsIngestionStep"
-    )
+    _target_: str = "gentropy.finngen_ukb_mvp_meta.FinngenUkbMvpMetaSummaryStatisticsIngestionStep"
 
 
 @dataclass
 class GnomadVariantDirectionStepConfig(StepConfig):
     """GnomAD variant direction step configuration."""
 
-    session: Any = field(
-        default_factory=lambda: {
-            "start_hail": True,
-        }
-    )
+    session: Any = field(default_factory=lambda: {"start_hail": True})
     variant_index_path: str = MISSING
     variant_direction_path: str = MISSING
     window_size: int = 10_000_000
@@ -498,28 +400,13 @@ class GnomadVariantDirectionStepConfig(StepConfig):
 class GnomadVariantConfig(StepConfig):
     """Gnomad variant ingestion step configuration."""
 
-    session: Any = field(
-        default_factory=lambda: {
-            "start_hail": True,
-        }
-    )
+    session: Any = field(default_factory=lambda: {"start_hail": True})
     variant_annotation_path: str = MISSING
     gnomad_genomes_path: str = "gs://gcp-public-data--gnomad/release/4.1/ht/genomes/gnomad.genomes.v4.1.sites.ht/"
-    gnomad_joint_path: str = (
-        "gs://gcp-public-data--gnomad/release/4.1/ht/joint/gnomad.joint.v4.1.sites.ht/"
-    )
+    gnomad_joint_path: str = "gs://gcp-public-data--gnomad/release/4.1/ht/joint/gnomad.joint.v4.1.sites.ht/"
     gnomad_variant_populations: list[str] = field(
         default_factory=lambda: [
-            "afr",  # African-American
-            "amr",  # American Admixed/Latino
-            "ami",  # Amish ancestry
-            "asj",  # Ashkenazi Jewish
-            "eas",  # East Asian
-            "fin",  # Finnish
-            "nfe",  # Non-Finnish European
-            "mid",  # Middle Eastern
-            "sas",  # South Asian
-            "remaining",  # Other
+            "afr", "amr", "ami", "asj", "eas", "fin", "nfe", "mid", "sas", "remaining",
         ]
     )
     _target_: str = "gentropy.gnomad_ingestion.GnomadVariantIndexStep"
@@ -529,31 +416,22 @@ class GnomadVariantConfig(StepConfig):
 class PanUKBBConfig(StepConfig):
     """Pan UKB variant ingestion step configuration."""
 
-    session: Any = field(
-        default_factory=lambda: {
-            "start_hail": True,
-        }
-    )
+    session: Any = field(default_factory=lambda: {"start_hail": True})
     pan_ukbb_ht_path: str = "gs://panukbb-ld-matrixes/ukb-diverse-pops-public-build-38/UKBB.{POP}.ldadj.variant.b38"
     pan_ukbb_bm_path: str = "gs://panukbb-ld-matrixes/UKBB.{POP}.ldadj"
     ukbb_annotation_path: str = "gs://panukbb-ld-matrixes/UKBB.{POP}.aligned.parquet"
     pan_ukbb_pops: list[str] = field(
-        default_factory=lambda: [
-            "AFR",  # African
-            "CSA",  # Central/South Asian
-            "EUR",  # European
-        ]
+        default_factory=lambda: ["AFR", "CSA", "EUR"]
     )
     _target_: str = "gentropy.pan_ukb_ingestion.PanUKBBVariantIndexStep"
 
 
 @dataclass
 class LOFIngestionConfig(StepConfig):
-    """Step configuration for the ingestion of Loss-of-Function variant data generated by OTAR2075."""
+    """Step configuration for the ingestion of Loss-of-Function variant data."""
 
     lof_curation_dataset_path: str = MISSING
     lof_curation_variant_annotations_path: str = MISSING
-
     _target_: str = "gentropy.lof_curation_ingestion.LOFIngestionStep"
 
 
@@ -561,18 +439,12 @@ class LOFIngestionConfig(StepConfig):
 class VariantIndexConfig(StepConfig):
     """Variant index step configuration."""
 
-    session: Any = field(
-        default_factory=lambda: {
-            "start_hail": False,
-        }
-    )
+    session: Any = field(default_factory=lambda: {"start_hail": False})
     vep_output_json_path: str = MISSING
     variant_index_path: str = MISSING
     variant_annotations_path: list[str] | None = None
     hash_threshold: int = 300
-
     amino_acid_change_annotations: list[str] = MISSING
-
     _target_: str = "gentropy.variant_index.VariantIndexStep"
 
 
@@ -602,18 +474,11 @@ class IntervalE2GStepConfig(StepConfig):
     max_valid_score: float = 1.0
     invalid_qc_reasons: list[str] = field(
         default_factory=lambda: [
-            "UNRESOLVED_TARGET",
-            "UNKNOWN_BIOSAMPLE",
-            "SCORE_OUTSIDE_BOUNDS",
-            "UNKNOWN_INTERVAL_TYPE",
-            "AMBIGUOUS_SCORE",
-            "UNKNOWN_PROJECT_ID",
-            "INVALID_CHROMOSOME",
-            "INVALID_RANGE",
-            "AMBIGUOUS_INTERVAL_TYPE",
+            "UNRESOLVED_TARGET", "UNKNOWN_BIOSAMPLE", "SCORE_OUTSIDE_BOUNDS",
+            "UNKNOWN_INTERVAL_TYPE", "AMBIGUOUS_SCORE", "UNKNOWN_PROJECT_ID",
+            "INVALID_CHROMOSOME", "INVALID_RANGE", "AMBIGUOUS_INTERVAL_TYPE",
         ]
     )
-
     _target_: str = "gentropy.intervals.IntervalE2GStep"
 
 
@@ -639,11 +504,7 @@ class LocusBreakerClumpingConfig(StepConfig):
 class WindowBasedClumpingStepConfig(StepConfig):
     """Window-based clumping step configuration."""
 
-    session: Any = field(
-        default_factory=lambda: {
-            "start_hail": True,
-        }
-    )
+    session: Any = field(default_factory=lambda: {"start_hail": True})
     summary_statistics_input_path: str = MISSING
     study_locus_output_path: str = MISSING
     gwas_significance: float = 1e-8
@@ -659,11 +520,7 @@ class WindowBasedClumpingStepConfig(StepConfig):
 class FinemapperConfig(StepConfig):
     """SuSiE fine-mapper step configuration."""
 
-    session: Any = field(
-        default_factory=lambda: {
-            "start_hail": True,
-        }
-    )
+    session: Any = field(default_factory=lambda: {"start_hail": True})
     study_index_path: str = MISSING
     study_locus_manifest_path: str = MISSING
     study_locus_index: int = MISSING
@@ -723,10 +580,7 @@ class CredibleSetQCStepConfig(StepConfig):
 
 @dataclass
 class StudyValidationStepConfig(StepConfig):
-    """Configuration of the study index validation step.
-
-    The study indices are read from multiple location, therefore we are expecting a list of paths.
-    """
+    """Configuration of the study index validation step."""
 
     study_index_path: list[str] = MISSING
     target_index_path: str = MISSING
@@ -764,10 +618,7 @@ class LocusToGeneAssociationsStepConfig(StepConfig):
 
 @dataclass
 class StudyLocusValidationStepConfig(StepConfig):
-    """Configuration of the study index validation step.
-
-    The study locus datasets are read from multiple location, therefore we are expecting a list of paths.
-    """
+    """Configuration of the study locus validation step."""
 
     study_index_path: str = MISSING
     study_locus_path: list[str] = MISSING
@@ -796,7 +647,6 @@ class MolecularComplexIngestionConfig(StepConfig):
     predicted_complex_tab_path: str = MISSING
     experimental_complex_tab_path: str = MISSING
     output_path: str = MISSING
-
     _target_: str = "gentropy.molecular_complex.MolecularComplexIngestionStep"
 
 
@@ -804,132 +654,75 @@ class MolecularComplexIngestionConfig(StepConfig):
 class Config:
     """Application configuration."""
 
-    # this is unfortunately verbose due to @dataclass limitations
     defaults: list[Any] = field(default_factory=lambda: ["_self_", {"step": MISSING}])
     step: StepConfig = MISSING
     datasets: dict[str, str] = field(default_factory=dict)
 
 
 def register_config() -> None:
-    """Register configuration."""
+    """Register configuration with Hydra."""
     cs = ConfigStore.instance()
     cs.store(name="config", node=Config)
     cs.store(group="step/session", name="base_session", node=SessionConfig)
     cs.store(group="step", name="colocalisation", node=ColocalisationConfig)
     cs.store(group="step", name="eqtl_catalogue", node=EqtlCatalogueConfig)
     cs.store(group="step", name="biosample_index", node=BiosampleIndexConfig)
-    cs.store(
-        group="step",
-        name="gwas_catalog_study_curation",
-        node=GWASCatalogStudyCurationConfig,
-    )
-    cs.store(
-        group="step",
-        name="gwas_catalog_study_index",
-        node=GWASCatalogStudyIndexGenerationStep,
-    )
-    cs.store(
-        group="step",
-        name="gwas_catalog_sumstat_preprocess",
-        node=GWASCatalogSumstatsPreprocessConfig,
-    )
-    cs.store(
-        group="step",
-        name="gwas_catalog_top_hit_ingestion",
-        node=GWASCatalogTopHitIngestionConfig,
-    )
+    cs.store(group="step", name="gwas_catalog_study_curation", node=GWASCatalogStudyCurationConfig)
+    cs.store(group="step", name="gwas_catalog_study_index", node=GWASCatalogStudyIndexGenerationStep)
+    cs.store(group="step", name="gwas_catalog_sumstat_preprocess", node=GWASCatalogSumstatsPreprocessConfig)
+    cs.store(group="step", name="gwas_catalog_top_hit_ingestion", node=GWASCatalogTopHitIngestionConfig)
     cs.store(group="step", name="ld_based_clumping", node=LDBasedClumpingConfig)
     cs.store(group="step", name="ld_index", node=LDIndexConfig)
     cs.store(group="step", name="locus_to_gene", node=LocusToGeneConfig)
-    cs.store(
-        group="step",
-        name="locus_to_gene_feature_matrix",
-        node=LocusToGeneFeatureMatrixConfig,
-    )
+    cs.store(group="step", name="locus_to_gene_feature_matrix", node=LocusToGeneFeatureMatrixConfig)
     cs.store(group="step", name="finngen_studies", node=FinngenStudiesConfig)
-
-    cs.store(
-        group="step",
-        name="finngen_finemapping_ingestion",
-        node=FinngenFinemappingConfig,
-    )
-
+    cs.store(group="step", name="finngen_finemapping_ingestion", node=FinngenFinemappingConfig)
     cs.store(group="step", name="pics", node=PICSConfig)
     cs.store(group="step", name="gnomad_variants", node=GnomadVariantConfig)
     cs.store(group="step", name="ukb_ppp_eur_sumstat_preprocess", node=UkbPppEurConfig)
     cs.store(group="step", name="lof_curation_ingestion", node=LOFIngestionConfig)
     cs.store(group="step", name="variant_index", node=VariantIndexConfig)
     cs.store(group="step", name="variant_to_vcf", node=ConvertToVcfStepConfig)
-    cs.store(
-        group="step", name="window_based_clumping", node=WindowBasedClumpingStepConfig
-    )
+    cs.store(group="step", name="window_based_clumping", node=WindowBasedClumpingStepConfig)
     cs.store(group="step", name="susie_finemapping", node=FinemapperConfig)
-    cs.store(
-        group="step", name="summary_statistics_qc", node=SummaryStatisticsQCStepConfig
-    )
-    cs.store(
-        group="step", name="locus_breaker_clumping", node=LocusBreakerClumpingConfig
-    )
-    cs.store(
-        group="step",
-        name="credible_set_validation",
-        node=StudyLocusValidationStepConfig,
-    )
-    cs.store(
-        group="step",
-        name="study_validation",
-        node=StudyValidationStepConfig,
-    )
-    cs.store(
-        group="step",
-        name="locus_to_gene_evidence",
-        node=LocusToGeneEvidenceStepConfig,
-    )
-    cs.store(
-        group="step",
-        name="locus_to_gene_associations",
-        node=LocusToGeneAssociationsStepConfig,
-    )
-    cs.store(
-        group="step",
-        name="finngen_ukb_mvp_meta_summary_statistics_ingestion",
-        node=FinngenUkbMvpMetaSummaryStatisticsIngestionConfig,
-    )
+    cs.store(group="step", name="summary_statistics_qc", node=SummaryStatisticsQCStepConfig)
+    cs.store(group="step", name="locus_breaker_clumping", node=LocusBreakerClumpingConfig)
+    cs.store(group="step", name="credible_set_validation", node=StudyLocusValidationStepConfig)
+    cs.store(group="step", name="study_validation", node=StudyValidationStepConfig)
+    cs.store(group="step", name="locus_to_gene_evidence", node=LocusToGeneEvidenceStepConfig)
+    cs.store(group="step", name="locus_to_gene_associations", node=LocusToGeneAssociationsStepConfig)
+    cs.store(group="step", name="finngen_ukb_mvp_meta_summary_statistics_ingestion", node=FinngenUkbMvpMetaSummaryStatisticsIngestionConfig)
     cs.store(group="step", name="credible_set_qc", node=CredibleSetQCStepConfig)
     cs.store(group="step", name="foldx_integration", node=FoldXVariantAnnotationConfig)
     cs.store(group="step", name="interval_e2g", node=IntervalE2GStepConfig)
-    cs.store(
-        group="step",
-        name="pQTL_study_index_transformation",
-        node=pQTLStudyIndexTransformationConfig,
-    )
-    cs.store(
-        group="step",
-        name="molecular_complex_ingestion",
-        node=MolecularComplexIngestionConfig,
-    )
-    cs.store(
-        group="step",
-        name="decode_manifest_generation",
-        node=deCODEManifestGenerationConfig,
-    )
-    cs.store(
-        group="step",
-        name="decode_summary_statistics_ingestion",
-        node=deCODESummaryStatisticsIngestionConfig,
-    )
-    cs.store(
-        group="step",
-        name="decode_summary_statistics_harmonisation",
-        node=deCODESummaryStatisticsHarmonisationConfig,
-    )
-    cs.store(
-        group="step",
-        name="gnomad_variant_direction",
-        node=GnomadVariantDirectionStepConfig,
-    )
-    cs.store(
-        group="step",
-        name="decode_summary_statistics_qc",
-        node=deCODESummaryStatisticsQCConfig,
-    )
+    cs.store(group="step", name="pQTL_study_index_transformation", node=pQTLStudyIndexTransformationConfig)
+    cs.store(group="step", name="molecular_complex_ingestion", node=MolecularComplexIngestionConfig)
+    cs.store(group="step", name="decode_manifest_generation", node=deCODEManifestGenerationConfig)
+    cs.store(group="step", name="decode_summary_statistics_ingestion", node=deCODESummaryStatisticsIngestionConfig)
+    cs.store(group="step", name="decode_summary_statistics_harmonisation", node=deCODESummaryStatisticsHarmonisationConfig)
+    cs.store(group="step", name="gnomad_variant_direction", node=GnomadVariantDirectionStepConfig)
+    cs.store(group="step", name="decode_summary_statistics_qc", node=deCODESummaryStatisticsQCConfig)
+
+
+# ---------------------------------------------------------------------------
+# SessionDefaults (Pydantic)
+# ---------------------------------------------------------------------------
+
+
+class SessionDefaults(BaseModel, frozen=True):
+    """Session defaults for all steps.
+
+    All values are frozen -- create a new instance to override.
+    """
+
+    spark_uri: Annotated[str, Field(description="Spark connection URI.")] = "local[*]"
+    start_hail: Annotated[bool, Field(description="Whether to initialize Hail on session creation.")] = False
+    write_mode: Annotated[str, Field(description="Spark write mode.")] = "errorifexists"
+    hail_home: Annotated[str, Field(description="Path to Hail installation directory.")] = hail_home_default
+    extended_spark_conf: Annotated[dict[str, str], Field(default_factory=dict, description="Extended Spark configuration key-value pairs.")]
+    extended_hail_conf: Annotated[dict[str, str], Field(default_factory=dict, description="Extended Hail configuration key-value pairs.")]
+    output_partitions: Annotated[int, Field(ge=1, description="Number of output partitions.")] = 200
+    use_enhanced_bgzip_codec: Annotated[bool, Field(description="Whether to use BGZFEnhancedGzipCodec for reading block gzipped files.")] = False
+    dynamic_allocation: Annotated[bool, Field(description="Whether to enable Spark dynamic allocation.")] = True
+    log_level: Annotated[str, Field(description="Spark log level.")] = "ERROR"
+

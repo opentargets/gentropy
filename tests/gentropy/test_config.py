@@ -1,152 +1,67 @@
-"""Tests for configuration module."""
+"""Tests for SessionDefaults configuration model."""
 
 from __future__ import annotations
 
-from dataclasses import fields, is_dataclass
-
 import pytest
+from pydantic import ValidationError
 
-from gentropy.config import (
-    BiosampleIndexConfig,
-    ColocalisationConfig,
-    Config,
-    SessionConfig,
-    StepConfig,
-    register_config,
-)
+from gentropy.config import SessionDefaults
 
 
-class TestSessionConfig:
-    """Test SessionConfig dataclass."""
+class TestSessionDefaults:
+    """Test SessionDefaults Pydantic model."""
 
-    def test_session_config_creation(self) -> None:
-        """Test creating a SessionConfig."""
-        config = SessionConfig()
+    def test_session_defaults_default_values(self) -> None:
+        """Test creating a SessionDefaults with all defaults."""
+        defaults = SessionDefaults()
 
-        assert config.start_hail is False
-        assert config.write_mode == "errorifexists"
-        assert config.spark_uri == "local[*]"
-        assert config.output_partitions == 200
+        assert defaults.spark_uri == "local[*]"
+        assert defaults.write_mode == "errorifexists"
+        assert defaults.output_partitions == 200
+        assert defaults.start_hail is False
+        assert defaults.dynamic_allocation is True
+        assert defaults.log_level == "ERROR"
 
-    def test_session_config_is_dataclass(self) -> None:
-        """Test that SessionConfig is a dataclass."""
-        assert is_dataclass(SessionConfig)
-
-    def test_session_config_fields(self) -> None:
-        """Test that SessionConfig has expected fields."""
-        config_fields = {f.name for f in fields(SessionConfig)}
-
-        expected_fields = {
-            "start_hail",
-            "write_mode",
-            "spark_uri",
-            "hail_home",
-            "extended_spark_conf",
-            "use_enhanced_bgzip_codec",
-            "output_partitions",
-            "_target_",
-        }
-
-        for expected in expected_fields:
-            assert expected in config_fields, f"Missing field: {expected}"
-
-    def test_session_config_custom_values(self) -> None:
-        """Test creating SessionConfig with custom values."""
-        config = SessionConfig(
-            start_hail=True,
-            write_mode="overwrite",
+    def test_session_defaults_custom_values(self) -> None:
+        """Test creating SessionDefaults with custom values."""
+        defaults = SessionDefaults(
             spark_uri="local[4]",
+            write_mode="overwrite",
             output_partitions=100,
+            start_hail=True,
+            dynamic_allocation=False,
+            log_level="DEBUG",
         )
 
-        assert config.start_hail is True
-        assert config.write_mode == "overwrite"
-        assert config.spark_uri == "local[4]"
-        assert config.output_partitions == 100
+        assert defaults.spark_uri == "local[4]"
+        assert defaults.write_mode == "overwrite"
+        assert defaults.output_partitions == 100
+        assert defaults.start_hail is True
+        assert defaults.dynamic_allocation is False
+        assert defaults.log_level == "DEBUG"
 
+    def test_session_defaults_frozen(self) -> None:
+        """Test that SessionDefaults is immutable."""
+        defaults = SessionDefaults()
+        with pytest.raises(ValidationError):
+            defaults.spark_uri = "local[*]"  # type: ignore[misc]
 
-class TestStepConfig:
-    """Test StepConfig base class."""
+    def test_session_defaults_extended_spark_conf_default(self) -> None:
+        """Test that extended_spark_conf defaults to empty dict."""
+        defaults = SessionDefaults()
+        assert defaults.extended_spark_conf == {}
 
-    def test_step_config_is_dataclass(self) -> None:
-        """Test that StepConfig is a dataclass."""
-        assert is_dataclass(StepConfig)
+    def test_session_defaults_extended_hail_conf_default(self) -> None:
+        """Test that extended_hail_conf defaults to empty dict."""
+        defaults = SessionDefaults()
+        assert defaults.extended_hail_conf == {}
 
-    def test_step_config_has_defaults(self) -> None:
-        """Test that StepConfig has default defaults."""
-        config = StepConfig(session=SessionConfig())
-        assert config.session is not None
+    def test_session_defaults_output_partitions_minimum(self) -> None:
+        """Test that output_partitions must be >= 1."""
+        with pytest.raises(ValidationError):
+            SessionDefaults(output_partitions=0)
 
-    def test_step_config_fields(self) -> None:
-        """Test that StepConfig has expected fields."""
-        config_fields = {f.name for f in fields(StepConfig)}
-
-        expected_fields = {"session", "defaults"}
-
-        for expected in expected_fields:
-            assert expected in config_fields, f"Missing field: {expected}"
-
-
-class TestColocalisationConfig:
-    """Test ColocalisationConfig."""
-
-    def test_colocalisation_config_is_dataclass(self) -> None:
-        """Test that ColocalisationConfig is a dataclass."""
-        assert is_dataclass(ColocalisationConfig)
-
-    def test_colocalisation_config_inherits_from_step_config(self) -> None:
-        """Test that ColocalisationConfig inherits from StepConfig."""
-        assert issubclass(ColocalisationConfig, StepConfig)
-
-    def test_colocalisation_config_has_required_fields(self) -> None:
-        """Test that ColocalisationConfig has expected fields."""
-        config_fields = {f.name for f in fields(ColocalisationConfig)}
-
-        expected_fields = {
-            "credible_set_path",
-            "coloc_path",
-            "colocalisation_method",
-        }
-
-        for expected in expected_fields:
-            assert expected in config_fields, f"Missing field: {expected}"
-
-
-class TestBiosampleIndexConfig:
-    """Test BiosampleIndexConfig."""
-
-    def test_biosample_index_config_is_dataclass(self) -> None:
-        """Test that BiosampleIndexConfig is a dataclass."""
-        assert is_dataclass(BiosampleIndexConfig)
-
-    def test_biosample_index_config_inherits_from_step_config(self) -> None:
-        """Test that BiosampleIndexConfig inherits from StepConfig."""
-        assert issubclass(BiosampleIndexConfig, StepConfig)
-
-    def test_biosample_index_config_has_required_fields(self) -> None:
-        """Test that BiosampleIndexConfig has expected fields."""
-        config_fields = {f.name for f in fields(BiosampleIndexConfig)}
-
-        expected_fields = {
-            "cell_ontology_input_path",
-            "uberon_input_path",
-            "efo_input_path",
-            "biosample_index_path",
-        }
-
-        for expected in expected_fields:
-            assert expected in config_fields, f"Missing field: {expected}"
-
-
-def test_register_config() -> None:
-    """Test that register_config can be called without errors."""
-    # This just verifies the function doesn't raise exceptions
-    try:
-        register_config()
-    except Exception as e:
-        pytest.fail(f"register_config raised unexpected exception: {e}")
-
-
-def test_config_class_exists() -> None:
-    """Test that Config class exists and is a dataclass."""
-    assert is_dataclass(Config)
+    def test_session_defaults_hail_home(self) -> None:
+        """Test that hail_home defaults to Hail installation directory."""
+        defaults = SessionDefaults()
+        assert defaults.hail_home is not None
