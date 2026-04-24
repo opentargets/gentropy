@@ -86,22 +86,26 @@ class HuggingFaceModelRepoHandle(BaseModel):
     Attributes:
         repo_id (str): The identifier of the Hugging Face model repository, typically in the format "username/model_name".
 
+    Note:
+        Regex pattern used for validation is derived from :class:`huggingface_hub.utils._validators.REPO_ID_REGEX` — requires namespace/repo_name,
+        alphanumeric + . _ - allowed, cannot start or end with . or -, repo name capped at 96 chars.
 
     Examples:
         Create a HuggingFaceModelRepoHandle instance:
 
-        >>> repo = HuggingFaceModelRepoHandle(handle="opentargets/locus2gene")
+        >>> repo = HuggingFaceModelRepoHandle(handle="opentargets/locus_to_gene_26.06.0-dev0")
         >>> repo.handle
-        'opentargets/locus2gene'
+        'opentargets/locus_to_gene_26.06.0-dev0'
         >>> repo.repo_url()
-        'https://huggingface.co/opentargets/locus2gene'
+        'https://huggingface.co/opentargets/locus_to_gene_26.06.0-dev0'
         >>> repo.repo_id()
-        'locus2gene'
+        'locus_to_gene_26.06.0-dev0'
         >>> repo.username()
         'opentargets'
     """
 
-    handle: Annotated[str, StringConstraints(pattern=r"^[\w-]+/[\w-]+$")]
+
+    handle: Annotated[str, StringConstraints(pattern=r"^\b[\w.-]+\b/\b[\w.-]{1,96}\b$")]
 
 
     def repo_url(self) -> str:
