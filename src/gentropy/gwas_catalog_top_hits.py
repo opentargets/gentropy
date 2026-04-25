@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+from typing import Annotated
+
+from pydantic import BaseModel, Field
+
 from gentropy.common.session import Session
 from gentropy.config import WindowBasedClumpingStepConfig
 from gentropy.dataset.variant_index import VariantIndex
@@ -14,42 +18,61 @@ from gentropy.datasource.gwas_catalog.study_index import (
 from gentropy.datasource.gwas_catalog.study_splitter import GWASCatalogStudySplitter
 
 
+class GWASCatalogTopHitDefaults(BaseModel, frozen=True):
+    """Defaults for GWASCatalogTopHitIngestionStep.
+
+    All values are frozen - create a new instance to override.
+    """
+
+    catalog_study_files: Annotated[
+        list[str], Field(description="List of raw GWAS catalog studies file.")
+    ]
+    catalog_ancestry_files: Annotated[
+        list[str],
+        Field(description="List of raw ancestry annotations files from GWAS Catalog."),
+    ]
+    catalog_associations_file: Annotated[
+        str, Field(description="Raw GWAS catalog associations file.")
+    ]
+    variant_annotation_path: Annotated[
+        str, Field(description="Path to GnomAD variants.")
+    ]
+    catalog_studies_out: Annotated[
+        str, Field(description="Output GWAS catalog studies path.")
+    ]
+    catalog_associations_out: Annotated[
+        str, Field(description="Output GWAS catalog associations path.")
+    ]
+
+
 class GWASCatalogTopHitIngestionStep:
     """GWAS Catalog ingestion step to extract GWASCatalog top hits."""
 
     def __init__(
         self,
         session: Session,
-        catalog_study_files: list[str],
-        catalog_ancestry_files: list[str],
-        catalog_associations_file: str,
-        variant_annotation_path: str,
-        catalog_studies_out: str,
-        catalog_associations_out: str,
+        config: GWASCatalogTopHitDefaults,
         distance: int = WindowBasedClumpingStepConfig().distance,
     ) -> None:
         """Run step.
 
         Args:
             session (Session): Session object.
-            catalog_study_files (list[str]): List of raw GWAS catalog studies file.
-            catalog_ancestry_files (list[str]): List of raw ancestry annotations files from GWAS Catalog.
-            catalog_associations_file (str): Raw GWAS catalog associations file.
-            variant_annotation_path (str): Path to GnomAD variants.
-            catalog_studies_out (str): Output GWAS catalog studies path.
-            catalog_associations_out (str): Output GWAS catalog associations path.
+            config: Configuration for the step.
             distance (int): Distance, within which tagging variants are collected around the semi-index.
         """
         # Extract
-        gnomad_variants = VariantIndex.from_parquet(session, variant_annotation_path)
+        gnomad_variants = VariantIndex.from_parquet(
+            session, config.variant_annotation_path
+        )
         catalog_studies = session.spark.read.csv(
-            list(catalog_study_files), sep="\t", header=True
+            list(config.catalog_study_files), sep="\t", header=True
         )
         ancestry_lut = session.spark.read.csv(
-            list(catalog_ancestry_files), sep="\t", header=True
+            list(config.catalog_ancestry_files), sep="\t", header=True
         )
         catalog_associations = session.spark.read.csv(
-            catalog_associations_file, sep="\t", header=True
+            config.catalog_associations_file, sep="\t", header=True
         ).persist()
 
         # Transform
@@ -66,11 +89,11 @@ class GWASCatalogTopHitIngestionStep:
             .add_no_sumstats_flag()
             # Save dataset:
             .df.write.mode(session.write_mode)
-            .parquet(catalog_studies_out)
+            .parquet(config.catalog_studies_out)
         )
 
         (
             study_locus.window_based_clumping(distance)
             .df.write.mode(session.write_mode)
-            .parquet(catalog_associations_out)
+            .parquet(config.catalog_associations_out)
         )

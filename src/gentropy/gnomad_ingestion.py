@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
+from typing import Annotated
+
+from pydantic import BaseModel, Field
+
 from gentropy.common.session import Session
-from gentropy.common.types import LD_Population, VariantPopulation
-from gentropy.config import GnomadVariantConfig, LDIndexConfig
+from gentropy.common.types import VariantPopulation
+from gentropy.config import GnomadVariantConfig
 from gentropy.dataset.variant_direction import DEFAULT_WINDOW_SIZE, VariantDirection
 from gentropy.dataset.variant_index import VariantIndex
 from gentropy.datasource.gnomad.ld import GnomADLDMatrix
@@ -12,6 +16,56 @@ from gentropy.datasource.gnomad.variants import (
     GnomADVariantFrequencies,
     GnomADVariantRsIds,
 )
+
+
+class LDIndexDefaults(BaseModel, frozen=True):
+    """Defaults for LDIndexStep.
+
+    All values are frozen - create a new instance to override.
+    """
+
+    ld_matrix_template: Annotated[
+        str,
+        Field(
+            default="gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.{POP}.common.adj.ld.bm",
+            description="Input path to the gnomAD LD file with placeholder for population.",
+        ),
+    ]
+    ld_index_raw_template: Annotated[
+        str,
+        Field(
+            default="gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.{POP}.common.ld.variant_indices.ht",
+            description="Input path to the raw gnomAD LD indices file with placeholder for population string.",
+        ),
+    ]
+    ld_populations: Annotated[
+        list[str],
+        Field(
+            default=["afr", "amr", "eas", "fin", "nfe"],
+            description="Population names derived from the LD file paths.",
+        ),
+    ]
+    liftover_ht_path: Annotated[
+        str,
+        Field(
+            default="gs://gcp-public-data--gnomad/release/2.1.1/liftover_grch38/ht/genomes/gnomad.genomes.r2.1.1.sites.liftover_grch38.ht",
+            description="Path to the liftover HT file.",
+        ),
+    ]
+    grch37_to_grch38_chain_path: Annotated[
+        str,
+        Field(
+            default="gs://hail-common/references/grch37_to_grch38.over.chain.gz",
+            description="Path to the chain file used to lift over the coordinates.",
+        ),
+    ]
+    min_r2: Annotated[
+        float,
+        Field(
+            default=0.5,
+            description="Minimum r2 to consider when considering variants within a window.",
+        ),
+    ]
 
 
 class LDIndexStep:
@@ -26,37 +80,25 @@ class LDIndexStep:
     def __init__(
         self,
         session: Session,
+        config: LDIndexDefaults,
         ld_index_out: str,
-        min_r2: float = LDIndexConfig().min_r2,
-        ld_matrix_template: str = LDIndexConfig().ld_matrix_template,
-        ld_index_raw_template: str = LDIndexConfig().ld_index_raw_template,
-        ld_populations: list[LD_Population | str] = LDIndexConfig().ld_populations,
-        liftover_ht_path: str = LDIndexConfig().liftover_ht_path,
-        grch37_to_grch38_chain_path: str = LDIndexConfig().grch37_to_grch38_chain_path,
     ) -> None:
         """Run step.
 
         Args:
             session (Session): Session object.
+            config: Configuration for the step.
             ld_index_out (str): Output LD index path. (required)
-            min_r2 (float): Minimum r2 to consider when considering variants within a window.
-            ld_matrix_template (str): Input path to the gnomAD ld file with placeholder for population
-            ld_index_raw_template (str): Input path to the raw gnomAD LD indices file with placeholder for population string
-            ld_populations (list[LD_Population | str]): Population names derived from the ld file paths
-            liftover_ht_path (str): Path to the liftover ht file
-            grch37_to_grch38_chain_path (str): Path to the chain file used to lift over the coordinates.
-
-        Default values are provided in LDIndexConfig.
         """
         (
             GnomADLDMatrix(
-                ld_matrix_template=ld_matrix_template,
-                ld_index_raw_template=ld_index_raw_template,
-                grch37_to_grch38_chain_path=grch37_to_grch38_chain_path,
-                ld_populations=ld_populations,
-                liftover_ht_path=liftover_ht_path,
+                ld_matrix_template=config.ld_matrix_template,
+                ld_index_raw_template=config.ld_index_raw_template,
+                grch37_to_grch38_chain_path=config.grch37_to_grch38_chain_path,
+                ld_populations=config.ld_populations,
+                liftover_ht_path=config.liftover_ht_path,
             )
-            .as_ld_index(min_r2)
+            .as_ld_index(config.min_r2)
             .df.write.partitionBy("chromosome")
             .mode(session.write_mode)
             .parquet(ld_index_out)

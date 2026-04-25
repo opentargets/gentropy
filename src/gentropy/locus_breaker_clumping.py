@@ -2,10 +2,59 @@
 
 from __future__ import annotations
 
+from typing import Annotated
+
+from pydantic import BaseModel, Field
+
 from gentropy.common.genomic_region import GenomicRegion, KnownGenomicRegions
 from gentropy.common.session import Session
 from gentropy.dataset.summary_statistics import SummaryStatistics
 from gentropy.method.locus_breaker_clumping import LocusBreakerClumping
+
+
+class LocusBreakerClumpingStepConfig(BaseModel, frozen=True):
+    """Config for LocusBreakerClumpingStep."""
+
+    summary_statistics_input_path: Annotated[
+        str, Field(description="Path to the input study locus.")
+    ]
+    clumped_study_locus_output_path: Annotated[
+        str, Field(description="Path of the resulting, clumped study-locus dataset.")
+    ]
+    lbc_baseline_pvalue: Annotated[
+        float, Field(description="Baseline p-value for locus breaker clumping.")
+    ]
+    lbc_distance_cutoff: Annotated[
+        int, Field(description="Distance cutoff for locus breaker clumping.")
+    ]
+    lbc_pvalue_threshold: Annotated[
+        float, Field(description="P-value threshold for locus breaker clumping.")
+    ]
+    lbc_flanking_distance: Annotated[
+        int, Field(description="Flanking distance for locus breaker clumping.")
+    ]
+    large_loci_size: Annotated[
+        int,
+        Field(
+            description="Threshold distance to define large loci for window-based clumping."
+        ),
+    ]
+    wbc_clump_distance: Annotated[
+        int, Field(description="Clump distance for window breaker clumping.")
+    ]
+    wbc_pvalue_threshold: Annotated[
+        float, Field(description="P-value threshold for window breaker clumping.")
+    ]
+    collect_locus: Annotated[
+        bool, Field(default=False, description="Whether to collect locus.")
+    ]
+    remove_mhc: Annotated[
+        bool,
+        Field(
+            default=True,
+            description="If true will use exclude_region() to remove the MHC region.",
+        ),
+    ]
 
 
 class LocusBreakerClumpingStep:
@@ -14,17 +63,7 @@ class LocusBreakerClumpingStep:
     def __init__(
         self,
         session: Session,
-        summary_statistics_input_path: str,
-        clumped_study_locus_output_path: str,
-        lbc_baseline_pvalue: float,
-        lbc_distance_cutoff: int,
-        lbc_pvalue_threshold: float,
-        lbc_flanking_distance: int,
-        large_loci_size: int,
-        wbc_clump_distance: int,
-        wbc_pvalue_threshold: float,
-        collect_locus: bool = False,
-        remove_mhc: bool = True,
+        config: LocusBreakerClumpingStepConfig,
     ) -> None:
         """Run locus-breaker clumping step.
 
@@ -34,45 +73,37 @@ class LocusBreakerClumpingStep:
 
         Args:
             session (Session): Session object.
-            summary_statistics_input_path (str): Path to the input study locus.
-            clumped_study_locus_output_path (str): path of the resulting, clumped study-locus dataset.
-            lbc_baseline_pvalue (float): Baseline p-value for locus breaker clumping.
-            lbc_distance_cutoff (int): Distance cutoff for locus breaker clumping.
-            lbc_pvalue_threshold (float): P-value threshold for locus breaker clumping.
-            lbc_flanking_distance (int): Flanking distance for locus breaker clumping.
-            large_loci_size (int): Threshold distance to define large loci for window-based clumping.
-            wbc_clump_distance (int): Clump distance for window breaker clumping.
-            wbc_pvalue_threshold (float): P-value threshold for window breaker clumping.
-            collect_locus (bool, optional): Whether to collect locus. Defaults to False.
-            remove_mhc (bool, optional): If true will use exclude_region() to remove the MHC region.
+            config: Configuration for the step.
         """
         sum_stats = SummaryStatistics.from_parquet(
             session,
-            summary_statistics_input_path,
+            config.summary_statistics_input_path,
         )
         lbc = sum_stats.locus_breaker_clumping(
-            lbc_baseline_pvalue,
-            lbc_distance_cutoff,
-            lbc_pvalue_threshold,
-            lbc_flanking_distance,
+            config.lbc_baseline_pvalue,
+            config.lbc_distance_cutoff,
+            config.lbc_pvalue_threshold,
+            config.lbc_flanking_distance,
         )
-        wbc = sum_stats.window_based_clumping(wbc_clump_distance, wbc_pvalue_threshold)
+        wbc = sum_stats.window_based_clumping(
+            config.wbc_clump_distance, config.wbc_pvalue_threshold
+        )
 
         clumped_result = LocusBreakerClumping.process_locus_breaker_output(
             lbc,
             wbc,
-            large_loci_size,
+            config.large_loci_size,
         )
-        if remove_mhc:
+        if config.remove_mhc:
             clumped_result = clumped_result.exclude_region(
                 GenomicRegion.from_known_genomic_region(KnownGenomicRegions.MHC),
                 exclude_overlap=True,
             )
 
-        if collect_locus:
+        if config.collect_locus:
             clumped_result = clumped_result.annotate_locus_statistics_boundaries(
                 sum_stats
             )
         clumped_result.df.write.partitionBy("studyLocusId").mode(
             session.write_mode
-        ).parquet(clumped_study_locus_output_path)
+        ).parquet(config.clumped_study_locus_output_path)

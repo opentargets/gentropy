@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import Annotated, Any
 
 import pyspark.sql.functions as f
+from pydantic import BaseModel, Field
 from wandb.sdk.wandb_login import login as wandb_login
 from xgboost import XGBClassifier
 
@@ -27,69 +28,243 @@ from gentropy.method.l2g.model import LocusToGeneModel
 from gentropy.method.l2g.trainer import LocusToGeneTrainer
 
 
+class LocusToGeneEvidenceDefaults(BaseModel, frozen=True):
+    """Defaults for LocusToGeneEvidenceStep.
+
+    All values are frozen - create a new instance to override.
+    """
+
+    locus_to_gene_predictions_path: Annotated[
+        str, Field(description="Path to the L2G predictions dataset.")
+    ]
+    credible_set_path: Annotated[
+        str, Field(description="Path to the credible set dataset.")
+    ]
+    study_index_path: Annotated[
+        str, Field(description="Path to the study index dataset.")
+    ]
+    evidence_output_path: Annotated[
+        str,
+        Field(
+            description="Path to the L2G evidence output dataset. The output format is ndjson gzipped."
+        ),
+    ]
+    locus_to_gene_threshold: Annotated[
+        float,
+        Field(description="Threshold to consider a gene as a target.", default=0.05),
+    ]
+
+
+class LocusToGeneAssociationsDefaults(BaseModel, frozen=True):
+    """Defaults for LocusToGeneAssociationsStep.
+
+    All values are frozen - create a new instance to override.
+    """
+
+    evidence_input_path: Annotated[
+        str, Field(description="Path to the L2G evidence input dataset.")
+    ]
+    disease_index_path: Annotated[str, Field(description="Path to disease index file.")]
+    direct_associations_output_path: Annotated[
+        str, Field(description="Path to the direct associations output dataset.")
+    ]
+    indirect_associations_output_path: Annotated[
+        str, Field(description="Path to the indirect associations output dataset.")
+    ]
+
+
+class LocusToGeneFeatureMatrixDefaults(BaseModel, frozen=True):
+    """Defaults for LocusToGeneFeatureMatrixStep.
+
+    All values are frozen - create a new instance to override.
+    """
+
+    credible_set_path: Annotated[
+        str,
+        Field(
+            description="Path to the credible set dataset necessary to build the feature matrix."
+        ),
+    ]
+    feature_matrix_path: Annotated[
+        str, Field(description="Path to the L2G feature matrix output dataset.")
+    ]
+    features_list: Annotated[
+        list[str], Field(description="List of features to use for the model.")
+    ]
+    variant_index_path: Annotated[
+        str | None,
+        Field(description="Path to the variant index dataset.", default=None),
+    ] = None
+    colocalisation_path: Annotated[
+        str | None,
+        Field(description="Path to the colocalisation dataset.", default=None),
+    ] = None
+    study_index_path: Annotated[
+        str | None,
+        Field(description="Path to the study index dataset.", default=None),
+    ] = None
+    target_index_path: Annotated[
+        str | None,
+        Field(description="Path to the target index dataset.", default=None),
+    ] = None
+    intervals_path: Annotated[
+        str | None,
+        Field(description="Path to the interval dataset.", default=None),
+    ] = None
+    append_null_features: Annotated[
+        bool,
+        Field(
+            description="Whether to append null features to the feature matrix.",
+            default=False,
+        ),
+    ]
+
+
+class LocusToGeneDefaults(BaseModel, frozen=True):
+    """Defaults for LocusToGeneStep.
+
+    All values are frozen - create a new instance to override.
+    """
+
+    run_mode: Annotated[
+        str, Field(description="Run mode, either 'train' or 'predict'.")
+    ]
+    credible_set_path: Annotated[
+        str,
+        Field(
+            description="Path to the credible set dataset necessary to build the feature matrix."
+        ),
+    ]
+    feature_matrix_path: Annotated[
+        str, Field(description="Path to the L2G feature matrix input dataset.")
+    ]
+    hyperparameters: Annotated[
+        dict[str, Any], Field(description="Hyperparameters for the model.")
+    ]
+    download_from_hub: Annotated[
+        bool, Field(description="Whether to download the model from Hugging Face Hub.")
+    ]
+    cross_validate: Annotated[
+        bool,
+        Field(
+            description="Whether to run cross validation (5-fold by default) to train the model."
+        ),
+    ]
+    wandb_run_name: Annotated[
+        str | None,
+        Field(
+            description="Name of the run to track model training in Weights and Biases.",
+            default=None,
+        ),
+    ] = None
+    model_path: Annotated[
+        str | None,
+        Field(description="Path to the model.", default=None),
+    ] = None
+    features_list: Annotated[
+        list[str] | None,
+        Field(description="List of features to use to train the model.", default=None),
+    ] = None
+    gold_standard_curation_path: Annotated[
+        str | None,
+        Field(description="Path to the gold standard curation file.", default=None),
+    ] = None
+    variant_index_path: Annotated[
+        str | None,
+        Field(description="Path to the variant index.", default=None),
+    ] = None
+    gene_interactions_path: Annotated[
+        str | None,
+        Field(description="Path to the gene interactions dataset.", default=None),
+    ] = None
+    predictions_path: Annotated[
+        str | None,
+        Field(description="Path to the L2G predictions output dataset.", default=None),
+    ] = None
+    l2g_threshold: Annotated[
+        float | None,
+        Field(
+            description="An optional threshold for the L2G score to filter predictions.",
+            default=None,
+        ),
+    ] = None
+    hf_hub_repo_id: Annotated[
+        str | None,
+        Field(description="Hugging Face Hub repository ID.", default=None),
+    ] = None
+    hf_model_commit_message: Annotated[
+        str | None,
+        Field(
+            description="Commit message when we upload the model to the Hugging Face Hub.",
+            default="chore: update model",
+        ),
+    ] = None
+    hf_model_version: Annotated[
+        str | None,
+        Field(
+            description="Tag, branch, or commit hash to download the model from the Hub.",
+            default=None,
+        ),
+    ] = None
+    explain_predictions: Annotated[
+        bool | None,
+        Field(
+            description="Whether to extract SHAP importances for the L2G predictions.",
+            default=None,
+        ),
+    ] = None
+
+
 class LocusToGeneFeatureMatrixStep:
     """Annotate credible set with functional genomics features."""
 
     def __init__(
         self,
         session: Session,
-        *,
-        features_list: list[str],
-        credible_set_path: str,
-        variant_index_path: str | None = None,
-        colocalisation_path: str | None = None,
-        study_index_path: str | None = None,
-        target_index_path: str | None = None,
-        intervals_path: str | None = None,
-        feature_matrix_path: str,
-        append_null_features: bool = False,
+        config: LocusToGeneFeatureMatrixDefaults,
     ) -> None:
         """Initialise the step and run the logic based on mode.
 
         Args:
             session (Session): Session object that contains the Spark session
-            features_list (list[str]): List of features to use for the model
-            credible_set_path (str): Path to the credible set dataset necessary to build the feature matrix
-            variant_index_path (str | None): Path to the variant index dataset
-            colocalisation_path (str | None): Path to the colocalisation dataset
-            study_index_path (str | None): Path to the study index dataset
-            target_index_path (str | None): Path to the target index dataset
-            intervals_path (str | None): Path to the interval dataset
-            feature_matrix_path (str): Path to the L2G feature matrix output dataset
-            append_null_features (bool): Whether to append null features to the feature matrix. Defaults to False.
+            config: Configuration for the step.
         """
         credible_set = StudyLocus.from_parquet(
-            session, credible_set_path, recursiveFileLookup=True
+            session, config.credible_set_path, recursiveFileLookup=True
         )
         studies = (
-            StudyIndex.from_parquet(session, study_index_path, recursiveFileLookup=True)
-            if study_index_path
+            StudyIndex.from_parquet(
+                session, config.study_index_path, recursiveFileLookup=True
+            )
+            if config.study_index_path
             else None
         )
         variant_index = (
-            VariantIndex.from_parquet(session, variant_index_path)
-            if variant_index_path
+            VariantIndex.from_parquet(session, config.variant_index_path)
+            if config.variant_index_path
             else None
         )
         coloc = (
             Colocalisation.from_parquet(
-                session, colocalisation_path, recursiveFileLookup=True
+                session, config.colocalisation_path, recursiveFileLookup=True
             )
-            if colocalisation_path
+            if config.colocalisation_path
             else None
         )
 
         target_index = (
             TargetIndex.from_parquet(
-                session, target_index_path, recursiveFileLookup=True
+                session, config.target_index_path, recursiveFileLookup=True
             )
-            if target_index_path
+            if config.target_index_path
             else None
         )
 
         intervals = (
-            Intervals.from_parquet(session, intervals_path, recursiveFileLookup=True)
-            if intervals_path
+            Intervals.from_parquet(
+                session, config.intervals_path, recursiveFileLookup=True
+            )
+            if config.intervals_path
             else None
         )
 
@@ -103,9 +278,9 @@ class LocusToGeneFeatureMatrixStep:
         )
 
         fm = credible_set.filter(f.col("studyType") == "gwas").build_feature_matrix(
-            features_list,
+            config.features_list,
             features_input_loader,
-            append_null_features=append_null_features,
+            append_null_features=config.append_null_features,
         )
 
         if target_index is not None:
@@ -124,7 +299,7 @@ class LocusToGeneFeatureMatrixStep:
 
         fm._df.coalesce(session.output_partitions).write.mode(
             session.write_mode
-        ).parquet(feature_matrix_path)
+        ).parquet(config.feature_matrix_path)
 
 
 class LocusToGeneStep:
@@ -133,90 +308,59 @@ class LocusToGeneStep:
     def __init__(
         self,
         session: Session,
-        *,
-        run_mode: str,
-        hyperparameters: dict[str, Any],
-        download_from_hub: bool,
-        cross_validate: bool,
-        credible_set_path: str,
-        feature_matrix_path: str,
-        wandb_run_name: str | None = None,
-        model_path: str | None = None,
-        features_list: list[str] | None = None,
-        gold_standard_curation_path: str | None = None,
-        variant_index_path: str | None = None,
-        gene_interactions_path: str | None = None,
-        predictions_path: str | None = None,
-        l2g_threshold: float | None = None,
-        hf_hub_repo_id: str | None = None,
-        hf_model_commit_message: str | None = "chore: update model",
-        hf_model_version: str | None = None,
-        explain_predictions: bool | None = None,
+        config: LocusToGeneDefaults,
     ) -> None:
         """Initialise the step and run the logic based on mode.
 
         Args:
             session (Session): Session object that contains the Spark session
-            run_mode (str): Run mode, either 'train' or 'predict'
-            hyperparameters (dict[str, Any]): Hyperparameters for the model
-            download_from_hub (bool): Whether to download the model from Hugging Face Hub
-            cross_validate (bool): Whether to run cross validation (5-fold by default) to train the model.
-            credible_set_path (str): Path to the credible set dataset necessary to build the feature matrix
-            feature_matrix_path (str): Path to the L2G feature matrix input dataset
-            wandb_run_name (str | None): Name of the run to track model training in Weights and Biases
-            model_path (str | None): Path to the model. It can be either in the filesystem or the name on the Hugging Face Hub (in the form of username/repo_name).
-            features_list (list[str] | None): List of features to use to train the model
-            gold_standard_curation_path (str | None): Path to the gold standard curation file
-            variant_index_path (str | None): Path to the variant index
-            gene_interactions_path (str | None): Path to the gene interactions dataset
-            predictions_path (str | None): Path to the L2G predictions output dataset
-            l2g_threshold (float | None): An optional threshold for the L2G score to filter predictions. A threshold of 0.05 is recommended.
-            hf_hub_repo_id (str | None): Hugging Face Hub repository ID. If provided, the model will be uploaded to Hugging Face.
-            hf_model_commit_message (str | None): Commit message when we upload the model to the Hugging Face Hub
-            hf_model_version (str | None): Tag, branch, or commit hash to download the model from the Hub. If None, the latest commit is downloaded.
-            explain_predictions (bool | None): Whether to extract SHAP importances for the L2G predictions. This is computationally expensive.
+            config: Configuration for the step.
 
         Raises:
             ValueError: If run_mode is not 'train' or 'predict'
         """
-        if run_mode not in ["train", "predict"]:
+        if config.run_mode not in ["train", "predict"]:
             raise ValueError(
-                f"run_mode must be one of 'train' or 'predict', got {run_mode}"
+                f"run_mode must be one of 'train' or 'predict', got {config.run_mode}"
             )
 
         self.session = session
-        self.run_mode = run_mode
-        self.predictions_path = predictions_path
-        self.features_list = list(features_list) if features_list else None
-        self.hyperparameters = dict(hyperparameters)
-        self.wandb_run_name = wandb_run_name
-        self.cross_validate = cross_validate
-        self.hf_hub_repo_id = hf_hub_repo_id
-        self.download_from_hub = download_from_hub
-        self.hf_model_commit_message = hf_model_commit_message
-        self.l2g_threshold = l2g_threshold or 0.0
-        self.gold_standard_curation_path = gold_standard_curation_path
-        self.gene_interactions_path = gene_interactions_path
-        self.variant_index_path = variant_index_path
-        self.model_path = (
-            hf_hub_repo_id
-            if not model_path and download_from_hub and hf_hub_repo_id
-            else model_path
+        self.run_mode = config.run_mode
+        self.predictions_path = config.predictions_path
+        self.features_list = (
+            list(config.features_list) if config.features_list else None
         )
-        self.hf_model_version = hf_model_version
-        self.explain_predictions = explain_predictions
+        self.hyperparameters = dict(config.hyperparameters)
+        self.wandb_run_name = config.wandb_run_name
+        self.cross_validate = config.cross_validate
+        self.hf_hub_repo_id = config.hf_hub_repo_id
+        self.download_from_hub = config.download_from_hub
+        self.hf_model_commit_message = config.hf_model_commit_message
+        self.l2g_threshold = config.l2g_threshold or 0.0
+        self.gold_standard_curation_path = config.gold_standard_curation_path
+        self.gene_interactions_path = config.gene_interactions_path
+        self.variant_index_path = config.variant_index_path
+        self.model_path = (
+            config.hf_hub_repo_id
+            if not config.model_path
+            and config.download_from_hub
+            and config.hf_hub_repo_id
+            else config.model_path
+        )
+        self.hf_model_version = config.hf_model_version
+        self.explain_predictions = config.explain_predictions
 
         # Load common inputs
         self.credible_set = StudyLocus.from_parquet(
-            session, credible_set_path, recursiveFileLookup=True
+            session, config.credible_set_path, recursiveFileLookup=True
         )
         self.feature_matrix = L2GFeatureMatrix(
-            _df=session.load_data(feature_matrix_path, "parquet"),
+            _df=session.load_data(config.feature_matrix_path, "parquet"),
         )
 
-        if run_mode == "predict":
+        if self.run_mode == "predict":
             self.run_predict()
-        elif run_mode == "train":
+        elif self.run_mode == "train":
             self.gold_standard = self.prepare_gold_standard()
             self.run_train()
 
@@ -419,40 +563,32 @@ class LocusToGeneEvidenceStep:
     def __init__(
         self,
         session: Session,
-        locus_to_gene_predictions_path: str,
-        credible_set_path: str,
-        study_index_path: str,
-        evidence_output_path: str,
-        locus_to_gene_threshold: float,
+        config: LocusToGeneEvidenceDefaults,
     ) -> None:
         """Initialise the step and generate disease/target evidence.
 
         Args:
             session (Session): Session object that contains the Spark session
-            locus_to_gene_predictions_path (str): Path to the L2G predictions dataset
-            credible_set_path (str): Path to the credible set dataset
-            study_index_path (str): Path to the study index dataset
-            evidence_output_path (str): Path to the L2G evidence output dataset. The output format is ndjson gzipped.
-            locus_to_gene_threshold (float, optional): Threshold to consider a gene as a target. Defaults to 0.05.
+            config: Configuration for the step.
         """
         # Reading the predictions
         locus_to_gene_prediction = L2GPrediction.from_parquet(
-            session, locus_to_gene_predictions_path
+            session, config.locus_to_gene_predictions_path
         )
         # Reading the credible set
-        credible_sets = StudyLocus.from_parquet(session, credible_set_path)
+        credible_sets = StudyLocus.from_parquet(session, config.credible_set_path)
 
         # Reading the study index
-        study_index = StudyIndex.from_parquet(session, study_index_path)
+        study_index = StudyIndex.from_parquet(session, config.study_index_path)
 
         # Generate evidence and save file:
         (
             locus_to_gene_prediction.to_disease_target_evidence(
-                credible_sets, study_index, locus_to_gene_threshold
+                credible_sets, study_index, config.locus_to_gene_threshold
             )
             .coalesce(session.output_partitions)
             .write.mode(session.write_mode)
-            .parquet(evidence_output_path)
+            .parquet(config.evidence_output_path)
         )
 
 
@@ -462,28 +598,24 @@ class LocusToGeneAssociationsStep:
     def __init__(
         self,
         session: Session,
-        evidence_input_path: str,
-        disease_index_path: str,
-        direct_associations_output_path: str,
-        indirect_associations_output_path: str,
+        config: LocusToGeneAssociationsDefaults,
     ) -> None:
         """Create direct and indirect association datasets.
 
         Args:
             session (Session): Session object that contains the Spark session
-            evidence_input_path (str): Path to the L2G evidence input dataset
-            disease_index_path (str): Path to disease index file
-            direct_associations_output_path (str): Path to the direct associations output dataset
-            indirect_associations_output_path (str): Path to the indirect associations output dataset
+            config: Configuration for the step.
         """
         # Read in the disease index
-        disease_index = session.spark.read.parquet(disease_index_path).select(
+        disease_index = session.spark.read.parquet(config.disease_index_path).select(
             f.col("id").alias("diseaseId"),
             f.explode("ancestors").alias("ancestorDiseaseId"),
         )
 
         # Read in the L2G evidence
-        disease_target_evidence = session.spark.read.json(evidence_input_path).select(
+        disease_target_evidence = session.spark.read.json(
+            config.evidence_input_path
+        ).select(
             f.col("targetFromSourceId").alias("targetId"),
             f.col("diseaseFromSourceMappedId").alias("diseaseId"),
             f.col("resourceScore"),
@@ -499,7 +631,7 @@ class LocusToGeneAssociationsStep:
                 calculate_harmonic_sum(f.col("scores")).alias("harmonicSum"),
             )
             .write.mode(session.write_mode)
-            .parquet(direct_associations_output_path)
+            .parquet(config.direct_associations_output_path)
         )
 
         # Generate indirect assocations and save file
@@ -513,5 +645,5 @@ class LocusToGeneAssociationsStep:
                 calculate_harmonic_sum(f.col("scores")).alias("harmonicSum"),
             )
             .write.mode(session.write_mode)
-            .parquet(indirect_associations_output_path)
+            .parquet(config.indirect_associations_output_path)
         )

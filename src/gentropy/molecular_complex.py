@@ -2,8 +2,33 @@
 
 from __future__ import annotations
 
+from typing import Annotated
+
+from pydantic import BaseModel, Field
+
 from gentropy import Session
 from gentropy.datasource.complex_portal import ComplexTab
+
+
+class MolecularComplexIngestionStepConfig(BaseModel, frozen=True):
+    """Config for MolecularComplexIngestionStep."""
+
+    predicted_complex_tab_path: Annotated[
+        str,
+        Field(description="Path to the predicted protein-complex tab-separated file."),
+    ]
+    experimental_complex_tab_path: Annotated[
+        str,
+        Field(
+            description="Path to the experimental protein-complex tab-separated file."
+        ),
+    ]
+    output_path: Annotated[
+        str,
+        Field(
+            description="Destination path for the merged MolecularComplex Parquet dataset."
+        ),
+    ]
 
 
 class MolecularComplexIngestionStep:
@@ -15,25 +40,18 @@ class MolecularComplexIngestionStep:
     def __init__(
         self,
         session: Session,
-        predicted_complex_tab_path: str,
-        experimental_complex_tab_path: str,
-        output_path: str,
+        config: MolecularComplexIngestionStepConfig,
     ) -> None:
         """Initialise and execute the molecular complex ingestion step.
 
         Args:
             session (Session): Active Gentropy Spark session.
-            predicted_complex_tab_path (str): Path to the predicted protein-complex
-                tab-separated file.
-            experimental_complex_tab_path (str): Path to the experimental protein-complex
-                tab-separated file.
-            output_path (str): Destination path for the merged
-                `MolecularComplex` Parquet dataset.
+            config: Configuration for the step.
         """
         ComplexTab.from_complex_tab(
             session=session,
-            experimental=experimental_complex_tab_path,
-            predicted=predicted_complex_tab_path,
+            experimental=config.experimental_complex_tab_path,
+            predicted=config.predicted_complex_tab_path,
         ).coalesce(session.output_partitions).df.write.mode("overwrite").parquet(
-            output_path
+            config.output_path
         )

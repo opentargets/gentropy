@@ -1,10 +1,28 @@
 """Step to apply linkageg based clumping on study-locus dataset."""
+
 from __future__ import annotations
+
+from typing import Annotated
+
+from pydantic import BaseModel, Field
 
 from gentropy.common.session import Session
 from gentropy.dataset.ld_index import LDIndex
 from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import StudyLocus
+
+
+class LDBasedClumpingStepConfig(BaseModel, frozen=True):
+    """Config for LDBasedClumpingStep."""
+
+    study_locus_input_path: Annotated[
+        str, Field(description="Path to the input study locus.")
+    ]
+    study_index_path: Annotated[str, Field(description="Path to the study index.")]
+    ld_index_path: Annotated[str, Field(description="Path to the LD index.")]
+    clumped_study_locus_output_path: Annotated[
+        str, Field(description="Path of the resulting, clumped study-locus dataset.")
+    ]
 
 
 class LDBasedClumpingStep:
@@ -19,23 +37,17 @@ class LDBasedClumpingStep:
     def __init__(
         self,
         session: Session,
-        study_locus_input_path: str,
-        study_index_path: str,
-        ld_index_path: str,
-        clumped_study_locus_output_path: str,
+        config: LDBasedClumpingStepConfig,
     ) -> None:
         """Run LD-based clumping step.
 
         Args:
             session (Session): Session object.
-            study_locus_input_path (str): Path to the input study locus.
-            study_index_path (str): Path to the study index.
-            ld_index_path (str): Path to the LD index.
-            clumped_study_locus_output_path (str): path of the resulting, clumped study-locus dataset.
+            config: Configuration for the step.
         """
-        study_locus = StudyLocus.from_parquet(session, study_locus_input_path)
-        ld_index = LDIndex.from_parquet(session, ld_index_path)
-        study_index = StudyIndex.from_parquet(session, study_index_path)
+        study_locus = StudyLocus.from_parquet(session, config.study_locus_input_path)
+        ld_index = LDIndex.from_parquet(session, config.ld_index_path)
+        study_index = StudyIndex.from_parquet(session, config.study_index_path)
 
         (
             study_locus
@@ -44,5 +56,5 @@ class LDBasedClumpingStep:
             .clump()
             # Save result:
             .df.write.mode(session.write_mode)
-            .parquet(clumped_study_locus_output_path)
+            .parquet(config.clumped_study_locus_output_path)
         )

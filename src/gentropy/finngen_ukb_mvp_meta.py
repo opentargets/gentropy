@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Annotated
+
+from pydantic import BaseModel, Field
 
 from gentropy import StudyIndex
 from gentropy.common.session import Session
@@ -19,6 +21,67 @@ from gentropy.datasource.finngen_meta.summary_statistics import (
 
 if TYPE_CHECKING:
     from typing import Any
+
+
+class FinngenUkbMvpMetaSummaryStatisticsIngestionStepConfig(BaseModel, frozen=True):
+    """Config for FinngenUkbMvpMetaSummaryStatisticsIngestionStep."""
+
+    source_manifest_path: Annotated[
+        str, Field(description="Path to the manifest file.")
+    ]
+    efo_curation_path: Annotated[
+        str, Field(description="Path to the EFO curation file.")
+    ]
+    gnomad_variant_index_path: Annotated[
+        str, Field(description="Path to the gnomAD variant index file.")
+    ]
+    study_index_output_path: Annotated[
+        str, Field(description="Output path for the study index.")
+    ]
+    raw_summary_statistics_output_path: Annotated[
+        str, Field(description="Output path for raw summary statistics.")
+    ]
+    harmonised_summary_statistics_output_path: Annotated[
+        str, Field(description="Output path for harmonised summary statistics.")
+    ]
+    harmonised_summary_statistics_qc_output_path: Annotated[
+        str,
+        Field(description="Output path for harmonised summary statistics QC results."),
+    ]
+    perform_meta_analysis_filter: Annotated[
+        bool,
+        Field(
+            default=True, description="Whether to filter non-meta analyzed variants."
+        ),
+    ]
+    imputation_score_threshold: Annotated[
+        float, Field(default=0.8, description="Imputation score threshold.")
+    ]
+    perform_imputation_score_filter: Annotated[
+        bool,
+        Field(default=True, description="Whether to filter low imputation scores."),
+    ]
+    min_allele_count_threshold: Annotated[
+        int, Field(default=20, description="Minimum allele count threshold.")
+    ]
+    perform_min_allele_count_filter: Annotated[
+        bool,
+        Field(default=True, description="Whether to filter low allele counts."),
+    ]
+    min_allele_frequency_threshold: Annotated[
+        float, Field(default=1e-4, description="Minimum allele frequency threshold.")
+    ]
+    perform_min_allele_frequency_filter: Annotated[
+        bool,
+        Field(default=False, description="Whether to filter low allele frequencies."),
+    ]
+    filter_out_ambiguous_variants: Annotated[
+        bool,
+        Field(default=False, description="Whether to filter out ambiguous variants."),
+    ]
+    qc_threshold: Annotated[
+        float, Field(default=1e-8, description="P-value threshold for QC.")
+    ]
 
 
 class FinngenUkbMvpMetaSummaryStatisticsIngestionStep:
@@ -105,71 +168,41 @@ class FinngenUkbMvpMetaSummaryStatisticsIngestionStep:
     def __init__(
         self,
         session: Session,
-        # Inputs
-        source_manifest_path: str,
-        efo_curation_path: str,
-        gnomad_variant_index_path: str,
-        # Outputs
-        study_index_output_path: str,
-        raw_summary_statistics_output_path: str,
-        harmonised_summary_statistics_output_path: str,
-        harmonised_summary_statistics_qc_output_path: str,
-        # Harmonisation config
-        perform_meta_analysis_filter: bool = True,
-        imputation_score_threshold: float = 0.8,
-        perform_imputation_score_filter: bool = True,
-        min_allele_count_threshold: int = 20,
-        perform_min_allele_count_filter: bool = True,
-        min_allele_frequency_threshold: float = 1e-4,
-        perform_min_allele_frequency_filter: bool = False,
-        filter_out_ambiguous_variants: bool = False,
-        # QC config
-        qc_threshold: float = 1e-8,
+        config: FinngenUkbMvpMetaSummaryStatisticsIngestionStepConfig,
     ) -> None:
         """Data ingestion and harmonisation step for FinnGen UKB meta-analysis.
 
         Args:
             session (Session): Session object.
-            source_manifest_path (str): Path to the manifest file.
-            efo_curation_path (str): Path to the EFO curation file.
-            gnomad_variant_index_path (str): Path to the gnomAD variant index file.
-            study_index_output_path (str): Output path for the study index.
-            raw_summary_statistics_output_path (str): Output path for raw summary statistics.
-            harmonised_summary_statistics_output_path (str): Output path for harmonised summary statistics.
-            harmonised_summary_statistics_qc_output_path (str): Output path for harmonised summary statistics QC results.
-            perform_meta_analysis_filter (bool, optional): Whether to filter non-meta analyzed variants.
-            imputation_score_threshold (float, optional): Imputation score threshold.
-            perform_imputation_score_filter (bool, optional): Whether to filter low imputation scores.
-            min_allele_count_threshold (int, optional): Minimum allele count threshold.
-            perform_min_allele_count_filter (bool, optional): Whether to filter low allele counts.
-            min_allele_frequency_threshold (float, optional): Minimum allele frequency threshold.
-            perform_min_allele_frequency_filter (bool, optional): Whether to filter low allele frequencies.
-            filter_out_ambiguous_variants (bool, optional): Whether to filter out ambiguous variants.
-            qc_threshold (float, optional): P-value threshold for QC.
+            config: Configuration for the step.
 
         Raises:
             AssertionError: If no summary statistics paths are found in the study index.
         """
-        assert qc_threshold < 1.0, "QC threshold should be a p-value less than 1.0."
+        assert config.qc_threshold < 1.0, (
+            "QC threshold should be a p-value less than 1.0."
+        )
         sumstat_harmonisation_config: dict[str, Any] = {
-            "perform_meta_analysis_filter": perform_meta_analysis_filter,
-            "imputation_score_threshold": imputation_score_threshold,
-            "perform_imputation_score_filter": perform_imputation_score_filter,
-            "min_allele_count_threshold": min_allele_count_threshold,
-            "perform_min_allele_count_filter": perform_min_allele_count_filter,
-            "min_allele_frequency_threshold": min_allele_frequency_threshold,
-            "perform_min_allele_frequency_filter": perform_min_allele_frequency_filter,
-            "filter_out_ambiguous_variants": filter_out_ambiguous_variants,
+            "perform_meta_analysis_filter": config.perform_meta_analysis_filter,
+            "imputation_score_threshold": config.imputation_score_threshold,
+            "perform_imputation_score_filter": config.perform_imputation_score_filter,
+            "min_allele_count_threshold": config.min_allele_count_threshold,
+            "perform_min_allele_count_filter": config.perform_min_allele_count_filter,
+            "min_allele_frequency_threshold": config.min_allele_frequency_threshold,
+            "perform_min_allele_frequency_filter": config.perform_min_allele_frequency_filter,
+            "filter_out_ambiguous_variants": config.filter_out_ambiguous_variants,
         }
 
-        session.logger.info(f"Reading Finngen manifest from {source_manifest_path}.")
+        session.logger.info(
+            f"Reading Finngen manifest from {config.source_manifest_path}."
+        )
         finngen_manifest = FinnGenMetaManifest.from_path(
-            session=session, manifest_path=source_manifest_path
+            session=session, manifest_path=config.source_manifest_path
         )
         session.logger.info(f"Building study index for: {finngen_manifest.meta.value}")
-        session.logger.info(f"Reading EFO curation from {efo_curation_path}.")
+        session.logger.info(f"Reading EFO curation from {config.efo_curation_path}.")
         efo_mapping = EFOMapping.from_path(
-            session=session, efo_curation_path=efo_curation_path
+            session=session, efo_curation_path=config.efo_curation_path
         )
 
         session.logger.info("Creating study index.")
@@ -178,8 +211,10 @@ class FinngenUkbMvpMetaSummaryStatisticsIngestionStep:
         )
 
         session.logger.info("Writing study index.")
-        study_index.df.write.mode(session.write_mode).parquet(study_index_output_path)
-        session.logger.info(f"Study index written to {study_index_output_path}.")
+        study_index.df.write.mode(session.write_mode).parquet(
+            config.study_index_output_path
+        )
+        session.logger.info(f"Study index written to {config.study_index_output_path}.")
 
         session.logger.info("Reading summary statistics paths from manifest.")
         # NOTE: we can rely on the study index to extract the raw summary statistics paths
@@ -187,9 +222,9 @@ class FinngenUkbMvpMetaSummaryStatisticsIngestionStep:
         # this may not be accurate if the summary statistics source paths were not found in the
         # source manifest.
         source_summary_statistics_paths = study_index.get_summary_statistics_paths()
-        assert (
-            len(source_summary_statistics_paths) > 0
-        ), "No summary statistics paths found in study index."
+        assert len(source_summary_statistics_paths) > 0, (
+            "No summary statistics paths found in study index."
+        )
         session.logger.info(
             f"Found {len(source_summary_statistics_paths)} summary statistics files."
         )
@@ -199,15 +234,17 @@ class FinngenUkbMvpMetaSummaryStatisticsIngestionStep:
             session=session,
             summary_statistics_list=source_summary_statistics_paths,
             datasource=finngen_manifest.meta,
-            raw_summary_statistics_output_path=raw_summary_statistics_output_path,
+            raw_summary_statistics_output_path=config.raw_summary_statistics_output_path,
             n_threads=FinnGenUkbMvpMetaSummaryStatistics.N_THREAD_OPTIMAL,
         )
         session.logger.info("Raw summary statistics conversion completed.")
-        session.logger.info(f"Output path: {raw_summary_statistics_output_path}.")
+        session.logger.info(
+            f"Output path: {config.raw_summary_statistics_output_path}."
+        )
 
         session.logger.info("Reading gnomAD variant index.")
         gnomad_variant_index = VariantIndex.from_parquet(
-            session=session, path=gnomad_variant_index_path
+            session=session, path=config.gnomad_variant_index_path
         )
 
         session.logger.info("Building variant direction annotations.")
@@ -217,7 +254,7 @@ class FinngenUkbMvpMetaSummaryStatisticsIngestionStep:
 
         session.logger.info("Reading raw summary statistics.")
         raw_summary_statistics = session.spark.read.parquet(
-            raw_summary_statistics_output_path
+            config.raw_summary_statistics_output_path
         )
 
         session.logger.info("Harmonising summary statistics.")
@@ -233,38 +270,38 @@ class FinngenUkbMvpMetaSummaryStatisticsIngestionStep:
 
         session.logger.info("Writing harmonised summary statistics.")
         harmonised_summary_statistics.df.write.mode(session.write_mode).parquet(
-            harmonised_summary_statistics_output_path
+            config.harmonised_summary_statistics_output_path
         )
         session.logger.info(
-            f"Harmonised summary statistics written to {harmonised_summary_statistics_output_path}."
+            f"Harmonised summary statistics written to {config.harmonised_summary_statistics_output_path}."
         )
 
         session.logger.info("Reading harmonised summary statistics for QC.")
         harmonised_summary_statistics = SummaryStatistics.from_parquet(
-            session=session, path=harmonised_summary_statistics_output_path
+            session=session, path=config.harmonised_summary_statistics_output_path
         )
         session.logger.info("Running summary statistics QC.")
         summary_statistics_qc = SummaryStatisticsQC.from_summary_statistics(
             gwas=harmonised_summary_statistics,
-            pval_threshold=qc_threshold,
+            pval_threshold=config.qc_threshold,
         )
 
         session.logger.info("Writing summary statistics QC results.")
         summary_statistics_qc.df.repartition(1).write.mode(session.write_mode).parquet(
-            harmonised_summary_statistics_qc_output_path
+            config.harmonised_summary_statistics_qc_output_path
         )
         session.logger.info(
-            f"Summary statistics QC results written to {harmonised_summary_statistics_qc_output_path}."
+            f"Summary statistics QC results written to {config.harmonised_summary_statistics_qc_output_path}."
         )
 
         session.logger.info("Adding qc to the study index.")
         study_index = StudyIndex.from_parquet(
-            session=session, path=study_index_output_path
+            session=session, path=config.study_index_output_path
         )
         study_index = study_index.annotate_sumstats_qc(summary_statistics_qc)
 
         session.logger.info("Writing updated study index.")
         study_index.df.repartition(1).write.mode("overwrite").parquet(
-            study_index_output_path
+            config.study_index_output_path
         )
         session.logger.info("Updated study index with qc flags.")

@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+from typing import Annotated
+
+from pydantic import BaseModel, Field
+
 from gentropy.common.session import Session
 from gentropy.dataset.summary_statistics_qc import SummaryStatisticsQC
 from gentropy.datasource.gwas_catalog.study_index import StudyIndexGWASCatalogParser
@@ -10,12 +14,44 @@ from gentropy.datasource.gwas_catalog.study_index_ot_curation import (
 )
 
 
+class GWASCatalogStudyIndexDefaults(BaseModel, frozen=True):
+    """Defaults for GWASCatalogStudyIndexGenerationStep.
+
+    All values are frozen - create a new instance to override.
+    """
+
+    catalog_study_files: Annotated[
+        list[str], Field(description="List of raw GWAS catalog studies file.")
+    ]
+    catalog_ancestry_files: Annotated[
+        list[str],
+        Field(description="List of raw ancestry annotations files from GWAS Catalog."),
+    ]
+    study_index_path: Annotated[
+        str, Field(description="Output GWAS catalog studies path.")
+    ]
+    gwas_catalog_study_curation_file: Annotated[
+        str | None,
+        Field(
+            default=None,
+            description="CSV file or URL containing the curation table. Optional.",
+        ),
+    ] = None
+    sumstats_qc_path: Annotated[
+        str | None,
+        Field(
+            default=None,
+            description="Path to the summary statistics QC table. Optional.",
+        ),
+    ] = None
+
+
 class GWASCatalogStudyIndexGenerationStep:
     """GWAS Catalog study index generation.
 
     This step generates a study index from the GWAS Catalog studies and ancestry files. It can also add additional curation information and summary statistics QC information when available.
 
-    ''' warning
+    !!! warning
     This step does not generate study index for gwas catalog top hits.
 
     This step provides several optional arguments to add additional information to the study index:
@@ -27,42 +63,35 @@ class GWASCatalogStudyIndexGenerationStep:
     def __init__(
         self,
         session: Session,
-        catalog_study_files: list[str],
-        catalog_ancestry_files: list[str],
-        study_index_path: str,
-        gwas_catalog_study_curation_file: str | None = None,
-        sumstats_qc_path: str | None = None,
+        config: GWASCatalogStudyIndexDefaults,
     ) -> None:
         """Run step.
 
         Args:
-            session (Session): Session objecct.
-            catalog_study_files (list[str]): List of raw GWAS catalog studies file.
-            catalog_ancestry_files (list[str]): List of raw ancestry annotations files from GWAS Catalog.
-            study_index_path (str): Output GWAS catalog studies path.
-            gwas_catalog_study_curation_file (str | None): csv file or URL containing the curation table. Optional.
-            sumstats_qc_path (str | None): Path to the summary statistics QC table. Optional.
-
-        Raises:
-            ValueError: If the curation file is provided but not a CSV file or URL.
+            session: Session object.
+            config: Configuration for the step.
         """
         # Core Study Index Generation:
         study_index = StudyIndexGWASCatalogParser.from_source(
-            session.spark.read.csv(list(catalog_study_files), sep="\t", header=True),
-            session.spark.read.csv(list(catalog_ancestry_files), sep="\t", header=True),
+            session.spark.read.csv(
+                list(config.catalog_study_files), sep="\t", header=True
+            ),
+            session.spark.read.csv(
+                list(config.catalog_ancestry_files), sep="\t", header=True
+            ),
         )
 
         # Annotate with curation if provided:
-        if gwas_catalog_study_curation_file:
-            if gwas_catalog_study_curation_file.endswith(
+        if config.gwas_catalog_study_curation_file:
+            if config.gwas_catalog_study_curation_file.endswith(
                 ".tsv"
-            ) | gwas_catalog_study_curation_file.endswith(".tsv"):
+            ) or config.gwas_catalog_study_curation_file.endswith(".tsv"):
                 gwas_catalog_study_curation = StudyIndexGWASCatalogOTCuration.from_csv(
-                    session, gwas_catalog_study_curation_file
+                    session, config.gwas_catalog_study_curation_file
                 )
-            elif gwas_catalog_study_curation_file.startswith("http"):
+            elif config.gwas_catalog_study_curation_file.startswith("http"):
                 gwas_catalog_study_curation = StudyIndexGWASCatalogOTCuration.from_url(
-                    session, gwas_catalog_study_curation_file
+                    session, config.gwas_catalog_study_curation_file
                 )
             else:
                 raise ValueError(
@@ -73,18 +102,18 @@ class GWASCatalogStudyIndexGenerationStep:
             )
 
         # Annotate with sumstats QC if provided:
-        if sumstats_qc_path:
+        if config.sumstats_qc_path:
             sumstats_qc = SummaryStatisticsQC.from_parquet(
                 session=session,
-                path=sumstats_qc_path,
+                path=config.sumstats_qc_path,
                 recursiveFileLookup=True,
             )
             study_index_with_qc = study_index.annotate_sumstats_qc(sumstats_qc)
             # Write the study
             study_index_with_qc.df.coalesce(session.output_partitions).write.mode(
                 session.write_mode
-            ).parquet(study_index_path)
+            ).parquet(config.study_index_path)
         else:
             study_index.df.coalesce(session.output_partitions).write.mode(
                 session.write_mode
-            ).parquet(study_index_path)
+            ).parquet(config.study_index_path)
