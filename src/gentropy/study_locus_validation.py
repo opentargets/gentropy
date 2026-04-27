@@ -34,11 +34,12 @@ class StudyLocusValidationDefaults(BaseModel, frozen=True):
         Field(description="Genomic distance above which a QTL is considered trans."),
     ]
     invalid_qc_reasons: Annotated[
-        list[str] | None,
+        list[str],
         Field(
-            description="List of invalid quality check reason names from `StudyLocusQualityCheck`."
+            default_factory=list,
+            description="List of invalid quality check reason names from `StudyLocusQualityCheck`.",
         ),
-    ] = []
+    ]
 
 
 class StudyLocusValidationStep:
@@ -59,9 +60,7 @@ class StudyLocusValidationStep:
             config: Step configuration defaults.
             session: Session object.
         """
-        invalid_qc_reasons = (
-            list(config.invalid_qc_reasons) if config.invalid_qc_reasons else []
-        )
+        invalid_qc_reasons = list(config.invalid_qc_reasons)
         # Reading datasets:
         study_index = StudyIndex.from_parquet(session, config.study_index_path)
         target_index = TargetIndex.from_parquet(session, config.target_index_path)

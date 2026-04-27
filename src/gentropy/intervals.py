@@ -35,18 +35,19 @@ class IntervalE2GDefaults(BaseModel, frozen=True):
     invalid_output_path: Annotated[
         str, Field(description="Output invalid intervals path.")
     ]
+    invalid_qc_reasons: Annotated[
+        list[str],
+        Field(
+            default_factory=list,
+            description="List of invalid quality check reason names from `IntervalQualityCheck`.",
+        ),
+    ]
     min_valid_score: Annotated[
         float, Field(description="Minimum valid score for interval QC.")
     ] = 0.6
     max_valid_score: Annotated[
         float, Field(description="Maximum valid score for interval QC.")
     ] = 1.0
-    invalid_qc_reasons: Annotated[
-        list[str] | None,
-        Field(
-            description="List of invalid quality check reason names from `IntervalQualityCheck`."
-        ),
-    ] = []
 
 
 class IntervalE2GStep:
@@ -66,7 +67,7 @@ class IntervalE2GStep:
             config: Step configuration defaults.
             session: Session object.
         """
-        invalid_qc_reasons = config.invalid_qc_reasons or []
+        invalid_qc_reasons = list(config.invalid_qc_reasons)
 
         biosample_mapping = session.spark.read.csv(
             config.biosample_mapping_path, header=True
@@ -128,11 +129,12 @@ class IntervalEpiractionDefaults(BaseModel, frozen=True):
         float, Field(description="Maximum valid score for interval QC.")
     ] = 1.0
     invalid_qc_reasons: Annotated[
-        list[str] | None,
+        list[str],
         Field(
-            description="List of invalid quality check reason names from `IntervalQualityCheck`."
+            default_factory=list,
+            description="List of invalid quality check reason names from `IntervalQualityCheck`.",
         ),
-    ] = []
+    ]
 
 
 class IntervalEpiractionStep:
@@ -153,7 +155,7 @@ class IntervalEpiractionStep:
             config: Step configuration defaults.
             session: Session object.
         """
-        invalid_qc_reasons = config.invalid_qc_reasons or []
+        invalid_qc_reasons = list(config.invalid_qc_reasons)
         target_index = TargetIndex.from_parquet(
             session, config.target_index_path
         ).persist()

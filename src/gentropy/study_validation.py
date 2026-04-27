@@ -34,11 +34,12 @@ class StudyValidationDefaults(BaseModel, frozen=True):
         str, Field(description="Path to write the output file.")
     ]
     invalid_qc_reasons: Annotated[
-        list[str] | None,
+        list[str],
         Field(
-            description="List of invalid quality check reason names from `StudyQualityCheck`."
+            default_factory=list,
+            description="List of invalid quality check reason names from `StudyQualityCheck`.",
         ),
-    ] = []
+    ]
     deprecated_project_ids: Annotated[
         list[str] | None,
         Field(description="List of deprecated projectIds (e.g. ['GTEx'])."),
@@ -63,9 +64,7 @@ class StudyValidationStep:
             config: Step configuration defaults.
             session: Session object.
         """
-        invalid_qc_reasons = (
-            list(config.invalid_qc_reasons) if config.invalid_qc_reasons else []
-        )
+        invalid_qc_reasons = list(config.invalid_qc_reasons)
         deprecated_project_ids = (
             list(config.deprecated_project_ids) if config.deprecated_project_ids else []
         )
