@@ -1324,6 +1324,7 @@ class TestTransPQtlColocH4Feature:
                 "study_index": self.sample_studies,
                 "study_locus": self.sample_study_locus,
                 "interactions": self.sample_interactions,
+                "target_index": self.sample_target_index,
             },
         )
 
@@ -1338,7 +1339,10 @@ class TestTransPQtlColocH4Feature:
         assert row["studyLocusId"] == "1"
         assert row["geneId"] == "gene1"
         assert row["featureName"] == "transPQtlColocH4Maximum"
-        assert float(row["featureValue"]) == pytest.approx(0.85, abs=1e-3)
+        # gene1↔geneX (string 0.9) → geneX trans-pQTL h4=0.85
+        # gene1↔geneY (intact 0.95 >= 0.42) → geneY trans-pQTL h4=0.95
+        # max = 0.95
+        assert float(row["featureValue"]) == pytest.approx(0.95, abs=1e-3)
 
     def test_trans_pqtl_coloc_with_no_trans_qtls(
         self: TestTransPQtlColocH4Feature,
@@ -1367,7 +1371,7 @@ class TestTransPQtlColocH4Feature:
                         "isTransQtl": False,
                     },
                 ]
-            ),
+            ).withColumn("position", f.lit(None).cast("integer")),
             _schema=StudyLocus.get_schema(),
         )
 
@@ -1378,6 +1382,7 @@ class TestTransPQtlColocH4Feature:
                 "study_index": self.sample_studies,
                 "study_locus": study_locus_cis_only,
                 "interactions": self.sample_interactions,
+                "target_index": self.sample_target_index,
             },
         )
 
@@ -1401,6 +1406,29 @@ class TestTransPQtlColocH4Feature:
                     "colocalisation": self.sample_colocalisation,
                     "study_index": self.sample_studies,
                     "study_locus": self.sample_study_locus,
+                    "target_index": self.sample_target_index,
+                },
+            )
+
+    def test_trans_pqtl_coloc_requires_target_index(
+        self: TestTransPQtlColocH4Feature,
+    ) -> None:
+        """Test that target_index is a required dependency."""
+        from gentropy.dataset.l2g_features.colocalisation import (
+            TransPQtlColocH4MaximumFeature,
+        )
+
+        with pytest.raises(
+            ValueError,
+            match="target_index is required",
+        ):
+            TransPQtlColocH4MaximumFeature.compute(
+                study_loci_to_annotate=self.sample_study_loci_to_annotate,
+                feature_dependency={
+                    "colocalisation": self.sample_colocalisation,
+                    "study_index": self.sample_studies,
+                    "study_locus": self.sample_study_locus,
+                    "interactions": self.sample_interactions,
                 },
             )
 
@@ -1448,7 +1476,7 @@ class TestTransPQtlColocH4Feature:
             _df=spark.createDataFrame(
                 [
                     {
-                        "leftStudyLocusId": "1",  # local pQTL linked to gene1
+                        "leftStudyLocusId": "1",  # GWAS locus coloc with cis-pQTL for gene1
                         "rightStudyLocusId": "2",
                         "chromosome": "1",
                         "colocalisationMethod": "COLOC",
@@ -1458,7 +1486,7 @@ class TestTransPQtlColocH4Feature:
                         "rightStudyType": "pqtl",
                     },
                     {
-                        "leftStudyLocusId": "1",  # trans-pQTL linked to geneX
+                        "leftStudyLocusId": "1",  # GWAS locus coloc with trans-pQTL for geneX
                         "rightStudyLocusId": "5",
                         "chromosome": "1",
                         "colocalisationMethod": "COLOC",
@@ -1468,7 +1496,7 @@ class TestTransPQtlColocH4Feature:
                         "rightStudyType": "pqtl",
                     },
                     {
-                        "leftStudyLocusId": "1",  # trans-pQTL but unsupported interaction
+                        "leftStudyLocusId": "1",  # trans-pQTL for geneY: interaction scoring below threshold
                         "rightStudyLocusId": "6",
                         "chromosome": "1",
                         "colocalisationMethod": "COLOC",
@@ -1505,7 +1533,7 @@ class TestTransPQtlColocH4Feature:
                         "variantId": "var1",
                         "studyId": "study5",
                         "chromosome": "1",
-                        "isTransQtl": True,  # This is a trans-pQTL
+                        "isTransQtl": True,  # trans-pQTL measured on geneX
                     },
                     {
                         "studyLocusId": "6",
@@ -1515,6 +1543,9 @@ class TestTransPQtlColocH4Feature:
                         "isTransQtl": True,
                     },
                 ]
+            ).withColumn(
+                "position",
+                f.when(f.col("studyLocusId") == "1", f.lit(1_000_000).cast("integer")),
             ),
             _schema=StudyLocus.get_schema(),
         )
@@ -1558,22 +1589,46 @@ class TestTransPQtlColocH4Feature:
         self.sample_interactions = spark.createDataFrame(
             [
                 {
+                    # string scoring at threshold (0.9 >= string_threshold=0.9) — included
                     "targetA": "gene1",
                     "targetB": "geneX",
                     "sourceDatabase": "string",
                     "scoring": 0.9,
                 },
                 {
+                    # string scoring below threshold (0.4 < string_threshold=0.9) — excluded
                     "targetA": "gene1",
                     "targetB": "geneY",
                     "sourceDatabase": "string",
-                    "scoring": 0.5,
+                    "scoring": 0.4,
                 },
                 {
+                    # intact scoring above threshold (0.95 >= intact_threshold=0.42) — included
                     "targetA": "gene1",
                     "targetB": "geneY",
                     "sourceDatabase": "intact",
                     "scoring": 0.95,
                 },
             ]
+        )
+
+        # gene1 is the local gene (targetB): same chromosome as GWAS locus, within 500 kb
+        self.sample_target_index = TargetIndex(
+            _df=spark.createDataFrame(
+                [
+                    {
+                        "id": "gene1",
+                        "biotype": "protein_coding",
+                        "tss": 1_050_000,
+                        "genomicLocation": {
+                            "chromosome": "1",
+                            "start": 1_050_000,
+                            "end": 1_100_000,
+                            "strand": 1,
+                        },
+                    },
+                ],
+                TargetIndex.get_schema(),
+            ),
+            _schema=TargetIndex.get_schema(),
         )

@@ -106,6 +106,11 @@ class LocusToGeneFeatureMatrixStep:
                 "Interactions are required for transPQtlColocH4Maximum. "
                 "Provide `gene_interactions_path`."
             )
+        if "transPQtlColocH4Maximum" in features_list and target_index is None:
+            raise ValueError(
+                "target_index is required for transPQtlColocH4Maximum. "
+                "Provide `target_index_path`."
+            )
 
         features_input_loader = L2GFeatureInputLoader(
             variant_index=variant_index,
