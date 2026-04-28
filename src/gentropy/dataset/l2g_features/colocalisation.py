@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from functools import reduce
 from typing import TYPE_CHECKING, Any
 
 import pyspark.sql.functions as f
@@ -16,9 +17,90 @@ from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import StudyLocus
 from gentropy.dataset.target_index import TargetIndex
 from gentropy.dataset.variant_index import VariantIndex
+from gentropy.method.colocalisation import ColocalisationMethod
 
 if TYPE_CHECKING:
     from pyspark.sql import DataFrame
+
+
+def extract_maximum_coloc_probability_per_region_and_gene(
+    coloc: Colocalisation,
+    study_locus: StudyLocus,
+    study_index: StudyIndex,
+    *,
+    filter_by_colocalisation_method: str,
+    filter_by_qtls: list[str] | None = None,
+) -> DataFrame:
+    """Get maximum colocalisation probability for a (studyLocus, gene) window.
+
+    Args:
+        coloc (Colocalisation): Colocalisation dataset to extract the information from
+        study_locus (StudyLocus): Dataset containing study loci to filter the colocalisation dataset on and the geneId linked to the region
+        study_index (StudyIndex): Study index to use to get study metadata
+        filter_by_colocalisation_method (str): optional filter to apply on the colocalisation dataset
+        filter_by_qtls (list[str] | None): optional filter to apply on the colocalisation dataset
+
+    Returns:
+        DataFrame: table with the maximum colocalisation scores for the provided study loci
+
+    Raises:
+        InvalidColocalisationMethodError: if `filter_by_colocalisation_method` is not a valid colocalisation method
+        ValueError: if `filter_by_qtls` is not in the list of valid QTL types
+    """
+    from gentropy.common.spark import get_record_with_maximum_value
+    from gentropy.datasource.eqtl_catalogue import StudyType
+
+    valid_qtls = {v.value for v in StudyType}
+
+    # NOTE: since we build features based on Coloc and ECaviar results, we do not expect to have
+    # a situation when the `filter_by_colocalisation_method` points to ColocPIP or ColocPIPECaviar.
+    cc = ColocalisationMethod.get_method_class(filter_by_colocalisation_method)
+    # Get the colocalisation method metric -> this will be either (COLOC => h4, ECAVIAR => CLPP)
+    metric = cc.METHOD_METRICS[0]  # First metric in ColocalisationMethod ( h4 or CLPP )
+    # Prepare the list of colocalisation methods that contain expected metric
+    allowed_coloc_methods = {
+        c.lower() for c in ColocalisationMethod.get_method_names_for_metric(metric)
+    }
+    # Since colocalisation dataset can have multiple values in `colocalisationMethod` column,
+    # we need to filter the dataset for the subset of rows that corresponds to the method
+    # that implements the specific metric.
+    coloc_filtering_expr = [
+        f.col("rightGeneId").isNotNull(),
+        (f.lower("colocalisationMethod").isin(allowed_coloc_methods)),
+    ]
+    if filter_by_qtls:
+        _required_study_types = set(map(str.lower, filter_by_qtls))
+        if not _required_study_types.issubset(valid_qtls):
+            raise ValueError(f"There are no studies with some of QTLs {filter_by_qtls}")
+        coloc_filtering_expr.append(
+            f.lower("rightStudyType").isin(_required_study_types)
+        )
+
+    filtered_colocalisation = (
+        # Bring rightStudyType and rightGeneId and filter by rows where the gene is null,
+        # which is equivalent to filtering studyloci from gwas on the right side
+        coloc.append_study_metadata(
+            study_locus,
+            study_index,
+            metadata_cols=["geneId", "studyType"],
+            colocalisation_side="right",
+        )
+        # it also filters based on method and qtl type
+        .filter(reduce(lambda a, b: a & b, coloc_filtering_expr))
+        # and filters colocalisation results to only include the subset of studylocus that contains gwas studylocusid
+        .join(
+            study_locus.df.selectExpr("studyLocusId as leftStudyLocusId"),
+            "leftStudyLocusId",
+        )
+    )
+
+    return get_record_with_maximum_value(
+        filtered_colocalisation.withColumnRenamed(
+            "leftStudyLocusId", "studyLocusId"
+        ).withColumnRenamed("rightGeneId", "geneId"),
+        ["studyLocusId", "geneId"],
+        metric,
+    )
 
 
 def common_colocalisation_feature_logic(
@@ -26,7 +108,7 @@ def common_colocalisation_feature_logic(
     colocalisation_method: str,
     colocalisation_metric: str,
     feature_name: str,
-    qtl_types: list[str] | str,
+    qtl_types: list[str],
     *,
     colocalisation: Colocalisation,
     study_index: StudyIndex,
@@ -39,7 +121,7 @@ def common_colocalisation_feature_logic(
         colocalisation_method (str): The colocalisation method to filter the data by
         colocalisation_metric (str): The colocalisation metric to use
         feature_name (str): The name of the feature to create
-        qtl_types (list[str] | str): The types of QTL to filter the data by
+        qtl_types (list[str]): The types of QTL to filter the data by
         colocalisation (Colocalisation): Dataset with the colocalisation results
         study_index (StudyIndex): Study index to fetch study type and gene
         study_locus (StudyLocus): Study locus to traverse between colocalisation and study index
@@ -55,11 +137,11 @@ def common_colocalisation_feature_logic(
     return (
         study_loci_to_annotate.df.join(
             # Remove colocalisation with trans QTLs
-            colocalisation.drop_trans_effects(study_locus)
             # Extract maximum colocalisation probability per region and gene
-            .extract_maximum_coloc_probability_per_region_and_gene(
-                study_locus,
-                study_index,
+            extract_maximum_coloc_probability_per_region_and_gene(
+                coloc=colocalisation.drop_trans_effects(study_locus),
+                study_locus=study_locus,
+                study_index=study_index,
                 filter_by_colocalisation_method=colocalisation_method,
                 filter_by_qtls=qtl_types,
             ),
@@ -131,7 +213,7 @@ def common_neighbourhood_colocalisation_feature_logic(
     colocalisation_method: str,
     colocalisation_metric: str,
     feature_name: str,
-    qtl_types: list[str] | str,
+    qtl_types: list[str],
     *,
     colocalisation: Colocalisation,
     study_index: StudyIndex,
@@ -146,7 +228,7 @@ def common_neighbourhood_colocalisation_feature_logic(
         colocalisation_method (str): The colocalisation method to filter the data by
         colocalisation_metric (str): The colocalisation metric to use
         feature_name (str): The name of the feature to create
-        qtl_types (list[str] | str): The types of QTL to filter the data by
+        qtl_types (list[str]): The types of QTL to filter the data by
         colocalisation (Colocalisation): Dataset with the colocalisation results
         study_index (StudyIndex): Study index to fetch study type and gene
         target_index (TargetIndex): Target index to add gene type
@@ -318,7 +400,7 @@ class PQtlColocClppMaximumFeature(L2GFeature):
         """
         colocalisation_method = "ECaviar"
         colocalisation_metric = "clpp"
-        qtl_type = "pqtl"
+        qtl_type = ["pqtl"]
         return cls(
             _df=convert_from_wide_to_long(
                 common_colocalisation_feature_logic(
@@ -366,7 +448,7 @@ class PQtlColocClppMaximumNeighbourhoodFeature(L2GFeature):
         """
         colocalisation_method = "ECaviar"
         colocalisation_metric = "clpp"
-        qtl_type = "pqtl"
+        qtl_type = ["pqtl"]
         return cls(
             _df=convert_from_wide_to_long(
                 common_neighbourhood_colocalisation_feature_logic(
@@ -588,7 +670,7 @@ class PQtlColocH4MaximumFeature(L2GFeature):
         """
         colocalisation_method = "Coloc"
         colocalisation_metric = "h4"
-        qtl_type = "pqtl"
+        qtl_type = ["pqtl"]
         return cls(
             _df=convert_from_wide_to_long(
                 common_colocalisation_feature_logic(
@@ -636,7 +718,7 @@ class PQtlColocH4MaximumNeighbourhoodFeature(L2GFeature):
         """
         colocalisation_method = "Coloc"
         colocalisation_metric = "h4"
-        qtl_type = "pqtl"
+        qtl_type = ["pqtl"]
         return cls(
             _df=convert_from_wide_to_long(
                 common_neighbourhood_colocalisation_feature_logic(

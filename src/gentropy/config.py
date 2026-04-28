@@ -80,19 +80,31 @@ class deCODESummaryStatisticsHarmonisationConfig(StepConfig):
     # outputs
     harmonised_summary_statistics_path: str = MISSING
     protein_qtl_study_index_path: str = MISSING
-    qc_summary_statistics_path: str = MISSING
     # config
     min_mac_threshold: int = 50
     min_sample_size_threshold: int = 30_000
     flipping_window_size: int = (
         10_000_000  # must match variant_direction.DEFAULT_WINDOW_SIZE
     )
-    pval_threshold: float = 5e-8
     remove_star_alleles: bool = True
     remove_equal_alleles: bool = True
     remove_multiallelics: bool = True
     verify_atgc: bool = True
     _target_: str = "gentropy.decode_ingestion.deCODESummaryStatisticsHarmonisationStep"
+
+
+@dataclass
+class deCODESummaryStatisticsQCConfig(StepConfig):
+    """deCODE summary statistics QC step configuration."""
+
+    # INPUTS
+    harmonised_summary_statistics_path: str = MISSING
+    protein_qtl_study_index_path: str = MISSING
+    # OUTPUTS
+    qc_summary_statistics_path: str = MISSING
+    protein_qtl_study_index_qc_annotated_path: str = MISSING
+    pval_threshold: float = 5e-8
+    _target_: str = "gentropy.decode_ingestion.deCODESummaryStatisticsQCStep"
 
 
 @dataclass
@@ -911,4 +923,14 @@ def register_config() -> None:
         group="step",
         name="decode_summary_statistics_harmonisation",
         node=deCODESummaryStatisticsHarmonisationConfig,
+    )
+    cs.store(
+        group="step",
+        name="gnomad_variant_direction",
+        node=GnomadVariantDirectionStepConfig,
+    )
+    cs.store(
+        group="step",
+        name="decode_summary_statistics_qc",
+        node=deCODESummaryStatisticsQCConfig,
     )
