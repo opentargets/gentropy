@@ -334,6 +334,8 @@ class LocusToGeneConfig(StepConfig):
             "geneCount500kb",
             "proteinGeneCount500kb",
             "credibleSetConfidence",
+            # trans-pQTL colocalisation via protein-protein interactions
+            "transPQtlColocH4Maximum",
         ]
     )
     hyperparameters: dict[str, Any] = field(
@@ -420,6 +422,8 @@ class LocusToGeneFeatureMatrixConfig(StepConfig):
             "proteinGeneCount500kb",
             "credibleSetConfidence",
             "isProteinCoding",
+            # trans-pQTL colocalisation via protein-protein interactions
+            "transPQtlColocH4Maximum",
         ]
     )
     append_null_features: bool = False

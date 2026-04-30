@@ -19,3 +19,4 @@ hail*.log
 .venv/
 notebooks
 assets/*
+inter_data
