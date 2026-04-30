@@ -101,14 +101,18 @@ class LocusToGeneFeatureMatrixStep:
             else None
         )
 
-        if "transPQtlColocH4Maximum" in features_list and interactions is None:
+        trans_pqtl_features = {
+            "transPQtlColocH4Maximum",
+            "transPQtlColocH4MaximumNeighbourhood",
+        }
+        if trans_pqtl_features.intersection(features_list) and interactions is None:
             raise ValueError(
-                "Interactions are required for transPQtlColocH4Maximum. "
+                "Interactions are required for trans-pQTL colocalisation features. "
                 "Provide `gene_interactions_path`."
             )
-        if "transPQtlColocH4Maximum" in features_list and target_index is None:
+        if trans_pqtl_features.intersection(features_list) and target_index is None:
             raise ValueError(
-                "target_index is required for transPQtlColocH4Maximum. "
+                "target_index is required for trans-pQTL colocalisation features. "
                 "Provide `target_index_path`."
             )
 

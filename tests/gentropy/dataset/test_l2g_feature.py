@@ -37,6 +37,7 @@ from gentropy.dataset.l2g_features.colocalisation import (
     SQtlColocH4MaximumFeature,
     SQtlColocH4MaximumNeighbourhoodFeature,
     TransPQtlColocH4MaximumFeature,
+    TransPQtlColocH4MaximumNeighbourhoodFeature,
     common_colocalisation_feature_logic,
     common_neighbourhood_colocalisation_feature_logic,
     extend_missing_colocalisation_to_neighbourhood_genes,
@@ -119,6 +120,7 @@ def test_extract_maximum_coloc_probability_per_region_and_gene(
         PQtlColocH4MaximumNeighbourhoodFeature,
         SQtlColocH4MaximumNeighbourhoodFeature,
         TransPQtlColocH4MaximumFeature,
+        TransPQtlColocH4MaximumNeighbourhoodFeature,
         DistanceTssMeanFeature,
         DistanceTssMeanNeighbourhoodFeature,
         DistanceFootprintMeanFeature,
@@ -1651,4 +1653,336 @@ class TestTransPQtlColocH4Feature:
                 TargetIndex.get_schema(),
             ),
             _schema=TargetIndex.get_schema(),
+        )
+
+
+class TestTransPQtlColocH4MaximumNeighbourhoodFeature:
+    """Test the trans-pQTL colocalisation H4 neighbourhood feature."""
+
+    def test_trans_pqtl_coloc_h4_maximum_neighbourhood(
+        self: TestTransPQtlColocH4MaximumNeighbourhoodFeature,
+    ) -> None:
+        """Test that neighbourhood scores are normalised by regional maximum and missing genes get 0."""
+        feature = TransPQtlColocH4MaximumNeighbourhoodFeature.compute(
+            study_loci_to_annotate=self.sample_study_loci_to_annotate,
+            feature_dependency={
+                "colocalisation": self.sample_colocalisation,
+                "study_index": self.sample_studies,
+                "study_locus": self.sample_study_locus,
+                "interactions": self.sample_interactions,
+                "target_index": self.sample_target_index,
+                "variant_index": self.sample_variant_index,
+            },
+        )
+
+        observed = {
+            row["geneId"]: round(row["featureValue"], 3)
+            for row in feature.df.select("geneId", "featureValue").collect()
+        }
+        # gene1 has H4=0.95 (max via geneX STRING + geneY IntAct interactions)
+        # gene3 is in neighbourhood via variant_index but has no interaction → extended to 0
+        # regional_max = 0.95 → gene1 = 1.0, gene3 = 0.0
+        assert observed["gene1"] == pytest.approx(1.0, abs=1e-3)
+        assert observed["gene3"] == pytest.approx(0.0, abs=1e-3)
+        assert len(observed) == 2, "Only protein-coding neighbourhood genes expected"
+
+    def test_trans_pqtl_neighbourhood_feature_name(
+        self: TestTransPQtlColocH4MaximumNeighbourhoodFeature,
+    ) -> None:
+        """Test that all rows carry the correct featureName."""
+        feature = TransPQtlColocH4MaximumNeighbourhoodFeature.compute(
+            study_loci_to_annotate=self.sample_study_loci_to_annotate,
+            feature_dependency={
+                "colocalisation": self.sample_colocalisation,
+                "study_index": self.sample_studies,
+                "study_locus": self.sample_study_locus,
+                "interactions": self.sample_interactions,
+                "target_index": self.sample_target_index,
+                "variant_index": self.sample_variant_index,
+            },
+        )
+
+        feature_names = {
+            row["featureName"] for row in feature.df.select("featureName").collect()
+        }
+        assert feature_names == {"transPQtlColocH4MaximumNeighbourhood"}
+
+    def test_trans_pqtl_neighbourhood_requires_interactions(
+        self: TestTransPQtlColocH4MaximumNeighbourhoodFeature,
+    ) -> None:
+        """Test that interactions are a required dependency."""
+        with pytest.raises(ValueError, match="Interactions dataframe is required"):
+            TransPQtlColocH4MaximumNeighbourhoodFeature.compute(
+                study_loci_to_annotate=self.sample_study_loci_to_annotate,
+                feature_dependency={
+                    "colocalisation": self.sample_colocalisation,
+                    "study_index": self.sample_studies,
+                    "study_locus": self.sample_study_locus,
+                    "target_index": self.sample_target_index,
+                    "variant_index": self.sample_variant_index,
+                },
+            )
+
+    def test_trans_pqtl_neighbourhood_requires_target_index(
+        self: TestTransPQtlColocH4MaximumNeighbourhoodFeature,
+    ) -> None:
+        """Test that target_index is a required dependency."""
+        with pytest.raises(ValueError, match="target_index is required"):
+            TransPQtlColocH4MaximumNeighbourhoodFeature.compute(
+                study_loci_to_annotate=self.sample_study_loci_to_annotate,
+                feature_dependency={
+                    "colocalisation": self.sample_colocalisation,
+                    "study_index": self.sample_studies,
+                    "study_locus": self.sample_study_locus,
+                    "interactions": self.sample_interactions,
+                    "variant_index": self.sample_variant_index,
+                },
+            )
+
+    def test_trans_pqtl_neighbourhood_feature_factory_inclusion(
+        self: TestTransPQtlColocH4MaximumNeighbourhoodFeature,
+    ) -> None:
+        """Test that the feature is registered in FeatureFactory."""
+        from gentropy.method.l2g.feature_factory import FeatureFactory
+
+        assert "transPQtlColocH4MaximumNeighbourhood" in FeatureFactory.feature_mapper
+        assert (
+            FeatureFactory.feature_mapper["transPQtlColocH4MaximumNeighbourhood"]
+            is TransPQtlColocH4MaximumNeighbourhoodFeature
+        )
+
+    @pytest.fixture(autouse=True)
+    def _setup(
+        self: TestTransPQtlColocH4MaximumNeighbourhoodFeature, spark: SparkSession
+    ) -> None:
+        """Set up test fixtures."""
+        self.sample_study_loci_to_annotate = StudyLocus(
+            _df=spark.createDataFrame(
+                [
+                    {
+                        "studyLocusId": "1",
+                        "variantId": "var1",
+                        "studyId": "study1",
+                        "chromosome": "1",
+                    },
+                ]
+            ),
+            _schema=StudyLocus.get_schema(),
+        )
+
+        self.sample_colocalisation = Colocalisation(
+            _df=spark.createDataFrame(
+                [
+                    {
+                        "leftStudyLocusId": "1",
+                        "rightStudyLocusId": "2",
+                        "chromosome": "1",
+                        "colocalisationMethod": "COLOC",
+                        "numberColocalisingVariants": 1,
+                        "h4": 0.91,
+                        "clpp": 0.02,
+                        "rightStudyType": "pqtl",
+                    },
+                    {
+                        "leftStudyLocusId": "1",  # trans-pQTL for geneX (STRING interaction with gene1)
+                        "rightStudyLocusId": "5",
+                        "chromosome": "1",
+                        "colocalisationMethod": "COLOC",
+                        "numberColocalisingVariants": 1,
+                        "h4": 0.85,
+                        "clpp": 0.0,
+                        "rightStudyType": "pqtl",
+                    },
+                    {
+                        "leftStudyLocusId": "1",  # trans-pQTL for geneY (IntAct interaction with gene1)
+                        "rightStudyLocusId": "6",
+                        "chromosome": "1",
+                        "colocalisationMethod": "COLOC",
+                        "numberColocalisingVariants": 1,
+                        "h4": 0.95,
+                        "clpp": 0.0,
+                        "rightStudyType": "pqtl",
+                    },
+                ],
+                schema=Colocalisation.get_schema(),
+            ),
+            _schema=Colocalisation.get_schema(),
+        )
+
+        self.sample_study_locus = StudyLocus(
+            _df=spark.createDataFrame(
+                [
+                    {
+                        "studyLocusId": "1",
+                        "variantId": "var1",
+                        "studyId": "study1",
+                        "chromosome": "1",
+                        "isTransQtl": False,
+                    },
+                    {
+                        "studyLocusId": "2",
+                        "variantId": "var1",
+                        "studyId": "study2",
+                        "chromosome": "1",
+                        "isTransQtl": False,
+                    },
+                    {
+                        "studyLocusId": "5",
+                        "variantId": "var1",
+                        "studyId": "study5",
+                        "chromosome": "1",
+                        "isTransQtl": True,
+                    },
+                    {
+                        "studyLocusId": "6",
+                        "variantId": "var1",
+                        "studyId": "study6",
+                        "chromosome": "1",
+                        "isTransQtl": True,
+                    },
+                ]
+            ).withColumn(
+                "position",
+                f.when(f.col("studyLocusId") == "1", f.lit(1_000_000).cast("integer")),
+            ),
+            _schema=StudyLocus.get_schema(),
+        )
+
+        self.sample_studies = StudyIndex(
+            _df=spark.createDataFrame(
+                [
+                    {
+                        "studyId": "study1",
+                        "studyType": "gwas",
+                        "geneId": None,
+                        "traitFromSource": "trait1",
+                        "projectId": "project1",
+                    },
+                    {
+                        "studyId": "study2",
+                        "studyType": "pqtl",
+                        "geneId": "gene1",
+                        "traitFromSource": "trait2",
+                        "projectId": "project2",
+                    },
+                    {
+                        "studyId": "study5",
+                        "studyType": "pqtl",
+                        "geneId": "geneX",
+                        "traitFromSource": "trait5",
+                        "projectId": "project5",
+                    },
+                    {
+                        "studyId": "study6",
+                        "studyType": "pqtl",
+                        "geneId": "geneY",
+                        "traitFromSource": "trait6",
+                        "projectId": "project6",
+                    },
+                ]
+            ),
+            _schema=StudyIndex.get_schema(),
+        )
+
+        self.sample_interactions = spark.createDataFrame(
+            [
+                {
+                    "targetA": "gene1",
+                    "targetB": "geneX",
+                    "sourceDatabase": "string",
+                    "scoring": 0.9,
+                },
+                {
+                    "targetA": "gene1",
+                    "targetB": "geneY",
+                    "sourceDatabase": "intact",
+                    "scoring": 0.95,
+                },
+            ]
+        )
+
+        # gene1 and gene3 are protein-coding, both within 500 kb of the GWAS locus (position 1,000,000)
+        self.sample_target_index = TargetIndex(
+            _df=spark.createDataFrame(
+                [
+                    {
+                        "id": "gene1",
+                        "biotype": "protein_coding",
+                        "tss": 1_050_000,
+                        "genomicLocation": {
+                            "chromosome": "1",
+                            "start": 1_050_000,
+                            "end": 1_100_000,
+                            "strand": 1,
+                        },
+                    },
+                    {
+                        "id": "gene3",
+                        "biotype": "protein_coding",
+                        "tss": 1_200_000,
+                        "genomicLocation": {
+                            "chromosome": "1",
+                            "start": 1_200_000,
+                            "end": 1_250_000,
+                            "strand": 1,
+                        },
+                    },
+                ],
+                TargetIndex.get_schema(),
+            ),
+            _schema=TargetIndex.get_schema(),
+        )
+
+        # var1 links to gene1 and gene3 — gene3 will be extended to 0 by neighbourhood logic
+        self.sample_variant_index = VariantIndex(
+            _df=spark.createDataFrame(
+                [
+                    (
+                        "var1",
+                        "1",
+                        1_000_000,
+                        "A",
+                        "T",
+                        [
+                            {
+                                "targetId": "gene1",
+                                "consequenceScore": 0.66,
+                                "isEnsemblCanonical": True,
+                            },
+                            {
+                                "targetId": "gene3",
+                                "consequenceScore": 0.1,
+                                "isEnsemblCanonical": True,
+                            },
+                        ],
+                    ),
+                ],
+                schema=StructType(
+                    [
+                        StructField("variantId", StringType(), True),
+                        StructField("chromosome", StringType(), True),
+                        StructField("position", IntegerType(), True),
+                        StructField("referenceAllele", StringType(), True),
+                        StructField("alternateAllele", StringType(), True),
+                        StructField(
+                            "transcriptConsequences",
+                            ArrayType(
+                                StructType(
+                                    [
+                                        StructField("targetId", StringType(), True),
+                                        StructField(
+                                            "isEnsemblCanonical", BooleanType(), True
+                                        ),
+                                        StructField(
+                                            "consequenceScore", FloatType(), True
+                                        ),
+                                    ]
+                                )
+                            ),
+                            True,
+                        ),
+                    ]
+                ),
+            ),
+            _schema=VariantIndex.get_schema(),
         )

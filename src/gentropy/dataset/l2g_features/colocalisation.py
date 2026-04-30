@@ -977,6 +977,94 @@ def common_trans_pqtl_colocalisation_feature_logic(
     )
 
 
+def common_neighbourhood_trans_pqtl_colocalisation_feature_logic(
+    study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+    colocalisation_method: str,
+    colocalisation_metric: str,
+    feature_name: str,
+    *,
+    colocalisation: Colocalisation,
+    study_index: StudyIndex,
+    study_locus: StudyLocus,
+    interactions: DataFrame,
+    target_index: TargetIndex,
+    variant_index: VariantIndex,
+    string_threshold: float = 0.75,
+    intact_threshold: float = 0.42,
+    delta: int = 500_000,
+) -> DataFrame:
+    """Neighbourhood wrapper for trans-pQTL colocalisation features.
+
+    Computes the base trans-pQTL colocalisation score per (studyLocus, gene), extends missing
+    neighbourhood genes to 0, then normalises each gene's score by the regional maximum across
+    all protein-coding genes at the locus.
+
+    Args:
+        study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
+        colocalisation_method (str): The colocalisation method to filter the data by
+        colocalisation_metric (str): The colocalisation metric to use
+        feature_name (str): The name of the neighbourhood feature (must end with "Neighbourhood")
+        colocalisation (Colocalisation): Dataset with the colocalisation results
+        study_index (StudyIndex): Study index to fetch study type and gene
+        study_locus (StudyLocus): Study locus to traverse between colocalisation and study index
+        interactions (DataFrame): Gene-gene interaction dataset with targetA, targetB, sourceDatabase, scoring columns
+        target_index (TargetIndex): Target index with gene genomic locations
+        variant_index (VariantIndex): Variant index to annotate all overlapping neighbourhood genes
+        string_threshold (float): Minimum STRING score to keep an interaction. Defaults to 0.75.
+        intact_threshold (float): Minimum IntAct score to keep an interaction. Defaults to 0.42.
+        delta (int): Maximum distance in bp between targetB TSS and the GWAS signal position. Defaults to 500_000.
+
+    Returns:
+        DataFrame: Feature annotation with columns studyLocusId, geneId, featureName containing normalised scores
+    """
+    local_feature_name = feature_name.replace("Neighbourhood", "")
+    local_max = common_trans_pqtl_colocalisation_feature_logic(
+        study_loci_to_annotate,
+        colocalisation_method,
+        colocalisation_metric,
+        local_feature_name,
+        colocalisation=colocalisation,
+        study_index=study_index,
+        study_locus=study_locus,
+        interactions=interactions,
+        target_index=target_index,
+        string_threshold=string_threshold,
+        intact_threshold=intact_threshold,
+        delta=delta,
+    )
+    extended_local_max = local_max.unionByName(
+        extend_missing_colocalisation_to_neighbourhood_genes(
+            local_feature_name,
+            local_max,
+            variant_index,
+            target_index,
+            study_locus,
+        )
+    )
+    return (
+        extended_local_max.join(
+            target_index.df.filter(f.col("biotype") == "protein_coding").select(
+                f.col("id").alias("geneId")
+            ),
+            "geneId",
+            "inner",
+        )
+        .withColumn(
+            "regional_max",
+            f.max(local_feature_name).over(Window.partitionBy("studyLocusId")),
+        )
+        .withColumn(
+            feature_name,
+            f.when(
+                (f.col("regional_max").isNotNull()) & (f.col("regional_max") != 0.0),
+                f.col(local_feature_name)
+                / f.coalesce(f.col("regional_max"), f.lit(0.0)),
+            ).otherwise(f.lit(0.0)),
+        )
+        .drop("regional_max", local_feature_name)
+    )
+
+
 class TransPQtlColocH4MaximumFeature(L2GFeature):
     """Max H4 for each (study, locus, gene) aggregating over all trans-pQTLs."""
 
@@ -1016,6 +1104,62 @@ class TransPQtlColocH4MaximumFeature(L2GFeature):
         return cls(
             _df=convert_from_wide_to_long(
                 common_trans_pqtl_colocalisation_feature_logic(
+                    study_loci_to_annotate,
+                    colocalisation_method,
+                    colocalisation_metric,
+                    cls.feature_name,
+                    string_threshold=cls.string_threshold,
+                    intact_threshold=cls.intact_threshold,
+                    delta=cls.delta,
+                    **feature_dependency,
+                ),
+                id_vars=("studyLocusId", "geneId"),
+                var_name="featureName",
+                value_name="featureValue",
+            ),
+            _schema=cls.get_schema(),
+        )
+
+
+class TransPQtlColocH4MaximumNeighbourhoodFeature(L2GFeature):
+    """Max H4 for each (study, locus) aggregating over all trans-pQTLs, normalised by the regional maximum."""
+
+    feature_dependency_type = [Colocalisation, StudyIndex, StudyLocus, SparkDataFrame, TargetIndex, VariantIndex]
+    feature_name = "transPQtlColocH4MaximumNeighbourhood"
+    string_threshold: float = 0.75
+    intact_threshold: float = 0.42
+    delta: int = 500_000
+
+    @classmethod
+    def compute(
+        cls: type[TransPQtlColocH4MaximumNeighbourhoodFeature],
+        study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+        feature_dependency: dict[str, Any],
+    ) -> TransPQtlColocH4MaximumNeighbourhoodFeature:
+        """Computes the feature.
+
+        Args:
+            study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
+            feature_dependency (dict[str, Any]): Dataset with the colocalisation results
+
+        Returns:
+            TransPQtlColocH4MaximumNeighbourhoodFeature: Feature dataset
+        """
+        if "interactions" not in feature_dependency:
+            raise ValueError(
+                "Interactions dataframe is required for TransPQtlColocH4MaximumNeighbourhoodFeature."
+            )
+        if "target_index" not in feature_dependency:
+            raise ValueError(
+                "target_index is required for TransPQtlColocH4MaximumNeighbourhoodFeature."
+            )
+
+        colocalisation_method = "Coloc"
+        colocalisation_metric = "h4"
+
+        return cls(
+            _df=convert_from_wide_to_long(
+                common_neighbourhood_trans_pqtl_colocalisation_feature_logic(
                     study_loci_to_annotate,
                     colocalisation_method,
                     colocalisation_metric,

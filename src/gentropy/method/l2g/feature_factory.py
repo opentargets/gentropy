@@ -20,6 +20,7 @@ from gentropy.dataset.l2g_features.colocalisation import (
     SQtlColocH4MaximumFeature,
     SQtlColocH4MaximumNeighbourhoodFeature,
     TransPQtlColocH4MaximumFeature,
+    TransPQtlColocH4MaximumNeighbourhoodFeature,
 )
 from gentropy.dataset.l2g_features.distance import (
     DistanceFootprintMeanFeature,
@@ -129,6 +130,7 @@ class FeatureFactory:
         "sQtlColocH4Maximum": SQtlColocH4MaximumFeature,
         "sQtlColocH4MaximumNeighbourhood": SQtlColocH4MaximumNeighbourhoodFeature,
         "transPQtlColocH4Maximum": TransPQtlColocH4MaximumFeature,
+        "transPQtlColocH4MaximumNeighbourhood": TransPQtlColocH4MaximumNeighbourhoodFeature,
         "vepMean": VepMeanFeature,
         "vepMeanNeighbourhood": VepMeanNeighbourhoodFeature,
         "vepMaximum": VepMaximumFeature,
