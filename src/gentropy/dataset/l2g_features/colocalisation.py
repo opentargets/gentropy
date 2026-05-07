@@ -838,7 +838,7 @@ def common_trans_pqtl_colocalisation_feature_logic(
     study_locus: StudyLocus,
     interactions: DataFrame,
     target_index: TargetIndex,
-    string_threshold: float = 0.75,
+    string_threshold: float = 1.01,
     intact_threshold: float = 0.42,
     delta: int = 500_000,
 ) -> DataFrame:
@@ -863,7 +863,7 @@ def common_trans_pqtl_colocalisation_feature_logic(
         study_locus (StudyLocus): Study locus to traverse between colocalisation and study index
         interactions (DataFrame): Gene-gene interaction dataset with targetA, targetB, sourceDatabase, scoring columns
         target_index (TargetIndex): Target index with gene genomic locations
-        string_threshold (float): Minimum STRING score to keep an interaction. Defaults to 0.9.
+        string_threshold (float): Minimum STRING score to keep an interaction. Defaults to 1.01 (effectively disables STRING).
         intact_threshold (float): Minimum IntAct score to keep an interaction. Defaults to 0.42.
         delta (int): Maximum distance in bp between targetB TSS and the GWAS signal position. Defaults to 500_000.
 
@@ -989,7 +989,7 @@ def common_neighbourhood_trans_pqtl_colocalisation_feature_logic(
     interactions: DataFrame,
     target_index: TargetIndex,
     variant_index: VariantIndex,
-    string_threshold: float = 0.75,
+    string_threshold: float = 1.01,
     intact_threshold: float = 0.42,
     delta: int = 500_000,
 ) -> DataFrame:
@@ -1010,7 +1010,7 @@ def common_neighbourhood_trans_pqtl_colocalisation_feature_logic(
         interactions (DataFrame): Gene-gene interaction dataset with targetA, targetB, sourceDatabase, scoring columns
         target_index (TargetIndex): Target index with gene genomic locations
         variant_index (VariantIndex): Variant index to annotate all overlapping neighbourhood genes
-        string_threshold (float): Minimum STRING score to keep an interaction. Defaults to 0.75.
+        string_threshold (float): Minimum STRING score to keep an interaction. Defaults to 1.01 (effectively disables STRING).
         intact_threshold (float): Minimum IntAct score to keep an interaction. Defaults to 0.42.
         delta (int): Maximum distance in bp between targetB TSS and the GWAS signal position. Defaults to 500_000.
 
@@ -1070,7 +1070,7 @@ class TransPQtlColocH4MaximumFeature(L2GFeature):
 
     feature_dependency_type = [Colocalisation, StudyIndex, StudyLocus, SparkDataFrame, TargetIndex]
     feature_name = "transPQtlColocH4Maximum"
-    string_threshold: float = 0.75
+    string_threshold: float = 1.01
     intact_threshold: float = 0.42
     delta: int = 500_000
 
@@ -1126,7 +1126,7 @@ class TransPQtlColocH4MaximumNeighbourhoodFeature(L2GFeature):
 
     feature_dependency_type = [Colocalisation, StudyIndex, StudyLocus, SparkDataFrame, TargetIndex, VariantIndex]
     feature_name = "transPQtlColocH4MaximumNeighbourhood"
-    string_threshold: float = 0.75
+    string_threshold: float = 1.01
     intact_threshold: float = 0.42
     delta: int = 500_000
 
