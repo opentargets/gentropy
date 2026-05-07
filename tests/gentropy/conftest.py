@@ -714,8 +714,27 @@ def sample_l2g_gold_standard(spark: SparkSession) -> DataFrame:
 @pytest.fixture()
 def sample_otp_interactions(spark: SparkSession) -> DataFrame:
     """Sample OTP gene-gene interactions dataset."""
-    return spark.read.parquet(
-        "tests/gentropy/data_samples/otp_interactions_sample.parquet",
+    return spark.createDataFrame(
+        [
+            {
+                "targetA": "ENSG00000157764",
+                "targetB": "ENSG00000012048",
+                "scoring": 0.82,
+                "sourceDatabase": "string",
+            },
+            {
+                "targetA": "ENSG00000157764",
+                "targetB": "ENSG00000171862",
+                "scoring": 0.47,
+                "sourceDatabase": "intact",
+            },
+            {
+                "targetA": "ENSG00000157764",
+                "targetB": "ENSG00000146648",
+                "scoring": 0.0,
+                "sourceDatabase": "reactome",
+            },
+        ]
     )
 
 

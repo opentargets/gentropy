@@ -82,7 +82,7 @@ from gentropy.dataset.variant_index import VariantIndex
 from gentropy.method.l2g.feature_factory import L2GFeatureInputLoader
 
 if TYPE_CHECKING:
-    from pyspark.sql import SparkSession
+    from pyspark.sql import DataFrame, SparkSession
 
 
 def test_extract_maximum_coloc_probability_per_region_and_gene(
@@ -146,7 +146,7 @@ def test_feature_factory_return_type(
     mock_study_index: StudyIndex,
     mock_variant_index: VariantIndex,
     mock_target_index: TargetIndex,
-    sample_otp_interactions: Any,
+    sample_otp_interactions: DataFrame,
 ) -> None:
     """Test that every feature factory returns a L2GFeature dataset."""
     loader = L2GFeatureInputLoader(
@@ -1410,6 +1410,119 @@ class TestTransPQtlColocH4Feature:
 
         assert feature.df.count() == 0
 
+    def test_trans_pqtl_coloc_supports_coloc_pip_and_filters_non_pqtl(
+        self: TestTransPQtlColocH4Feature,
+        spark: SparkSession,
+    ) -> None:
+        """Test that COLOC_PIP is accepted and non-pQTL trans studies are excluded."""
+        from gentropy.dataset.l2g_features.colocalisation import (
+            TransPQtlColocH4MaximumFeature,
+        )
+
+        coloc_with_extra_rows = Colocalisation(
+            _df=self.sample_colocalisation.df.unionByName(
+                spark.createDataFrame(
+                    [
+                        {
+                            "leftStudyLocusId": "1",
+                            "rightStudyLocusId": "5",
+                            "chromosome": "1",
+                            "colocalisationMethod": "COLOC_PIP",
+                            "numberColocalisingVariants": 1,
+                            "h4": 0.93,
+                            "clpp": 0.0,
+                            "rightStudyType": "pqtl",
+                        },
+                        {
+                            "leftStudyLocusId": "1",
+                            "rightStudyLocusId": "8",
+                            "chromosome": "1",
+                            "colocalisationMethod": "COLOC",
+                            "numberColocalisingVariants": 1,
+                            "h4": 0.999,
+                            "clpp": 0.0,
+                            "rightStudyType": "eqtl",
+                        },
+                    ],
+                    Colocalisation.get_schema(),
+                )
+            ),
+            _schema=Colocalisation.get_schema(),
+        )
+        study_locus_with_non_pqtl_trans = StudyLocus(
+            _df=self.sample_study_locus.df.unionByName(
+                spark.createDataFrame(
+                    [
+                        {
+                            "studyLocusId": "8",
+                            "variantId": "var1",
+                            "studyId": "study8",
+                            "chromosome": "1",
+                            "isTransQtl": True,
+                            "position": None,
+                        }
+                    ],
+                    StudyLocus.get_schema(),
+                )
+            ),
+            _schema=StudyLocus.get_schema(),
+        )
+        studies_with_non_pqtl = StudyIndex(
+            _df=self.sample_studies.df.unionByName(
+                spark.createDataFrame(
+                    [
+                        {
+                            "studyId": "study8",
+                            "studyType": "eqtl",
+                            "geneId": "gene1",
+                            "traitFromSource": "trait8",
+                            "projectId": "project8",
+                        }
+                    ],
+                    StudyIndex.get_schema(),
+                )
+            ),
+            _schema=StudyIndex.get_schema(),
+        )
+
+        feature = TransPQtlColocH4MaximumFeature.compute(
+            study_loci_to_annotate=self.sample_study_loci_to_annotate,
+            feature_dependency={
+                "colocalisation": coloc_with_extra_rows,
+                "study_index": studies_with_non_pqtl,
+                "study_locus": study_locus_with_non_pqtl_trans,
+                "interactions": self.sample_interactions,
+                "target_index": self.sample_target_index,
+            },
+        )
+
+        observed = feature.df.select("featureValue").collect()
+        assert len(observed) == 1
+        # Keep pQTL max from baseline trans-pQTL COLOC row for studyLocusId=6 (h4=0.95),
+        # while ignoring the higher-scoring trans-eQTL row added in this test.
+        assert float(observed[0]["featureValue"]) == pytest.approx(0.95, abs=1e-3)
+
+        coloc_pip_only = Colocalisation(
+            _df=coloc_with_extra_rows.df.filter(
+                f.col("colocalisationMethod") == "COLOC_PIP"
+            ),
+            _schema=Colocalisation.get_schema(),
+        )
+        feature_coloc_pip = TransPQtlColocH4MaximumFeature.compute(
+            study_loci_to_annotate=self.sample_study_loci_to_annotate,
+            feature_dependency={
+                "colocalisation": coloc_pip_only,
+                "study_index": studies_with_non_pqtl,
+                "study_locus": study_locus_with_non_pqtl_trans,
+                "interactions": self.sample_interactions,
+                "target_index": self.sample_target_index,
+            },
+        )
+        # Explicitly verify COLOC_PIP rows are supported by the h4 method filter.
+        assert float(feature_coloc_pip.df.first()["featureValue"]) == pytest.approx(
+            0.93, abs=1e-3
+        )
+
     def test_trans_pqtl_coloc_requires_interactions(
         self: TestTransPQtlColocH4Feature,
     ) -> None:
@@ -1611,14 +1724,14 @@ class TestTransPQtlColocH4Feature:
         self.sample_interactions = spark.createDataFrame(
             [
                 {
-                    # string scoring at threshold (0.9 >= string_threshold=0.9) — included
+                    # string scoring at or above default threshold (0.9 >= string_threshold=0.75) — included
                     "targetA": "gene1",
                     "targetB": "geneX",
                     "sourceDatabase": "string",
                     "scoring": 0.9,
                 },
                 {
-                    # string scoring below threshold (0.4 < string_threshold=0.9) — excluded
+                    # string scoring below default threshold (0.4 < string_threshold=0.75) — excluded
                     "targetA": "gene1",
                     "targetB": "geneY",
                     "sourceDatabase": "string",

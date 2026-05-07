@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any
 import pyspark.sql.functions as f
 from pyspark.sql import DataFrame as SparkDataFrame
 from pyspark.sql import Window
+from pyspark.sql.types import StructType
 
 from gentropy.common.spark import convert_from_wide_to_long
 from gentropy.dataset.colocalisation import Colocalisation
@@ -21,6 +22,8 @@ from gentropy.method.colocalisation import ColocalisationMethod
 
 if TYPE_CHECKING:
     from pyspark.sql import DataFrame
+
+HUMAN_TAXON_ID = 9606
 
 
 def extract_maximum_coloc_probability_per_region_and_gene(
@@ -838,7 +841,7 @@ def common_trans_pqtl_colocalisation_feature_logic(
     study_locus: StudyLocus,
     interactions: DataFrame,
     target_index: TargetIndex,
-    string_threshold: float = 1.01,
+    string_threshold: float = 0.75,
     intact_threshold: float = 0.42,
     delta: int = 500_000,
 ) -> DataFrame:
@@ -852,6 +855,8 @@ def common_trans_pqtl_colocalisation_feature_logic(
     3. targetB is located on the same chromosome as the GWAS signal and within `delta` bp of it.
 
     Feature value = max colocalisation score across all qualifying trans-pQTL colocalisations.
+    Note: the default STRING threshold is set to 0.75 (active filtering) instead of the
+    previously disabled threshold, and remains overridable via feature class attributes.
 
     Args:
         study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
@@ -863,7 +868,7 @@ def common_trans_pqtl_colocalisation_feature_logic(
         study_locus (StudyLocus): Study locus to traverse between colocalisation and study index
         interactions (DataFrame): Gene-gene interaction dataset with targetA, targetB, sourceDatabase, scoring columns
         target_index (TargetIndex): Target index with gene genomic locations
-        string_threshold (float): Minimum STRING score to keep an interaction. Defaults to 1.01 (effectively disables STRING).
+        string_threshold (float): Minimum STRING confidence score (combined score scaled to [0,1]); defaults to 0.75 for active filtering.
         intact_threshold (float): Minimum IntAct score to keep an interaction. Defaults to 0.42.
         delta (int): Maximum distance in bp between targetB TSS and the GWAS signal position. Defaults to 500_000.
 
@@ -876,16 +881,23 @@ def common_trans_pqtl_colocalisation_feature_logic(
         else ["studyLocusId"]
     )
 
-    coloc_methods = [colocalisation_method.lower(), "coloc_pip_ecaviar"]
+    allowed_coloc_methods = {
+        method.lower()
+        for method in ColocalisationMethod.get_method_names_for_metric(
+            colocalisation_metric
+        )
+    }
 
     # Step 1: Trans-pQTL study loci and their measured genes (via study index)
     trans_pqtl_study_loci = (
-        study_locus.filter(
-            (f.col("isTransQtl").isNotNull()) & f.col("isTransQtl")
-        )
+        study_locus.filter((f.col("isTransQtl").isNotNull()) & f.col("isTransQtl"))
         .df.select("studyLocusId", "studyId")
         .join(
-            f.broadcast(study_index.df.select("studyId", "geneId")),
+            f.broadcast(
+                study_index.df.filter(f.lower("studyType") == "pqtl").select(
+                    "studyId", "geneId"
+                )
+            ),
             on="studyId",
             how="inner",
         )
@@ -898,9 +910,10 @@ def common_trans_pqtl_colocalisation_feature_logic(
 
     # Step 2: Colocalisations where right side is a trans-pQTL, enriched with GWAS locus position
     coloc_trans = (
-        colocalisation.df.join(trans_pqtl_study_loci, on="rightStudyLocusId", how="inner")
-        # drop the colocalisation-side chromosome before adding the GWAS locus chromosome
-        .drop("chromosome")
+        colocalisation.df.filter(f.lower("rightStudyType") == "pqtl")
+        .filter(f.lower("colocalisationMethod").isin(allowed_coloc_methods))
+        .select("leftStudyLocusId", "rightStudyLocusId", colocalisation_metric)
+        .join(trans_pqtl_study_loci, on="rightStudyLocusId", how="inner")
         .join(
             study_locus.df.select("studyLocusId", "chromosome", "position").withColumnRenamed(
                 "studyLocusId", "leftStudyLocusId"
@@ -919,8 +932,19 @@ def common_trans_pqtl_colocalisation_feature_logic(
         f.col("tss").alias("targetB_tss"),
     )
 
+    has_species_b_taxon_id = (
+        "speciesB" in interactions.columns
+        and isinstance(interactions.schema["speciesB"].dataType, StructType)
+        and "taxonId" in interactions.schema["speciesB"].dataType.names
+    )
+    interactions_filtered_species = (
+        interactions.filter(f.col("speciesB.taxonId") == HUMAN_TAXON_ID)
+        if has_species_b_taxon_id
+        else interactions
+    )
+
     filtered_inter = (
-        interactions.filter(
+        interactions_filtered_species.filter(
             ((f.col("sourceDatabase") == "string") & (f.col("scoring") >= string_threshold))
             | ((f.col("sourceDatabase") == "intact") & (f.col("scoring") >= intact_threshold))
             | (~f.col("sourceDatabase").isin("string", "intact"))
@@ -956,8 +980,7 @@ def common_trans_pqtl_colocalisation_feature_logic(
 
     # Step 5: Aggregate max colocalisation score per (GWAS locus, local gene)
     trans_interaction_feature = (
-        coloc_trans_inter.filter(f.lower("colocalisationMethod").isin(coloc_methods))
-        .select(
+        coloc_trans_inter.select(
             f.col("leftStudyLocusId").alias("studyLocusId"),
             f.col("targetB").alias("geneId"),
             f.col(colocalisation_metric),
@@ -989,7 +1012,7 @@ def common_neighbourhood_trans_pqtl_colocalisation_feature_logic(
     interactions: DataFrame,
     target_index: TargetIndex,
     variant_index: VariantIndex,
-    string_threshold: float = 1.01,
+    string_threshold: float = 0.75,
     intact_threshold: float = 0.42,
     delta: int = 500_000,
 ) -> DataFrame:
@@ -1010,7 +1033,7 @@ def common_neighbourhood_trans_pqtl_colocalisation_feature_logic(
         interactions (DataFrame): Gene-gene interaction dataset with targetA, targetB, sourceDatabase, scoring columns
         target_index (TargetIndex): Target index with gene genomic locations
         variant_index (VariantIndex): Variant index to annotate all overlapping neighbourhood genes
-        string_threshold (float): Minimum STRING score to keep an interaction. Defaults to 1.01 (effectively disables STRING).
+        string_threshold (float): Minimum STRING confidence score (combined score scaled to [0,1]); defaults to 0.75, matching the trans-pQTL feature default.
         intact_threshold (float): Minimum IntAct score to keep an interaction. Defaults to 0.42.
         delta (int): Maximum distance in bp between targetB TSS and the GWAS signal position. Defaults to 500_000.
 
@@ -1070,7 +1093,7 @@ class TransPQtlColocH4MaximumFeature(L2GFeature):
 
     feature_dependency_type = [Colocalisation, StudyIndex, StudyLocus, SparkDataFrame, TargetIndex]
     feature_name = "transPQtlColocH4Maximum"
-    string_threshold: float = 1.01
+    string_threshold: float = 0.75
     intact_threshold: float = 0.42
     delta: int = 500_000
 
@@ -1126,7 +1149,7 @@ class TransPQtlColocH4MaximumNeighbourhoodFeature(L2GFeature):
 
     feature_dependency_type = [Colocalisation, StudyIndex, StudyLocus, SparkDataFrame, TargetIndex, VariantIndex]
     feature_name = "transPQtlColocH4MaximumNeighbourhood"
-    string_threshold: float = 1.01
+    string_threshold: float = 0.75
     intact_threshold: float = 0.42
     delta: int = 500_000
 

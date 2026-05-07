@@ -56,7 +56,7 @@ class LocusToGeneFeatureMatrixStep:
             study_index_path (str | None): Path to the study index dataset
             target_index_path (str | None): Path to the target index dataset
             intervals_path (str | None): Path to the interval dataset
-            gene_interactions_path (str | None): Path to the gene interaction dataset
+            gene_interactions_path (str | None): Path to the protein-protein interaction dataset
             feature_matrix_path (str): Path to the L2G feature matrix output dataset
             append_null_features (bool): Whether to append null features to the feature matrix. Defaults to False.
         """
@@ -100,21 +100,6 @@ class LocusToGeneFeatureMatrixStep:
             if gene_interactions_path
             else None
         )
-
-        trans_pqtl_features = {
-            "transPQtlColocH4Maximum",
-            "transPQtlColocH4MaximumNeighbourhood",
-        }
-        if trans_pqtl_features.intersection(features_list) and interactions is None:
-            raise ValueError(
-                "Interactions are required for trans-pQTL colocalisation features. "
-                "Provide `gene_interactions_path`."
-            )
-        if trans_pqtl_features.intersection(features_list) and target_index is None:
-            raise ValueError(
-                "target_index is required for trans-pQTL colocalisation features. "
-                "Provide `target_index_path`."
-            )
 
         features_input_loader = L2GFeatureInputLoader(
             variant_index=variant_index,
