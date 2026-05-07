@@ -1,0 +1,105 @@
+{
+  "type": "struct",
+  "fields": [
+    {
+      "name": "benchmarkVersion",
+      "type": "string",
+      "nullable": false,
+      "metadata": {}
+    },
+    {
+      "name": "releaseVersion",
+      "type": "string",
+      "nullable": false,
+      "metadata": {}
+    },
+    {
+      "name": "pipelineRunId",
+      "type": "string",
+      "nullable": false,
+      "metadata": {}
+    },
+    {
+      "name": "studyLocusId",
+      "type": "string",
+      "nullable": false,
+      "metadata": {}
+    },
+    {
+      "name": "studyId",
+      "type": "string",
+      "nullable": false,
+      "metadata": {}
+    },
+    {
+      "name": "variantId",
+      "type": "string",
+      "nullable": false,
+      "metadata": {}
+    },
+    {
+      "name": "geneId",
+      "type": "string",
+      "nullable": false,
+      "metadata": {}
+    },
+    {
+      "name": "traitFromSourceMappedId",
+      "type": "string",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "goldStandardSet",
+      "type": "string",
+      "nullable": false,
+      "metadata": {}
+    },
+    {
+      "name": "trainingInclusion",
+      "type": "boolean",
+      "nullable": false,
+      "metadata": {}
+    },
+    {
+      "name": "isSeedPositive",
+      "type": "boolean",
+      "nullable": false,
+      "metadata": {}
+    },
+    {
+      "name": "seedSourceSummary",
+      "type": "string",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "seedSourceCount",
+      "type": "integer",
+      "nullable": false,
+      "metadata": {}
+    },
+    {
+      "name": "candidateGeneSource",
+      "type": "string",
+      "nullable": false,
+      "metadata": {}
+    },
+    {
+      "name": "exclusionReasonSummary",
+      "type": "string",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "metadata": {},
+      "name": "sources",
+      "nullable": true,
+      "type": {
+        "containsNull": true,
+        "elementType": "string",
+        "type": "array"
+      }
+    }
+  ]
+}

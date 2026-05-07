@@ -426,6 +426,19 @@ class LocusToGeneFeatureMatrixConfig(StepConfig):
 
 
 @dataclass
+class L2GBenchmarkConfig(StepConfig):
+    """L2G benchmark build step configuration."""
+
+    gold_standard_curation_path: str = MISSING
+    benchmark_path: str = MISSING
+    build_report_path: str = MISSING
+    benchmark_version: str = MISSING
+    release_version: str = MISSING
+    pipeline_run_id: str | None = None
+    _target_: str = "gentropy.l2g_benchmark.L2GBenchmarkStep"
+
+
+@dataclass
 class PICSConfig(StepConfig):
     """PICS step configuration."""
 
@@ -840,6 +853,7 @@ def register_config() -> None:
     )
     cs.store(group="step", name="ld_based_clumping", node=LDBasedClumpingConfig)
     cs.store(group="step", name="ld_index", node=LDIndexConfig)
+    cs.store(group="step", name="l2g_benchmark", node=L2GBenchmarkConfig)
     cs.store(group="step", name="locus_to_gene", node=LocusToGeneConfig)
     cs.store(
         group="step",
