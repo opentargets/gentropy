@@ -8,8 +8,9 @@ from pathlib import Path
 import pytest
 from pydantic import SecretStr, ValidationError
 
-from gentropy.external.hf_hub import HuggingFaceHubCredentials, MissingHFTokenError
-from gentropy.external.wandb import MissingWandbApiKeyError, WandbCredentials
+from gentropy.external import MissingApiKeyError
+from gentropy.external.hf_hub import HuggingFaceHubCredentials
+from gentropy.external.wandb import WandbCredentials
 
 
 class TestWandbCredentials:
@@ -71,7 +72,7 @@ class TestWandbCredentials:
 
         # Test error raised when env var is not set and no path provided
         monkeypatch.delenv("WANDB_API_KEY", raising=False)
-        with pytest.raises(MissingWandbApiKeyError):
+        with pytest.raises(MissingApiKeyError):
             WandbCredentials.read()
 
 
@@ -130,5 +131,5 @@ class TestHuggingFaceHubCredentials:
 
         # Test error raised when env var is not set and no path provided
         monkeypatch.delenv("HF_TOKEN", raising=False)
-        with pytest.raises(MissingHFTokenError):
+        with pytest.raises(MissingApiKeyError):
             HuggingFaceHubCredentials.read()

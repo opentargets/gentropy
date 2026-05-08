@@ -2,17 +2,14 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-from typing import Annotated
+from typing import Annotated, ClassVar
 
 from pydantic import BaseModel, SecretStr, StringConstraints
 
+from gentropy.external import BaseServiceCredentials
 
-class MissingHFTokenError(Exception):
-    """Custom exception raised when the HF_TOKEN environment variable is not set."""
-    pass
 
-class HuggingFaceHubCredentials(BaseModel):
+class HuggingFaceHubCredentials(BaseServiceCredentials):
     """Credentials for Hugging Face Hub authentication.
 
     Attributes:
@@ -31,53 +28,8 @@ class HuggingFaceHubCredentials(BaseModel):
         >>> os.unlink(path)
     """
 
+    _env_var: ClassVar[str] = "HF_TOKEN"
     HF_TOKEN: SecretStr
-
-    @classmethod
-    def from_json(cls, path: str) -> HuggingFaceHubCredentials:
-        """Load Hugging Face Hub credentials from a JSON file.
-
-        Args:
-            path (str): Path to the JSON credentials file. The file must contain
-                a ``HF_TOKEN`` field.
-
-        Returns:
-            HuggingFaceHubCredentials: Validated credentials object.
-
-        Raises:
-            FileNotFoundError: If the file at *path* does not exist.
-            ValidationError: If the JSON does not match the expected schema.
-        """
-        return cls.model_validate_json(Path(path).read_text())
-
-
-    @classmethod
-    def read(cls, path: str | None = None) -> HuggingFaceHubCredentials:
-        """Read Hugging Face Hub credentials from a JSON file or environment variable.
-
-        If *path* is provided, the credentials will be loaded from the specified JSON file.
-        If *path* is None, the method will attempt to read the token from the HF_TOKEN environment variable.
-
-        Args:
-            path (str | None): Optional path to the JSON credentials file. If None, the method will look for the HF_TOKEN environment variable.
-
-        Returns:
-            HuggingFaceHubCredentials: Validated credentials object.
-
-        Raises:
-            MissingHFTokenError: If *path* is None and the HF_TOKEN environment variable is not set.
-            FileNotFoundError: If *path* is provided but the file does not exist.
-            ValidationError: If the JSON file does not match the expected schema.
-
-        """
-        if path is None:
-            import os
-            token = os.getenv("HF_TOKEN")
-            if not token:
-                raise MissingHFTokenError("HF_TOKEN environment variable is not set.")
-            return cls(HF_TOKEN=SecretStr(token))
-
-        return cls.from_json(path)
 
 
 class HuggingFaceModelRepoHandle(BaseModel):
@@ -104,9 +56,7 @@ class HuggingFaceModelRepoHandle(BaseModel):
         'opentargets'
     """
 
-
     handle: Annotated[str, StringConstraints(pattern=r"^\b[\w.-]+\b/\b[\w.-]{1,96}\b$")]
-
 
     def repo_url(self) -> str:
         """Construct the URL for the Hugging Face model repository.

@@ -172,17 +172,17 @@ class LocusToGeneStep:
         credible_set_path: str,
         feature_matrix_path: str,
         wandb_run_name: str | None = None,
-        model_path: str | None = None,
+        model_path: str = "opentargets/locus_to_gene",
         features_list: list[str] | None = None,
         gold_standard_curation_path: str | None = None,
         variant_index_path: str | None = None,
         gene_interactions_path: str | None = None,
         predictions_path: str | None = None,
-        l2g_threshold: float | None = None,
-        hf_hub_repo_id: str | None = None,
-        hf_model_commit_message: str | None = "chore: update model",
-        hf_model_version: str | None = None,
-        explain_predictions: bool | None = None,
+        l2g_threshold: float = 0.05,
+        hf_hub_repo_id: str = "locus_to_gene",
+        hf_model_commit_message: str = "chore: update model",
+        hf_model_version: str = "latest",
+        explain_predictions: bool = False,
         hf_credentials_path: str | None = None,
         wandb_credentials_path: str | None = None,
     ) -> None:
@@ -198,22 +198,45 @@ class LocusToGeneStep:
             credible_set_path (str): Path to the credible set dataset necessary to build the feature matrix
             feature_matrix_path (str): Path to the L2G feature matrix input dataset
             wandb_run_name (str | None): Name of the run to track model training in Weights and Biases
-            model_path (str | None): Path to the model. It can be either in the filesystem or the name on the Hugging Face Hub (in the form of username/repo_name).
+            model_path (str): Path to the model. It can be either in the filesystem or the name on the Hugging Face Hub (in the form of username/repo_name).
             features_list (list[str] | None): List of features to use to train the model
             gold_standard_curation_path (str | None): Path to the gold standard curation file
             variant_index_path (str | None): Path to the variant index
             gene_interactions_path (str | None): Path to the protein-protein interaction (PPI) dataset
             predictions_path (str | None): Path to the L2G predictions output dataset
-            l2g_threshold (float | None): An optional threshold for the L2G score to filter predictions. A threshold of 0.05 is recommended.
-            hf_hub_repo_id (str | None): Hugging Face Hub repository ID. If provided, the model will be uploaded to Hugging Face.
-            hf_model_commit_message (str | None): Commit message when we upload the model to the Hugging Face Hub
-            hf_model_version (str | None): Tag, branch, or commit hash to download the model from the Hub. If None, the latest commit is downloaded.
-            explain_predictions (bool | None): Whether to extract SHAP importances for the L2G predictions. This is computationally expensive.
+            l2g_threshold (float): An optional threshold for the L2G score to filter predictions. A threshold of 0.05 is recommended.
+            hf_hub_repo_id (str): Hugging Face Hub repository handle in ``username/repo_name`` format. Used to download the model when ``download_from_hub`` is ``True`` (predict mode) and to upload the trained model (train mode).
+            hf_model_commit_message (str): Commit message when we upload the model to the Hugging Face Hub
+            hf_model_version (str): Tag, branch, or commit hash to download the model from the Hub. Defaults to ``"latest"``.
+            explain_predictions (bool): Whether to extract SHAP importances for the L2G predictions. This is computationally expensive.
             hf_credentials_path (str | None): Optional path to the Hugging Face Hub credentials JSON file. If not provided, the HF_TOKEN environment variable will be used.
             wandb_credentials_path (str | None): Optional path to the Weights and Biases credentials JSON file. If not provided, the WANDB_API_KEY environment variable will be used.
 
         Raises:
             ValueError: If run_mode is not 'train' or 'predict'
+
+
+        Note: One can fetch the credentials for HF Hub and W&B from environment variables or from JSON files. The JSON file for HF Hub should contain a
+            field "HF_TOKEN" with the Hugging Face API token as value, while the JSON file for W&B should contain a field "WANDB_API_KEY" with the W&B API key as value.
+
+
+        #### Credential files
+
+        Example of credentials JSON file content for Hugging Face Hub:
+
+        ```json
+        {
+            "HF_TOKEN": "your_hugging_face_api_token"
+        }
+        ```
+
+        Example of credentials JSON file content for W&B:
+
+        ```json
+        {
+            "WANDB_API_KEY": "your_wandb_api_key"
+        }
+        ```
         """
         if run_mode not in ["train", "predict"]:
             raise ValueError(
@@ -244,11 +267,11 @@ class LocusToGeneStep:
 
         # Predict io
         self.download_from_hub = download_from_hub
-        self.model_path = model_path or "opentargets/locus2gene"
+        self.model_path = model_path
         self.predictions_path = predictions_path
 
         # Predict parameters
-        self.l2g_threshold = l2g_threshold or 0.05
+        self.l2g_threshold = l2g_threshold
         self.explain_predictions = explain_predictions
 
         # Load common inputs
@@ -261,11 +284,13 @@ class LocusToGeneStep:
 
         if run_mode == "predict":
             if download_from_hub:
-                if not self.hf_hub_repo_id or not self.hf_model_version:
+                if not self.hf_hub_repo_id:
                     raise ValueError(
-                        "hf_hub_repo_id and hf_model_version must be provided when download_from_hub is True"
+                        "hf_hub_repo_id must be provided when download_from_hub is True"
                     )
-                self.model_path = HuggingFaceModelRepoHandle(handle=self.hf_hub_repo_id).handle
+                self.model_path = HuggingFaceModelRepoHandle(
+                    handle=self.hf_hub_repo_id
+                ).handle
             self.run_predict()
         elif run_mode == "train":
             self.gold_standard = self.prepare_gold_standard()
@@ -377,7 +402,9 @@ class LocusToGeneStep:
         """
         hf_token = None
         if self.download_from_hub:
-            hf_hub_credentials = HuggingFaceHubCredentials.read(self.hf_credentials_path)
+            hf_hub_credentials = HuggingFaceHubCredentials.read(
+                self.hf_credentials_path
+            )
             hf_token = hf_hub_credentials.HF_TOKEN
 
         if not self.predictions_path:
@@ -422,7 +449,9 @@ class LocusToGeneStep:
         hf_token = None
         if self.hf_hub_repo_id and self.hf_model_commit_message:
             # Fails when the HF_TOKEN env is not set
-            hf_hub_credentials = HuggingFaceHubCredentials.read(self.hf_credentials_path)
+            hf_hub_credentials = HuggingFaceHubCredentials.read(
+                self.hf_credentials_path
+            )
             hf_token = hf_hub_credentials.HF_TOKEN
 
         # Instantiate classifier and train model
