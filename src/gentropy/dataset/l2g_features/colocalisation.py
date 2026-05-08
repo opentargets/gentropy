@@ -896,11 +896,16 @@ def common_trans_pqtl_colocalisation_feature_logic(
         .filter(f.col("transPQTLGeneId").isNotNull())
     )
 
-    # Step 2: Colocalisations where right side is a trans-pQTL, enriched with GWAS locus position
+    # Step 2: Colocalisations where right side is a pQTL trans-locus, enriched with GWAS locus position.
+    # Pre-filter to rightStudyType==pqtl and the relevant colocalisation methods before the joins
+    # to minimise shuffle overhead.
     coloc_trans = (
-        colocalisation.df.join(trans_pqtl_study_loci, on="rightStudyLocusId", how="inner")
-        # drop the colocalisation-side chromosome before adding the GWAS locus chromosome
-        .drop("chromosome")
+        colocalisation.df.filter(
+            (f.col("rightStudyType") == "pqtl")
+            & f.lower("colocalisationMethod").isin(coloc_methods)
+        )
+        .select("leftStudyLocusId", "rightStudyLocusId", colocalisation_metric, "colocalisationMethod")
+        .join(trans_pqtl_study_loci, on="rightStudyLocusId", how="inner")
         .join(
             study_locus.df.select("studyLocusId", "chromosome", "position").withColumnRenamed(
                 "studyLocusId", "leftStudyLocusId"
@@ -956,8 +961,7 @@ def common_trans_pqtl_colocalisation_feature_logic(
 
     # Step 5: Aggregate max colocalisation score per (GWAS locus, local gene)
     trans_interaction_feature = (
-        coloc_trans_inter.filter(f.lower("colocalisationMethod").isin(coloc_methods))
-        .select(
+        coloc_trans_inter.select(
             f.col("leftStudyLocusId").alias("studyLocusId"),
             f.col("targetB").alias("geneId"),
             f.col(colocalisation_metric),
