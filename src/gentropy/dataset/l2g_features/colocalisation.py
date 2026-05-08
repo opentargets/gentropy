@@ -838,7 +838,7 @@ def common_trans_pqtl_colocalisation_feature_logic(
     study_locus: StudyLocus,
     interactions: DataFrame,
     target_index: TargetIndex,
-    string_threshold: float = 1.01,
+    string_threshold: float = 0.75,
     intact_threshold: float = 0.42,
     delta: int = 500_000,
 ) -> DataFrame:
@@ -863,7 +863,7 @@ def common_trans_pqtl_colocalisation_feature_logic(
         study_locus (StudyLocus): Study locus to traverse between colocalisation and study index
         interactions (DataFrame): Gene-gene interaction dataset with targetA, targetB, sourceDatabase, scoring columns
         target_index (TargetIndex): Target index with gene genomic locations
-        string_threshold (float): Minimum STRING score to keep an interaction. Defaults to 1.01 (effectively disables STRING).
+        string_threshold (float): Minimum STRING score to keep an interaction. Defaults to 0.75.
         intact_threshold (float): Minimum IntAct score to keep an interaction. Defaults to 0.42.
         delta (int): Maximum distance in bp between targetB TSS and the GWAS signal position. Defaults to 500_000.
 
@@ -876,7 +876,7 @@ def common_trans_pqtl_colocalisation_feature_logic(
         else ["studyLocusId"]
     )
 
-    coloc_methods = [colocalisation_method.lower(), "coloc_pip_ecaviar"]
+    coloc_methods = {c.lower() for c in ColocalisationMethod.get_method_names_for_metric(colocalisation_metric)}
 
     # Step 1: Trans-pQTL study loci and their measured genes (via study index)
     trans_pqtl_study_loci = (
@@ -885,7 +885,7 @@ def common_trans_pqtl_colocalisation_feature_logic(
         )
         .df.select("studyLocusId", "studyId")
         .join(
-            f.broadcast(study_index.df.select("studyId", "geneId")),
+            f.broadcast(study_index.df.filter(f.col("studyType") == "pqtl").select("studyId", "geneId")),
             on="studyId",
             how="inner",
         )
@@ -989,7 +989,7 @@ def common_neighbourhood_trans_pqtl_colocalisation_feature_logic(
     interactions: DataFrame,
     target_index: TargetIndex,
     variant_index: VariantIndex,
-    string_threshold: float = 1.01,
+    string_threshold: float = 0.75,
     intact_threshold: float = 0.42,
     delta: int = 500_000,
 ) -> DataFrame:
@@ -1010,7 +1010,7 @@ def common_neighbourhood_trans_pqtl_colocalisation_feature_logic(
         interactions (DataFrame): Gene-gene interaction dataset with targetA, targetB, sourceDatabase, scoring columns
         target_index (TargetIndex): Target index with gene genomic locations
         variant_index (VariantIndex): Variant index to annotate all overlapping neighbourhood genes
-        string_threshold (float): Minimum STRING score to keep an interaction. Defaults to 1.01 (effectively disables STRING).
+        string_threshold (float): Minimum STRING score to keep an interaction. Defaults to 0.75.
         intact_threshold (float): Minimum IntAct score to keep an interaction. Defaults to 0.42.
         delta (int): Maximum distance in bp between targetB TSS and the GWAS signal position. Defaults to 500_000.
 
@@ -1057,8 +1057,7 @@ def common_neighbourhood_trans_pqtl_colocalisation_feature_logic(
             feature_name,
             f.when(
                 (f.col("regional_max").isNotNull()) & (f.col("regional_max") != 0.0),
-                f.col(local_feature_name)
-                / f.coalesce(f.col("regional_max"), f.lit(0.0)),
+                f.col(local_feature_name) / f.col("regional_max"),
             ).otherwise(f.lit(0.0)),
         )
         .drop("regional_max", local_feature_name)
@@ -1070,7 +1069,7 @@ class TransPQtlColocH4MaximumFeature(L2GFeature):
 
     feature_dependency_type = [Colocalisation, StudyIndex, StudyLocus, SparkDataFrame, TargetIndex]
     feature_name = "transPQtlColocH4Maximum"
-    string_threshold: float = 1.01
+    string_threshold: float = 0.75
     intact_threshold: float = 0.42
     delta: int = 500_000
 
@@ -1126,7 +1125,7 @@ class TransPQtlColocH4MaximumNeighbourhoodFeature(L2GFeature):
 
     feature_dependency_type = [Colocalisation, StudyIndex, StudyLocus, SparkDataFrame, TargetIndex, VariantIndex]
     feature_name = "transPQtlColocH4MaximumNeighbourhood"
-    string_threshold: float = 1.01
+    string_threshold: float = 0.75
     intact_threshold: float = 0.42
     delta: int = 500_000
 

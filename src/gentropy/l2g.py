@@ -96,7 +96,7 @@ class LocusToGeneFeatureMatrixStep:
         )
 
         interactions = (
-            session.load_data(gene_interactions_path, "parquet")
+            session.load_data(gene_interactions_path, "parquet", recursiveFileLookup=True)
             if gene_interactions_path
             else None
         )
@@ -307,7 +307,7 @@ class LocusToGeneStep:
                     raise ValueError("Variant Index are required for parsing curation.")
 
                 interactions = self.session.load_data(
-                    self.gene_interactions_path, "parquet"
+                    self.gene_interactions_path, "parquet", recursiveFileLookup=True
                 )
                 variant_index = VariantIndex.from_parquet(
                     self.session, self.variant_index_path
