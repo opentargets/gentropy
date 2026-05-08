@@ -277,14 +277,23 @@ class LocusToGeneTrainer:
         cross_validate: bool = True,
         n_splits: int = 5,
         hyperparameter_grid: dict[str, Any] | None = None,
+        train_on_full_dataset: bool = False,
     ) -> LocusToGeneModel:
         """Train the Locus to Gene model.
 
-        If cross_validation is set to True, we implement the following strategy:
-            1. Create held-out test set
-            2. Perform cross-validation on training set
-            3. Train final model on full training set
-            4. Evaluate once on test set
+        The training strategy is as follows:
+            1. Create held-out test set via hierarchical splitting
+            2. Optionally perform cross-validation on the training set
+            3. Train model on the training set (held-out set excluded)
+            4. Evaluate once on the held-out test set — this is the reported benchmark
+            5. Optionally retrain on the full dataset (train + held-out) for the saved model
+
+        Step 5 follows the standard practice of using train/test splits exclusively for
+        honest evaluation, then retraining on all available labelled data before saving.
+        The rationale is that the held-out set gives an unbiased performance estimate, but
+        withholding it from the final model needlessly discards signal — more training data
+        consistently improves generalisation. The reported metrics are always from step 4
+        and are not affected by whether step 5 runs.
 
         Args:
             wandb_run_name (str | None): Name of the W&B run. Unless this is provided, the model will not be logged to W&B.
@@ -292,6 +301,7 @@ class LocusToGeneTrainer:
             cross_validate (bool): Whether to run cross-validation. Defaults to True.
             n_splits(int): Number of folds the data is splitted in. The model is trained and evaluated `k - 1` times. Defaults to 5.
             hyperparameter_grid (dict[str, Any] | None): Hyperparameter grid to sweep over. Defaults to None.
+            train_on_full_dataset (bool): Whether to retrain the final saved model on the full dataset (train + held-out) after evaluation. Defaults to False.
 
         Returns:
             LocusToGeneModel: Fitted model
@@ -321,10 +331,9 @@ class LocusToGeneTrainer:
                 n_splits=n_splits,
             )
 
-        # Train final model on full training set
+        # Train model on training set and evaluate on held-out test set
         self.fit()
 
-        # Evaluate once on hold out test set
         if wandb_run_name:
             wandb_run_name = f"{wandb_run_name}-holdout"
             self.log_to_wandb(wandb_run_name)
@@ -337,6 +346,20 @@ class LocusToGeneTrainer:
                     y_pred_proba=self.model.model.predict_proba(self.x_test),
                 ),
             )
+
+        # Retrain on full dataset so the saved model benefits from all labelled data.
+        # Evaluation above is already complete and unaffected by this step.
+        if train_on_full_dataset:
+            logging.info(
+                "Retraining final model on full dataset (train + held-out). "
+                "Reported metrics reflect held-out performance only."
+            )
+            full_df = pd.concat([self.train_df, self.test_df], ignore_index=True)
+            self.x_train = full_df[self.features_list].apply(pd.to_numeric).values
+            self.y_train = (
+                full_df[self.feature_matrix.label_col].apply(pd.to_numeric).values
+            )
+            self.fit()
 
         return self.model
 

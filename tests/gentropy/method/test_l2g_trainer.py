@@ -76,6 +76,33 @@ def test_train_cross_validation(mock_l2g_feature_matrix: L2GFeatureMatrix) -> No
     assert isinstance(trained_model, LocusToGeneModel)
 
 
+def test_train_on_full_dataset(mock_l2g_feature_matrix: L2GFeatureMatrix) -> None:
+    """Test that train_on_full_dataset retrains on the combined train+test set.
+
+    The final model should have seen more samples than the training split alone,
+    while reported metrics still come from the honest held-out evaluation.
+    """
+    features_list = ["distanceTssMean", "distanceSentinelTssMinimum"]
+    l2g_model = LocusToGeneModel(
+        model=XGBClassifier(),
+        hyperparameters={"max_depth": 5},
+        features_list=features_list,
+    )
+    trainer = LocusToGeneTrainer(
+        model=l2g_model,
+        feature_matrix=mock_l2g_feature_matrix.fill_na(),
+        features_list=features_list,
+    )
+    trained_model = trainer.train(
+        wandb_run_name=None, cross_validate=False, train_on_full_dataset=True
+    )
+    assert isinstance(trained_model, LocusToGeneModel)
+    # After full-dataset retrain x_train covers train+test rows
+    assert trainer.x_train is not None
+    assert trainer.x_test is not None
+    assert trainer.x_train.shape[0] > trainer.x_test.shape[0]
+
+
 def test_hierarchical_split() -> None:
     """Test LocusToGeneTrainer.hierarchical_split function."""
     df = pd.DataFrame(

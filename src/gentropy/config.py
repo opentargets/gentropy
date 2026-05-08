@@ -354,6 +354,7 @@ class LocusToGeneConfig(StepConfig):
     hf_model_version: str | None = None
     download_from_hub: bool = True
     cross_validate: bool = True
+    train_on_full_dataset: bool = False
     explain_predictions: bool | None = False
     _target_: str = "gentropy.l2g.LocusToGeneStep"
 
