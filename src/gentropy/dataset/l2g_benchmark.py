@@ -25,7 +25,11 @@ class L2GBenchmark(Dataset):
 
     @classmethod
     def get_schema(cls: type[L2GBenchmark]) -> StructType:
-        """Return the benchmark schema."""
+        """Return the benchmark schema.
+
+        Returns:
+            StructType: Schema for the benchmark dataset.
+        """
         return parse_spark_schema("benchmark_l2g.json")
 
     @classmethod
