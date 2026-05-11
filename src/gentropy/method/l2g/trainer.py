@@ -335,8 +335,7 @@ class LocusToGeneTrainer:
         self.fit()
 
         if wandb_run_name:
-            wandb_run_name = f"{wandb_run_name}-holdout"
-            self.log_to_wandb(wandb_run_name)
+            self.log_to_wandb(f"{wandb_run_name}-holdout")
         else:
             self.log_to_terminal(
                 eval_id="Hold-out",
@@ -367,6 +366,8 @@ class LocusToGeneTrainer:
             self.x_train = np.vstack((self.x_train, self.x_test))
             self.y_train = np.concatenate((self.y_train, self.y_test))
             self.fit()
+            if wandb_run_name:
+                self.log_to_wandb(f"{wandb_run_name}-full-dataset")
 
         return self.model
 

@@ -106,6 +106,34 @@ def test_train_on_full_dataset(mock_l2g_feature_matrix: L2GFeatureMatrix) -> Non
     assert trainer.x_test.shape[0] == trainer.test_df.shape[0]
 
 
+def test_train_on_full_dataset_logs_second_wandb_run(
+    mock_l2g_feature_matrix: L2GFeatureMatrix,
+) -> None:
+    """Test that W&B logging includes a dedicated run for full-dataset retraining."""
+    features_list = ["distanceTssMean", "distanceSentinelTssMinimum"]
+    l2g_model = LocusToGeneModel(
+        model=XGBClassifier(),
+        hyperparameters={"max_depth": 5},
+        features_list=features_list,
+    )
+    trainer = LocusToGeneTrainer(
+        model=l2g_model,
+        feature_matrix=mock_l2g_feature_matrix.fill_na(),
+        features_list=features_list,
+    )
+    wandb_run_names: list[str] = []
+    trainer.log_to_wandb = wandb_run_names.append  # type: ignore[method-assign]
+
+    trained_model = trainer.train(
+        wandb_run_name="unit-test",
+        cross_validate=False,
+        train_on_full_dataset=True,
+    )
+
+    assert isinstance(trained_model, LocusToGeneModel)
+    assert wandb_run_names == ["unit-test-holdout", "unit-test-full-dataset"]
+
+
 def test_hierarchical_split() -> None:
     """Test LocusToGeneTrainer.hierarchical_split function."""
     df = pd.DataFrame(
