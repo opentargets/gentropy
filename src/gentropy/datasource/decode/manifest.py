@@ -56,7 +56,7 @@ class deCODEManifest(Dataset):
                 t.StructField("hasSumstats", t.BooleanType()),
                 t.StructField("summarystatsLocation", t.StringType()),
                 t.StructField("size", t.StringType()),
-                t.StructField("accessionTimestamp", t.TimestampType()),
+                t.StructField("accessionTimestamp", t.TimestampNTZType()),
             ]
         )
 
@@ -153,9 +153,10 @@ class deCODEManifest(Dataset):
             .withColumn("size", f.concat_ws(" ", f.col("size"), f.col("unit")))
             .withColumn(
                 "accessionTimestamp",
-                f.to_timestamp(
-                    f.concat_ws(" ", f.col("date"), f.col("time")),
-                    "yyyy-MM-dd HH:mm:ss",
+                f.expr(
+                    "to_timestamp_ntz("
+                    "concat_ws(' ', date, time), "
+                    "'yyyy-MM-dd HH:mm:ss')"
                 ),
             )
             .select(
