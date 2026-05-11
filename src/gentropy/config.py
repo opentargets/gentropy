@@ -334,6 +334,9 @@ class LocusToGeneConfig(StepConfig):
             "geneCount500kb",
             "proteinGeneCount500kb",
             "credibleSetConfidence",
+            # trans-pQTL colocalisation via protein-protein interactions
+            "transPQtlColocH4Maximum",
+            "transPQtlColocH4MaximumNeighbourhood",
         ]
     )
     hyperparameters: dict[str, Any] = field(
@@ -377,6 +380,7 @@ class LocusToGeneFeatureMatrixConfig(StepConfig):
     study_index_path: str | None = None
     target_index_path: str | None = None
     intervals_path: str | None = None
+    gene_interactions_path: str | None = None
     feature_matrix_path: str = MISSING
     features_list: list[str] = field(
         default_factory=lambda: [
@@ -419,6 +423,9 @@ class LocusToGeneFeatureMatrixConfig(StepConfig):
             "proteinGeneCount500kb",
             "credibleSetConfidence",
             "isProteinCoding",
+            # trans-pQTL colocalisation via protein-protein interactions
+            "transPQtlColocH4Maximum",
+            "transPQtlColocH4MaximumNeighbourhood",
         ]
     )
     append_null_features: bool = False
