@@ -97,10 +97,13 @@ def test_train_on_full_dataset(mock_l2g_feature_matrix: L2GFeatureMatrix) -> Non
         wandb_run_name=None, cross_validate=False, train_on_full_dataset=True
     )
     assert isinstance(trained_model, LocusToGeneModel)
-    # After full-dataset retrain x_train covers train+test rows
+    # After full-dataset retrain x_train covers exactly train+test rows
+    assert trainer.train_df is not None
+    assert trainer.test_df is not None
     assert trainer.x_train is not None
     assert trainer.x_test is not None
-    assert trainer.x_train.shape[0] > trainer.x_test.shape[0]
+    assert trainer.x_train.shape[0] == trainer.train_df.shape[0] + trainer.test_df.shape[0]
+    assert trainer.x_test.shape[0] == trainer.test_df.shape[0]
 
 
 def test_hierarchical_split() -> None:
