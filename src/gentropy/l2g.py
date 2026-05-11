@@ -41,6 +41,7 @@ class LocusToGeneFeatureMatrixStep:
         study_index_path: str | None = None,
         target_index_path: str | None = None,
         intervals_path: str | None = None,
+        gene_interactions_path: str | None = None,
         feature_matrix_path: str,
         append_null_features: bool = False,
     ) -> None:
@@ -55,6 +56,7 @@ class LocusToGeneFeatureMatrixStep:
             study_index_path (str | None): Path to the study index dataset
             target_index_path (str | None): Path to the target index dataset
             intervals_path (str | None): Path to the interval dataset
+            gene_interactions_path (str | None): Path to the protein-protein interaction (PPI) dataset
             feature_matrix_path (str): Path to the L2G feature matrix output dataset
             append_null_features (bool): Whether to append null features to the feature matrix. Defaults to False.
         """
@@ -93,6 +95,27 @@ class LocusToGeneFeatureMatrixStep:
             else None
         )
 
+        interactions = (
+            session.load_data(gene_interactions_path, "parquet", recursiveFileLookup=True)
+            if gene_interactions_path
+            else None
+        )
+
+        trans_pqtl_features = {
+            "transPQtlColocH4Maximum",
+            "transPQtlColocH4MaximumNeighbourhood",
+        }
+        if trans_pqtl_features.intersection(features_list) and interactions is None:
+            raise ValueError(
+                "Interactions are required for trans-pQTL colocalisation features. "
+                "Provide `gene_interactions_path`."
+            )
+        if trans_pqtl_features.intersection(features_list) and target_index is None:
+            raise ValueError(
+                "target_index is required for trans-pQTL colocalisation features. "
+                "Provide `target_index_path`."
+            )
+
         features_input_loader = L2GFeatureInputLoader(
             variant_index=variant_index,
             colocalisation=coloc,
@@ -100,6 +123,7 @@ class LocusToGeneFeatureMatrixStep:
             study_locus=credible_set,
             target_index=target_index,
             intervals=intervals,
+            interactions=interactions,
         )
 
         fm = credible_set.filter(f.col("studyType") == "gwas").build_feature_matrix(
@@ -170,7 +194,7 @@ class LocusToGeneStep:
             features_list (list[str] | None): List of features to use to train the model
             gold_standard_curation_path (str | None): Path to the gold standard curation file
             variant_index_path (str | None): Path to the variant index
-            gene_interactions_path (str | None): Path to the gene interactions dataset
+            gene_interactions_path (str | None): Path to the protein-protein interaction (PPI) dataset
             predictions_path (str | None): Path to the L2G predictions output dataset
             l2g_threshold (float | None): An optional threshold for the L2G score to filter predictions. A threshold of 0.05 is recommended.
             hf_hub_repo_id (str | None): Hugging Face Hub repository ID. If provided, the model will be uploaded to Hugging Face.
@@ -286,7 +310,7 @@ class LocusToGeneStep:
                     raise ValueError("Variant Index are required for parsing curation.")
 
                 interactions = self.session.load_data(
-                    self.gene_interactions_path, "parquet"
+                    self.gene_interactions_path, "parquet", recursiveFileLookup=True
                 )
                 variant_index = VariantIndex.from_parquet(
                     self.session, self.variant_index_path
@@ -353,6 +377,11 @@ class LocusToGeneStep:
         self.session.logger.info("L2G predictions saved successfully.")
 
     def _get_hf_token(self) -> str | None:
+        """Retrieve the Hugging Face token from GCP secret manager if hub download is enabled.
+
+        Returns:
+            str | None: HF token string, or None if download_from_hub is False.
+        """
         if self.download_from_hub:
             return access_gcp_secret("hfhub-key", "open-targets-genetics-dev")
         return None
