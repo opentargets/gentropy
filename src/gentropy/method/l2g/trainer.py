@@ -354,11 +354,18 @@ class LocusToGeneTrainer:
                 "Retraining final model on full dataset (train + held-out). "
                 "Reported metrics reflect held-out performance only."
             )
-            full_df = pd.concat([self.train_df, self.test_df], ignore_index=True)
-            self.x_train = full_df[self.features_list].apply(pd.to_numeric).values
-            self.y_train = (
-                full_df[self.feature_matrix.label_col].apply(pd.to_numeric).values
-            )
+            if (
+                self.x_train is None
+                or self.x_test is None
+                or self.y_train is None
+                or self.y_test is None
+            ):
+                raise ValueError(
+                    "Training and test arrays must be initialised before retraining "
+                    "on the full dataset."
+                )
+            self.x_train = np.vstack((self.x_train, self.x_test))
+            self.y_train = np.concatenate((self.y_train, self.y_test))
             self.fit()
 
         return self.model
