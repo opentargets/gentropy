@@ -96,7 +96,9 @@ class LocusToGeneFeatureMatrixStep:
         )
 
         interactions = (
-            session.load_data(gene_interactions_path, "parquet", recursiveFileLookup=True)
+            session.load_data(
+                gene_interactions_path, "parquet", recursiveFileLookup=True
+            )
             if gene_interactions_path
             else None
         )

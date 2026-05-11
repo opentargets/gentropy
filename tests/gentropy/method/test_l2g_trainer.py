@@ -102,7 +102,9 @@ def test_train_on_full_dataset(mock_l2g_feature_matrix: L2GFeatureMatrix) -> Non
     assert trainer.test_df is not None
     assert trainer.x_train is not None
     assert trainer.x_test is not None
-    assert trainer.x_train.shape[0] == trainer.train_df.shape[0] + trainer.test_df.shape[0]
+    assert (
+        trainer.x_train.shape[0] == trainer.train_df.shape[0] + trainer.test_df.shape[0]
+    )
     assert trainer.x_test.shape[0] == trainer.test_df.shape[0]
 
 
@@ -122,7 +124,7 @@ def test_train_on_full_dataset_logs_second_wandb_run(
         features_list=features_list,
     )
     wandb_run_names: list[str] = []
-    trainer.log_to_wandb = wandb_run_names.append  # type: ignore[method-assign]
+    trainer.log_to_wandb = wandb_run_names.append  # type: ignore[assignment]
 
     trained_model = trainer.train(
         wandb_run_name="unit-test",
