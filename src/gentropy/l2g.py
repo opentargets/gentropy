@@ -96,7 +96,9 @@ class LocusToGeneFeatureMatrixStep:
         )
 
         interactions = (
-            session.load_data(gene_interactions_path, "parquet", recursiveFileLookup=True)
+            session.load_data(
+                gene_interactions_path, "parquet", recursiveFileLookup=True
+            )
             if gene_interactions_path
             else None
         )
@@ -162,6 +164,7 @@ class LocusToGeneStep:
         hyperparameters: dict[str, Any],
         download_from_hub: bool,
         cross_validate: bool,
+        train_on_full_dataset: bool,
         credible_set_path: str,
         feature_matrix_path: str,
         wandb_run_name: str | None = None,
@@ -185,6 +188,7 @@ class LocusToGeneStep:
             hyperparameters (dict[str, Any]): Hyperparameters for the model
             download_from_hub (bool): Whether to download the model from Hugging Face Hub
             cross_validate (bool): Whether to run cross validation (5-fold by default) to train the model.
+            train_on_full_dataset (bool): Whether to retrain the final saved model on the full dataset (train + held-out) after evaluation. Follows the standard practice of reporting honest held-out metrics while ensuring the deployed model benefits from all available labelled data.
             credible_set_path (str): Path to the credible set dataset necessary to build the feature matrix
             feature_matrix_path (str): Path to the L2G feature matrix input dataset
             wandb_run_name (str | None): Name of the run to track model training in Weights and Biases
@@ -215,6 +219,7 @@ class LocusToGeneStep:
         self.hyperparameters = dict(hyperparameters)
         self.wandb_run_name = wandb_run_name
         self.cross_validate = cross_validate
+        self.train_on_full_dataset = train_on_full_dataset
         self.hf_hub_repo_id = hf_hub_repo_id
         self.download_from_hub = download_from_hub
         self.hf_model_commit_message = hf_model_commit_message
@@ -409,7 +414,11 @@ class LocusToGeneStep:
         # Run the training
         trained_model = LocusToGeneTrainer(
             model=l2g_model, feature_matrix=feature_matrix
-        ).train(wandb_run_name=self.wandb_run_name, cross_validate=self.cross_validate)
+        ).train(
+            wandb_run_name=self.wandb_run_name,
+            cross_validate=self.cross_validate,
+            train_on_full_dataset=self.train_on_full_dataset,
+        )
 
         # Export the model
         if trained_model.training_data and trained_model.model and self.model_path:
