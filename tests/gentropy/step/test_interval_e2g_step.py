@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 from gentropy.common.session import Session
-from gentropy.intervals import IntervalE2GStep
+from gentropy.intervals import IntervalE2GDefaults, IntervalE2GStep
 
 
 @pytest.mark.step_test
@@ -31,14 +31,17 @@ class TestIntervalE2GStep:
         with pytest.raises(Exception):
             # Expected when data files don't exist - this is normal behavior
             IntervalE2GStep(
+                config=IntervalE2GDefaults(
+                    target_index_path=target_index_path,
+                    biosample_mapping_path=biosample_mapping_path,
+                    biosample_index_path=biosample_index_path,
+                    chromosome_contig_index_path=chromosome_contig_index_path,
+                    interval_source=interval_source,
+                    valid_output_path=valid_output_path,
+                    invalid_output_path=invalid_output_path,
+                    invalid_qc_reasons=[],
+                ),
                 session=session,
-                target_index_path=target_index_path,
-                biosample_mapping_path=biosample_mapping_path,
-                biosample_index_path=biosample_index_path,
-                chromosome_contig_index_path=chromosome_contig_index_path,
-                interval_source=interval_source,
-                valid_output_path=valid_output_path,
-                invalid_output_path=invalid_output_path,
             )
 
     def test_interval_e2g_step_parameters(self) -> None:
@@ -50,17 +53,7 @@ class TestIntervalE2GStep:
         sig = inspect.signature(IntervalE2GStep.__init__)
         params = list(sig.parameters.keys())
 
-        expected_params = [
-            "self",
-            "session",
-            "target_index_path",
-            "biosample_mapping_path",
-            "biosample_index_path",
-            "chromosome_contig_index_path",
-            "interval_source",
-            "valid_output_path",
-            "invalid_output_path",
-        ]
+        expected_params = ["self", "config", "session"]
 
         for param in expected_params:
             assert param in params, f"Missing parameter: {param}"

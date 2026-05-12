@@ -8,7 +8,12 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from gentropy.common.session import Session
-from gentropy.variant_index import ConvertToVcfStep, VariantIndexStep
+from gentropy.variant_index import (
+    ConvertToVcfDefaults,
+    ConvertToVcfStep,
+    VariantIndexDefaults,
+    VariantIndexStep,
+)
 
 
 @pytest.mark.step_test
@@ -30,10 +35,12 @@ class TestVariantIndexStep:
             mock_vep.return_value.df = MagicMock()
 
             step = VariantIndexStep(
+                config=VariantIndexDefaults(
+                    vep_output_json_path=vep_output_json_path,
+                    variant_index_path=variant_index_path,
+                    hash_threshold=20,
+                ),
                 session=session,
-                vep_output_json_path=vep_output_json_path,
-                variant_index_path=variant_index_path,
-                hash_threshold=20,
             )
             assert step is not None
 
@@ -60,11 +67,13 @@ class TestVariantIndexStep:
             mock_from_parquet.return_value = mock_variant_index
 
             step = VariantIndexStep(
+                config=VariantIndexDefaults(
+                    vep_output_json_path=vep_output_json_path,
+                    variant_index_path=variant_index_path,
+                    hash_threshold=20,
+                    variant_annotations_path=annotation_path,
+                ),
                 session=session,
-                vep_output_json_path=vep_output_json_path,
-                variant_index_path=variant_index_path,
-                hash_threshold=20,
-                variant_annotations_path=annotation_path,
             )
             assert step is not None
             mock_variant_index.add_annotation.assert_called_once()
@@ -94,11 +103,13 @@ class TestVariantIndexStep:
             mock_amino_acids.return_value = MagicMock()
 
             step = VariantIndexStep(
+                config=VariantIndexDefaults(
+                    vep_output_json_path=vep_output_json_path,
+                    variant_index_path=variant_index_path,
+                    hash_threshold=20,
+                    amino_acid_change_annotations=amino_acid_path,
+                ),
                 session=session,
-                vep_output_json_path=vep_output_json_path,
-                variant_index_path=variant_index_path,
-                hash_threshold=20,
-                amino_acid_change_annotations=amino_acid_path,
             )
             assert step is not None
             mock_variant_index.annotate_with_amino_acid_consequences.assert_called_once()
@@ -110,15 +121,7 @@ class TestVariantIndexStep:
         sig = inspect.signature(VariantIndexStep.__init__)
         params = list(sig.parameters.keys())
 
-        expected_params = [
-            "self",
-            "session",
-            "vep_output_json_path",
-            "variant_index_path",
-            "hash_threshold",
-            "variant_annotations_path",
-            "amino_acid_change_annotations",
-        ]
+        expected_params = ["self", "config", "session"]
 
         for param in expected_params:
             assert param in params, f"Missing parameter: {param}"
@@ -128,6 +131,13 @@ class TestVariantIndexStep:
 class TestConvertToVcfStep:
     """Test ConvertToVcfStep initialization and parameter validation."""
 
+    def test_config_validation(self) -> None:
+        """Test that ConvertToVcfDefaults rejects missing required fields."""
+        from pydantic import ValidationError
+
+        with pytest.raises(ValidationError):
+            ConvertToVcfDefaults(output_path="dummy")  # noqa: S108
+
     def test_convert_to_vcf_step_parameters(self) -> None:
         """Test that ConvertToVcfStep has correct expected parameters."""
         import inspect
@@ -135,14 +145,7 @@ class TestConvertToVcfStep:
         sig = inspect.signature(ConvertToVcfStep.__init__)
         params = list(sig.parameters.keys())
 
-        expected_params = [
-            "self",
-            "session",
-            "source_paths",
-            "source_formats",
-            "output_path",
-            "partition_size",
-        ]
+        expected_params = ["self", "config", "session"]
 
         for param in expected_params:
             assert param in params, f"Missing parameter: {param}"

@@ -128,6 +128,10 @@ flowchart TD
 
 from __future__ import annotations
 
+from typing import Annotated
+
+from pydantic import BaseModel, Field
+
 from gentropy import (
     Session,
     SummaryStatistics,
@@ -145,6 +149,131 @@ from gentropy.datasource.decode.summary_statistics import (
 )
 
 
+class deCODEManifestGenerationDefaults(BaseModel, frozen=True):
+    """Defaults for deCODEManifestGenerationStep."""
+
+    bucket_listing_path: Annotated[
+        str, Field(description="Path to S3 bucket listing text file.")
+    ]
+    output_path: Annotated[
+        str, Field(description="Destination path for the manifest Parquet dataset.")
+    ]
+    s3_config_path: Annotated[
+        str | None, Field(description="Optional path to the S3 configuration file.")
+    ] = None
+
+
+class deCODESummaryStatisticsIngestionDefaults(BaseModel, frozen=True):
+    """Defaults for deCODESummaryStatisticsIngestionStep."""
+
+    decode_manifest_path: Annotated[
+        str, Field(description="Path to the manifest Parquet dataset.")
+    ]
+    raw_summary_statistics_path: Annotated[
+        str,
+        Field(
+            description="Destination path for the raw summary statistics Parquet dataset."
+        ),
+    ]
+
+
+class deCODESummaryStatisticsHarmonisationDefaults(BaseModel, frozen=True):
+    """Defaults for deCODESummaryStatisticsHarmonisationStep."""
+
+    raw_summary_statistics_path: Annotated[
+        str, Field(description="Path to the raw summary-statistics Parquet dataset.")
+    ]
+    manifest_path: Annotated[
+        str, Field(description="Path to the manifest Parquet dataset.")
+    ]
+    aptamer_metadata_path: Annotated[
+        str, Field(description="Path to the aptamer metadata TSV file.")
+    ]
+    variant_direction_path: Annotated[
+        str, Field(description="Path to the gnomAD VariantDirection Parquet dataset.")
+    ]
+    molecular_complex_path: Annotated[
+        str, Field(description="Path to the molecular-complex Parquet dataset.")
+    ]
+    harmonised_summary_statistics_path: Annotated[
+        str,
+        Field(
+            description="Destination path for the harmonised summary-statistics Parquet dataset."
+        ),
+    ]
+    protein_qtl_study_index_path: Annotated[
+        str,
+        Field(description="Destination path for the pQTL study index Parquet dataset."),
+    ]
+    min_mac_threshold: Annotated[
+        int,
+        Field(
+            description="Minimum minor allele count (MAC) required to retain a variant."
+        ),
+    ] = 50
+    min_sample_size_threshold: Annotated[
+        int, Field(description="Minimum sample size required to retain a variant.")
+    ] = 30_000
+    flipping_window_size: Annotated[
+        int,
+        Field(
+            description="Genomic window size (bp) used to partition the VariantDirection dataset."
+        ),
+    ] = 10_000_000
+    remove_star_alleles: Annotated[
+        bool,
+        Field(
+            description="Whether to remove variants with `*` alleles during harmonisation."
+        ),
+    ] = True
+    remove_equal_alleles: Annotated[
+        bool,
+        Field(
+            description="Whether to remove variants with equal effect and other alleles."
+        ),
+    ] = True
+    remove_multiallelics: Annotated[
+        bool,
+        Field(description="Whether to remove variants with multiple other alleles."),
+    ] = True
+    verify_atgc: Annotated[
+        bool,
+        Field(
+            description="Whether to verify that all alleles are A/T/G/C during harmonisation."
+        ),
+    ] = True
+
+
+class deCODESummaryStatisticsQCDefaults(BaseModel, frozen=True):
+    """Defaults for deCODESummaryStatisticsQCStep."""
+
+    harmonised_summary_statistics_path: Annotated[
+        str,
+        Field(description="Path to the harmonised summary-statistics Parquet dataset."),
+    ]
+    protein_qtl_study_index_path: Annotated[
+        str, Field(description="Path to the pQTL study index Parquet dataset.")
+    ]
+    qc_summary_statistics_path: Annotated[
+        str,
+        Field(
+            description="Destination path for the QC summary-statistics Parquet dataset."
+        ),
+    ]
+    protein_qtl_study_index_qc_annotated_path: Annotated[
+        str,
+        Field(
+            description="Destination path for the pQTL study index QC-annotated Parquet dataset."
+        ),
+    ]
+    pval_threshold: Annotated[
+        float,
+        Field(
+            description="P-value threshold used to define significant variants for QC purposes."
+        ),
+    ] = 5e-8
+
+
 class deCODEManifestGenerationStep:
     """Build the deCODE manifest Parquet dataset from an ``aws s3 ls`` bucket listing.
 
@@ -156,28 +285,23 @@ class deCODEManifestGenerationStep:
 
     def __init__(
         self,
+        config: deCODEManifestGenerationDefaults,
         session: Session,
-        bucket_listing_path: str,
-        output_path: str,
-        s3_config_path: str | None = None,
     ) -> None:
         """Initialise and execute the deCODE manifest generation step.
 
         Args:
-            session (Session): Active Gentropy Spark session.
-            bucket_listing_path (str): Path to the text file produced by
-                ``aws s3 ls --recursive --human-readable --summarize``.
-            output_path (str): Destination path for the manifest Parquet dataset.
-            s3_config_path (str | None): Optional path to the S3 configuration file containing
-                the bucket name used to construct fully-qualified ``s3a://`` paths. If not provided,
-                the method will attempt to load from environment variables.
+            config: Step configuration defaults.
+            session: Active Gentropy Spark session.
         """
         manifest = deCODEManifest.from_bucket_listing(
             session=session,
-            s3_config_path=s3_config_path,
-            path=bucket_listing_path,
+            s3_config_path=config.s3_config_path,
+            path=config.bucket_listing_path,
         )
-        manifest.df.repartition(1).write.mode(session.write_mode).parquet(output_path)
+        manifest.df.repartition(1).write.mode(session.write_mode).parquet(
+            config.output_path
+        )
 
 
 class deCODESummaryStatisticsIngestionStep:
@@ -222,26 +346,22 @@ class deCODESummaryStatisticsIngestionStep:
 
     def __init__(
         self,
+        config: deCODESummaryStatisticsIngestionDefaults,
         session: Session,
-        decode_manifest_path: str,
-        raw_summary_statistics_path: str,
     ) -> None:
         """Initialise and execute the deCODE summary-statistics ingestion step.
 
         Args:
-            session (Session): Active Gentropy Spark session with S3 connectivity
+            config: Step configuration defaults.
+            session: Active Gentropy Spark session with S3 connectivity
                 configured via the Hadoop AWS connector (see class docstring).
-            decode_manifest_path (str): Path to the manifest Parquet dataset produced
-                by `deCODEManifestGenerationStep`.
-            raw_summary_statistics_path (str): Destination path for the raw summary
-                statistics Parquet dataset, partitioned by ``studyId``.
         """
-        manifest = deCODEManifest.from_parquet(session, decode_manifest_path)
+        manifest = deCODEManifest.from_parquet(session, config.decode_manifest_path)
         summary_statistics_paths = manifest.get_summary_statistics_paths()
         deCODESummaryStatistics.txtgz_to_parquet(
             session=session,
             summary_statistics_list=summary_statistics_paths,
-            raw_summary_statistics_output_path=raw_summary_statistics_path,
+            raw_summary_statistics_output_path=config.raw_summary_statistics_path,
             n_threads=deCODESummaryStatistics.N_THREAD_MAX,
         )
 
@@ -262,86 +382,50 @@ class deCODESummaryStatisticsHarmonisationStep:
 
     def __init__(
         self,
+        config: deCODESummaryStatisticsHarmonisationDefaults,
         session: Session,
-        # inputs
-        raw_summary_statistics_path: str,
-        manifest_path: str,
-        aptamer_metadata_path: str,
-        variant_direction_path: str,
-        molecular_complex_path: str,
-        # outputs
-        harmonised_summary_statistics_path: str,
-        protein_qtl_study_index_path: str,
-        # config
-        min_mac_threshold: int = 50,
-        min_sample_size_threshold: int = 30_000,
-        flipping_window_size: int = 10_000_000,
-        remove_star_alleles: bool = True,
-        remove_equal_alleles: bool = True,
-        remove_multiallelics: bool = True,
-        verify_atgc: bool = True,
     ) -> None:
         """Initialise and execute the deCODE summary-statistics harmonisation step.
 
         Args:
-            session (Session): Active Gentropy Spark session.
-            raw_summary_statistics_path (str): Path to the raw summary-statistics Parquet
-                dataset produced by `deCODESummaryStatisticsIngestionStep`.
-            manifest_path (str): Path to the manifest Parquet dataset produced by
-                `deCODEManifestGenerationStep`.
-            aptamer_metadata_path (str): Path to the aptamer metadata TSV file.
-            variant_direction_path (str): Path to the gnomAD
-                `VariantDirection` Parquet dataset
-                used for allele flipping and EAF inference.
-            molecular_complex_path (str): Path to the molecular-complex Parquet dataset
-                produced by `MolecularComplexIngestionStep`.
-            harmonised_summary_statistics_path (str): Destination path for the harmonised
-                summary-statistics Parquet dataset, partitioned by ``studyId``.
-            protein_qtl_study_index_path (str): Destination path for the pQTL study index
-                Parquet dataset annotated with QC results.
-            min_mac_threshold (int): Minimum minor allele count (MAC) required to retain a
-                variant. Defaults to 50.
-            min_sample_size_threshold (int): Minimum sample size required to retain a variant.
-                Defaults to 30,000.
-            flipping_window_size (int): Genomic window size (bp) used to partition the
-                VariantDirection dataset for the allele-flipping join.  Must match the value
-                used when building the VariantDirection dataset. Defaults to 10,000,000.
-            remove_star_alleles (bool): Whether to remove variants with `*` alleles during harmonisation.
-                Defaults to `True`.
-            remove_equal_alleles (bool): Whether to remove variants with equal effect and other alleles during harmonisation. Defaults to `True`.
-            remove_multiallelics (bool): Whether to remove variants with multiple other alleles during harmonisation. Defaults to `True`.
-            verify_atgc (bool): Whether to verify that all alleles are A/T/G/C during harmonisation. Defaults to `True`.
-
+            config: Step configuration defaults.
+            session: Active Gentropy Spark session.
         """
-        config = deCODEHarmonisationConfig(
-            min_mac=min_mac_threshold,
-            min_sample_size=min_sample_size_threshold,
-            flipping_window_size=flipping_window_size,
-            remove_star_alleles=remove_star_alleles,
-            remove_equal_alleles=remove_equal_alleles,
-            remove_multiallelics=remove_multiallelics,
-            verify_atgc=verify_atgc,
+        harmonisation_config = deCODEHarmonisationConfig(
+            min_mac=config.min_mac_threshold,
+            min_sample_size=config.min_sample_size_threshold,
+            flipping_window_size=config.flipping_window_size,
+            remove_star_alleles=config.remove_star_alleles,
+            remove_equal_alleles=config.remove_equal_alleles,
+            remove_multiallelics=config.remove_multiallelics,
+            verify_atgc=config.verify_atgc,
         )
 
         # 1. Produce the PQTLStudyIndex
-        m = deCODEManifest.from_parquet(session, manifest_path).persist()
-        mc = MolecularComplex.from_parquet(session, molecular_complex_path).persist()
-        am = AptamerMetadata.from_source(session, aptamer_metadata_path).persist()
+        m = deCODEManifest.from_parquet(session, config.manifest_path).persist()
+        mc = MolecularComplex.from_parquet(
+            session, config.molecular_complex_path
+        ).persist()
+        am = AptamerMetadata.from_source(
+            session, config.aptamer_metadata_path
+        ).persist()
         _pqtl_si = deCODEStudyIndex.from_manifest(m, am, mc).persist()
         m.unpersist()
         am.unpersist()
         mc.unpersist()
 
         # 2. Produce harmonised summary statistics
-        gvd = VariantDirection.from_parquet(session, variant_direction_path)
-        rss = session.spark.read.parquet(raw_summary_statistics_path)
-        hss, pqtl_si = deCODESummaryStatistics.from_source(rss, gvd, _pqtl_si, config)
+        gvd = VariantDirection.from_parquet(session, config.variant_direction_path)
+        rss = session.spark.read.parquet(config.raw_summary_statistics_path)
+        hss, pqtl_si = deCODESummaryStatistics.from_source(
+            rss, gvd, _pqtl_si, harmonisation_config
+        )
 
         hss.df.write.mode(session.write_mode).partitionBy("studyId").option(
             "maxRecordsPerFile", 50_000_000
-        ).parquet(harmonised_summary_statistics_path)
+        ).parquet(config.harmonised_summary_statistics_path)
         pqtl_si.df.coalesce(1).write.mode(session.write_mode).parquet(
-            protein_qtl_study_index_path
+            config.protein_qtl_study_index_path
         )
 
 
@@ -350,43 +434,31 @@ class deCODESummaryStatisticsQCStep:
 
     def __init__(
         self,
+        config: deCODESummaryStatisticsQCDefaults,
         session: Session,
-        # inputs
-        harmonised_summary_statistics_path: str,
-        protein_qtl_study_index_path: str,
-        # outputs
-        qc_summary_statistics_path: str,
-        protein_qtl_study_index_qc_annotated_path: str,
-        # config
-        pval_threshold: float = 5e-8,
-    ):
+    ) -> None:
         """Run quality control on the harmonised deCODE summary statistics and annotate the pQTL study index with QC results.
 
         Args:
-            session (Session): Active Gentropy Spark session.
-            harmonised_summary_statistics_path (str): Path to the harmonised summary-statistics Parquet dataset produced by `deCODESummaryStatisticsHarmonisationStep`.
-            protein_qtl_study_index_path (str): Path to the pQTL study index Parquet dataset produced by `deCODESummaryStatisticsHarmonisationStep`.
-            qc_summary_statistics_path (str): Destination path for the QC summary-statistics Parquet dataset, partitioned by ``studyId``.
-            protein_qtl_study_index_qc_annotated_path (str): Destination path for the pQTL study index Parquet dataset annotated with QC results.
-            pval_threshold (float): P-value threshold used to define significant variants for QC purposes. Defaults to 5e-8.
-
+            config: Step configuration defaults.
+            session: Active Gentropy Spark session.
         """
         hss = SummaryStatistics.from_parquet(
-            session, harmonised_summary_statistics_path
+            session, config.harmonised_summary_statistics_path
         ).persist()
         hss_qc = SummaryStatisticsQC.from_summary_statistics(
-            hss, pval_threshold
+            hss, config.pval_threshold
         ).persist()
         hss.unpersist()
         pqtl_si = ProteinQuantitativeTraitLocusStudyIndex.from_parquet(
-            session, protein_qtl_study_index_path
+            session, config.protein_qtl_study_index_path
         ).persist()
         hss_qc.df.coalesce(1).write.mode(session.write_mode).parquet(
-            qc_summary_statistics_path
+            config.qc_summary_statistics_path
         )
         (
             pqtl_si.annotate_sumstats_qc(hss_qc)
             .df.coalesce(1)
             .write.mode(session.write_mode)
-            .parquet(protein_qtl_study_index_qc_annotated_path)
+            .parquet(config.protein_qtl_study_index_qc_annotated_path)
         )

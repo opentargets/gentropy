@@ -1,11 +1,13 @@
 """Test colocalisation step."""
 
+from __future__ import annotations
+
 from pathlib import Path
 from typing import Literal
 
 import pytest
 
-from gentropy.colocalisation import ColocalisationStep
+from gentropy.colocalisation import ColocalisationDefaults, ColocalisationStep
 from gentropy.common.session import Session
 from gentropy.dataset.colocalisation import Colocalisation
 from gentropy.dataset.study_locus import StudyLocus
@@ -209,6 +211,25 @@ class TestColocalisationStep:
         ).write.parquet(self.credible_set_path)
         self.coloc_path = str(tmp_path / "colocalisation")
 
+    def test_colocalisation_defaults_validation(self) -> None:
+        """Test that ColocalisationDefaults validates required fields."""
+        with pytest.raises(Exception):
+            ColocalisationDefaults()
+
+    def test_colocalisation_defaults_with_required(self, tmp_path: Path) -> None:
+        """Test that ColocalisationDefaults can be created with all required fields."""
+        config = ColocalisationDefaults(
+            credible_set_path=str(tmp_path / "credible_set"),
+            coloc_path=str(tmp_path / "coloc"),
+            colocalisation_method="coloc",
+        )
+        assert config.credible_set_path == str(tmp_path / "credible_set")
+        assert config.coloc_path == str(tmp_path / "coloc")
+        assert config.colocalisation_method == "coloc"
+        assert config.restrict_right_studies is None
+        assert config.gwas_v_qtl_overlap_only is False
+        assert config.colocalisation_method_params is None
+
     @pytest.mark.parametrize(
         ["label", "expected_method"],
         [
@@ -279,12 +300,12 @@ class TestColocalisationStep:
         session: Session,
     ) -> None:
         """Test colocalise method."""
-        ColocalisationStep(
-            session=session,
+        config = ColocalisationDefaults(
             credible_set_path=self.credible_set_path,
             coloc_path=self.coloc_path,
             colocalisation_method=coloc_method,
         )
+        ColocalisationStep(config=config, session=session)
 
         coloc_dataset = Colocalisation.from_parquet(
             session, self.coloc_path, recursiveFileLookup=True

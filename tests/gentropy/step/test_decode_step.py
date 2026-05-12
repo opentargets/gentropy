@@ -9,8 +9,11 @@ from pyspark.sql import DataFrame, Row
 
 from gentropy import Session
 from gentropy.decode_ingestion import (
+    deCODEManifestGenerationDefaults,
     deCODEManifestGenerationStep,
+    deCODESummaryStatisticsHarmonisationDefaults,
     deCODESummaryStatisticsHarmonisationStep,
+    deCODESummaryStatisticsQCDefaults,
     deCODESummaryStatisticsQCStep,
 )
 
@@ -139,10 +142,12 @@ class TestdeCODEIngestionStep:
         manifest_mock.from_bucket_listing.return_value = manifest_instance
 
         deCODEManifestGenerationStep(
+            config=deCODEManifestGenerationDefaults(
+                s3_config_path=s3_config_path,
+                bucket_listing_path=bucket_listing_path,
+                output_path=output_path,
+            ),
             session=session,
-            s3_config_path=s3_config_path,
-            bucket_listing_path=bucket_listing_path,
-            output_path=output_path,
         )
 
         manifest_mock.from_bucket_listing.assert_called_once_with(
@@ -231,17 +236,23 @@ class TestdeCODESummaryStatisticsHarmonisationStep:
         )
 
         deCODESummaryStatisticsHarmonisationStep(
+            config=deCODESummaryStatisticsHarmonisationDefaults(
+                raw_summary_statistics_path=raw_summary_statistics_path,
+                manifest_path=manifest_path,
+                aptamer_metadata_path=aptamer_metadata_path,
+                variant_direction_path=variant_direction_path,
+                molecular_complex_path=molecular_complex_path,
+                harmonised_summary_statistics_path=harmonised_summary_statistics_path,
+                protein_qtl_study_index_path=protein_qtl_study_index_path,
+                min_mac_threshold=50,
+                min_sample_size_threshold=30_000,
+                flipping_window_size=10_000_000,
+                remove_star_alleles=True,
+                remove_equal_alleles=True,
+                remove_multiallelics=True,
+                verify_atgc=True,
+            ),
             session=session,
-            raw_summary_statistics_path=raw_summary_statistics_path,
-            manifest_path=manifest_path,
-            aptamer_metadata_path=aptamer_metadata_path,
-            variant_direction_path=variant_direction_path,
-            molecular_complex_path=molecular_complex_path,
-            harmonised_summary_statistics_path=harmonised_summary_statistics_path,
-            protein_qtl_study_index_path=protein_qtl_study_index_path,
-            min_mac_threshold=50,
-            min_sample_size_threshold=30_000,
-            flipping_window_size=10_000_000,
         )
 
         variant_direction_mock.from_parquet.assert_called_once_with(
@@ -295,12 +306,14 @@ class TestdeCODESummaryStatisticsQCStep:
         study_index_mock.from_parquet.return_value = pqtl_si_instance
 
         deCODESummaryStatisticsQCStep(
+            config=deCODESummaryStatisticsQCDefaults(
+                harmonised_summary_statistics_path=harmonised_summary_statistics_path,
+                protein_qtl_study_index_path=protein_qtl_study_index_path,
+                qc_summary_statistics_path=qc_summary_statistics_path,
+                protein_qtl_study_index_qc_annotated_path=protein_qtl_study_index_qc_annotated_path,
+                pval_threshold=5e-8,
+            ),
             session=session,
-            harmonised_summary_statistics_path=harmonised_summary_statistics_path,
-            protein_qtl_study_index_path=protein_qtl_study_index_path,
-            qc_summary_statistics_path=qc_summary_statistics_path,
-            protein_qtl_study_index_qc_annotated_path=protein_qtl_study_index_qc_annotated_path,
-            pval_threshold=5e-8,
         )
 
         summary_statistics_mock.from_parquet.assert_called_once_with(

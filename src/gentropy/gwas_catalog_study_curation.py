@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+from typing import Annotated
+
+from pydantic import BaseModel, Field
+
 from gentropy.common.session import Session
 from gentropy.datasource.gwas_catalog.study_index import (
     StudyIndexGWASCatalogParser,
@@ -11,44 +15,61 @@ from gentropy.datasource.gwas_catalog.study_index_ot_curation import (
 )
 
 
+class GWASCatalogStudyCurationDefaults(BaseModel, frozen=True):
+    """Defaults for GWASCatalogStudyCurationStep.
+
+    All values are frozen - create a new instance to override.
+    """
+
+    catalog_study_files: Annotated[
+        list[str], Field(description="List of raw GWAS catalog studies file.")
+    ]
+    catalog_ancestry_files: Annotated[
+        list[str],
+        Field(description="List of raw ancestry annotations files from GWAS Catalog."),
+    ]
+    gwas_catalog_study_curation_out: Annotated[
+        str, Field(description="Path for the updated curation table.")
+    ]
+    gwas_catalog_study_curation_file: Annotated[
+        str | None,
+        Field(
+            default=None,
+            description="Path to the original curation table. Optional.",
+        ),
+    ] = None
+
+
 class GWASCatalogStudyCurationStep:
     """Annotate GWAS Catalog studies with additional curation and create a curation backlog."""
 
     def __init__(
         self,
         session: Session,
-        catalog_study_files: list[str],
-        catalog_ancestry_files: list[str],
-        gwas_catalog_study_curation_out: str,
-        gwas_catalog_study_curation_file: str | None,
+        config: GWASCatalogStudyCurationDefaults,
     ) -> None:
         """Run step to annotate and create backlog.
 
         Args:
-            session (Session): Session object.
-            catalog_study_files (list[str]): List of raw GWAS catalog studies file.
-            catalog_ancestry_files (list[str]): List of raw ancestry annotations files from GWAS Catalog.
-            gwas_catalog_study_curation_out (str): Path for the updated curation table.
-            gwas_catalog_study_curation_file (str | None): Path to the original curation table. Optinal
-
-        Raises:
-            ValueError: If the curation file is provided but not a CSV file or URL.
+            session: Session object.
+            config: Configuration for the step.
         """
         catalog_studies = session.spark.read.csv(
-            list(catalog_study_files), sep="\t", header=True
+            list(config.catalog_study_files), sep="\t", header=True
         )
         ancestry_lut = session.spark.read.csv(
-            list(catalog_ancestry_files), sep="\t", header=True
+            list(config.catalog_ancestry_files), sep="\t", header=True
         )
 
-        if gwas_catalog_study_curation_file:
-            if gwas_catalog_study_curation_file.endswith(".csv"):
+        gwas_catalog_study_curation = None
+        if config.gwas_catalog_study_curation_file:
+            if config.gwas_catalog_study_curation_file.endswith(".csv"):
                 gwas_catalog_study_curation = StudyIndexGWASCatalogOTCuration.from_csv(
-                    session, gwas_catalog_study_curation_file
+                    session, config.gwas_catalog_study_curation_file
                 )
-            elif gwas_catalog_study_curation_file.startswith("http"):
+            elif config.gwas_catalog_study_curation_file.startswith("http"):
                 gwas_catalog_study_curation = StudyIndexGWASCatalogOTCuration.from_url(
-                    session, gwas_catalog_study_curation_file
+                    session, config.gwas_catalog_study_curation_file
                 )
             else:
                 raise ValueError(
@@ -64,5 +85,5 @@ class GWASCatalogStudyCurationStep:
             .extract_studies_for_curation(gwas_catalog_study_curation)
             # Save table:
             .toPandas()
-            .to_csv(gwas_catalog_study_curation_out, sep="\t", index=False)
+            .to_csv(config.gwas_catalog_study_curation_out, sep="\t", index=False)
         )

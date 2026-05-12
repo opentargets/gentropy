@@ -2,8 +2,35 @@
 
 from __future__ import annotations
 
+from typing import Annotated
+
+from pydantic import BaseModel, Field
+
 from gentropy import Session, TargetIndex
 from gentropy.dataset.study_index import ProteinQuantitativeTraitLocusStudyIndex
+
+
+class pQTLStudyIndexTransformationStepConfig(BaseModel, frozen=True):
+    """Defaults for pQTLStudyIndexTransformationStep.
+
+    All values are frozen - create a new instance to override.
+    """
+
+    protein_study_index_path: Annotated[
+        str, Field(description="Path to the ProteinQuantitativeTraitLocusStudyIndex.")
+    ]
+    study_index_path: Annotated[
+        str,
+        Field(
+            description="Destination path for the resolved StudyIndex Parquet dataset."
+        ),
+    ]
+    target_index_path: Annotated[
+        str,
+        Field(
+            description="Path to the TargetIndex Parquet dataset used to map gene symbols to Ensembl gene IDs."
+        ),
+    ]
 
 
 class pQTLStudyIndexTransformationStep:
@@ -15,28 +42,18 @@ class pQTLStudyIndexTransformationStep:
     """
 
     def __init__(
-        self,
-        session: Session,
-        protein_study_index_path: str,
-        study_index_path: str,
-        target_index_path: str,
+        self, session: Session, config: pQTLStudyIndexTransformationStepConfig
     ) -> None:
         """Initialise and execute the pQTL study-index transformation step.
 
         Args:
+            config (pQTLStudyIndexTransformationStepConfig): Configuration for the step.
             session (Session): Active Gentropy Spark session.
-            protein_study_index_path (str): Path to the
-                `ProteinQuantitativeTraitLocusStudyIndex`.
-            study_index_path (str): Destination path for the resolved
-                `StudyIndex` Parquet dataset.
-            target_index_path (str): Path to the
-                `TargetIndex` Parquet dataset used
-                to map gene symbols to Ensembl gene IDs.
         """
         pqtl = ProteinQuantitativeTraitLocusStudyIndex.from_parquet(
-            session, protein_study_index_path
+            session, config.protein_study_index_path
         )
-        ti = TargetIndex.from_parquet(session, target_index_path)
+        ti = TargetIndex.from_parquet(session, config.target_index_path)
 
         s = pqtl.to_study(ti)
-        s.df.coalesce(1).write.mode(session.write_mode).parquet(study_index_path)
+        s.df.coalesce(1).write.mode(session.write_mode).parquet(config.study_index_path)

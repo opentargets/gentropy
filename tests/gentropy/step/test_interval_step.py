@@ -9,7 +9,12 @@ import pytest
 
 from gentropy import Session
 from gentropy.dataset.dataset import DatasetValidationResult
-from gentropy.intervals import IntervalE2GStep, IntervalEpiractionStep
+from gentropy.intervals import (
+    IntervalE2GDefaults,
+    IntervalE2GStep,
+    IntervalEpiractionDefaults,
+    IntervalEpiractionStep,
+)
 
 
 class TestIntervalE2GStep:
@@ -68,17 +73,19 @@ class TestIntervalE2GStep:
         intervals_e2g.parse = MagicMock(return_value=intervals_instance)
 
         IntervalE2GStep(
+            config=IntervalE2GDefaults(
+                target_index_path=target_index_path,
+                biosample_mapping_path=biosample_mapping_path,
+                biosample_index_path=biosample_index_path,
+                chromosome_contig_index_path=contig_index_path,
+                interval_source=interval_source,
+                valid_output_path=valid_output_path,
+                invalid_output_path=invalid_output_path,
+                min_valid_score=min_valid_score,
+                max_valid_score=max_valid_score,
+                invalid_qc_reasons=invalid_qc_reasons,
+            ),
             session=session,
-            target_index_path=target_index_path,
-            biosample_mapping_path=biosample_mapping_path,
-            biosample_index_path=biosample_index_path,
-            chromosome_contig_index_path=contig_index_path,
-            interval_source=interval_source,
-            valid_output_path=valid_output_path,
-            invalid_output_path=invalid_output_path,
-            min_valid_score=min_valid_score,
-            max_valid_score=max_valid_score,
-            invalid_qc_reasons=invalid_qc_reasons,
         )
 
         # Assert the biosample mapping was read via csv file
@@ -161,16 +168,18 @@ class TestIntervalEpiractionStep:
         intervals_epiraction.parse = MagicMock(return_value=intervals_instance)
 
         IntervalEpiractionStep(
+            config=IntervalEpiractionDefaults(
+                target_index_path=target_index_path,
+                biosample_index_path=biosample_index_path,
+                chromosome_contig_index_path=contig_index_path,
+                interval_source=interval_source,
+                valid_output_path=valid_output_path,
+                invalid_output_path=invalid_output_path,
+                min_valid_score=min_valid_score,
+                max_valid_score=max_valid_score,
+                invalid_qc_reasons=invalid_qc_reasons,
+            ),
             session=session,
-            target_index_path=target_index_path,
-            biosample_index_path=biosample_index_path,
-            chromosome_contig_index_path=contig_index_path,
-            interval_source=interval_source,
-            valid_output_path=valid_output_path,
-            invalid_output_path=invalid_output_path,
-            min_valid_score=min_valid_score,
-            max_valid_score=max_valid_score,
-            invalid_qc_reasons=invalid_qc_reasons,
         )
 
         # Assert the datasets were read

@@ -2,12 +2,48 @@
 
 from __future__ import annotations
 
+from typing import Annotated
+
+from pydantic import BaseModel, Field
 from pyspark.sql import functions as f
 
 from gentropy.common.session import Session
 from gentropy.dataset.biosample_index import BiosampleIndex
 from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.target_index import TargetIndex
+
+
+class StudyValidationDefaults(BaseModel, frozen=True):
+    """Defaults for StudyValidationStep.
+
+    All values are frozen - create a new instance to override.
+    """
+
+    study_index_path: Annotated[
+        list[str], Field(description="Path to study index file.")
+    ]
+    target_index_path: Annotated[str, Field(description="Path to target index file.")]
+    disease_index_path: Annotated[str, Field(description="Path to disease index file.")]
+    biosample_index_path: Annotated[
+        str, Field(description="Path to biosample index file.")
+    ]
+    valid_study_index_path: Annotated[
+        str, Field(description="Path to write the valid records.")
+    ]
+    invalid_study_index_path: Annotated[
+        str, Field(description="Path to write the output file.")
+    ]
+    invalid_qc_reasons: Annotated[
+        list[str],
+        Field(
+            default_factory=list,
+            description="List of invalid quality check reason names from `StudyQualityCheck`.",
+        ),
+    ]
+    deprecated_project_ids: Annotated[
+        list[str] | None,
+        Field(description="List of deprecated projectIds (e.g. ['GTEx'])."),
+    ] = None
 
 
 class StudyValidationStep:
@@ -19,43 +55,29 @@ class StudyValidationStep:
 
     def __init__(
         self,
+        config: StudyValidationDefaults,
         session: Session,
-        study_index_path: list[str],
-        target_index_path: str,
-        disease_index_path: str,
-        biosample_index_path: str,
-        valid_study_index_path: str,
-        invalid_study_index_path: str,
-        # NOTE: do not use container as default argument!
-        # https://github.com/satwikkansal/wtfpython?tab=readme-ov-file#-beware-of-default-mutable-arguments
-        invalid_qc_reasons: list[str] | None = None,
-        deprecated_project_ids: list[str] | None = None,
     ) -> None:
         """Initialize step.
 
         Args:
-            session (Session): Session object.
-            study_index_path (list[str]): Path to study index file.
-            target_index_path (str): Path to target index file.
-            disease_index_path (str): Path to disease index file.
-            biosample_index_path (str): Path to biosample index file.
-            valid_study_index_path (str): Path to write the valid records.
-            invalid_study_index_path (str): Path to write the output file.
-            invalid_qc_reasons (list[str] | None): List of invalid quality check reason names from `StudyQualityCheck` (e.g. ['DUPLICATED_STUDY']).
-            deprecated_project_ids (list[str] | None): List of deprecated projectIds, (e.g. ['GTEx']).
+            config: Step configuration defaults.
+            session: Session object.
         """
-        invalid_qc_reasons = list(invalid_qc_reasons) if invalid_qc_reasons else []
+        invalid_qc_reasons = list(config.invalid_qc_reasons)
         deprecated_project_ids = (
-            list(deprecated_project_ids) if deprecated_project_ids else []
+            list(config.deprecated_project_ids) if config.deprecated_project_ids else []
         )
 
         # Reading datasets:
-        target_index = TargetIndex.from_parquet(session, target_index_path)
-        biosample_index = BiosampleIndex.from_parquet(session, biosample_index_path)
+        target_index = TargetIndex.from_parquet(session, config.target_index_path)
+        biosample_index = BiosampleIndex.from_parquet(
+            session, config.biosample_index_path
+        )
         # Reading disease index and pre-process.
         # This logic does not belong anywhere, but gentropy has no disease dataset yet.
         disease_index = (
-            session.spark.read.parquet(disease_index_path)
+            session.spark.read.parquet(config.disease_index_path)
             .select(
                 f.col("id").alias("diseaseId"),
                 f.explode_outer(
@@ -67,7 +89,7 @@ class StudyValidationStep:
             )
             .withColumn("efo", f.coalesce(f.col("efo"), f.col("diseaseId")))
         )
-        study_index = StudyIndex.from_parquet(session, list(study_index_path))
+        study_index = StudyIndex.from_parquet(session, list(config.study_index_path))
 
         # Running validation:
         study_index_with_qc = (
@@ -85,10 +107,10 @@ class StudyValidationStep:
         (
             result.valid.df.coalesce(session.output_partitions)
             .write.mode(session.write_mode)
-            .parquet(valid_study_index_path)
+            .parquet(config.valid_study_index_path)
         )
         (
             result.invalid.df.coalesce(session.output_partitions)
             .write.mode(session.write_mode)
-            .parquet(invalid_study_index_path)
+            .parquet(config.invalid_study_index_path)
         )

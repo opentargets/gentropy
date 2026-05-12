@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import math
 from functools import reduce
+from typing import Annotated
 
+from pydantic import BaseModel, Field
 from pyspark.sql import functions as f
 
 from gentropy.common.session import Session
@@ -12,6 +14,31 @@ from gentropy.dataset.amino_acid_variants import AminoAcidVariants
 from gentropy.dataset.variant_index import VariantIndex
 from gentropy.datasource.ensembl.vep_parser import VariantEffectPredictorParser
 from gentropy.datasource.open_targets.variants import OpenTargetsVariant
+
+
+class VariantIndexDefaults(BaseModel, frozen=True):
+    """Defaults for VariantIndexStep.
+
+    All values are frozen - create a new instance to override.
+    """
+
+    vep_output_json_path: Annotated[
+        str, Field(description="Variant effect predictor output path (in json format).")
+    ]
+    variant_index_path: Annotated[
+        str, Field(description="Variant index dataset path to save resulting data.")
+    ]
+    hash_threshold: Annotated[
+        int, Field(description="Hash threshold for variant identifier length.")
+    ] = 300
+    variant_annotations_path: Annotated[
+        list[str] | None,
+        Field(description="List of paths to extra variant annotation datasets."),
+    ] = None
+    amino_acid_change_annotations: Annotated[
+        list[str] | None,
+        Field(description="List of paths to amino-acid based variant annotations."),
+    ] = None
 
 
 class VariantIndexStep:
@@ -23,45 +50,37 @@ class VariantIndexStep:
 
     def __init__(
         self: VariantIndexStep,
+        config: VariantIndexDefaults,
         session: Session,
-        vep_output_json_path: str,
-        variant_index_path: str,
-        hash_threshold: int,
-        variant_annotations_path: list[str] | None = None,
-        amino_acid_change_annotations: list[str] | None = None,
     ) -> None:
         """Run VariantIndex step.
 
         Args:
-            session (Session): Session object.
-            vep_output_json_path (str): Variant effect predictor output path (in json format).
-            variant_index_path (str): Variant index dataset path to save resulting data.
-            hash_threshold (int): Hash threshold for variant identifier length.
-            variant_annotations_path (list[str] | None): List of paths to extra variant annotation datasets.
-            amino_acid_change_annotations (list[str] | None): list of paths to amino-acid based variant annotations.
+            config: Step configuration defaults.
+            session: Session object.
         """
         # Extract variant annotations from VEP output:
         variant_index = VariantEffectPredictorParser.extract_variant_index_from_vep(
-            session.spark, vep_output_json_path, hash_threshold
+            session.spark, config.vep_output_json_path, config.hash_threshold
         )
 
         # Process variant annotations if provided:
-        if variant_annotations_path:
-            for annotation_path in variant_annotations_path:
+        if config.variant_annotations_path:
+            for annotation_path in config.variant_annotations_path:
                 # Read variant annotations from parquet:
                 annotations = VariantIndex.from_parquet(
                     session=session,
                     path=annotation_path,
                     recursiveFileLookup=True,
-                    id_threshold=hash_threshold,
+                    id_threshold=config.hash_threshold,
                 )
 
                 # Update index with extra annotations:
                 variant_index = variant_index.add_annotation(annotations)
 
         # If provided read amino-acid based annotation and enrich variant index:
-        if amino_acid_change_annotations:
-            for annotation_path in amino_acid_change_annotations:
+        if config.amino_acid_change_annotations:
+            for annotation_path in config.amino_acid_change_annotations:
                 annotation_data = AminoAcidVariants.from_parquet(
                     session, annotation_path
                 )
@@ -77,8 +96,22 @@ class VariantIndexStep:
             )
             .sortWithinPartitions("chromosome", "position")
             .write.mode(session.write_mode)
-            .parquet(variant_index_path)
+            .parquet(config.variant_index_path)
         )
+
+
+class ConvertToVcfDefaults(BaseModel, frozen=True):
+    """Defaults for ConvertToVcfStep."""
+
+    source_paths: Annotated[list[str], Field(description="Input dataset path.")]
+    source_formats: Annotated[
+        list[str], Field(description="Format of the input dataset.")
+    ]
+    output_path: Annotated[str, Field(description="Output VCF file path.")]
+    partition_size: Annotated[
+        int,
+        Field(description="Approximate number of variants in each output partition."),
+    ] = 2000
 
 
 class ConvertToVcfStep:
@@ -92,32 +125,23 @@ class ConvertToVcfStep:
 
     def __init__(
         self,
+        config: ConvertToVcfDefaults,
         session: Session,
-        source_paths: list[str],
-        source_formats: list[str],
-        output_path: str,
-        partition_size: int,
     ) -> None:
         """Initialize step.
 
         Args:
-            session (Session): Session object.
-            source_paths (list[str]): Input dataset path.
-            source_formats (list[str]): Format of the input dataset.
-            output_path (str): Output VCF file path.
-            partition_size (int): Approximate number of variants in each output partition.
-
-        Raises:
-            AssertionError: When the length of `source_paths` does not match the lenght of `source_formats`.
+            config: Step configuration defaults.
+            session: Session object.
         """
-        assert len(source_formats) == len(
-            source_paths
-        ), "Must provide format for each source path."
+        assert len(config.source_formats) == len(config.source_paths), (
+            "Must provide format for each source path."
+        )
 
         # Load
         raw_variants = [
             session.load_data(p, f)
-            for p, f in zip(source_paths, source_formats, strict=True)
+            for p, f in zip(config.source_paths, config.source_formats, strict=True)
         ]
 
         # Extract
@@ -131,7 +155,7 @@ class ConvertToVcfStep:
         ).drop_duplicates(["#CHROM", "POS", "REF", "ALT"])
 
         variant_count = merged_variants.count()
-        n_partitions = int(math.ceil(variant_count / partition_size))
+        n_partitions = int(math.ceil(variant_count / config.partition_size))
         partitioned_variants = (
             merged_variants.repartitionByRange(
                 n_partitions, f.col("#CHROM"), f.col("POS")
@@ -149,4 +173,4 @@ class ConvertToVcfStep:
         # Write
         partitioned_variants.write.mode(session.write_mode).option("sep", "\t").option(
             "quote", ""
-        ).option("quoteAll", False).option("header", True).csv(output_path)
+        ).option("quoteAll", False).option("header", True).csv(config.output_path)

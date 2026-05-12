@@ -2,10 +2,44 @@
 
 from __future__ import annotations
 
+from typing import Annotated
+
+from pydantic import BaseModel, Field
+
 from gentropy.common.session import Session
 from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import CredibleInterval, StudyLocus
 from gentropy.dataset.target_index import TargetIndex
+
+
+class StudyLocusValidationDefaults(BaseModel, frozen=True):
+    """Defaults for StudyLocusValidationStep.
+
+    All values are frozen - create a new instance to override.
+    """
+
+    study_locus_path: Annotated[
+        list[str], Field(description="Path to study locus dataset.")
+    ]
+    study_index_path: Annotated[str, Field(description="Path to study index file.")]
+    target_index_path: Annotated[str, Field(description="Path to target index file.")]
+    valid_study_locus_path: Annotated[
+        str, Field(description="Path to write the valid records.")
+    ]
+    invalid_study_locus_path: Annotated[
+        str, Field(description="Path to write the output file.")
+    ]
+    trans_qtl_threshold: Annotated[
+        int,
+        Field(description="Genomic distance above which a QTL is considered trans."),
+    ]
+    invalid_qc_reasons: Annotated[
+        list[str],
+        Field(
+            default_factory=list,
+            description="List of invalid quality check reason names from `StudyLocusQualityCheck`.",
+        ),
+    ]
 
 
 class StudyLocusValidationStep:
@@ -17,35 +51,23 @@ class StudyLocusValidationStep:
 
     def __init__(
         self,
+        config: StudyLocusValidationDefaults,
         session: Session,
-        study_locus_path: list[str],
-        study_index_path: str,
-        target_index_path: str,
-        valid_study_locus_path: str,
-        invalid_study_locus_path: str,
-        trans_qtl_threshold: int,
-        invalid_qc_reasons: list[str] | None = None,
     ) -> None:
         """Initialize step.
 
         Args:
-            session (Session): Session object.
-            study_locus_path (list[str]): Path to study locus dataset.
-            study_index_path (str): Path to study index file.
-            target_index_path (str): path to the target index.
-            valid_study_locus_path (str): Path to write the valid records.
-            invalid_study_locus_path (str): Path to write the output file.
-            trans_qtl_threshold (int): genomic distance above which a QTL is considered trans.
-            invalid_qc_reasons (list[str] | None): List of invalid quality check reason names from `StudyLocusQualityCheck` (e.g. ['SUBSIGNIFICANT_FLAG']).
+            config: Step configuration defaults.
+            session: Session object.
         """
-        invalid_qc_reasons = list(invalid_qc_reasons) if invalid_qc_reasons else []
+        invalid_qc_reasons = list(config.invalid_qc_reasons)
         # Reading datasets:
-        study_index = StudyIndex.from_parquet(session, study_index_path)
-        target_index = TargetIndex.from_parquet(session, target_index_path)
+        study_index = StudyIndex.from_parquet(session, config.study_index_path)
+        target_index = TargetIndex.from_parquet(session, config.target_index_path)
 
         # Running validation then writing output:
         study_locus_with_qc = (
-            StudyLocus.from_parquet(session, list(study_locus_path))
+            StudyLocus.from_parquet(session, list(config.study_locus_path))
             # Add flag for MHC region
             .qc_MHC_region()
             .validate_chromosome_label()  # Flagging credible sets with unsupported chromosomes
@@ -63,7 +85,7 @@ class StudyLocusValidationStep:
             # Annotate credible set confidence:
             .assign_confidence()
             # Flagging trans qtls:
-            .flag_trans_qtls(study_index, target_index, trans_qtl_threshold)
+            .flag_trans_qtls(study_index, target_index, config.trans_qtl_threshold)
             .persist()  # we will need this for 2 types of outputs
         )
 
@@ -78,10 +100,10 @@ class StudyLocusValidationStep:
             )
             .sortWithinPartitions("chromosome", "position")
             .write.mode(session.write_mode)
-            .parquet(valid_study_locus_path)
+            .parquet(config.valid_study_locus_path)
         )
         (
             result.invalid.df.coalesce(session.output_partitions)
             .write.mode(session.write_mode)
-            .parquet(invalid_study_locus_path)
+            .parquet(config.invalid_study_locus_path)
         )

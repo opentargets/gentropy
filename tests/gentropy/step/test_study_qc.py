@@ -7,7 +7,7 @@ import pytest
 from pyspark.sql import Row
 
 from gentropy import Session
-from gentropy.study_validation import StudyValidationStep
+from gentropy.study_validation import StudyValidationDefaults, StudyValidationStep
 
 
 class TestStudyQcStep:
@@ -67,15 +67,17 @@ class TestStudyQcStep:
         study_index.df = si_df
 
         StudyValidationStep(
-            session,
-            study_index_path=study_index_paths,
-            target_index_path=target_index_path,
-            disease_index_path=disease_index_path,
-            biosample_index_path=biosample_index_path,
-            valid_study_index_path=valid_study_index_path,
-            invalid_study_index_path=invalid_study_index_path,
-            invalid_qc_reasons=invalid_qc_reasons,
-            deprecated_project_ids=deprecated_project_ids,
+            config=StudyValidationDefaults(
+                study_index_path=study_index_paths,
+                target_index_path=target_index_path,
+                disease_index_path=disease_index_path,
+                biosample_index_path=biosample_index_path,
+                valid_study_index_path=valid_study_index_path,
+                invalid_study_index_path=invalid_study_index_path,
+                invalid_qc_reasons=invalid_qc_reasons,
+                deprecated_project_ids=deprecated_project_ids,
+            ),
+            session=session,
         )
 
         # Assert reading datasets with correct paths

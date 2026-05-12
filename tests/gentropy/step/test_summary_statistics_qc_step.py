@@ -7,7 +7,10 @@ import pytest
 from gentropy.common.session import Session
 from gentropy.dataset.summary_statistics import SummaryStatistics
 from gentropy.dataset.summary_statistics_qc import SummaryStatisticsQC
-from gentropy.sumstat_qc_step import SummaryStatisticsQCStep
+from gentropy.sumstat_qc_step import (
+    SummaryStatisticsQCDefaults,
+    SummaryStatisticsQCStep,
+)
 
 
 @pytest.mark.step_test
@@ -57,10 +60,12 @@ class TestSummaryStatisticsQCStep:
     def test_summary_statistics_qc_step(self, session: Session) -> None:
         """Test summary statistics quality control generation step."""
         SummaryStatisticsQCStep(
+            config=SummaryStatisticsQCDefaults(
+                gwas_path=self.sumstat_path,
+                output_path=str(self.output_path),
+                pval_threshold=self.pval_threshold,
+            ),
             session=session,
-            gwas_path=self.sumstat_path,
-            output_path=str(self.output_path),
-            pval_threshold=self.pval_threshold,
         )
 
         qc_df = session.spark.read.parquet(str(self.output_path))
