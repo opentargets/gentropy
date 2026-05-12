@@ -367,6 +367,8 @@ class LocusToGeneTrainer:
             self.y_train = np.concatenate((self.y_train, self.y_test))
             self.fit()
             if wandb_run_name:
+                self.x_test = self.x_train
+                self.y_test = self.y_train
                 self.log_to_wandb(f"{wandb_run_name}-full-dataset")
 
         return self.model
