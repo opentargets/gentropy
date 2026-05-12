@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import TYPE_CHECKING, NamedTuple
+from typing import TYPE_CHECKING, NamedTuple, Self
 
 import pyspark.sql.functions as f
 from pyspark.sql import Column
@@ -17,7 +17,6 @@ if TYPE_CHECKING:
     from pyspark.sql.types import StructType
 
     from gentropy.dataset.study_locus import StudyLocus
-
 
 
 class UnsupportedOverlapTypeError(ValueError):
@@ -92,7 +91,7 @@ class OverlapType(StrEnum):
                         f.col("left.chromosome") == f.col("right.chromosome"),
                         f.col("left.tagVariantId") == f.col("right.tagVariantId"),
                         f.col("left.studyType") == f.lit("gwas"),
-                        (f.col("right.studyType") != "gwas")
+                        (f.col("right.studyType") != f.lit("gwas"))
                         | (f.col("left.studyLocusId") > f.col("right.studyLocusId")),
                     ]
                 )
@@ -110,6 +109,18 @@ class OverlapExpression(NamedTuple):
     """
 
     expressions: list[Column]
+
+    def update(self, new_expressions: list[Column]) -> Self:
+        """Update the expressions of the overlap expression model.
+
+        Args:
+            new_expressions (list[Column]): New expressions to update the model with.
+
+        Returns:
+            OverlapExpression: Updated overlap expression model.
+        """
+        self.expressions.extend(new_expressions)
+        return self
 
 
 @dataclass
@@ -146,7 +157,6 @@ class StudyLocusOverlap(Dataset):
         """
         return study_locus.find_overlaps(OverlapType.GWAS_VS_ALL)
 
-
     def calculate_beta_ratio(self: StudyLocusOverlap) -> DataFrame:
         """Calculate the beta ratio for the overlapping signals.
 
@@ -160,21 +170,18 @@ class StudyLocusOverlap(Dataset):
             .drop("statistics")
             # Drop any rows where the beta is null or zero
             .filter(
-                f.col("left_beta").isNotNull() &
-                f.col("right_beta").isNotNull() &
-                (f.col("left_beta") != 0) &
-                (f.col("right_beta") != 0)
+                f.col("left_beta").isNotNull()
+                & f.col("right_beta").isNotNull()
+                & (f.col("left_beta") != 0)
+                & (f.col("right_beta") != 0)
             )
             # Calculate the beta ratio and get the sign, then calculate the average sign across all variants in the locus
             .withColumn(
-                "betaRatioSign",
-                f.signum(f.col("left_beta") / f.col("right_beta"))
+                "betaRatioSign", f.signum(f.col("left_beta") / f.col("right_beta"))
             )
             # Aggregate beta signs:
-            .groupBy("leftStudyLocusId","rightStudyLocusId","chromosome")
-            .agg(
-                f.avg("betaRatioSign").alias("betaRatioSignAverage")
-            )
+            .groupBy("leftStudyLocusId", "rightStudyLocusId", "chromosome")
+            .agg(f.avg("betaRatioSign").alias("betaRatioSignAverage"))
         )
 
     def _convert_to_square_matrix(self: StudyLocusOverlap) -> StudyLocusOverlap:
