@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import logging
 from typing import Any
 
@@ -185,6 +186,7 @@ class LocusToGeneStep:
         explain_predictions: bool = False,
         hf_credentials_path: str | None = None,
         wandb_credentials_path: str | None = None,
+        filter_dark_matter: bool = False,
     ) -> None:
         """Initialise the step and run the logic based on mode.
 
@@ -211,6 +213,7 @@ class LocusToGeneStep:
             explain_predictions (bool): Whether to extract SHAP importances for the L2G predictions. This is computationally expensive.
             hf_credentials_path (str | None): Optional path to the Hugging Face Hub credentials JSON file. If not provided, the HF_TOKEN environment variable will be used.
             wandb_credentials_path (str | None): Optional path to the Weights and Biases credentials JSON file. If not provided, the WANDB_API_KEY environment variable will be used.
+            filter_dark_matter (bool): Whether to remove loci where every gold-standard positive has no functional genomics signal (zero QTL colocalisation, E2G, and VEP below protein-altering threshold) and is not the nearest gene (all neighbourhood distance features < 1.0). Loci with at least one signal-carrying or nearest-gene positive are kept. Defaults to False.
 
         Raises:
             ValueError: If run_mode is not 'train' or 'predict'
@@ -273,6 +276,7 @@ class LocusToGeneStep:
         # Predict parameters
         self.l2g_threshold = l2g_threshold
         self.explain_predictions = explain_predictions
+        self.filter_dark_matter = filter_dark_matter
 
         # Load common inputs
         self.credible_set = StudyLocus.from_parquet(
@@ -464,6 +468,11 @@ class LocusToGeneStep:
         # Calculate the gold standard features
         feature_matrix = self._annotate_gold_standards_w_feature_matrix()
 
+        if self.filter_dark_matter:
+            feature_matrix, dark_matter_stats = feature_matrix.filter_dark_matter_loci()
+            if self.model_path and dark_matter_stats:
+                self._write_dark_matter_stats(dark_matter_stats)
+
         # Run the training
         trained_model = LocusToGeneTrainer(
             model=l2g_model, feature_matrix=feature_matrix
@@ -485,6 +494,19 @@ class LocusToGeneStep:
                     repo_id=self.hf_hub_repo_id,
                     commit_message=self.hf_model_commit_message,
                 )
+
+    def _write_dark_matter_stats(self, stats: dict[str, Any]) -> None:
+        """Write dark matter filtering stats as JSON next to the model path.
+
+        Args:
+            stats (dict[str, Any]): Stats dict returned by filter_dark_matter_loci.
+        """
+        import fsspec
+
+        log_path = f"{self.model_path}_dark_matter_stats.json"
+        with fsspec.open(log_path, "w") as fh:
+            json.dump(stats, fh, indent=2)
+        logging.info("Dark matter filter stats written to %s", log_path)
 
     def _annotate_gold_standards_w_feature_matrix(self) -> L2GFeatureMatrix:
         """Generate the feature matrix of annotated gold standards.

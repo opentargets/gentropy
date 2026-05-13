@@ -361,6 +361,7 @@ class LocusToGeneConfig(StepConfig):
     explain_predictions: bool = False
     wandb_credentials_path: str | None = None
     hf_credentials_path: str | None = None
+    filter_dark_matter: bool = False
     _target_: str = "gentropy.l2g.LocusToGeneStep"
 
 
