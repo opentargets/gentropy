@@ -2,8 +2,12 @@
 
 from __future__ import annotations
 
+import json
 import os
 from dataclasses import dataclass
+from datetime import datetime
+from itertools import product
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import matplotlib.pyplot as plt
@@ -13,11 +17,15 @@ import shap
 from sklearn.base import clone
 from sklearn.metrics import (
     accuracy_score,
+    auc,
     average_precision_score,
+    confusion_matrix,
     f1_score,
+    precision_recall_curve,
     precision_score,
     recall_score,
     roc_auc_score,
+    roc_curve,
 )
 from sklearn.model_selection import train_test_split
 from wandb.data_types import Image
@@ -278,6 +286,7 @@ class LocusToGeneTrainer:
         n_splits: int = 5,
         hyperparameter_grid: dict[str, Any] | None = None,
         train_on_full_dataset: bool = False,
+        cv_results_dir: str | None = None,
     ) -> LocusToGeneModel:
         """Train the Locus to Gene model.
 
@@ -302,6 +311,7 @@ class LocusToGeneTrainer:
             n_splits(int): Number of folds the data is splitted in. The model is trained and evaluated `k - 1` times. Defaults to 5.
             hyperparameter_grid (dict[str, Any] | None): Hyperparameter grid to sweep over. Defaults to None.
             train_on_full_dataset (bool): Whether to retrain the final saved model on the full dataset (train + held-out) after evaluation. Defaults to False.
+            cv_results_dir (str | None): Directory to write CV results (JSON, CSV, plots). Only used when cross_validate=True and wandb_run_name is not set. Defaults to None.
 
         Returns:
             LocusToGeneModel: Fitted model
@@ -329,6 +339,7 @@ class LocusToGeneTrainer:
                 wandb_run_name=wandb_run_name,
                 parameter_grid=hyperparameter_grid,
                 n_splits=n_splits,
+                cv_results_dir=cv_results_dir,
             )
 
         # Train model on training set and evaluate on held-out test set
@@ -379,14 +390,21 @@ class LocusToGeneTrainer:
         parameter_grid: dict[str, Any] | None = None,
         n_splits: int = 5,
         random_state: int = 42,
+        cv_results_dir: str | None = None,
     ) -> None:
-        """Log results of cross validation and hyperparameter tuning with W&B Sweeps. Metrics for every combination of hyperparameters will be logged to W&B for comparison.
+        """Log results of cross validation and hyperparameter tuning.
+
+        When wandb_run_name is set: runs a W&B grid sweep, one run per fold per config.
+        When cv_results_dir is set (without W&B): iterates the grid explicitly and writes
+        cv_results.json, cv_folds.csv, and per-config plots to cv_results_dir.
+        Without either: logs fold metrics to terminal using the base hyperparameters.
 
         Args:
             wandb_run_name (str | None): Name of the W&B run. Unless this is provided, the model will not be logged to W&B.
             parameter_grid (dict[str, Any] | None): Dictionary containing the hyperparameters to sweep over. The keys are the hyperparameter names, and the values are dictionaries containing the values to sweep over.
             n_splits (int): Number of folds the data is splitted in. The model is trained and evaluated `k - 1` times. Defaults to 5.
             random_state (int): Random seed for reproducibility. Defaults to 42.
+            cv_results_dir (str | None): Directory to write CV results. Only used when wandb_run_name is not set. Defaults to None.
         """
         # If no grid is provided, use default ones set in the model
         parameter_grid = parameter_grid or {
@@ -394,87 +412,30 @@ class LocusToGeneTrainer:
             for param, value in self.model.hyperparameters.items()
         }
 
-        def cross_validate_single_fold(
-            fold_index: int,
-            fold_train_df: pd.DataFrame,
-            fold_val_df: pd.DataFrame,
-            sweep_id: str | None,
-            sweep_run_name: str | None,
-            config: dict[str, Any] | None,
-        ) -> None:
-            """Run cross-validation for a single fold.
+        # Collect raw fold data for file-based output (only when not using W&B)
+        collect_for_file = cv_results_dir is not None and wandb_run_name is None
+        fold_results: list[dict[str, Any]] = []
+
+        def run_all_folds(run_config: dict[str, Any] | None = None) -> None:
+            """Run cross-validation for all folds with a given hyperparameter config.
 
             Args:
-                fold_index (int): Index of the fold
-                fold_train_df (pd.DataFrame): Training data for the fold
-                fold_val_df (pd.DataFrame): Validation data for the fold
-                sweep_id (str | None): ID of the sweep, if logging to W&B is enabled
-                sweep_run_name (str | None): Name of the sweep run, if logging to W&B is enabled
-                config (dict[str, Any] | None): Configuration from the sweep, if logging to W&B is enabled
+                run_config (dict[str, Any] | None): Hyperparameter config for this sweep run.
+                    When called by wandb_agent, this is overridden by the sweep config.
             """
-            reset_wandb_env()
-
-            x_fold_train, x_fold_val = (
-                fold_train_df[self.features_list].values,
-                fold_val_df[self.features_list].values,
-            )
-            y_fold_train, y_fold_val = (
-                fold_train_df[self.feature_matrix.label_col].values,
-                fold_val_df[self.feature_matrix.label_col].values,
-            )
-
-            fold_model = clone(self.model.model)
-            fold_model.fit(x_fold_train, y_fold_train)
-            y_pred_proba = fold_model.predict_proba(x_fold_val)
-            y_pred = fold_model.predict(x_fold_val)
-
-            # Log metrics
-            metrics = self.evaluate(
-                y_true=y_fold_val, y_pred=y_pred, y_pred_proba=y_pred_proba
-            )
-            if sweep_id and sweep_run_name and config:
-                fold_model.set_params(**config)
-                # Initialize a new run for this fold
-                os.environ["WANDB_SWEEP_ID"] = sweep_id
-                run = wandb_init(
-                    project=self.wandb_l2g_project_name,
-                    name=sweep_run_name,
-                    config=config,
-                    group=sweep_run_name,
-                    job_type="fold",
-                    reinit=True,
-                )
-                run.log(metrics)
-                wandb_termlog(f"Logged metrics for fold {fold_index}.")
-                run.finish()
-            else:
-                self.log_to_terminal(eval_id=f"Fold {fold_index}", metrics=metrics)
-
-        def run_all_folds() -> None:
-            """Run cross-validation for all folds."""
-            # Initialise vars
-            sweep_run = None
             sweep_id = None
-            sweep_url = None
-            sweep_group_url = None
-            config = None
             if wandb_run_name:
-                # Initialize the sweep run and get metadata
                 sweep_run = wandb_init(name=wandb_run_name)
                 sweep_id = sweep_run.sweep_id
                 sweep_url = sweep_run.get_sweep_url()
                 sweep_group_url = f"{sweep_run.get_project_url()}/groups/{sweep_id}"
                 sweep_run.notes = sweep_group_url
                 sweep_run.save()
-                config = dict(sweep_run.config)
-
-                # Reset wandb setup to ensure clean state
+                run_config = dict(sweep_run.config)
                 _setup()
-
                 wandb_termlog(f"Sweep URL: {sweep_url}")
                 wandb_termlog(f"Sweep Group URL: {sweep_group_url}")
 
-            # Split training data hierarchically for this fold and run all folds
             for fold_index in range(n_splits):
                 fold_seed = random_state + fold_index
                 fold_train_df, fold_val_df = LocusToGeneTrainer.hierarchical_split(
@@ -482,7 +443,7 @@ class LocusToGeneTrainer:
                     verbose=False,
                     random_state=fold_seed,
                 )
-                cross_validate_single_fold(
+                self._run_cv_fold(
                     fold_index=fold_index + 1,
                     fold_train_df=fold_train_df,
                     fold_val_df=fold_val_df,
@@ -490,11 +451,12 @@ class LocusToGeneTrainer:
                     sweep_run_name=f"{wandb_run_name}-fold{fold_index + 1}"
                     if wandb_run_name
                     else None,
-                    config=config if config else None,
+                    config=run_config,
+                    collect_for_file=collect_for_file,
+                    fold_results=fold_results,
                 )
 
         if wandb_run_name:
-            # Evaluate with cross validation in a W&B Sweep
             sweep_config = {
                 "method": "grid",
                 "name": wandb_run_name,
@@ -503,9 +465,18 @@ class LocusToGeneTrainer:
             }
             sweep_id = wandb_sweep(sweep_config, project=self.wandb_l2g_project_name)
             wandb_agent(sweep_id, run_all_folds)
+        elif cv_results_dir:
+            for config in self._expand_grid(parameter_grid):
+                run_all_folds(run_config=config)
         else:
-            # Evaluate with cross validation to the terminal
             run_all_folds()
+
+        if collect_for_file and fold_results:
+            self._save_cv_results(
+                cv_results_dir=cv_results_dir,  # type: ignore[arg-type]
+                fold_results=fold_results,
+                n_splits=n_splits,
+            )
 
     @staticmethod
     def evaluate(
@@ -535,6 +506,303 @@ class LocusToGeneTrainer:
             "weightedRecall": recall_score(y_true, y_pred, average="weighted"),
             "f1": f1_score(y_true, y_pred, average="weighted"),
         }
+
+    def _run_cv_fold(
+        self: LocusToGeneTrainer,
+        fold_index: int,
+        fold_train_df: pd.DataFrame,
+        fold_val_df: pd.DataFrame,
+        sweep_id: str | None,
+        sweep_run_name: str | None,
+        config: dict[str, Any] | None,
+        collect_for_file: bool,
+        fold_results: list[dict[str, Any]],
+    ) -> None:
+        """Train and evaluate the model on a single cross-validation fold.
+
+        Args:
+            fold_index (int): 1-based fold index used for logging.
+            fold_train_df (pd.DataFrame): Training data for this fold.
+            fold_val_df (pd.DataFrame): Validation data for this fold.
+            sweep_id (str | None): W&B sweep ID; None when not using W&B.
+            sweep_run_name (str | None): W&B run name for this fold; None when not using W&B.
+            config (dict[str, Any] | None): Hyperparameter config to apply before fitting.
+            collect_for_file (bool): Whether to append fold data to fold_results.
+            fold_results (list[dict[str, Any]]): Mutable list that fold data is appended to.
+        """
+        reset_wandb_env()
+
+        x_fold_train = fold_train_df[self.features_list].values
+        x_fold_val = fold_val_df[self.features_list].values
+        y_fold_train = fold_train_df[self.feature_matrix.label_col].values
+        y_fold_val = fold_val_df[self.feature_matrix.label_col].values
+
+        fold_model = clone(self.model.model)
+        if config:
+            fold_model.set_params(**config)
+        fold_model.fit(x_fold_train, y_fold_train)
+        y_pred_proba = fold_model.predict_proba(x_fold_val)
+        y_pred = fold_model.predict(x_fold_val)
+
+        metrics = self.evaluate(
+            y_true=y_fold_val, y_pred=y_pred, y_pred_proba=y_pred_proba
+        )
+
+        if collect_for_file:
+            fold_results.append(
+                {
+                    "config": dict(config) if config else {},
+                    "fold": fold_index,
+                    "metrics": metrics,
+                    "y_true": y_fold_val,
+                    "y_pred_proba": y_pred_proba[:, 1],
+                }
+            )
+
+        if sweep_id and sweep_run_name and config:
+            os.environ["WANDB_SWEEP_ID"] = sweep_id
+            run = wandb_init(
+                project=self.wandb_l2g_project_name,
+                name=sweep_run_name,
+                config=config,
+                group=sweep_run_name,
+                job_type="fold",
+                reinit=True,
+            )
+            run.log(metrics)
+            wandb_termlog(f"Logged metrics for fold {fold_index}.")
+            run.finish()
+        else:
+            self.log_to_terminal(eval_id=f"Fold {fold_index}", metrics=metrics)
+
+    @staticmethod
+    def _expand_grid(parameter_grid: dict[str, Any]) -> list[dict[str, Any]]:
+        """Expand a W&B-style parameter grid into a flat list of hyperparameter configs.
+
+        Args:
+            parameter_grid (dict[str, Any]): Grid in the form {"param": {"values": [v1, v2, ...]}, ...}
+
+        Returns:
+            list[dict[str, Any]]: One dict per hyperparameter combination.
+        """
+        keys = list(parameter_grid.keys())
+        values = [parameter_grid[k]["values"] for k in keys]
+        return [dict(zip(keys, combo)) for combo in product(*values)]
+
+    def _save_cv_results(
+        self: LocusToGeneTrainer,
+        cv_results_dir: str,
+        fold_results: list[dict[str, Any]],
+        n_splits: int,
+    ) -> None:
+        """Persist CV results — metrics JSON, folds CSV, and per-config plots.
+
+        Supports both local paths and GCS paths (gs://bucket/prefix). GCS paths
+        are written to a local temp directory first, then uploaded via google-cloud-storage.
+
+        Args:
+            cv_results_dir (str): Directory to write output files (local or gs://).
+            fold_results (list[dict[str, Any]]): Collected fold data from cross_validate.
+            n_splits (int): Number of folds used.
+        """
+        import shutil
+        import tempfile
+
+        is_gcs = cv_results_dir.startswith("gs://")
+        if is_gcs:
+            work_dir = Path(tempfile.mkdtemp(prefix="l2g_cv_"))
+        else:
+            work_dir = Path(cv_results_dir)
+            work_dir.mkdir(parents=True, exist_ok=True)
+
+        try:
+            # Group results by hyperparameter config
+            config_groups: dict[str, dict[str, Any]] = {}
+            for result in fold_results:
+                key = json.dumps(result["config"], sort_keys=True)
+                if key not in config_groups:
+                    config_groups[key] = {"config": result["config"], "folds": []}
+                config_groups[key]["folds"].append(result)
+
+            summary_configs = []
+            for config_id, data in enumerate(config_groups.values()):
+                folds = data["folds"]
+                metric_keys = list(folds[0]["metrics"].keys())
+                mean_metrics = {
+                    k: float(np.mean([f["metrics"][k] for f in folds]))
+                    for k in metric_keys
+                }
+                std_metrics = {
+                    k: float(np.std([f["metrics"][k] for f in folds]))
+                    for k in metric_keys
+                }
+                summary_configs.append(
+                    {
+                        "config_id": config_id,
+                        "hyperparameters": data["config"],
+                        "fold_metrics": [
+                            {"fold": f["fold"], **f["metrics"]} for f in folds
+                        ],
+                        "mean_metrics": mean_metrics,
+                        "std_metrics": std_metrics,
+                    }
+                )
+
+                config_dir = work_dir / f"config_{config_id}"
+                config_dir.mkdir(exist_ok=True)
+                self._plot_roc_curves(folds, config_dir / "roc.png")
+                self._plot_pr_curves(folds, config_dir / "pr.png")
+                self._plot_confusion_matrix(folds, config_dir / "confusion_matrix.png")
+
+            output: dict[str, Any] = {
+                "timestamp": datetime.now().isoformat(),
+                "n_splits": n_splits,
+                "n_configs": len(summary_configs),
+                "configs": summary_configs,
+            }
+            with open(work_dir / "cv_results.json", "w") as fh:
+                json.dump(output, fh, indent=2)
+
+            rows = []
+            for cfg in summary_configs:
+                for fold in cfg["fold_metrics"]:
+                    rows.append(
+                        {"config_id": cfg["config_id"], **cfg["hyperparameters"], **fold}
+                    )
+            pd.DataFrame(rows).to_csv(work_dir / "cv_folds.csv", index=False)
+
+            if is_gcs:
+                self._upload_dir_to_gcs(work_dir, cv_results_dir)
+        finally:
+            if is_gcs:
+                shutil.rmtree(work_dir, ignore_errors=True)
+
+        logging.info("CV results written to %s", cv_results_dir)
+
+    @staticmethod
+    def _upload_dir_to_gcs(local_dir: Path, gcs_prefix: str) -> None:
+        """Upload every file under local_dir to GCS, preserving relative paths.
+
+        Args:
+            local_dir (Path): Root of the local directory tree to upload.
+            gcs_prefix (str): Destination GCS prefix, e.g. gs://bucket/path.
+        """
+        from google.cloud import storage as gcs_storage
+
+        without_scheme = gcs_prefix[len("gs://"):]
+        bucket_name, _, blob_prefix = without_scheme.partition("/")
+        client = gcs_storage.Client()
+        bucket = client.bucket(bucket_name)
+
+        for local_file in local_dir.rglob("*"):
+            if not local_file.is_file():
+                continue
+            relative = local_file.relative_to(local_dir)
+            blob_name = f"{blob_prefix.rstrip('/')}/{relative}" if blob_prefix else str(relative)
+            bucket.blob(blob_name).upload_from_filename(str(local_file))
+            logging.info("Uploaded %s → gs://%s/%s", relative, bucket_name, blob_name)
+
+    def _plot_roc_curves(
+        self: LocusToGeneTrainer,
+        folds: list[dict[str, Any]],
+        output_path: Path,
+    ) -> None:
+        """Plot per-fold ROC curves with mean AUC in the title.
+
+        Args:
+            folds (list[dict[str, Any]]): Fold data dicts with y_true and y_pred_proba keys.
+            output_path (Path): Where to save the PNG.
+        """
+        fig, ax = plt.subplots(figsize=(7, 6))
+        fold_aucs = []
+        for fold in folds:
+            fpr, tpr, _ = roc_curve(fold["y_true"], fold["y_pred_proba"])
+            fold_auc = auc(fpr, tpr)
+            fold_aucs.append(fold_auc)
+            ax.plot(fpr, tpr, alpha=0.5, lw=1.2, label=f"fold {fold['fold']} (AUC={fold_auc:.3f})")
+        ax.plot([0, 1], [0, 1], "k--", lw=0.8)
+        ax.set_xlabel("False Positive Rate")
+        ax.set_ylabel("True Positive Rate")
+        ax.set_title(
+            f"ROC curves — mean AUC = {np.mean(fold_aucs):.3f} ± {np.std(fold_aucs):.3f}"
+        )
+        ax.legend(fontsize=8, loc="lower right")
+        plt.tight_layout()
+        plt.savefig(output_path, dpi=150, bbox_inches="tight")
+        plt.close()
+
+    def _plot_pr_curves(
+        self: LocusToGeneTrainer,
+        folds: list[dict[str, Any]],
+        output_path: Path,
+    ) -> None:
+        """Plot per-fold Precision-Recall curves with mean AP in the title.
+
+        Args:
+            folds (list[dict[str, Any]]): Fold data dicts with y_true and y_pred_proba keys.
+            output_path (Path): Where to save the PNG.
+        """
+        fig, ax = plt.subplots(figsize=(7, 6))
+        fold_aps = []
+        for fold in folds:
+            precision, recall, _ = precision_recall_curve(
+                fold["y_true"], fold["y_pred_proba"]
+            )
+            ap = average_precision_score(fold["y_true"], fold["y_pred_proba"])
+            fold_aps.append(ap)
+            ax.plot(recall, precision, alpha=0.5, lw=1.2, label=f"fold {fold['fold']} (AP={ap:.3f})")
+        ax.set_xlabel("Recall")
+        ax.set_ylabel("Precision")
+        ax.set_title(
+            f"Precision-Recall curves — mean AP = {np.mean(fold_aps):.3f} ± {np.std(fold_aps):.3f}"
+        )
+        ax.legend(fontsize=8, loc="upper right")
+        plt.tight_layout()
+        plt.savefig(output_path, dpi=150, bbox_inches="tight")
+        plt.close()
+
+    def _plot_confusion_matrix(
+        self: LocusToGeneTrainer,
+        folds: list[dict[str, Any]],
+        output_path: Path,
+    ) -> None:
+        """Plot confusion matrix aggregated across all folds at threshold 0.5.
+
+        Args:
+            folds (list[dict[str, Any]]): Fold data dicts with y_true and y_pred_proba keys.
+            output_path (Path): Where to save the PNG.
+        """
+        y_true_all = np.concatenate([f["y_true"] for f in folds])
+        y_pred_all = (
+            np.concatenate([f["y_pred_proba"] for f in folds]) >= 0.5
+        ).astype(int)
+        cm = confusion_matrix(y_true_all, y_pred_all)
+        classes = list(self.model.label_encoder.values())
+
+        fig, ax = plt.subplots(figsize=(5, 4))
+        im = ax.imshow(cm, cmap="Blues")
+        plt.colorbar(im, ax=ax)
+        ax.set_xticks(range(len(classes)))
+        ax.set_yticks(range(len(classes)))
+        ax.set_xticklabels(classes)
+        ax.set_yticklabels(classes)
+        ax.set_xlabel("Predicted label")
+        ax.set_ylabel("True label")
+        ax.set_title("Confusion matrix  (threshold = 0.5, all folds)")
+        thresh = cm.max() / 2.0
+        for i in range(len(classes)):
+            for j in range(len(classes)):
+                ax.text(
+                    j,
+                    i,
+                    str(cm[i, j]),
+                    ha="center",
+                    va="center",
+                    color="white" if cm[i, j] > thresh else "black",
+                )
+        plt.tight_layout()
+        plt.savefig(output_path, dpi=150, bbox_inches="tight")
+        plt.close()
 
     @staticmethod
     def hierarchical_split(

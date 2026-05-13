@@ -179,6 +179,8 @@ class LocusToGeneStep:
         hf_model_commit_message: str | None = "chore: update model",
         hf_model_version: str | None = None,
         explain_predictions: bool | None = None,
+        hyperparameter_grid: dict[str, Any] | None = None,
+        cv_results_dir: str | None = None,
     ) -> None:
         """Initialise the step and run the logic based on mode.
 
@@ -203,6 +205,8 @@ class LocusToGeneStep:
             hf_model_commit_message (str | None): Commit message when we upload the model to the Hugging Face Hub
             hf_model_version (str | None): Tag, branch, or commit hash to download the model from the Hub. If None, the latest commit is downloaded.
             explain_predictions (bool | None): Whether to extract SHAP importances for the L2G predictions. This is computationally expensive.
+            hyperparameter_grid (dict[str, Any] | None): Hyperparameter grid to sweep over during cross-validation. Each key maps to {"values": [v1, v2, ...]}. If None, uses the fixed hyperparameters.
+            cv_results_dir (str | None): Local directory to write CV results (JSON, CSV, plots). Only used when cross_validate=True and wandb_run_name is not set.
 
         Raises:
             ValueError: If run_mode is not 'train' or 'predict'
@@ -234,6 +238,8 @@ class LocusToGeneStep:
         )
         self.hf_model_version = hf_model_version
         self.explain_predictions = explain_predictions
+        self.hyperparameter_grid = hyperparameter_grid
+        self.cv_results_dir = cv_results_dir
 
         # Load common inputs
         self.credible_set = StudyLocus.from_parquet(
@@ -418,6 +424,8 @@ class LocusToGeneStep:
             wandb_run_name=self.wandb_run_name,
             cross_validate=self.cross_validate,
             train_on_full_dataset=self.train_on_full_dataset,
+            hyperparameter_grid=self.hyperparameter_grid,
+            cv_results_dir=self.cv_results_dir,
         )
 
         # Export the model
