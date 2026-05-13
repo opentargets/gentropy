@@ -501,11 +501,21 @@ class LocusToGeneStep:
         Args:
             stats (dict[str, Any]): Stats dict returned by filter_dark_matter_loci.
         """
-        import fsspec
-
         log_path = f"{self.model_path}_dark_matter_stats.json"
-        with fsspec.open(log_path, "w") as fh:
-            json.dump(stats, fh, indent=2)
+        payload = json.dumps(stats, indent=2)
+        if log_path.startswith("gs://"):
+            from urllib.parse import urlparse
+
+            from google.cloud import storage
+
+            parsed = urlparse(log_path)
+            bucket = storage.Client().bucket(parsed.hostname)
+            bucket.blob(parsed.path.lstrip("/")).upload_from_string(
+                payload, content_type="application/json"
+            )
+        else:
+            with open(log_path, "w") as fh:
+                fh.write(payload)
         logging.info("Dark matter filter stats written to %s", log_path)
 
     def _annotate_gold_standards_w_feature_matrix(self) -> L2GFeatureMatrix:

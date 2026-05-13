@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import pyspark.sql.functions as f
 import pytest
@@ -254,6 +254,103 @@ class TestFromFeaturesList:
             ),
             _schema=TargetIndex.get_schema(),
         )
+
+
+class TestFilterDarkMatterLoci:
+    """Tests for L2GFeatureMatrix.filter_dark_matter_loci."""
+
+    # Minimal schema: signal feature + nearest feature + gold standard label
+    _SCHEMA = (
+        "studyLocusId STRING, geneId STRING, goldStandardSet STRING, "
+        "eQtlColocClppMaximum FLOAT, distanceSentinelTssNeighbourhood FLOAT"
+    )
+
+    def _make_fm(self, spark: SparkSession, rows: list[Any]) -> L2GFeatureMatrix:
+        return L2GFeatureMatrix(
+            _df=spark.createDataFrame(rows, schema=self._SCHEMA),
+            with_gold_standard=True,
+        )
+
+    def test_all_dark_matter_locus_removed(self, spark: SparkSession) -> None:
+        """Locus where every positive is dark matter (no signal, not nearest) is dropped entirely."""
+        fm = self._make_fm(
+            spark,
+            [
+                # dark matter positive: no signal, not nearest
+                ("loc1", "gene1", "positive", 0.0, 0.5),
+                # negative in the same locus — should also be dropped
+                ("loc1", "gene2", "negative", 0.0, 1.0),
+                # clean locus — should be kept
+                ("loc2", "gene3", "positive", 0.9, 0.5),
+                ("loc2", "gene4", "negative", 0.0, 1.0),
+            ],
+        )
+        filtered, stats = fm.filter_dark_matter_loci()
+        remaining = {
+            r.studyLocusId for r in filtered._df.select("studyLocusId").collect()
+        }
+        assert "loc1" not in remaining
+        assert "loc2" in remaining
+        assert stats["dark_matter"]["study_locus_ids_removed"] == 1
+
+    def test_mixed_locus_kept(self, spark: SparkSession) -> None:
+        """Locus with one dark matter positive and one signal positive is kept."""
+        fm = self._make_fm(
+            spark,
+            [
+                ("loc1", "gene1", "positive", 0.0, 0.5),  # dark matter
+                ("loc1", "gene2", "positive", 0.8, 0.5),  # has signal → locus kept
+                ("loc1", "gene3", "negative", 0.0, 1.0),
+            ],
+        )
+        filtered, stats = fm.filter_dark_matter_loci()
+        remaining = {
+            r.studyLocusId for r in filtered._df.select("studyLocusId").collect()
+        }
+        assert "loc1" in remaining
+        assert stats["dark_matter"]["study_locus_ids_removed"] == 0
+
+    def test_nearest_gene_positive_protected(self, spark: SparkSession) -> None:
+        """Positive with no signal but nearest-gene status (neighbourhood = 1.0) is protected."""
+        fm = self._make_fm(
+            spark,
+            [
+                # nearest gene (neighbourhood = 1.0), no signal → NOT dark matter
+                ("loc1", "gene1", "positive", 0.0, 1.0),
+                ("loc1", "gene2", "negative", 0.0, 0.3),
+            ],
+        )
+        filtered, stats = fm.filter_dark_matter_loci()
+        remaining = {
+            r.studyLocusId for r in filtered._df.select("studyLocusId").collect()
+        }
+        assert "loc1" in remaining
+        assert stats["dark_matter"]["study_locus_ids_removed"] == 0
+
+    def test_no_nearest_features_is_noop(self, spark: SparkSession) -> None:
+        """When no neighbourhood distance features are present the filter is a no-op."""
+        fm = L2GFeatureMatrix(
+            _df=spark.createDataFrame(
+                [("loc1", "gene1", "positive", 0.0)],
+                "studyLocusId STRING, geneId STRING, goldStandardSet STRING, eQtlColocClppMaximum FLOAT",
+            ),
+            with_gold_standard=True,
+        )
+        filtered, stats = fm.filter_dark_matter_loci()
+        assert filtered._df.count() == 1
+        assert stats == {}
+
+    def test_raises_without_gold_standard(self, spark: SparkSession) -> None:
+        """Calling the filter on a matrix without gold standard labels raises ValueError."""
+        fm = L2GFeatureMatrix(
+            _df=spark.createDataFrame(
+                [("loc1", "gene1", 0.0)],
+                "studyLocusId STRING, geneId STRING, eQtlColocClppMaximum FLOAT",
+            ),
+            with_gold_standard=False,
+        )
+        with pytest.raises(ValueError, match="gold standard"):
+            fm.filter_dark_matter_loci()
 
 
 def test_fill_na(spark: SparkSession) -> None:

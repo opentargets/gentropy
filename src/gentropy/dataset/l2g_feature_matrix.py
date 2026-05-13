@@ -258,18 +258,18 @@ class L2GFeatureMatrix:
     ]
 
     def filter_dark_matter_loci(self: Self) -> tuple[Self, dict[str, Any]]:
-        """Remove all loci that contain at least one dark matter positive.
+        """Remove all loci whose every positive is a dark matter positive.
 
-        Dark matter positives are gold-standard positives that satisfy both:
+        A dark matter positive is a gold-standard positive that satisfies both:
         - No functional genomics signal: all QTL colocalisation features and
           e2gMean are zero, and vepMaximum (when present) is below the
           protein-altering threshold (0.6).
         - Not the nearest gene: all neighbourhood distance features are < 1.0.
 
-        Positives that are the nearest gene (any neighbourhood distance = 1.0)
-        are kept even without functional signal. A locus is only removed when
-        ALL of its positives are dark matter. The entire locus (positives and
-        negatives) is dropped so class balance within retained loci is preserved.
+        A locus is removed only when ALL of its positives are dark matter.
+        Loci with at least one signal-carrying or nearest-gene positive are
+        kept. The entire locus (positives and negatives) is dropped so class
+        balance within retained loci is preserved.
 
         Returns:
             tuple[Self, dict[str, Any]]: Filtered feature matrix and a stats
@@ -300,8 +300,14 @@ class L2GFeatureMatrix:
                 "No dark matter signal features found in feature matrix; "
                 "filter has no effect."
             )
-            empty_stats: dict[str, Any] = {}
-            return self, empty_stats
+            return self, {}
+
+        if not nearest_features:
+            logging.warning(
+                "No neighbourhood distance features found in feature matrix; "
+                "cannot determine gene nearness — dark matter filter has no effect."
+            )
+            return self, {}
 
         # "No functional signal" condition
         if qtl_e2g_features:
@@ -320,22 +326,18 @@ class L2GFeatureMatrix:
         else:
             no_signal = no_qtl_e2g_signal
 
-        # "Not the nearest gene" condition — all neighbourhood distances < 1.0
-        if nearest_features:
-            not_nearest = reduce(
-                lambda acc, col: acc & (f.col(col) < 1.0),
-                nearest_features[1:],
-                f.col(nearest_features[0]) < 1.0,
-            )
-        else:
-            not_nearest = f.lit(True)
+        # "Not the nearest gene" — all neighbourhood distances < 1.0
+        not_nearest = reduce(
+            lambda acc, col: acc & (f.col(col) < 1.0),
+            nearest_features[1:],
+            f.col(nearest_features[0]) < 1.0,
+        )
 
         positives = self._df.filter(
             f.col(self.label_col) == L2GGoldStandard.GS_POSITIVE_LABEL
         )
 
-        # Count all positives per locus and dark matter positives per locus separately,
-        # then only mark a locus for removal when every positive in it is dark matter.
+        # Mark a locus for removal only when every positive in it is dark matter.
         total_positives_per_locus = positives.groupBy("studyLocusId").agg(
             f.count("*").alias("total_positive_count")
         )
@@ -353,27 +355,46 @@ class L2GFeatureMatrix:
             .persist()
         )
 
-        # --- Stats: before ---
-        rows_before = self._df.count()
-        positives_before = positives.count()
-        loci_before = self._df.select("studyLocusId").distinct().count()
-        dark_matter_positives_count = positives.filter(no_signal & not_nearest).count()
-        dark_matter_loci_count = dark_matter_loci.count()
+        # Consolidate before-stats into a single aggregation (3 metrics, 1 action)
+        before_row = self._df.agg(
+            f.count("*").alias("rows"),
+            f.sum(
+                f.when(f.col(self.label_col) == L2GGoldStandard.GS_POSITIVE_LABEL, 1).otherwise(0)
+            ).alias("positives"),
+            f.countDistinct("studyLocusId").alias("loci"),
+        ).collect()[0]
+
+        # Dark matter counts: loci removed + matching positive rows (1 action)
+        dm_row = dark_matter_loci.join(
+            dark_matter_positives_per_locus, "studyLocusId"
+        ).agg(
+            f.count("*").alias("loci_removed"),
+            f.sum("dark_matter_count").alias("dm_positives"),
+        ).collect()[0]
 
         self._df = self._df.join(dark_matter_loci, "studyLocusId", "left_anti")
         dark_matter_loci.unpersist()
 
-        # --- Stats: after ---
-        rows_after = self._df.count()
-        positives_after = (
-            self._df.filter(
-                f.col(self.label_col) == L2GGoldStandard.GS_POSITIVE_LABEL
-            ).count()
-        )
-        loci_after = self._df.select("studyLocusId").distinct().count()
+        # Consolidate after-stats into a single aggregation (1 action)
+        after_row = self._df.agg(
+            f.count("*").alias("rows"),
+            f.sum(
+                f.when(f.col(self.label_col) == L2GGoldStandard.GS_POSITIVE_LABEL, 1).otherwise(0)
+            ).alias("positives"),
+            f.countDistinct("studyLocusId").alias("loci"),
+        ).collect()[0]
 
         def _pct_reduction(before: int, after: int) -> float:
             return round((before - after) / before * 100, 2) if before else 0.0
+
+        rows_before = int(before_row["rows"])
+        positives_before = int(before_row["positives"])
+        loci_before = int(before_row["loci"])
+        dark_matter_loci_count = int(dm_row["loci_removed"])
+        dark_matter_positives_count = int(dm_row["dm_positives"] or 0)
+        rows_after = int(after_row["rows"])
+        positives_after = int(after_row["positives"])
+        loci_after = int(after_row["loci"])
 
         stats: dict[str, Any] = {
             "before": {
