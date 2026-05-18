@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import ClassVar
+from typing import ClassVar, Self
 
 from pydantic import BaseModel, SecretStr
 
@@ -55,7 +55,7 @@ class BaseServiceCredentials(ExternalConfig):
     _env_var: ClassVar[str]
 
     @classmethod
-    def read(cls, path: str | None = None) -> BaseServiceCredentials:
+    def read(cls, path: str | None = None) -> Self:
         """Read credentials from a JSON file or environment variable.
 
         Args:
@@ -73,7 +73,5 @@ class BaseServiceCredentials(ExternalConfig):
             return cls.from_json(path)
         key = os.getenv(cls._env_var)
         if not key:
-            raise MissingApiKeyError(
-                f"{cls._env_var} environment variable is not set."
-            )
+            raise MissingApiKeyError(f"{cls._env_var} environment variable is not set.")
         return cls(**{cls._env_var: SecretStr(key)})

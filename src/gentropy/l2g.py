@@ -181,7 +181,7 @@ class LocusToGeneStep:
         l2g_threshold: float = 0.05,
         hf_hub_repo_id: str = "locus_to_gene",
         hf_model_commit_message: str = "chore: update model",
-        hf_model_version: str = "latest",
+        hf_model_version: str | None = None,
         explain_predictions: bool = False,
         hf_credentials_path: str | None = None,
         wandb_credentials_path: str | None = None,
@@ -207,7 +207,7 @@ class LocusToGeneStep:
             l2g_threshold (float): An optional threshold for the L2G score to filter predictions. A threshold of 0.05 is recommended.
             hf_hub_repo_id (str): Hugging Face Hub repository handle in ``username/repo_name`` format. Used to download the model when ``download_from_hub`` is ``True`` (predict mode) and to upload the trained model (train mode).
             hf_model_commit_message (str): Commit message when we upload the model to the Hugging Face Hub
-            hf_model_version (str): Tag, branch, or commit hash to download the model from the Hub. Defaults to ``"latest"``.
+            hf_model_version (str | None): Tag, branch, or commit hash to download the model from the Hub. Defaults to latest commit when provided None.
             explain_predictions (bool): Whether to extract SHAP importances for the L2G predictions. This is computationally expensive.
             hf_credentials_path (str | None): Optional path to the Hugging Face Hub credentials JSON file. If not provided, the HF_TOKEN environment variable will be used.
             wandb_credentials_path (str | None): Optional path to the Weights and Biases credentials JSON file. If not provided, the WANDB_API_KEY environment variable will be used.
