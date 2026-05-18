@@ -2,21 +2,22 @@
 
 from __future__ import annotations
 
-import json
 import logging
 import os
 
-from pydantic import BaseModel
+from pydantic import SecretStr
+
+from gentropy.external import ExternalConfig
 
 
-class S3Config(BaseModel):
+class S3Config(ExternalConfig):
     """Model for S3 configuration.
 
     Note:
         This configuration is used to connect to S3 compatible storage.
         Ensure that the access key and secret key have the necessary permissions
         to access the specified bucket. This configuration can be loaded from a JSON file
-        using the `from_file` class method.
+        using the `from_json` class method.
 
     Examples:
     ---
@@ -33,9 +34,9 @@ class S3Config(BaseModel):
     9000
     >>> print(config.s3_host_url)
     s3.my-domain.com
-    >>> print(config.access_key_id)
+    >>> print(config.access_key_id.get_secret_value())
     my-access-key-id
-    >>> print(config.secret_access_key)
+    >>> print(config.secret_access_key.get_secret_value())
     my-secret-access-key
     """
 
@@ -45,44 +46,10 @@ class S3Config(BaseModel):
     """Port number of the S3 host."""
     s3_host_url: str
     """URL of the S3 host."""
-    access_key_id: str
+    access_key_id: SecretStr
     """Access key ID for S3 authentication."""
-    secret_access_key: str
+    secret_access_key: SecretStr
     """Secret access key for S3 authentication."""
-
-    @classmethod
-    def from_file(cls, path: str) -> S3Config:
-        """Load S3 configuration from a file.
-
-        Args:
-            path (str): Path to the configuration file.
-
-        Returns:
-            S3Config: S3 configuration instance.
-
-        Examples:
-        ---
-        >>> import tempfile
-        >>> import os
-        >>> config_data = {
-        ...     "bucket_name": "my-bucket",
-        ...     "s3_host_port": 9000,
-        ...     "s3_host_url": "s3.my-domain.com",
-        ...     "access_key_id": "my-access-key-id",
-        ...     "secret_access_key": "my-secret-access-key",
-        ... }
-        >>> with tempfile.NamedTemporaryFile(mode='w', delete=False) as tmpfile:
-        ...     json.dump(config_data, tmpfile)
-        ...     tmpfile_path = tmpfile.name
-        >>> config = S3Config.from_file(tmpfile_path)
-        >>> config.bucket_name
-        'my-bucket'
-        >>> os.remove(tmpfile_path)
-
-        """
-        with open(path, encoding="utf-8") as f:
-            config_data = json.load(f)
-        return cls(**config_data)
 
     @classmethod
     def from_env(cls) -> S3Config:
@@ -141,8 +108,8 @@ class S3Config(BaseModel):
             bucket_name=bucket,
             s3_host_port=int(s3_host_port_str),
             s3_host_url=s3_host_url,
-            access_key_id=access_key_id,
-            secret_access_key=secret_access_key,
+            access_key_id=SecretStr(access_key_id),
+            secret_access_key=SecretStr(secret_access_key),
         )
 
     @classmethod
@@ -162,7 +129,7 @@ class S3Config(BaseModel):
             )
             return cls.from_env()
         try:
-            return cls.from_file(path)
+            return cls.from_json(path)
         except Exception as e:
             logging.warning(f"Failed to load S3 configuration from file: {e}")
             logging.info("Falling back to environment variables for S3 configuration.")
