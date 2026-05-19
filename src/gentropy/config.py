@@ -289,9 +289,9 @@ class LocusToGeneConfig(StepConfig):
     credible_set_path: str = MISSING
     feature_matrix_path: str = MISSING
     predictions_path: str | None = None
-    l2g_threshold: float | None = 0.05
+    l2g_threshold: float = 0.05
     variant_index_path: str | None = None
-    model_path: str | None = None
+    model_path: str = "opentargets/locus_to_gene"
     gold_standard_curation_path: str | None = None
     gene_interactions_path: str | None = None
     features_list: list[str] = field(
@@ -334,6 +334,9 @@ class LocusToGeneConfig(StepConfig):
             "geneCount500kb",
             "proteinGeneCount500kb",
             "credibleSetConfidence",
+            # trans-pQTL colocalisation via protein-protein interactions
+            "transPQtlColocH4Maximum",
+            "transPQtlColocH4MaximumNeighbourhood",
         ]
     )
     hyperparameters: dict[str, Any] = field(
@@ -349,12 +352,15 @@ class LocusToGeneConfig(StepConfig):
         }
     )
     wandb_run_name: str | None = None
-    hf_hub_repo_id: str | None = None
-    hf_model_commit_message: str | None = None
-    hf_model_version: str | None = None
+    hf_hub_repo_id: str = "locus_to_gene"
+    hf_model_commit_message: str = "chore: update model"
+    hf_model_version: str | None = None  # Latest commit is picked when provided None
     download_from_hub: bool = True
     cross_validate: bool = True
-    explain_predictions: bool | None = False
+    train_on_full_dataset: bool = False
+    explain_predictions: bool = False
+    wandb_credentials_path: str | None = None
+    hf_credentials_path: str | None = None
     _target_: str = "gentropy.l2g.LocusToGeneStep"
 
 
@@ -377,6 +383,7 @@ class LocusToGeneFeatureMatrixConfig(StepConfig):
     study_index_path: str | None = None
     target_index_path: str | None = None
     intervals_path: str | None = None
+    gene_interactions_path: str | None = None
     feature_matrix_path: str = MISSING
     features_list: list[str] = field(
         default_factory=lambda: [
@@ -419,6 +426,9 @@ class LocusToGeneFeatureMatrixConfig(StepConfig):
             "proteinGeneCount500kb",
             "credibleSetConfidence",
             "isProteinCoding",
+            # trans-pQTL colocalisation via protein-protein interactions
+            "transPQtlColocH4Maximum",
+            "transPQtlColocH4MaximumNeighbourhood",
         ]
     )
     append_null_features: bool = False
