@@ -39,6 +39,10 @@ def test_evaluate_perfect_predictions() -> None:
         "weightedPrecision": 1.0,
         "weightedRecall": 1.0,
         "f1": 1.0,
+        "TP": 2,
+        "FP": 0,
+        "TN": 2,
+        "FN": 0,
     }
     assert metrics == expected
 

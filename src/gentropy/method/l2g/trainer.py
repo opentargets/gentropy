@@ -669,7 +669,11 @@ class LocusToGeneTrainer:
             "config_id": config_id,
             "hyperparameters": folds[0]["config"],
             "fold_metrics": [
-                {"fold": f["fold"], **{k: float(v) for k, v in f["metrics"].items()}}
+                {
+                    "fold": f["fold"],
+                    **{k: int(v) if isinstance(v, (int, np.integer)) else float(v)
+                       for k, v in f["metrics"].items()},
+                }
                 for f in folds
             ],
             "mean_metrics": mean_metrics,
