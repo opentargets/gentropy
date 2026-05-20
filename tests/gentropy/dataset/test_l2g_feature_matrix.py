@@ -266,6 +266,7 @@ class TestFilterDarkMatterLoci:
     )
 
     def _make_fm(self, spark: SparkSession, rows: list[Any]) -> L2GFeatureMatrix:
+        """Build a minimal gold-standard-annotated L2GFeatureMatrix from row tuples."""
         return L2GFeatureMatrix(
             _df=spark.createDataFrame(rows, schema=self._SCHEMA),
             with_gold_standard=True,
@@ -349,6 +350,28 @@ class TestFilterDarkMatterLoci:
                 ("loc1", "gene1", "positive", None, 0.5),
                 ("loc1", "gene2", "negative", None, 1.0),
             ],
+        )
+        filtered, stats = fm.filter_dark_matter_loci()
+        remaining = {
+            r.studyLocusId for r in filtered._df.select("studyLocusId").collect()
+        }
+        assert "loc1" not in remaining
+        assert stats["dark_matter"]["study_locus_ids_removed"] == 1
+
+    def test_null_vep_treated_as_no_signal(self, spark: SparkSession) -> None:
+        """NULL vepMaximum (absent VEP annotation) is coalesced to 0.0 and treated as below threshold."""
+        fm = L2GFeatureMatrix(
+            _df=spark.createDataFrame(
+                [
+                    # zero QTL signal, NULL vepMaximum, not nearest → dark matter
+                    ("loc1", "gene1", "positive", 0.0, 0.5, None),
+                    ("loc1", "gene2", "negative", 0.0, 1.0, None),
+                ],
+                "studyLocusId STRING, geneId STRING, goldStandardSet STRING, "
+                "eQtlColocClppMaximum FLOAT, distanceSentinelTssNeighbourhood FLOAT, "
+                "vepMaximum FLOAT",
+            ),
+            with_gold_standard=True,
         )
         filtered, stats = fm.filter_dark_matter_loci()
         remaining = {
