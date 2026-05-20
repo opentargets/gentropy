@@ -479,6 +479,11 @@ class LocusToGeneStep:
             if dark_matter_stats:
                 if self.model_path:
                     self._write_dark_matter_stats(dark_matter_stats)
+                else:
+                    logging.warning(
+                        "filter_dark_matter=True but model_path is not set — "
+                        "dark matter stats were computed but not written anywhere."
+                    )
             else:
                 logging.warning(
                     "filter_dark_matter=True but the filter had no effect: "

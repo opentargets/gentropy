@@ -316,6 +316,17 @@ class LocusToGeneTrainer:
         Returns:
             LocusToGeneModel: Fitted model
         """
+        # Grid search is exploratory — full-dataset retraining makes no sense when
+        # no single winning config has been chosen yet.
+        if train_on_full_dataset and hyperparameter_grid and any(
+            len(v.get("values", [])) > 1 for v in hyperparameter_grid.values()
+        ):
+            logging.warning(
+                "train_on_full_dataset=True is ignored during a hyperparameter grid "
+                "search. Re-run with the chosen config and train_on_full_dataset=True."
+            )
+            train_on_full_dataset = False
+
         # Create held-out test set using hierarchical splitting
         self.train_df, self.test_df = self.feature_matrix.generate_train_test_split(
             test_size=test_size,
@@ -472,8 +483,9 @@ class LocusToGeneTrainer:
             run_all_folds()
 
         if collect_for_file and fold_results:
+            assert cv_results_dir is not None
             self._save_cv_results(
-                cv_results_dir=cv_results_dir,  # type: ignore[arg-type]
+                cv_results_dir=cv_results_dir,
                 fold_results=fold_results,
                 n_splits=n_splits,
             )
@@ -586,6 +598,12 @@ class LocusToGeneTrainer:
             list[dict[str, Any]]: One dict per hyperparameter combination.
         """
         keys = list(parameter_grid.keys())
+        missing = [k for k in keys if "values" not in parameter_grid[k]]
+        if missing:
+            raise ValueError(
+                f"Hyperparameter grid entries must have a 'values' key. "
+                f"Missing in: {missing}"
+            )
         values = [parameter_grid[k]["values"] for k in keys]
         return [dict(zip(keys, combo)) for combo in product(*values)]
 

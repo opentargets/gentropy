@@ -358,12 +358,12 @@ class LocusToGeneConfig(StepConfig):
     download_from_hub: bool = True
     cross_validate: bool = True
     train_on_full_dataset: bool = False
+    filter_dark_matter: bool = False
     hyperparameter_grid: dict[str, Any] | None = None
     cv_results_dir: str | None = None
     explain_predictions: bool = False
     wandb_credentials_path: str | None = None
     hf_credentials_path: str | None = None
-    filter_dark_matter: bool = False
     _target_: str = "gentropy.l2g.LocusToGeneStep"
 
 
