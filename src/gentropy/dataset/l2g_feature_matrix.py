@@ -345,6 +345,7 @@ class L2GFeatureMatrix:
             positives.filter(no_signal & not_nearest)
             .groupBy("studyLocusId")
             .agg(f.count("*").alias("dark_matter_count"))
+            .persist()
         )
         dark_matter_loci = (
             total_positives_per_locus.join(
@@ -374,6 +375,7 @@ class L2GFeatureMatrix:
 
         self._df = self._df.join(dark_matter_loci, "studyLocusId", "left_anti")
         dark_matter_loci.unpersist()
+        dark_matter_positives_per_locus.unpersist()
 
         # Consolidate after-stats into a single aggregation (1 action)
         after_row = self._df.agg(

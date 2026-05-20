@@ -470,8 +470,16 @@ class LocusToGeneStep:
 
         if self.filter_dark_matter:
             feature_matrix, dark_matter_stats = feature_matrix.filter_dark_matter_loci()
-            if self.model_path and dark_matter_stats:
-                self._write_dark_matter_stats(dark_matter_stats)
+            if dark_matter_stats:
+                if self.model_path:
+                    self._write_dark_matter_stats(dark_matter_stats)
+            else:
+                logging.warning(
+                    "filter_dark_matter=True but the filter had no effect: "
+                    "required signal or neighbourhood-distance features are "
+                    "absent from features_list. Verify that the dark matter "
+                    "features are included in the training feature set."
+                )
 
         # Run the training
         trained_model = LocusToGeneTrainer(
@@ -501,21 +509,11 @@ class LocusToGeneStep:
         Args:
             stats (dict[str, Any]): Stats dict returned by filter_dark_matter_loci.
         """
+        import fsspec
+
         log_path = f"{self.model_path}_dark_matter_stats.json"
-        payload = json.dumps(stats, indent=2)
-        if log_path.startswith("gs://"):
-            from urllib.parse import urlparse
-
-            from google.cloud import storage
-
-            parsed = urlparse(log_path)
-            bucket = storage.Client().bucket(parsed.hostname)
-            bucket.blob(parsed.path.lstrip("/")).upload_from_string(
-                payload, content_type="application/json"
-            )
-        else:
-            with open(log_path, "w") as fh:
-                fh.write(payload)
+        with fsspec.open(log_path, "w") as fh:
+            fh.write(json.dumps(stats, indent=2))
         logging.info("Dark matter filter stats written to %s", log_path)
 
     def _annotate_gold_standards_w_feature_matrix(self) -> L2GFeatureMatrix:
