@@ -524,6 +524,9 @@ class LocusToGeneTrainer:
         Returns:
             dict[str, float]: Dictionary of evaluation metrics
         """
+        cm = confusion_matrix(y_true, y_pred)
+        # cm layout: [[TN, FP], [FN, TP]] for binary classification
+        tn, fp, fn, tp = (int(cm[0, 0]), int(cm[0, 1]), int(cm[1, 0]), int(cm[1, 1]))
         return {
             "areaUnderROC": roc_auc_score(
                 y_true, y_pred_proba[:, 1], average="weighted"
@@ -535,6 +538,10 @@ class LocusToGeneTrainer:
             ),
             "weightedRecall": recall_score(y_true, y_pred, average="weighted"),
             "f1": f1_score(y_true, y_pred, average="weighted"),
+            "TP": tp,
+            "FP": fp,
+            "TN": tn,
+            "FN": fn,
         }
 
     def _run_cv_fold(
