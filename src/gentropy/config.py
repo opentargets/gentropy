@@ -359,7 +359,7 @@ class LocusToGeneConfig(StepConfig):
     cross_validate: bool = True
     train_on_full_dataset: bool = False
     filter_dark_matter: bool = False
-    hyperparameter_grid: dict[str, Any] | None = None
+    hyperparameter_grid: Any = None  # dict[str, Any] | None — Any avoids OmegaConf Optional[Dict] merge bug
     cv_results_dir: str | None = None
     explain_predictions: bool = False
     wandb_credentials_path: str | None = None
