@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+import logging
 from functools import reduce
-from typing import TYPE_CHECKING, Self
+from typing import TYPE_CHECKING, Any, Self
 
 import pyspark.sql.functions as f
 from pandas import DataFrame as pd_dataframe
@@ -224,6 +225,214 @@ class L2GFeatureMatrix:
             self.features_list.extend(null_features)
 
         return self
+
+    # VEP threshold for coding signal. Set to 0.6 (slightly below the computed
+    # score of 0.66 for protein_altering_variant SO:0001818, rank=14/41) to
+    # give a small margin around that boundary.
+    _VEP_PROTEIN_ALTERING_THRESHOLD: float = 0.6
+
+    # Functional genomics signal features for dark matter detection.
+    # A positive with all of these at zero (and vepMaximum below threshold)
+    # has no molecular evidence linking it to the locus.
+    _DARK_MATTER_SIGNAL_FEATURES: list[str] = [
+        "eQtlColocClppMaximum",
+        "pQtlColocClppMaximum",
+        "sQtlColocClppMaximum",
+        "eQtlColocH4Maximum",
+        "pQtlColocH4Maximum",
+        "sQtlColocH4Maximum",
+        "transPQtlColocH4Maximum",
+        "e2gMean",
+    ]
+
+    # Neighbourhood distance features used to determine whether a gene is the
+    # nearest to the sentinel.  A value of 1.0 means the gene is the nearest
+    # in the locus window.  A positive that is nearest by any of these measures
+    # is excluded from dark matter removal even if it has no functional signal,
+    # because its proximity may still make it a learnable positive.
+    _DARK_MATTER_NEAREST_FEATURES: list[str] = [
+        "distanceSentinelFootprintNeighbourhood",
+        "distanceFootprintMeanNeighbourhood",
+        "distanceTssMeanNeighbourhood",
+        "distanceSentinelTssNeighbourhood",
+    ]
+
+    def filter_dark_matter_loci(self: Self) -> tuple[Self, dict[str, Any]]:
+        """Remove all loci whose every positive is a dark matter positive.
+
+        A dark matter positive is a gold-standard positive that satisfies both:
+        - No functional genomics signal: all QTL colocalisation features and
+          e2gMean are zero, and vepMaximum (when present) is below the
+          protein-altering threshold (0.6).
+        - Not the nearest gene: all neighbourhood distance features are < 1.0.
+
+        A locus is removed only when ALL of its positives are dark matter.
+        Loci with at least one signal-carrying or nearest-gene positive are
+        kept. The entire locus (positives and negatives) is dropped so class
+        balance within retained loci is preserved.
+
+        Returns:
+            tuple[Self, dict[str, Any]]: Filtered feature matrix and a stats
+                dict with before/after counts and reduction percentages.
+
+        Raises:
+            ValueError: If called on a feature matrix without gold standard labels.
+        """
+        if not self.with_gold_standard:
+            raise ValueError(
+                "Dark matter filtering requires a gold standard-annotated feature matrix."
+            )
+
+        # Only check features actually present in this matrix
+        qtl_e2g_features = [
+            col
+            for col in self._DARK_MATTER_SIGNAL_FEATURES
+            if col in self.features_list
+        ]
+        nearest_features = [
+            col
+            for col in self._DARK_MATTER_NEAREST_FEATURES
+            if col in self.features_list
+        ]
+
+        if not qtl_e2g_features and "vepMaximum" not in self.features_list:
+            logging.warning(
+                "No dark matter signal features found in feature matrix; "
+                "filter has no effect."
+            )
+            return self, {}
+
+        if not nearest_features:
+            logging.warning(
+                "No neighbourhood distance features found in feature matrix; "
+                "cannot determine gene nearness — dark matter filter has no effect."
+            )
+            return self, {}
+
+        # "No functional signal" condition — coalesce to 0.0 so that NULL
+        # (produced by inner joins when no coloc/VEP evidence exists) is treated
+        # as "no signal" rather than being propagated as NULL by the comparison.
+        if qtl_e2g_features:
+            no_qtl_e2g_signal = reduce(
+                lambda acc, col: acc & (f.coalesce(f.col(col), f.lit(0.0)) == 0.0),
+                qtl_e2g_features[1:],
+                f.coalesce(f.col(qtl_e2g_features[0]), f.lit(0.0)) == 0.0,
+            )
+        else:
+            no_qtl_e2g_signal = f.lit(True)
+
+        if "vepMaximum" in self.features_list:
+            no_signal = no_qtl_e2g_signal & (
+                f.coalesce(f.col("vepMaximum"), f.lit(0.0))
+                < self._VEP_PROTEIN_ALTERING_THRESHOLD
+            )
+        else:
+            no_signal = no_qtl_e2g_signal
+
+        # "Not the nearest gene" — all neighbourhood distances < 1.0
+        not_nearest = reduce(
+            lambda acc, col: acc & (f.col(col) < 1.0),
+            nearest_features[1:],
+            f.col(nearest_features[0]) < 1.0,
+        )
+
+        positives = self._df.filter(
+            f.col(self.label_col) == L2GGoldStandard.GS_POSITIVE_LABEL
+        )
+
+        # Mark a locus for removal only when every positive in it is dark matter.
+        total_positives_per_locus = positives.groupBy("studyLocusId").agg(
+            f.count("*").alias("total_positive_count")
+        )
+        dark_matter_positives_per_locus = (
+            positives.filter(no_signal & not_nearest)
+            .groupBy("studyLocusId")
+            .agg(f.count("*").alias("dark_matter_count"))
+            .persist()
+        )
+        dark_matter_loci = (
+            total_positives_per_locus.join(
+                dark_matter_positives_per_locus, "studyLocusId"
+            )
+            .filter(f.col("dark_matter_count") == f.col("total_positive_count"))
+            .select("studyLocusId")
+            .persist()
+        )
+
+        # Consolidate before-stats into a single aggregation (3 metrics, 1 action)
+        before_row = self._df.agg(
+            f.count("*").alias("rows"),
+            f.sum(
+                f.when(f.col(self.label_col) == L2GGoldStandard.GS_POSITIVE_LABEL, 1).otherwise(0)
+            ).alias("positives"),
+            f.countDistinct("studyLocusId").alias("loci"),
+        ).collect()[0]
+
+        # Dark matter counts: loci removed + matching positive rows (1 action)
+        dm_row = dark_matter_loci.join(
+            dark_matter_positives_per_locus, "studyLocusId"
+        ).agg(
+            f.count("*").alias("loci_removed"),
+            f.sum("dark_matter_count").alias("dm_positives"),
+        ).collect()[0]
+
+        self._df = self._df.join(dark_matter_loci, "studyLocusId", "left_anti").persist()
+        dark_matter_loci.unpersist()
+        dark_matter_positives_per_locus.unpersist()
+
+        # Consolidate after-stats into a single aggregation (1 action)
+        after_row = self._df.agg(
+            f.count("*").alias("rows"),
+            f.sum(
+                f.when(f.col(self.label_col) == L2GGoldStandard.GS_POSITIVE_LABEL, 1).otherwise(0)
+            ).alias("positives"),
+            f.countDistinct("studyLocusId").alias("loci"),
+        ).collect()[0]
+
+        def _pct_reduction(before: int, after: int) -> float:
+            return round((before - after) / before * 100, 2) if before else 0.0
+
+        rows_before = int(before_row["rows"])
+        positives_before = int(before_row["positives"] or 0)
+        loci_before = int(before_row["loci"])
+        dark_matter_loci_count = int(dm_row["loci_removed"])
+        dark_matter_positives_count = int(dm_row["dm_positives"] or 0)
+        rows_after = int(after_row["rows"])
+        positives_after = int(after_row["positives"] or 0)
+        loci_after = int(after_row["loci"])
+
+        stats: dict[str, Any] = {
+            "before": {
+                "rows": rows_before,
+                "positives": positives_before,
+                "study_locus_ids": loci_before,
+            },
+            "dark_matter": {
+                "positive_rows": dark_matter_positives_count,
+                "study_locus_ids_removed": dark_matter_loci_count,
+            },
+            "after": {
+                "rows": rows_after,
+                "positives": positives_after,
+                "study_locus_ids": loci_after,
+            },
+            "pct_reduction": {
+                "rows": _pct_reduction(rows_before, rows_after),
+                "positives": _pct_reduction(positives_before, positives_after),
+                "study_locus_ids": _pct_reduction(loci_before, loci_after),
+            },
+        }
+
+        logging.info(
+            "Dark matter filter: removed %d loci (%d dark matter positives). "
+            "Training set: %d → %d rows (%.1f%% reduction).",
+            dark_matter_loci_count,
+            dark_matter_positives_count,
+            rows_before,
+            rows_after,
+            stats["pct_reduction"]["rows"],
+        )
+        return self, stats
 
     def generate_train_test_split(
         self,

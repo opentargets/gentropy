@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import logging
 from typing import Any
 
@@ -187,6 +188,7 @@ class LocusToGeneStep:
         cv_results_dir: str | None = None,
         hf_credentials_path: str | None = None,
         wandb_credentials_path: str | None = None,
+        filter_dark_matter: bool = False,
     ) -> None:
         """Initialise the step and run the logic based on mode.
 
@@ -215,6 +217,7 @@ class LocusToGeneStep:
             cv_results_dir (str | None): Local directory to write CV results (JSON, CSV, plots). Only used when cross_validate=True and wandb_run_name is not set.
             hf_credentials_path (str | None): Optional path to the Hugging Face Hub credentials JSON file. If not provided, the HF_TOKEN environment variable will be used.
             wandb_credentials_path (str | None): Optional path to the Weights and Biases credentials JSON file. If not provided, the WANDB_API_KEY environment variable will be used.
+            filter_dark_matter (bool): Whether to remove loci where every gold-standard positive has no functional genomics signal (zero QTL colocalisation, E2G, and VEP below protein-altering threshold) and is not the nearest gene (all neighbourhood distance features < 1.0). Loci with at least one signal-carrying or nearest-gene positive are kept. Defaults to False.
 
         Raises:
             ValueError: If run_mode is not 'train' or 'predict'
@@ -279,6 +282,7 @@ class LocusToGeneStep:
         self.explain_predictions = explain_predictions
         self.hyperparameter_grid = hyperparameter_grid
         self.cv_results_dir = cv_results_dir
+        self.filter_dark_matter = filter_dark_matter
 
         # Load common inputs
         self.credible_set = StudyLocus.from_parquet(
@@ -470,6 +474,19 @@ class LocusToGeneStep:
         # Calculate the gold standard features
         feature_matrix = self._annotate_gold_standards_w_feature_matrix()
 
+        if self.filter_dark_matter:
+            feature_matrix, dark_matter_stats = feature_matrix.filter_dark_matter_loci()
+            if dark_matter_stats:
+                if self.model_path:
+                    self._write_dark_matter_stats(dark_matter_stats)
+            else:
+                logging.warning(
+                    "filter_dark_matter=True but the filter had no effect: "
+                    "required signal or neighbourhood-distance features are "
+                    "absent from features_list. Verify that the dark matter "
+                    "features are included in the training feature set."
+                )
+
         # Run the training
         trained_model = LocusToGeneTrainer(
             model=l2g_model, feature_matrix=feature_matrix
@@ -493,6 +510,32 @@ class LocusToGeneStep:
                     repo_id=self.hf_hub_repo_id,
                     commit_message=self.hf_model_commit_message,
                 )
+
+    def _write_dark_matter_stats(self, stats: dict[str, Any]) -> None:
+        """Write dark matter filtering stats as JSON next to the model path.
+
+        Args:
+            stats (dict[str, Any]): Stats dict returned by filter_dark_matter_loci.
+        """
+        from urllib.parse import urlparse
+
+        from google.cloud import storage
+
+        log_path = f"{self.model_path}_dark_matter_stats.json"
+        payload = json.dumps(stats, indent=2)
+        if log_path.startswith("gs://"):
+            parsed = urlparse(log_path)
+            bucket = storage.Client().bucket(parsed.hostname)
+            bucket.blob(parsed.path.lstrip("/")).upload_from_string(
+                payload, content_type="application/json"
+            )
+        else:
+            from pathlib import Path
+
+            Path(log_path).parent.mkdir(parents=True, exist_ok=True)
+            with open(log_path, "w") as fh:
+                fh.write(payload)
+        logging.info("Dark matter filter stats written to %s", log_path)
 
     def _annotate_gold_standards_w_feature_matrix(self) -> L2GFeatureMatrix:
         """Generate the feature matrix of annotated gold standards.
