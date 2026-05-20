@@ -376,7 +376,9 @@ class L2GFeatureMatrix:
             f.sum("dark_matter_count").alias("dm_positives"),
         ).collect()[0]
 
+        old_df = self._df
         self._df = self._df.join(dark_matter_loci, "studyLocusId", "left_anti").persist()
+        old_df.unpersist()
         dark_matter_loci.unpersist()
         dark_matter_positives_per_locus.unpersist()
 

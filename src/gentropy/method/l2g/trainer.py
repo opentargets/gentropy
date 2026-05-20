@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
+import tempfile
 from dataclasses import dataclass
 from datetime import datetime
 from itertools import product
@@ -477,18 +479,34 @@ class LocusToGeneTrainer:
             sweep_id = wandb_sweep(sweep_config, project=self.wandb_l2g_project_name)
             wandb_agent(sweep_id, run_all_folds)
         elif cv_results_dir:
-            for config in self._expand_grid(parameter_grid):
-                run_all_folds(run_config=config)
+            is_gcs = cv_results_dir.startswith("gs://")
+            work_dir = (
+                Path(tempfile.mkdtemp(prefix="l2g_cv_"))
+                if is_gcs
+                else Path(cv_results_dir)
+            )
+            if not is_gcs:
+                work_dir.mkdir(parents=True, exist_ok=True)
+            config_summaries: list[dict[str, Any]] = []
+            try:
+                for config_id, config in enumerate(self._expand_grid(parameter_grid)):
+                    fold_results.clear()
+                    run_all_folds(run_config=config)
+                    config_summaries.append(
+                        self._summarise_and_plot_config(
+                            config_id, list(fold_results), work_dir
+                        )
+                    )
+                    fold_results.clear()  # release raw arrays before next config
+                self._write_cv_files(config_summaries, work_dir, n_splits)
+                if is_gcs:
+                    self._upload_dir_to_gcs(work_dir, cv_results_dir)
+            finally:
+                if is_gcs:
+                    shutil.rmtree(work_dir, ignore_errors=True)
+            logging.info("CV results written to %s", cv_results_dir)
         else:
             run_all_folds()
-
-        if collect_for_file and fold_results:
-            assert cv_results_dir is not None
-            self._save_cv_results(
-                cv_results_dir=cv_results_dir,
-                fold_results=fold_results,
-                n_splits=n_splits,
-            )
 
     @staticmethod
     def evaluate(
@@ -607,95 +625,79 @@ class LocusToGeneTrainer:
         values = [parameter_grid[k]["values"] for k in keys]
         return [dict(zip(keys, combo)) for combo in product(*values)]
 
-    def _save_cv_results(
+    def _summarise_and_plot_config(
         self: LocusToGeneTrainer,
-        cv_results_dir: str,
-        fold_results: list[dict[str, Any]],
-        n_splits: int,
-    ) -> None:
-        """Persist CV results — metrics JSON, folds CSV, and per-config plots.
+        config_id: int,
+        folds: list[dict[str, Any]],
+        work_dir: Path,
+    ) -> dict[str, Any]:
+        """Write per-config plots and return a summary dict without raw arrays.
 
-        Supports both local paths and GCS paths (gs://bucket/prefix). GCS paths
-        are written to a local temp directory first, then uploaded via google-cloud-storage.
+        Called once per hyperparameter config immediately after its folds complete,
+        so raw y_true/y_pred_proba arrays can be released before the next config runs.
 
         Args:
-            cv_results_dir (str): Directory to write output files (local or gs://).
-            fold_results (list[dict[str, Any]]): Collected fold data from cross_validate.
+            config_id (int): Zero-based index of this config in the sweep.
+            folds (list[dict[str, Any]]): Fold data dicts (metrics, y_true, y_pred_proba).
+            work_dir (Path): Root output directory; config_{config_id}/ is created here.
+
+        Returns:
+            dict[str, Any]: Summary with hyperparameters, per-fold metrics, mean/std — no raw arrays.
+        """
+        metric_keys = list(folds[0]["metrics"].keys())
+        mean_metrics = {
+            k: float(np.mean([f["metrics"][k] for f in folds])) for k in metric_keys
+        }
+        std_metrics = {
+            k: float(np.std([f["metrics"][k] for f in folds])) for k in metric_keys
+        }
+
+        config_dir = work_dir / f"config_{config_id}"
+        config_dir.mkdir(exist_ok=True)
+        self._plot_roc_curves(folds, config_dir / "roc.png")
+        self._plot_pr_curves(folds, config_dir / "pr.png")
+        self._plot_confusion_matrix(folds, config_dir / "confusion_matrix.png")
+
+        return {
+            "config_id": config_id,
+            "hyperparameters": folds[0]["config"],
+            "fold_metrics": [
+                {"fold": f["fold"], **{k: float(v) for k, v in f["metrics"].items()}}
+                for f in folds
+            ],
+            "mean_metrics": mean_metrics,
+            "std_metrics": std_metrics,
+        }
+
+    @staticmethod
+    def _write_cv_files(
+        config_summaries: list[dict[str, Any]],
+        work_dir: Path,
+        n_splits: int,
+    ) -> None:
+        """Write cv_results.json and cv_folds.csv from pre-computed config summaries.
+
+        Args:
+            config_summaries (list[dict[str, Any]]): One summary per config from _summarise_and_plot_config.
+            work_dir (Path): Directory to write files into.
             n_splits (int): Number of folds used.
         """
-        import shutil
-        import tempfile
+        output: dict[str, Any] = {
+            "timestamp": datetime.now().isoformat(),
+            "n_splits": n_splits,
+            "n_configs": len(config_summaries),
+            "configs": config_summaries,
+        }
+        with open(work_dir / "cv_results.json", "w") as fh:
+            json.dump(output, fh, indent=2)
 
-        is_gcs = cv_results_dir.startswith("gs://")
-        if is_gcs:
-            work_dir = Path(tempfile.mkdtemp(prefix="l2g_cv_"))
-        else:
-            work_dir = Path(cv_results_dir)
-            work_dir.mkdir(parents=True, exist_ok=True)
-
-        try:
-            # Group results by hyperparameter config
-            config_groups: dict[str, dict[str, Any]] = {}
-            for result in fold_results:
-                key = json.dumps(result["config"], sort_keys=True)
-                if key not in config_groups:
-                    config_groups[key] = {"config": result["config"], "folds": []}
-                config_groups[key]["folds"].append(result)
-
-            summary_configs = []
-            for config_id, data in enumerate(config_groups.values()):
-                folds = data["folds"]
-                metric_keys = list(folds[0]["metrics"].keys())
-                mean_metrics = {
-                    k: float(np.mean([f["metrics"][k] for f in folds]))
-                    for k in metric_keys
-                }
-                std_metrics = {
-                    k: float(np.std([f["metrics"][k] for f in folds]))
-                    for k in metric_keys
-                }
-                summary_configs.append(
-                    {
-                        "config_id": config_id,
-                        "hyperparameters": data["config"],
-                        "fold_metrics": [
-                            {"fold": f["fold"], **f["metrics"]} for f in folds
-                        ],
-                        "mean_metrics": mean_metrics,
-                        "std_metrics": std_metrics,
-                    }
+        rows = []
+        for cfg in config_summaries:
+            for fold in cfg["fold_metrics"]:
+                rows.append(
+                    {"config_id": cfg["config_id"], **cfg["hyperparameters"], **fold}
                 )
-
-                config_dir = work_dir / f"config_{config_id}"
-                config_dir.mkdir(exist_ok=True)
-                self._plot_roc_curves(folds, config_dir / "roc.png")
-                self._plot_pr_curves(folds, config_dir / "pr.png")
-                self._plot_confusion_matrix(folds, config_dir / "confusion_matrix.png")
-
-            output: dict[str, Any] = {
-                "timestamp": datetime.now().isoformat(),
-                "n_splits": n_splits,
-                "n_configs": len(summary_configs),
-                "configs": summary_configs,
-            }
-            with open(work_dir / "cv_results.json", "w") as fh:
-                json.dump(output, fh, indent=2)
-
-            rows = []
-            for cfg in summary_configs:
-                for fold in cfg["fold_metrics"]:
-                    rows.append(
-                        {"config_id": cfg["config_id"], **cfg["hyperparameters"], **fold}
-                    )
-            pd.DataFrame(rows).to_csv(work_dir / "cv_folds.csv", index=False)
-
-            if is_gcs:
-                self._upload_dir_to_gcs(work_dir, cv_results_dir)
-        finally:
-            if is_gcs:
-                shutil.rmtree(work_dir, ignore_errors=True)
-
-        logging.info("CV results written to %s", cv_results_dir)
+        pd.DataFrame(rows).to_csv(work_dir / "cv_folds.csv", index=False)
 
     @staticmethod
     def _upload_dir_to_gcs(local_dir: Path, gcs_prefix: str) -> None:
