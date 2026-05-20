@@ -522,6 +522,9 @@ class LocusToGeneStep:
                 payload, content_type="application/json"
             )
         else:
+            from pathlib import Path
+
+            Path(log_path).parent.mkdir(parents=True, exist_ok=True)
             with open(log_path, "w") as fh:
                 fh.write(payload)
         logging.info("Dark matter filter stats written to %s", log_path)

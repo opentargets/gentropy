@@ -309,19 +309,22 @@ class L2GFeatureMatrix:
             )
             return self, {}
 
-        # "No functional signal" condition
+        # "No functional signal" condition — coalesce to 0.0 so that NULL
+        # (produced by inner joins when no coloc/VEP evidence exists) is treated
+        # as "no signal" rather than being propagated as NULL by the comparison.
         if qtl_e2g_features:
             no_qtl_e2g_signal = reduce(
-                lambda acc, col: acc & (f.col(col) == 0.0),
+                lambda acc, col: acc & (f.coalesce(f.col(col), f.lit(0.0)) == 0.0),
                 qtl_e2g_features[1:],
-                f.col(qtl_e2g_features[0]) == 0.0,
+                f.coalesce(f.col(qtl_e2g_features[0]), f.lit(0.0)) == 0.0,
             )
         else:
             no_qtl_e2g_signal = f.lit(True)
 
         if "vepMaximum" in self.features_list:
             no_signal = no_qtl_e2g_signal & (
-                f.col("vepMaximum") < self._VEP_PROTEIN_ALTERING_THRESHOLD
+                f.coalesce(f.col("vepMaximum"), f.lit(0.0))
+                < self._VEP_PROTEIN_ALTERING_THRESHOLD
             )
         else:
             no_signal = no_qtl_e2g_signal
@@ -373,7 +376,7 @@ class L2GFeatureMatrix:
             f.sum("dark_matter_count").alias("dm_positives"),
         ).collect()[0]
 
-        self._df = self._df.join(dark_matter_loci, "studyLocusId", "left_anti")
+        self._df = self._df.join(dark_matter_loci, "studyLocusId", "left_anti").persist()
         dark_matter_loci.unpersist()
         dark_matter_positives_per_locus.unpersist()
 
@@ -390,12 +393,12 @@ class L2GFeatureMatrix:
             return round((before - after) / before * 100, 2) if before else 0.0
 
         rows_before = int(before_row["rows"])
-        positives_before = int(before_row["positives"])
+        positives_before = int(before_row["positives"] or 0)
         loci_before = int(before_row["loci"])
         dark_matter_loci_count = int(dm_row["loci_removed"])
         dark_matter_positives_count = int(dm_row["dm_positives"] or 0)
         rows_after = int(after_row["rows"])
-        positives_after = int(after_row["positives"])
+        positives_after = int(after_row["positives"] or 0)
         loci_after = int(after_row["loci"])
 
         stats: dict[str, Any] = {

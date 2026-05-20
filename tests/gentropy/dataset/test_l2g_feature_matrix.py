@@ -340,6 +340,23 @@ class TestFilterDarkMatterLoci:
         assert filtered._df.count() == 1
         assert stats == {}
 
+    def test_null_signal_treated_as_no_signal(self, spark: SparkSession) -> None:
+        """NULL signal features (from missing coloc/VEP inner joins) are treated as zero."""
+        fm = self._make_fm(
+            spark,
+            [
+                # NULL signal (inner join produced no row) + not nearest → dark matter
+                ("loc1", "gene1", "positive", None, 0.5),
+                ("loc1", "gene2", "negative", None, 1.0),
+            ],
+        )
+        filtered, stats = fm.filter_dark_matter_loci()
+        remaining = {
+            r.studyLocusId for r in filtered._df.select("studyLocusId").collect()
+        }
+        assert "loc1" not in remaining
+        assert stats["dark_matter"]["study_locus_ids_removed"] == 1
+
     def test_raises_without_gold_standard(self, spark: SparkSession) -> None:
         """Calling the filter on a matrix without gold standard labels raises ValueError."""
         fm = L2GFeatureMatrix(
