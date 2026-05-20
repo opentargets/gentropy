@@ -352,7 +352,7 @@ class LocusToGeneConfig(StepConfig):
         }
     )
     wandb_run_name: str | None = None
-    hf_hub_repo_id: str = "locus_to_gene"
+    hf_hub_repo_id: str | None = "locus_to_gene"
     hf_model_commit_message: str = "chore: update model"
     hf_model_version: str | None = None  # Latest commit is picked when provided None
     download_from_hub: bool = True
