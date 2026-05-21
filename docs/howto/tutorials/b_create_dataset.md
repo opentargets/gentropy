@@ -56,7 +56,7 @@ Once one already has a pyspark DataFrame, it can be converted to a dataset using
 
 ## Initializing datasets from a data source
 
-Alternatively, `Dataset`s can be created using a [data source](../../python_api/datasources/_datasources.md) harmonisation method. For example, to create a `SummaryStatistics` object from Finngen's raw summary statistics, you can use the [`FinnGen`](../../python_api/datasources/finngen/summary_stats.md) data source.
+Alternatively, `Dataset`s can be created using a [data source](../../python_api/datasources/_datasources.md) harmonisation method. For example, to create a `SummaryStatistics` object from FinnGen's raw summary statistics, you can use the [`FinnGen`](../../python_api/datasources/finngen/summary_stats.md) data source.
 
 ```python
 --8<-- "src_snippets/howto/python_api/b_create_dataset.py:create_from_source_import"
