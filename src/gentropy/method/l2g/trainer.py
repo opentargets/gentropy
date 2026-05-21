@@ -585,6 +585,18 @@ class LocusToGeneTrainer:
             y_true=y_fold_val, y_pred=y_pred, y_pred_proba=y_pred_proba
         )
 
+        # Locus-level resolution stats
+        locus_proba = pd.DataFrame(
+            {"studyLocusId": fold_val_df["studyLocusId"].values, "prob": y_pred_proba[:, 1]}
+        )
+        genes_above = locus_proba[locus_proba["prob"] >= 0.5].groupby("studyLocusId").size()
+        all_loci = locus_proba["studyLocusId"].unique()
+        metrics["n_loci"] = int(len(all_loci))
+        metrics["n_loci_one_gene_above"] = int((genes_above == 1).sum())
+        metrics["n_loci_no_gene_above"] = int(
+            len(all_loci) - len(genes_above)
+        )
+
         if collect_for_file:
             fold_results.append(
                 {
