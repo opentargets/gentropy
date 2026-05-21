@@ -47,12 +47,14 @@ class FinnGenMetaStudyIndex:
         cls: type[FinnGenMetaStudyIndex],
         manifest: FinnGenMetaManifest,
         efo_mapping: EFOMapping,
+        finngen_release: str = "R12",
     ) -> StudyIndex:
         """Create the FinnGen meta-analysis study index from the manifest.
 
         Args:
             manifest (FinnGenMetaManifest): FinnGen meta-analysis manifest.
             efo_mapping (EFOMapping): EFO mapping data source.
+            finngen_release (str): FinnGen release identifier used to filter EFO mappings (e.g. ``"R12"``). Defaults to ``"R12"``.
 
         Returns:
             StudyIndex: FinnGen meta-analysis study index.
@@ -85,7 +87,7 @@ class FinnGenMetaStudyIndex:
 
         # Add EFO mappings - `traitFromSourceMappedIds`.
         study_index = efo_mapping.annotate_study_index(
-            study_index, finngen_release="R12"
+            study_index, finngen_release=finngen_release
         )
 
         # Coalesce to a single file.

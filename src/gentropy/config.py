@@ -515,8 +515,83 @@ class UkbPppEurConfig(StepConfig):
 
 
 @dataclass
+class FinngenUkbMvpMetaStudyIndexConfig(StepConfig):
+    """FinnGen UKB meta-analysis study index step configuration."""
+
+    # Inputs
+    source_manifest_path: str = MISSING
+    efo_curation_path: str = MISSING
+    # Output
+    study_index_output_path: str = MISSING
+    # Config
+    finngen_release: str = "R12"
+    _target_: str = (
+        "gentropy.finngen_ukb_mvp_meta.FinngenUkbMvpMetaStudyIndexStep"
+    )
+
+
+@dataclass
+class FinngenUkbMvpMetaSumstatConversionConfig(StepConfig):
+    """FinnGen UKB meta-analysis sumstat BGZIP-to-Parquet conversion step configuration."""
+
+    session: Any = field(
+        default_factory=lambda: {
+            "use_enhanced_bgzip_codec": True,
+        }
+    )
+    # Inputs
+    source_manifest_path: str = MISSING
+    study_index_output_path: str = MISSING
+    # Output
+    raw_summary_statistics_output_path: str = MISSING
+    _target_: str = (
+        "gentropy.finngen_ukb_mvp_meta.FinngenUkbMvpMetaSumstatConversionStep"
+    )
+
+
+@dataclass
+class FinngenUkbMvpMetaSumstatHarmonisationConfig(StepConfig):
+    """FinnGen UKB meta-analysis sumstat harmonisation step configuration."""
+
+    # Inputs
+    source_manifest_path: str = MISSING
+    gnomad_variant_index_path: str = MISSING
+    raw_summary_statistics_output_path: str = MISSING
+    # Output
+    harmonised_summary_statistics_output_path: str = MISSING
+    # Harmonisation config
+    perform_meta_analysis_filter: bool = True
+    imputation_score_threshold: float = 0.8
+    perform_imputation_score_filter: bool = True
+    min_allele_count_threshold: int = 20
+    perform_min_allele_count_filter: bool = True
+    min_allele_frequency_threshold: float = 1e-4
+    perform_min_allele_frequency_filter: bool = False
+    filter_out_ambiguous_variants: bool = False
+    _target_: str = (
+        "gentropy.finngen_ukb_mvp_meta.FinngenUkbMvpMetaSumstatHarmonisationStep"
+    )
+
+
+@dataclass
+class FinngenUkbMvpMetaStudyIndexQCAnnotationConfig(StepConfig):
+    """FinnGen UKB meta-analysis study index QC annotation step configuration."""
+
+    # Inputs
+    study_index_output_path: str = MISSING
+    harmonised_summary_statistics_output_path: str = MISSING
+    # Output
+    harmonised_summary_statistics_qc_output_path: str = MISSING
+    # QC config
+    qc_threshold: float = 1e-8
+    _target_: str = (
+        "gentropy.finngen_ukb_mvp_meta.FinngenUkbMvpMetaStudyIndexQCAnnotationStep"
+    )
+
+
+@dataclass
 class FinngenUkbMvpMetaSummaryStatisticsIngestionConfig(StepConfig):
-    """FinnGen UKB meta-analysis ingestion step configuration."""
+    """FinnGen UKB meta-analysis ingestion step configuration (full pipeline facade)."""
 
     session: Any = field(
         default_factory=lambda: {
@@ -983,6 +1058,26 @@ def register_config() -> None:
         group="step",
         name="locus_to_gene_associations",
         node=LocusToGeneAssociationsStepConfig,
+    )
+    cs.store(
+        group="step",
+        name="finngen_ukb_mvp_meta_study_index",
+        node=FinngenUkbMvpMetaStudyIndexConfig,
+    )
+    cs.store(
+        group="step",
+        name="finngen_ukb_mvp_meta_sumstat_conversion",
+        node=FinngenUkbMvpMetaSumstatConversionConfig,
+    )
+    cs.store(
+        group="step",
+        name="finngen_ukb_mvp_meta_sumstat_harmonisation",
+        node=FinngenUkbMvpMetaSumstatHarmonisationConfig,
+    )
+    cs.store(
+        group="step",
+        name="finngen_ukb_mvp_meta_study_index_qc_annotation",
+        node=FinngenUkbMvpMetaStudyIndexQCAnnotationConfig,
     )
     cs.store(
         group="step",
