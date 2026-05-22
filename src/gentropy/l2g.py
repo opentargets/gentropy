@@ -495,11 +495,23 @@ class LocusToGeneStep:
                     "features are included in the training feature set."
                 )
 
-        if self.soft_label_weights:
-            feature_matrix = feature_matrix.apply_soft_labels(**self.soft_label_weights)
-            logging.info(
-                "Soft labels applied: %s", self.soft_label_weights
+        # Determine effective soft label weights: explicit config takes priority;
+        # fall back to defaults when soft label keys appear in the hyperparameter grid
+        # (so _is_nearest / _has_fgs columns are available for per-fold re-application).
+        from gentropy.method.l2g.trainer import _SOFT_LABEL_KEYS
+
+        grid_has_soft_label_keys = bool(
+            self.hyperparameter_grid
+            and _SOFT_LABEL_KEYS & set(self.hyperparameter_grid.keys())
+        )
+        effective_soft_label_weights = self.soft_label_weights or (
+            {} if grid_has_soft_label_keys else None
+        )
+        if effective_soft_label_weights is not None:
+            feature_matrix = feature_matrix.apply_soft_labels(
+                **effective_soft_label_weights
             )
+            logging.info("Soft labels applied: %s", effective_soft_label_weights)
 
         # Run the training
         trained_model = LocusToGeneTrainer(
