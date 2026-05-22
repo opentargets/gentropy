@@ -245,13 +245,17 @@ class LocusToGeneTrainer:
             name=wandb_run_name,
             config=fitted_classifier.get_params(),
         )
+        # Binarize labels for W&B — plot_classifier passes y_true directly to
+        # sklearn metrics which reject float soft labels mixed with binary y_pred.
+        y_train_binary = (self.y_train >= 0.5).astype(int)
+        y_test_binary = (self.y_test >= 0.5).astype(int)
         # Track classification plots
         plot_classifier(
             self.model.model,
             self.x_train,
             self.x_test,
-            self.y_train,
-            self.y_test,
+            y_train_binary,
+            y_test_binary,
             y_predicted,
             y_probas,
             labels=list(self.model.label_encoder.values()),
