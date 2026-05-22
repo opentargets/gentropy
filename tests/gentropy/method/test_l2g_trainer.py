@@ -131,7 +131,7 @@ def test_train_on_full_dataset_logs_second_wandb_run(
         features_list=features_list,
     )
     wandb_run_names: list[str] = []
-    trainer.log_to_wandb = wandb_run_names.append  # type: ignore[assignment]
+    trainer.log_to_wandb = wandb_run_names.append
 
     trained_model = trainer.train(
         wandb_run_name="unit-test",
@@ -180,6 +180,42 @@ def test_hierarchical_split() -> None:
     assert len(test_df[test_df["goldStandardSet"] == 0]) > 0, "No negatives in test_df"
     assert train_df.shape[1] == df.shape[1], "Columns are missing in train_df"
     assert test_df.shape[1] == df.shape[1], "Columns are missing in test_df"
+
+
+def test_fit_with_soft_labels(mock_l2g_feature_matrix: L2GFeatureMatrix) -> None:
+    """Trainer.train succeeds and returns a usable model when soft labels are applied.
+
+    The mock feature matrix has no FGS or neighbourhood-distance columns, so
+    apply_soft_labels assigns every positive the not_nearest_no_fgs weight (0.1)
+    and every negative 0.0.  The resulting y_train contains floats outside {0,1},
+    which would normally cause XGBClassifier to raise ValueError.  This test
+    verifies that _fit_with_soft_labels is invoked transparently and that
+    predict_proba still returns valid probabilities.
+    """
+    features_list = ["distanceTssMean", "distanceSentinelTssMinimum"]
+    fm = mock_l2g_feature_matrix.fill_na().apply_soft_labels(
+        nearest_fgs=1.0,
+        not_nearest_fgs=1.0,
+        nearest_no_fgs=0.5,
+        not_nearest_no_fgs=0.1,
+    )
+    l2g_model = LocusToGeneModel(
+        model=XGBClassifier(),
+        hyperparameters={"max_depth": 3},
+        features_list=features_list,
+    )
+    trainer = LocusToGeneTrainer(
+        model=l2g_model,
+        feature_matrix=fm,
+        features_list=features_list,
+    )
+    trained_model = trainer.train(wandb_run_name=None, cross_validate=False)
+    assert isinstance(trained_model, LocusToGeneModel)
+    # predict_proba must return valid probabilities for each sample
+    assert trainer.x_test is not None
+    proba = trained_model.model.predict_proba(trainer.x_test)
+    assert proba.shape == (trainer.x_test.shape[0], 2)
+    assert np.all((proba >= 0.0) & (proba <= 1.0))
 
 
 def test_expand_grid_single_param() -> None:
