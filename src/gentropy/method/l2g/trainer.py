@@ -16,6 +16,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import shap
+import xgboost as xgb
 from sklearn.base import clone
 from sklearn.metrics import (
     accuracy_score,
@@ -110,7 +111,12 @@ class LocusToGeneTrainer:
             assert self.x_train.size != 0 and self.y_train.size != 0, (
                 "Train data not set, nothing to fit."
             )
-            fitted_model = self.model.model.fit(X=self.x_train, y=self.y_train)
+            has_soft_labels = not np.all(np.isin(self.y_train, [0.0, 1.0]))
+            fitted_model = (
+                self._fit_with_soft_labels()
+                if has_soft_labels
+                else self.model.model.fit(X=self.x_train, y=self.y_train)
+            )
             self.model = LocusToGeneModel(
                 model=fitted_model,
                 hyperparameters=fitted_model.get_params(),
@@ -119,6 +125,30 @@ class LocusToGeneTrainer:
             )
             return self.model
         raise ValueError("Train data not set, nothing to fit.")
+
+    def _fit_with_soft_labels(self: LocusToGeneTrainer) -> Any:
+        """Train via the raw xgboost API to support float soft labels.
+
+        XGBClassifier's sklearn wrapper rejects non-integer labels.  We bypass
+        it by training a raw Booster and injecting it back into a cloned
+        XGBClassifier so that ``predict_proba`` continues to work normally.
+
+        Returns:
+            Any: XGBClassifier instance with a trained booster and sklearn
+                attributes set for predict_proba compatibility.
+        """
+        assert self.x_train is not None and self.y_train is not None
+        clf = clone(self.model.model)
+        params = clf.get_xgb_params()
+        params.setdefault("objective", "binary:logistic")
+        n_estimators = clf.get_params().get("n_estimators", 100)
+        dtrain = xgb.DMatrix(self.x_train, label=self.y_train)
+        booster = xgb.train(params, dtrain, num_boost_round=n_estimators)
+        clf._Booster = booster
+        clf.n_classes_ = 2
+        clf.classes_ = np.array([0, 1])
+        clf.n_features_in_ = self.x_train.shape[1]
+        return clf
 
     def _get_shap_explanation(
         self: LocusToGeneTrainer,
