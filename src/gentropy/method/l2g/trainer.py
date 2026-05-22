@@ -146,8 +146,6 @@ class LocusToGeneTrainer:
         booster = xgb.train(params, dtrain, num_boost_round=n_estimators)
         clf._Booster = booster
         clf.n_classes_ = 2
-        clf.classes_ = np.array([0, 1])
-        clf.n_features_in_ = self.x_train.shape[1]
         return clf
 
     def _get_shap_explanation(
@@ -557,7 +555,7 @@ class LocusToGeneTrainer:
         # Binarize y_true at 0.5 so soft labels (e.g. 0.1, 0.5, 1.0) are treated
         # as negative / positive for all threshold-dependent metrics.
         y_true_binary = (y_true >= 0.5).astype(int)
-        cm = confusion_matrix(y_true_binary, y_pred)
+        cm = confusion_matrix(y_true_binary, y_pred, labels=[0, 1])
         # cm layout: [[TN, FP], [FN, TP]] for binary classification
         tn, fp, fn, tp = (int(cm[0, 0]), int(cm[0, 1]), int(cm[1, 0]), int(cm[1, 1]))
         return {
