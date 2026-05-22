@@ -645,7 +645,17 @@ class LocusToGeneTrainer:
         fold_model = clone(self.model.model)
         if xgb_params:
             fold_model.set_params(**xgb_params)
-        fold_model.fit(x_fold_train, y_fold_train)
+        has_soft = not np.all(np.isin(y_fold_train, [0.0, 1.0]))
+        if has_soft:
+            params = fold_model.get_xgb_params()
+            params.setdefault("objective", "binary:logistic")
+            n_estimators = fold_model.get_params().get("n_estimators") or 100
+            dtrain = xgb.DMatrix(x_fold_train, label=y_fold_train)
+            booster = xgb.train(params, dtrain, num_boost_round=n_estimators)
+            fold_model._Booster = booster
+            fold_model.n_classes_ = 2
+        else:
+            fold_model.fit(x_fold_train, y_fold_train)
         y_pred_proba = fold_model.predict_proba(x_fold_val)
         y_pred = fold_model.predict(x_fold_val)
 
@@ -827,7 +837,7 @@ class LocusToGeneTrainer:
         fig, ax = plt.subplots(figsize=(7, 6))
         fold_aucs = []
         for fold in folds:
-            fpr, tpr, _ = roc_curve(fold["y_true"], fold["y_pred_proba"])
+            fpr, tpr, _ = roc_curve((fold["y_true"] >= 0.5).astype(int), fold["y_pred_proba"])
             fold_auc = auc(fpr, tpr)
             fold_aucs.append(fold_auc)
             ax.plot(fpr, tpr, alpha=0.5, lw=1.2, label=f"fold {fold['fold']} (AUC={fold_auc:.3f})")
@@ -856,10 +866,11 @@ class LocusToGeneTrainer:
         fig, ax = plt.subplots(figsize=(7, 6))
         fold_aps = []
         for fold in folds:
+            y_true_binary = (fold["y_true"] >= 0.5).astype(int)
             precision, recall, _ = precision_recall_curve(
-                fold["y_true"], fold["y_pred_proba"]
+                y_true_binary, fold["y_pred_proba"]
             )
-            ap = average_precision_score(fold["y_true"], fold["y_pred_proba"])
+            ap = average_precision_score(y_true_binary, fold["y_pred_proba"])
             fold_aps.append(ap)
             ax.plot(recall, precision, alpha=0.5, lw=1.2, label=f"fold {fold['fold']} (AP={ap:.3f})")
         ax.set_xlabel("Recall")
@@ -883,7 +894,7 @@ class LocusToGeneTrainer:
             folds (list[dict[str, Any]]): Fold data dicts with y_true and y_pred_proba keys.
             output_path (Path): Where to save the PNG.
         """
-        y_true_all = np.concatenate([f["y_true"] for f in folds])
+        y_true_all = (np.concatenate([f["y_true"] for f in folds]) >= 0.5).astype(int)
         y_pred_all = (
             np.concatenate([f["y_pred_proba"] for f in folds]) >= 0.5
         ).astype(int)
