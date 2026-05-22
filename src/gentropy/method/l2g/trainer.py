@@ -141,7 +141,7 @@ class LocusToGeneTrainer:
         clf = clone(self.model.model)
         params = clf.get_xgb_params()
         params.setdefault("objective", "binary:logistic")
-        n_estimators = clf.get_params().get("n_estimators", 100)
+        n_estimators = clf.get_params().get("n_estimators") or 100
         dtrain = xgb.DMatrix(self.x_train, label=self.y_train)
         booster = xgb.train(params, dtrain, num_boost_round=n_estimators)
         clf._Booster = booster
