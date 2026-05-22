@@ -189,6 +189,7 @@ class LocusToGeneStep:
         hf_credentials_path: str | None = None,
         wandb_credentials_path: str | None = None,
         filter_dark_matter: bool = False,
+        soft_label_weights: dict[str, float] | None = None,
     ) -> None:
         """Initialise the step and run the logic based on mode.
 
@@ -218,6 +219,7 @@ class LocusToGeneStep:
             hf_credentials_path (str | None): Optional path to the Hugging Face Hub credentials JSON file. If not provided, the HF_TOKEN environment variable will be used.
             wandb_credentials_path (str | None): Optional path to the Weights and Biases credentials JSON file. If not provided, the WANDB_API_KEY environment variable will be used.
             filter_dark_matter (bool): Whether to remove loci where every gold-standard positive has no functional genomics signal (zero QTL colocalisation, E2G, and VEP below protein-altering threshold) and is not the nearest gene (all neighbourhood distance features < 1.0). Loci with at least one signal-carrying or nearest-gene positive are kept. Defaults to False.
+            soft_label_weights (dict[str, float] | None): When set, replace binary gold-standard labels with soft confidence values. Keys and defaults: ``nearest_fgs=1.0``, ``not_nearest_fgs=1.0``, ``nearest_no_fgs=0.5``, ``not_nearest_no_fgs=0.1``. For TP/FP/TN/FN computation labels >= 0.5 are treated as positive. Defaults to None (hard binary labels).
 
         Raises:
             ValueError: If run_mode is not 'train' or 'predict'
@@ -283,6 +285,7 @@ class LocusToGeneStep:
         self.hyperparameter_grid = hyperparameter_grid
         self.cv_results_dir = cv_results_dir
         self.filter_dark_matter = filter_dark_matter
+        self.soft_label_weights = soft_label_weights
 
         # Load common inputs
         self.credible_set = StudyLocus.from_parquet(
@@ -491,6 +494,12 @@ class LocusToGeneStep:
                     "absent from features_list. Verify that the dark matter "
                     "features are included in the training feature set."
                 )
+
+        if self.soft_label_weights:
+            feature_matrix = feature_matrix.apply_soft_labels(**self.soft_label_weights)
+            logging.info(
+                "Soft labels applied: %s", self.soft_label_weights
+            )
 
         # Run the training
         trained_model = LocusToGeneTrainer(

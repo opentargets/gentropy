@@ -361,6 +361,7 @@ class LocusToGeneConfig(StepConfig):
     filter_dark_matter: bool = False
     hyperparameter_grid: Any = None  # dict[str, Any] | None — Any avoids OmegaConf Optional[Dict] merge bug
     cv_results_dir: str | None = None
+    soft_label_weights: Any = None  # dict[str, float] | None — keys: nearest_fgs, not_nearest_fgs, nearest_no_fgs, not_nearest_no_fgs
     explain_predictions: bool = False
     wandb_credentials_path: str | None = None
     hf_credentials_path: str | None = None

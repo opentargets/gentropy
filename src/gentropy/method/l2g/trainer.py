@@ -524,20 +524,25 @@ class LocusToGeneTrainer:
         Returns:
             dict[str, float]: Dictionary of evaluation metrics
         """
-        cm = confusion_matrix(y_true, y_pred)
+        # Binarize y_true at 0.5 so soft labels (e.g. 0.1, 0.5, 1.0) are treated
+        # as negative / positive for all threshold-dependent metrics.
+        y_true_binary = (y_true >= 0.5).astype(int)
+        cm = confusion_matrix(y_true_binary, y_pred)
         # cm layout: [[TN, FP], [FN, TP]] for binary classification
         tn, fp, fn, tp = (int(cm[0, 0]), int(cm[0, 1]), int(cm[1, 0]), int(cm[1, 1]))
         return {
             "areaUnderROC": roc_auc_score(
-                y_true, y_pred_proba[:, 1], average="weighted"
+                y_true_binary, y_pred_proba[:, 1], average="weighted"
             ),
-            "accuracy": accuracy_score(y_true, y_pred),
-            "weightedPrecision": precision_score(y_true, y_pred, average="weighted"),
+            "accuracy": accuracy_score(y_true_binary, y_pred),
+            "weightedPrecision": precision_score(
+                y_true_binary, y_pred, average="weighted"
+            ),
             "averagePrecision": average_precision_score(
-                y_true, y_pred, average="weighted"
+                y_true_binary, y_pred, average="weighted"
             ),
-            "weightedRecall": recall_score(y_true, y_pred, average="weighted"),
-            "f1": f1_score(y_true, y_pred, average="weighted"),
+            "weightedRecall": recall_score(y_true_binary, y_pred, average="weighted"),
+            "f1": f1_score(y_true_binary, y_pred, average="weighted"),
             "TP": tp,
             "FP": fp,
             "TN": tn,

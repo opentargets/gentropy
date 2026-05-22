@@ -436,6 +436,87 @@ class L2GFeatureMatrix:
         )
         return self, stats
 
+    def apply_soft_labels(
+        self: Self,
+        label_nearest_fgs: float = 1.0,
+        label_not_nearest_fgs: float = 1.0,
+        label_nearest_no_fgs: float = 0.5,
+        label_not_nearest_no_fgs: float = 0.1,
+    ) -> Self:
+        """Add a soft_label column with graded confidence values for gold-standard positives.
+
+        Positives are split into four categories based on proximity and functional
+        genomics support (FGS). Negatives always receive 0.0.
+
+        | is_nearest | has_fgs | label                  |
+        |------------|---------|------------------------|
+        | True       | True    | label_nearest_fgs      |
+        | False      | True    | label_not_nearest_fgs  |
+        | True       | False   | label_nearest_no_fgs   |
+        | False      | False   | label_not_nearest_no_fgs |
+
+        ``has_fgs`` is True when any QTL colocalisation or E2G feature is > 0, or
+        vepMaximum >= the protein-altering threshold (0.6). ``is_nearest`` is True
+        when any neighbourhood distance feature equals 1.0.
+
+        After calling this method ``label_col`` is updated to ``"soft_label"`` so
+        the trainer automatically uses soft labels for y_train / y_test.
+
+        Args:
+            label_nearest_fgs (float): Label for nearest gene with FGS. Defaults to 1.0.
+            label_not_nearest_fgs (float): Label for non-nearest gene with FGS. Defaults to 1.0.
+            label_nearest_no_fgs (float): Label for nearest gene without FGS. Defaults to 0.5.
+            label_not_nearest_no_fgs (float): Label for non-nearest gene without FGS. Defaults to 0.1.
+
+        Returns:
+            Self: Feature matrix with ``soft_label`` column added and ``label_col`` updated.
+
+        Raises:
+            ValueError: If called on a feature matrix without gold standard labels.
+        """
+        if not self.with_gold_standard:
+            raise ValueError(
+                "Soft labeling requires a gold standard-annotated feature matrix."
+            )
+
+        signal_features = [
+            c for c in self._DARK_MATTER_SIGNAL_FEATURES if c in self.features_list
+        ]
+        nearest_features = [
+            c for c in self._DARK_MATTER_NEAREST_FEATURES if c in self.features_list
+        ]
+
+        fgs_conditions = [f.col(c) > 0 for c in signal_features]
+        if "vepMaximum" in self.features_list:
+            fgs_conditions.append(
+                f.col("vepMaximum") >= self._VEP_PROTEIN_ALTERING_THRESHOLD
+            )
+        has_fgs = (
+            reduce(lambda a, b: a | b, fgs_conditions)
+            if fgs_conditions
+            else f.lit(False)
+        )
+
+        is_nearest = (
+            reduce(lambda a, b: a | b, [f.col(c) == 1.0 for c in nearest_features])
+            if nearest_features
+            else f.lit(False)
+        )
+
+        is_positive = f.col("goldStandardSet") == "positive"
+
+        soft_label = (
+            f.when(~is_positive, f.lit(0.0))
+            .when(is_positive & is_nearest & has_fgs, f.lit(label_nearest_fgs))
+            .when(is_positive & ~is_nearest & has_fgs, f.lit(label_not_nearest_fgs))
+            .when(is_positive & is_nearest & ~has_fgs, f.lit(label_nearest_no_fgs))
+            .otherwise(f.lit(label_not_nearest_no_fgs))
+        )
+
+        self._df = self._df.withColumn("soft_label", soft_label)
+        self.label_col = "soft_label"
+        return self
+
     def generate_train_test_split(
         self,
         test_size: float,
@@ -458,8 +539,12 @@ class L2GFeatureMatrix:
 
         data_df = self._df.toPandas()
 
-        # Encode labels in `goldStandardSet` to a numeric value
-        data_df[label_col] = data_df[label_col].map(label_encoder)
+        # goldStandardSet must always be encoded as binary integers for hierarchical_split.
+        # label_col may differ (e.g. "soft_label") when soft labeling is active; in that
+        # case it is already numeric and does not need mapping.
+        for col in {label_col, "goldStandardSet"}:
+            if col in data_df.columns and data_df[col].dtype == object:
+                data_df[col] = data_df[col].map(label_encoder)
 
         # Generate train, held out sets
         return LocusToGeneTrainer.hierarchical_split(
