@@ -522,7 +522,11 @@ class L2GFeatureMatrix:
             .otherwise(f.lit(not_nearest_no_fgs))
         )
 
-        self._df = self._df.withColumn("soft_label", soft_label)
+        self._df = (
+            self._df.withColumn("soft_label", soft_label)
+            .withColumn("_is_nearest", is_nearest)
+            .withColumn("_has_fgs", has_fgs)
+        )
         self.label_col = "soft_label"
         return self
 

@@ -49,6 +49,10 @@ if TYPE_CHECKING:
 
 import logging
 
+_SOFT_LABEL_KEYS: frozenset[str] = frozenset(
+    {"nearest_fgs", "not_nearest_fgs", "nearest_no_fgs", "not_nearest_no_fgs"}
+)
+
 
 def reset_wandb_env() -> None:
     """Reset Wandb environment variables except for project, entity and API key.
@@ -611,9 +615,36 @@ class LocusToGeneTrainer:
         y_fold_train = fold_train_df[self.feature_matrix.label_col].values
         y_fold_val = fold_val_df[self.feature_matrix.label_col].values
 
+        soft_label_params = (
+            {k: v for k, v in config.items() if k in _SOFT_LABEL_KEYS} if config else {}
+        )
+        xgb_params = (
+            {k: v for k, v in config.items() if k not in _SOFT_LABEL_KEYS} if config else {}
+        )
+
+        if soft_label_params:
+            if "_is_nearest" not in fold_train_df.columns or "_has_fgs" not in fold_train_df.columns:
+                raise ValueError(
+                    "Soft label weights in hyperparameter_grid require apply_soft_labels "
+                    "to have been called first (missing _is_nearest / _has_fgs columns)."
+                )
+            is_positive = fold_train_df["goldStandardSet"].values == 1
+            is_nearest = fold_train_df["_is_nearest"].values
+            has_fgs = fold_train_df["_has_fgs"].values
+            nf = float(soft_label_params.get("nearest_fgs", 1.0))
+            nnf = float(soft_label_params.get("not_nearest_fgs", 1.0))
+            nn = float(soft_label_params.get("nearest_no_fgs", 0.5))
+            nnn = float(soft_label_params.get("not_nearest_no_fgs", 0.1))
+            y_fold_train = np.where(
+                ~is_positive, 0.0,
+                np.where(is_nearest & has_fgs, nf,
+                np.where(~is_nearest & has_fgs, nnf,
+                np.where(is_nearest & ~has_fgs, nn, nnn))),
+            )
+
         fold_model = clone(self.model.model)
-        if config:
-            fold_model.set_params(**config)
+        if xgb_params:
+            fold_model.set_params(**xgb_params)
         fold_model.fit(x_fold_train, y_fold_train)
         y_pred_proba = fold_model.predict_proba(x_fold_val)
         y_pred = fold_model.predict(x_fold_val)
