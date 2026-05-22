@@ -11,8 +11,6 @@ The ingestion pipeline consists of four steps that must be executed in order:
 3. **`FinngenUkbMvpMetaSumstatHarmonisationStep`** — harmonises summary statistics using gnomAD allele directions.
 4. **`FinngenUkbMvpMetaStudyIndexQCAnnotationStep`** — runs summary-statistics QC and annotates the study index.
 
-`FinngenUkbMvpMetaSummaryStatisticsIngestionStep` is a convenience façade that chains all four steps.
-
 ```mermaid
 graph TD
     %% --- INPUTS ---
@@ -62,9 +60,6 @@ graph TD
 
 ??? tip "Outputs" - [x] Raw summary statistics in Parquet format, partitioned by `studyId`. - [x] Harmonised summary statistics in Parquet format, partitioned by `studyId`. - [x] Summary statistics QC results in Parquet format. - [x] Study index in Parquet format (updated with QC flags).
 
-## Steps API
-
-::: gentropy.finngen_ukb_mvp_meta.FinngenUkbMvpMetaSummaryStatisticsIngestionStep
 
 ### Individual steps
 

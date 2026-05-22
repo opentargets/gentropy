@@ -11,7 +11,6 @@ from gentropy import Session
 from gentropy.finngen_ukb_mvp_meta import (
     FinngenUkbMvpMetaStudyIndexQCAnnotationStep,
     FinngenUkbMvpMetaStudyIndexStep,
-    FinngenUkbMvpMetaSummaryStatisticsIngestionStep,
     FinngenUkbMvpMetaSumstatConversionStep,
     FinngenUkbMvpMetaSumstatHarmonisationStep,
     _SumstatHarmonisationConfig,
@@ -384,96 +383,3 @@ class TestFinngenUkbMvpMetaStudyIndexQCAnnotationStep:
                 ).as_posix(),
                 qc_threshold=1.5,
             )
-
-
-# ---------------------------------------------------------------------------
-# Facade: FinngenUkbMvpMetaSummaryStatisticsIngestionStep
-# ---------------------------------------------------------------------------
-
-
-class TestFinngenUkbMvpMetaSummaryStatisticsIngestionStep:
-    """Tests for the convenience façade that chains all four steps."""
-
-    @pytest.mark.step_test
-    @patch(
-        "gentropy.finngen_ukb_mvp_meta.FinngenUkbMvpMetaStudyIndexStep",
-        autospec=True,
-    )
-    @patch(
-        "gentropy.finngen_ukb_mvp_meta.FinngenUkbMvpMetaSumstatConversionStep",
-        autospec=True,
-    )
-    @patch(
-        "gentropy.finngen_ukb_mvp_meta.FinngenUkbMvpMetaSumstatHarmonisationStep",
-        autospec=True,
-    )
-    @patch(
-        "gentropy.finngen_ukb_mvp_meta.FinngenUkbMvpMetaStudyIndexQCAnnotationStep",
-        autospec=True,
-    )
-    def test_facade_delegates_to_all_four_steps(
-        self,
-        qc_step_mock: MagicMock,
-        harmonisation_step_mock: MagicMock,
-        conversion_step_mock: MagicMock,
-        study_index_step_mock: MagicMock,
-        session: Session,
-        tmp_path: Path,
-    ) -> None:
-        """Façade instantiates each sub-step exactly once with the correct arguments."""
-        source_manifest_path = (tmp_path / "manifest").as_posix()
-        efo_curation_path = (tmp_path / "efo").as_posix()
-        gnomad_path = (tmp_path / "gnomad").as_posix()
-        study_index_path = (tmp_path / "study_index").as_posix()
-        raw_path = (tmp_path / "raw").as_posix()
-        harmonised_path = (tmp_path / "harmonised").as_posix()
-        qc_path = (tmp_path / "qc").as_posix()
-
-        FinngenUkbMvpMetaSummaryStatisticsIngestionStep(
-            session=session,
-            source_manifest_path=source_manifest_path,
-            efo_curation_path=efo_curation_path,
-            gnomad_variant_index_path=gnomad_path,
-            study_index_output_path=study_index_path,
-            raw_summary_statistics_output_path=raw_path,
-            harmonised_summary_statistics_output_path=harmonised_path,
-            harmonised_summary_statistics_qc_output_path=qc_path,
-            imputation_score_threshold=0.9,
-            min_allele_count_threshold=30,
-            qc_threshold=1e-6,
-        )
-
-        study_index_step_mock.assert_called_once_with(
-            session=session,
-            source_manifest_path=source_manifest_path,
-            efo_curation_path=efo_curation_path,
-            study_index_output_path=study_index_path,
-        )
-        conversion_step_mock.assert_called_once_with(
-            session=session,
-            source_manifest_path=source_manifest_path,
-            study_index_output_path=study_index_path,
-            raw_summary_statistics_output_path=raw_path,
-        )
-        harmonisation_step_mock.assert_called_once_with(
-            session=session,
-            source_manifest_path=source_manifest_path,
-            gnomad_variant_index_path=gnomad_path,
-            raw_summary_statistics_output_path=raw_path,
-            harmonised_summary_statistics_output_path=harmonised_path,
-            perform_meta_analysis_filter=True,
-            imputation_score_threshold=0.9,
-            perform_imputation_score_filter=True,
-            min_allele_count_threshold=30,
-            perform_min_allele_count_filter=True,
-            min_allele_frequency_threshold=1e-4,
-            perform_min_allele_frequency_filter=False,
-            filter_out_ambiguous_variants=False,
-        )
-        qc_step_mock.assert_called_once_with(
-            session=session,
-            study_index_output_path=study_index_path,
-            harmonised_summary_statistics_output_path=harmonised_path,
-            harmonised_summary_statistics_qc_output_path=qc_path,
-            qc_threshold=1e-6,
-        )

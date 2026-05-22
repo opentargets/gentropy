@@ -131,6 +131,8 @@ class FinngenUkbMvpMetaStudyIndexStep:
             study_index_output_path (str): Output path for the study index.
             finngen_release (str): FinnGen release identifier used to filter EFO mappings (e.g. ``"R12"``). Defaults to ``"R12"``.
         """
+        if finngen_release != "R12":
+            raise NotImplementedError("Only FinnGen R12 is currently supported.")
         session.logger.info(f"Reading Finngen manifest from {source_manifest_path}.")
         finngen_manifest = FinnGenMetaManifest.from_path(
             session=session, manifest_path=source_manifest_path
@@ -352,96 +354,3 @@ class FinngenUkbMvpMetaStudyIndexQCAnnotationStep:
             study_index_output_path
         )
         session.logger.info("Updated study index with qc flags.")
-
-
-class FinngenUkbMvpMetaSummaryStatisticsIngestionStep:
-    """Convenience façade that chains all four FinnGen UKB MVP meta-analysis ingestion steps.
-
-    Runs `FinngenUkbMvpMetaStudyIndexStep`, `FinngenUkbMvpMetaSumstatConversionStep`,
-    `FinngenUkbMvpMetaSumstatHarmonisationStep`, and
-    `FinngenUkbMvpMetaStudyIndexQCAnnotationStep` in order.
-    See the module docstring for the full pipeline diagram.
-    """
-
-    def __init__(
-        self,
-        session: Session,
-        # Inputs
-        source_manifest_path: str,
-        efo_curation_path: str,
-        gnomad_variant_index_path: str,
-        # Outputs
-        study_index_output_path: str,
-        raw_summary_statistics_output_path: str,
-        harmonised_summary_statistics_output_path: str,
-        harmonised_summary_statistics_qc_output_path: str,
-        # Harmonisation config
-        perform_meta_analysis_filter: bool = True,
-        imputation_score_threshold: float = 0.8,
-        perform_imputation_score_filter: bool = True,
-        min_allele_count_threshold: int = 20,
-        perform_min_allele_count_filter: bool = True,
-        min_allele_frequency_threshold: float = 1e-4,
-        perform_min_allele_frequency_filter: bool = False,
-        filter_out_ambiguous_variants: bool = False,
-        # QC config
-        qc_threshold: float = 1e-8,
-    ) -> None:
-        """Data ingestion and harmonisation step for FinnGen UKB meta-analysis.
-
-        Args:
-            session (Session): Session object.
-            source_manifest_path (str): Path to the manifest file.
-            efo_curation_path (str): Path to the EFO curation file.
-            gnomad_variant_index_path (str): Path to the gnomAD variant index file.
-            study_index_output_path (str): Output path for the study index.
-            raw_summary_statistics_output_path (str): Output path for raw summary statistics.
-            harmonised_summary_statistics_output_path (str): Output path for harmonised summary statistics.
-            harmonised_summary_statistics_qc_output_path (str): Output path for harmonised summary statistics QC results.
-            perform_meta_analysis_filter (bool, optional): Whether to filter non-meta analyzed variants.
-            imputation_score_threshold (float, optional): Imputation score threshold.
-            perform_imputation_score_filter (bool, optional): Whether to filter low imputation scores.
-            min_allele_count_threshold (int, optional): Minimum allele count threshold.
-            perform_min_allele_count_filter (bool, optional): Whether to filter low allele counts.
-            min_allele_frequency_threshold (float, optional): Minimum allele frequency threshold.
-            perform_min_allele_frequency_filter (bool, optional): Whether to filter low allele frequencies.
-            filter_out_ambiguous_variants (bool, optional): Whether to filter out ambiguous variants.
-            qc_threshold (float, optional): P-value threshold for QC.
-
-        Raises:
-            AssertionError: If no summary statistics paths are found in the study index.
-        """
-        FinngenUkbMvpMetaStudyIndexStep(
-            session=session,
-            source_manifest_path=source_manifest_path,
-            efo_curation_path=efo_curation_path,
-            study_index_output_path=study_index_output_path,
-        )
-        FinngenUkbMvpMetaSumstatConversionStep(
-            session=session,
-            source_manifest_path=source_manifest_path,
-            study_index_output_path=study_index_output_path,
-            raw_summary_statistics_output_path=raw_summary_statistics_output_path,
-        )
-        FinngenUkbMvpMetaSumstatHarmonisationStep(
-            session=session,
-            source_manifest_path=source_manifest_path,
-            gnomad_variant_index_path=gnomad_variant_index_path,
-            raw_summary_statistics_output_path=raw_summary_statistics_output_path,
-            harmonised_summary_statistics_output_path=harmonised_summary_statistics_output_path,
-            perform_meta_analysis_filter=perform_meta_analysis_filter,
-            imputation_score_threshold=imputation_score_threshold,
-            perform_imputation_score_filter=perform_imputation_score_filter,
-            min_allele_count_threshold=min_allele_count_threshold,
-            perform_min_allele_count_filter=perform_min_allele_count_filter,
-            min_allele_frequency_threshold=min_allele_frequency_threshold,
-            perform_min_allele_frequency_filter=perform_min_allele_frequency_filter,
-            filter_out_ambiguous_variants=filter_out_ambiguous_variants,
-        )
-        FinngenUkbMvpMetaStudyIndexQCAnnotationStep(
-            session=session,
-            study_index_output_path=study_index_output_path,
-            harmonised_summary_statistics_output_path=harmonised_summary_statistics_output_path,
-            harmonised_summary_statistics_qc_output_path=harmonised_summary_statistics_qc_output_path,
-            qc_threshold=qc_threshold,
-        )
