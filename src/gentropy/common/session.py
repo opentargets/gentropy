@@ -135,60 +135,64 @@ class Session:
 
         Example session with hadoop connector for S3 compatible storage
 
+        Credentials can be passed directly via ``s3_configuration``, or loaded
+        from the environment (see :class:`~gentropy.external.s3.S3Config`).
+
         >>> session = Session(
+        ...     add_s3_connector=True,
+        ...     s3_configuration={
+        ...         'bucket_name': 'my-bucket',
+        ...         's3_host_url': 's3.my-domain.com',
+        ...         's3_host_port': 9000,
+        ...         'access_key_id': 'my-access-key',
+        ...         'secret_access_key': 'my-secret-key',
+        ...     },
         ...     extended_spark_conf={
         ...         # Executor
         ...         'spark.executor.memory': '32g',
         ...         'spark.executor.cores': '8',
-        ...         'spark.excutor.memoryOverhead': '4g',
-        ...         'spark.dynamicAllocation.enabled': 'true',
+        ...         'spark.executor.memoryOverhead': '4g',
         ...         'spark.sql.files.maxPartitionBytes': '512m',
         ...         # Driver
         ...         'spark.driver.memory': '25g',
         ...         'spark.executor.extraJavaOptions': '-XX:+UseG1GC -XX:MaxGCPauseMillis=200 -XX:+ParallelRefProcEnabled -XX:+AlwaysPreTouch',
-        ...         'spark.jars.packages': 'org.apache.hadoop:hadoop-aws:3.3.6,com.amazonaws:aws-java-sdk-bundle:1.12.367',
-        ...         'spark.hadoop.fs.s3a.impl': 'org.apache.hadoop.fs.s3a.S3AFileSystem',
-        ...         'spark.hadoop.fs.s3a.endpoint': f'https://{credentials.s3_host_url}:{credentials.s3_host_port}',
-        ...         'spark.hadoop.fs.s3a.path.style.access': 'true',
-        ...         'spark.hadoop.fs.s3a.connection.ssl.enabled': 'true',
-        ...         'spark.hadoop.fs.s3a.access.key': f'{credentials.access_key_id}',
-        ...         'spark.hadoop.fs.s3a.secret.key': f'{credentials.secret_access_key}',
         ...         # Throughput tuning
         ...         'spark.hadoop.fs.s3a.connection.maximum': '1000',
         ...         'spark.hadoop.fs.s3a.threads.max': '1024',
         ...         'spark.hadoop.fs.s3a.attempts.maximum': '20',
         ...         'spark.hadoop.fs.s3a.connection.timeout': '600000',  # 10min
-        ...     }
+        ...     },
         ... ) # doctest: +SKIP
+
+        Or relying on environment variables (``AWS_S3_BUCKET_NAME``, ``AWS_ENDPOINT_URL``,
+        ``AWS_ACCESS_KEY_ID``, ``AWS_SECRET_ACCESS_KEY``):
+
+        >>> session = Session(add_s3_connector=True) # doctest: +SKIP
 
         Example session with hadoop connector for Google Cloud Storage
 
+        Uses Application Default Credentials. ``project_id`` is optional and only
+        needed for bucket-level operations. It can also be set via the
+        ``GCS_PROJECT_ID`` environment variable (see :class:`~gentropy.external.gcs.GCSConfig`).
+
         >>> session = Session(
+        ...     add_gcs_connector=True,
+        ...     gcs_configuration={'project_id': 'my-gcp-project'},
         ...     extended_spark_conf={
         ...        'spark.driver.maxResultSize': '0',
-        ...        'spark.debug.maxToStringFields': '2000',
         ...        'spark.sql.broadcastTimeout': '3000',
         ...        'spark.sql.adaptive.enabled': 'true',
         ...        'spark.sql.adaptive.coalescePartitions.enabled': 'true',
         ...        'spark.serializer': 'org.apache.spark.serializer.KryoSerializer',
-        ...        # google cloud storage connector
-        ...        'spark.jars.packages': 'com.google.cloud.bigdataoss:gcs-connector:hadoop3-2.2.21',
-        ...        'spark.network.timeout': '10s',
-        ...        'spark.network.timeoutInterval': '10s',
-        ...        'spark.executor.heartbeatInterval': '6s',
         ...        'spark.hadoop.fs.gs.block.size': '134217728',
-        ...        'spark.hadoop.fs.gs.inputstream.buffer.size': '8388608',
         ...        'spark.hadoop.fs.gs.outputstream.buffer.size': '8388608',
-        ...        'spark.hadoop.fs.gs.outputstream.sync.min.interval.ms': '2000',
-        ...        'spark.hadoop.fs.gs.status.parallel.enable': 'true',
-        ...        'spark.hadoop.fs.gs.glob.algorithm': 'CONCURRENT',
-        ...        'spark.hadoop.fs.gs.copy.with.rewrite.enable': 'true',
-        ...        'spark.hadoop.fs.gs.metadata.cache.enable': 'false',
-        ...        'spark.hadoop.fs.gs.auth.type': 'APPLICATION_DEFAULT',
-        ...        'spark.hadoop.fs.gs.impl': 'com.google.cloud.hadoop.fs.gcs.GoogleHadoopFileSystem',
-        ...        'spark.hadoop.fs.AbstractFileSystem.gs.impl': 'com.google.cloud.hadoop.fs.gcs.GoogleHadoopFS',
-        ...     }
+        ...        'spark.hadoop.fs.gs.outputstream.sync.min.interval': '2s',
+        ...     },
         ... ) # doctest: +SKIP
+
+        Or relying on the ``GCS_PROJECT_ID`` environment variable (or no project ID at all):
+
+        >>> session = Session(add_gcs_connector=True) # doctest: +SKIP
 
     """
 
@@ -205,6 +209,10 @@ class Session:
         use_enhanced_bgzip_codec: bool = False,
         dynamic_allocation: bool = True,
         log_level: str | None = "INFO",
+        add_s3_connector: bool = False,
+        add_gcs_connector: bool = False,
+        s3_configuration: dict[str, str] | None = None,
+        gcs_configuration: dict[str, str] | None = None,
     ) -> None:
         """Initialises spark session and logger.
 
@@ -226,6 +234,14 @@ class Session:
             use_enhanced_bgzip_codec (bool): Whether to use the BGZFEnhancedGzipCodec for reading block gzipped files. Defaults to False.
             dynamic_allocation (bool): Whether to enable Spark dynamic allocation. Defaults to True.
             log_level (str | None): Spark log level. Defaults to "INFO".
+            add_s3_connector (bool): Whether to setup Spark configuration for S3 compatible storage. Defaults to False.
+            add_gcs_connector (bool): Whether to setup Spark configuration for GCS compatible storage. Defaults to False.
+            s3_configuration (dict[str, str] | None): Optional dictionary with s3 configuration parameters to include in the session. Defaults to None.
+                The object needs to follow the `gentropy.external.s3.S3Config` class structure. If none is provided and `add_s3_connector` is set to True,
+                the Session will search for the necessary S3 configuration parameters in the environment variables. See `S3Config.from_env` for more details.
+            gcs_configuration (dict[str, str] | None): Optional dictionary with GCS configuration parameters to include in the session. Defaults to None.
+                The object needs to follow the `gentropy.external.gcs.GCSConfig` class structure. If none is provided and `add_gcs_connector` is set to True,
+                the Session will search for the necessary GCS configuration parameters in the environment variables. See `GCSConfig.from_env` for more details.
         """
         # Provide sane defaults for extended configurations
 
@@ -234,6 +250,10 @@ class Session:
         self._write_mode = SparkWriteMode.ensure(write_mode)
         self._output_partitions = output_partitions or 200
         self._hail_home = hail_home
+        self._s3_configuration = s3_configuration or {}
+        self._gcs_configuration = gcs_configuration or {}
+        self._add_s3_connector = add_s3_connector
+        self._add_gcs_connector = add_gcs_connector
         # Build the requested config, small overhead, but we
         # can report if existing session is up to date with provided configuration.
         _c = self._build_config(
@@ -303,6 +323,10 @@ class Session:
         # If any additional packages or jars, ensure they are included along existing ones instead of overwritten
         if self._extended_spark_conf:
             _c = self._setup_extended_spark_conf(self._extended_spark_conf, _c)
+        if self._add_s3_connector:
+            _c = self._setup_s3_connector(_c, self._s3_configuration)
+        if self._add_gcs_connector:
+            _c = self._setup_gcs_connector(_c, self._gcs_configuration)
         return _c
 
     def _compare_conf(self, current: SparkConf, requested: SparkConf) -> None:
@@ -495,6 +519,85 @@ class Session:
             "spark.hadoop.io.compression.codecs",
             "org.seqdoop.hadoop_bam.util.BGZFEnhancedGzipCodec",
         ).set("spark.gentropy.useEnhancedBgzipCodec", "true")
+
+    def _setup_s3_connector(
+        self, c: SparkConf, s3_configuration: dict[str, str] | None = None
+    ) -> SparkConf:
+        """Setup Spark configuration for S3 compatible storage.
+
+        Args:
+            c (SparkConf): Existing Spark configuration.
+            s3_configuration (dict[str, str] | None): Dictionary with s3 configuration parameters to include in the session.
+
+        Returns:
+            SparkConf: Adjusted spark configuration with the S3 settings included.
+        """
+        from gentropy.external.s3 import S3Config
+
+        # Validate the input dictionary against the S3Config
+        if s3_configuration:
+            conf = S3Config(**s3_configuration)
+        else:
+            conf = S3Config.from_env()
+        data = {
+            "spark.hadoop.fs.s3a.impl": "org.apache.hadoop.fs.s3a.S3AFileSystem",
+            "spark.hadoop.fs.s3a.endpoint": f"https://{conf.s3_host_url}:{conf.s3_host_port}",
+            "spark.hadoop.fs.s3a.path.style.access": "true",
+            "spark.hadoop.fs.s3a.connection.ssl.enabled": "true",
+            "spark.hadoop.fs.s3a.access.key": f"{conf.access_key_id}",
+            "spark.hadoop.fs.s3a.secret.key": f"{conf.secret_access_key}",
+        }
+
+        for key, value in data.items():
+            c = c.set(key, value)
+
+        self._append_package(c, S3Config._HADOOP_CONNECTOR_PKG)
+        return c
+
+    def _setup_gcs_connector(
+        self, c: SparkConf, gcs_configuration: dict[str, str] | None = None
+    ) -> SparkConf:
+        """Setup Spark configuration for GCS compatible storage.
+
+        Args:
+            c (SparkConf): Existing Spark configuration.
+            gcs_configuration (dict[str, str] | None): Dictionary with GCS configuration parameters to include in the session.
+
+        Returns:
+            SparkConf: Adjusted spark configuration with the GCS settings included.
+        """
+        options = {
+            "spark.hadoop.fs.gs.impl": "com.google.cloud.hadoop.fs.gcs.GoogleHadoopFileSystem",
+            "spark.hadoop.fs.AbstractFileSystem.gs.impl": "com.google.cloud.hadoop.fs.gcs.GoogleHadoopFS",
+            "spark.hadoop.fs.gs.status.parallel.enable": "true",
+            "spark.hadoop.fs.gs.copy.with.rewrite.enable": "true",
+            "spark.hadoop.fs.gs.glob.algorithm": "CONCURRENT",
+            "spark.hadoop.fs.gs.auth.type": "APPLICATION_DEFAULT",
+        }
+        from gentropy.external.gcs import GCSConfig
+
+        try:
+            # Attempt to fetch the GCS config from provided dict, fallback to environment variables.
+            if gcs_configuration:
+                conf = GCSConfig(**gcs_configuration)
+            else:
+                msg = "`gcs_configuration` missing from session parameters, fallback to env"
+                self.logger.warning(msg)
+                conf = GCSConfig.from_env()
+            msg = "Adding project_id to GCS configuration"
+            self.logger.info(msg)
+            options["spark.hadoop.fs.gs.project.id"] = conf.project_id
+            if conf.requester_pays:
+                options["spark.hadoop.fs.gs.requester.pays.mode"] = conf.requester_pays
+        except Exception:
+            # Since the GCSConfig only sets the project_id for reading requester pays buckets,
+            # we can safely ignore missing configuration. This should be dealt with by user
+            msg = "Requester pays bucket access is not configured due to missing `gcs_configuration` in session parameters"
+            self.logger.warning(msg)
+        for key, value in options.items():
+            c = c.set(key, value)
+        c = self._append_package(c, GCSConfig._HADOOP_CONNECTOR_PKG)
+        return c
 
     @staticmethod
     def _append_jar(c: SparkConf, jar: str) -> SparkConf:
