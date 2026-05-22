@@ -392,6 +392,15 @@ class L2GFeatureMatrix:
         ).collect()[0]
 
         def _pct_reduction(before: int, after: int) -> float:
+            """Return percentage reduction from before to after, or 0.0 if before is zero.
+
+            Args:
+                before (int): Count before filtering.
+                after (int): Count after filtering.
+
+            Returns:
+                float: Percentage reduction rounded to 2 decimal places.
+            """
             return round((before - after) / before * 100, 2) if before else 0.0
 
         rows_before = int(before_row["rows"])
@@ -438,10 +447,10 @@ class L2GFeatureMatrix:
 
     def apply_soft_labels(
         self: Self,
-        label_nearest_fgs: float = 1.0,
-        label_not_nearest_fgs: float = 1.0,
-        label_nearest_no_fgs: float = 0.5,
-        label_not_nearest_no_fgs: float = 0.1,
+        nearest_fgs: float = 1.0,
+        not_nearest_fgs: float = 1.0,
+        nearest_no_fgs: float = 0.5,
+        not_nearest_no_fgs: float = 0.1,
     ) -> Self:
         """Add a soft_label column with graded confidence values for gold-standard positives.
 
@@ -463,10 +472,10 @@ class L2GFeatureMatrix:
         the trainer automatically uses soft labels for y_train / y_test.
 
         Args:
-            label_nearest_fgs (float): Label for nearest gene with FGS. Defaults to 1.0.
-            label_not_nearest_fgs (float): Label for non-nearest gene with FGS. Defaults to 1.0.
-            label_nearest_no_fgs (float): Label for nearest gene without FGS. Defaults to 0.5.
-            label_not_nearest_no_fgs (float): Label for non-nearest gene without FGS. Defaults to 0.1.
+            nearest_fgs (float): Label for nearest gene with FGS. Defaults to 1.0.
+            not_nearest_fgs (float): Label for non-nearest gene with FGS. Defaults to 1.0.
+            nearest_no_fgs (float): Label for nearest gene without FGS. Defaults to 0.5.
+            not_nearest_no_fgs (float): Label for non-nearest gene without FGS. Defaults to 0.1.
 
         Returns:
             Self: Feature matrix with ``soft_label`` column added and ``label_col`` updated.
@@ -507,10 +516,10 @@ class L2GFeatureMatrix:
 
         soft_label = (
             f.when(~is_positive, f.lit(0.0))
-            .when(is_positive & is_nearest & has_fgs, f.lit(label_nearest_fgs))
-            .when(is_positive & ~is_nearest & has_fgs, f.lit(label_not_nearest_fgs))
-            .when(is_positive & is_nearest & ~has_fgs, f.lit(label_nearest_no_fgs))
-            .otherwise(f.lit(label_not_nearest_no_fgs))
+            .when(is_positive & is_nearest & has_fgs, f.lit(nearest_fgs))
+            .when(is_positive & ~is_nearest & has_fgs, f.lit(not_nearest_fgs))
+            .when(is_positive & is_nearest & ~has_fgs, f.lit(nearest_no_fgs))
+            .otherwise(f.lit(not_nearest_no_fgs))
         )
 
         self._df = self._df.withColumn("soft_label", soft_label)
