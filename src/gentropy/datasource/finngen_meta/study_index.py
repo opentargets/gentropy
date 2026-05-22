@@ -20,18 +20,30 @@ class FinnGenMetaStudyIndex:
     def get_constants(cls) -> dict[str, dict[str, Column]]:
         """Get constants for FinnGen meta-analysis study index.
 
+        Args:
+            release (str): FinnGen release identifier used to filter constants (e.g. ``"R12"``). Defaults to ``"R12"``.
+
         Returns:
             dict[str, dict[str, Column]]: Constants for each meta-analysis data source.
         """
         return {
-            MetaAnalysisDataSource.FINNGEN_UKBB.value: {
+            MetaAnalysisDataSource.FINNGEN_UKBB_MVP_R13.value: {
+                "initialSampleSize": f.lit(
+                    "1,550,147 (MVP: nEUR=449,042, nAFR=121,177, nAMR=59,048; FinnGenR13: nNFE=500,349; pan-UKBB-EUR: nEUR=420,531)"
+                ),  # based on https://metaresults-ukbb.finngen.fi/about
+                "cohorts": f.array(
+                    f.lit("MVP"), f.lit("FinnGen"), f.lit("pan-UKBB-EUR")
+                ),
+                "publicationDate": f.lit("2025-12-01"),
+            },
+            MetaAnalysisDataSource.FINNGEN_UKBB_R12.value: {
                 "initialSampleSize": f.lit(
                     "920,880 (FinnGenR12: nNFE=500,349; pan-UKBB-EUR: nEUR=420,531)"
                 ),  # based on https://metaresults-ukbb.finngen.fi/about
                 "cohorts": f.array(f.lit("FinnGen"), f.lit("pan-UKBB-EUR")),
                 "publicationDate": f.lit("2024-11-01"),
             },
-            MetaAnalysisDataSource.FINNGEN_UKBB_MVP.value: {
+            MetaAnalysisDataSource.FINNGEN_UKBB_MVP_R12.value: {
                 "initialSampleSize": f.lit(
                     "1,550,147 (MVP: nEUR=449,042, nAFR=121,177, nAMR=59,048; FinnGenR12: nNFE=500,349; pan-UKBB-EUR: nEUR=420,531)"
                 ),  # based on https://mvp-ukbb.finngen.fi/about

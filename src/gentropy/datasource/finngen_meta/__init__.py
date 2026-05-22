@@ -12,39 +12,94 @@ if TYPE_CHECKING:
 import operator
 from enum import Enum
 from functools import reduce
+from typing import Annotated
 
+from pydantic import BaseModel, StringConstraints
 from pyspark.sql import Column
 from pyspark.sql import functions as f
 from pyspark.sql import types as t
 
 
-class MetaAnalysisDataSource(str, Enum):
-    """Enum for meta-analysis data sources."""
+class MetaAnalysisType(str, Enum):
+    """Enum representing FinnGen meta-analysis types.
 
-    FINNGEN_UKBB_MVP = "FINNGEN_R12_UKB_MVP_META"
-    FINNGEN_UKBB = "FINNGEN_R12_UKB_META"
+    Note: values represent the string identifiers for other
+        bio banks (except FinnGen) that are included in meta analysis, underscore separated.
+    """
+
+    THREE_WAY = "THREE_WAY"
+    """Corresponds to the FinnGen x UKBB x MVP meta-analysis."""
+    TWO_WAY = "TWO_WAY"
+    """Corresponds to the FinnGen x UKBB meta-analysis."""
+
+    def get_meta_analyzed_cohorts(self) -> list[str]:
+        """Get the list of cohorts included in the meta-analysis.
+
+        Returns:
+            list[str]: List of cohort identifiers.
+        """
+        match self:
+            case MetaAnalysisType.THREE_WAY:
+                return ["FINNGEN", "UKBB", "MVP_EUR", "MVP_AFR", "MVP_AMR"]
+            case MetaAnalysisType.TWO_WAY:
+                return ["FINNGEN", "UKBB"]
+            case _:
+                raise NotImplementedError(f"Unsupported meta-analysis type: {self}")
+
+    def get_manifest_schema(self) -> t.StructType:
+        """Get the Spark schema for the meta-analysis manifest.
+
+        Returns:
+            t.StructType: Spark schema for the meta-analysis manifest.
+        """
+        base_schema = t.StructType(
+            [
+                t.StructField("fg_phenotype", t.StringType(), nullable=True),
+                t.StructField("name", t.StringType(), nullable=True),
+                t.StructField("fg_n_cases", t.IntegerType(), nullable=True),
+                t.StructField("fg_n_controls", t.IntegerType(), nullable=True),
+                t.StructField("ukbb_n_cases", t.IntegerType(), nullable=True),
+                t.StructField("ukbb_n_controls", t.IntegerType(), nullable=True),
+                t.StructField("path_bucket", t.StringType(), nullable=True),
+            ]
+        )
+        match self:
+            case MetaAnalysisType.TWO_WAY:
+                return base_schema
+            case MetaAnalysisType.THREE_WAY:
+                return (
+                    base_schema.add("MVP_AFR_n_cases", t.IntegerType(), nullable=True)
+                    .add("MVP_AFR_n_controls", t.IntegerType(), nullable=True)
+                    .add("MVP_EUR_n_cases", t.IntegerType(), nullable=True)
+                    .add("MVP_EUR_n_controls", t.IntegerType(), nullable=True)
+                    .add("MVP_AMR_n_cases", t.IntegerType(), nullable=True)
+                    .add("MVP_AMR_n_controls", t.IntegerType(), nullable=True)
+                )
+
+
+class FinnGenMetaRelease(BaseModel):
+    """Model representing a FinnGen release."""
+
+    release: Annotated[str, StringConstraints(pattern="R\\d+")]
+    """FinnGen release identifier (e.g. "R12")."""
+    meta_analysis_type: MetaAnalysisType
+    """Type of meta-analysis conducted for this release."""
+
+    @property
+    def project_id(self) -> str:
+        """Get the project ID for this FinnGen meta-analysis.
+
+        Returns:
+            str: Project ID string (e.g. "FINNGEN_UKBB_MVP_R13").
+        """
+        return f"FINNGEN__{self.release}__{self.meta_analysis_type.value}"
 
 
 class FinnGenMetaManifest:
     """FinnGen meta-analysis manifest."""
 
-    ukbb_ancestry_cols = {
-        "ukbb_n_cases",
-        "ukbb_n_controls",
-    }
-
-    finngen_ancestry_cols = {
-        "fg_n_cases",
-        "fg_n_controls",
-    }
-
-    required_columns = {
-        "fg_phenotype",  # Original Finngen studyId (e.g. "I9_HEARTFAIL")
-        "name",  # Finngen phenotype name - used for mapping to EFO
-        # Ancestry columns for finngen and UKBB (should be in both meta analyses)
-        *finngen_ancestry_cols,
-        *ukbb_ancestry_cols,
-    }
+    ukbb_ancestry_cols = {"ukbb_n_cases", "ukbb_n_controls"}
+    finngen_ancestry_cols = {"fg_n_cases", "fg_n_controls"}
 
     mvp_ancestry_columns = {
         "MVP_AFR_n_cases",
@@ -56,12 +111,13 @@ class FinnGenMetaManifest:
     }
     sumstat_location_column = "path_bucket"
 
-    def __init__(self, df: DataFrame, meta: MetaAnalysisDataSource) -> None:
+    def __init__(self, df: DataFrame, meta: FinnGenMetaRelease) -> None:
         """Initialize the FinnGen meta-analysis manifest.
 
         Args:
             df (DataFrame): DataFrame containing the manifest data.
-            meta (MetaAnalysisDataSource): Meta-analysis data source enum.
+            meta (FinnGenMetaRelease): Meta-analysis release information.
+            release (str): FinnGen release identifier used to filter constants (e.g. ``"R12"``). Defaults to ``"R12"``.
         """
         self.meta = meta
         self._df = df
@@ -108,7 +164,13 @@ class FinnGenMetaManifest:
         )
 
     @classmethod
-    def from_path(cls, session: Session, manifest_path: str) -> FinnGenMetaManifest:
+    def from_path(
+        cls,
+        session: Session,
+        manifest_path: str,
+        meta_analysis_type: MetaAnalysisType,
+        release: str = "R12",
+    ) -> FinnGenMetaManifest:
         """Load the FinnGen meta-analysis manifest from a specified path.
 
         Note:
@@ -131,6 +193,8 @@ class FinnGenMetaManifest:
         Args:
             session (Session): Session object.
             manifest_path (str): Path to the manifest file.
+            meta_analysis_type (MetaAnalysisType): Type of meta-analysis conducted for this release.
+            release (str): FinnGen release identifier used to filter constants (e.g. ``"R12"``). Defaults to ``"R12"``.
 
         Returns:
             FinngenMetaManifest: Loaded manifest object.
@@ -144,17 +208,33 @@ class FinnGenMetaManifest:
             .option("sep", "\t")
             .csv(manifest_path)
         )
+
+        required_columns = {
+            "fg_phenotype",  # Original Finngen studyId (e.g. "I9_HEARTFAIL")
+            "name",  # Finngen phenotype name - used for mapping to EFO
+            # Ancestry columns for finngen and UKBB (should be in both meta analyses)
+            *cls.finngen_ancestry_cols,
+            *cls.ukbb_ancestry_cols,
+        }
+
         assert cls.required_columns.issubset(set(df.columns)), (
             f"Manifest file must contain the following columns: {cls.required_columns}. "
         )
-
-        # By default we assume we are dealing with the FinnGen UKBB meta-analysis
-        meta = MetaAnalysisDataSource.FINNGEN_UKBB
+        # By default we assume we are dealing with the 2-way Meta Analysis
+        meta = MetaAnalysisDataSource.FINNGEN_UKBB_R12
         columns = [*cls.required_columns]
 
-        # If we have the MVP ancestry columns, then we are dealing with the FinnGen UKBB MVP meta-analysis
+        # If we have the MVP ancestry columns, then we are dealing with the 3-way Meta Analysis
         if cls.mvp_ancestry_columns.issubset(set(df.columns)):
-            meta = MetaAnalysisDataSource.FINNGEN_UKBB_MVP
+            match release:
+                case "R12":
+                    meta = MetaAnalysisDataSource.FINNGEN_UKBB_MVP_R12
+                case "R13":
+                    meta = MetaAnalysisDataSource.FINNGEN_UKBB_MVP_R13
+                case _:
+                    raise ValueError(
+                        f"Unsupported FinnGen release: {release}. Supported releases are 'R12' and 'R13'."
+                    )
             columns += [*cls.mvp_ancestry_columns]
 
         column_map = [
@@ -189,9 +269,12 @@ class FinnGenMetaManifest:
         Returns:
             Column: Spark Column representing the discovery samples.
         """
-        if self.meta == MetaAnalysisDataSource.FINNGEN_UKBB:
+        if self.meta == MetaAnalysisDataSource.FINNGEN_UKBB_R12:
             return self._discovery_samples_finngen_ukbb()
-        elif self.meta == MetaAnalysisDataSource.FINNGEN_UKBB_MVP:
+        elif self.meta in (
+            MetaAnalysisDataSource.FINNGEN_UKBB_MVP_R12,
+            MetaAnalysisDataSource.FINNGEN_UKBB_MVP_R13,
+        ):
             return self._discovery_samples_finngen_ukbb_mvp()
         else:
             raise ValueError(f"Unsupported meta-analysis data source: {self.meta}")
@@ -243,9 +326,12 @@ class FinnGenMetaManifest:
             >>> sorted(manifest.ancestry_columns)
             ['MVP_AFR_n_cases', 'MVP_AFR_n_controls', 'MVP_AMR_n_cases', 'MVP_AMR_n_controls', 'MVP_EUR_n_cases', 'MVP_EUR_n_controls', 'fg_n_cases', 'fg_n_controls', 'ukbb_n_cases', 'ukbb_n_controls']
         """
-        if self.meta == MetaAnalysisDataSource.FINNGEN_UKBB:
+        if self.meta == MetaAnalysisDataSource.FINNGEN_UKBB_R12:
             return self.finngen_ancestry_cols | self.ukbb_ancestry_cols
-        elif self.meta == MetaAnalysisDataSource.FINNGEN_UKBB_MVP:
+        elif self.meta in (
+            MetaAnalysisDataSource.FINNGEN_UKBB_MVP_R12,
+            MetaAnalysisDataSource.FINNGEN_UKBB_MVP_R13,
+        ):
             return (
                 self.finngen_ancestry_cols
                 | self.ukbb_ancestry_cols
@@ -438,7 +524,10 @@ class FinnGenMetaManifest:
                 f.coalesce(f.col("ukbb_n_cases"), f.lit(0)).alias("nCases"),
             ),
         ]
-        if self.meta == MetaAnalysisDataSource.FINNGEN_UKBB_MVP:
+        if self.meta in (
+            MetaAnalysisDataSource.FINNGEN_UKBB_MVP_R12,
+            MetaAnalysisDataSource.FINNGEN_UKBB_MVP_R13,
+        ):
             n_cases += [
                 f.struct(
                     f.lit("MVP_EUR").alias("cohort"),
@@ -479,7 +568,10 @@ class FinnGenMetaManifest:
                 ).alias("nSamples"),
             ),
         ]
-        if self.meta == MetaAnalysisDataSource.FINNGEN_UKBB_MVP:
+        if self.meta in (
+            MetaAnalysisDataSource.FINNGEN_UKBB_MVP_R12,
+            MetaAnalysisDataSource.FINNGEN_UKBB_MVP_R13,
+        ):
             n_samples += [
                 f.struct(
                     f.lit("MVP_EUR").alias("cohort"),
