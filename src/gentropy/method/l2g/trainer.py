@@ -278,11 +278,13 @@ class LocusToGeneTrainer:
         n_splits: int = 5,
         hyperparameter_grid: dict[str, Any] | None = None,
         train_on_full_dataset: bool = False,
+        presplit_train_df: pd.DataFrame | None = None,
+        presplit_test_df: pd.DataFrame | None = None,
     ) -> LocusToGeneModel:
         """Train the Locus to Gene model.
 
         The training strategy is as follows:
-            1. Create held-out test set via hierarchical splitting
+            1. Create held-out test set via hierarchical splitting (or use pre-split DataFrames)
             2. Optionally perform cross-validation on the training set
             3. Train model on the training set (held-out set excluded)
             4. Evaluate once on the held-out test set — this is the reported benchmark
@@ -297,22 +299,28 @@ class LocusToGeneTrainer:
 
         Args:
             wandb_run_name (str | None): Name of the W&B run. Unless this is provided, the model will not be logged to W&B.
-            test_size (float): Proportion of the test set
+            test_size (float): Proportion of the test set. Ignored when ``presplit_train_df`` and ``presplit_test_df`` are provided.
             cross_validate (bool): Whether to run cross-validation. Defaults to True.
             n_splits(int): Number of folds the data is splitted in. The model is trained and evaluated `k - 1` times. Defaults to 5.
             hyperparameter_grid (dict[str, Any] | None): Hyperparameter grid to sweep over. Defaults to None.
             train_on_full_dataset (bool): Whether to retrain the final saved model on the full dataset (train + held-out) after evaluation. Defaults to False.
+            presplit_train_df (pd.DataFrame | None): Pre-split training DataFrame with labels already encoded as integers. When provided together with ``presplit_test_df``, the internal ``generate_train_test_split`` call is skipped.
+            presplit_test_df (pd.DataFrame | None): Pre-split test DataFrame with labels already encoded as integers. See ``presplit_train_df``.
 
         Returns:
             LocusToGeneModel: Fitted model
         """
-        # Create held-out test set using hierarchical splitting
-        self.train_df, self.test_df = self.feature_matrix.generate_train_test_split(
-            test_size=test_size,
-            verbose=True,
-            label_encoder=self.model.label_encoder,
-            label_col=self.feature_matrix.label_col,
-        )
+        if presplit_train_df is not None and presplit_test_df is not None:
+            self.train_df = presplit_train_df
+            self.test_df = presplit_test_df
+        else:
+            # Create held-out test set using hierarchical splitting
+            self.train_df, self.test_df = self.feature_matrix.generate_train_test_split(
+                test_size=test_size,
+                verbose=True,
+                label_encoder=self.model.label_encoder,
+                label_col=self.feature_matrix.label_col,
+            )
         self.x_train = self.train_df[self.features_list].apply(pd.to_numeric).values
         self.y_train = (
             self.train_df[self.feature_matrix.label_col].apply(pd.to_numeric).values

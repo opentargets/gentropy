@@ -290,10 +290,7 @@ class LocusToGeneConfig(StepConfig):
     feature_matrix_path: str = MISSING
     predictions_path: str | None = None
     l2g_threshold: float = 0.05
-    variant_index_path: str | None = None
     model_path: str = "opentargets/locus_to_gene"
-    gold_standard_curation_path: str | None = None
-    gene_interactions_path: str | None = None
     features_list: list[str] = field(
         default_factory=lambda: [
             # max CLPP for each (study, locus, gene) aggregating over a specific qtl type
@@ -361,6 +358,8 @@ class LocusToGeneConfig(StepConfig):
     explain_predictions: bool = False
     wandb_credentials_path: str | None = None
     hf_credentials_path: str | None = None
+    train_parquet_path: str | None = None
+    test_parquet_path: str | None = None
     _target_: str = "gentropy.l2g.LocusToGeneStep"
 
 

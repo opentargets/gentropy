@@ -6,6 +6,7 @@ import json
 import logging
 from typing import Any
 
+import pandas as pd
 import pyspark.sql.functions as f
 from wandb.sdk.wandb_login import login as wandb_login
 from xgboost import XGBClassifier
@@ -211,8 +212,6 @@ class LocusToGeneTrainTestSplitStep:
             .select_features(features_list)
             .persist()
         )
-
-        import pandas as pd
 
         label_encoder = {"negative": 0, "positive": 1}
 
@@ -433,9 +432,6 @@ class LocusToGeneStep:
         wandb_run_name: str | None = None,
         model_path: str = "opentargets/locus_to_gene",
         features_list: list[str] | None = None,
-        gold_standard_curation_path: str | None = None,
-        variant_index_path: str | None = None,
-        gene_interactions_path: str | None = None,
         predictions_path: str | None = None,
         l2g_threshold: float = 0.05,
         hf_hub_repo_id: str = "locus_to_gene",
@@ -444,6 +440,8 @@ class LocusToGeneStep:
         explain_predictions: bool = False,
         hf_credentials_path: str | None = None,
         wandb_credentials_path: str | None = None,
+        train_parquet_path: str | None = None,
+        test_parquet_path: str | None = None,
     ) -> None:
         """Initialise the step and run the logic based on mode.
 
@@ -459,9 +457,6 @@ class LocusToGeneStep:
             wandb_run_name (str | None): Name of the run to track model training in Weights and Biases
             model_path (str): Path to the model. It can be either in the filesystem or the name on the Hugging Face Hub (in the form of username/repo_name).
             features_list (list[str] | None): List of features to use to train the model
-            gold_standard_curation_path (str | None): Path to the gold standard curation file
-            variant_index_path (str | None): Path to the variant index
-            gene_interactions_path (str | None): Path to the protein-protein interaction (PPI) dataset
             predictions_path (str | None): Path to the L2G predictions output dataset
             l2g_threshold (float): An optional threshold for the L2G score to filter predictions. A threshold of 0.05 is recommended.
             hf_hub_repo_id (str): Hugging Face Hub repository handle in ``username/repo_name`` format. Used to download the model when ``download_from_hub`` is ``True`` (predict mode) and to upload the trained model (train mode).
@@ -470,6 +465,8 @@ class LocusToGeneStep:
             explain_predictions (bool): Whether to extract SHAP importances for the L2G predictions. This is computationally expensive.
             hf_credentials_path (str | None): Optional path to the Hugging Face Hub credentials JSON file. If not provided, the HF_TOKEN environment variable will be used.
             wandb_credentials_path (str | None): Optional path to the Weights and Biases credentials JSON file. If not provided, the WANDB_API_KEY environment variable will be used.
+            train_parquet_path (str | None): Path to the training split parquet produced by ``LocusToGeneTrainTestSplitStep``. Required in train mode.
+            test_parquet_path (str | None): Path to the test split parquet produced by ``LocusToGeneTrainTestSplitStep``. Required in train mode.
 
         Raises:
             ValueError: If run_mode is not 'train' or 'predict'
@@ -507,9 +504,8 @@ class LocusToGeneStep:
         self.features_list = list(features_list) if features_list else None
 
         # Train io
-        self.gold_standard_curation_path = gold_standard_curation_path
-        self.gene_interactions_path = gene_interactions_path
-        self.variant_index_path = variant_index_path
+        self.train_parquet_path = train_parquet_path
+        self.test_parquet_path = test_parquet_path
         self.train_on_full_dataset = train_on_full_dataset
 
         # Train parameters
@@ -552,106 +548,7 @@ class LocusToGeneStep:
                 ).handle
             self.run_predict()
         elif run_mode == "train":
-            self.gold_standard = self.prepare_gold_standard()
             self.run_train()
-
-    def prepare_gold_standard(self) -> L2GGoldStandard:
-        """Prepare the gold standard for training.
-
-        Returns:
-            L2GGoldStandard: training dataset.
-
-        Raises:
-            ValueError: When gold standard path, is not provided, or when
-                parsing OTG gold standard but missing interactions and variant index paths.
-            TypeError: When gold standard is not OTG gold standard nor L2GGoldStandard.
-
-        """
-        if self.gold_standard_curation_path is None:
-            raise ValueError("Gold Standard is required for model training.")
-        # Read the gold standard either from json or parquet, default to parquet if can not infer the format from extension.
-        ext = self.gold_standard_curation_path.split(".")[-1]
-        ext = "parquet" if ext not in ["parquet", "json"] else ext
-        gold_standard = self.session.load_data(self.gold_standard_curation_path, ext)
-        schema_issues = compare_struct_schemas(
-            gold_standard.schema, L2GGoldStandard.get_schema()
-        )
-        # Parse the gold standard depending on the input schema
-        match schema_issues:
-            case {**extra} if not extra:
-                # Schema is the same as L2GGoldStandard - load the GS
-                # NOTE: match to empty dict will be non-selective
-                # see https://stackoverflow.com/questions/75389166/how-to-match-an-empty-dictionary                logging.info("Successfully parsed gold standard.")
-                return L2GGoldStandard(
-                    _df=gold_standard,
-                    _schema=L2GGoldStandard.get_schema(),
-                )
-            case {"unexpected_columns": extra_columns}:
-                # All mandatory columns present, extra columns are allowed but not passed to the L2GGoldStandard object
-                logging.info("Successfully parsed gold standard with extra columns.")
-                return L2GGoldStandard(
-                    _df=gold_standard.drop(*extra_columns),
-                    _schema=L2GGoldStandard.get_schema(),
-                )
-            case {
-                "missing_mandatory_columns": [
-                    "studyLocusId",
-                    "variantId",
-                    "studyId",
-                    "geneId",
-                    "goldStandardSet",
-                ],
-                "unexpected_columns": [
-                    "association_info",
-                    "gold_standard_info",
-                    "metadata",
-                    "sentinel_variant",
-                    "trait_info",
-                ],
-            }:
-                # There are schema mismatches, this would mean that we have
-                logging.info("Detected OTG Gold Standard. Attempting to parse it.")
-                otg_curation = gold_standard
-                if self.gene_interactions_path is None:
-                    raise ValueError("Interactions are required for parsing curation.")
-                if self.variant_index_path is None:
-                    raise ValueError("Variant Index are required for parsing curation.")
-
-                interactions = self.session.load_data(
-                    self.gene_interactions_path, "parquet", recursiveFileLookup=True
-                )
-                variant_index = VariantIndex.from_parquet(
-                    self.session, self.variant_index_path
-                )
-                study_locus_overlap = StudyLocus(
-                    _df=self.credible_set.df.join(
-                        otg_curation.select(
-                            f.concat_ws(
-                                "_",
-                                f.col("sentinel_variant.locus_GRCh38.chromosome"),
-                                f.col("sentinel_variant.locus_GRCh38.position"),
-                                f.col("sentinel_variant.alleles.reference"),
-                                f.col("sentinel_variant.alleles.alternative"),
-                            ).alias("variantId"),
-                            f.col("association_info.otg_id").alias("studyId"),
-                        ),
-                        on=[
-                            "studyId",
-                            "variantId",
-                        ],
-                        how="inner",
-                    ),
-                    _schema=StudyLocus.get_schema(),
-                ).find_overlaps()
-
-                return L2GGoldStandard.from_otg_curation(
-                    gold_standard_curation=otg_curation,
-                    variant_index=variant_index,
-                    study_locus_overlap=study_locus_overlap,
-                    interactions=interactions,
-                )
-            case _:
-                raise TypeError("Incorrect gold standard dataset provided.")
 
     def run_predict(self) -> None:
         """Run the prediction step.
@@ -695,10 +592,16 @@ class LocusToGeneStep:
         """Run the training step.
 
         Raises:
-            ValueError: If features list is not provided for model training.
+            ValueError: If features list or presplit parquet paths are not provided.
         """
         if self.features_list is None:
             raise ValueError("Features list is required for model training.")
+        if not (self.train_parquet_path and self.test_parquet_path):
+            raise ValueError(
+                "train_parquet_path and test_parquet_path are required for model training. "
+                "Run LocusToGeneTrainTestSplitStep first."
+            )
+
         # Initialize access to weights and biases
         if self.wandb_run_name:
             wandb_credentials = WandbCredentials.read(self.wandb_credentials_path)
@@ -707,7 +610,6 @@ class LocusToGeneStep:
         # Initialize access to Hugging Face Hub
         hf_token = None
         if self.hf_hub_repo_id and self.hf_model_commit_message:
-            # Fails when the HF_TOKEN env is not set
             hf_hub_credentials = HuggingFaceHubCredentials.read(
                 self.hf_credentials_path
             )
@@ -720,8 +622,25 @@ class LocusToGeneStep:
             features_list=self.features_list,
         )
 
-        # Calculate the gold standard features
-        feature_matrix = self._annotate_gold_standards_w_feature_matrix()
+        # Load presplit data produced by LocusToGeneTrainTestSplitStep
+        presplit_train_df = self.session.spark.read.parquet(
+            self.train_parquet_path
+        ).toPandas()
+        presplit_test_df = self.session.spark.read.parquet(
+            self.test_parquet_path
+        ).toPandas()
+
+        # Reconstruct L2GFeatureMatrix for model metadata (column order, HF Hub upload).
+        # Labels are decoded back to strings so generate_train_test_split works if
+        # export_to_hugging_face_hub is called later.
+        label_decoder = {0: "negative", 1: "positive"}
+        combined = pd.concat([presplit_train_df, presplit_test_df], ignore_index=True)
+        if combined["goldStandardSet"].dtype != object:
+            combined["goldStandardSet"] = combined["goldStandardSet"].map(label_decoder)
+        feature_matrix = L2GFeatureMatrix(
+            _df=self.session.spark.createDataFrame(combined),
+            with_gold_standard=True,
+        ).select_features(self.features_list)
 
         # Run the training
         trained_model = LocusToGeneTrainer(
@@ -730,6 +649,8 @@ class LocusToGeneStep:
             wandb_run_name=self.wandb_run_name,
             cross_validate=self.cross_validate,
             train_on_full_dataset=self.train_on_full_dataset,
+            presplit_train_df=presplit_train_df,
+            presplit_test_df=presplit_test_df,
         )
 
         # Export the model
@@ -737,27 +658,12 @@ class LocusToGeneStep:
             trained_model.save(self.model_path)
             if self.hf_hub_repo_id and self.hf_model_commit_message and hf_token:
                 trained_model.export_to_hugging_face_hub(
-                    # we upload the model saved in the filesystem
                     self.model_path.split("/")[-1],
                     hf_token=hf_token,
                     feature_matrix=trained_model.training_data,
                     repo_id=self.hf_hub_repo_id,
                     commit_message=self.hf_model_commit_message,
                 )
-
-    def _annotate_gold_standards_w_feature_matrix(self) -> L2GFeatureMatrix:
-        """Generate the feature matrix of annotated gold standards.
-
-        Returns:
-            L2GFeatureMatrix: Feature matrix with gold standards annotated with features.
-        """
-        return (
-            self.gold_standard.build_feature_matrix(
-                self.feature_matrix, self.credible_set
-            )
-            .select_features(self.features_list)
-            .persist()
-        )
 
 
 class LocusToGeneEvidenceStep:
