@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import logging
 from typing import Any
 
@@ -155,6 +156,264 @@ class LocusToGeneFeatureMatrixStep:
         fm._df.coalesce(session.output_partitions).write.mode(
             session.write_mode
         ).parquet(feature_matrix_path)
+
+
+class LocusToGeneTrainTestSplitStep:
+    """Split the annotated gold standard feature matrix into train/test partitions and write to parquet."""
+
+    def __init__(
+        self,
+        session: Session,
+        *,
+        credible_set_path: str,
+        feature_matrix_path: str,
+        gold_standard_curation_path: str,
+        train_parquet_path: str,
+        test_parquet_path: str,
+        features_list: list[str],
+        test_size: float = 0.15,
+        variant_index_path: str | None = None,
+        gene_interactions_path: str | None = None,
+        predefined_test_parquet_path: str | None = None,
+    ) -> None:
+        """Initialise step: build annotated feature matrix, split, and persist.
+
+        Args:
+            session (Session): Session object that contains the Spark session
+            credible_set_path (str): Path to the credible set dataset
+            feature_matrix_path (str): Path to the L2G feature matrix input dataset
+            gold_standard_curation_path (str): Path to the gold standard curation file (parquet or JSON)
+            train_parquet_path (str): Output path for the training split parquet
+            test_parquet_path (str): Output path for the held-out test split parquet
+            features_list (list[str]): Features to select from the feature matrix
+            test_size (float): Proportion of study loci assigned to the test split. Defaults to 0.15.
+            variant_index_path (str | None): Path to the variant index (required for OTG gold standard)
+            gene_interactions_path (str | None): Path to the PPI dataset (required for OTG gold standard)
+            predefined_test_parquet_path (str | None): Path to an existing test-split parquet (produced by a previous run of this step). When provided the test set is loaded as-is and the training set is derived by removing all studyLocusIds from the annotated feature matrix whose positive genes overlap with the test set's positive genes. ``test_size`` is ignored. Defaults to None (performs a fresh hierarchical split).
+        """
+        credible_set = StudyLocus.from_parquet(
+            session, credible_set_path, recursiveFileLookup=True
+        )
+        feature_matrix = L2GFeatureMatrix(
+            _df=session.load_data(feature_matrix_path, "parquet"),
+        )
+        gold_standard = self._parse_gold_standard(
+            session=session,
+            gold_standard_curation_path=gold_standard_curation_path,
+            credible_set=credible_set,
+            variant_index_path=variant_index_path,
+            gene_interactions_path=gene_interactions_path,
+        )
+
+        # Build annotated feature matrix for gold standard loci
+        annotated_fm = (
+            gold_standard.build_feature_matrix(feature_matrix, credible_set)
+            .select_features(features_list)
+            .persist()
+        )
+
+        import pandas as pd
+
+        label_encoder = {"negative": 0, "positive": 1}
+
+        if predefined_test_parquet_path:
+            predefined_test_df: pd.DataFrame = session.spark.read.parquet(
+                predefined_test_parquet_path
+            ).toPandas()
+
+            n_original_total: int = annotated_fm._df.count()
+            n_original_test: int = len(predefined_test_df)
+
+            # Positive gene IDs from the predefined test (handles both str and int encoding).
+            test_positive_genes: set[str] = set(
+                predefined_test_df.loc[
+                    predefined_test_df["goldStandardSet"].isin([1, "positive"]), "geneId"
+                ]
+            )
+
+            # studyLocusIds in annotated_fm that contain at least one test positive gene.
+            contaminating_ids: set[Any] = set(
+                annotated_fm._df.filter(
+                    f.col("geneId").isin(list(test_positive_genes))
+                    & (f.col("goldStandardSet") == "positive")
+                )
+                .select("studyLocusId")
+                .distinct()
+                .toPandas()["studyLocusId"]
+                .tolist()
+            )
+
+            # Train set: remove contaminating studyLocusIds entirely.
+            train_df: pd.DataFrame = annotated_fm._df.filter(
+                ~f.col("studyLocusId").isin(list(contaminating_ids))
+            ).toPandas()
+
+            # Test set: re-derive from current annotated_fm using the predefined
+            # (studyLocusId, geneId) pairs so feature values are up to date.
+            test_pairs_spark = session.spark.createDataFrame(
+                predefined_test_df[["studyLocusId", "geneId"]]
+            )
+            test_df: pd.DataFrame = (
+                annotated_fm._df.join(
+                    test_pairs_spark, on=["studyLocusId", "geneId"], how="inner"
+                )
+                .toPandas()
+            )
+
+            # Apply the same label encoding that generate_train_test_split uses.
+            for col in {annotated_fm.label_col, "goldStandardSet"}:
+                for df in [train_df, test_df]:
+                    if col in df.columns and df[col].dtype == object:
+                        df[col] = df[col].map(label_encoder)
+
+            n_test_new = len(test_df)
+            n_train = len(train_df)
+            split_stats = {
+                "n_original_total": n_original_total,
+                "n_original_test": n_original_test,
+                "n_test_new": n_test_new,
+                "n_lost_test": n_original_test - n_test_new,
+                "n_train": n_train,
+                "n_lost_total": n_original_total - n_test_new - n_train,
+            }
+            self._write_split_stats(split_stats, train_parquet_path)
+            logging.info("Split stats: %s", split_stats)
+        else:
+            train_df, test_df = annotated_fm.generate_train_test_split(
+                test_size=test_size,
+                verbose=True,
+                label_encoder=label_encoder,
+                label_col=annotated_fm.label_col,
+            )
+
+        session.spark.createDataFrame(train_df).coalesce(1).write.mode(
+            session.write_mode
+        ).parquet(train_parquet_path)
+        session.spark.createDataFrame(test_df).coalesce(1).write.mode(
+            session.write_mode
+        ).parquet(test_parquet_path)
+        logging.info(
+            "Train/test split written: %d train rows, %d test rows.",
+            len(train_df),
+            len(test_df),
+        )
+
+    @staticmethod
+    def _parse_gold_standard(
+        session: Session,
+        gold_standard_curation_path: str,
+        credible_set: StudyLocus,
+        variant_index_path: str | None,
+        gene_interactions_path: str | None,
+    ) -> L2GGoldStandard:
+        """Load and parse the gold standard curation file into an L2GGoldStandard.
+
+        Args:
+            session (Session): Active Spark session.
+            gold_standard_curation_path (str): Path to the gold standard curation file (parquet or JSON).
+            credible_set (StudyLocus): Credible set used for OTG curation parsing.
+            variant_index_path (str | None): Path to variant index (required for OTG format).
+            gene_interactions_path (str | None): Path to PPI dataset (required for OTG format).
+
+        Returns:
+            L2GGoldStandard: Parsed gold standard dataset.
+
+        Raises:
+            ValueError: If OTG format is detected but required paths are missing.
+            TypeError: If the gold standard schema is unrecognised.
+        """
+        ext = gold_standard_curation_path.rsplit(".", maxsplit=1)[-1]
+        ext = "parquet" if ext not in ["parquet", "json"] else ext
+        gold_standard_raw = session.load_data(gold_standard_curation_path, ext)
+        schema_issues = compare_struct_schemas(
+            gold_standard_raw.schema, L2GGoldStandard.get_schema()
+        )
+        match schema_issues:
+            case {**extra} if not extra:
+                return L2GGoldStandard(
+                    _df=gold_standard_raw,
+                    _schema=L2GGoldStandard.get_schema(),
+                )
+            case {"unexpected_columns": extra_columns}:
+                return L2GGoldStandard(
+                    _df=gold_standard_raw.drop(*extra_columns),
+                    _schema=L2GGoldStandard.get_schema(),
+                )
+            case {
+                "missing_mandatory_columns": [
+                    "studyLocusId",
+                    "variantId",
+                    "studyId",
+                    "geneId",
+                    "goldStandardSet",
+                ],
+                "unexpected_columns": [
+                    "association_info",
+                    "gold_standard_info",
+                    "metadata",
+                    "sentinel_variant",
+                    "trait_info",
+                ],
+            }:
+                if gene_interactions_path is None:
+                    raise ValueError("Interactions are required for parsing OTG curation.")
+                if variant_index_path is None:
+                    raise ValueError("Variant Index is required for parsing OTG curation.")
+                interactions = session.load_data(
+                    gene_interactions_path, "parquet", recursiveFileLookup=True
+                )
+                variant_index = VariantIndex.from_parquet(session, variant_index_path)
+                study_locus_overlap = StudyLocus(
+                    _df=credible_set.df.join(
+                        gold_standard_raw.select(
+                            f.concat_ws(
+                                "_",
+                                f.col("sentinel_variant.locus_GRCh38.chromosome"),
+                                f.col("sentinel_variant.locus_GRCh38.position"),
+                                f.col("sentinel_variant.alleles.reference"),
+                                f.col("sentinel_variant.alleles.alternative"),
+                            ).alias("variantId"),
+                            f.col("association_info.otg_id").alias("studyId"),
+                        ),
+                        on=["studyId", "variantId"],
+                        how="inner",
+                    ),
+                    _schema=StudyLocus.get_schema(),
+                ).find_overlaps()
+                return L2GGoldStandard.from_otg_curation(
+                    gold_standard_curation=gold_standard_raw,
+                    variant_index=variant_index,
+                    study_locus_overlap=study_locus_overlap,
+                    interactions=interactions,
+                )
+            case _:
+                raise TypeError("Incorrect gold standard dataset provided.")
+
+    @staticmethod
+    def _write_split_stats(stats: dict[str, Any], train_parquet_path: str) -> None:
+        """Write split statistics as a JSON file next to the training parquet.
+
+        Args:
+            stats (dict[str, Any]): Stats dict to serialise.
+            train_parquet_path (str): Path used to derive the output JSON path.
+        """
+        from urllib.parse import urlparse
+
+        log_path = train_parquet_path.rstrip("/") + "_split_stats.json"
+        payload = json.dumps(stats, indent=2)
+        if log_path.startswith("gs://"):
+            from google.cloud import storage
+
+            parsed = urlparse(log_path)
+            bucket = storage.Client().bucket(parsed.hostname)
+            bucket.blob(parsed.path.lstrip("/")).upload_from_string(
+                payload, content_type="application/json"
+            )
+        else:
+            from pathlib import Path
+
+            Path(log_path).write_text(payload)
+        logging.info("Split stats written to %s", log_path)
 
 
 class LocusToGeneStep:

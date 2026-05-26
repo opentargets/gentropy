@@ -365,6 +365,57 @@ class LocusToGeneConfig(StepConfig):
 
 
 @dataclass
+class LocusToGeneTrainTestSplitConfig(StepConfig):
+    """Configuration for the train/test split step that precedes L2G training."""
+
+    credible_set_path: str = MISSING
+    feature_matrix_path: str = MISSING
+    gold_standard_curation_path: str = MISSING
+    train_parquet_path: str = MISSING
+    test_parquet_path: str = MISSING
+    test_size: float = 0.15
+    variant_index_path: str | None = None
+    gene_interactions_path: str | None = None
+    predefined_test_parquet_path: str | None = None
+    features_list: list[str] = field(
+        default_factory=lambda: [
+            "eQtlColocClppMaximum",
+            "pQtlColocClppMaximum",
+            "sQtlColocClppMaximum",
+            "eQtlColocH4Maximum",
+            "pQtlColocH4Maximum",
+            "sQtlColocH4Maximum",
+            "eQtlColocClppMaximumNeighbourhood",
+            "pQtlColocClppMaximumNeighbourhood",
+            "sQtlColocClppMaximumNeighbourhood",
+            "eQtlColocH4MaximumNeighbourhood",
+            "pQtlColocH4MaximumNeighbourhood",
+            "sQtlColocH4MaximumNeighbourhood",
+            "distanceSentinelFootprint",
+            "distanceSentinelFootprintNeighbourhood",
+            "distanceFootprintMean",
+            "distanceFootprintMeanNeighbourhood",
+            "distanceTssMean",
+            "distanceTssMeanNeighbourhood",
+            "distanceSentinelTss",
+            "distanceSentinelTssNeighbourhood",
+            "vepMaximum",
+            "vepMaximumNeighbourhood",
+            "vepMean",
+            "vepMeanNeighbourhood",
+            "e2gMean",
+            "e2gMeanNeighbourhood",
+            "geneCount500kb",
+            "proteinGeneCount500kb",
+            "credibleSetConfidence",
+            "transPQtlColocH4Maximum",
+            "transPQtlColocH4MaximumNeighbourhood",
+        ]
+    )
+    _target_: str = "gentropy.l2g.LocusToGeneTrainTestSplitStep"
+
+
+@dataclass
 class LocusToGeneFeatureMatrixConfig(StepConfig):
     """Locus to gene feature matrix step configuration."""
 
@@ -851,6 +902,11 @@ def register_config() -> None:
     cs.store(group="step", name="ld_based_clumping", node=LDBasedClumpingConfig)
     cs.store(group="step", name="ld_index", node=LDIndexConfig)
     cs.store(group="step", name="locus_to_gene", node=LocusToGeneConfig)
+    cs.store(
+        group="step",
+        name="locus_to_gene_train_test_split",
+        node=LocusToGeneTrainTestSplitConfig,
+    )
     cs.store(
         group="step",
         name="locus_to_gene_feature_matrix",
