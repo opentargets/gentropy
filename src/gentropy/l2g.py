@@ -216,58 +216,49 @@ class LocusToGeneTrainTestSplitStep:
         label_encoder = {"negative": 0, "positive": 1}
 
         if predefined_test_parquet_path:
-            predefined_test_df: pd.DataFrame = session.spark.read.parquet(
-                predefined_test_parquet_path
-            ).toPandas()
+            predefined_test_sdf = session.spark.read.parquet(predefined_test_parquet_path)
 
             n_original_total: int = annotated_fm._df.count()
-            n_original_test: int = len(predefined_test_df)
+            n_original_test: int = predefined_test_sdf.count()
 
-            # Positive gene IDs from the predefined test (handles both str and int encoding).
-            test_positive_genes: set[str] = set(
-                predefined_test_df.loc[
-                    predefined_test_df["goldStandardSet"].isin([1, "positive"]), "geneId"
-                ]
-            )
+            # Positive gene IDs from the predefined test set.
+            test_positive_genes_sdf = predefined_test_sdf.filter(
+                f.col("goldStandardSet").isin([1, "positive"])
+            ).select("geneId").distinct()
 
-            # studyLocusIds in annotated_fm that contain at least one test positive gene.
-            contaminating_ids: set[Any] = set(
-                annotated_fm._df.filter(
-                    f.col("geneId").isin(list(test_positive_genes))
-                    & (f.col("goldStandardSet") == "positive")
-                )
+            # studyLocusIds in annotated_fm that contain at least one test-positive gene.
+            contaminating_sdf = (
+                annotated_fm._df.join(test_positive_genes_sdf, on="geneId", how="inner")
+                .filter(f.col("goldStandardSet") == "positive")
                 .select("studyLocusId")
                 .distinct()
-                .toPandas()["studyLocusId"]
-                .tolist()
             )
 
             # Train set: remove contaminating studyLocusIds entirely.
-            train_df: pd.DataFrame = annotated_fm._df.filter(
-                ~f.col("studyLocusId").isin(list(contaminating_ids))
-            ).toPandas()
-
-            # Test set: re-derive from current annotated_fm using the predefined
-            # (studyLocusId, geneId) pairs so feature values are up to date.
-            test_pairs_spark = session.spark.createDataFrame(
-                predefined_test_df[["studyLocusId", "geneId"]]
-            )
-            test_df: pd.DataFrame = (
-                annotated_fm._df.join(
-                    test_pairs_spark, on=["studyLocusId", "geneId"], how="inner"
-                )
-                .toPandas()
+            train_sdf = annotated_fm._df.join(
+                contaminating_sdf, on="studyLocusId", how="left_anti"
             )
 
-            # Apply the same label encoding that generate_train_test_split uses.
-            for col in {annotated_fm.label_col, "goldStandardSet"}:
-                for df in [train_df, test_df]:
-                    if col in df.columns and df[col].dtype == object:
-                        df[col] = df[col].map(label_encoder)
+            # Test set: re-derive features from current annotated_fm using the predefined pairs.
+            test_pairs_sdf = predefined_test_sdf.select("studyLocusId", "geneId")
+            test_sdf = annotated_fm._df.join(
+                test_pairs_sdf, on=["studyLocusId", "geneId"], how="inner"
+            )
 
-            n_test_new = len(test_df)
-            n_train = len(train_df)
-            split_stats = {
+            # Apply label encoding in Spark (handles both string and already-encoded int values).
+            label_map = f.create_map(f.lit("negative"), f.lit(0), f.lit("positive"), f.lit(1))
+            train_sdf = train_sdf.withColumn(
+                "goldStandardSet",
+                f.coalesce(label_map[f.col("goldStandardSet")], f.col("goldStandardSet").cast("int")),
+            )
+            test_sdf = test_sdf.withColumn(
+                "goldStandardSet",
+                f.coalesce(label_map[f.col("goldStandardSet")], f.col("goldStandardSet").cast("int")),
+            )
+
+            n_train: int = train_sdf.count()
+            n_test_new: int = test_sdf.count()
+            split_stats: dict[str, Any] = {
                 "n_original_total": n_original_total,
                 "n_original_test": n_original_test,
                 "n_test_new": n_test_new,
@@ -277,6 +268,9 @@ class LocusToGeneTrainTestSplitStep:
             }
             self._write_split_stats(split_stats, train_parquet_path)
             logging.info("Split stats: %s", split_stats)
+            train_sdf.write.mode(session.write_mode).parquet(train_parquet_path)
+            test_sdf.write.mode(session.write_mode).parquet(test_parquet_path)
+            n_written_train, n_written_test = n_train, n_test_new
         else:
             train_df, test_df = annotated_fm.generate_train_test_split(
                 test_size=test_size,
@@ -284,17 +278,26 @@ class LocusToGeneTrainTestSplitStep:
                 label_encoder=label_encoder,
                 label_col=annotated_fm.label_col,
             )
+            n_written_train, n_written_test = len(train_df), len(test_df)
+            split_stats = {
+                "n_train": n_written_train,
+                "n_test": n_written_test,
+                "test_size": test_size,
+            }
+            self._write_split_stats(split_stats, train_parquet_path)
+            logging.info("Split stats: %s", split_stats)
+            session.spark.createDataFrame(train_df).write.mode(
+                session.write_mode
+            ).parquet(train_parquet_path)
+            session.spark.createDataFrame(test_df).write.mode(
+                session.write_mode
+            ).parquet(test_parquet_path)
 
-        session.spark.createDataFrame(train_df).coalesce(1).write.mode(
-            session.write_mode
-        ).parquet(train_parquet_path)
-        session.spark.createDataFrame(test_df).coalesce(1).write.mode(
-            session.write_mode
-        ).parquet(test_parquet_path)
+        annotated_fm._df.unpersist()
         logging.info(
             "Train/test split written: %d train rows, %d test rows.",
-            len(train_df),
-            len(test_df),
+            n_written_train,
+            n_written_test,
         )
 
     @staticmethod
@@ -411,7 +414,9 @@ class LocusToGeneTrainTestSplitStep:
         else:
             from pathlib import Path
 
-            Path(log_path).write_text(payload)
+            p = Path(log_path)
+            p.parent.mkdir(parents=True, exist_ok=True)
+            p.write_text(payload)
         logging.info("Split stats written to %s", log_path)
 
 
