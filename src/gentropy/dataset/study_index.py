@@ -499,36 +499,48 @@ class StudyIndex(Dataset):
 
     @qc_test
     def collect_heritability(self: StudyIndex, heritability_df: DataFrame) -> StudyIndex:
-        """Collecting heritability information from LDSC results.
+        """Collecting heritability information from LDSC results into sumstatQCValues.
 
         Args:
             heritability_df (DataFrame): A dataframe containing heritability information for a subset of studies.
 
         Returns:
-            StudyIndex: with heritability information annotated.
+            StudyIndex: with LDSC heritability values appended to sumstatQCValues.
         """
+        ldsc_fields = ["h2", "h2_se", "intercept", "intercept_se", "mean_chisq", "lambda_gc"]
+
         h2_annotations = (
             heritability_df.filter(f.col("runStatus") == "success")
             .select(
                 "studyId",
-                f.struct(
-                    f.col("h2"),
-                    f.col("h2_se"),
-                    f.col("intercept"),
-                    f.col("intercept_se"),
-                    f.col("mean_chisq"),
-                    f.col("lambda_gc"),
-                    f.col("n_snps_used").cast("long"),
-                    f.col("M_ldsc"),
-                    f.col("ld_ancestry"),
-                ).alias("ldscH2"),
+                f.array(
+                    *[
+                        f.struct(
+                            f.lit(field).alias("QCCheckName"),
+                            f.col(field).cast("float").alias("QCCheckValue"),
+                        )
+                        for field in ldsc_fields
+                    ]
+                ).alias("ldsc_qc"),
             )
         )
 
-        return StudyIndex(
-            _df=self.df.drop("ldscH2").join(h2_annotations, on="studyId", how="left"),
-            _schema=StudyIndex.get_schema(),
+        merged = (
+            self.df.join(h2_annotations, on="studyId", how="left")
+            .withColumn(
+                "sumstatQCValues",
+                f.when(
+                    f.col("ldsc_qc").isNotNull(),
+                    f.when(
+                        f.col("sumstatQCValues").isNotNull(),
+                        f.concat(f.col("sumstatQCValues"), f.col("ldsc_qc")),
+                    ).otherwise(f.col("ldsc_qc")),
+                ).otherwise(f.col("sumstatQCValues")),
+            )
+            .drop("ldsc_qc")
         )
+
+        return StudyIndex(_df=merged, _schema=StudyIndex.get_schema())
 
     @qc_test
     def validate_biosample(

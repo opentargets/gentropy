@@ -28,6 +28,7 @@ dependencies = [
   "huggingface-hub>=0.27.1",
   "wandb (>=0.19.4, <0.26.0)",
   "pydantic>=2.12.4",
+  "statsmodels>=0.14.0",
 ]
 classifiers = [
   "Programming Language :: Python :: 3.11",
