@@ -310,6 +310,10 @@ class LocusToGeneTrainer:
         Returns:
             LocusToGeneModel: Fitted model
         """
+        if (presplit_train_df is None) != (presplit_test_df is None):
+            raise ValueError(
+                "presplit_train_df and presplit_test_df must both be provided, or neither."
+            )
         if presplit_train_df is not None and presplit_test_df is not None:
             self.train_df = presplit_train_df
             self.test_df = presplit_test_df

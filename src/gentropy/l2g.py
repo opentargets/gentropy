@@ -256,6 +256,8 @@ class LocusToGeneTrainTestSplitStep:
                 f.coalesce(label_map[f.col("goldStandardSet")], f.col("goldStandardSet").cast("int")),
             )
 
+            train_sdf = train_sdf.persist()
+            test_sdf = test_sdf.persist()
             n_train: int = train_sdf.count()
             n_test_new: int = test_sdf.count()
             split_stats: dict[str, Any] = {
@@ -270,6 +272,8 @@ class LocusToGeneTrainTestSplitStep:
             logging.info("Split stats: %s", split_stats)
             train_sdf.write.mode(session.write_mode).parquet(train_parquet_path)
             test_sdf.write.mode(session.write_mode).parquet(test_parquet_path)
+            train_sdf.unpersist()
+            test_sdf.unpersist()
             n_written_train, n_written_test = n_train, n_test_new
         else:
             train_df, test_df = annotated_fm.generate_train_test_split(
@@ -336,7 +340,7 @@ class LocusToGeneTrainTestSplitStep:
                     _df=gold_standard_raw,
                     _schema=L2GGoldStandard.get_schema(),
                 )
-            case {"unexpected_columns": extra_columns}:
+            case {"unexpected_columns": extra_columns} if "missing_mandatory_columns" not in schema_issues:
                 return L2GGoldStandard(
                     _df=gold_standard_raw.drop(*extra_columns),
                     _schema=L2GGoldStandard.get_schema(),
@@ -432,8 +436,8 @@ class LocusToGeneStep:
         download_from_hub: bool,
         cross_validate: bool,
         train_on_full_dataset: bool,
-        credible_set_path: str,
-        feature_matrix_path: str,
+        credible_set_path: str | None = None,
+        feature_matrix_path: str | None = None,
         wandb_run_name: str | None = None,
         model_path: str = "opentargets/locus_to_gene",
         features_list: list[str] | None = None,
@@ -457,8 +461,8 @@ class LocusToGeneStep:
             download_from_hub (bool): Whether to download the model from Hugging Face Hub
             cross_validate (bool): Whether to run cross validation (5-fold by default) to train the model.
             train_on_full_dataset (bool): Whether to retrain the final saved model on the full dataset (train + held-out) after evaluation. Follows the standard practice of reporting honest held-out metrics while ensuring the deployed model benefits from all available labelled data.
-            credible_set_path (str): Path to the credible set dataset necessary to build the feature matrix
-            feature_matrix_path (str): Path to the L2G feature matrix input dataset
+            credible_set_path (str | None): Path to the credible set dataset. Required for predict mode; unused in train mode when pre-split parquets are provided.
+            feature_matrix_path (str | None): Path to the L2G feature matrix input dataset. Required for predict mode; unused in train mode when pre-split parquets are provided.
             wandb_run_name (str | None): Name of the run to track model training in Weights and Biases
             model_path (str): Path to the model. It can be either in the filesystem or the name on the Hugging Face Hub (in the form of username/repo_name).
             features_list (list[str] | None): List of features to use to train the model
@@ -534,15 +538,17 @@ class LocusToGeneStep:
         self.l2g_threshold = l2g_threshold
         self.explain_predictions = explain_predictions
 
-        # Load common inputs
-        self.credible_set = StudyLocus.from_parquet(
-            session, credible_set_path, recursiveFileLookup=True
-        )
-        self.feature_matrix = L2GFeatureMatrix(
-            _df=session.load_data(feature_matrix_path, "parquet"),
-        )
-
         if run_mode == "predict":
+            if not credible_set_path:
+                raise ValueError("credible_set_path is required for predict mode.")
+            if not feature_matrix_path:
+                raise ValueError("feature_matrix_path is required for predict mode.")
+            self.credible_set = StudyLocus.from_parquet(
+                session, credible_set_path, recursiveFileLookup=True
+            )
+            self.feature_matrix = L2GFeatureMatrix(
+                _df=session.load_data(feature_matrix_path, "parquet"),
+            )
             if download_from_hub:
                 if not self.hf_hub_repo_id:
                     raise ValueError(

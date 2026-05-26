@@ -286,8 +286,8 @@ class LocusToGeneConfig(StepConfig):
     """Locus to gene step configuration."""
 
     run_mode: str = MISSING
-    credible_set_path: str = MISSING
-    feature_matrix_path: str = MISSING
+    credible_set_path: str | None = None
+    feature_matrix_path: str | None = None
     predictions_path: str | None = None
     l2g_threshold: float = 0.05
     model_path: str = "opentargets/locus_to_gene"
