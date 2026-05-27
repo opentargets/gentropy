@@ -269,6 +269,8 @@ class LocusToGeneTrainTestSplitStep:
                 "n_lost_test": n_original_test - n_test_new,
                 "n_train": n_train,
                 "n_lost_total": n_original_total - n_test_new - n_train,
+                "train": self._compute_set_stats(train_sdf.toPandas()),
+                "test": self._compute_set_stats(test_sdf.toPandas()),
             }
             self._write_split_stats(split_stats, train_parquet_path, split_stats_path)
             logging.info("Split stats: %s", split_stats)
@@ -289,6 +291,8 @@ class LocusToGeneTrainTestSplitStep:
                 "n_train": n_written_train,
                 "n_test": n_written_test,
                 "test_size": test_size,
+                "train": self._compute_set_stats(train_df),
+                "test": self._compute_set_stats(test_df),
             }
             self._write_split_stats(split_stats, train_parquet_path, split_stats_path)
             logging.info("Split stats: %s", split_stats)
@@ -396,6 +400,30 @@ class LocusToGeneTrainTestSplitStep:
                 )
             case _:
                 raise TypeError("Incorrect gold standard dataset provided.")
+
+    @staticmethod
+    def _compute_set_stats(df: pd.DataFrame) -> dict[str, Any]:
+        """Compute descriptive statistics for one split partition.
+
+        Args:
+            df (pd.DataFrame): Split DataFrame with integer-encoded ``goldStandardSet`` (0/1).
+
+        Returns:
+            dict[str, Any]: Stats dict containing counts of positive/negative rows, unique loci,
+                unique positive genes, and (when available) unique positive gene–disease pairs.
+        """
+        positive = df[df["goldStandardSet"] == 1]
+        stats: dict[str, Any] = {
+            "n_positive": int(positive.shape[0]),
+            "n_negative": int((df["goldStandardSet"] == 0).sum()),
+            "n_unique_loci": int(df["studyLocusId"].nunique()),
+            "n_unique_positive_genes": int(positive["geneId"].nunique()),
+        }
+        if "traitFromSourceMappedId" in df.columns:
+            stats["n_unique_positive_gene_disease_pairs"] = int(
+                positive[["geneId", "traitFromSourceMappedId"]].drop_duplicates().shape[0]
+            )
+        return stats
 
     @staticmethod
     def _write_split_stats(
