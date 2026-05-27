@@ -376,6 +376,7 @@ class LocusToGeneTrainTestSplitConfig(StepConfig):
     variant_index_path: str | None = None
     gene_interactions_path: str | None = None
     predefined_test_parquet_path: str | None = None
+    split_stats_path: str | None = None
     features_list: list[str] = field(
         default_factory=lambda: [
             "eQtlColocClppMaximum",

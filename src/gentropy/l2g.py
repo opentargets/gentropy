@@ -176,6 +176,7 @@ class LocusToGeneTrainTestSplitStep:
         variant_index_path: str | None = None,
         gene_interactions_path: str | None = None,
         predefined_test_parquet_path: str | None = None,
+        split_stats_path: str | None = None,
     ) -> None:
         """Initialise step: build annotated feature matrix, split, and persist.
 
@@ -191,6 +192,7 @@ class LocusToGeneTrainTestSplitStep:
             variant_index_path (str | None): Path to the variant index (required for OTG gold standard)
             gene_interactions_path (str | None): Path to the PPI dataset (required for OTG gold standard)
             predefined_test_parquet_path (str | None): Path to an existing test-split parquet (produced by a previous run of this step). When provided the test set is loaded as-is and the training set is derived by removing all studyLocusIds from the annotated feature matrix whose positive genes overlap with the test set's positive genes. ``test_size`` is ignored. Defaults to None (performs a fresh hierarchical split).
+            split_stats_path (str | None): Explicit path for the split statistics JSON file. Defaults to ``<train_parquet_path>_split_stats.json``.
         """
         credible_set = StudyLocus.from_parquet(
             session, credible_set_path, recursiveFileLookup=True
@@ -268,7 +270,7 @@ class LocusToGeneTrainTestSplitStep:
                 "n_train": n_train,
                 "n_lost_total": n_original_total - n_test_new - n_train,
             }
-            self._write_split_stats(split_stats, train_parquet_path)
+            self._write_split_stats(split_stats, train_parquet_path, split_stats_path)
             logging.info("Split stats: %s", split_stats)
             train_sdf.write.mode(session.write_mode).parquet(train_parquet_path)
             test_sdf.write.mode(session.write_mode).parquet(test_parquet_path)
@@ -288,7 +290,7 @@ class LocusToGeneTrainTestSplitStep:
                 "n_test": n_written_test,
                 "test_size": test_size,
             }
-            self._write_split_stats(split_stats, train_parquet_path)
+            self._write_split_stats(split_stats, train_parquet_path, split_stats_path)
             logging.info("Split stats: %s", split_stats)
             session.spark.createDataFrame(train_df).write.mode(
                 session.write_mode
@@ -396,16 +398,21 @@ class LocusToGeneTrainTestSplitStep:
                 raise TypeError("Incorrect gold standard dataset provided.")
 
     @staticmethod
-    def _write_split_stats(stats: dict[str, Any], train_parquet_path: str) -> None:
-        """Write split statistics as a JSON file next to the training parquet.
+    def _write_split_stats(
+        stats: dict[str, Any],
+        train_parquet_path: str,
+        split_stats_path: str | None = None,
+    ) -> None:
+        """Write split statistics as a JSON file.
 
         Args:
             stats (dict[str, Any]): Stats dict to serialise.
-            train_parquet_path (str): Path used to derive the output JSON path.
+            train_parquet_path (str): Used to derive the default output path when ``split_stats_path`` is not provided.
+            split_stats_path (str | None): Explicit destination path. Defaults to ``<train_parquet_path>_split_stats.json``.
         """
         from urllib.parse import urlparse
 
-        log_path = train_parquet_path.rstrip("/") + "_split_stats.json"
+        log_path = split_stats_path or train_parquet_path.rstrip("/") + "_split_stats.json"
         payload = json.dumps(stats, indent=2)
         if log_path.startswith("gs://"):
             from google.cloud import storage
