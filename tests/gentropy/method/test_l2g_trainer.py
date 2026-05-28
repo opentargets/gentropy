@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import json
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
+import pytest
 from xgboost import XGBClassifier
 
 from gentropy.method.l2g.model import LocusToGeneModel
@@ -36,6 +39,10 @@ def test_evaluate_perfect_predictions() -> None:
         "weightedPrecision": 1.0,
         "weightedRecall": 1.0,
         "f1": 1.0,
+        "TP": 2,
+        "FP": 0,
+        "TN": 2,
+        "FN": 0,
     }
     assert metrics == expected
 
@@ -124,7 +131,7 @@ def test_train_on_full_dataset_logs_second_wandb_run(
         features_list=features_list,
     )
     wandb_run_names: list[str] = []
-    trainer.log_to_wandb = wandb_run_names.append  # type: ignore[assignment]
+    trainer.log_to_wandb = wandb_run_names.append  # type: ignore[method-assign, assignment]
 
     trained_model = trainer.train(
         wandb_run_name="unit-test",
@@ -173,3 +180,102 @@ def test_hierarchical_split() -> None:
     assert len(test_df[test_df["goldStandardSet"] == 0]) > 0, "No negatives in test_df"
     assert train_df.shape[1] == df.shape[1], "Columns are missing in train_df"
     assert test_df.shape[1] == df.shape[1], "Columns are missing in test_df"
+
+
+def test_fit_with_soft_labels(mock_l2g_feature_matrix: L2GFeatureMatrix) -> None:
+    """Trainer.train succeeds and returns a usable model when soft labels are applied.
+
+    The mock feature matrix has no FGS or neighbourhood-distance columns, so
+    apply_soft_labels assigns every positive the not_nearest_no_fgs weight (0.1)
+    and every negative 0.0.  The resulting y_train contains floats outside {0,1},
+    which would normally cause XGBClassifier to raise ValueError.  This test
+    verifies that _fit_with_soft_labels is invoked transparently and that
+    predict_proba still returns valid probabilities.
+    """
+    features_list = ["distanceTssMean", "distanceSentinelTssMinimum"]
+    fm = mock_l2g_feature_matrix.fill_na().apply_soft_labels(
+        nearest_fgs=1.0,
+        not_nearest_fgs=1.0,
+        nearest_no_fgs=0.5,
+        not_nearest_no_fgs=0.1,
+    )
+    l2g_model = LocusToGeneModel(
+        model=XGBClassifier(),
+        hyperparameters={"max_depth": 3},
+        features_list=features_list,
+    )
+    trainer = LocusToGeneTrainer(
+        model=l2g_model,
+        feature_matrix=fm,
+        features_list=features_list,
+    )
+    trained_model = trainer.train(wandb_run_name=None, cross_validate=False)
+    assert isinstance(trained_model, LocusToGeneModel)
+    # predict_proba must return valid probabilities for each sample
+    assert trainer.x_test is not None
+    proba = trained_model.model.predict_proba(trainer.x_test)
+    assert proba.shape == (trainer.x_test.shape[0], 2)
+    assert np.all((proba >= 0.0) & (proba <= 1.0))
+
+
+def test_expand_grid_single_param() -> None:
+    """Single-param grid with N values yields N configs."""
+    grid = {"max_depth": {"values": [3, 6, 9]}}
+    result = LocusToGeneTrainer._expand_grid(grid)
+    assert result == [{"max_depth": 3}, {"max_depth": 6}, {"max_depth": 9}]
+
+
+def test_expand_grid_cartesian_product() -> None:
+    """Two-param grid yields the full cartesian product."""
+    grid = {"max_depth": {"values": [3, 6]}, "n_estimators": {"values": [100, 200]}}
+    result = LocusToGeneTrainer._expand_grid(grid)
+    assert len(result) == 4
+    assert {"max_depth": 3, "n_estimators": 100} in result
+    assert {"max_depth": 6, "n_estimators": 200} in result
+
+
+def test_expand_grid_missing_values_key_raises() -> None:
+    """Grid entry without 'values' key raises a descriptive ValueError."""
+    with pytest.raises(ValueError, match="max_depth"):
+        LocusToGeneTrainer._expand_grid({"max_depth": {"value": 3}})
+
+
+def test_cv_results_dir_writes_expected_files(
+    mock_l2g_feature_matrix: L2GFeatureMatrix,
+    tmp_path: Path,
+) -> None:
+    """cv_results_dir mode writes cv_results.json, cv_folds.csv, and per-config plots."""
+    features_list = ["distanceTssMean", "distanceSentinelTssMinimum"]
+    l2g_model = LocusToGeneModel(
+        model=XGBClassifier(),
+        hyperparameters={"max_depth": 3},
+        features_list=features_list,
+    )
+    trainer = LocusToGeneTrainer(
+        model=l2g_model,
+        feature_matrix=mock_l2g_feature_matrix.fill_na(),
+        features_list=features_list,
+    )
+    trainer.train(
+        wandb_run_name=None,
+        cross_validate=True,
+        n_splits=2,
+        hyperparameter_grid={"max_depth": {"values": [3, 6]}},
+        cv_results_dir=str(tmp_path),
+    )
+
+    assert (tmp_path / "cv_results.json").exists()
+    assert (tmp_path / "cv_folds.csv").exists()
+    assert (tmp_path / "config_0" / "roc.png").exists()
+    assert (tmp_path / "config_1" / "roc.png").exists()
+
+    summary = json.loads((tmp_path / "cv_results.json").read_text())
+    assert summary["n_configs"] == 2
+    assert summary["n_splits"] == 2
+    # Metrics must be plain Python floats, not NumPy scalars (JSON round-trip check)
+    for cfg in summary["configs"]:
+        for fold in cfg["fold_metrics"]:
+            for v in fold.values():
+                assert isinstance(v, (int, float)), (
+                    f"Non-serialisable metric value: {v!r}"
+                )

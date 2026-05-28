@@ -281,6 +281,52 @@ class LDBasedClumpingConfig(StepConfig):
     _target_: str = "gentropy.ld_based_clumping.LDBasedClumpingStep"
 
 
+_L2G_FEATURES_LIST: list[str] = [
+    "eQtlColocClppMaximum",
+    "pQtlColocClppMaximum",
+    "sQtlColocClppMaximum",
+    "eQtlColocH4Maximum",
+    "pQtlColocH4Maximum",
+    "sQtlColocH4Maximum",
+    "eQtlColocClppMaximumNeighbourhood",
+    "pQtlColocClppMaximumNeighbourhood",
+    "sQtlColocClppMaximumNeighbourhood",
+    "eQtlColocH4MaximumNeighbourhood",
+    "pQtlColocH4MaximumNeighbourhood",
+    "sQtlColocH4MaximumNeighbourhood",
+    "distanceSentinelFootprint",
+    "distanceSentinelFootprintNeighbourhood",
+    "distanceFootprintMean",
+    "distanceFootprintMeanNeighbourhood",
+    "distanceTssMean",
+    "distanceTssMeanNeighbourhood",
+    "distanceSentinelTss",
+    "distanceSentinelTssNeighbourhood",
+    "vepMaximum",
+    "vepMaximumNeighbourhood",
+    "vepMean",
+    "vepMeanNeighbourhood",
+    "e2gMean",
+    "e2gMeanNeighbourhood",
+    "geneCount500kb",
+    "proteinGeneCount500kb",
+    "credibleSetConfidence",
+    "transPQtlColocH4Maximum",
+    "transPQtlColocH4MaximumNeighbourhood",
+]
+
+_L2G_HYPERPARAMETERS: dict[str, Any] = {
+    "max_depth": 5,
+    "reg_alpha": 1,
+    "reg_lambda": 1.0,
+    "subsample": 0.8,
+    "colsample_bytree": 0.8,
+    "eta": 0.05,
+    "min_child_weight": 10,
+    "scale_pos_weight": 0.8,
+}
+
+
 @dataclass
 class LocusToGeneConfig(StepConfig):
     """Locus to gene step configuration."""
@@ -294,74 +340,66 @@ class LocusToGeneConfig(StepConfig):
     model_path: str = "opentargets/locus_to_gene"
     gold_standard_curation_path: str | None = None
     gene_interactions_path: str | None = None
-    features_list: list[str] = field(
-        default_factory=lambda: [
-            # max CLPP for each (study, locus, gene) aggregating over a specific qtl type
-            "eQtlColocClppMaximum",
-            "pQtlColocClppMaximum",
-            "sQtlColocClppMaximum",
-            # max H4 for each (study, locus, gene) aggregating over a specific qtl type
-            "eQtlColocH4Maximum",
-            "pQtlColocH4Maximum",
-            "sQtlColocH4Maximum",
-            # max CLPP for each (study, locus, gene) aggregating over a specific qtl type and in relation with the mean in the vicinity
-            "eQtlColocClppMaximumNeighbourhood",
-            "pQtlColocClppMaximumNeighbourhood",
-            "sQtlColocClppMaximumNeighbourhood",
-            # max H4 for each (study, locus, gene) aggregating over a specific qtl type and in relation with the mean in the vicinity
-            "eQtlColocH4MaximumNeighbourhood",
-            "pQtlColocH4MaximumNeighbourhood",
-            "sQtlColocH4MaximumNeighbourhood",
-            # distance to gene footprint
-            "distanceSentinelFootprint",
-            "distanceSentinelFootprintNeighbourhood",
-            "distanceFootprintMean",
-            "distanceFootprintMeanNeighbourhood",
-            # distance to gene tss
-            "distanceTssMean",
-            "distanceTssMeanNeighbourhood",
-            "distanceSentinelTss",
-            "distanceSentinelTssNeighbourhood",
-            # vep
-            "vepMaximum",
-            "vepMaximumNeighbourhood",
-            "vepMean",
-            "vepMeanNeighbourhood",
-            # intervals
-            "e2gMean",
-            "e2gMeanNeighbourhood",
-            # other
-            "geneCount500kb",
-            "proteinGeneCount500kb",
-            "credibleSetConfidence",
-            # trans-pQTL colocalisation via protein-protein interactions
-            "transPQtlColocH4Maximum",
-            "transPQtlColocH4MaximumNeighbourhood",
-        ]
-    )
+    features_list: list[str] = field(default_factory=lambda: list(_L2G_FEATURES_LIST))
     hyperparameters: dict[str, Any] = field(
-        default_factory=lambda: {
-            "max_depth": 5,
-            "reg_alpha": 1,  # L1 regularization
-            "reg_lambda": 1.0,  # L2 regularization
-            "subsample": 0.8,
-            "colsample_bytree": 0.8,
-            "eta": 0.05,
-            "min_child_weight": 10,
-            "scale_pos_weight": 0.8,
-        }
+        default_factory=lambda: dict(_L2G_HYPERPARAMETERS)
     )
     wandb_run_name: str | None = None
-    hf_hub_repo_id: str = "locus_to_gene"
+    hf_hub_repo_id: str | None = "locus_to_gene"
     hf_model_commit_message: str = "chore: update model"
     hf_model_version: str | None = None  # Latest commit is picked when provided None
     download_from_hub: bool = True
-    cross_validate: bool = True
     train_on_full_dataset: bool = False
+    filter_dark_matter: bool = False
+    soft_label_weights: Any = None  # dict[str, float] | None — keys: nearest_fgs, not_nearest_fgs, nearest_no_fgs, not_nearest_no_fgs
     explain_predictions: bool = False
     wandb_credentials_path: str | None = None
     hf_credentials_path: str | None = None
+    train_parquet_path: str | None = None
+    test_parquet_path: str | None = None
     _target_: str = "gentropy.l2g.LocusToGeneStep"
+
+
+@dataclass
+class LocusToGeneTrainTestSplitConfig(StepConfig):
+    """Configuration for the train/test split step that precedes L2G training."""
+
+    credible_set_path: str = MISSING
+    feature_matrix_path: str = MISSING
+    gold_standard_curation_path: str = MISSING
+    train_parquet_path: str = MISSING
+    test_parquet_path: str = MISSING
+    test_size: float = 0.15
+    variant_index_path: str | None = None
+    gene_interactions_path: str | None = None
+    filter_dark_matter: bool = False
+    soft_label_weights: Any = None  # dict[str, float] | None
+    predefined_test_parquet_path: str | None = None
+    features_list: list[str] = field(default_factory=lambda: list(_L2G_FEATURES_LIST))
+    _target_: str = "gentropy.l2g.LocusToGeneTrainTestSplitStep"
+
+
+@dataclass
+class LocusToGeneCVConfig(StepConfig):
+    """Configuration for the L2G cross-validation and hyperparameter sweep step.
+
+    This step is intentionally separate from ``LocusToGeneConfig``: CV and
+    hyperparameter tuning are exploratory and should never run during a production
+    training job.  Run this step first to select the best config, then pass the
+    chosen hyperparameters to ``LocusToGeneStep``.
+    """
+
+    train_parquet_path: str = MISSING
+    features_list: list[str] = field(default_factory=lambda: list(_L2G_FEATURES_LIST))
+    hyperparameters: dict[str, Any] = field(
+        default_factory=lambda: dict(_L2G_HYPERPARAMETERS)
+    )
+    n_splits: int = 5
+    hyperparameter_grid: Any = None  # dict[str, Any] | None — Any avoids OmegaConf Optional[Dict] merge bug
+    cv_results_dir: str | None = None
+    wandb_run_name: str | None = None
+    wandb_credentials_path: str | None = None
+    _target_: str = "gentropy.l2g.LocusToGeneCVStep"
 
 
 @dataclass
@@ -851,6 +889,12 @@ def register_config() -> None:
     cs.store(group="step", name="ld_based_clumping", node=LDBasedClumpingConfig)
     cs.store(group="step", name="ld_index", node=LDIndexConfig)
     cs.store(group="step", name="locus_to_gene", node=LocusToGeneConfig)
+    cs.store(
+        group="step",
+        name="locus_to_gene_train_test_split",
+        node=LocusToGeneTrainTestSplitConfig,
+    )
+    cs.store(group="step", name="locus_to_gene_cv", node=LocusToGeneCVConfig)
     cs.store(
         group="step",
         name="locus_to_gene_feature_matrix",
