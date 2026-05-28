@@ -886,6 +886,8 @@ class LocusToGeneCrossValidationStep:
         label_col = train_feature_matrix.label_col
         train_pd: pd.DataFrame = train_feature_matrix._df.toPandas()
         test_pd: pd.DataFrame = test_feature_matrix._df.toPandas()
+        train_feature_matrix._df.unpersist()
+        test_feature_matrix._df.unpersist()
         train_pd[label_col] = train_pd[label_col].map(l2g_model.label_encoder)
         test_pd[label_col] = test_pd[label_col].map(l2g_model.label_encoder)
 

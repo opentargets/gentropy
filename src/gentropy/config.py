@@ -281,6 +281,62 @@ class LDBasedClumpingConfig(StepConfig):
     _target_: str = "gentropy.ld_based_clumping.LDBasedClumpingStep"
 
 
+_L2G_FEATURES_LIST: list[str] = [
+    # max CLPP for each (study, locus, gene) aggregating over a specific qtl type
+    "eQtlColocClppMaximum",
+    "pQtlColocClppMaximum",
+    "sQtlColocClppMaximum",
+    # max H4 for each (study, locus, gene) aggregating over a specific qtl type
+    "eQtlColocH4Maximum",
+    "pQtlColocH4Maximum",
+    "sQtlColocH4Maximum",
+    # max CLPP for each (study, locus, gene) aggregating over a specific qtl type and in relation with the mean in the vicinity
+    "eQtlColocClppMaximumNeighbourhood",
+    "pQtlColocClppMaximumNeighbourhood",
+    "sQtlColocClppMaximumNeighbourhood",
+    # max H4 for each (study, locus, gene) aggregating over a specific qtl type and in relation with the mean in the vicinity
+    "eQtlColocH4MaximumNeighbourhood",
+    "pQtlColocH4MaximumNeighbourhood",
+    "sQtlColocH4MaximumNeighbourhood",
+    # distance to gene footprint
+    "distanceSentinelFootprint",
+    "distanceSentinelFootprintNeighbourhood",
+    "distanceFootprintMean",
+    "distanceFootprintMeanNeighbourhood",
+    # distance to gene tss
+    "distanceTssMean",
+    "distanceTssMeanNeighbourhood",
+    "distanceSentinelTss",
+    "distanceSentinelTssNeighbourhood",
+    # vep
+    "vepMaximum",
+    "vepMaximumNeighbourhood",
+    "vepMean",
+    "vepMeanNeighbourhood",
+    # intervals
+    "e2gMean",
+    "e2gMeanNeighbourhood",
+    # other
+    "geneCount500kb",
+    "proteinGeneCount500kb",
+    "credibleSetConfidence",
+    # trans-pQTL colocalisation via protein-protein interactions
+    "transPQtlColocH4Maximum",
+    "transPQtlColocH4MaximumNeighbourhood",
+]
+
+_L2G_HYPERPARAMETERS: dict[str, Any] = {
+    "max_depth": 5,
+    "reg_alpha": 1,  # L1 regularization
+    "reg_lambda": 1.0,  # L2 regularization
+    "subsample": 0.8,
+    "colsample_bytree": 0.8,
+    "eta": 0.05,
+    "min_child_weight": 10,
+    "scale_pos_weight": 0.8,
+}
+
+
 @dataclass
 class LocusToGeneConfig(StepConfig):
     """Locus to gene step configuration."""
@@ -291,63 +347,8 @@ class LocusToGeneConfig(StepConfig):
     predictions_path: str | None = None
     l2g_threshold: float = 0.05
     model_path: str = "opentargets/locus_to_gene"
-    features_list: list[str] = field(
-        default_factory=lambda: [
-            # max CLPP for each (study, locus, gene) aggregating over a specific qtl type
-            "eQtlColocClppMaximum",
-            "pQtlColocClppMaximum",
-            "sQtlColocClppMaximum",
-            # max H4 for each (study, locus, gene) aggregating over a specific qtl type
-            "eQtlColocH4Maximum",
-            "pQtlColocH4Maximum",
-            "sQtlColocH4Maximum",
-            # max CLPP for each (study, locus, gene) aggregating over a specific qtl type and in relation with the mean in the vicinity
-            "eQtlColocClppMaximumNeighbourhood",
-            "pQtlColocClppMaximumNeighbourhood",
-            "sQtlColocClppMaximumNeighbourhood",
-            # max H4 for each (study, locus, gene) aggregating over a specific qtl type and in relation with the mean in the vicinity
-            "eQtlColocH4MaximumNeighbourhood",
-            "pQtlColocH4MaximumNeighbourhood",
-            "sQtlColocH4MaximumNeighbourhood",
-            # distance to gene footprint
-            "distanceSentinelFootprint",
-            "distanceSentinelFootprintNeighbourhood",
-            "distanceFootprintMean",
-            "distanceFootprintMeanNeighbourhood",
-            # distance to gene tss
-            "distanceTssMean",
-            "distanceTssMeanNeighbourhood",
-            "distanceSentinelTss",
-            "distanceSentinelTssNeighbourhood",
-            # vep
-            "vepMaximum",
-            "vepMaximumNeighbourhood",
-            "vepMean",
-            "vepMeanNeighbourhood",
-            # intervals
-            "e2gMean",
-            "e2gMeanNeighbourhood",
-            # other
-            "geneCount500kb",
-            "proteinGeneCount500kb",
-            "credibleSetConfidence",
-            # trans-pQTL colocalisation via protein-protein interactions
-            "transPQtlColocH4Maximum",
-            "transPQtlColocH4MaximumNeighbourhood",
-        ]
-    )
-    hyperparameters: dict[str, Any] = field(
-        default_factory=lambda: {
-            "max_depth": 5,
-            "reg_alpha": 1,  # L1 regularization
-            "reg_lambda": 1.0,  # L2 regularization
-            "subsample": 0.8,
-            "colsample_bytree": 0.8,
-            "eta": 0.05,
-            "min_child_weight": 10,
-            "scale_pos_weight": 0.8,
-        }
-    )
+    features_list: list[str] = field(default_factory=lambda: list(_L2G_FEATURES_LIST))
+    hyperparameters: dict[str, Any] = field(default_factory=lambda: dict(_L2G_HYPERPARAMETERS))
     wandb_run_name: str | None = None
     hf_hub_repo_id: str = "locus_to_gene"
     hf_model_commit_message: str = "chore: update model"
@@ -376,41 +377,7 @@ class LocusToGeneTrainTestSplitConfig(StepConfig):
     gene_interactions_path: str | None = None
     predefined_test_parquet_path: str | None = None
     split_stats_path: str | None = None
-    features_list: list[str] = field(
-        default_factory=lambda: [
-            "eQtlColocClppMaximum",
-            "pQtlColocClppMaximum",
-            "sQtlColocClppMaximum",
-            "eQtlColocH4Maximum",
-            "pQtlColocH4Maximum",
-            "sQtlColocH4Maximum",
-            "eQtlColocClppMaximumNeighbourhood",
-            "pQtlColocClppMaximumNeighbourhood",
-            "sQtlColocClppMaximumNeighbourhood",
-            "eQtlColocH4MaximumNeighbourhood",
-            "pQtlColocH4MaximumNeighbourhood",
-            "sQtlColocH4MaximumNeighbourhood",
-            "distanceSentinelFootprint",
-            "distanceSentinelFootprintNeighbourhood",
-            "distanceFootprintMean",
-            "distanceFootprintMeanNeighbourhood",
-            "distanceTssMean",
-            "distanceTssMeanNeighbourhood",
-            "distanceSentinelTss",
-            "distanceSentinelTssNeighbourhood",
-            "vepMaximum",
-            "vepMaximumNeighbourhood",
-            "vepMean",
-            "vepMeanNeighbourhood",
-            "e2gMean",
-            "e2gMeanNeighbourhood",
-            "geneCount500kb",
-            "proteinGeneCount500kb",
-            "credibleSetConfidence",
-            "transPQtlColocH4Maximum",
-            "transPQtlColocH4MaximumNeighbourhood",
-        ]
-    )
+    features_list: list[str] = field(default_factory=lambda: list(_L2G_FEATURES_LIST))
     _target_: str = "gentropy.l2g.LocusToGeneTrainTestSplitStep"
 
 
@@ -420,53 +387,8 @@ class LocusToGeneCrossValidationConfig(StepConfig):
 
     train_feature_matrix_path: str = MISSING
     test_feature_matrix_path: str = MISSING
-    features_list: list[str] = field(
-        default_factory=lambda: [
-            "eQtlColocClppMaximum",
-            "pQtlColocClppMaximum",
-            "sQtlColocClppMaximum",
-            "eQtlColocH4Maximum",
-            "pQtlColocH4Maximum",
-            "sQtlColocH4Maximum",
-            "eQtlColocClppMaximumNeighbourhood",
-            "pQtlColocClppMaximumNeighbourhood",
-            "sQtlColocClppMaximumNeighbourhood",
-            "eQtlColocH4MaximumNeighbourhood",
-            "pQtlColocH4MaximumNeighbourhood",
-            "sQtlColocH4MaximumNeighbourhood",
-            "distanceSentinelFootprint",
-            "distanceSentinelFootprintNeighbourhood",
-            "distanceFootprintMean",
-            "distanceFootprintMeanNeighbourhood",
-            "distanceTssMean",
-            "distanceTssMeanNeighbourhood",
-            "distanceSentinelTss",
-            "distanceSentinelTssNeighbourhood",
-            "vepMaximum",
-            "vepMaximumNeighbourhood",
-            "vepMean",
-            "vepMeanNeighbourhood",
-            "e2gMean",
-            "e2gMeanNeighbourhood",
-            "geneCount500kb",
-            "proteinGeneCount500kb",
-            "credibleSetConfidence",
-            "transPQtlColocH4Maximum",
-            "transPQtlColocH4MaximumNeighbourhood",
-        ]
-    )
-    hyperparameters: dict[str, Any] = field(
-        default_factory=lambda: {
-            "max_depth": 5,
-            "reg_alpha": 1,
-            "reg_lambda": 1.0,
-            "subsample": 0.8,
-            "colsample_bytree": 0.8,
-            "eta": 0.05,
-            "min_child_weight": 10,
-            "scale_pos_weight": 0.8,
-        }
-    )
+    features_list: list[str] = field(default_factory=lambda: list(_L2G_FEATURES_LIST))
+    hyperparameters: dict[str, Any] = field(default_factory=lambda: dict(_L2G_HYPERPARAMETERS))
     n_splits: int = 5
     hyperparameter_grid: Any = None  # dict[str, Any] | None — Any avoids OmegaConf Optional[Dict] merge bug
     cv_results_dir: str | None = None

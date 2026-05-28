@@ -713,22 +713,16 @@ class LocusToGeneTrainer:
             local_dir (Path): Root of the local directory tree to upload.
             gcs_prefix (str): Destination GCS prefix, e.g. ``gs://bucket/path``.
         """
-        from google.cloud import storage as gcs_storage
+        from gentropy.external.gcs import copy_to_gcs
 
-        without_scheme = gcs_prefix[len("gs://"):]
-        bucket_name, _, blob_prefix = without_scheme.partition("/")
-        client = gcs_storage.Client()
-        bucket = client.bucket(bucket_name)
-
+        prefix = gcs_prefix.rstrip("/")
         for local_file in local_dir.rglob("*"):
             if not local_file.is_file():
                 continue
             relative = local_file.relative_to(local_dir)
-            blob_name = (
-                f"{blob_prefix.rstrip('/')}/{relative}" if blob_prefix else str(relative)
-            )
-            bucket.blob(blob_name).upload_from_filename(str(local_file))
-            logging.info("Uploaded %s → gs://%s/%s", relative, bucket_name, blob_name)
+            destination = f"{prefix}/{relative}"
+            copy_to_gcs(str(local_file), destination)
+            logging.info("Uploaded %s → %s", relative, destination)
 
     def _plot_roc_curves(
         self: LocusToGeneTrainer,
