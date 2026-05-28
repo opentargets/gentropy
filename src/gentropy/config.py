@@ -365,6 +365,65 @@ class LocusToGeneConfig(StepConfig):
 
 
 @dataclass
+class LocusToGeneCrossValidationConfig(StepConfig):
+    """Configuration for the L2G cross-validation step."""
+
+    train_feature_matrix_path: str = MISSING
+    test_feature_matrix_path: str = MISSING
+    features_list: list[str] = field(
+        default_factory=lambda: [
+            "eQtlColocClppMaximum",
+            "pQtlColocClppMaximum",
+            "sQtlColocClppMaximum",
+            "eQtlColocH4Maximum",
+            "pQtlColocH4Maximum",
+            "sQtlColocH4Maximum",
+            "eQtlColocClppMaximumNeighbourhood",
+            "pQtlColocClppMaximumNeighbourhood",
+            "sQtlColocClppMaximumNeighbourhood",
+            "eQtlColocH4MaximumNeighbourhood",
+            "pQtlColocH4MaximumNeighbourhood",
+            "sQtlColocH4MaximumNeighbourhood",
+            "distanceSentinelFootprint",
+            "distanceSentinelFootprintNeighbourhood",
+            "distanceFootprintMean",
+            "distanceFootprintMeanNeighbourhood",
+            "distanceTssMean",
+            "distanceTssMeanNeighbourhood",
+            "distanceSentinelTss",
+            "distanceSentinelTssNeighbourhood",
+            "vepMaximum",
+            "vepMaximumNeighbourhood",
+            "vepMean",
+            "vepMeanNeighbourhood",
+            "e2gMean",
+            "e2gMeanNeighbourhood",
+            "geneCount500kb",
+            "proteinGeneCount500kb",
+            "credibleSetConfidence",
+            "transPQtlColocH4Maximum",
+            "transPQtlColocH4MaximumNeighbourhood",
+        ]
+    )
+    hyperparameters: dict[str, Any] = field(
+        default_factory=lambda: {
+            "max_depth": 5,
+            "reg_alpha": 1,
+            "reg_lambda": 1.0,
+            "subsample": 0.8,
+            "colsample_bytree": 0.8,
+            "eta": 0.05,
+            "min_child_weight": 10,
+            "scale_pos_weight": 0.8,
+        }
+    )
+    n_splits: int = 5
+    hyperparameter_grid: Any = None  # dict[str, Any] | None — Any avoids OmegaConf Optional[Dict] merge bug
+    cv_results_dir: str | None = None
+    _target_: str = "gentropy.l2g.LocusToGeneCrossValidationStep"
+
+
+@dataclass
 class LocusToGeneFeatureMatrixConfig(StepConfig):
     """Locus to gene feature matrix step configuration."""
 
@@ -870,6 +929,11 @@ def register_config() -> None:
     cs.store(group="step", name="ld_based_clumping", node=LDBasedClumpingConfig)
     cs.store(group="step", name="ld_index", node=LDIndexConfig)
     cs.store(group="step", name="locus_to_gene", node=LocusToGeneConfig)
+    cs.store(
+        group="step",
+        name="locus_to_gene_cross_validation",
+        node=LocusToGeneCrossValidationConfig,
+    )
     cs.store(
         group="step",
         name="locus_to_gene_feature_matrix",

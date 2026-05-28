@@ -5,6 +5,8 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+import numpy as np
+import pandas as pd
 import pyspark.sql.functions as f
 from wandb.sdk.wandb_login import login as wandb_login
 from xgboost import XGBClassifier
@@ -602,4 +604,112 @@ class LocusToGeneAssociationsStep:
             )
             .write.mode(session.write_mode)
             .parquet(indirect_associations_output_path)
+        )
+
+
+class LocusToGeneCrossValidationStep:
+    """Run L2G cross-validation on pre-built, annotated train and test feature matrices.
+
+    Unlike LocusToGeneStep, this step does not construct the training set or perform
+    any gold-standard parsing. It expects parquet files that already contain the
+    feature columns and the ``goldStandardSet`` label column.
+    """
+
+    def __init__(
+        self,
+        session: Session,
+        *,
+        train_feature_matrix_path: str,
+        test_feature_matrix_path: str,
+        hyperparameters: dict[str, Any],
+        features_list: list[str] | None = None,
+        n_splits: int = 5,
+        hyperparameter_grid: dict[str, Any] | None = None,
+        cv_results_dir: str | None = None,
+    ) -> None:
+        """Initialise the step and run cross-validation.
+
+        Args:
+            session (Session): Session object that contains the Spark session
+            train_feature_matrix_path (str): Path to the parquet file containing the
+                annotated training feature matrix.  Must include ``studyLocusId``,
+                ``geneId``, a ``goldStandardSet`` column with values ``"positive"``/
+                ``"negative"``, and one column per feature.
+            test_feature_matrix_path (str): Path to the parquet file containing the
+                annotated test feature matrix with the same schema as the training file.
+            hyperparameters (dict[str, Any]): Hyperparameters passed to XGBClassifier.
+            features_list (list[str] | None): Subset of feature columns to use.  When
+                ``None`` every column that is not a fixed metadata column is used.
+            n_splits (int): Number of cross-validation folds. Defaults to 5.
+            hyperparameter_grid (dict[str, Any] | None): Grid to sweep over in the form
+                ``{"param": {"values": [v1, v2, ...]}, ...}``.  When provided with
+                ``cv_results_dir``, all configs are evaluated and written to file.
+                Defaults to None (CV uses the fixed ``hyperparameters``).
+            cv_results_dir (str | None): Directory (local or ``gs://``) to write
+                ``cv_results.json``, ``cv_folds.csv``, and per-config plots.  When None,
+                metrics are logged to the terminal. Defaults to None.
+        """
+        train_feature_matrix = L2GFeatureMatrix(
+            _df=session.load_data(train_feature_matrix_path, "parquet"),
+            features_list=features_list,
+            with_gold_standard=True,
+        ).persist()
+
+        test_feature_matrix = L2GFeatureMatrix(
+            _df=session.load_data(test_feature_matrix_path, "parquet"),
+            features_list=features_list,
+            with_gold_standard=True,
+        ).persist()
+
+        effective_features = train_feature_matrix.features_list
+
+        l2g_model = LocusToGeneModel(
+            model=XGBClassifier(random_state=777, eval_metric="aucpr"),
+            hyperparameters=hyperparameters,
+            features_list=effective_features,
+        )
+
+        trainer = LocusToGeneTrainer(
+            model=l2g_model,
+            feature_matrix=train_feature_matrix,
+        )
+
+        # Convert to pandas and encode labels, mirroring generate_train_test_split
+        label_col = train_feature_matrix.label_col
+        train_pd: pd.DataFrame = train_feature_matrix._df.toPandas()
+        test_pd: pd.DataFrame = test_feature_matrix._df.toPandas()
+        train_pd[label_col] = train_pd[label_col].map(l2g_model.label_encoder)
+        test_pd[label_col] = test_pd[label_col].map(l2g_model.label_encoder)
+
+        x_train: np.ndarray = (
+            train_pd[effective_features].apply(pd.to_numeric).to_numpy()
+        )
+        y_train: np.ndarray = train_pd[label_col].apply(pd.to_numeric).to_numpy()
+        x_test: np.ndarray = (
+            test_pd[effective_features].apply(pd.to_numeric).to_numpy()
+        )
+        y_test: np.ndarray = test_pd[label_col].apply(pd.to_numeric).to_numpy()
+
+        trainer.train_df = train_pd
+        trainer.test_df = test_pd
+        trainer.x_train = x_train
+        trainer.y_train = y_train
+        trainer.x_test = x_test
+        trainer.y_test = y_test
+
+        trainer.cross_validate(
+            parameter_grid=hyperparameter_grid,
+            n_splits=n_splits,
+            cv_results_dir=cv_results_dir,
+        )
+
+        trainer.fit()
+
+        trainer.log_to_terminal(
+            eval_id="Hold-out",
+            metrics=trainer.evaluate(
+                y_true=y_test,
+                y_pred=trainer.model.model.predict(x_test),
+                y_pred_proba=trainer.model.model.predict_proba(x_test),
+            ),
         )
