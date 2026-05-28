@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 from typing import TYPE_CHECKING
+from unittest.mock import patch
 
 import numpy as np
 import pandas as pd
@@ -137,12 +138,11 @@ def test_train_on_full_dataset_logs_second_wandb_run(
         features_list=features_list,
     )
     wandb_run_names: list[str] = []
-    trainer.log_to_wandb = wandb_run_names.append
-
-    trained_model = trainer.train(
-        wandb_run_name="unit-test",
-        train_on_full_dataset=True,
-    )
+    with patch.object(trainer, "log_to_wandb", side_effect=wandb_run_names.append):
+        trained_model = trainer.train(
+            wandb_run_name="unit-test",
+            train_on_full_dataset=True,
+        )
 
     assert isinstance(trained_model, LocusToGeneModel)
     assert wandb_run_names == ["unit-test-holdout", "unit-test-full-dataset"]
