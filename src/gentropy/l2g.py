@@ -472,7 +472,6 @@ class LocusToGeneStep:
         run_mode: str,
         hyperparameters: dict[str, Any],
         download_from_hub: bool,
-        cross_validate: bool,
         train_on_full_dataset: bool,
         credible_set_path: str | None = None,
         feature_matrix_path: str | None = None,
@@ -497,7 +496,6 @@ class LocusToGeneStep:
             run_mode (str): Run mode, either 'train' or 'predict'
             hyperparameters (dict[str, Any]): Hyperparameters for the model
             download_from_hub (bool): Whether to download the model from Hugging Face Hub
-            cross_validate (bool): Whether to run cross validation (5-fold by default) to train the model.
             train_on_full_dataset (bool): Whether to retrain the final saved model on the full dataset (train + held-out) after evaluation. Follows the standard practice of reporting honest held-out metrics while ensuring the deployed model benefits from all available labelled data.
             credible_set_path (str | None): Path to the credible set dataset. Required for predict mode; unused in train mode when pre-split parquets are provided.
             feature_matrix_path (str | None): Path to the L2G feature matrix input dataset. Required for predict mode; unused in train mode when pre-split parquets are provided.
@@ -557,7 +555,6 @@ class LocusToGeneStep:
 
         # Train parameters
         self.hyperparameters = dict(hyperparameters)
-        self.cross_validate = cross_validate
 
         # External resource parameters
         self.hf_hub_repo_id = hf_hub_repo_id
@@ -696,7 +693,6 @@ class LocusToGeneStep:
             model=l2g_model, feature_matrix=feature_matrix
         ).train(
             wandb_run_name=self.wandb_run_name,
-            cross_validate=self.cross_validate,
             train_on_full_dataset=self.train_on_full_dataset,
             presplit_train_df=presplit_train_df,
             presplit_test_df=presplit_test_df,

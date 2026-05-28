@@ -44,9 +44,8 @@ def test_evaluate_perfect_predictions() -> None:
     assert metrics == expected
 
 
-def test_train_no_cross_validation(mock_l2g_feature_matrix: L2GFeatureMatrix) -> None:
-    """Test LocusToGeneTrainer.train without cross validation."""
-    # Mock simple model
+def test_train(mock_l2g_feature_matrix: L2GFeatureMatrix) -> None:
+    """Test LocusToGeneTrainer.train produces a fitted model."""
     features_list = ["distanceTssMean", "distanceSentinelTssMinimum"]
     l2g_model = LocusToGeneModel(
         model=XGBClassifier(),
@@ -58,14 +57,14 @@ def test_train_no_cross_validation(mock_l2g_feature_matrix: L2GFeatureMatrix) ->
         feature_matrix=mock_l2g_feature_matrix.fill_na(),
         features_list=features_list,
     )
-    trained_model = trainer.train(wandb_run_name=None, cross_validate=False)
+    trained_model = trainer.train(wandb_run_name=None)
     assert isinstance(trained_model, LocusToGeneModel)
 
 
-def test_train_cross_validation(mock_l2g_feature_matrix: L2GFeatureMatrix) -> None:
-    """Test LocusToGeneTrainer.train with cross validation."""
-    # Mock simple model
+def test_cross_validate_direct(mock_l2g_feature_matrix: L2GFeatureMatrix) -> None:
+    """Test LocusToGeneTrainer.cross_validate runs without error and sets cv metrics."""
     features_list = ["distanceTssMean", "distanceSentinelTssMinimum"]
+    filled_fm = mock_l2g_feature_matrix.fill_na()
     l2g_model = LocusToGeneModel(
         model=XGBClassifier(),
         hyperparameters={"max_depth": 5},
@@ -73,11 +72,20 @@ def test_train_cross_validation(mock_l2g_feature_matrix: L2GFeatureMatrix) -> No
     )
     trainer = LocusToGeneTrainer(
         model=l2g_model,
-        feature_matrix=mock_l2g_feature_matrix.fill_na(),
+        feature_matrix=filled_fm,
         features_list=features_list,
     )
-    trained_model = trainer.train(wandb_run_name=None, cross_validate=True, n_splits=3)
-    assert isinstance(trained_model, LocusToGeneModel)
+    label_encoder = l2g_model.label_encoder
+    train_df, _ = filled_fm.generate_train_test_split(
+        test_size=0.3,
+        verbose=False,
+        label_encoder=label_encoder,
+        label_col=filled_fm.label_col,
+    )
+    trainer.train_df = train_df
+    trainer.x_train = train_df[features_list].apply(pd.to_numeric).to_numpy()
+    trainer.y_train = train_df[filled_fm.label_col].apply(pd.to_numeric).to_numpy()
+    trainer.cross_validate(n_splits=3)  # should not raise
 
 
 def test_train_on_full_dataset(mock_l2g_feature_matrix: L2GFeatureMatrix) -> None:
@@ -97,9 +105,7 @@ def test_train_on_full_dataset(mock_l2g_feature_matrix: L2GFeatureMatrix) -> Non
         feature_matrix=mock_l2g_feature_matrix.fill_na(),
         features_list=features_list,
     )
-    trained_model = trainer.train(
-        wandb_run_name=None, cross_validate=False, train_on_full_dataset=True
-    )
+    trained_model = trainer.train(wandb_run_name=None, train_on_full_dataset=True)
     assert isinstance(trained_model, LocusToGeneModel)
     # After full-dataset retrain x_train covers exactly train+test rows
     assert trainer.train_df is not None
@@ -132,7 +138,6 @@ def test_train_on_full_dataset_logs_second_wandb_run(
 
     trained_model = trainer.train(
         wandb_run_name="unit-test",
-        cross_validate=False,
         train_on_full_dataset=True,
     )
 
@@ -162,7 +167,6 @@ def test_train_with_presplit_data(mock_l2g_feature_matrix: L2GFeatureMatrix) -> 
     )
     trained_model = trainer.train(
         wandb_run_name=None,
-        cross_validate=False,
         presplit_train_df=presplit_train_df,
         presplit_test_df=presplit_test_df,
     )

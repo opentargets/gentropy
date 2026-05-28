@@ -353,7 +353,6 @@ class LocusToGeneConfig(StepConfig):
     hf_model_commit_message: str = "chore: update model"
     hf_model_version: str | None = None  # Latest commit is picked when provided None
     download_from_hub: bool = True
-    cross_validate: bool = True
     train_on_full_dataset: bool = False
     explain_predictions: bool = False
     wandb_credentials_path: str | None = None
