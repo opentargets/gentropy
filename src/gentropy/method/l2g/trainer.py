@@ -16,7 +16,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import shap
-import xgboost as xgb
 from sklearn.base import clone
 from sklearn.metrics import (
     accuracy_score,
@@ -48,10 +47,6 @@ if TYPE_CHECKING:
     from wandb.sdk.wandb_run import Run
 
 import logging
-
-_SOFT_LABEL_KEYS: frozenset[str] = frozenset(
-    {"nearest_fgs", "not_nearest_fgs", "nearest_no_fgs", "not_nearest_no_fgs"}
-)
 
 
 def reset_wandb_env() -> None:
@@ -115,12 +110,7 @@ class LocusToGeneTrainer:
             assert self.x_train.size != 0 and self.y_train.size != 0, (
                 "Train data not set, nothing to fit."
             )
-            has_soft_labels = not np.all(np.isin(self.y_train, [0.0, 1.0]))
-            fitted_model = (
-                self._fit_with_soft_labels()
-                if has_soft_labels
-                else self.model.model.fit(X=self.x_train, y=self.y_train)
-            )
+            fitted_model = self.model.model.fit(X=self.x_train, y=self.y_train)
             self.model = LocusToGeneModel(
                 model=fitted_model,
                 hyperparameters=fitted_model.get_params(),
@@ -129,28 +119,6 @@ class LocusToGeneTrainer:
             )
             return self.model
         raise ValueError("Train data not set, nothing to fit.")
-
-    def _fit_with_soft_labels(self: LocusToGeneTrainer) -> Any:
-        """Train via the raw xgboost API to support float soft labels.
-
-        XGBClassifier's sklearn wrapper rejects non-integer labels.  We bypass
-        it by training a raw Booster and injecting it back into a cloned
-        XGBClassifier so that ``predict_proba`` continues to work normally.
-
-        Returns:
-            Any: XGBClassifier instance with a trained booster and sklearn
-                attributes set for predict_proba compatibility.
-        """
-        assert self.x_train is not None and self.y_train is not None
-        clf = clone(self.model.model)
-        params = clf.get_xgb_params()
-        params.setdefault("objective", "binary:logistic")
-        n_estimators = clf.get_params().get("n_estimators") or 100
-        dtrain = xgb.DMatrix(self.x_train, label=self.y_train)
-        booster = xgb.train(params, dtrain, num_boost_round=n_estimators)
-        clf._Booster = booster
-        clf.n_classes_ = 2
-        return clf
 
     def _get_shap_explanation(
         self: LocusToGeneTrainer,
@@ -249,17 +217,12 @@ class LocusToGeneTrainer:
             name=wandb_run_name,
             config=fitted_classifier.get_params(),
         )
-        # Binarize labels for W&B — plot_classifier passes y_true directly to
-        # sklearn metrics which reject float soft labels mixed with binary y_pred.
-        y_train_binary = (self.y_train >= 0.5).astype(int)
-        y_test_binary = (self.y_test >= 0.5).astype(int)
-        # Track classification plots
         plot_classifier(
             self.model.model,
             self.x_train,
             self.x_test,
-            y_train_binary,
-            y_test_binary,
+            self.y_train,
+            self.y_test,
             y_predicted,
             y_probas,
             labels=list(self.model.label_encoder.values()),
@@ -568,25 +531,22 @@ class LocusToGeneTrainer:
         Returns:
             dict[str, float]: Dictionary of evaluation metrics
         """
-        # Binarize y_true at 0.5 so soft labels (e.g. 0.1, 0.5, 1.0) are treated
-        # as negative / positive for all threshold-dependent metrics.
-        y_true_binary = (y_true >= 0.5).astype(int)
-        cm = confusion_matrix(y_true_binary, y_pred, labels=[0, 1])
+        cm = confusion_matrix(y_true, y_pred, labels=[0, 1])
         # cm layout: [[TN, FP], [FN, TP]] for binary classification
         tn, fp, fn, tp = (int(cm[0, 0]), int(cm[0, 1]), int(cm[1, 0]), int(cm[1, 1]))
         return {
             "areaUnderROC": roc_auc_score(
-                y_true_binary, y_pred_proba[:, 1], average="weighted"
+                y_true, y_pred_proba[:, 1], average="weighted"
             ),
-            "accuracy": accuracy_score(y_true_binary, y_pred),
+            "accuracy": accuracy_score(y_true, y_pred),
             "weightedPrecision": precision_score(
-                y_true_binary, y_pred, average="weighted"
+                y_true, y_pred, average="weighted"
             ),
             "averagePrecision": average_precision_score(
-                y_true_binary, y_pred, average="weighted"
+                y_true, y_pred, average="weighted"
             ),
-            "weightedRecall": recall_score(y_true_binary, y_pred, average="weighted"),
-            "f1": f1_score(y_true_binary, y_pred, average="weighted"),
+            "weightedRecall": recall_score(y_true, y_pred, average="weighted"),
+            "f1": f1_score(y_true, y_pred, average="weighted"),
             "TP": tp,
             "FP": fp,
             "TN": tn,
@@ -623,47 +583,12 @@ class LocusToGeneTrainer:
         y_fold_train = fold_train_df[self.feature_matrix.label_col].values
         y_fold_val = fold_val_df[self.feature_matrix.label_col].values
 
-        soft_label_params = (
-            {k: v for k, v in config.items() if k in _SOFT_LABEL_KEYS} if config else {}
-        )
-        xgb_params = (
-            {k: v for k, v in config.items() if k not in _SOFT_LABEL_KEYS} if config else {}
-        )
-
-        if soft_label_params:
-            if "_is_nearest" not in fold_train_df.columns or "_has_fgs" not in fold_train_df.columns:
-                raise ValueError(
-                    "Soft label weights in hyperparameter_grid require apply_soft_labels "
-                    "to have been called first (missing _is_nearest / _has_fgs columns)."
-                )
-            is_positive = fold_train_df["goldStandardSet"].values == 1
-            is_nearest = fold_train_df["_is_nearest"].values
-            has_fgs = fold_train_df["_has_fgs"].values
-            nf = float(soft_label_params.get("nearest_fgs", 1.0))
-            nnf = float(soft_label_params.get("not_nearest_fgs", 1.0))
-            nn = float(soft_label_params.get("nearest_no_fgs", 0.5))
-            nnn = float(soft_label_params.get("not_nearest_no_fgs", 0.1))
-            y_fold_train = np.where(
-                ~is_positive, 0.0,
-                np.where(is_nearest & has_fgs, nf,
-                np.where(~is_nearest & has_fgs, nnf,
-                np.where(is_nearest & ~has_fgs, nn, nnn))),
-            )
+        xgb_params = dict(config.items()) if config else {}
 
         fold_model = clone(self.model.model)
         if xgb_params:
             fold_model.set_params(**xgb_params)
-        has_soft = not np.all(np.isin(y_fold_train, [0.0, 1.0]))
-        if has_soft:
-            params = fold_model.get_xgb_params()
-            params.setdefault("objective", "binary:logistic")
-            n_estimators = fold_model.get_params().get("n_estimators") or 100
-            dtrain = xgb.DMatrix(x_fold_train, label=y_fold_train)
-            booster = xgb.train(params, dtrain, num_boost_round=n_estimators)
-            fold_model._Booster = booster
-            fold_model.n_classes_ = 2
-        else:
-            fold_model.fit(x_fold_train, y_fold_train)
+        fold_model.fit(x_fold_train, y_fold_train)
         y_pred_proba = fold_model.predict_proba(x_fold_val)
         y_pred = fold_model.predict(x_fold_val)
 
@@ -845,7 +770,7 @@ class LocusToGeneTrainer:
         fig, ax = plt.subplots(figsize=(7, 6))
         fold_aucs = []
         for fold in folds:
-            fpr, tpr, _ = roc_curve((fold["y_true"] >= 0.5).astype(int), fold["y_pred_proba"])
+            fpr, tpr, _ = roc_curve(fold["y_true"], fold["y_pred_proba"])
             fold_auc = auc(fpr, tpr)
             fold_aucs.append(fold_auc)
             ax.plot(fpr, tpr, alpha=0.5, lw=1.2, label=f"fold {fold['fold']} (AUC={fold_auc:.3f})")
@@ -874,11 +799,10 @@ class LocusToGeneTrainer:
         fig, ax = plt.subplots(figsize=(7, 6))
         fold_aps = []
         for fold in folds:
-            y_true_binary = (fold["y_true"] >= 0.5).astype(int)
             precision, recall, _ = precision_recall_curve(
-                y_true_binary, fold["y_pred_proba"]
+                fold["y_true"], fold["y_pred_proba"]
             )
-            ap = average_precision_score(y_true_binary, fold["y_pred_proba"])
+            ap = average_precision_score(fold["y_true"], fold["y_pred_proba"])
             fold_aps.append(ap)
             ax.plot(recall, precision, alpha=0.5, lw=1.2, label=f"fold {fold['fold']} (AP={ap:.3f})")
         ax.set_xlabel("Recall")
@@ -902,10 +826,8 @@ class LocusToGeneTrainer:
             folds (list[dict[str, Any]]): Fold data dicts with y_true and y_pred_proba keys.
             output_path (Path): Where to save the PNG.
         """
-        y_true_all = (np.concatenate([f["y_true"] for f in folds]) >= 0.5).astype(int)
-        y_pred_all = (
-            np.concatenate([f["y_pred_proba"] for f in folds]) >= 0.5
-        ).astype(int)
+        y_true_all = np.concatenate([f["y_true"] for f in folds])
+        y_pred_all = (np.concatenate([f["y_pred_proba"] for f in folds]) >= 0.5).astype(int)
         cm = confusion_matrix(y_true_all, y_pred_all)
         classes = list(self.model.label_encoder.values())
 

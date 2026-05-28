@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 import logging
 from typing import Any
 
@@ -158,274 +157,6 @@ class LocusToGeneFeatureMatrixStep:
         ).parquet(feature_matrix_path)
 
 
-class LocusToGeneTrainTestSplitStep:
-    """Split the annotated gold standard feature matrix into train/test partitions and write to parquet."""
-
-    def __init__(
-        self,
-        session: Session,
-        *,
-        credible_set_path: str,
-        feature_matrix_path: str,
-        gold_standard_curation_path: str,
-        train_parquet_path: str,
-        test_parquet_path: str,
-        features_list: list[str],
-        test_size: float = 0.15,
-        variant_index_path: str | None = None,
-        gene_interactions_path: str | None = None,
-        filter_dark_matter: bool = False,
-        soft_label_weights: dict[str, float] | None = None,
-        predefined_test_parquet_path: str | None = None,
-    ) -> None:
-        """Initialise step: build annotated feature matrix, split, and persist.
-
-        Args:
-            session (Session): Session object that contains the Spark session
-            credible_set_path (str): Path to the credible set dataset
-            feature_matrix_path (str): Path to the L2G feature matrix input dataset
-            gold_standard_curation_path (str): Path to the gold standard curation file (parquet or JSON)
-            train_parquet_path (str): Output path for the training split parquet
-            test_parquet_path (str): Output path for the held-out test split parquet
-            features_list (list[str]): Features to select from the feature matrix
-            test_size (float): Proportion of study loci assigned to the test split. Defaults to 0.15.
-            variant_index_path (str | None): Path to the variant index (required for OTG gold standard)
-            gene_interactions_path (str | None): Path to the PPI dataset (required for OTG gold standard)
-            filter_dark_matter (bool): Remove loci where all gold-standard positives lack functional genomics signal. Defaults to False.
-            soft_label_weights (dict[str, float] | None): When set, replace binary labels with soft confidence values. Defaults to None.
-            predefined_test_parquet_path (str | None): Path to an existing test-split parquet (produced by a previous run of this step). When provided the test set is loaded as-is and the training set is derived by removing all studyLocusIds from the annotated feature matrix whose positive genes overlap with the test set's positive genes. ``test_size`` is ignored. Defaults to None (performs a fresh hierarchical split).
-        """
-        credible_set = StudyLocus.from_parquet(
-            session, credible_set_path, recursiveFileLookup=True
-        )
-        feature_matrix = L2GFeatureMatrix(
-            _df=session.load_data(feature_matrix_path, "parquet"),
-        )
-        gold_standard = self._parse_gold_standard(
-            session=session,
-            gold_standard_curation_path=gold_standard_curation_path,
-            credible_set=credible_set,
-            variant_index_path=variant_index_path,
-            gene_interactions_path=gene_interactions_path,
-        )
-
-        # Build annotated feature matrix for gold standard loci
-        annotated_fm = (
-            gold_standard.build_feature_matrix(feature_matrix, credible_set)
-            .select_features(features_list)
-            .persist()
-        )
-
-        if filter_dark_matter:
-            annotated_fm, _ = annotated_fm.filter_dark_matter_loci()
-
-        if soft_label_weights is not None:
-            annotated_fm = annotated_fm.apply_soft_labels(**soft_label_weights)
-
-        import pandas as pd
-
-        label_encoder = {"negative": 0, "positive": 1}
-
-        if predefined_test_parquet_path:
-            predefined_test_df: pd.DataFrame = session.spark.read.parquet(
-                predefined_test_parquet_path
-            ).toPandas()
-
-            n_original_total: int = annotated_fm._df.count()
-            n_original_test: int = len(predefined_test_df)
-
-            # Positive gene IDs from the predefined test (handles both str and int encoding).
-            test_positive_genes: set[str] = set(
-                predefined_test_df.loc[
-                    predefined_test_df["goldStandardSet"].isin([1, "positive"]), "geneId"
-                ]
-            )
-
-            # studyLocusIds in annotated_fm that contain at least one test positive gene.
-            contaminating_ids: set[Any] = set(
-                annotated_fm._df.filter(
-                    f.col("geneId").isin(list(test_positive_genes))
-                    & (f.col("goldStandardSet") == "positive")
-                )
-                .select("studyLocusId")
-                .distinct()
-                .toPandas()["studyLocusId"]
-                .tolist()
-            )
-
-            # Train set: remove contaminating studyLocusIds entirely.
-            train_df: pd.DataFrame = annotated_fm._df.filter(
-                ~f.col("studyLocusId").isin(list(contaminating_ids))
-            ).toPandas()
-
-            # Test set: re-derive from current annotated_fm using the predefined
-            # (studyLocusId, geneId) pairs so feature values are up to date.
-            test_pairs_spark = session.spark.createDataFrame(
-                predefined_test_df[["studyLocusId", "geneId"]]
-            )
-            test_df: pd.DataFrame = (
-                annotated_fm._df.join(
-                    test_pairs_spark, on=["studyLocusId", "geneId"], how="inner"
-                )
-                .toPandas()
-            )
-
-            # Apply the same label encoding that generate_train_test_split uses.
-            for col in {annotated_fm.label_col, "goldStandardSet"}:
-                for df in [train_df, test_df]:
-                    if col in df.columns and df[col].dtype == object:
-                        df[col] = df[col].map(label_encoder)
-
-            n_test_new = len(test_df)
-            n_train = len(train_df)
-            split_stats = {
-                "n_original_total": n_original_total,
-                "n_original_test": n_original_test,
-                "n_test_new": n_test_new,
-                "n_lost_test": n_original_test - n_test_new,
-                "n_train": n_train,
-                "n_lost_total": n_original_total - n_test_new - n_train,
-            }
-            self._write_split_stats(split_stats, train_parquet_path)
-            logging.info("Split stats: %s", split_stats)
-        else:
-            train_df, test_df = annotated_fm.generate_train_test_split(
-                test_size=test_size,
-                verbose=True,
-                label_encoder=label_encoder,
-                label_col=annotated_fm.label_col,
-            )
-
-        session.spark.createDataFrame(train_df).coalesce(1).write.mode(
-            session.write_mode
-        ).parquet(train_parquet_path)
-        session.spark.createDataFrame(test_df).coalesce(1).write.mode(
-            session.write_mode
-        ).parquet(test_parquet_path)
-        logging.info(
-            "Train/test split written: %d train rows, %d test rows.",
-            len(train_df),
-            len(test_df),
-        )
-
-    @staticmethod
-    def _parse_gold_standard(
-        session: Session,
-        gold_standard_curation_path: str,
-        credible_set: StudyLocus,
-        variant_index_path: str | None,
-        gene_interactions_path: str | None,
-    ) -> L2GGoldStandard:
-        """Load and parse the gold standard curation file into an L2GGoldStandard.
-
-        Args:
-            session (Session): Active Spark session.
-            gold_standard_curation_path (str): Path to the gold standard curation file (parquet or JSON).
-            credible_set (StudyLocus): Credible set used for OTG curation parsing.
-            variant_index_path (str | None): Path to variant index (required for OTG format).
-            gene_interactions_path (str | None): Path to PPI dataset (required for OTG format).
-
-        Returns:
-            L2GGoldStandard: Parsed gold standard dataset.
-
-        Raises:
-            ValueError: If OTG format is detected but required paths are missing.
-            TypeError: If the gold standard schema is unrecognised.
-        """
-        ext = gold_standard_curation_path.rsplit(".", maxsplit=1)[-1]
-        ext = "parquet" if ext not in ["parquet", "json"] else ext
-        gold_standard_raw = session.load_data(gold_standard_curation_path, ext)
-        schema_issues = compare_struct_schemas(
-            gold_standard_raw.schema, L2GGoldStandard.get_schema()
-        )
-        match schema_issues:
-            case {**extra} if not extra:
-                return L2GGoldStandard(
-                    _df=gold_standard_raw,
-                    _schema=L2GGoldStandard.get_schema(),
-                )
-            case {"unexpected_columns": extra_columns}:
-                return L2GGoldStandard(
-                    _df=gold_standard_raw.drop(*extra_columns),
-                    _schema=L2GGoldStandard.get_schema(),
-                )
-            case {
-                "missing_mandatory_columns": [
-                    "studyLocusId",
-                    "variantId",
-                    "studyId",
-                    "geneId",
-                    "goldStandardSet",
-                ],
-                "unexpected_columns": [
-                    "association_info",
-                    "gold_standard_info",
-                    "metadata",
-                    "sentinel_variant",
-                    "trait_info",
-                ],
-            }:
-                if gene_interactions_path is None:
-                    raise ValueError("Interactions are required for parsing OTG curation.")
-                if variant_index_path is None:
-                    raise ValueError("Variant Index is required for parsing OTG curation.")
-                interactions = session.load_data(
-                    gene_interactions_path, "parquet", recursiveFileLookup=True
-                )
-                variant_index = VariantIndex.from_parquet(session, variant_index_path)
-                study_locus_overlap = StudyLocus(
-                    _df=credible_set.df.join(
-                        gold_standard_raw.select(
-                            f.concat_ws(
-                                "_",
-                                f.col("sentinel_variant.locus_GRCh38.chromosome"),
-                                f.col("sentinel_variant.locus_GRCh38.position"),
-                                f.col("sentinel_variant.alleles.reference"),
-                                f.col("sentinel_variant.alleles.alternative"),
-                            ).alias("variantId"),
-                            f.col("association_info.otg_id").alias("studyId"),
-                        ),
-                        on=["studyId", "variantId"],
-                        how="inner",
-                    ),
-                    _schema=StudyLocus.get_schema(),
-                ).find_overlaps()
-                return L2GGoldStandard.from_otg_curation(
-                    gold_standard_curation=gold_standard_raw,
-                    variant_index=variant_index,
-                    study_locus_overlap=study_locus_overlap,
-                    interactions=interactions,
-                )
-            case _:
-                raise TypeError("Incorrect gold standard dataset provided.")
-
-    @staticmethod
-    def _write_split_stats(stats: dict[str, Any], train_parquet_path: str) -> None:
-        """Write split statistics as a JSON file next to the training parquet.
-
-        Args:
-            stats (dict[str, Any]): Stats dict to serialise.
-            train_parquet_path (str): Path used to derive the output JSON path.
-        """
-        from urllib.parse import urlparse
-
-        log_path = train_parquet_path.rstrip("/") + "_split_stats.json"
-        payload = json.dumps(stats, indent=2)
-        if log_path.startswith("gs://"):
-            from google.cloud import storage
-
-            parsed = urlparse(log_path)
-            bucket = storage.Client().bucket(parsed.hostname)
-            bucket.blob(parsed.path.lstrip("/")).upload_from_string(
-                payload, content_type="application/json"
-            )
-        else:
-            from pathlib import Path
-
-            Path(log_path).write_text(payload)
-        logging.info("Split stats written to %s", log_path)
-
-
 class LocusToGeneCVStep:
     """Cross-validate the L2G model and optionally perform a hyperparameter grid sweep.
 
@@ -436,11 +167,9 @@ class LocusToGeneCVStep:
 
     Typical workflow
     ----------------
-    1. ``LocusToGeneTrainTestSplitStep`` — build the annotated feature matrix and
-       persist reproducible train / test parquets.
-    2. **This step** — run CV on the training parquet to pick the best
+    1. **This step** — run CV on the training parquet to pick the best
        hyperparameter config.
-    3. ``LocusToGeneStep`` — train the final model with the chosen config.
+    2. ``LocusToGeneStep`` — train the final model with the chosen config.
     """
 
     def __init__(
@@ -460,18 +189,13 @@ class LocusToGeneCVStep:
 
         Args:
             session (Session): Session object that contains the Spark session.
-            train_parquet_path (str): Path to the training split parquet produced by
-                ``LocusToGeneTrainTestSplitStep``.  Labels must already be numerically
-                encoded (0/1 for binary, or float soft labels).
+            train_parquet_path (str): Path to the training split parquet. Labels must already be numerically encoded (0/1 for binary, or float soft labels).
             features_list (list[str]): Features to use during cross-validation.
             hyperparameters (dict[str, Any]): Base XGBoost hyperparameters.  Used as
                 defaults when no ``hyperparameter_grid`` is provided.
             n_splits (int): Number of CV folds. Defaults to 5.
             hyperparameter_grid (dict[str, Any] | None): Grid to sweep over.  Format:
-                ``{"param": {"values": [v1, v2, ...]}, ...}``.  Soft-label weight keys
-                (``nearest_fgs``, ``not_nearest_fgs``, ``nearest_no_fgs``,
-                ``not_nearest_no_fgs``) are also accepted; the training parquet must
-                contain ``_is_nearest`` and ``_has_fgs`` columns in that case.
+                ``{"param": {"values": [v1, v2, ...]}, ...}``.
                 Defaults to None (CV uses the fixed ``hyperparameters``).
             cv_results_dir (str | None): Directory (local or ``gs://``) to write
                 ``cv_results.json``, ``cv_folds.csv``, and per-config plots.  Only
@@ -490,7 +214,7 @@ class LocusToGeneCVStep:
             wandb_login(key=wandb_credentials.WANDB_API_KEY.get_secret_value())
 
         train_df: pd.DataFrame = session.spark.read.parquet(train_parquet_path).toPandas()
-        label_col = "soft_label" if "soft_label" in train_df.columns else "goldStandardSet"
+        label_col = "goldStandardSet"
 
         l2g_model = LocusToGeneModel(
             model=XGBClassifier(random_state=777, eval_metric="aucpr"),
@@ -543,8 +267,6 @@ class LocusToGeneStep:
         explain_predictions: bool = False,
         hf_credentials_path: str | None = None,
         wandb_credentials_path: str | None = None,
-        filter_dark_matter: bool = False,
-        soft_label_weights: dict[str, float] | None = None,
         train_parquet_path: str | None = None,
         test_parquet_path: str | None = None,
     ) -> None:
@@ -572,9 +294,7 @@ class LocusToGeneStep:
             explain_predictions (bool): Whether to extract SHAP importances for the L2G predictions. This is computationally expensive.
             hf_credentials_path (str | None): Optional path to the Hugging Face Hub credentials JSON file. If not provided, the HF_TOKEN environment variable will be used.
             wandb_credentials_path (str | None): Optional path to the Weights and Biases credentials JSON file. If not provided, the WANDB_API_KEY environment variable will be used.
-            filter_dark_matter (bool): Whether to remove loci where every gold-standard positive has no functional genomics signal (zero QTL colocalisation, E2G, and VEP below protein-altering threshold) and is not the nearest gene (all neighbourhood distance features < 1.0). Loci with at least one signal-carrying or nearest-gene positive are kept. Defaults to False.
-            soft_label_weights (dict[str, float] | None): When set, replace binary gold-standard labels with soft confidence values. Keys and defaults: ``nearest_fgs=1.0``, ``not_nearest_fgs=1.0``, ``nearest_no_fgs=0.5``, ``not_nearest_no_fgs=0.1``. For TP/FP/TN/FN computation labels >= 0.5 are treated as positive. Defaults to None (hard binary labels).
-            train_parquet_path (str | None): Path to a pre-computed training split parquet (output of ``LocusToGeneTrainTestSplitStep``). When both ``train_parquet_path`` and ``test_parquet_path`` are provided the gold standard building, dark matter filtering and soft label steps are skipped and the pre-split data is loaded directly.
+            train_parquet_path (str | None): Path to a pre-computed training split parquet. When both ``train_parquet_path`` and ``test_parquet_path`` are provided the gold standard building and soft label steps are skipped and the pre-split data is loaded directly.
             test_parquet_path (str | None): Path to a pre-computed held-out test split parquet. Must be provided together with ``train_parquet_path``.
 
         Raises:
@@ -637,8 +357,6 @@ class LocusToGeneStep:
         # Predict parameters
         self.l2g_threshold = l2g_threshold
         self.explain_predictions = explain_predictions
-        self.filter_dark_matter = filter_dark_matter
-        self.soft_label_weights = soft_label_weights
         self.train_parquet_path = train_parquet_path
         self.test_parquet_path = test_parquet_path
 
@@ -836,30 +554,6 @@ class LocusToGeneStep:
             # Build annotated feature matrix from gold standard and apply any transformations.
             feature_matrix = self._annotate_gold_standards_w_feature_matrix()
 
-            if self.filter_dark_matter:
-                feature_matrix, dark_matter_stats = feature_matrix.filter_dark_matter_loci()
-                if dark_matter_stats:
-                    if self.model_path:
-                        self._write_dark_matter_stats(dark_matter_stats)
-                    else:
-                        logging.warning(
-                            "filter_dark_matter=True but model_path is not set — "
-                            "dark matter stats were computed but not written anywhere."
-                        )
-                else:
-                    logging.warning(
-                        "filter_dark_matter=True but the filter had no effect: "
-                        "required signal or neighbourhood-distance features are "
-                        "absent from features_list. Verify that the dark matter "
-                        "features are included in the training feature set."
-                    )
-
-            if self.soft_label_weights is not None:
-                feature_matrix = feature_matrix.apply_soft_labels(
-                    **self.soft_label_weights
-                )
-                logging.info("Soft labels applied: %s", self.soft_label_weights)
-
             trained_model = LocusToGeneTrainer(
                 model=l2g_model, feature_matrix=feature_matrix
             ).train(
@@ -892,7 +586,7 @@ class LocusToGeneStep:
                 )
 
     def _run_train_from_presplit(self, l2g_model: LocusToGeneModel) -> LocusToGeneModel:
-        """Train using pre-split parquets produced by LocusToGeneTrainTestSplitStep.
+        """Train using pre-split train/test parquets.
 
         Args:
             l2g_model (LocusToGeneModel): Uninitialised model to train.
@@ -905,7 +599,7 @@ class LocusToGeneStep:
         assert self.train_parquet_path and self.test_parquet_path
         train_df = self.session.spark.read.parquet(self.train_parquet_path).toPandas()
         test_df = self.session.spark.read.parquet(self.test_parquet_path).toPandas()
-        label_col = "soft_label" if "soft_label" in train_df.columns else "goldStandardSet"
+        label_col = "goldStandardSet"
         feature_matrix = L2GFeatureMatrix(
             _df=self.session.spark.createDataFrame(
                 pd.concat([train_df, test_df], ignore_index=True)
@@ -921,32 +615,6 @@ class LocusToGeneStep:
             train_df=train_df,
             test_df=test_df,
         )
-
-    def _write_dark_matter_stats(self, stats: dict[str, Any]) -> None:
-        """Write dark matter filtering stats as JSON next to the model path.
-
-        Args:
-            stats (dict[str, Any]): Stats dict returned by filter_dark_matter_loci.
-        """
-        from urllib.parse import urlparse
-
-        from google.cloud import storage
-
-        log_path = f"{self.model_path}_dark_matter_stats.json"
-        payload = json.dumps(stats, indent=2)
-        if log_path.startswith("gs://"):
-            parsed = urlparse(log_path)
-            bucket = storage.Client().bucket(parsed.hostname)
-            bucket.blob(parsed.path.lstrip("/")).upload_from_string(
-                payload, content_type="application/json"
-            )
-        else:
-            from pathlib import Path
-
-            Path(log_path).parent.mkdir(parents=True, exist_ok=True)
-            with open(log_path, "w") as fh:
-                fh.write(payload)
-        logging.info("Dark matter filter stats written to %s", log_path)
 
     def _annotate_gold_standards_w_feature_matrix(self) -> L2GFeatureMatrix:
         """Generate the feature matrix of annotated gold standards.

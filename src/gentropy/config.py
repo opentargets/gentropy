@@ -350,33 +350,12 @@ class LocusToGeneConfig(StepConfig):
     hf_model_version: str | None = None  # Latest commit is picked when provided None
     download_from_hub: bool = True
     train_on_full_dataset: bool = False
-    filter_dark_matter: bool = False
-    soft_label_weights: Any = None  # dict[str, float] | None — keys: nearest_fgs, not_nearest_fgs, nearest_no_fgs, not_nearest_no_fgs
     explain_predictions: bool = False
     wandb_credentials_path: str | None = None
     hf_credentials_path: str | None = None
     train_parquet_path: str | None = None
     test_parquet_path: str | None = None
     _target_: str = "gentropy.l2g.LocusToGeneStep"
-
-
-@dataclass
-class LocusToGeneTrainTestSplitConfig(StepConfig):
-    """Configuration for the train/test split step that precedes L2G training."""
-
-    credible_set_path: str = MISSING
-    feature_matrix_path: str = MISSING
-    gold_standard_curation_path: str = MISSING
-    train_parquet_path: str = MISSING
-    test_parquet_path: str = MISSING
-    test_size: float = 0.15
-    variant_index_path: str | None = None
-    gene_interactions_path: str | None = None
-    filter_dark_matter: bool = False
-    soft_label_weights: Any = None  # dict[str, float] | None
-    predefined_test_parquet_path: str | None = None
-    features_list: list[str] = field(default_factory=lambda: list(_L2G_FEATURES_LIST))
-    _target_: str = "gentropy.l2g.LocusToGeneTrainTestSplitStep"
 
 
 @dataclass
@@ -908,11 +887,6 @@ def register_config() -> None:
     cs.store(group="step", name="ld_based_clumping", node=LDBasedClumpingConfig)
     cs.store(group="step", name="ld_index", node=LDIndexConfig)
     cs.store(group="step", name="locus_to_gene", node=LocusToGeneConfig)
-    cs.store(
-        group="step",
-        name="locus_to_gene_train_test_split",
-        node=LocusToGeneTrainTestSplitConfig,
-    )
     cs.store(group="step", name="locus_to_gene_cv", node=LocusToGeneCVConfig)
     cs.store(
         group="step",
