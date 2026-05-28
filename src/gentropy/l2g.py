@@ -229,9 +229,11 @@ class LocusToGeneTrainTestSplitStep:
             ).select("geneId").distinct()
 
             # studyLocusIds in annotated_fm that contain at least one test-positive gene.
+            # The goldStandardSet label in annotated_fm is intentionally NOT checked here:
+            # a study locus whose gene label changed between runs (positive→negative) is
+            # still in test_sdf via the test_pairs join and must be kept out of training.
             contaminating_sdf = (
                 annotated_fm._df.join(test_positive_genes_sdf, on="geneId", how="inner")
-                .filter(f.col("goldStandardSet") == "positive")
                 .select("studyLocusId")
                 .distinct()
             )
