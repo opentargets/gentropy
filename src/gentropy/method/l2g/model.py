@@ -193,7 +193,12 @@ class LocusToGeneModel:
             raise ValueError("Hyperparameters have not been set.")
         elif isinstance(self.hyperparameters, dict):
             return self.hyperparameters
-        return self.hyperparameters.default_factory()
+        try:
+            # dataclasses.field with default_factory (legacy path)
+            return self.hyperparameters.default_factory()
+        except Exception:
+            # OmegaConf DictConfig passed directly from Hydra
+            return dict(self.hyperparameters)
 
     def predict(
         self: LocusToGeneModel,
