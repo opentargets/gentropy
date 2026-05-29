@@ -842,7 +842,7 @@ class LocusToGeneCrossValidationStep:
             train_feature_matrix_path (str): Path to the parquet file containing the
                 annotated training feature matrix.  Must include ``studyLocusId``,
                 ``geneId``, a ``goldStandardSet`` column with values ``"positive"``/
-                ``"negative"``, and one column per feature.
+                ``"negative"`` (strings) or ``1``/``0`` (integers), and one column per feature.
             test_feature_matrix_path (str): Path to the parquet file containing the
                 annotated test feature matrix with the same schema as the training file.
             hyperparameters (dict[str, Any]): Hyperparameters passed to XGBClassifier.
@@ -888,8 +888,10 @@ class LocusToGeneCrossValidationStep:
         test_pd: pd.DataFrame = test_feature_matrix._df.toPandas()
         train_feature_matrix._df.unpersist()
         test_feature_matrix._df.unpersist()
-        train_pd[label_col] = train_pd[label_col].map(l2g_model.label_encoder)
-        test_pd[label_col] = test_pd[label_col].map(l2g_model.label_encoder)
+        # The split step saves goldStandardSet as integers 0/1; only encode if still strings.
+        for df in (train_pd, test_pd):
+            if df[label_col].dtype == object:
+                df[label_col] = df[label_col].map(l2g_model.label_encoder)
 
         x_train: np.ndarray = (
             train_pd[effective_features].apply(pd.to_numeric).to_numpy()

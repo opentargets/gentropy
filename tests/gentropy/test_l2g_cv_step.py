@@ -31,6 +31,28 @@ def split_parquets(
     return train_path, test_path
 
 
+@pytest.fixture()
+def split_parquets_int_labels(
+    tmp_path: Path, mock_l2g_feature_matrix: L2GFeatureMatrix
+) -> tuple[str, str]:
+    """Write the mock feature matrix with integer-encoded labels (as produced by the split step)."""
+    from pyspark.sql import functions as f
+
+    fm_df = mock_l2g_feature_matrix.fill_na()._df
+    label_map = f.create_map(f.lit("negative"), f.lit(0), f.lit("positive"), f.lit(1))
+    fm_df = fm_df.withColumn(
+        "goldStandardSet",
+        f.coalesce(
+            label_map[f.col("goldStandardSet")], f.col("goldStandardSet").cast("int")
+        ),
+    )
+    train_path = str(tmp_path / "train_int.parquet")
+    test_path = str(tmp_path / "test_int.parquet")
+    fm_df.write.parquet(train_path)
+    fm_df.write.parquet(test_path)
+    return train_path, test_path
+
+
 class TestLocusToGeneCrossValidationStep:
     """Integration tests for LocusToGeneCrossValidationStep."""
 
@@ -111,6 +133,22 @@ class TestLocusToGeneCrossValidationStep:
         assert data["n_configs"] == 1
         assert len(data["configs"]) == 1
         assert len(data["configs"][0]["fold_metrics"]) == 2
+
+    def test_integer_encoded_labels_accepted(
+        self,
+        session: Session,
+        split_parquets_int_labels: tuple[str, str],
+    ) -> None:
+        """Step handles goldStandardSet encoded as 0/1 integers (output of the split step)."""
+        train_path, test_path = split_parquets_int_labels
+        LocusToGeneCrossValidationStep(
+            session=session,
+            train_feature_matrix_path=train_path,
+            test_feature_matrix_path=test_path,
+            hyperparameters={"max_depth": 3},
+            features_list=FEATURES,
+            n_splits=2,
+        )
 
     def test_hyperparameter_grid_evaluates_all_configs(
         self,
