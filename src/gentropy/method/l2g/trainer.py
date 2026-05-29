@@ -380,13 +380,14 @@ class LocusToGeneTrainer:
 
         return self.model
 
-    def cross_validate(
+    def cross_validate(  # noqa: C901
         self: LocusToGeneTrainer,
         wandb_run_name: str | None = None,
         parameter_grid: dict[str, Any] | None = None,
         n_splits: int = 5,
         random_state: int = 42,
         cv_results_dir: str | None = None,
+        holdout_only: bool = False,
     ) -> None:
         """Log results of cross validation and hyperparameter tuning.
 
@@ -395,12 +396,18 @@ class LocusToGeneTrainer:
         ``cv_results.json``, ``cv_folds.csv``, and per-config plots to ``cv_results_dir``.
         Without either: logs fold metrics to the terminal using the base hyperparameters.
 
+        When ``holdout_only`` is True, the CV folds are skipped entirely. Each config is
+        trained once on the full training set and evaluated on the holdout set. Requires
+        ``cv_results_dir`` and a non-empty test set. Use this when a large pre-split holdout
+        is available and CV folds would add noise without additional information.
+
         Args:
             wandb_run_name (str | None): Name of the W&B run. Unless this is provided, the model will not be logged to W&B.
             parameter_grid (dict[str, Any] | None): Dictionary containing the hyperparameters to sweep over. The keys are the hyperparameter names, and the values are dictionaries containing the values to sweep over.
             n_splits (int): Number of folds the data is splitted in. The model is trained and evaluated `k - 1` times. Defaults to 5.
             random_state (int): Random seed for reproducibility. Defaults to 42.
             cv_results_dir (str | None): Directory (local or ``gs://``) to write CV result files. Only used when ``wandb_run_name`` is not set. Defaults to None.
+            holdout_only (bool): When True, skip CV folds and evaluate each config directly on the holdout set. Defaults to False.
         """
         # If no grid is provided, use default ones set in the model
         parameter_grid = parameter_grid or {
@@ -472,15 +479,20 @@ class LocusToGeneTrainer:
             config_summaries: list[dict[str, Any]] = []
             try:
                 for config_id, config in enumerate(self._expand_grid(parameter_grid)):
-                    fold_results.clear()
-                    run_all_folds(run_config=config)
-                    summary = self._summarise_and_plot_config(
-                        config_id, list(fold_results), work_dir
-                    )
-                    self._maybe_append_holdout_row(summary, config)
+                    if holdout_only:
+                        summary = self._holdout_only_summary(config_id, config)
+                    else:
+                        fold_results.clear()
+                        run_all_folds(run_config=config)
+                        summary = self._summarise_and_plot_config(
+                            config_id, list(fold_results), work_dir
+                        )
+                        self._maybe_append_holdout_row(summary, config)
+                        fold_results.clear()
                     config_summaries.append(summary)
-                    fold_results.clear()
-                self._write_cv_files(config_summaries, work_dir, n_splits)
+                self._write_cv_files(
+                    config_summaries, work_dir, 0 if holdout_only else n_splits
+                )
                 if is_gcs:
                     self._upload_dir_to_gcs(work_dir, cv_results_dir)
             finally:
@@ -621,6 +633,37 @@ class LocusToGeneTrainer:
             summary["fold_metrics"].append(
                 {"fold": "holdout", **self._eval_on_test_set(config)}
             )
+
+    def _holdout_only_summary(
+        self: LocusToGeneTrainer,
+        config_id: int,
+        config: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Build a config summary from a single holdout evaluation (no CV folds).
+
+        Args:
+            config_id (int): Zero-based config index.
+            config (dict[str, Any]): Hyperparameter config for this entry.
+
+        Returns:
+            dict[str, Any]: Summary dict compatible with ``_write_cv_files``.
+        """
+        metrics = self._eval_on_test_set(config)
+        return {
+            "config_id": config_id,
+            "hyperparameters": config,
+            "fold_metrics": [
+                {
+                    "fold": "holdout",
+                    **{
+                        k: int(v) if isinstance(v, (int, np.integer)) else float(v)
+                        for k, v in metrics.items()
+                    },
+                }
+            ],
+            "mean_metrics": {},
+            "std_metrics": {},
+        }
 
     def _eval_on_test_set(
         self: LocusToGeneTrainer,

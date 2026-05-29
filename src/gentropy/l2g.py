@@ -834,6 +834,7 @@ class LocusToGeneCrossValidationStep:
         n_splits: int = 5,
         hyperparameter_grid: dict[str, Any] | None = None,
         cv_results_dir: str | None = None,
+        holdout_only: bool = False,
     ) -> None:
         """Initialise the step and run cross-validation.
 
@@ -856,6 +857,9 @@ class LocusToGeneCrossValidationStep:
             cv_results_dir (str | None): Directory (local or ``gs://``) to write
                 ``cv_results.json``, ``cv_folds.csv``, and per-config plots.  When None,
                 metrics are logged to the terminal. Defaults to None.
+            holdout_only (bool): When True, skip CV folds and evaluate each config directly
+                on the holdout set. Requires ``cv_results_dir`` and a non-empty test set.
+                Defaults to False.
         """
         train_feature_matrix = L2GFeatureMatrix(
             _df=session.load_data(train_feature_matrix_path, "parquet"),
@@ -913,6 +917,7 @@ class LocusToGeneCrossValidationStep:
             parameter_grid=hyperparameter_grid,
             n_splits=n_splits,
             cv_results_dir=cv_results_dir,
+            holdout_only=holdout_only,
         )
 
         trainer.fit()

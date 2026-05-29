@@ -395,6 +395,7 @@ class LocusToGeneCrossValidationConfig(StepConfig):
     n_splits: int = 5
     hyperparameter_grid: Any = None  # dict[str, Any] | None — Any avoids OmegaConf Optional[Dict] merge bug
     cv_results_dir: str | None = None
+    holdout_only: bool = False
     _target_: str = "gentropy.l2g.LocusToGeneCrossValidationStep"
 
 

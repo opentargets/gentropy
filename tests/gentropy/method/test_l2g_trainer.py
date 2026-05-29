@@ -319,6 +319,52 @@ class TestCrossValidateWithCvResultsDir:
         assert (Path(cv_dir) / "config_0").is_dir()
         assert (Path(cv_dir) / "config_1").is_dir()
 
+    def test_holdout_only_writes_holdout_row_only(
+        self, tmp_path: Path, mock_l2g_feature_matrix: L2GFeatureMatrix
+    ) -> None:
+        """holdout_only=True produces one holdout row per config with no CV fold rows."""
+        features_list = ["distanceTssMean", "distanceSentinelTssMinimum"]
+        filled_fm = mock_l2g_feature_matrix.fill_na()
+        l2g_model = LocusToGeneModel(
+            model=XGBClassifier(),
+            hyperparameters={"max_depth": 3},
+            features_list=features_list,
+        )
+        trainer = LocusToGeneTrainer(
+            model=l2g_model,
+            feature_matrix=filled_fm,
+            features_list=features_list,
+        )
+        label_encoder = l2g_model.label_encoder
+        train_df, test_df = filled_fm.generate_train_test_split(
+            test_size=0.3,
+            verbose=False,
+            label_encoder=label_encoder,
+            label_col=filled_fm.label_col,
+        )
+        trainer.train_df = train_df
+        trainer.test_df = test_df
+        trainer.x_train = train_df[features_list].apply(pd.to_numeric).to_numpy()
+        trainer.y_train = train_df[filled_fm.label_col].apply(pd.to_numeric).to_numpy()
+        trainer.x_test = test_df[features_list].apply(pd.to_numeric).to_numpy()
+        trainer.y_test = test_df[filled_fm.label_col].apply(pd.to_numeric).to_numpy()
+
+        cv_dir = str(tmp_path / "cv_holdout_only")
+        trainer.cross_validate(
+            parameter_grid={"max_depth": {"values": [3, 5]}},
+            cv_results_dir=cv_dir,
+            holdout_only=True,
+        )
+
+        folds_df = pd.read_csv(Path(cv_dir) / "cv_folds.csv")
+        # only holdout rows — no fold 1/2/3… rows
+        assert set(folds_df["fold"].unique()) == {"holdout"}
+        # one row per config
+        assert len(folds_df) == 2
+        data = json.loads((Path(cv_dir) / "cv_results.json").read_text())
+        assert data["n_splits"] == 0
+        assert data["n_configs"] == 2
+
 
 def test_hierarchical_split() -> None:
     """Test LocusToGeneTrainer.hierarchical_split function."""
