@@ -42,6 +42,8 @@ class LocusToGeneModel:
             "eta": 0.05,
             "min_child_weight": 10,
             "scale_pos_weight": 0.8,
+            "gamma": 0,  # min loss reduction to make a split
+            "max_delta_step": 1,  # stabilises updates for imbalanced data
         }
     )
     training_data: L2GFeatureMatrix | None = None

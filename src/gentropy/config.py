@@ -335,6 +335,8 @@ _L2G_HYPERPARAMETERS: dict[str, Any] = {
     "eta": 0.05,
     "min_child_weight": 10,
     "scale_pos_weight": 0.8,
+    "gamma": 0,  # min loss reduction to make a split
+    "max_delta_step": 1,  # stabilises updates for imbalanced data
 }
 
 
