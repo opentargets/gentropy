@@ -474,11 +474,12 @@ class LocusToGeneTrainer:
                 for config_id, config in enumerate(self._expand_grid(parameter_grid)):
                     fold_results.clear()
                     run_all_folds(run_config=config)
-                    config_summaries.append(
-                        self._summarise_and_plot_config(
-                            config_id, list(fold_results), work_dir
-                        )
+                    summary = self._summarise_and_plot_config(
+                        config_id, list(fold_results), work_dir
                     )
+                    holdout_metrics = self._eval_on_test_set(config)
+                    summary["fold_metrics"].append({"fold": "holdout", **holdout_metrics})
+                    config_summaries.append(summary)
                     fold_results.clear()
                 self._write_cv_files(config_summaries, work_dir, n_splits)
                 if is_gcs:
@@ -605,6 +606,50 @@ class LocusToGeneTrainer:
             run.finish()
         else:
             self.log_to_terminal(eval_id=f"Fold {fold_index}", metrics=metrics)
+
+    def _eval_on_test_set(
+        self: LocusToGeneTrainer,
+        config: dict[str, Any] | None,
+    ) -> dict[str, Any]:
+        """Train on the full training set with *config* and evaluate on the held-out test set.
+
+        Args:
+            config (dict[str, Any] | None): Hyperparameter config to apply before fitting.
+
+        Returns:
+            dict[str, Any]: Metrics dict (same keys as fold metrics, including locus-level stats).
+        """
+        assert (
+            self.x_train is not None
+            and self.y_train is not None
+            and self.x_test is not None
+            and self.y_test is not None
+            and self.test_df is not None
+        ), "train/test arrays must be set before calling _eval_on_test_set"
+        holdout_model = clone(self.model.model)
+        if config:
+            holdout_model.set_params(**config)
+        holdout_model.fit(self.x_train, self.y_train)
+        y_pred_proba = holdout_model.predict_proba(self.x_test)
+        y_pred = holdout_model.predict(self.x_test)
+
+        metrics = self.evaluate(
+            y_true=self.y_test, y_pred=y_pred, y_pred_proba=y_pred_proba
+        )
+
+        locus_proba = pd.DataFrame(
+            {
+                "studyLocusId": self.test_df["studyLocusId"].values,
+                "prob": y_pred_proba[:, 1],
+            }
+        )
+        genes_above = locus_proba[locus_proba["prob"] >= 0.5].groupby("studyLocusId").size()
+        all_loci = locus_proba["studyLocusId"].unique()
+        metrics["n_loci"] = int(len(all_loci))
+        metrics["n_loci_one_gene_above"] = int((genes_above == 1).sum())
+        metrics["n_loci_no_gene_above"] = int(len(all_loci) - len(genes_above))
+
+        return metrics
 
     @staticmethod
     def _expand_grid(parameter_grid: dict[str, Any]) -> list[dict[str, Any]]:
