@@ -326,6 +326,7 @@ _L2G_FEATURES_LIST: list[str] = [
 ]
 
 _L2G_HYPERPARAMETERS: dict[str, Any] = {
+    "n_estimators": 300,
     "max_depth": 5,
     "reg_alpha": 1,  # L1 regularization
     "reg_lambda": 1.0,  # L2 regularization

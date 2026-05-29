@@ -33,6 +33,7 @@ class LocusToGeneModel:
     features_list: list[str] = field(default_factory=list)
     hyperparameters: dict[str, Any] = field(
         default_factory=lambda: {
+            "n_estimators": 300,
             "max_depth": 5,
             "reg_alpha": 1,  # L1 regularization
             "reg_lambda": 1.0,  # L2 regularization
