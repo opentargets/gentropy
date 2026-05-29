@@ -477,8 +477,7 @@ class LocusToGeneTrainer:
                     summary = self._summarise_and_plot_config(
                         config_id, list(fold_results), work_dir
                     )
-                    holdout_metrics = self._eval_on_test_set(config)
-                    summary["fold_metrics"].append({"fold": "holdout", **holdout_metrics})
+                    self._maybe_append_holdout_row(summary, config)
                     config_summaries.append(summary)
                     fold_results.clear()
                 self._write_cv_files(config_summaries, work_dir, n_splits)
@@ -606,6 +605,22 @@ class LocusToGeneTrainer:
             run.finish()
         else:
             self.log_to_terminal(eval_id=f"Fold {fold_index}", metrics=metrics)
+
+    def _maybe_append_holdout_row(
+        self: LocusToGeneTrainer,
+        summary: dict[str, Any],
+        config: dict[str, Any] | None,
+    ) -> None:
+        """Append a holdout row to summary fold_metrics if test data is available.
+
+        Args:
+            summary (dict[str, Any]): Config summary dict to mutate.
+            config (dict[str, Any] | None): Hyperparameter config used for this run.
+        """
+        if self.x_test is not None and self.y_test is not None and self.test_df is not None:
+            summary["fold_metrics"].append(
+                {"fold": "holdout", **self._eval_on_test_set(config)}
+            )
 
     def _eval_on_test_set(
         self: LocusToGeneTrainer,

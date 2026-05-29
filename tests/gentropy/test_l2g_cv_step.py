@@ -132,7 +132,8 @@ class TestLocusToGeneCrossValidationStep:
         assert data["n_splits"] == 2
         assert data["n_configs"] == 1
         assert len(data["configs"]) == 1
-        assert len(data["configs"][0]["fold_metrics"]) == 2
+        # n_splits fold rows + 1 holdout row
+        assert len(data["configs"][0]["fold_metrics"]) == 3
 
     def test_integer_encoded_labels_accepted(
         self,
