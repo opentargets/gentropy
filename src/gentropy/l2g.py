@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import logging
 from typing import Any, NotRequired, TypedDict
 
@@ -457,7 +458,8 @@ class LocusToGeneTrainTestSplitStep:
         stats_path = split_stats_path or train_parquet_path.rstrip("/") + "_split_stats.json"
         if not stats_path.startswith("gs://"):
             Path(stats_path).parent.mkdir(parents=True, exist_ok=True)
-        pd.DataFrame([stats]).to_json(stats_path, orient="records", indent=2)
+        with pd.io.common.get_handle(stats_path, mode="wt") as ioargs:
+            json.dump(stats, ioargs.handle, indent=2)
         logger.info("Split stats written to %s", stats_path)
 
 
