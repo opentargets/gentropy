@@ -3,9 +3,30 @@
 from __future__ import annotations
 
 import os
-from typing import ClassVar, Literal
+from enum import StrEnum
+from typing import ClassVar
+
+from pydantic import model_validator
 
 from gentropy.external import ExternalConfig
+
+
+class GCSAuthType(StrEnum):
+    """Authentication mechanism for the GCS Hadoop connector (fs.gs.auth.type)."""
+
+    APPLICATION_DEFAULT = "APPLICATION_DEFAULT"
+    COMPUTE_ENGINE = "COMPUTE_ENGINE"
+    SERVICE_ACCOUNT_JSON_KEYFILE = "SERVICE_ACCOUNT_JSON_KEYFILE"
+    UNAUTHENTICATED = "UNAUTHENTICATED"
+
+
+class GCSRequesterPaysMode(StrEnum):
+    """Requester-pays billing mode for GCS bucket access (fs.gs.requester.pays.mode)."""
+
+    DISABLED = "DISABLED"
+    AUTO = "AUTO"
+    CUSTOM = "CUSTOM"
+    ENABLED = "ENABLED"
 
 
 class GCSConfig(ExternalConfig):
@@ -14,22 +35,53 @@ class GCSConfig(ExternalConfig):
     Note:
         This configuration is used to set optional GCS-connector parameters when
         building a Spark session via :class:`~gentropy.common.session.Session`.
-        ``project_id`` is only required for bucket-level operations (list/create);
-        it is not needed for ordinary read/write access to objects.
+
+        ``project_id`` is only required for bucket-level operations (list/create)
+        and as a billing project fallback when requester pays is active.
 
         The configuration can be loaded from a JSON file using :meth:`from_json`,
-        from the ``GCS_PROJECT_ID`` environment variable using :meth:`from_env`,
-        or by calling :meth:`read` which tries both in order.
+        from environment variables using :meth:`from_env`, or by calling
+        :meth:`read` which tries both in order.
 
     Examples:
     ---
-    >>> config = GCSConfig(project_id="my-gcp-project")
-    >>> print(config.project_id)
-    my-gcp-project
+    Default configuration — uses the Dataproc VM's attached service account, no requester pays:
 
-    >>> config_empty = GCSConfig()
-    >>> config_empty.project_id is None
-    True
+    >>> config = GCSConfig()
+    >>> config.auth_type
+    <GCSAuthType.COMPUTE_ENGINE: 'COMPUTE_ENGINE'>
+    >>> config.requester_pays
+    <GCSRequesterPaysMode.DISABLED: 'DISABLED'>
+
+    Cross-project access with service account impersonation:
+
+    >>> config = GCSConfig(
+    ...     auth_type=GCSAuthType.COMPUTE_ENGINE,
+    ...     impersonation_sa="target-sa@other-project.iam.gserviceaccount.com",
+    ...     requester_pays=GCSRequesterPaysMode.ENABLED,
+    ...     requester_pays_project_id="billing-project",
+    ... )
+    >>> config.impersonation_sa
+    'target-sa@other-project.iam.gserviceaccount.com'
+
+    Explicit JSON keyfile (e.g. local dev without metadata server):
+
+    >>> config = GCSConfig(
+    ...     auth_type=GCSAuthType.SERVICE_ACCOUNT_JSON_KEYFILE,
+    ...     keyfile_path="/path/to/key.json",
+    ... )
+    >>> config.keyfile_path
+    '/path/to/key.json'
+
+    Requester-pays for specific buckets only:
+
+    >>> config = GCSConfig(
+    ...     requester_pays=GCSRequesterPaysMode.CUSTOM,
+    ...     requester_pays_buckets=["paid-bucket-1", "paid-bucket-2"],
+    ...     requester_pays_project_id="billing-project",
+    ... )
+    >>> config.requester_pays_buckets
+    ['paid-bucket-1', 'paid-bucket-2']
     """
 
     _HADOOP_CONNECTOR_PKG: ClassVar[str] = (
@@ -38,17 +90,60 @@ class GCSConfig(ExternalConfig):
     """Connector for Google Cloud Storage.
         See https://mvnrepository.com/artifact/com.google.cloud.bigdataoss/gcs-connector/4.0.4"""
 
-    project_id: str
-    """Google Cloud Project ID. Required only for list-buckets and create-bucket operations."""
-    requester_pays: Literal["ENABLED"] = "ENABLED"
-    """Whether to enable Requester Pays for all GCS buckets (sets fs.gs.requester.pays.mode=ENABLED)."""
+    project_id: str | None = None
+    """Google Cloud Project ID. Required only for list-buckets and create-bucket operations,
+    and used as the billing project fallback when requester pays is active."""
+
+    auth_type: GCSAuthType = GCSAuthType.COMPUTE_ENGINE
+    """Authentication mechanism. Defaults to COMPUTE_ENGINE (Dataproc VM attached service account)."""
+
+    keyfile_path: str | None = None
+    """Path to the JSON service account key file. Required when auth_type is SERVICE_ACCOUNT_JSON_KEYFILE.
+    The file must exist at the same path on all cluster nodes."""
+
+    impersonation_sa: str | None = None
+    """Service account to impersonate for all requests. The base credential (auth_type) is used
+    to mint short-lived tokens for this target service account."""
+
+    requester_pays: GCSRequesterPaysMode = GCSRequesterPaysMode.DISABLED
+    """Requester-pays billing mode. Defaults to DISABLED (caller's project is not billed)."""
+
+    requester_pays_project_id: str | None = None
+    """Billing project for requester-pays requests. Falls back to project_id if not set."""
+
+    requester_pays_buckets: list[str] | None = None
+    """Buckets subject to requester-pays billing. Required when requester_pays is CUSTOM."""
+
+    @model_validator(mode="after")
+    def _validate_conditional_fields(self) -> GCSConfig:
+        if (
+            self.auth_type == GCSAuthType.SERVICE_ACCOUNT_JSON_KEYFILE
+            and not self.keyfile_path
+        ):
+            raise ValueError(
+                "keyfile_path is required when auth_type is SERVICE_ACCOUNT_JSON_KEYFILE"
+            )
+        if (
+            self.requester_pays == GCSRequesterPaysMode.CUSTOM
+            and not self.requester_pays_buckets
+        ):
+            raise ValueError(
+                "requester_pays_buckets is required when requester_pays mode is CUSTOM"
+            )
+        return self
 
     @classmethod
     def from_env(cls) -> GCSConfig:
         """Load GCS configuration from environment variables.
 
-        Reads ``GCS_PROJECT_ID`` if set; otherwise returns a config with
-        ``project_id=None`` (sufficient for most read/write workloads).
+        Environment variables:
+            GCS_PROJECT_ID: Google Cloud Project ID.
+            GCS_AUTH_TYPE: Authentication type (default: COMPUTE_ENGINE).
+            GCS_KEYFILE_PATH: Path to JSON keyfile (required when GCS_AUTH_TYPE=SERVICE_ACCOUNT_JSON_KEYFILE).
+            GCS_IMPERSONATION_SA: Service account to impersonate.
+            GCS_REQUESTER_PAYS: Requester-pays mode (default: DISABLED).
+            GCS_REQUESTER_PAYS_PROJECT_ID: Billing project for requester-pays requests.
+            GCS_REQUESTER_PAYS_BUCKETS: Comma-separated list of buckets subject to requester pays.
 
         Returns:
             GCSConfig: GCS configuration instance.
@@ -57,16 +152,22 @@ class GCSConfig(ExternalConfig):
         ---
         >>> import os
         >>> os.environ["GCS_PROJECT_ID"] = "my-gcp-project"
-        >>> os.environ["GCS_REQUESTER_PAYS"] = "ENABLED"
+        >>> os.environ["GCS_IMPERSONATION_SA"] = "sa@other-project.iam.gserviceaccount.com"
         >>> config = GCSConfig.from_env()
         >>> config.project_id
         'my-gcp-project'
-        >>> config.requester_pays
-        'ENABLED'
+        >>> config.impersonation_sa
+        'sa@other-project.iam.gserviceaccount.com'
         """
+        buckets_raw = os.getenv("GCS_REQUESTER_PAYS_BUCKETS")
         return cls(
             project_id=os.getenv("GCS_PROJECT_ID"),
-            requester_pays=os.getenv("GCS_REQUESTER_PAYS"),
+            auth_type=os.getenv("GCS_AUTH_TYPE", GCSAuthType.COMPUTE_ENGINE),
+            keyfile_path=os.getenv("GCS_KEYFILE_PATH"),
+            impersonation_sa=os.getenv("GCS_IMPERSONATION_SA"),
+            requester_pays=os.getenv("GCS_REQUESTER_PAYS", GCSRequesterPaysMode.DISABLED),
+            requester_pays_project_id=os.getenv("GCS_REQUESTER_PAYS_PROJECT_ID"),
+            requester_pays_buckets=buckets_raw.split(",") if buckets_raw else None,
         )
 
     @classmethod
