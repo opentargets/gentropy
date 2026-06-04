@@ -352,10 +352,6 @@ class Session:
             _c = self._setup_hail_config(_c, self._hail_home)
         if use_enhanced_bgzip_codec:
             _c = self._setup_enhanced_bgzip_config(_c)
-        # If any additional packages or jars, ensure they are included along existing ones instead of overwritten
-        if self._extended_spark_conf:
-            _c = self._setup_extended_spark_conf(self._extended_spark_conf, _c)
-        # Given we resolved all extended configuration, we can now update the S3 and GCS connectors
         if add_s3_connector:
             _c = self._setup_s3_connector(
                 _c, self._s3_configuration or self._s3_configuration_path
@@ -364,6 +360,9 @@ class Session:
             _c = self._setup_gcs_connector(
                 _c, self._gcs_configuration or self._gcs_configuration_path
             )
+        # If any additional packages or jars, ensure they are included along existing ones instead of overwritten
+        if self._extended_spark_conf:
+            _c = self._setup_extended_spark_conf(self._extended_spark_conf, _c)
         return _c
 
     def _compare_conf(self, current: SparkConf, requested: SparkConf) -> None:
