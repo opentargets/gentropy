@@ -1,9 +1,10 @@
 """deCODE ingestion manifest.
 
 The `deCODEManifest` dataset catalogues every summary-statistics file available
-in the deCODE S3 bucket. It is generated once from an ``aws s3 ls`` bucket listing and
-subsequently consumed by downstream ingestion steps to locate per-study TSV gzip files
-and to associate each assay with a project identifier.
+in the deCODE S3 bucket. It can be generated either from an ``aws s3 ls`` bucket listing
+or by listing the bucket directly via the Hadoop S3A FileSystem API, and is subsequently
+consumed by downstream ingestion steps to locate per-study TSV gzip files and to associate
+each assay with a project identifier.
 """
 
 from __future__ import annotations

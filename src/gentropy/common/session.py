@@ -584,22 +584,21 @@ class Session:
             case str():
                 conf = S3Config.from_json(s3_configuration)
             case _:
-                msg = "`s3_configuration` nor `s3_configuration_path` were not provided, fallback to env"
-                self.logger.warning(msg)
                 conf = S3Config.from_env()
         data = {
             "spark.hadoop.fs.s3a.impl": "org.apache.hadoop.fs.s3a.S3AFileSystem",
             "spark.hadoop.fs.s3a.endpoint": f"https://{conf.s3_host_url}:{conf.s3_host_port}",
             "spark.hadoop.fs.s3a.path.style.access": "true",
             "spark.hadoop.fs.s3a.connection.ssl.enabled": "true",
-            "spark.hadoop.fs.s3a.access.key": f"{conf.access_key_id}",
-            "spark.hadoop.fs.s3a.secret.key": f"{conf.secret_access_key}",
+            "spark.hadoop.fs.s3a.access.key": conf.access_key_id.get_secret_value(),
+            "spark.hadoop.fs.s3a.secret.key": conf.secret_access_key.get_secret_value(),
         }
 
         for key, value in data.items():
             c = c.set(key, value)
 
         self._append_package(c, S3Config._HADOOP_CONNECTOR_PKG)
+        self._s3_configuration = dict(conf)
         return c
 
     def _setup_gcs_connector(
@@ -629,9 +628,6 @@ class Session:
             case str():
                 conf = GCSConfig.from_json(gcs_configuration)
             case _:
-                self.logger.warning(
-                    "`gcs_configuration` nor `gcs_configuration_path` were not provided, fallback to env"
-                )
                 conf = GCSConfig.from_env()
 
         options: dict[str, str] = {
@@ -666,6 +662,7 @@ class Session:
         for key, value in options.items():
             c = c.set(key, value)
         c = self._append_package(c, GCSConfig._HADOOP_CONNECTOR_PKG)
+        self._gcs_configuration = dict(conf)
         return c
 
     @staticmethod
