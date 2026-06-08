@@ -17,14 +17,14 @@ class ExternalConfig(BaseModel):
     """
 
     @classmethod
-    def from_json(cls, path: str) -> ExternalConfig:
+    def from_json(cls, path: str) -> Self:
         """Load configuration from a JSON file.
 
         Args:
             path (str): Path to the JSON file.
 
         Returns:
-            ExternalConfig: Validated configuration object.
+            Self: Validated configuration object.
 
         Raises:
             FileNotFoundError: If the file at *path* does not exist.
