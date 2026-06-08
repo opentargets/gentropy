@@ -154,7 +154,7 @@ class SummaryStatistics(Dataset):
             - The p-value, beta and se should not be NaN.
             - The se should be positive.
             - The beta and se should not be infinite.
-            - Variants can not be duplicated across single studyId.
+            - Variants cannot be duplicated across single studyId.
 
         Returns:
             SummaryStatistics: The filtered summary statistics.
@@ -211,18 +211,20 @@ class SummaryStatistics(Dataset):
     def drop_variant_duplicates(self) -> SummaryStatistics:
         """Drop duplicate variants in the summary statistics dataset.
 
+        A (studyId, variantId) pair is kept only if it appears exactly once; if it appears multiple times, all occurrences are removed.
+
         Returns:
-            SummaryStatistics: Summary statistics dataset with duplicate variants dropped.
+            SummaryStatistics: Summary statistics dataset with rows duplicated by (variantId, studyId) dropped.
         """
         return SummaryStatistics(
             _df=self.df.persist()
             .join(
                 self.df.groupBy("studyId", "variantId")
                 .count()
-                .filter(f.col("count") == 1)
+                .filter(f.col("count") > 1)
                 .select("studyId", "variantId"),
                 on=["studyId", "variantId"],
-                how="semi",
+                how="left_anti",
             )
             .unpersist()
         )
