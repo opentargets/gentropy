@@ -172,7 +172,9 @@ class SummaryStatistics(Dataset):
         summary_stats = (
             SummaryStatistics(_df=gwas_df)
             .drop_infinity_values(*cols)
+            .persist()
             .drop_variant_duplicates()
+            .unpersist()
         )
 
         return summary_stats
