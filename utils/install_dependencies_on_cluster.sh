@@ -52,11 +52,6 @@ function main() {
     echo "Install package..."
     uv pip install --system --upgrade opencv-python pandas numpy pyarrow scipy
     run_with_retry uv pip install --no-break-system-packages --system "gentropy @ git+${REPO_URI}.git@${GENTROPY_REF}"
-    # add decode token secret
-    mkdir -p /var/run/secrets
-    gcloud secrets versions access latest --secret="decode" > /var/run/secrets/decode
-    chown root:112 /var/run/secrets/decode # 112 is the 'hadoop' group
-    chmod 440 /var/run/secrets/decode
 }
 
 main

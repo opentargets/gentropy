@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import logging
 import os
 from typing import ClassVar
 
@@ -130,14 +129,6 @@ class S3Config(ExternalConfig):
         Returns:
             S3Config: S3 configuration instance.
         """
-        if path is None:
-            logging.info(
-                "No S3 configuration file path provided. Attempting to load from environment variables."
-            )
-            return cls.from_env()
-        try:
+        if path is not None:
             return cls.from_json(path)
-        except Exception as e:
-            logging.warning(f"Failed to load S3 configuration from file: {e}")
-            logging.info("Falling back to environment variables for S3 configuration.")
-            return cls.from_env()
+        return cls.from_env()

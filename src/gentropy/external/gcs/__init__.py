@@ -165,7 +165,9 @@ class GCSConfig(ExternalConfig):
             auth_type=os.getenv("GCS_AUTH_TYPE", GCSAuthType.COMPUTE_ENGINE),
             keyfile_path=os.getenv("GCS_KEYFILE_PATH"),
             impersonation_sa=os.getenv("GCS_IMPERSONATION_SA"),
-            requester_pays=os.getenv("GCS_REQUESTER_PAYS", GCSRequesterPaysMode.DISABLED),
+            requester_pays=os.getenv(
+                "GCS_REQUESTER_PAYS", GCSRequesterPaysMode.DISABLED
+            ),
             requester_pays_project_id=os.getenv("GCS_REQUESTER_PAYS_PROJECT_ID"),
             requester_pays_buckets=buckets_raw.split(",") if buckets_raw else None,
         )

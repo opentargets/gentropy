@@ -597,7 +597,7 @@ class Session:
         for key, value in data.items():
             c = c.set(key, value)
 
-        self._append_package(c, S3Config._HADOOP_CONNECTOR_PKG)
+        c = self._append_package(c, S3Config._HADOOP_CONNECTOR_PKG)
         self._s3_configuration = dict(conf)
         return c
 
