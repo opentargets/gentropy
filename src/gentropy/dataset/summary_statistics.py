@@ -172,9 +172,7 @@ class SummaryStatistics(Dataset):
         summary_stats = (
             SummaryStatistics(_df=gwas_df)
             .drop_infinity_values(*cols)
-            .persist()
             .drop_variant_duplicates()
-            .unpersist()
         )
 
         return summary_stats
@@ -217,7 +215,8 @@ class SummaryStatistics(Dataset):
             SummaryStatistics: Summary statistics dataset with duplicate variants dropped.
         """
         return SummaryStatistics(
-            _df=self.df.join(
+            _df=self.df.persist()
+            .join(
                 self.df.groupBy("studyId", "variantId")
                 .count()
                 .filter(f.col("count") == 1)
@@ -225,4 +224,5 @@ class SummaryStatistics(Dataset):
                 on=["studyId", "variantId"],
                 how="semi",
             )
+            .unpersist()
         )
