@@ -1,10 +1,9 @@
 """deCODE ingestion manifest.
 
 The `deCODEManifest` dataset catalogues every summary-statistics file available
-in the deCODE S3 bucket. It can be generated either from an ``aws s3 ls`` bucket listing
-or by listing the bucket directly via the Hadoop S3A FileSystem API, and is subsequently
-consumed by downstream ingestion steps to locate per-study TSV gzip files and to associate
-each assay with a project identifier.
+in the deCODE S3 bucket. It is generated once from an ``aws s3 ls`` bucket listing and
+subsequently consumed by downstream ingestion steps to locate per-study TSV gzip files
+and to associate each assay with a project identifier.
 """
 
 from __future__ import annotations
@@ -158,97 +157,6 @@ class deCODEManifest(Dataset):
                     f.concat_ws(" ", f.col("date"), f.col("time")),
                     "yyyy-MM-dd HH:mm:ss",
                 ),
-            )
-            .select(
-                "projectId",
-                "studyId",
-                "hasSumstats",
-                "summarystatsLocation",
-                "size",
-                "accessionTimestamp",
-            )
-        )
-        return cls(_df=manifest_df)
-
-    @classmethod
-    def from_s3(
-        cls,
-        session: Session,
-        bucket_name: str,
-        prefix: str = "",
-    ) -> deCODEManifest:
-        """Create a `deCODEManifest` by listing the S3 bucket directly via the Hadoop FileSystem API.
-
-        This is an alternative to `from_bucket_listing` that does not require an external
-        ``aws s3 ls`` invocation.  The session must be configured with ``add_s3_connector=True``
-        so that the S3A credentials and custom endpoint are available in Hadoop's configuration.
-
-        Args:
-            session (Session): Active Gentropy Spark session with S3 connector configured.
-            bucket_name (str): S3 bucket name without any URI prefix.
-            prefix (str): Optional key prefix to restrict the listing (e.g. ``"Proteomics/"``).
-
-        Returns:
-            deCODEManifest: Populated manifest dataset.
-
-        Examples:
-            >>> manifest = deCODEManifest.from_s3(  # doctest: +SKIP
-            ...     session=session,
-            ...     bucket_name="largescaleplasma-2023",
-            ... )
-        """
-        jvm = session.spark.sparkContext._jvm
-        hadoop_conf = session.spark.sparkContext._jsc.hadoopConfiguration()
-
-        base_uri = f"s3a://{bucket_name}/{prefix}"
-        fs = jvm.org.apache.hadoop.fs.FileSystem.get(
-            jvm.java.net.URI.create(base_uri),
-            hadoop_conf,
-        )
-
-        iterator = fs.listFiles(jvm.org.apache.hadoop.fs.Path(base_uri), True)
-        rows: list[tuple[str, int, int]] = []
-        while iterator.hasNext():
-            status = iterator.next()
-            file_path: str = status.getPath().toString()
-            if "Proteomics" in file_path and file_path.endswith(".txt.gz"):
-                rows.append(
-                    (file_path, int(status.getLen()), int(status.getModificationTime()))
-                )
-
-        raw_schema = t.StructType(
-            [
-                t.StructField("summarystatsLocation", t.StringType()),
-                t.StructField("_sizeBytes", t.LongType()),
-                t.StructField("_modTimeMs", t.LongType()),
-            ]
-        )
-
-        project_id = f.when(
-            f.col("summarystatsLocation").contains("Proteomics_SMP_"),
-            f.lit(deCODEDataSource.DECODE_PROTEOMICS_SMP.value),
-        ).otherwise(deCODEDataSource.DECODE_PROTEOMICS_RAW.value)
-
-        manifest_df = (
-            session.spark.createDataFrame(rows, raw_schema)
-            .withColumn("projectId", project_id)
-            .withColumn(
-                "studyId",
-                f.concat_ws(
-                    "_",
-                    f.col("projectId"),
-                    f.regexp_extract(
-                        "summarystatsLocation",
-                        r"^.*/(Proteomics_.*)\.txt\.gz$",
-                        1,
-                    ),
-                ),
-            )
-            .withColumn("hasSumstats", f.lit(True))
-            .withColumn("size", f.col("_sizeBytes").cast(t.StringType()))
-            .withColumn(
-                "accessionTimestamp",
-                f.to_timestamp(f.col("_modTimeMs") / 1000),
             )
             .select(
                 "projectId",
