@@ -154,6 +154,7 @@ class SummaryStatistics(Dataset):
             - The p-value, beta and se should not be NaN.
             - The se should be positive.
             - The beta and se should not be infinite.
+            - Variants cannot be duplicated across single studyId.
 
         Returns:
             SummaryStatistics: The filtered summary statistics.
@@ -168,10 +169,11 @@ class SummaryStatistics(Dataset):
             & (f.col("pValueMantissa") > 0)
         )
         cols = ["beta", "standardError"]
-        summary_stats = SummaryStatistics(
-            _df=gwas_df,
-            _schema=SummaryStatistics.get_schema(),
-        ).drop_infinity_values(*cols)
+        summary_stats = (
+            SummaryStatistics(_df=gwas_df)
+            .drop_infinity_values(*cols)
+            .drop_variant_duplicates()
+        )
 
         return summary_stats
 
@@ -205,3 +207,24 @@ class SummaryStatistics(Dataset):
                 f"Dropping N={count_pre - count_post} studies that are not in the study index."
             )
         return SummaryStatistics(_df=filtered_sumstats)
+
+    def drop_variant_duplicates(self) -> SummaryStatistics:
+        """Drop duplicate variants in the summary statistics dataset.
+
+        A (studyId, variantId) pair is kept only if it appears exactly once; if it appears multiple times, all occurrences are removed.
+
+        Returns:
+            SummaryStatistics: Summary statistics dataset with rows duplicated by (variantId, studyId) dropped.
+        """
+        return SummaryStatistics(
+            _df=self.df.persist()
+            .join(
+                self.df.groupBy("studyId", "variantId")
+                .count()
+                .filter(f.col("count") > 1)
+                .select("studyId", "variantId"),
+                on=["studyId", "variantId"],
+                how="left_anti",
+            )
+            .unpersist()
+        )
