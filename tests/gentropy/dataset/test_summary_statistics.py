@@ -98,6 +98,29 @@ def test_summary_statistics__exclude_region__correctness(
     assert filtered_sumstas.df.count() == 8
 
 
+def test_summary_statistics__drop_variant_duplicates(
+    spark: SparkSession,
+) -> None:
+    """Within-study duplicate variantIds are dropped; cross-study same variantId is kept."""
+    data = [
+        # "v_dup" appears twice in s1 — both rows dropped
+        ("s1", "v_dup", "1", 100, 0.1, None, 5.0, -8, None, None),
+        ("s1", "v_dup", "1", 100, 0.2, None, 5.0, -8, None, None),
+        # "v_cross" in two different studies — both kept (unique per study)
+        ("s1", "v_cross", "1", 200, 0.1, None, 5.0, -8, None, None),
+        ("s2", "v_cross", "1", 200, 0.2, None, 5.0, -8, None, None),
+    ]
+    df = spark.createDataFrame(data, schema=SummaryStatistics.get_schema())
+    result = SummaryStatistics(_df=df).drop_variant_duplicates()
+
+    assert isinstance(result, SummaryStatistics)
+    assert result.df.count() == 2
+    assert {(r["studyId"], r["variantId"]) for r in result.df.collect()} == {
+        ("s1", "v_cross"),
+        ("s2", "v_cross"),
+    }
+
+
 def test_summary_statistics__sanity_filter_remove_inf_values(session: Session) -> None:
     """Sanity filter remove inf value from standardError field."""
     data = [

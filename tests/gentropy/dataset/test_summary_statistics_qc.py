@@ -45,9 +45,10 @@ class TestSummaryStatisticsQC:
         assert isinstance(sumstat_qc, SummaryStatisticsQC)
         qc = sumstat_qc.df.toPandas()
 
-        assert qc["n_variants"].iloc[0] == 1663
+        # Input data contains 1 variant in 2 copies (both have to be removed)
+        assert qc["n_variants"].iloc[0] == 1661
         assert qc["n_variants_sig"].iloc[0] == 29
-        assert np.round(qc["gc_lambda"].iloc[0], 4) == 1.916
+        assert np.round(qc["gc_lambda"].iloc[0], 4) == 1.9215
         assert np.round(qc["mean_beta"].iloc[0], 4) == 0.0013
         assert np.round(qc["mean_diff_pz"].iloc[0], 6) == 0
         assert np.round(qc["se_diff_pz"].iloc[0], 6) == 0
