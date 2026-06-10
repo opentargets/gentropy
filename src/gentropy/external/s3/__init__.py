@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-import logging
 import os
+from typing import ClassVar
 
 from pydantic import SecretStr
 
@@ -39,6 +39,12 @@ class S3Config(ExternalConfig):
     >>> print(config.secret_access_key.get_secret_value())
     my-secret-access-key
     """
+
+    _HADOOP_CONNECTOR_PKG: ClassVar[str] = (
+        "org.apache.hadoop:hadoop-aws:3.3.6,com.amazonaws:aws-java-sdk-bundle:1.12.367"
+    )
+    """Connector for AWS S3 compatible storage.
+        See https://mvnrepository.com/artifact/org.apache.hadoop/hadoop-aws/3.3.6"""
 
     bucket_name: str
     """Name of the bucket, without s3:// or s3a:// prefix."""
@@ -123,14 +129,6 @@ class S3Config(ExternalConfig):
         Returns:
             S3Config: S3 configuration instance.
         """
-        if path is None:
-            logging.info(
-                "No S3 configuration file path provided. Attempting to load from environment variables."
-            )
-            return cls.from_env()
-        try:
+        if path is not None:
             return cls.from_json(path)
-        except Exception as e:
-            logging.warning(f"Failed to load S3 configuration from file: {e}")
-            logging.info("Falling back to environment variables for S3 configuration.")
-            return cls.from_env()
+        return cls.from_env()
