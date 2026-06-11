@@ -136,6 +136,41 @@ def test_train_on_full_dataset_logs_second_wandb_run(
     assert wandb_run_names == ["unit-test-holdout", "unit-test-full-dataset"]
 
 
+def test_train_with_presplit_data(mock_l2g_feature_matrix: L2GFeatureMatrix) -> None:
+    """Trainer uses presplit DataFrames directly and skips generate_train_test_split."""
+    features_list = ["distanceTssMean", "distanceSentinelTssMinimum"]
+    l2g_model = LocusToGeneModel(
+        model=XGBClassifier(),
+        hyperparameters={"max_depth": 5},
+        features_list=features_list,
+    )
+    filled_fm = mock_l2g_feature_matrix.fill_na()
+    presplit_train_df, presplit_test_df = filled_fm.generate_train_test_split(
+        test_size=0.3,
+        verbose=False,
+        label_encoder=l2g_model.label_encoder,
+        label_col=filled_fm.label_col,
+    )
+    trainer = LocusToGeneTrainer(
+        model=l2g_model,
+        feature_matrix=filled_fm,
+        features_list=features_list,
+    )
+    trained_model = trainer.train(
+        wandb_run_name=None,
+        cross_validate=False,
+        presplit_train_df=presplit_train_df,
+        presplit_test_df=presplit_test_df,
+    )
+    assert isinstance(trained_model, LocusToGeneModel)
+    assert trainer.train_df is presplit_train_df, (
+        "Presplit train DataFrame was not used directly"
+    )
+    assert trainer.test_df is presplit_test_df, (
+        "Presplit test DataFrame was not used directly"
+    )
+
+
 def test_hierarchical_split() -> None:
     """Test LocusToGeneTrainer.hierarchical_split function."""
     df = pd.DataFrame(
