@@ -86,52 +86,6 @@ class FinngenMetaStudyIndexStep:
         session.logger.info(f"Study index written to {study_index_output_path}.")
 
 
-class ThreeWayMetaSumstatConversionStep:
-    """Convert three-way FinnGen-UKBB-MVP BGZIP summary statistics to Parquet."""
-
-    def __init__(
-        self,
-        session: Session,
-        # Inputs
-        summary_statistics_glob: str,
-        # Output
-        raw_summary_statistics_output_path: str,
-        # Config
-        finngen_release: str = "R12",
-    ) -> None:
-        """Convert FinnGen UKB MVP meta-analysis summary statistics from BGZIP to Parquet.
-
-        Args:
-            session (Session): Session object.
-            summary_statistics_glob (str): Hadoop-compatible path or glob for source
-                summary-statistics files.
-            raw_summary_statistics_output_path (str): Output path for raw summary statistics.
-            finngen_release (str): FinnGen release identifier used in generated study IDs
-                (e.g. ``"R12"``). Defaults to ``"R12"``.
-
-        Raises:
-            AssertionError: If the glob does not resolve to any files.
-        """
-        session.logger.info("Resolving source summary statistics paths.")
-        ssp = session.list_hadoop_paths(summary_statistics_glob)
-        assert len(ssp) > 1, (
-            f"Expected more than one summary statistics file, found {len(ssp)} for '{summary_statistics_glob}'."
-        )
-        session.logger.info(f"Found {len(ssp)} summary statistics files.")
-
-        session.logger.info("Converting raw summary statistics to Parquet format.")
-        ThreeWaySummaryStatistics.bgzip_to_parquet(
-            session=session,
-            summary_statistics_list=ssp,
-            raw_summary_statistics_output_path=raw_summary_statistics_output_path,
-            n_threads=ThreeWaySummaryStatistics.N_THREAD_OPTIMAL,
-            meta_analysis_type=MetaAnalysisType.THREE_WAY,
-            finngen_release=FinnGenMetaRelease(release=finngen_release),
-        )
-        session.logger.info("Raw summary statistics conversion completed.")
-        session.logger.info(f"Output path: {raw_summary_statistics_output_path}.")
-
-
 class TwoWayMetaSumstatConversionStep:
     """Convert two-way FinnGen-UKBB BGZIP summary statistics to Parquet."""
 
@@ -271,6 +225,52 @@ class TwoWayMetaSumstatHarmonisationStep:
         session.logger.info(
             f"Harmonised summary statistics written to {harmonised_summary_statistics_output_path}."
         )
+
+
+class ThreeWayMetaSumstatConversionStep:
+    """Convert three-way FinnGen-UKBB-MVP BGZIP summary statistics to Parquet."""
+
+    def __init__(
+        self,
+        session: Session,
+        # Inputs
+        summary_statistics_glob: str,
+        # Output
+        raw_summary_statistics_output_path: str,
+        # Config
+        finngen_release: str = "R12",
+    ) -> None:
+        """Convert FinnGen UKB MVP meta-analysis summary statistics from BGZIP to Parquet.
+
+        Args:
+            session (Session): Session object.
+            summary_statistics_glob (str): Hadoop-compatible path or glob for source
+                summary-statistics files.
+            raw_summary_statistics_output_path (str): Output path for raw summary statistics.
+            finngen_release (str): FinnGen release identifier used in generated study IDs
+                (e.g. ``"R12"``). Defaults to ``"R12"``.
+
+        Raises:
+            AssertionError: If the glob does not resolve to any files.
+        """
+        session.logger.info("Resolving source summary statistics paths.")
+        ssp = session.list_hadoop_paths(summary_statistics_glob)
+        assert len(ssp) > 1, (
+            f"Expected more than one summary statistics file, found {len(ssp)} for '{summary_statistics_glob}'."
+        )
+        session.logger.info(f"Found {len(ssp)} summary statistics files.")
+
+        session.logger.info("Converting raw summary statistics to Parquet format.")
+        ThreeWaySummaryStatistics.bgzip_to_parquet(
+            session=session,
+            summary_statistics_list=ssp,
+            raw_summary_statistics_output_path=raw_summary_statistics_output_path,
+            n_threads=ThreeWaySummaryStatistics.N_THREAD_OPTIMAL,
+            meta_analysis_type=MetaAnalysisType.THREE_WAY,
+            finngen_release=FinnGenMetaRelease(release=finngen_release),
+        )
+        session.logger.info("Raw summary statistics conversion completed.")
+        session.logger.info(f"Output path: {raw_summary_statistics_output_path}.")
 
 
 class ThreeWayMetaSumstatHarmonisationStep:
