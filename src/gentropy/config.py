@@ -527,14 +527,25 @@ class FinngenMetaStudyIndexConfig(StepConfig):
 
 
 @dataclass
-class FinngenUkbMvpMetaSumstatConversionConfig(StepConfig):
+class ThreeWayMetaSumstatConversionConfig(StepConfig):
     """Configuration for converting three-way FinnGen meta BGZIP files to Parquet."""
 
     session: Any = field(default_factory=lambda: {"use_enhanced_bgzip_codec": True})
     summary_statistics_glob: str = MISSING
     raw_summary_statistics_output_path: str = MISSING
     finngen_release: str = "R12"
-    _target_: str = "gentropy.finngen_meta.FinngenUkbMvpMetaSumstatConversionStep"
+    _target_: str = "gentropy.finngen_meta.ThreeWayMetaSumstatConversionStep"
+
+
+@dataclass
+class TwoWayMetaSumstatConversionConfig(StepConfig):
+    """Configuration for converting two-way FinnGen-UKBB meta BGZIP files to Parquet."""
+
+    session: Any = field(default_factory=lambda: {"use_enhanced_bgzip_codec": True})
+    summary_statistics_glob: str = MISSING
+    raw_summary_statistics_output_path: str = MISSING
+    finngen_release: str = "R12"
+    _target_: str = "gentropy.finngen_meta.TwoWayMetaSumstatConversionStep"
 
 
 @dataclass
@@ -553,7 +564,6 @@ class TwoWayMetaSumstatHarmonisationConfig(StepConfig):
     remove_ambiguous_alleles: bool = False
     verify_atgc: bool = True
     remove_monomorphic_alleles: bool = True
-    finngen_release: str = "R12"
     _target_: str = "gentropy.finngen_meta.TwoWayMetaSumstatHarmonisationStep"
 
 
@@ -1036,7 +1046,12 @@ def register_config() -> None:
     cs.store(
         group="step",
         name="finngen_ukb_mvp_meta_sumstat_conversion",
-        node=FinngenUkbMvpMetaSumstatConversionConfig,
+        node=ThreeWayMetaSumstatConversionConfig,
+    )
+    cs.store(
+        group="step",
+        name="finngen_ukb_meta_sumstat_conversion",
+        node=TwoWayMetaSumstatConversionConfig,
     )
     cs.store(
         group="step",

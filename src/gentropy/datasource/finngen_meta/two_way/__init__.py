@@ -1,5 +1,9 @@
 """Summary statistics for two-way meta-analysis (FINNGEN × UKBB)."""
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from pyspark.sql import Column, DataFrame
 from pyspark.sql import functions as f
 from pyspark.sql import types as t
@@ -18,14 +22,19 @@ from gentropy.common.stats import pvalue_from_neglogpval
 from gentropy.dataset.study_index import MetaAnalysisStudyIndex
 from gentropy.dataset.variant_direction import VariantDirection
 from gentropy.datasource.finngen_meta import (
+    N_THREAD_OPTIMAL,
     FinnGenMetaRelease,
     MetaAnalysisHarmonisationConfig,
     MetaAnalysisType,
+    convert_bgzip_to_parquet,
     has_low_min_allele_count,
     has_low_min_allele_frequency,
     min_allele_count,
     min_allele_frequency,
 )
+
+if TYPE_CHECKING:
+    from gentropy.common.session import Session
 
 TWO_WAY_SUMMARY_STATISTICS_SCHEMA = t.StructType(
     [
@@ -77,21 +86,79 @@ class TwoWaySummaryStatistics(SummaryStatistics):
     """Summary statistics for two-way meta-analysis (FINNGEN × UKBB)."""
 
     @classmethod
+    def bgzip_to_parquet(
+        cls,
+        session: Session,
+        summary_statistics_list: list[str],
+        raw_summary_statistics_output_path: str,
+        finngen_release: FinnGenMetaRelease,
+        n_threads: int = N_THREAD_OPTIMAL,
+    ) -> None:
+        """Convert gzipped two-way summary statistics to Parquet partitioned by ``studyId``.
+
+        This is a pre-step that converts the block-gzipped FinnGen-UKBB files to
+        Parquet, stamping ``studyId`` as a partition column so that the
+        harmonisation step (`from_source`) can read it directly rather than
+        re-deriving it from the original file name.
+
+        Args:
+            session (Session): Session object (requires `use_enhanced_bgzip_codec=True`).
+            summary_statistics_list (list[str]): List of paths to gzipped summary statistics files.
+            raw_summary_statistics_output_path (str): Output path for the Parquet files.
+            finngen_release (FinnGenMetaRelease): FinnGen release identifier (e.g. ``"R12"``).
+            n_threads (int): Maximum number of threads for the ThreadPoolExecutor (default 10).
+        """
+        convert_bgzip_to_parquet(
+            session=session,
+            summary_statistics_list=summary_statistics_list,
+            raw_summary_statistics_output_path=raw_summary_statistics_output_path,
+            finngen_release=finngen_release,
+            meta_analysis_type=MetaAnalysisType.TWO_WAY,
+            summary_statistics_schema=TWO_WAY_SUMMARY_STATISTICS_SCHEMA,
+            extract_phenotype=cls.extract_study_phenotype_from_path,
+            n_threads=n_threads,
+        )
+
+    @classmethod
     def from_source(  # noqa: C901
         cls,
         raw_summary_statistics: DataFrame,
-        finngen_release: FinnGenMetaRelease,
         variant_direction: VariantDirection,
         meta_analysis_study_index: MetaAnalysisStudyIndex,
         config: MetaAnalysisHarmonisationConfig,
     ) -> SummaryStatistics:
         """Harmonise raw two-way FinnGen-UKBB meta-analysis summary statistics.
 
-        Variants are aligned with `VariantDirection`, annotated with study-level
-        sample sizes, filtered according to `config`, and converted to the
-        standard `SummaryStatistics` schema.
+        ??? note "The logic behind the harmonisation"
+            1. Broadcast study-level sample sizes from the meta-analysis study index.
+            2. Filter malformed alleles (star, monomorphic, multiallelic, non-ATGC)
+               according to `config`.
+            3. Read ``studyId`` from the Parquet partition column (written by
+               `bgzip_to_parquet`) and drop rows without complete association statistics.
+            4. Optionally remove variants represented by only one biobank and
+               variants from small studies.
+            5. Join to `VariantDirection` using chromosome, range, and variant ID.
+            6. Align beta and cohort allele frequencies to the reference orientation.
+            7. Calculate the sample-size-weighted effect-allele frequency.
+            8. Optionally apply per-cohort MAC and MAF filters.
+            9. Apply the standard summary-statistics sanity filter.
+
+        ??? tip "Variant Directionality"
+            By default we keep strand-ambiguous variants unless
+            `remove_ambiguous_alleles` is enabled, align variants found in gnomAD
+            to its reference orientation, and keep unmatched variants unchanged
+            because their orientation cannot be determined.
+
+        Args:
+            raw_summary_statistics (DataFrame): Raw two-way summary statistics,
+                expected to be Parquet partitioned by ``studyId`` (produced by `bgzip_to_parquet`).
+            variant_direction (VariantDirection): Variant direction dataset used for allele alignment.
+            meta_analysis_study_index (MetaAnalysisStudyIndex): FinnGen meta-analysis study index.
+            config (MetaAnalysisHarmonisationConfig): Configuration for the harmonisation.
+
+        Returns:
+            SummaryStatistics: Processed summary statistics dataset.
         """
-        meta_analysis_type = MetaAnalysisType.TWO_WAY
         si_slice = f.broadcast(
             meta_analysis_study_index.df.select(
                 f.col("studyId"),
@@ -130,12 +197,11 @@ class TwoWaySummaryStatistics(SummaryStatistics):
             )
 
         sumstats = (
-            sumstats.withColumn(
-                "fg_phenotype",
-                cls.extract_study_phenotype_from_path(f.input_file_name()),
-            )
-            .select(
-                meta_analysis_type.study_id(finngen_release).alias("studyId"),
+            # studyId is read from the Parquet partition column written by
+            # bgzip_to_parquet; it must not be re-derived from input_file_name()
+            # because the original BGZIP file name is lost after conversion.
+            sumstats.select(
+                f.col("studyId"),
                 normalize_chromosome(f.col("#CHR")).alias("chromosome"),
                 f.col("POS").alias("position"),
                 f.upper("REF").alias("referenceAllele"),

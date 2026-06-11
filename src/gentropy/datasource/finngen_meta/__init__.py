@@ -2,17 +2,27 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor
 from enum import Enum
-from typing import Annotated, Self
+from typing import TYPE_CHECKING, Annotated, Self
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
-from pyspark.sql import Column
+from pyspark.sql import Column, DataFrame
 from pyspark.sql import functions as f
 from pyspark.sql import types as t
 
 from gentropy.common.processing import mac, maf
 from gentropy.common.spark import reduce_add
 from gentropy.dataset.variant_direction import DEFAULT_WINDOW_SIZE
+
+if TYPE_CHECKING:
+    from gentropy.common.session import Session
+
+#: Maximum number of threads to use when converting BGZIP files to Parquet.
+N_THREAD_MAX = 32
+#: Recommended number of threads to use when converting BGZIP files to Parquet.
+N_THREAD_OPTIMAL = 10
 
 
 class MetaAnalysisHarmonisationConfig(BaseModel):
@@ -334,19 +344,23 @@ class MetaAnalysisType(str, Enum):
                     lambda x: x.sampleSize > 0.0,
                 ).alias("discoverySamples")
             case MetaAnalysisType.TWO_WAY:
+                # NOTE: ancestry labels must be the human-readable keys of
+                # `gwas_population_2_LD_panel_map.json` (e.g. "Finnish", "European"),
+                # not gnomAD codes, otherwise `aggregate_and_map_ancestries` maps
+                # them to null LD populations. Keep in sync with the THREE_WAY branch.
                 return f.filter(
                     f.array(
                         f.struct(
                             reduce_add(
                                 f.col("fg_n_cases"), f.col("fg_n_controls")
                             ).alias("sampleSize"),
-                            f.lit("fin").alias("ancestry"),
+                            f.lit("Finnish").alias("ancestry"),
                         ),
                         f.struct(
                             reduce_add(
                                 f.col("ukbb_n_cases"), f.col("ukbb_n_controls")
                             ).alias("sampleSize"),
-                            f.lit("nfe").alias("ancestry"),
+                            f.lit("European").alias("ancestry"),
                         ),
                     ),
                     lambda x: x.sampleSize > 0.0,
@@ -680,3 +694,131 @@ def has_low_min_allele_frequency(maf: Column, threshold: float = 1e-4) -> Column
         )
     )
     return n_cohorts_with_maf_below_threshold > 0
+
+
+def convert_bgzip_to_parquet(
+    session: Session,
+    summary_statistics_list: list[str],
+    raw_summary_statistics_output_path: str,
+    finngen_release: FinnGenMetaRelease,
+    meta_analysis_type: MetaAnalysisType,
+    summary_statistics_schema: t.StructType,
+    extract_phenotype: Callable[[Column], Column],
+    n_threads: int = N_THREAD_OPTIMAL,
+) -> None:
+    """Convert gzipped meta-analysis summary statistics to Parquet partitioned by ``studyId``.
+
+    This is shared by the two-way and three-way harmonisers so the ``studyId``
+    is stamped as a Parquet partition column at conversion time. Downstream
+    harmonisation reads ``studyId`` directly from that column rather than
+    re-deriving it from the (now lost) original file name.
+
+    !!! note "Block gzipped input files"
+        Since the individual summary statistics files are **block gzipped** the
+        session must have `use_enhanced_bgzip_codec` enabled for efficient reading.
+
+    !!! note "Reading multiple files with divergent schemas"
+        Individual files do not share an identical column set. ``enforceSchema``
+        aligns columns positionally (breaking order) and ``inferSchema`` over a
+        bulk read drops columns due to sampling. We therefore loop over the files
+        with ``inferSchema`` and manually add missing columns as typed nulls,
+        parallelising the loop with a thread pool.
+
+    Args:
+        session (Session): Session object.
+        summary_statistics_list (list[str]): List of paths to gzipped summary statistics files.
+        raw_summary_statistics_output_path (str): Output path for the Parquet files.
+        finngen_release (FinnGenMetaRelease): FinnGen release identifier (e.g. ``"R12"``).
+        meta_analysis_type (MetaAnalysisType): Type of meta-analysis used to build the ``studyId``.
+        summary_statistics_schema (t.StructType): Superset schema the input files are aligned to.
+        extract_phenotype (Callable[[Column], Column]): Function extracting ``fg_phenotype`` from a file-path column.
+        n_threads (int): Maximum number of threads for the ThreadPoolExecutor (default 10).
+
+    Raises:
+        KeyError: If `use_enhanced_bgzip_codec` is set to False in the Session configuration.
+    """
+    if len(summary_statistics_list) == 0:
+        session.logger.warning("No summary statistics paths found to process.")
+        return
+    if not session.use_enhanced_bgzip_codec:
+        session.logger.error(
+            "The use_enhanced_bgzip_codec is set to False. This will lead to inefficient reading of block gzipped files."
+        )
+        raise KeyError(
+            "Please set `use_enhanced_bgzip_codec` to True in the Session configuration."
+        )
+
+    # Handle n_threads limits and warnings
+    if not isinstance(n_threads, int) or n_threads < 1:
+        session.logger.warning(
+            f"Invalid n_threads value: {n_threads}. Falling back to {N_THREAD_OPTIMAL} threads."
+        )
+        n_threads = N_THREAD_OPTIMAL
+    if n_threads < N_THREAD_OPTIMAL:
+        session.logger.warning(
+            f"Using low n_threads value: {n_threads}. This may lead to sub-optimal performance."
+        )
+    if n_threads > N_THREAD_MAX:
+        session.logger.warning(
+            f"Using high n_threads value: {n_threads}, this may lead to overloading spark driver. Limiting to {N_THREAD_MAX}."
+        )
+        n_threads = N_THREAD_MAX
+
+    def process_one(input_path: str, session: Session, output_path: str) -> DataFrame:
+        """Process one summary statistics file to the schema superset and write it out.
+
+        Args:
+            input_path (str): Input path to the gzipped summary statistics file.
+            session (Session): Session object.
+            output_path (str): Output path for the Parquet files.
+
+        Returns:
+            DataFrame: Processed dataframe.
+        """
+        df = session.spark.read.csv(
+            input_path,
+            header=True,
+            inferSchema=True,
+            sep="\t",
+            enforceSchema=False,
+        )
+        existing_cols = set(df.columns)
+        df = df.select(
+            *[
+                (
+                    f.when(f.col(field.name) == "NA", f.lit(None))
+                    .otherwise(f.col(field.name))
+                    .cast(field.dataType)
+                    .alias(field.name)
+                    if field.name in existing_cols
+                    else f.lit(None).cast(field.dataType).alias(field.name)
+                )
+                for field in summary_statistics_schema.fields
+            ]
+        )
+        # Add studyId based on the input path
+        df = (
+            df.withColumn("fg_phenotype", extract_phenotype(f.input_file_name()))
+            .withColumn("studyId", meta_analysis_type.study_id(release=finngen_release))
+            .drop("fg_phenotype")
+            .repartitionByRange(60, "#CHR", "POS")
+        )
+        # NOTE: Write is done per studyId partition from the thread pool to
+        # make sure we do not need to collect all data after the thread execution.
+        df.write.mode("append").partitionBy("studyId").parquet(output_path)
+        return df
+
+    session.logger.info(
+        f"Converting gzipped summary statistics from {summary_statistics_list} to Parquet at {raw_summary_statistics_output_path}."
+    )
+    with ThreadPoolExecutor(max_workers=n_threads) as pool:
+        list(
+            pool.map(
+                lambda path: process_one(
+                    path,
+                    session=session,
+                    output_path=raw_summary_statistics_output_path,
+                ),
+                summary_statistics_list,
+            )
+        )

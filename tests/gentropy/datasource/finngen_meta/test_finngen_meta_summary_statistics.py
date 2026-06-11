@@ -21,8 +21,8 @@ from gentropy.datasource.finngen_meta.study_index import FinnGenMetaManifest
 from gentropy.datasource.finngen_meta.three_way import ThreeWaySummaryStatistics
 
 
-class TestFinnGenUkbMvpMetaSummaryStatistics:
-    """Test FinnGenUkbMvpMetaSummaryStatistics dataset."""
+class TestThreeWaySummaryStatistics:
+    """Test ThreeWaySummaryStatistics dataset."""
 
     def test_combined_allele_frequency(self, session: Session) -> None:
         """Test sample-size-weighted allele frequency and its boundary cases."""

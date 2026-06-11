@@ -9,8 +9,6 @@ if TYPE_CHECKING:
 
     from gentropy.common.session import Session
 
-from concurrent.futures import ThreadPoolExecutor
-
 from pyspark.sql import DataFrame
 from pyspark.sql import functions as f
 from pyspark.sql import types as t
@@ -32,6 +30,7 @@ from gentropy.datasource.finngen_meta import (
     FinnGenMetaRelease,
     MetaAnalysisHarmonisationConfig,
     MetaAnalysisType,
+    convert_bgzip_to_parquet,
     has_low_min_allele_count,
     has_low_min_allele_frequency,
     min_allele_count,
@@ -186,99 +185,16 @@ class ThreeWaySummaryStatistics:
         Raises:
             KeyError: If `use_enhanced_bgzip_codec` is set to False in the Session configuration.
         """
-        if len(summary_statistics_list) == 0:
-            session.logger.warning("No summary statistics paths found to process.")
-            return
-        if not session.use_enhanced_bgzip_codec:
-            session.logger.error(
-                "The use_enhanced_bgzip_codec is set to False. This will lead to inefficient reading of block gzipped files."
-            )
-            raise KeyError(
-                "Please set `use_enhanced_bgzip_codec` to True in the Session configuration."
-            )
-
-        # Handle n_threads limits and warnings
-        if not isinstance(n_threads, int) or n_threads < 1:
-            session.logger.warning(
-                f"Invalid n_threads value: {n_threads}. Falling back to 10 threads."
-            )
-            n_threads = ThreeWaySummaryStatistics.N_THREAD_OPTIMAL
-        if n_threads < ThreeWaySummaryStatistics.N_THREAD_OPTIMAL:
-            session.logger.warning(
-                f"Using low n_threads value: {n_threads}. This may lead to sub-optimal performance."
-            )
-        if n_threads > ThreeWaySummaryStatistics.N_THREAD_MAX:
-            session.logger.warning(
-                f"Using high n_threads value: {n_threads}, this may lead to overloading spark driver. Limiting to 32."
-            )
-            n_threads = ThreeWaySummaryStatistics.N_THREAD_MAX
-
-        def process_one(
-            input_path: str, session: Session, output_path: str
-        ) -> DataFrame:
-            """Function to process one finngen-ukbb-mvp summary statistics file to schema superset.
-
-            Args:
-                input_path (str): Input path to the gzipped summary statistics file.
-                session (Session): Session object.
-                output_path (str): Output path for the Parquet files.
-
-            Returns:
-                DataFrame: Processed dataframe.
-            """
-            df = session.spark.read.csv(
-                input_path,
-                header=True,
-                inferSchema=True,
-                sep="\t",
-                enforceSchema=False,
-            )
-            existing_cols = set(df.columns)
-            df = df.select(
-                *[
-                    (
-                        f.when(f.col(field.name) == "NA", f.lit(None))
-                        .otherwise(f.col(field.name))
-                        .cast(field.dataType)
-                        .alias(field.name)
-                        if field.name in existing_cols
-                        else f.lit(None).cast(field.dataType).alias(field.name)
-                    )
-                    for field in THREE_WAY_SUMMARY_STATISTICS_SCHEMA.fields
-                ]
-            )
-            # Add studyId based on the input path
-            df = (
-                df.withColumn(
-                    "fg_phenotype",
-                    cls.extract_study_phenotype_from_path(f.input_file_name()),
-                )
-                .withColumn(
-                    "studyId", meta_analysis_type.study_id(release=finngen_release)
-                )
-                .drop("fg_phenotype")
-                .repartitionByRange(60, "#CHR", "POS")
-            )
-            # Write out the processed dataframe to Parquet
-            # NOTE: Write is done per studyId partition from the thread pool to
-            # make sure we do not need to collect all data after the thread execution.
-            df.write.mode("append").partitionBy("studyId").parquet(output_path)
-            return df
-
-        session.logger.info(
-            f"Converting gzipped summary statistics from {summary_statistics_list} to Parquet at {raw_summary_statistics_output_path}."
+        convert_bgzip_to_parquet(
+            session=session,
+            summary_statistics_list=summary_statistics_list,
+            raw_summary_statistics_output_path=raw_summary_statistics_output_path,
+            finngen_release=finngen_release,
+            meta_analysis_type=meta_analysis_type,
+            summary_statistics_schema=THREE_WAY_SUMMARY_STATISTICS_SCHEMA,
+            extract_phenotype=cls.extract_study_phenotype_from_path,
+            n_threads=n_threads,
         )
-        with ThreadPoolExecutor(max_workers=n_threads) as pool:
-            list(
-                pool.map(
-                    lambda path: process_one(
-                        path,
-                        session=session,
-                        output_path=raw_summary_statistics_output_path,
-                    ),
-                    summary_statistics_list,
-                )
-            )
 
     @classmethod
     def from_source(  # noqa: C901
@@ -321,9 +237,10 @@ class ThreeWaySummaryStatistics:
             * MVP_HIS cohort has been mapped to admixed American population - see https://www.science.org/doi/10.1126/science.adj1182 for more details.
 
         Args:
-            raw_summary_statistics (DataFrame): Raw summary statistics dataframe.
-            meta_analysis_study_index (MetaAnalysisStudyIndex): FinnGen meta-analysis study index.
+            raw_summary_statistics (DataFrame): Raw summary statistics dataframe,
+                expected to be Parquet partitioned by ``studyId`` (produced by `bgzip_to_parquet`).
             variant_direction (VariantDirection): Variant direction dataset used for allele alignment.
+            meta_analysis_study_index (MetaAnalysisStudyIndex): FinnGen meta-analysis study index.
             config (MetaAnalysisHarmonisationConfig): Configuration for the harmonisation.
 
         Returns:
@@ -375,7 +292,6 @@ class ThreeWaySummaryStatistics:
                 f.col("POS").cast(t.IntegerType()).alias("position"),
                 f.upper("REF").alias("referenceAllele"),
                 f.upper("ALT").alias("alternateAllele"),
-                f.col("all_inv_var_meta_mlogp"),
                 f.col("all_inv_var_meta_beta").alias("beta"),
                 f.col("all_inv_var_meta_sebeta").alias("standardError"),
                 f.col("all_inv_var_meta_mlogp").alias("neglogpval"),

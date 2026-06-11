@@ -5,8 +5,9 @@ r"""Steps for ingesting FinnGen two-way and three-way meta-analyses.
 The ingestion workflow is split into independently runnable steps:
 
 1. `FinngenMetaStudyIndexStep` builds a meta-analysis study index from a manifest.
-2. `FinngenUkbMvpMetaSumstatConversionStep` converts three-way BGZIP files to
-   Parquet partitioned by ``studyId``.
+2. `ThreeWayMetaSumstatConversionStep` and `TwoWayMetaSumstatConversionStep`
+   convert three-way and two-way BGZIP files respectively to Parquet partitioned
+   by ``studyId``.
 3. `TwoWayMetaSumstatHarmonisationStep` and
    `ThreeWayMetaSumstatHarmonisationStep` harmonise the corresponding inputs
    against a precomputed `VariantDirection` dataset.
@@ -85,7 +86,7 @@ class FinngenMetaStudyIndexStep:
         session.logger.info(f"Study index written to {study_index_output_path}.")
 
 
-class FinngenUkbMvpMetaSumstatConversionStep:
+class ThreeWayMetaSumstatConversionStep:
     """Convert three-way FinnGen-UKBB-MVP BGZIP summary statistics to Parquet."""
 
     def __init__(
@@ -131,6 +132,53 @@ class FinngenUkbMvpMetaSumstatConversionStep:
         session.logger.info(f"Output path: {raw_summary_statistics_output_path}.")
 
 
+class TwoWayMetaSumstatConversionStep:
+    """Convert two-way FinnGen-UKBB BGZIP summary statistics to Parquet."""
+
+    def __init__(
+        self,
+        session: Session,
+        # Inputs
+        summary_statistics_glob: str,
+        # Output
+        raw_summary_statistics_output_path: str,
+        # Config
+        finngen_release: str = "R12",
+    ) -> None:
+        """Convert FinnGen-UKBB two-way meta-analysis summary statistics from BGZIP to Parquet.
+
+        The output Parquet is partitioned by ``studyId`` so the harmonisation step
+        can read it directly without re-parsing the original file names.
+
+        Args:
+            session (Session): Session object.
+            summary_statistics_glob (str): Hadoop-compatible path or glob for source
+                summary-statistics files.
+            raw_summary_statistics_output_path (str): Output path for raw summary statistics.
+            finngen_release (str): FinnGen release identifier used in generated study IDs
+                (e.g. ``"R12"``). Defaults to ``"R12"``.
+
+        Raises:
+            AssertionError: If the glob does not resolve to more than one file.
+        """
+        session.logger.info("Resolving source summary statistics paths.")
+        ssp = session.list_hadoop_paths(summary_statistics_glob)
+        assert len(ssp) > 1, (
+            f"Expected more than one summary statistics file, found {len(ssp)} for '{summary_statistics_glob}'."
+        )
+        session.logger.info(f"Found {len(ssp)} summary statistics files.")
+
+        session.logger.info("Converting raw summary statistics to Parquet format.")
+        TwoWaySummaryStatistics.bgzip_to_parquet(
+            session=session,
+            summary_statistics_list=ssp,
+            raw_summary_statistics_output_path=raw_summary_statistics_output_path,
+            finngen_release=FinnGenMetaRelease(release=finngen_release),
+        )
+        session.logger.info("Raw summary statistics conversion completed.")
+        session.logger.info(f"Output path: {raw_summary_statistics_output_path}.")
+
+
 class TwoWayMetaSumstatHarmonisationStep:
     """Harmonise two-way FinnGen-UKBB summary statistics."""
 
@@ -152,7 +200,6 @@ class TwoWayMetaSumstatHarmonisationStep:
         remove_ambiguous_alleles: bool = False,
         verify_atgc: bool = True,
         remove_monomorphic_alleles: bool = True,
-        finngen_release: str = "R12",
     ) -> None:
         """Harmonise FinnGen meta-analysis summary statistics.
 
@@ -170,8 +217,6 @@ class TwoWayMetaSumstatHarmonisationStep:
             remove_ambiguous_alleles (bool, optional): Whether to remove strand-ambiguous variants.
             verify_atgc (bool, optional): Whether to verify that reference and alternate alleles are valid (A, T, G, C).
             remove_monomorphic_alleles (bool, optional): Whether to remove monomorphic variants (i.e. variants where all alleles are the same).
-            finngen_release (str): FinnGen release identifier used in generated study IDs
-                (e.g. ``"R12"``). Defaults to ``"R12"``.
         """
         config = MetaAnalysisHarmonisationConfig(
             perform_meta_analysis_filter=perform_meta_analysis_filter,
@@ -207,7 +252,6 @@ class TwoWayMetaSumstatHarmonisationStep:
             meta_analysis_study_index=msi,
             variant_direction=vd,
             config=config,
-            finngen_release=FinnGenMetaRelease(release=finngen_release),
         )
 
         session.logger.info("Writing harmonised summary statistics.")

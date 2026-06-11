@@ -1,4 +1,4 @@
-"""Test FinnGen UKBB MVP meta ingestion steps."""
+"""Test FinnGen two-way and three-way meta-analysis ingestion steps."""
 
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -12,8 +12,10 @@ from gentropy.datasource.finngen_meta import MetaAnalysisHarmonisationConfig
 from gentropy.finngen_meta import (
     FinngenMetaStudyIndexQCAnnotationStep,
     FinngenMetaStudyIndexStep,
-    FinngenUkbMvpMetaSumstatConversionStep,
+    ThreeWayMetaSumstatConversionStep,
     ThreeWayMetaSumstatHarmonisationStep,
+    TwoWayMetaSumstatConversionStep,
+    TwoWayMetaSumstatHarmonisationStep,
 )
 
 
@@ -106,11 +108,11 @@ class TestSumstatHarmonisationConfig:
 
 
 # ---------------------------------------------------------------------------
-# Step 1: FinngenUkbMvpMetaStudyIndexStep
+# Step 1: FinngenMetaStudyIndexStep
 # ---------------------------------------------------------------------------
 
 
-class TestFinngenUkbMvpMetaStudyIndexStep:
+class TestFinngenMetaStudyIndexStep:
     """Tests for step 1 – study index creation."""
 
     @pytest.mark.step_test
@@ -162,11 +164,11 @@ class TestFinngenUkbMvpMetaStudyIndexStep:
 
 
 # ---------------------------------------------------------------------------
-# Step 2: FinngenUkbMvpMetaSumstatConversionStep
+# Step 2: ThreeWayMetaSumstatConversionStep
 # ---------------------------------------------------------------------------
 
 
-class TestFinngenUkbMvpMetaSumstatConversionStep:
+class TestThreeWayMetaSumstatConversionStep:
     """Tests for step 2 – BGZIP → Parquet conversion."""
 
     @pytest.mark.step_test
@@ -186,7 +188,7 @@ class TestFinngenUkbMvpMetaSumstatConversionStep:
         glob = "gs://bucket/*.tsv.gz"
         raw_output_path = (tmp_path / "raw_sumstats").as_posix()
 
-        FinngenUkbMvpMetaSumstatConversionStep(
+        ThreeWayMetaSumstatConversionStep(
             session=session,
             summary_statistics_glob=glob,
             raw_summary_statistics_output_path=raw_output_path,
@@ -219,7 +221,7 @@ class TestFinngenUkbMvpMetaSumstatConversionStep:
         session.list_hadoop_paths = MagicMock(return_value=["only_one_path"])  # type: ignore[method-assign]
 
         with pytest.raises(AssertionError):
-            FinngenUkbMvpMetaSumstatConversionStep(
+            ThreeWayMetaSumstatConversionStep(
                 session=session,
                 summary_statistics_glob="gs://bucket/single.tsv.gz",
                 raw_summary_statistics_output_path=(tmp_path / "raw").as_posix(),
@@ -227,7 +229,7 @@ class TestFinngenUkbMvpMetaSumstatConversionStep:
 
 
 # ---------------------------------------------------------------------------
-# Step 3: FinngenUkbMvpMetaSumstatHarmonisationStep
+# Step 3: ThreeWayMetaSumstatHarmonisationStep
 # ---------------------------------------------------------------------------
 
 
@@ -293,7 +295,109 @@ class TestThreeWayHarmonisationStep:
 
 
 # ---------------------------------------------------------------------------
-# Step 4: FinngenUkbMvpMetaStudyIndexQCAnnotationStep
+# Two-way: conversion and harmonisation steps
+# ---------------------------------------------------------------------------
+
+
+class TestTwoWayMetaSumstatConversionStep:
+    """Tests for the two-way BGZIP → Parquet conversion step."""
+
+    @pytest.mark.step_test
+    @patch("gentropy.finngen_meta.TwoWaySummaryStatistics")
+    def test_step(
+        self,
+        fss_mock: MagicMock,
+        session: Session,
+        tmp_path: Path,
+    ) -> None:
+        """Step lists paths from the glob and calls bgzip_to_parquet."""
+        paths = [f"path{i}" for i in range(5)]
+        session.list_hadoop_paths = MagicMock(return_value=paths)  # type: ignore[method-assign]
+        fss_mock.bgzip_to_parquet = MagicMock()
+
+        glob = "gs://bucket/*.tsv.gz"
+        raw_output_path = (tmp_path / "raw_sumstats").as_posix()
+
+        TwoWayMetaSumstatConversionStep(
+            session=session,
+            summary_statistics_glob=glob,
+            raw_summary_statistics_output_path=raw_output_path,
+            finngen_release="R12",
+        )
+
+        session.list_hadoop_paths.assert_called_once_with(glob)
+        fss_mock.bgzip_to_parquet.assert_called_once()
+        kwargs = fss_mock.bgzip_to_parquet.call_args.kwargs
+        assert kwargs["summary_statistics_list"] == paths
+        assert kwargs["raw_summary_statistics_output_path"] == raw_output_path
+
+    @pytest.mark.step_test
+    @patch("gentropy.finngen_meta.TwoWaySummaryStatistics")
+    def test_step_raises_when_too_few_paths(
+        self,
+        fss_mock: MagicMock,
+        session: Session,
+        tmp_path: Path,
+    ) -> None:
+        """Step raises AssertionError when the glob resolves to a single path or less."""
+        session.list_hadoop_paths = MagicMock(return_value=["only_one_path"])  # type: ignore[method-assign]
+
+        with pytest.raises(AssertionError):
+            TwoWayMetaSumstatConversionStep(
+                session=session,
+                summary_statistics_glob="gs://bucket/single.tsv.gz",
+                raw_summary_statistics_output_path=(tmp_path / "raw").as_posix(),
+            )
+
+
+class TestTwoWayHarmonisationStep:
+    """Tests for the two-way summary statistics harmonisation step."""
+
+    @pytest.mark.step_test
+    @patch("gentropy.finngen_meta.VariantDirection")
+    @patch("gentropy.finngen_meta.MetaAnalysisStudyIndex")
+    @patch("pyspark.sql.readwriter.DataFrameReader.parquet")
+    @patch("gentropy.finngen_meta.TwoWaySummaryStatistics")
+    def test_step(
+        self,
+        fss_mock: MagicMock,
+        spark_read_parquet_mock: MagicMock,
+        msi_mock: MagicMock,
+        vd_mock: MagicMock,
+        session: Session,
+        tmp_path: Path,
+        mock_df: DataFrame,
+        mock_dataset: MagicMock,
+    ) -> None:
+        """Step reads inputs, harmonises and writes partitioned by studyId and chromosome."""
+        spark_read_parquet_mock.return_value = mock_df
+        fss_mock.from_source.return_value = mock_dataset
+
+        meta_index_path = (tmp_path / "meta_index").as_posix()
+        vd_path = (tmp_path / "variant_direction").as_posix()
+        raw_path = (tmp_path / "raw").as_posix()
+        harmonised_path = (tmp_path / "harmonised").as_posix()
+
+        TwoWayMetaSumstatHarmonisationStep(
+            session=session,
+            meta_analysis_study_index_path=meta_index_path,
+            variant_direction_path=vd_path,
+            raw_summary_statistics_output_path=raw_path,
+            harmonised_summary_statistics_output_path=harmonised_path,
+        )
+
+        msi_mock.from_parquet.assert_called_once_with(
+            session=session, path=meta_index_path
+        )
+        vd_mock.from_parquet.assert_called_once_with(session=session, path=vd_path)
+        spark_read_parquet_mock.assert_called_once_with(raw_path)
+        fss_mock.from_source.assert_called_once()
+        # studyId must come from the Parquet partition column, not finngen_release.
+        assert "finngen_release" not in fss_mock.from_source.call_args.kwargs
+
+
+# ---------------------------------------------------------------------------
+# Step 4: FinngenMetaStudyIndexQCAnnotationStep
 # ---------------------------------------------------------------------------
 
 

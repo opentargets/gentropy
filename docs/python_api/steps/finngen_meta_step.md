@@ -10,7 +10,9 @@ analyses share study-index and QC steps but use separate harmonisers.
 
 ::: gentropy.finngen_meta.FinngenMetaStudyIndexStep
 
-::: gentropy.finngen_meta.FinngenUkbMvpMetaSumstatConversionStep
+::: gentropy.finngen_meta.TwoWayMetaSumstatConversionStep
+
+::: gentropy.finngen_meta.ThreeWayMetaSumstatConversionStep
 
 ::: gentropy.finngen_meta.TwoWayMetaSumstatHarmonisationStep
 
