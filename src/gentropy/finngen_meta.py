@@ -197,6 +197,8 @@ class TwoWayMetaSumstatHarmonisationStep:
         perform_min_allele_count_filter: bool = True,
         min_allele_frequency_threshold: float = 1e-4,
         perform_min_allele_frequency_filter: bool = False,
+        perform_samples_size_filter: bool = True,
+        sample_size_threshold: int = 1000,
         remove_ambiguous_alleles: bool = False,
         verify_atgc: bool = True,
         remove_monomorphic_alleles: bool = True,
@@ -214,6 +216,8 @@ class TwoWayMetaSumstatHarmonisationStep:
             perform_min_allele_count_filter (bool, optional): Whether to apply the minimum allele count filter.
             min_allele_frequency_threshold (float, optional): Minimum allele frequency in (0, 0.5). Defaults to 1e-4.
             perform_min_allele_frequency_filter (bool, optional): Whether to apply the minimum allele frequency filter.
+            perform_samples_size_filter (bool, optional): Whether to remove variants from studies below the sample-size threshold.
+            sample_size_threshold (int, optional): Minimum study sample size (>= 1). Defaults to 1000.
             remove_ambiguous_alleles (bool, optional): Whether to remove strand-ambiguous variants.
             verify_atgc (bool, optional): Whether to verify that reference and alternate alleles are valid (A, T, G, C).
             remove_monomorphic_alleles (bool, optional): Whether to remove monomorphic variants (i.e. variants where all alleles are the same).
@@ -226,6 +230,9 @@ class TwoWayMetaSumstatHarmonisationStep:
             # MAF filter
             perform_min_allele_frequency_filter=perform_min_allele_frequency_filter,
             min_allele_frequency_threshold=min_allele_frequency_threshold,
+            # Sample-size filter
+            perform_samples_size_filter=perform_samples_size_filter,
+            sample_size_threshold=sample_size_threshold,
             # Remove ambiguous variants filter
             remove_ambiguous_alleles=remove_ambiguous_alleles,
             # Remove non-ATGC alleles
@@ -286,6 +293,8 @@ class ThreeWayMetaSumstatHarmonisationStep:
         perform_min_allele_count_filter: bool = True,
         min_allele_frequency_threshold: float = 1e-4,
         perform_min_allele_frequency_filter: bool = False,
+        perform_samples_size_filter: bool = True,
+        sample_size_threshold: int = 1000,
         remove_ambiguous_alleles: bool = False,
         verify_atgc: bool = True,
         remove_monomorphic_alleles: bool = True,
@@ -305,6 +314,8 @@ class ThreeWayMetaSumstatHarmonisationStep:
             perform_min_allele_count_filter (bool, optional): Whether to apply the minimum allele count filter.
             min_allele_frequency_threshold (float, optional): Minimum allele frequency in (0, 0.5). Defaults to 1e-4.
             perform_min_allele_frequency_filter (bool, optional): Whether to apply the minimum allele frequency filter.
+            perform_samples_size_filter (bool, optional): Whether to remove variants from studies below the sample-size threshold.
+            sample_size_threshold (int, optional): Minimum study sample size (>= 1). Defaults to 1000.
             remove_ambiguous_alleles (bool, optional): Whether to remove strand-ambiguous variants.
             verify_atgc (bool, optional): Whether to verify that reference and alternate alleles are valid (A, T, G, C).
             remove_monomorphic_alleles (bool, optional): Whether to remove monomorphic variants (i.e. variants where all alleles are the same).
@@ -320,6 +331,9 @@ class ThreeWayMetaSumstatHarmonisationStep:
             # MAF filter
             perform_min_allele_frequency_filter=perform_min_allele_frequency_filter,
             min_allele_frequency_threshold=min_allele_frequency_threshold,
+            # Sample-size filter
+            perform_samples_size_filter=perform_samples_size_filter,
+            sample_size_threshold=sample_size_threshold,
             # Remove ambiguous variants filter
             remove_ambiguous_alleles=remove_ambiguous_alleles,
             # Remove non-ATGC alleles
