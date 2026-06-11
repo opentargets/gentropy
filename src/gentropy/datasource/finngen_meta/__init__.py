@@ -211,7 +211,7 @@ class MetaAnalysisType(str, Enum):
         match self:
             case MetaAnalysisType.THREE_WAY:
                 return f.lit(
-                    "1,550,147 (MVP: nEUR=449,042, nAFR=121,177, nAMR=59,048; FinnGenR13: nNFE=500,349; pan-UKBB-EUR: nEUR=420,531)"
+                    "1,550,147 (MVP: nEUR=449,042, nAFR=121,177, nAMR=59,048; FinnGenR12: nNFE=500,349; pan-UKBB-EUR: nEUR=420,531)"
                 )  # based on https://metaresults-ukbb.finngen.fi/about
             case MetaAnalysisType.TWO_WAY:
                 return f.lit(

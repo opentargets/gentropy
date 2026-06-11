@@ -243,15 +243,16 @@ class SummaryStatistics(Dataset):
             StudyIndex: Annotated study index.
         """
         pat = r"^(.*\/studyId=.*?\/).*$"
+        # NOTE: distinct() alone yields the small (studyId, location) set we
+        # broadcast; coalescing the (potentially huge) summary statistics to a
+        # single partition first would be an unnecessary bottleneck.
         sumstat_locations = f.broadcast(
             self.df.select(
                 "studyId",
                 f.regexp_extract(f.input_file_name(), pat, 1).alias(
                     "summarystatsLocation"
                 ),
-            )
-            .coalesce(1)
-            .distinct()
+            ).distinct()
         )
         return si.__class__(
             _df=si.df.coalesce(1)

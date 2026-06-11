@@ -561,6 +561,8 @@ class TwoWayMetaSumstatHarmonisationConfig(StepConfig):
     perform_min_allele_count_filter: bool = True
     min_allele_frequency_threshold: float = 1e-4
     perform_min_allele_frequency_filter: bool = False
+    perform_samples_size_filter: bool = True
+    sample_size_threshold: int = 1000
     remove_ambiguous_alleles: bool = False
     verify_atgc: bool = True
     remove_monomorphic_alleles: bool = True
@@ -582,6 +584,8 @@ class ThreeWayMetaSumstatHarmonisationConfig(StepConfig):
     perform_min_allele_count_filter: bool = True
     min_allele_frequency_threshold: float = 1e-4
     perform_min_allele_frequency_filter: bool = False
+    perform_samples_size_filter: bool = True
+    sample_size_threshold: int = 1000
     remove_ambiguous_alleles: bool = False
     verify_atgc: bool = True
     remove_monomorphic_alleles: bool = True
