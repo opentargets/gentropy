@@ -527,17 +527,6 @@ class FinngenMetaStudyIndexConfig(StepConfig):
 
 
 @dataclass
-class ThreeWayMetaSumstatConversionConfig(StepConfig):
-    """Configuration for converting three-way FinnGen meta BGZIP files to Parquet."""
-
-    session: Any = field(default_factory=lambda: {"use_enhanced_bgzip_codec": True})
-    summary_statistics_glob: str = MISSING
-    raw_summary_statistics_output_path: str = MISSING
-    finngen_release: str = "R12"
-    _target_: str = "gentropy.finngen_meta.ThreeWayMetaSumstatConversionStep"
-
-
-@dataclass
 class TwoWayMetaSumstatConversionConfig(StepConfig):
     """Configuration for converting two-way FinnGen-UKBB meta BGZIP files to Parquet."""
 
@@ -567,6 +556,17 @@ class TwoWayMetaSumstatHarmonisationConfig(StepConfig):
     verify_atgc: bool = True
     remove_monomorphic_alleles: bool = True
     _target_: str = "gentropy.finngen_meta.TwoWayMetaSumstatHarmonisationStep"
+
+
+@dataclass
+class ThreeWayMetaSumstatConversionConfig(StepConfig):
+    """Configuration for converting three-way FinnGen meta BGZIP files to Parquet."""
+
+    session: Any = field(default_factory=lambda: {"use_enhanced_bgzip_codec": True})
+    summary_statistics_glob: str = MISSING
+    raw_summary_statistics_output_path: str = MISSING
+    finngen_release: str = "R12"
+    _target_: str = "gentropy.finngen_meta.ThreeWayMetaSumstatConversionStep"
 
 
 @dataclass
