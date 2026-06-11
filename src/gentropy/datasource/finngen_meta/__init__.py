@@ -1,80 +1,157 @@
-"""Finngen meta analysis data source module."""
+"""Shared models and Spark expressions for FinnGen meta-analysis ingestion."""
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from pyspark.sql import DataFrame
-
-    from gentropy import Session
-
-import operator
 from enum import Enum
-from functools import reduce
-from typing import Annotated
+from typing import Annotated, Self
 
-from pydantic import BaseModel, StringConstraints
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
 from pyspark.sql import Column
 from pyspark.sql import functions as f
 from pyspark.sql import types as t
 
+from gentropy.common.processing import mac, maf
+from gentropy.common.spark import reduce_add
+from gentropy.dataset.variant_direction import DEFAULT_WINDOW_SIZE
 
-class MetaAnalysisType(str, Enum):
-    """Enum representing FinnGen meta-analysis types.
 
-    Note: values represent the string identifiers for other
-        bio banks (except FinnGen) that are included in meta analysis, underscore separated.
+class MetaAnalysisHarmonisationConfig(BaseModel):
+    """Validated configuration shared by FinnGen meta-analysis harmonisers.
+
+    !!! note "Variant flipping logic"
+    The flipping window size has to be the same as the one used for
+    creating the variant direction dataset, otherwise the join will produce incorrect results.
+    The default value is sourced from `gentropy.dataset.variant_direction.DEFAULT_WINDOW_SIZE`
+    to keep both sides in sync.
+
     """
 
-    THREE_WAY = "THREE_WAY"
-    """Corresponds to the FinnGen x UKBB x MVP meta-analysis."""
-    TWO_WAY = "TWO_WAY"
-    """Corresponds to the FinnGen x UKBB meta-analysis."""
+    model_config = ConfigDict(extra="forbid")
 
-    def get_meta_analyzed_cohorts(self) -> list[str]:
-        """Get the list of cohorts included in the meta-analysis.
+    perform_meta_analysis_filter: bool = True
+    """Whether to remove variants that were not meta-analysed."""
 
-        Returns:
-            list[str]: List of cohort identifiers.
-        """
-        match self:
-            case MetaAnalysisType.THREE_WAY:
-                return ["FINNGEN", "UKBB", "MVP_EUR", "MVP_AFR", "MVP_AMR"]
-            case MetaAnalysisType.TWO_WAY:
-                return ["FINNGEN", "UKBB"]
-            case _:
-                raise NotImplementedError(f"Unsupported meta-analysis type: {self}")
+    perform_imputation_score_filter: bool = True
+    """Whether to remove variants with low imputation score (INFO)."""
+    imputation_score_threshold: float = Field(default=0.8, ge=0.0, le=1.0)
+    """Minimum INFO/imputation score to retain a variant. Must be in [0, 1]."""
 
-    def get_manifest_schema(self) -> t.StructType:
-        """Get the Spark schema for the meta-analysis manifest.
+    perform_min_allele_count_filter: bool = True
+    """Whether to remove variants with low MAC (minor allele count)."""
+    min_allele_count_threshold: int = Field(default=20, ge=1)
+    """Minimum allele count (AC) to retain a variant. Must be >= 1."""
 
-        Returns:
-            t.StructType: Spark schema for the meta-analysis manifest.
-        """
-        base_schema = t.StructType(
-            [
-                t.StructField("fg_phenotype", t.StringType(), nullable=True),
-                t.StructField("name", t.StringType(), nullable=True),
-                t.StructField("fg_n_cases", t.IntegerType(), nullable=True),
-                t.StructField("fg_n_controls", t.IntegerType(), nullable=True),
-                t.StructField("ukbb_n_cases", t.IntegerType(), nullable=True),
-                t.StructField("ukbb_n_controls", t.IntegerType(), nullable=True),
-                t.StructField("path_bucket", t.StringType(), nullable=True),
-            ]
-        )
-        match self:
-            case MetaAnalysisType.TWO_WAY:
-                return base_schema
-            case MetaAnalysisType.THREE_WAY:
-                return (
-                    base_schema.add("MVP_AFR_n_cases", t.IntegerType(), nullable=True)
-                    .add("MVP_AFR_n_controls", t.IntegerType(), nullable=True)
-                    .add("MVP_EUR_n_cases", t.IntegerType(), nullable=True)
-                    .add("MVP_EUR_n_controls", t.IntegerType(), nullable=True)
-                    .add("MVP_AMR_n_cases", t.IntegerType(), nullable=True)
-                    .add("MVP_AMR_n_controls", t.IntegerType(), nullable=True)
-                )
+    perform_min_allele_frequency_filter: bool = False
+    """Whether to remove variants with low MAF (minor allele frequency)."""
+    min_allele_frequency_threshold: float = Field(default=1e-4, gt=0.0, lt=0.5)
+    """Minimum allele frequency (AF) to retain a variant. Must be in (0, 0.5)."""
+
+    perform_samples_size_filter: bool = True
+    """Whether to remove variants with low sample size."""
+    sample_size_threshold: int = Field(default=1000, ge=1)
+    """Minimum sample size to retain a variant. Must be >= 1."""
+
+    flipping_window_size: int = DEFAULT_WINDOW_SIZE
+    """Window size (bp) used to partition the VariantDirection dataset (exact match only!).
+        Defaults to `DEFAULT_WINDOW_SIZE` from `gentropy.dataset.variant_direction`.
+    """
+    remove_star_alleles: bool = True
+    """Whether to remove variants with `*` alleles during harmonisation."""
+    remove_monomorphic_alleles: bool = True
+    """Whether to remove variants with equal effect and other alleles during harmonisation."""
+    remove_ambiguous_alleles: bool = False
+    """Whether to remove strand-ambiguous variants (A/T or C/G).
+        This filter removes only strand-ambiguous variants from reference panel,
+        meaning, if the summary statistics contain the strand-ambiguous variant, not found
+        in reference, it is retained without flipping.
+    """
+    remove_multiallelic_alleles: bool = True
+    """Whether to remove variants with multiple other alleles during harmonisation.
+        These alleles are marked as ! in summary statistics. For the sake of flipping, we
+        remove these from both effect and other allele columns.
+    """
+    verify_atgc: bool = True
+    """Whether to verify that reference and alternate alleles are valid (A, T, G, C)."""
+
+    @model_validator(mode="after")
+    def validate_filters(self) -> Self:
+        """Disable redundant symbol filters when strict ATGC validation is enabled."""
+        if self.verify_atgc:
+            # Strict ATGC validation also removes '*' and '!' alleles.
+            self.remove_star_alleles = False
+            self.remove_multiallelic_alleles = False
+
+        return self
+
+
+THREE_WAY_MANIFEST_SCHEMA = t.StructType(
+    [
+        t.StructField("fg_phenotype", t.StringType(), nullable=True),
+        t.StructField("name", t.StringType(), nullable=True),
+        t.StructField("category", t.StringType(), nullable=True),
+        t.StructField("category_index", t.IntegerType(), nullable=True),
+        t.StructField("fg_n_cases", t.IntegerType(), nullable=True),
+        t.StructField("fg_n_controls", t.IntegerType(), nullable=True),
+        t.StructField("ukbb_phenotype", t.StringType(), nullable=True),
+        t.StructField("ukbb_n_cases", t.IntegerType(), nullable=True),
+        t.StructField("ukbb_n_controls", t.IntegerType(), nullable=True),
+        t.StructField("ukbb_phecode_type", t.StringType(), nullable=True),
+        t.StructField("ukbb_phecode", t.StringType(), nullable=True),
+        t.StructField("ukbb_phecode_sex", t.StringType(), nullable=True),
+        t.StructField("mvp_phenotype", t.StringType(), nullable=True),
+        t.StructField("MVP_AFR_n_cases", t.IntegerType(), nullable=True),
+        t.StructField("MVP_EUR_n_cases", t.IntegerType(), nullable=True),
+        t.StructField("MVP_AMR_n_cases", t.IntegerType(), nullable=True),
+        t.StructField("MVP_AFR_n_controls", t.IntegerType(), nullable=True),
+        t.StructField("MVP_EUR_n_controls", t.IntegerType(), nullable=True),
+        t.StructField("MVP_AMR_n_controls", t.IntegerType(), nullable=True),
+        t.StructField("path_bucket", t.StringType(), nullable=True),
+        t.StructField("path_https", t.StringType(), nullable=True),
+    ]
+)
+
+TWO_WAY_MANIFEST_SCHEMA = t.StructType(
+    [
+        t.StructField("fg_phenotype", t.StringType(), nullable=True),
+        t.StructField("name", t.StringType(), nullable=True),
+        t.StructField("category", t.StringType(), nullable=True),
+        t.StructField("category_index", t.IntegerType(), nullable=True),
+        t.StructField("fg_n_cases", t.IntegerType(), nullable=True),
+        t.StructField("fg_n_controls", t.IntegerType(), nullable=True),
+        t.StructField("ukbb_phenotype", t.StringType(), nullable=True),
+        t.StructField("ukbb_is_custom", t.StringType(), nullable=True),
+        t.StructField("ukbb_n_cases", t.IntegerType(), nullable=True),
+        t.StructField("ukbb_n_controls", t.IntegerType(), nullable=True),
+        t.StructField(
+            "ukbb_definition_cohort_include_diagnosis", t.StringType(), nullable=True
+        ),
+        t.StructField(
+            "ukbb_definition_cohort_include_atc", t.StringType(), nullable=True
+        ),
+        t.StructField(
+            "ukbb_definition_cohort_other_criteria", t.StringType(), nullable=True
+        ),
+        t.StructField(
+            "ukbb_definition_cohort_exclude_diagnosis", t.StringType(), nullable=True
+        ),
+        t.StructField(
+            "ukbb_definition_cohort_exclude_atc", t.StringType(), nullable=True
+        ),
+        t.StructField(
+            "ukbb_definition_control_exclude_diagnosis", t.StringType(), nullable=True
+        ),
+        t.StructField(
+            "ukbb_definition_control_exclude_atc", t.StringType(), nullable=True
+        ),
+        t.StructField(
+            "ukbb_definition_control_exclude_other", t.StringType(), nullable=True
+        ),
+        t.StructField(
+            "ukbb_definition_control_include_other", t.StringType(), nullable=True
+        ),
+        t.StructField("ukbb_definition_sex", t.StringType(), nullable=True),
+    ]
+)
 
 
 class FinnGenMetaRelease(BaseModel):
@@ -82,432 +159,106 @@ class FinnGenMetaRelease(BaseModel):
 
     release: Annotated[str, StringConstraints(pattern="R\\d+")]
     """FinnGen release identifier (e.g. "R12")."""
-    meta_analysis_type: MetaAnalysisType
-    """Type of meta-analysis conducted for this release."""
 
     @property
-    def project_id(self) -> str:
-        """Get the project ID for this FinnGen meta-analysis.
+    def release_name(self) -> str:
+        """Get the release name.
 
         Returns:
-            str: Project ID string (e.g. "FINNGEN_UKBB_MVP_R13").
+            str: Namespaced release name (e.g. ``"FINNGEN_R12"``).
         """
-        return f"FINNGEN__{self.release}__{self.meta_analysis_type.value}"
+        return f"FINNGEN_{self.release}"
 
 
-class FinnGenMetaManifest:
-    """FinnGen meta-analysis manifest."""
+class MetaAnalysisType(str, Enum):
+    """Supported FinnGen meta-analysis cohort combinations."""
 
-    ukbb_ancestry_cols = {"ukbb_n_cases", "ukbb_n_controls"}
-    finngen_ancestry_cols = {"fg_n_cases", "fg_n_controls"}
+    THREE_WAY = "THREE_WAY"
+    """Corresponds to the FinnGen x UKBB x MVP meta-analysis."""
+    TWO_WAY = "TWO_WAY"
+    """Corresponds to the FinnGen x UKBB meta-analysis."""
 
-    mvp_ancestry_columns = {
-        "MVP_AFR_n_cases",
-        "MVP_AFR_n_controls",
-        "MVP_EUR_n_cases",
-        "MVP_EUR_n_controls",
-        "MVP_AMR_n_cases",
-        "MVP_AMR_n_controls",
-    }
-    sumstat_location_column = "path_bucket"
-
-    def __init__(self, df: DataFrame, meta: FinnGenMetaRelease) -> None:
-        """Initialize the FinnGen meta-analysis manifest.
-
-        Args:
-            df (DataFrame): DataFrame containing the manifest data.
-            meta (FinnGenMetaRelease): Meta-analysis release information.
-            release (str): FinnGen release identifier used to filter constants (e.g. ``"R12"``). Defaults to ``"R12"``.
-        """
-        self.meta = meta
-        self._df = df
-
-    @property
-    def df(self) -> DataFrame:
-        """Get the manifest DataFrame.
-
-        The resulting DataFrame has the following schema:
-        ```
-        |-- studyPhenotype: string (nullable = true)
-        |-- traitFromSource: string (nullable = true)
-        |-- discoverySamples: array (nullable = true)
-            |-- element: struct (containsNull = true)
-                |-- sampleSize: integer (nullable = true)
-                |-- ancestry: string (nullable = true)
-        |-- nSamples: integer (nullable = true)
-        |-- nCases: integer (nullable = true)
-        |-- nSamplesPerCohort: array (nullable = true)
-            |-- element: struct (containsNull = true)
-                |-- cohort: string (nullable = true)
-                |-- nSamples: integer (nullable = true)
-        |-- nCasesPerCohort: array (nullable = true)
-            |-- element: struct (containsNull = true)
-                |-- cohort: string (nullable = true)
-                |-- nCases: integer (nullable = true)
-        |-- nControls: integer (nullable = true)
-        |-- hasSumstats: boolean (nullable = true)
-        |-- summarystatsLocation: string (nullable = true)  # may be null if not provided in the manifest
-        ```
-        """
-        return self._df.select(
-            self.study_id.alias("studyId"),
-            self.project_id.alias("projectId"),
-            self.trait_from_source.alias("traitFromSource"),
-            self.discovery_samples.alias("discoverySamples"),
-            self.n_samples.alias("nSamples"),
-            self.n_samples_per_cohort.alias("nSamplesPerCohort"),
-            self.n_cases.alias("nCases"),
-            self.n_cases_per_cohort.alias("nCasesPerCohort"),
-            self.n_controls.alias("nControls"),
-            self.summary_statistics_location.alias("summarystatsLocation"),
-            self.has_summary_statistics.alias("hasSumstats"),
-        )
-
-    @classmethod
-    def from_path(
-        cls,
-        session: Session,
-        manifest_path: str,
-        meta_analysis_type: MetaAnalysisType,
-        release: str = "R12",
-    ) -> FinnGenMetaManifest:
-        """Load the FinnGen meta-analysis manifest from a specified path.
-
-        Note:
-            This method asserts that the manifest file is tab-delimited and contains header with following columns:
-            ```
-            |-- fg_phenotype: string (nullable = true)        # required
-            |-- name: string (nullable = true)                # required
-            |-- fg_n_cases: integer (nullable = true)         # required
-            |-- fg_n_controls: integer (nullable = true)      # required
-            |-- ukbb_n_cases: integer (nullable = true)       # required
-            |-- ukbb_n_controls: integer (nullable = true)    # required
-            |-- MVP_AFR_n_cases: integer (nullable = true)    # optional
-            |-- MVP_AFR_n_controls: integer (nullable = true) # optional
-            |-- MVP_EUR_n_cases: integer (nullable = true)    # optional
-            |-- MVP_EUR_n_controls: integer (nullable = true) # optional
-            |-- MVP_AMR_n_cases: integer (nullable = true)    # optional
-            |-- MVP_AMR_n_controls: integer (nullable = true) # optional
-            |-- path_bucket: string (nullable = true)         # optional
-            ```
-        Args:
-            session (Session): Session object.
-            manifest_path (str): Path to the manifest file.
-            meta_analysis_type (MetaAnalysisType): Type of meta-analysis conducted for this release.
-            release (str): FinnGen release identifier used to filter constants (e.g. ``"R12"``). Defaults to ``"R12"``.
+    def publication_date(self) -> Column:
+        """Get the publication date column based on the meta-analysis type.
 
         Returns:
-            FinngenMetaManifest: Loaded manifest object.
-
-        Raises:
-            AssertionError: If the manifest file does not contain the required columns.
-            AssertionError: If the manifest file does not contain the required columns.
+            Column: Spark Column representing the publication date.
         """
-        df = (
-            session.spark.read.option("header", True)
-            .option("sep", "\t")
-            .csv(manifest_path)
-        )
+        match self:
+            case MetaAnalysisType.THREE_WAY:
+                return f.lit("2025-12-01")
+            case MetaAnalysisType.TWO_WAY:
+                return f.lit("2024-11-01")
+            case _:
+                raise NotImplementedError(f"Unsupported meta-analysis type: {self}")
 
-        required_columns = {
-            "fg_phenotype",  # Original Finngen studyId (e.g. "I9_HEARTFAIL")
-            "name",  # Finngen phenotype name - used for mapping to EFO
-            # Ancestry columns for finngen and UKBB (should be in both meta analyses)
-            *cls.finngen_ancestry_cols,
-            *cls.ukbb_ancestry_cols,
-        }
+    def initial_sample_size(self) -> Column:
+        """Get the initial sample size column based on the meta-analysis type.
 
-        assert cls.required_columns.issubset(set(df.columns)), (
-            f"Manifest file must contain the following columns: {cls.required_columns}. "
-        )
-        # By default we assume we are dealing with the 2-way Meta Analysis
-        meta = MetaAnalysisDataSource.FINNGEN_UKBB_R12
-        columns = [*cls.required_columns]
+        Returns:
+            Column: Spark Column representing the initial sample size.
+        """
+        match self:
+            case MetaAnalysisType.THREE_WAY:
+                return f.lit(
+                    "1,550,147 (MVP: nEUR=449,042, nAFR=121,177, nAMR=59,048; FinnGenR13: nNFE=500,349; pan-UKBB-EUR: nEUR=420,531)"
+                )  # based on https://metaresults-ukbb.finngen.fi/about
+            case MetaAnalysisType.TWO_WAY:
+                return f.lit(
+                    "920,880 (FinnGenR12: nNFE=500,349; pan-UKBB-EUR: nEUR=420,531)"
+                )  # based on https://metaresults-ukbb.finngen.fi/about
+            case _:
+                raise NotImplementedError(f"Unsupported meta-analysis type: {self}")
 
-        # If we have the MVP ancestry columns, then we are dealing with the 3-way Meta Analysis
-        if cls.mvp_ancestry_columns.issubset(set(df.columns)):
-            match release:
-                case "R12":
-                    meta = MetaAnalysisDataSource.FINNGEN_UKBB_MVP_R12
-                case "R13":
-                    meta = MetaAnalysisDataSource.FINNGEN_UKBB_MVP_R13
-                case _:
-                    raise ValueError(
-                        f"Unsupported FinnGen release: {release}. Supported releases are 'R12' and 'R13'."
-                    )
-            columns += [*cls.mvp_ancestry_columns]
+    def n_samples_per_cohort(self) -> Column:
+        """Get the number of samples per cohort column.
 
-        column_map = [
-            f.col(col).cast(t.IntegerType()).alias(col)
-            if "n_cases" in col or "n_controls" in col
-            else f.col(col).cast(t.StringType()).alias(col)
-            for col in columns
+        Returns:
+            Column: Spark Column representing the number of samples per cohort.
+        """
+        n_samples = [
+            f.struct(
+                f.lit("FinnGen").alias("cohort"),
+                reduce_add(f.col("fg_n_cases"), f.col("fg_n_controls")).alias(
+                    "nSamples"
+                ),
+            ),
+            f.struct(
+                f.lit("UKBB").alias("cohort"),
+                reduce_add(f.col("ukbb_n_cases"), f.col("ukbb_n_controls")).alias(
+                    "nSamples"
+                ),
+            ),
         ]
+        match self:
+            case MetaAnalysisType.TWO_WAY:
+                return f.array(*n_samples).alias("nSamplesPerCohort")
+            case MetaAnalysisType.THREE_WAY:
+                n_samples += [
+                    f.struct(
+                        f.lit("MVP_EUR").alias("cohort"),
+                        reduce_add(
+                            f.col("MVP_EUR_n_cases"), f.col("MVP_EUR_n_controls")
+                        ).alias("nSamples"),
+                    ),
+                    f.struct(
+                        f.lit("MVP_AFR").alias("cohort"),
+                        reduce_add(
+                            f.col("MVP_AFR_n_cases"), f.col("MVP_AFR_n_controls")
+                        ).alias("nSamples"),
+                    ),
+                    f.struct(
+                        f.lit("MVP_AMR").alias("cohort"),
+                        reduce_add(
+                            f.col("MVP_AMR_n_cases"), f.col("MVP_AMR_n_controls")
+                        ).alias("nSamples"),
+                    ),
+                ]
 
-        # Handle the summary statistics location.
-        if cls.sumstat_location_column in df.columns:
-            column_map.append(
-                f.col(cls.sumstat_location_column)
-                .cast(t.StringType())
-                .alias(cls.sumstat_location_column)
-            )
-        else:
-            session.logger.warning(
-                f"Manifest file does not contain the '{cls.sumstat_location_column}' column. Can not determine summary statistics location."
-            )
-            column_map.append(f.lit(None).alias(cls.sumstat_location_column))
+                return f.array(*n_samples).alias("nSamplesPerCohort")
+            case _:
+                raise NotImplementedError(f"Unsupported meta-analysis type: {self}")
 
-        df = df.select(*column_map)  # Final contract
-        return cls(df=df, meta=meta)
-
-    @property
-    def discovery_samples(self) -> Column:
-        """Get the discovery samples.
-
-        This method dispatches to the appropriate private method based on the meta-analysis data source.
-
-        Returns:
-            Column: Spark Column representing the discovery samples.
-        """
-        if self.meta == MetaAnalysisDataSource.FINNGEN_UKBB_R12:
-            return self._discovery_samples_finngen_ukbb()
-        elif self.meta in (
-            MetaAnalysisDataSource.FINNGEN_UKBB_MVP_R12,
-            MetaAnalysisDataSource.FINNGEN_UKBB_MVP_R13,
-        ):
-            return self._discovery_samples_finngen_ukbb_mvp()
-        else:
-            raise ValueError(f"Unsupported meta-analysis data source: {self.meta}")
-
-    @staticmethod
-    def _add(*cols: Column) -> Column:
-        """Get the total number of samples from multiple columns.
-
-        Args:
-            *cols (Column): Columns to sum.
-
-        Returns:
-            Column: Column representing the total number of samples.
-
-
-        Examples:
-            >>> df = spark.createDataFrame([(1, 2, 3), (1, 2, None)], ["a", "b", "c"])
-            >>> df.select(FinnGenMetaManifest._add(f.col("a"), f.col("b"), f.col("c")).alias("total")).show()
-            +-----+
-            |total|
-            +-----+
-            |    6|
-            |    3|
-            +-----+
-            <BLANKLINE>
-        """
-        # Coalesce to 0 to handle nulls
-        ccols = [f.coalesce(col, f.lit(0)) for col in cols]
-        return reduce(operator.add, ccols).cast(t.IntegerType())
-
-    @property
-    def ancestry_columns(self) -> set[str]:
-        """Find all ancestry number columns in the manifest.
-
-        These columns are used to calculate the total number of samples, cases, and controls.
-
-        Returns:
-            set[str]: Set of ancestry number columns.
-
-        Raises:
-            ValueError: If the meta-analysis data source is unsupported.
-
-        Examples:
-            >>> dummy_df = spark.createDataFrame([(1,2,3), (4,5,6)])
-            >>> manifest = FinnGenMetaManifest(df=dummy_df, meta=MetaAnalysisDataSource.FINNGEN_UKBB)
-            >>> sorted(manifest.ancestry_columns)
-            ['fg_n_cases', 'fg_n_controls', 'ukbb_n_cases', 'ukbb_n_controls']
-            >>> manifest = FinnGenMetaManifest(df=dummy_df, meta=MetaAnalysisDataSource.FINNGEN_UKBB_MVP)
-            >>> sorted(manifest.ancestry_columns)
-            ['MVP_AFR_n_cases', 'MVP_AFR_n_controls', 'MVP_AMR_n_cases', 'MVP_AMR_n_controls', 'MVP_EUR_n_cases', 'MVP_EUR_n_controls', 'fg_n_cases', 'fg_n_controls', 'ukbb_n_cases', 'ukbb_n_controls']
-        """
-        if self.meta == MetaAnalysisDataSource.FINNGEN_UKBB_R12:
-            return self.finngen_ancestry_cols | self.ukbb_ancestry_cols
-        elif self.meta in (
-            MetaAnalysisDataSource.FINNGEN_UKBB_MVP_R12,
-            MetaAnalysisDataSource.FINNGEN_UKBB_MVP_R13,
-        ):
-            return (
-                self.finngen_ancestry_cols
-                | self.ukbb_ancestry_cols
-                | self.mvp_ancestry_columns
-            )
-        else:
-            raise ValueError(f"Unsupported meta-analysis data source: {self.meta}")
-
-    @property
-    def n_samples(self) -> Column:
-        """Get the total number of samples."""
-        return self._add(*[f.col(c) for c in self.ancestry_columns]).alias("nSamples")
-
-    @property
-    def n_cases(self) -> Column:
-        """Get the total number of cases."""
-        ancestry_cols = [f.col(c) for c in self.ancestry_columns if "n_cases" in c]
-        return self._add(*ancestry_cols).alias("nCases")
-
-    @property
-    def n_controls(self) -> Column:
-        """Get the total number of cases."""
-        ancestry_cols = [f.col(c) for c in self.ancestry_columns if "n_controls" in c]
-        return self._add(*ancestry_cols).alias("nControls")
-
-    def _discovery_samples_finngen_ukbb(self) -> Column:
-        """Get the discovery samples for FinnGen UKBB meta-analysis.
-
-        This meta analysis includes only two cohorts:
-        - Finnish (from FinnGen)
-        - Non-Finnish European (from Pan-UKBB European subset)
-
-        All ancestries with sample size > 0 are included.
-
-        Returns:
-            Column: Spark Column representing the ancestry cocktail.
-        """
-        return f.filter(
-            f.array(
-                f.struct(
-                    (
-                        f.coalesce(f.col("fg_n_cases"), f.lit(0))
-                        + f.coalesce(f.col("fg_n_controls"), f.lit(0))
-                    )
-                    .cast(t.IntegerType())
-                    .alias("sampleSize"),
-                    f.lit("fin").alias("ancestry"),
-                ),
-                f.struct(
-                    (
-                        f.coalesce(f.col("ukbb_n_cases"), f.lit(0))
-                        + f.coalesce(f.col("ukbb_n_controls"), f.lit(0))
-                    )
-                    .cast(t.IntegerType())
-                    .alias("sampleSize"),
-                    f.lit("nfe").alias("ancestry"),
-                ),
-            ),
-            lambda x: x.sampleSize > 0.0,
-        ).alias("discoverySamples")
-
-    def _discovery_samples_finngen_ukbb_mvp(self) -> Column:
-        """Get the discovery samples for FinnGen UKBB MVP meta-analysis.
-
-        This meta analysis includes n of four cohorts:
-        - Finnish (from FinnGen)
-        - European (from Pan-UKBB European subset and MVP European subset)
-        - African (from MVP African subset)
-        - American (from MVP American subset)
-
-        All ancestries with sample size > 0 are included.
-
-        Returns:
-            Column: Spark Column representing the ancestry cocktail.
-        """
-        return f.filter(
-            f.array(
-                f.struct(
-                    (
-                        f.coalesce(f.col("fg_n_cases"), f.lit(0))
-                        + f.coalesce(f.col("fg_n_controls"), f.lit(0))
-                    )
-                    .cast(t.IntegerType())
-                    .alias("sampleSize"),
-                    f.lit("Finnish").alias("ancestry"),
-                ),
-                f.struct(
-                    (
-                        f.coalesce(f.col("ukbb_n_cases"), f.lit(0))
-                        + f.coalesce(f.col("ukbb_n_controls"), f.lit(0))
-                        + f.coalesce(f.col("MVP_EUR_n_cases"), f.lit(0))
-                        + f.coalesce(f.col("MVP_EUR_n_controls"), f.lit(0))
-                    )
-                    .cast(t.IntegerType())
-                    .alias("sampleSize"),
-                    f.lit("European").alias("ancestry"),
-                ),
-                f.struct(
-                    (
-                        f.coalesce(f.col("MVP_AFR_n_cases"), f.lit(0))
-                        + f.coalesce(f.col("MVP_AFR_n_controls"), f.lit(0))
-                    )
-                    .cast(t.IntegerType())
-                    .alias("sampleSize"),
-                    f.lit("African").alias("ancestry"),
-                ),
-                f.struct(
-                    (
-                        f.coalesce(f.col("MVP_AMR_n_cases"), f.lit(0))
-                        + f.coalesce(f.col("MVP_AMR_n_controls"), f.lit(0))
-                    )
-                    .cast(t.IntegerType())
-                    .alias("sampleSize"),
-                    f.lit("Admixed American").alias("ancestry"),
-                ),
-            ),
-            lambda x: x.sampleSize > 0.0,
-        ).alias("discoverySamples")
-
-    @property
-    def summary_statistics_location(self) -> Column:
-        """Get the summary statistics location column.
-
-        Returns:
-            Column: Spark Column representing the summary statistics location.
-        """
-        if self.sumstat_location_column in self._df.columns:
-            return (
-                f.col(self.sumstat_location_column)
-                .cast(t.StringType())
-                .alias("summarystatsLocation")
-            )
-        else:
-            return f.lit(None).cast(t.StringType()).alias("summarystatsLocation")
-
-    @property
-    def has_summary_statistics(self) -> Column:
-        """Get the has summary statistics column.
-
-        Returns:
-            Column: Spark Column representing whether the study has summary statistics.
-        """
-        return f.lit(True).alias("hasSumstats")
-
-    @property
-    def study_id(self) -> Column:
-        """Get the study ID column.
-
-        Returns:
-            Column: Spark Column representing the study ID.
-        """
-        return f.concat_ws(
-            "_",
-            f.lit(self.meta.value),
-            f.col("fg_phenotype"),
-        ).alias("studyId")
-
-    @property
-    def project_id(self) -> Column:
-        """Get the project ID column.
-
-        Returns:
-            Column: Spark Column representing the project ID.
-        """
-        return f.lit(self.meta.value).alias("projectId")
-
-    @property
-    def trait_from_source(self) -> Column:
-        """Get the trait from source column.
-
-        Returns:
-            Column: Spark Column representing the trait from source.
-        """
-        return f.col("name").alias("traitFromSource")
-
-    @property
     def n_cases_per_cohort(self) -> Column:
         """Get the number of cases per cohort column.
 
@@ -524,76 +275,408 @@ class FinnGenMetaManifest:
                 f.coalesce(f.col("ukbb_n_cases"), f.lit(0)).alias("nCases"),
             ),
         ]
-        if self.meta in (
-            MetaAnalysisDataSource.FINNGEN_UKBB_MVP_R12,
-            MetaAnalysisDataSource.FINNGEN_UKBB_MVP_R13,
-        ):
-            n_cases += [
-                f.struct(
-                    f.lit("MVP_EUR").alias("cohort"),
-                    f.coalesce(f.col("MVP_EUR_n_cases"), f.lit(0)).alias("nCases"),
-                ),
-                f.struct(
-                    f.lit("MVP_AFR").alias("cohort"),
-                    f.coalesce(f.col("MVP_AFR_n_cases"), f.lit(0)).alias("nCases"),
-                ),
-                f.struct(
-                    f.lit("MVP_AMR").alias("cohort"),
-                    f.coalesce(f.col("MVP_AMR_n_cases"), f.lit(0)).alias("nCases"),
-                ),
-            ]
+        match self:
+            case MetaAnalysisType.TWO_WAY:
+                return f.array(*n_cases).alias("nCasesPerCohort")
+            case MetaAnalysisType.THREE_WAY:
+                n_cases += [
+                    f.struct(
+                        f.lit("MVP_EUR").alias("cohort"),
+                        f.coalesce(f.col("MVP_EUR_n_cases"), f.lit(0)).alias("nCases"),
+                    ),
+                    f.struct(
+                        f.lit("MVP_AFR").alias("cohort"),
+                        f.coalesce(f.col("MVP_AFR_n_cases"), f.lit(0)).alias("nCases"),
+                    ),
+                    f.struct(
+                        f.lit("MVP_AMR").alias("cohort"),
+                        f.coalesce(f.col("MVP_AMR_n_cases"), f.lit(0)).alias("nCases"),
+                    ),
+                ]
+                return f.array(*n_cases).alias("nCasesPerCohort")
+            case _:
+                raise NotImplementedError(f"Unsupported meta-analysis type: {self}")
 
-        return f.array(*n_cases).alias("nCasesPerCohort")
+    def discovery_samples(self) -> Column:
+        """Get the discovery samples column based on the meta-analysis type."""
+        match self:
+            case MetaAnalysisType.THREE_WAY:
+                return f.filter(
+                    f.array(
+                        f.struct(
+                            reduce_add(
+                                f.col("fg_n_cases"), f.col("fg_n_controls")
+                            ).alias("sampleSize"),
+                            f.lit("Finnish").alias("ancestry"),
+                        ),
+                        f.struct(
+                            reduce_add(
+                                f.col("ukbb_n_cases"),
+                                f.col("ukbb_n_controls"),
+                                f.col("MVP_EUR_n_cases"),
+                                f.col("MVP_EUR_n_controls"),
+                            ).alias("sampleSize"),
+                            f.lit("European").alias("ancestry"),
+                        ),
+                        f.struct(
+                            reduce_add(
+                                f.col("MVP_AFR_n_cases"), f.col("MVP_AFR_n_controls")
+                            ).alias("sampleSize"),
+                            f.lit("African").alias("ancestry"),
+                        ),
+                        f.struct(
+                            reduce_add(
+                                f.col("MVP_AMR_n_cases"), f.col("MVP_AMR_n_controls")
+                            ).alias("sampleSize"),
+                            f.lit("Admixed American").alias("ancestry"),
+                        ),
+                    ),
+                    lambda x: x.sampleSize > 0.0,
+                ).alias("discoverySamples")
+            case MetaAnalysisType.TWO_WAY:
+                return f.filter(
+                    f.array(
+                        f.struct(
+                            reduce_add(
+                                f.col("fg_n_cases"), f.col("fg_n_controls")
+                            ).alias("sampleSize"),
+                            f.lit("fin").alias("ancestry"),
+                        ),
+                        f.struct(
+                            reduce_add(
+                                f.col("ukbb_n_cases"), f.col("ukbb_n_controls")
+                            ).alias("sampleSize"),
+                            f.lit("nfe").alias("ancestry"),
+                        ),
+                    ),
+                    lambda x: x.sampleSize > 0.0,
+                ).alias("discoverySamples")
+            case _:
+                raise NotImplementedError(f"Unsupported meta-analysis type: {self}")
 
-    @property
-    def n_samples_per_cohort(self) -> Column:
-        """Get the number of samples per cohort column.
+    def n_cases(self) -> Column:
+        """Get the total number of cases column based on the meta-analysis type."""
+        ancestry_cols = [c for c in self._get_required_columns() if "n_cases" in c]
+        return reduce_add(*[f.col(c) for c in ancestry_cols]).alias("nCases")
+
+    def n_samples(self) -> Column:
+        """Get the total number of samples column based on the meta-analysis type."""
+        ancestry_cols = [
+            c
+            for c in self._get_required_columns()
+            if "n_cases" in c or "n_controls" in c
+        ]
+        return reduce_add(*[f.col(c) for c in ancestry_cols]).alias("nSamples")
+
+    def n_controls(self) -> Column:
+        """Get the total number of controls column based on the meta-analysis type."""
+        ancestry_cols = [c for c in self._get_required_columns() if "n_controls" in c]
+        return reduce_add(*[f.col(c) for c in ancestry_cols]).alias("nControls")
+
+    def cohorts(self) -> Column:
+        """Build the Spark array of cohorts included in the meta-analysis.
 
         Returns:
-            Column: Spark Column representing the number of samples per cohort.
+            Column: Array column containing cohort identifiers.
         """
-        n_samples = [
-            f.struct(
-                f.lit("FinnGen").alias("cohort"),
-                (
-                    f.coalesce(f.col("fg_n_cases"), f.lit(0))
-                    + f.coalesce(f.col("fg_n_controls"), f.lit(0))
-                ).alias("nSamples"),
-            ),
-            f.struct(
-                f.lit("UKBB").alias("cohort"),
-                (
-                    f.coalesce(f.col("ukbb_n_cases"), f.lit(0))
-                    + f.coalesce(f.col("ukbb_n_controls"), f.lit(0))
-                ).alias("nSamples"),
-            ),
-        ]
-        if self.meta in (
-            MetaAnalysisDataSource.FINNGEN_UKBB_MVP_R12,
-            MetaAnalysisDataSource.FINNGEN_UKBB_MVP_R13,
-        ):
-            n_samples += [
-                f.struct(
-                    f.lit("MVP_EUR").alias("cohort"),
-                    (
-                        f.coalesce(f.col("MVP_EUR_n_cases"), f.lit(0))
-                        + f.coalesce(f.col("MVP_EUR_n_controls"), f.lit(0))
-                    ).alias("nSamples"),
-                ),
-                f.struct(
-                    f.lit("MVP_AFR").alias("cohort"),
-                    (
-                        f.coalesce(f.col("MVP_AFR_n_cases"), f.lit(0))
-                        + f.coalesce(f.col("MVP_AFR_n_controls"), f.lit(0))
-                    ).alias("nSamples"),
-                ),
-                f.struct(
-                    f.lit("MVP_AMR").alias("cohort"),
-                    (
-                        f.coalesce(f.col("MVP_AMR_n_cases"), f.lit(0))
-                        + f.coalesce(f.col("MVP_AMR_n_controls"), f.lit(0))
-                    ).alias("nSamples"),
-                ),
-            ]
+        match self:
+            case MetaAnalysisType.THREE_WAY:
+                return f.array(
+                    [
+                        f.lit("FINNGEN"),
+                        f.lit("pan-UKBB-EUR"),
+                        f.lit("MVP_EUR"),
+                        f.lit("MVP_AFR"),
+                        f.lit("MVP_AMR"),
+                    ]
+                )
+            case MetaAnalysisType.TWO_WAY:
+                return f.array([f.lit("FINNGEN"), f.lit("pan-UKBB-EUR")])
+            case _:
+                raise NotImplementedError(f"Unsupported meta-analysis type: {self}")
 
-        return f.array(*n_samples).alias("nSamplesPerCohort")
+    def study_id(self, release: FinnGenMetaRelease) -> Column:
+        """Get the study ID column based on the meta-analysis type and release."""
+        match self:
+            case MetaAnalysisType.THREE_WAY:
+                mix = f"{release.release_name}_UKBB_MVP_META"
+            case MetaAnalysisType.TWO_WAY:
+                mix = f"{release.release_name}_UKBB_META"
+            case _:
+                raise NotImplementedError(f"Unsupported meta-analysis type: {self}")
+        return f.concat_ws("_", f.lit(mix), f.col("fg_phenotype")).alias("studyId")
+
+    def project_id(self, release: FinnGenMetaRelease) -> Column:
+        """Get the project ID column based on the meta-analysis type and release."""
+        match self:
+            case MetaAnalysisType.THREE_WAY:
+                return f.lit(f"{release.release_name}_UKBB_MVP_META").alias("projectId")
+            case MetaAnalysisType.TWO_WAY:
+                return f.lit(f"{release.release_name}_UKBB_META").alias("projectId")
+            case _:
+                raise NotImplementedError(f"Unsupported meta-analysis type: {self}")
+
+    def _get_required_columns(self) -> set[str]:
+        """Get the set of required columns for the meta-analysis manifest.
+
+        Returns:
+            set[str]: Set of required column names.
+        """
+        match self:
+            case MetaAnalysisType.THREE_WAY:
+                return {
+                    "fg_phenotype",
+                    "name",
+                    "fg_n_cases",
+                    "fg_n_controls",
+                    "ukbb_n_cases",
+                    "ukbb_n_controls",
+                    "MVP_EUR_n_cases",
+                    "MVP_EUR_n_controls",
+                    "MVP_AFR_n_cases",
+                    "MVP_AFR_n_controls",
+                    "MVP_AMR_n_cases",
+                    "MVP_AMR_n_controls",
+                }
+            case MetaAnalysisType.TWO_WAY:
+                return {
+                    "fg_phenotype",
+                    "name",
+                    "fg_n_cases",
+                    "fg_n_controls",
+                    "ukbb_n_cases",
+                    "ukbb_n_controls",
+                }
+            case _:
+                raise NotImplementedError(f"Unsupported meta-analysis type: {self}")
+
+    def get_manifest_schema(self) -> t.StructType:
+        """Get the Spark schema for the meta-analysis manifest.
+
+        Returns:
+            t.StructType: Spark schema for the meta-analysis manifest.
+
+        """
+        match self:
+            case MetaAnalysisType.TWO_WAY:
+                return TWO_WAY_MANIFEST_SCHEMA
+            case MetaAnalysisType.THREE_WAY:
+                return THREE_WAY_MANIFEST_SCHEMA
+
+
+def has_low_min_allele_count(
+    min_allele_count: Column, min_allele_count_threshold: int = 20
+) -> Column:
+    """Find if variant has a low minor allele count in any of the cohorts.
+
+    Note:
+        If any cohort has a minor allele count below the threshold, the variant is considered to have a low minor allele count.
+
+
+    Args:
+        min_allele_count (Column): Column containing array of structs with `cohort` and `minAlleleCount` fields.
+        min_allele_count_threshold (int): Threshold below which the minor allele count is considered low.
+
+    Returns:
+        Column: Boolean column indicating if any cohort has a low minor allele count.
+
+    Examples:
+        >>> data = [("v1", [{"cohort": "A", "minAlleleCount": 30}, {"cohort": "B", "minAlleleCount": 25}]),
+        ...         ("v2", [{"cohort": "A", "minAlleleCount": 15}, {"cohort": "B", "minAlleleCount": 25}]),
+        ...         ("v3", [{"cohort": "A", "minAlleleCount": 30}, {"cohort": "B", "minAlleleCount": 10}]),
+        ...         ("v4", [{"cohort": "A", "minAlleleCount": 5},],)]
+        >>> schema = "variantId STRING, cohortMinAlleleCount ARRAY<STRUCT<cohort: STRING, minAlleleCount: INT>>"
+        >>> df = spark.createDataFrame(data, schema)
+        >>> df = df.withColumn("hasLowMinAlleleCount", has_low_min_allele_count(f.col("cohortMinAlleleCount"), 20))
+        >>> df.select("variantId", "hasLowMinAlleleCount").show()
+        +---------+--------------------+
+        |variantId|hasLowMinAlleleCount|
+        +---------+--------------------+
+        |       v1|               false|
+        |       v2|                true|
+        |       v3|                true|
+        |       v4|                true|
+        +---------+--------------------+
+        <BLANKLINE>
+
+    """
+    return (
+        f.size(
+            f.filter(
+                min_allele_count,
+                lambda x: (
+                    x.getField("minAlleleCount") < f.lit(min_allele_count_threshold)
+                ),
+            )
+        )
+        > 0
+    ).alias("hasLowMinAlleleCount")
+
+
+def min_allele_count(
+    cohort_min_allele_frequency: Column, n_samples_per_cohort: Column
+) -> Column:
+    """Minor Allele Count (MAC) per cohort.
+
+    Note:
+        If a cohort either do not have the maf or nCases, it will be dropped from the resulting MAC array.
+
+    Args:
+        cohort_min_allele_frequency (Column): Column containing array of structs with `cohort` and `minAlleleFrequency` fields.
+        n_samples_per_cohort (Column): Column containing array of structs with `cohort` and `nSamples` fields.
+
+    Returns:
+        Column: Column containing array of structs with `cohort` and `minAlleleCount` fields.
+
+    Examples:
+        >>> maf = {"v1": [{"cohort": "A", "minAlleleFrequency": 0.1}, {"cohort": "B", "minAlleleFrequency": 0.2}],
+        ...         "v2": [{"cohort": "A", "minAlleleFrequency": 0.05}, {"cohort": "D", "minAlleleFrequency": 0.15}],
+        ...         "v3": [{"cohort": "A", "minAlleleFrequency": 0.01}, {"cohort": "B", "minAlleleFrequency": 0.02}],}
+        >>> n_samples = {"v1": [{"cohort": "A", "nSamples": 100}, {"cohort": "B", "nSamples": 200}],
+        ...            "v2": [{"cohort": "A", "nSamples": 150}, {"cohort": "C", "nSamples": 250}],
+        ...            "v3": [{"cohort": "C", "nSamples": 50}, {"cohort": "D", "nSamples": 80}],}
+        >>> data = [("v1", maf["v1"], n_samples["v1"]),
+        ...         ("v2", maf["v2"], n_samples["v2"]),
+        ...         ("v3", maf["v3"], n_samples["v3"]),]
+        >>> schema = "variantId STRING, cohortMinAlleleFrequency ARRAY<STRUCT<cohort: STRING, minAlleleFrequency: DOUBLE>>, nSamplesPerCohort ARRAY<STRUCT<cohort: STRING, nSamples: INT>>"
+        >>> df = spark.createDataFrame(data, schema)
+        >>> df.show(truncate=False)
+        +---------+------------------------+--------------------+
+        |variantId|cohortMinAlleleFrequency|nSamplesPerCohort   |
+        +---------+------------------------+--------------------+
+        |v1       |[{A, 0.1}, {B, 0.2}]    |[{A, 100}, {B, 200}]|
+        |v2       |[{A, 0.05}, {D, 0.15}]  |[{A, 150}, {C, 250}]|
+        |v3       |[{A, 0.01}, {B, 0.02}]  |[{C, 50}, {D, 80}]  |
+        +---------+------------------------+--------------------+
+        <BLANKLINE>
+        >>> df = df.withColumn("cohortMinAlleleCount", min_allele_count(f.col("cohortMinAlleleFrequency"), f.col("nSamplesPerCohort")))
+        >>> df.select("variantId", "cohortMinAlleleCount").show(truncate=False)
+        +---------+--------------------+
+        |variantId|cohortMinAlleleCount|
+        +---------+--------------------+
+        |v1       |[{A, 20}, {B, 80}]  |
+        |v2       |[{A, 15}]           |
+        |v3       |[]                  |
+        +---------+--------------------+
+        <BLANKLINE>
+
+    """
+    return f.transform(
+        f.filter(
+            cohort_min_allele_frequency,
+            lambda left: f.exists(
+                n_samples_per_cohort,
+                lambda right: right.getField("cohort") == left.getField("cohort"),
+            ),
+        ),
+        lambda left: f.struct(
+            left.getField("cohort").alias("cohort"),
+            mac(
+                left.getField("minAlleleFrequency"),
+                f.filter(
+                    n_samples_per_cohort,
+                    lambda right: right.getField("cohort") == left.getField("cohort"),
+                )
+                .getItem(0)
+                .getField("nSamples"),
+            ).alias("minAlleleCount"),
+        ),
+    )
+
+
+def min_allele_frequency(allele_freq: Column) -> Column:
+    """Minor Allele Frequency (MAF) per cohort.
+
+    Note:
+        The resulting value is of DecimalType(11, 10) to ensure precision for low frequency variants.
+
+    Args:
+        allele_freq (Column): Column containing array of structs with `cohort` and `alleleFrequency` fields.
+
+    Returns:
+        Column: Column containing array of structs with `cohort` and `minAlleleFrequency` fields.
+
+    Examples:
+        >>> data = [("v1", [{"cohort": "A", "alleleFrequency": 0.1}, {"cohort": "B", "alleleFrequency": 0.7}]),]
+        >>> schema = "variantId STRING, alleleFrequencies ARRAY<STRUCT<cohort: STRING, alleleFrequency: DOUBLE>>"
+        >>> df = spark.createDataFrame(data, schema)
+        >>> df.show(truncate=False)
+        +---------+--------------------+
+        |variantId|alleleFrequencies   |
+        +---------+--------------------+
+        |v1       |[{A, 0.1}, {B, 0.7}]|
+        +---------+--------------------+
+        <BLANKLINE>
+
+        >>> df = df.withColumn("cohortMinAlleleFrequency", min_allele_frequency(f.col("alleleFrequencies")))
+        >>> df.show(truncate=False)
+        +---------+--------------------+--------------------------------------+
+        |variantId|alleleFrequencies   |cohortMinAlleleFrequency              |
+        +---------+--------------------+--------------------------------------+
+        |v1       |[{A, 0.1}, {B, 0.7}]|[{A, 0.1000000000}, {B, 0.3000000000}]|
+        +---------+--------------------+--------------------------------------+
+        <BLANKLINE>
+    """
+    return f.transform(
+        allele_freq,
+        lambda x: f.struct(
+            x.getField("cohort").alias("cohort"),
+            maf(x.getField("alleleFrequency")).alias("minAlleleFrequency"),
+        ),
+    )
+
+
+def has_low_min_allele_frequency(maf: Column, threshold: float = 1e-4) -> Column:
+    """Find if variant has a low minor allele frequency in any cohort.
+
+    Args:
+        maf (Column): Column containing array of structs with `cohort` and `minAlleleFrequency` fields.
+        threshold (float): Threshold below which the minor allele frequency is considered low. Default is 1e-4.
+
+    Returns:
+        Column: Boolean column indicating if any cohort has a low minor allele frequency.
+
+    Examples:
+        >>> maf = {"v1": [{"cohort": "A", "minAlleleFrequency": 0.0001}, {"cohort": "B", "minAlleleFrequency": 0.0002}],
+        ...         "v2": [{"cohort": "A", "minAlleleFrequency": None}, {"cohort": "D", "minAlleleFrequency": 0.15}],
+        ...         "v3": [{"cohort": "A", "minAlleleFrequency": 0.00001}, {"cohort": "B", "minAlleleFrequency": 0.2}],}
+        >>> data = [("v1", maf["v1"]),
+        ...         ("v2", maf["v2"]),
+        ...         ("v3", maf["v3"]),]
+        >>> schema = "variantId STRING, cohortMinAlleleFrequency ARRAY<STRUCT<cohort: STRING, minAlleleFrequency: DOUBLE>>"
+        >>> df = spark.createDataFrame(data, schema)
+        >>> df.show(truncate=False)
+        +---------+--------------------------+
+        |variantId|cohortMinAlleleFrequency  |
+        +---------+--------------------------+
+        |v1       |[{A, 1.0E-4}, {B, 2.0E-4}]|
+        |v2       |[{A, NULL}, {D, 0.15}]    |
+        |v3       |[{A, 1.0E-5}, {B, 0.2}]   |
+        +---------+--------------------------+
+        <BLANKLINE>
+
+        >>> df = df.withColumn("hasMinAlleleFrequency", has_low_min_allele_frequency(f.col("cohortMinAlleleFrequency")))
+        >>> df.select("variantId", "hasMinAlleleFrequency").show(truncate=False)
+        +---------+---------------------+
+        |variantId|hasMinAlleleFrequency|
+        +---------+---------------------+
+        |v1       |false                |
+        |v2       |false                |
+        |v3       |true                 |
+        +---------+---------------------+
+        <BLANKLINE>
+    """
+    non_empty_maf = f.filter(
+        maf, lambda x: x.getField("minAlleleFrequency").isNotNull()
+    )
+
+    n_cohorts_with_maf_below_threshold = f.size(
+        f.filter(
+            non_empty_maf,
+            lambda x: (
+                x.getField("minAlleleFrequency")
+                < f.lit(threshold).cast(t.DecimalType(11, 10))
+            ),
+        )
+    )
+    return n_cohorts_with_maf_below_threshold > 0

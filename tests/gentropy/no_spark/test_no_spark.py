@@ -9,10 +9,8 @@ from pyspark.sql import types as t
 
 from gentropy import Session
 from gentropy.common.session import SparkWriteMode
-from gentropy.datasource.finngen_meta import MetaAnalysisDataSource
-from gentropy.datasource.finngen_meta.summary_statistics import (
-    FinnGenUkbMvpMetaSummaryStatistics,
-)
+from gentropy.datasource.finngen_meta import FinnGenMetaRelease, MetaAnalysisType
+from gentropy.datasource.finngen_meta.three_way import ThreeWaySummaryStatistics
 from utils.spark import get_spark_testing_conf
 
 
@@ -129,16 +127,20 @@ class TestNoSpark:
         for p in [input_path_1, input_path_2]:
             assert Path(p).exists(), f"Test file {p} does not exist."
             assert Path(p + ".tbi").exists(), f"Index file {p}.tbi does not exist."
-        FinnGenUkbMvpMetaSummaryStatistics.bgzip_to_parquet(
+        ThreeWaySummaryStatistics.bgzip_to_parquet(
             session,
             summary_statistics_list=[input_path_1, input_path_2],
-            datasource=MetaAnalysisDataSource.FINNGEN_UKBB,
             raw_summary_statistics_output_path=output_path,
+            meta_analysis_type=MetaAnalysisType.THREE_WAY,
+            finngen_release=FinnGenMetaRelease(release="R12"),
         )
         # Now read back the parquet files and check if schema is equal to raw schema
+        from gentropy.datasource.finngen_meta.three_way import (
+            THREE_WAY_SUMMARY_STATISTICS_SCHEMA,
+        )
+
         df = session.spark.read.parquet(output_path)
-        expected_schema = FinnGenUkbMvpMetaSummaryStatistics.raw_schema
-        expected_schema = expected_schema.add(
+        expected_schema = THREE_WAY_SUMMARY_STATISTICS_SCHEMA.add(
             "studyId", t.StringType(), nullable=True
         )  # studyId is added during bgzip_to_parquet
         assert df.schema == expected_schema, "Schemas do not match after conversion."

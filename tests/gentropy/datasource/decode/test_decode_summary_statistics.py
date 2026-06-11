@@ -8,6 +8,7 @@ from pyspark.sql import Row
 from pyspark.sql import functions as f
 from pyspark.sql import types as t
 
+from gentropy.common.processing import infer_allele_frequency_from_maf
 from gentropy.common.session import Session
 from gentropy.dataset.study_index import ProteinQuantitativeTraitLocusStudyIndex
 from gentropy.dataset.summary_statistics import SummaryStatistics
@@ -276,8 +277,8 @@ class TestdeCODESummaryStatistics:
         mock_si.df = si_df
 
         config = deCODEHarmonisationConfig(
-            min_mac=10,
-            min_sample_size=30000,
+            min_allele_count_threshold=10,
+            sample_size_threshold=30000,
             flipping_window_size=10000,
         )
         result = deCODESummaryStatistics.from_source(
@@ -328,14 +329,12 @@ class TestdeCODESummaryStatistics:
         eur_af: float | None,
         expected_eaf: float,
     ) -> None:
-        """_infer_allele_frequency should pick imp_maf or 1-imp_maf based on proximity to EUR_AF."""
+        """The shared helper should pick impMAF or 1-impMAF based on EUR_AF."""
         df = session.spark.createDataFrame(
             [(imp_maf, eur_af)], "impMAF DOUBLE, EUR_AF DOUBLE"
         )
         row = df.select(
-            deCODESummaryStatistics._infer_allele_frequency(
-                f.col("impMAF"), f.col("EUR_AF")
-            )
+            infer_allele_frequency_from_maf(f.col("impMAF"), f.col("EUR_AF"))
         ).collect()[0]
         assert row.effectAlleleFrequencyFromSource == pytest.approx(
             expected_eaf, abs=1e-6

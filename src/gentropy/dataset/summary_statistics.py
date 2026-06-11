@@ -228,3 +228,37 @@ class SummaryStatistics(Dataset):
             )
             .unpersist()
         )
+
+    def annotate_study_with_sumstat_location(self, si: StudyIndex) -> StudyIndex:
+        """Annotate the study index with the location of the summary statistics.
+
+        Summary statistics must have been read from files under ``studyId=...``
+        partition directories. Any existing location column on the study index is
+        replaced before the new locations are joined.
+
+        Args:
+            si (StudyIndex): Study index to be annotated.
+
+        Returns:
+            StudyIndex: Annotated study index.
+        """
+        pat = r"^(.*\/studyId=.*?\/).*$"
+        sumstat_locations = f.broadcast(
+            self.df.select(
+                "studyId",
+                f.regexp_extract(f.input_file_name(), pat, 1).alias(
+                    "summarystatsLocation"
+                ),
+            )
+            .coalesce(1)
+            .distinct()
+        )
+        return si.__class__(
+            _df=si.df.coalesce(1)
+            .drop("summarystatsLocation")
+            .join(sumstat_locations, on="studyId", how="left")
+            .withColumn(
+                "hasSumstats",
+                f.col("summarystatsLocation").isNotNull(),
+            )
+        )

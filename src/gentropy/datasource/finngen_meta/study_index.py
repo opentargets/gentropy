@@ -1,109 +1,76 @@
-"""Finngen meta analysis study index data source module."""
+"""FinnGen meta-analysis study-index data source."""
 
 from __future__ import annotations
 
-from pyspark.sql import Column
 from pyspark.sql import functions as f
+from pyspark.sql import types as t
 
-from gentropy import StudyIndex
+from gentropy import Session
+from gentropy.dataset.study_index import MetaAnalysisStudyIndex, StudyIndex
 from gentropy.datasource.finngen.efo_mapping import EFOMapping
-from gentropy.datasource.finngen_meta import (
-    FinnGenMetaManifest,
-    MetaAnalysisDataSource,
-)
+from gentropy.datasource.finngen_meta import FinnGenMetaRelease, MetaAnalysisType
 
 
-class FinnGenMetaStudyIndex:
-    """FinnGen meta-analysis study index."""
+class FinnGenMetaManifest(MetaAnalysisStudyIndex):
+    """FinnGen meta-analysis manifest."""
 
     @classmethod
-    def get_constants(cls) -> dict[str, dict[str, Column]]:
-        """Get constants for FinnGen meta-analysis study index.
-
-        Args:
-            release (str): FinnGen release identifier used to filter constants (e.g. ``"R12"``). Defaults to ``"R12"``.
-
-        Returns:
-            dict[str, dict[str, Column]]: Constants for each meta-analysis data source.
-        """
-        return {
-            MetaAnalysisDataSource.FINNGEN_UKBB_MVP_R13.value: {
-                "initialSampleSize": f.lit(
-                    "1,550,147 (MVP: nEUR=449,042, nAFR=121,177, nAMR=59,048; FinnGenR13: nNFE=500,349; pan-UKBB-EUR: nEUR=420,531)"
-                ),  # based on https://metaresults-ukbb.finngen.fi/about
-                "cohorts": f.array(
-                    f.lit("MVP"), f.lit("FinnGen"), f.lit("pan-UKBB-EUR")
-                ),
-                "publicationDate": f.lit("2025-12-01"),
-            },
-            MetaAnalysisDataSource.FINNGEN_UKBB_R12.value: {
-                "initialSampleSize": f.lit(
-                    "920,880 (FinnGenR12: nNFE=500,349; pan-UKBB-EUR: nEUR=420,531)"
-                ),  # based on https://metaresults-ukbb.finngen.fi/about
-                "cohorts": f.array(f.lit("FinnGen"), f.lit("pan-UKBB-EUR")),
-                "publicationDate": f.lit("2024-11-01"),
-            },
-            MetaAnalysisDataSource.FINNGEN_UKBB_MVP_R12.value: {
-                "initialSampleSize": f.lit(
-                    "1,550,147 (MVP: nEUR=449,042, nAFR=121,177, nAMR=59,048; FinnGenR12: nNFE=500,349; pan-UKBB-EUR: nEUR=420,531)"
-                ),  # based on https://mvp-ukbb.finngen.fi/about
-                "publicationDate": f.lit("2024-11-01"),
-                "cohorts": f.array(
-                    f.lit("MVP"), f.lit("FinnGen"), f.lit("pan-UKBB-EUR")
-                ),
-            },
-        }
-
-    @classmethod
-    def from_finngen_manifest(
-        cls: type[FinnGenMetaStudyIndex],
-        manifest: FinnGenMetaManifest,
+    def from_source(
+        cls,
+        session: Session,
+        manifest_path: str,
+        meta_analysis_type: MetaAnalysisType,
+        release: FinnGenMetaRelease,
         efo_mapping: EFOMapping,
-        finngen_release: str = "R12",
-    ) -> StudyIndex:
-        """Create the FinnGen meta-analysis study index from the manifest.
+    ) -> MetaAnalysisStudyIndex:
+        """Load the FinnGen meta-analysis manifest from a specified path.
+
+        The returned meta-analysis study index is annotated with
+        ``traitFromSourceMappedIds`` from the supplied EFO mapping.
 
         Args:
-            manifest (FinnGenMetaManifest): FinnGen meta-analysis manifest.
-            efo_mapping (EFOMapping): EFO mapping data source.
-            finngen_release (str): FinnGen release identifier used to filter EFO mappings (e.g. ``"R12"``). Defaults to ``"R12"``.
+            session (Session): Session object.
+            manifest_path (str): Path to the manifest file.
+            meta_analysis_type (MetaAnalysisType): Type of meta-analysis conducted for this release.
+            release (FinnGenMetaRelease): FinnGen release identifier (e.g. ``"R12"``).
+            efo_mapping (EFOMapping): EFO mapping used to annotate
+                ``traitFromSourceMappedIds``.
 
         Returns:
-            StudyIndex: FinnGen meta-analysis study index.
+            MetaAnalysisStudyIndex: Loaded manifest object.
+
+        Raises:
+            AssertionError: If the manifest file does not contain the required columns.
         """
-        # Read the mapping
-        df = manifest.df.select(
-            f.col("studyId"),
-            f.col("projectId"),
+        df = session.spark.read.csv(
+            manifest_path,
+            schema=meta_analysis_type.get_manifest_schema(),
+            sep="\t",
+            header=True,
+        ).select(
+            meta_analysis_type.study_id(release),
+            meta_analysis_type.project_id(release),
             f.lit("gwas").alias("studyType"),
-            f.col("traitFromSource"),
-            f.col("hasSumstats"),
-            f.col("summarystatsLocation"),
-            f.col("discoverySamples"),
-            f.col("nSamples"),
-            f.col("nCases"),
-            f.col("nControls"),
-            # Add constant columns
-            *[
-                value.alias(key)
-                for key, value in cls.get_constants()[manifest.meta.value].items()
-            ],
-            # Compute the ld structure `ldPopulationStructure` from discovery samples.
-            StudyIndex.aggregate_and_map_ancestries(f.col("discoverySamples")).alias(
-                "ldPopulationStructure"
-            ),
+            f.lit("binary").alias("traitType"),
+            f.col("name").alias("traitFromSource"),
+            meta_analysis_type.n_cases(),
+            meta_analysis_type.n_controls(),
+            meta_analysis_type.n_samples(),
+            meta_analysis_type.discovery_samples(),
+            meta_analysis_type.publication_date().alias("publicationDate"),
+            meta_analysis_type.initial_sample_size().alias("initialSampleSize"),
+            meta_analysis_type.cohorts().alias("cohorts"),
+            # Populated later when summary-statistics annotation takes place.
+            f.lit(False).alias("hasSumstats"),
+            f.lit(None).cast(t.StringType()).alias("summarystatsLocation"),
+            meta_analysis_type.n_cases_per_cohort(),
+            meta_analysis_type.n_samples_per_cohort(),
+        ).withColumn(
+            "ldPopulationStructure",
+            StudyIndex.aggregate_and_map_ancestries(f.col("discoverySamples")),
         )
-
-        # Create study index.
-        study_index = StudyIndex(_df=df)
-
-        # Add EFO mappings - `traitFromSourceMappedIds`.
-        study_index = efo_mapping.annotate_study_index(
-            study_index, finngen_release=finngen_release
-        )
-
-        # Coalesce to a single file.
-        return StudyIndex(
-            _df=study_index.df.coalesce(1),
-            _schema=StudyIndex.get_schema(),
+        msi = MetaAnalysisStudyIndex(_df=df)
+        return efo_mapping.annotate_study_index(
+            study_index=msi,
+            finngen_release=release.release,
         )
