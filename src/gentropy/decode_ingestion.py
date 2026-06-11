@@ -314,12 +314,12 @@ class deCODESummaryStatisticsHarmonisationStep:
 
         """
         config = deCODEHarmonisationConfig(
-            min_mac=min_mac_threshold,
-            min_sample_size=min_sample_size_threshold,
+            min_allele_count_threshold=min_mac_threshold,
+            sample_size_threshold=min_sample_size_threshold,
             flipping_window_size=flipping_window_size,
             remove_star_alleles=remove_star_alleles,
-            remove_equal_alleles=remove_equal_alleles,
-            remove_multiallelics=remove_multiallelics,
+            remove_monomorphic_alleles=remove_equal_alleles,
+            remove_multiallelic_alleles=remove_multiallelics,
             verify_atgc=verify_atgc,
         )
 

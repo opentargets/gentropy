@@ -2,25 +2,91 @@
 
 from pathlib import Path
 from typing import Any
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pyspark.sql.types as t
 import pytest
 from pyspark.sql import DataFrame, Row
+from pyspark.sql import functions as f
 
 from gentropy import Session, VariantIndex
+from gentropy.common.processing import combined_allele_frequency
 from gentropy.dataset.variant_direction import VariantDirection
 from gentropy.datasource.finngen_meta import (
-    FinnGenMetaManifest,
-    MetaAnalysisDataSource,
+    FinnGenMetaRelease,
+    MetaAnalysisHarmonisationConfig,
+    MetaAnalysisType,
 )
-from gentropy.datasource.finngen_meta.summary_statistics import (
-    FinnGenUkbMvpMetaSummaryStatistics,
-)
+from gentropy.datasource.finngen_meta.study_index import FinnGenMetaManifest
+from gentropy.datasource.finngen_meta.three_way import ThreeWaySummaryStatistics
 
 
 class TestFinnGenUkbMvpMetaSummaryStatistics:
     """Test FinnGenUkbMvpMetaSummaryStatistics dataset."""
+
+    def test_combined_allele_frequency(self, session: Session) -> None:
+        """Test sample-size-weighted allele frequency and its boundary cases."""
+        schema = (
+            "variantId STRING, "
+            "alleleFrequencies ARRAY<STRUCT<cohort: STRING, alleleFrequency: DOUBLE>>, "
+            "nSamplesPerCohort ARRAY<STRUCT<cohort: STRING, nSamples: INT>>"
+        )
+        data = [
+            (
+                "weighted_intersection",
+                [
+                    {"cohort": "A", "alleleFrequency": 0.6},
+                    {"cohort": "B", "alleleFrequency": 0.2},
+                    {"cohort": "C", "alleleFrequency": 0.9},
+                ],
+                [
+                    {"cohort": "A", "nSamples": 100},
+                    {"cohort": "B", "nSamples": 200},
+                    {"cohort": "D", "nSamples": 500},
+                ],
+            ),
+            (
+                "zero_frequency",
+                [{"cohort": "A", "alleleFrequency": 0.0}],
+                [{"cohort": "A", "nSamples": 100}],
+            ),
+            (
+                "one_frequency",
+                [{"cohort": "A", "alleleFrequency": 1.0}],
+                [{"cohort": "A", "nSamples": 100}],
+            ),
+            (
+                "zero_samples",
+                [{"cohort": "A", "alleleFrequency": 0.5}],
+                [{"cohort": "A", "nSamples": 0}],
+            ),
+            (
+                "no_matching_cohort",
+                [{"cohort": "A", "alleleFrequency": 0.5}],
+                [{"cohort": "B", "nSamples": 100}],
+            ),
+        ]
+
+        actual = {
+            row.variantId: row.combinedAlleleFrequency
+            for row in (
+                session.spark.createDataFrame(data, schema)
+                .withColumn(
+                    "combinedAlleleFrequency",
+                    combined_allele_frequency(
+                        f.col("alleleFrequencies"), f.col("nSamplesPerCohort")
+                    ),
+                )
+                .select("variantId", "combinedAlleleFrequency")
+                .collect()
+            )
+        }
+
+        assert actual["weighted_intersection"] == pytest.approx(1 / 3)
+        assert actual["zero_frequency"] == 0.0
+        assert actual["one_frequency"] == 1.0
+        assert actual["zero_samples"] is None
+        assert actual["no_matching_cohort"] is None
 
     @pytest.fixture
     def raw_sumstat_required_schema(self) -> t.StructType:
@@ -209,12 +275,8 @@ class TestFinnGenUkbMvpMetaSummaryStatistics:
         return VariantDirection.from_variant_index(variant_index)
 
     @pytest.fixture
-    @patch("gentropy.datasource.finngen_meta.summary_statistics.FinnGenMetaManifest")
-    def finngen_manifest(
-        self, mock_manifest: MagicMock, session: Session
-    ) -> FinnGenMetaManifest:
+    def finngen_manifest(self, session: Session) -> FinnGenMetaManifest:
         """Mock of the FinnGenMetaManifest."""
-        # Mock FinnGen manifest
         finngen_manifest_data = [
             (
                 "FINNGEN_TEST",
@@ -269,6 +331,7 @@ class TestFinnGenUkbMvpMetaSummaryStatistics:
             ]
         )
 
+        mock_manifest = MagicMock(spec=FinnGenMetaManifest)
         mock_manifest.df = session.spark.createDataFrame(
             finngen_manifest_data, finngen_manifest_schema
         )
@@ -285,10 +348,11 @@ class TestFinnGenUkbMvpMetaSummaryStatistics:
         input_path = "tests/gentropy/data_samples/*_meta_out.tsv.gz"
         output_path = tmp_path / "output"
         with pytest.raises(KeyError) as e:
-            FinnGenUkbMvpMetaSummaryStatistics.bgzip_to_parquet(
+            ThreeWaySummaryStatistics.bgzip_to_parquet(
                 session,
                 summary_statistics_list=[input_path],
-                datasource=MetaAnalysisDataSource.FINNGEN_UKBB_MVP,
+                meta_analysis_type=MetaAnalysisType.THREE_WAY,
+                finngen_release=FinnGenMetaRelease(release="R12"),
                 raw_summary_statistics_output_path=output_path.as_posix(),
             )
 
@@ -306,7 +370,8 @@ class TestFinnGenUkbMvpMetaSummaryStatistics:
                     "perform_min_allele_count_filter": True,
                     "min_allele_frequency_threshold": 1e-4,
                     "perform_min_allele_frequency_filter": False,
-                    "filter_out_ambiguous_variants": False,
+                    "remove_ambiguous_alleles": False,
+                    "perform_samples_size_filter": False,
                 },
                 id="default params",
             ),
@@ -320,11 +385,11 @@ class TestFinnGenUkbMvpMetaSummaryStatistics:
         params: dict[str, Any],
     ) -> None:
         """Test summary statistics from source."""
-        sumstat = FinnGenUkbMvpMetaSummaryStatistics.from_source(
+        sumstat = ThreeWaySummaryStatistics.from_source(
             raw_sumstat_input_df,
-            finngen_manifest,
             variant_direction,
-            **params,
+            finngen_manifest,
+            config=MetaAnalysisHarmonisationConfig(**params),
         )
 
         assert sumstat.df.count() == 4, "wrong number of variants"
