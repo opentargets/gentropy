@@ -5,9 +5,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import numpy as np
-import pyspark.ml.functions as fml
+import pandas as pd
 from pydantic import BaseModel
-from pyspark.ml.linalg import DenseVector, Vectors, VectorUDT
 from pyspark.sql import functions as f
 from pyspark.sql import types as t
 
@@ -64,8 +63,24 @@ class ColocPIP(ColocalisationMethodInterface):
         """
         config = _ColocPIPConfig(**kwargs)
 
-        # Register UDF for calculating posteriors from PIPs
-        posteriors_udf = f.udf(cls._get_posteriors, VectorUDT())
+        priorc1, priorc2, priorc12 = config.priorc1, config.priorc2, config.priorc12
+
+        def _posteriors_batch(
+            left_variants: pd.Series,
+            left_pips: pd.Series,
+            right_variants: pd.Series,
+            right_pips: pd.Series,
+        ) -> pd.Series:
+            return pd.Series(
+                [
+                    cls._get_posteriors(lv, lp, rv, rp, priorc1, priorc2, priorc12)
+                    for lv, lp, rv, rp in zip(
+                        left_variants, left_pips, right_variants, right_pips
+                    )
+                ]
+            )
+
+        posteriors_udf = f.pandas_udf(_posteriors_batch, t.ArrayType(t.DoubleType()))
 
         return Colocalisation(
             _df=(
@@ -116,17 +131,14 @@ class ColocPIP(ColocalisationMethodInterface):
                         f.col("left_pips").cast("array<double>"),
                         f.col("right_variants").cast("array<string>"),
                         f.col("right_pips").cast("array<double>"),
-                        f.lit(config.priorc1),
-                        f.lit(config.priorc2),
-                        f.lit(config.priorc12),
                     ),
                 )
                 # Extract individual hypothesis posteriors
-                .withColumn("h0", fml.vector_to_array(f.col("posteriors")).getItem(0))
-                .withColumn("h1", fml.vector_to_array(f.col("posteriors")).getItem(1))
-                .withColumn("h2", fml.vector_to_array(f.col("posteriors")).getItem(2))
-                .withColumn("h3", fml.vector_to_array(f.col("posteriors")).getItem(3))
-                .withColumn("h4", fml.vector_to_array(f.col("posteriors")).getItem(4))
+                .withColumn("h0", f.col("posteriors").getItem(0))
+                .withColumn("h1", f.col("posteriors").getItem(1))
+                .withColumn("h2", f.col("posteriors").getItem(2))
+                .withColumn("h3", f.col("posteriors").getItem(3))
+                .withColumn("h4", f.col("posteriors").getItem(4))
                 # Clean up intermediate columns
                 .drop(
                     "posteriors",
@@ -154,7 +166,7 @@ class ColocPIP(ColocalisationMethodInterface):
         p1: float,
         p2: float,
         p12: float,
-    ) -> DenseVector:
+    ) -> list[float]:
         """Approximate coloc posteriors using only PIPs, following the R coloc.pp logic.
 
         Args:
@@ -167,7 +179,7 @@ class ColocPIP(ColocalisationMethodInterface):
             p12 (float): Prior on variant being causal for traits 1 and 2
 
         Returns:
-            DenseVector: [H0, H1, H2, H3, H4] posteriors
+            list[float]: [H0, H1, H2, H3, H4] posteriors
         """
         # Union of SNPs
         snp_names = np.unique(np.concatenate((pip1_variants, pip2_variants)))
@@ -214,4 +226,4 @@ class ColocPIP(ColocalisationMethodInterface):
         PP4 = np.exp(PP4 - denom)
         PP3 = np.exp(PP3 - denom)
 
-        return Vectors.dense([0.0, 0.0, 0.0, PP3, PP4])
+        return [0.0, 0.0, 0.0, float(PP3), float(PP4)]
