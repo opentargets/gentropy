@@ -77,7 +77,8 @@ class ColocPIP(ColocalisationMethodInterface):
                     for lv, lp, rv, rp in zip(
                         left_variants, left_pips, right_variants, right_pips
                     )
-                ]
+                ],
+                dtype=object,
             )
 
         posteriors_udf = f.pandas_udf(_posteriors_batch, t.ArrayType(t.DoubleType()))
