@@ -17,6 +17,8 @@ The ingestion workflow is split into independently runnable steps:
 
 from __future__ import annotations
 
+from pyspark.sql import functions as f
+
 from gentropy.common.session import Session
 from gentropy.dataset.study_index import MetaAnalysisStudyIndex
 from gentropy.dataset.summary_statistics import SummaryStatistics
@@ -222,9 +224,12 @@ class TwoWayMetaSumstatHarmonisationStep:
 
         session.logger.info("Writing harmonised summary statistics.")
         (
-            hss.df.write.mode(session.write_mode)
+            hss.df.repartitionByRange(
+                f.col("studyId"), f.col("chromosome"), f.col("position")
+            )
+            .write.mode(session.write_mode)
             .partitionBy("studyId", "chromosome")
-            .option("maxRecordsPerFile", 50_000_000)
+            .option("maxRecordsPerFile", 5_000_000)
             .parquet(harmonised_summary_statistics_output_path)
         )
         session.logger.info(
@@ -376,9 +381,12 @@ class ThreeWayMetaSumstatHarmonisationStep:
 
         session.logger.info("Writing harmonised summary statistics.")
         (
-            hss.df.write.mode(session.write_mode)
+            hss.df.repartitionByRange(
+                f.col("studyId"), f.col("chromosome"), f.col("position")
+            )
+            .write.mode(session.write_mode)
             .partitionBy("studyId", "chromosome")
-            .option("maxRecordsPerFile", 50_000_000)
+            .option("maxRecordsPerFile", 5_000_000)
             .parquet(harmonised_summary_statistics_output_path)
         )
         session.logger.info(

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from pyspark import StorageLevel
 from pyspark.sql import Column, DataFrame
 from pyspark.sql import functions as f
 from pyspark.sql import types as t
@@ -178,8 +179,10 @@ class TwoWaySummaryStatistics(SummaryStatistics):
             # NOTE: repartition("chromosome") produces very uneven partitions,
             # Spark attempts then to fall back to `dynamic partitioning` algorithm
             # which fails after N failures.
+            # 4_000 partitions: VariantDirection has ~80 M rows; gives ~20 K rows/task
+            # which keeps the sort-merge join balanced across executors.
             .repartitionByRange(4_000, "chromosome", "rangeId", "variantId")
-            .persist()
+            .persist(StorageLevel.MEMORY_AND_DISK)
         )
 
         sumstats = raw_summary_statistics
@@ -319,7 +322,9 @@ class TwoWaySummaryStatistics(SummaryStatistics):
             f.col("standardError"),
         )
 
-        return SummaryStatistics(sumstats).sanity_filter()
+        result = SummaryStatistics(sumstats).sanity_filter()
+        vd_slice.unpersist()
+        return result
 
     @staticmethod
     def extract_study_phenotype_from_path(file_path: Column) -> Column:

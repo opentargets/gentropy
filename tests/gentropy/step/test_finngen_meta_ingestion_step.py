@@ -23,15 +23,16 @@ from gentropy.finngen_meta import (
 def mock_df(session: Session) -> DataFrame:
     """Minimal DataFrame used as a stand-in for any Spark dataset.
 
-    Includes ``studyId`` and ``chromosome`` so writes with
-    ``partitionBy("studyId", "chromosome")`` succeed.
+    Includes ``studyId``, ``chromosome``, and ``position`` so writes with
+    ``partitionBy("studyId", "chromosome")`` and
+    ``repartitionByRange(..., "position")`` both succeed.
     """
     return session.spark.createDataFrame(
         [
-            Row(studyId="study1", chromosome="1", A=1, B="a"),
-            Row(studyId="study2", chromosome="2", A=2, B="b"),
+            Row(studyId="study1", chromosome="1", position=100, A=1, B="a"),
+            Row(studyId="study2", chromosome="2", position=200, A=2, B="b"),
         ],
-        schema="studyId STRING, chromosome STRING, A INT, B STRING",
+        schema="studyId STRING, chromosome STRING, position INT, A INT, B STRING",
     )
 
 
