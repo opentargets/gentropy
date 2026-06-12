@@ -26,14 +26,13 @@ from pyspark.sql import types as t
 from gentropy import Session, SummaryStatistics
 from gentropy.common.processing import (
     flag_equal_alleles,
-    flag_multiallelics,
     flag_non_atgc_alleles,
-    flag_star_allele,
     infer_allele_frequency_from_maf,
     mac,
     normalize_chromosome,
 )
 from gentropy.common.stats import pvalue_from_neglogpval
+from gentropy.config import deCODESummaryStatisticsHarmonisationConfig as _Defaults
 from gentropy.dataset.study_index import ProteinQuantitativeTraitLocusStudyIndex
 from gentropy.dataset.variant_direction import DEFAULT_WINDOW_SIZE, VariantDirection
 from gentropy.datasource.decode import deCODEDataSource
@@ -69,33 +68,39 @@ class deCODEHarmonisationConfig(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
+    # NOTE: Defaults below are sourced from the Hydra step config
+    # `deCODESummaryStatisticsHarmonisationConfig` (imported as `_Defaults`) so the
+    # values are declared in exactly one place (`gentropy.config`). The Hydra config
+    # exposes a subset of these knobs under its own parameter names, which are
+    # mapped onto the validated field names here.
+
     perform_min_allele_count_filter: bool = True
     """Whether to filter variants based on minor allele count (MAC) threshold."""
-    min_allele_count_threshold: int = Field(default=20, ge=1)
+    min_allele_count_threshold: int = Field(
+        default=_Defaults.min_mac_threshold, ge=1
+    )
     """Minimum minor allele count required to retain a variant."""
 
     perform_samples_size_filter: bool = True
     """Whether to remove variants with low sample size."""
-    sample_size_threshold: int = Field(default=1000, ge=1)
+    sample_size_threshold: int = Field(
+        default=_Defaults.min_sample_size_threshold, ge=1
+    )
     """Minimum sample size to retain a variant. Must be >= 1."""
 
     flipping_window_size: int = DEFAULT_WINDOW_SIZE
     """Window size (bp) used to partition the VariantDirection dataset (exact match only!).
         Defaults to `DEFAULT_WINDOW_SIZE` from `gentropy.dataset.variant_direction`.
     """
-    remove_star_alleles: bool = True
-    """Whether to remove variants with `*` alleles during harmonisation."""
-    remove_monomorphic_alleles: bool = True
+    remove_monomorphic_alleles: bool = _Defaults.remove_equal_alleles
     """Whether to remove variants with equal effect and other alleles during harmonisation."""
     remove_ambiguous_alleles: bool = False
     """Whether to remove strand-ambiguous variants (A/T or C/G)."""
-    remove_multiallelic_alleles: bool = True
-    """Whether to remove variants with multiple other alleles during harmonisation.
-        These alleles are marked as ! in summary statistics. For the sake of flipping, we
-        remove these from both effect and other allele columns.
+    verify_atgc: bool = _Defaults.verify_atgc
+    """Whether to verify that all alleles are A/T/G/C during harmonisation.
+        Strict ATGC validation also removes `*` (star) and `!` (multiallelic) alleles,
+        so no dedicated symbol filters are required.
     """
-    verify_atgc: bool = True
-    """Whether to verify that all alleles are A/T/G/C during harmonisation."""
 
 
 class deCODESummaryStatistics:
@@ -284,17 +289,9 @@ class deCODESummaryStatistics:
         n_sumstats = decode_study_index.df.count()
         # Pre-filtering on alleles based on configuration.
         sumstats = raw_summary_statistics
-        if config.remove_star_alleles:
-            sumstats = sumstats.filter(
-                flag_star_allele(f.col("effectAllele"), f.col("otherAllele"))
-            )
         if config.remove_monomorphic_alleles:
             sumstats = sumstats.filter(
                 flag_equal_alleles(f.col("effectAllele"), f.col("otherAllele"))
-            )
-        if config.remove_multiallelic_alleles:
-            sumstats = sumstats.filter(
-                flag_multiallelics(f.col("effectAllele"), f.col("otherAllele"))
             )
         if config.verify_atgc:
             sumstats = sumstats.filter(

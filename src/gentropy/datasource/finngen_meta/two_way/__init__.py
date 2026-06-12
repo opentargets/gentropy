@@ -12,9 +12,7 @@ from gentropy import SummaryStatistics
 from gentropy.common.processing import (
     combined_allele_frequency,
     flag_equal_alleles,
-    flag_multiallelics,
     flag_non_atgc_alleles,
-    flag_star_allele,
     normalize_af,
     normalize_chromosome,
 )
@@ -185,12 +183,8 @@ class TwoWaySummaryStatistics(SummaryStatistics):
         )
 
         sumstats = raw_summary_statistics
-        if config.remove_star_alleles:
-            sumstats = sumstats.filter(flag_star_allele(f.col("REF"), f.col("ALT")))
         if config.remove_monomorphic_alleles:
             sumstats = sumstats.filter(flag_equal_alleles(f.col("REF"), f.col("ALT")))
-        if config.remove_multiallelic_alleles:
-            sumstats = sumstats.filter(flag_multiallelics(f.col("REF"), f.col("ALT")))
         if config.verify_atgc:
             sumstats = sumstats.filter(
                 flag_non_atgc_alleles(f.col("REF"), f.col("ALT"))
