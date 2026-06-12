@@ -9,6 +9,7 @@
 **Tech Stack:** PySpark (SQL functions + higher-order functions `transform`/`aggregate`, `pandas_udf`), NumPy, pytest, uv.
 
 **Test command (used throughout):**
+
 ```
 uv run --group test --group dev pytest <targets> -q
 ```
@@ -20,6 +21,7 @@ uv run --group test --group dev pytest <targets> -q
 ### Task 1: Native `get_logsum_column` helper in `common/stats.py`
 
 **Files:**
+
 - Modify: `src/gentropy/common/stats.py` (add function after `get_logsum`, ~line 42)
 - Test: doctest in the function + `tests/gentropy/common/test_stats.py` (create if absent)
 
@@ -113,6 +115,7 @@ git commit -m "feat(stats): add native get_logsum_column (Spark-SQL logsumexp)"
 ### Task 2: Characterization tests locking current posterior output
 
 **Files:**
+
 - Test: `tests/gentropy/method/test_colocalisation_method.py` (append two tests)
 
 These pin the CURRENT numeric output at ≤1e-9 so the refactor is provably equivalent. Golden values are the ones already documented in `test_coloc_semantic` (case 1).
@@ -219,30 +222,38 @@ git commit -m "test(coloc): characterization tests pinning posterior output at 1
 ### Task 3: Convert `ColocPIP._get_posteriors` to a pandas_udf
 
 **Files:**
+
 - Modify: `src/gentropy/method/colocalisation/coloc_pip.py`
 - Test: `tests/gentropy/method/test_colocalisation_method.py` (existing + Task 2 tests)
 
 - [ ] **Step 1: Update imports**
 
 In `coloc_pip.py`, change the import block. Remove:
+
 ```python
 import pyspark.ml.functions as fml
 from pyspark.ml.linalg import DenseVector, Vectors, VectorUDT
 ```
+
 Add:
+
 ```python
 import pandas as pd
 ```
+
 Keep `import numpy as np`, `from pyspark.sql import functions as f`, `from pyspark.sql import types as t`, `from gentropy.common.stats import get_logsum`. (`DenseVector` is still referenced in the `_get_posteriors` return type hint — update that hint in Step 3.)
 
 - [ ] **Step 2: Replace the UDF registration + application**
 
 In `ColocPIP.colocalise`, replace:
+
 ```python
         # Register UDF for calculating posteriors from PIPs
         posteriors_udf = f.udf(cls._get_posteriors, VectorUDT())
 ```
+
 with:
+
 ```python
         priorc1, priorc2, priorc12 = config.priorc1, config.priorc2, config.priorc12
 
@@ -265,6 +276,7 @@ with:
 ```
 
 Then replace the posterior extraction block:
+
 ```python
                 # Extract individual hypothesis posteriors
                 .withColumn("h0", fml.vector_to_array(f.col("posteriors")).getItem(0))
@@ -273,7 +285,9 @@ Then replace the posterior extraction block:
                 .withColumn("h3", fml.vector_to_array(f.col("posteriors")).getItem(3))
                 .withColumn("h4", fml.vector_to_array(f.col("posteriors")).getItem(4))
 ```
+
 with:
+
 ```python
                 # Extract individual hypothesis posteriors
                 .withColumn("h0", f.col("posteriors").getItem(0))
@@ -284,6 +298,7 @@ with:
 ```
 
 The `posteriors_udf(...)` call itself (the `.withColumn("posteriors", posteriors_udf(...))` with the 4 cast columns) is unchanged EXCEPT remove the 3 trailing `f.lit(...)` prior arguments — the udf now takes only the 4 array columns:
+
 ```python
                 .withColumn(
                     "posteriors",
@@ -299,21 +314,29 @@ The `posteriors_udf(...)` call itself (the `.withColumn("posteriors", posteriors
 - [ ] **Step 3: Change `_get_posteriors` return type to a plain list**
 
 In `ColocPIP._get_posteriors`, change the signature return hint and final return. Replace:
+
 ```python
     ) -> DenseVector:
 ```
+
 with:
+
 ```python
     ) -> list[float]:
 ```
+
 and replace:
+
 ```python
         return Vectors.dense([0.0, 0.0, 0.0, PP3, PP4])
 ```
+
 with:
+
 ```python
         return [0.0, 0.0, 0.0, float(PP3), float(PP4)]
 ```
+
 Update the docstring `Returns:` line from `DenseVector: ...` to `list[float]: [H0, H1, H2, H3, H4] posteriors`.
 
 - [ ] **Step 4: Run ColocPIP tests to verify they pass**
@@ -333,31 +356,39 @@ git commit -m "perf(coloc): vectorise ColocPIP posteriors with pandas_udf"
 ### Task 4: Rewrite `Coloc` to native Spark SQL (no UDFs)
 
 **Files:**
+
 - Modify: `src/gentropy/method/colocalisation/coloc.py`
 - Test: `tests/gentropy/method/test_colocalisation_method.py`
 
 - [ ] **Step 1: Update imports**
 
 In `coloc.py`, remove:
+
 ```python
 import numpy as np
 import pyspark.ml.functions as fml
 from pyspark.ml.linalg import DenseVector, Vectors, VectorUDT
 from pyspark.sql.types import DoubleType
 ```
+
 and change:
+
 ```python
 from gentropy.common.stats import get_logsum
 ```
+
 to:
+
 ```python
 from gentropy.common.stats import get_logsum_column
 ```
+
 Keep `import pyspark.sql.functions as f` and `import pyspark.sql.types as t`. Also remove the now-unused `from numpy.typing import NDArray` under `TYPE_CHECKING` (it was only used by `_get_posteriors`).
 
 - [ ] **Step 2: Remove the UDF registrations**
 
 Delete these lines from `Coloc.colocalise`:
+
 ```python
         # register udfs
         logsum = f.udf(get_logsum, DoubleType())
@@ -367,6 +398,7 @@ Delete these lines from `Coloc.colocalise`:
 - [ ] **Step 3: Collect arrays instead of vectors in the aggregation**
 
 In the `.agg(...)`, replace each `fml.array_to_vector(f.collect_list(...))` with plain `f.collect_list(...)`. Specifically the five aggregates become:
+
 ```python
                     f.collect_list(f.col("left_logBF")).alias("left_logBF"),
                     f.collect_list(f.col("right_logBF")).alias("right_logBF"),
@@ -378,17 +410,21 @@ In the `.agg(...)`, replace each `fml.array_to_vector(f.collect_list(...))` with
                     ),
                     f.collect_list(f.col("sum_log_bf")).alias("sum_log_bf"),
 ```
+
 (The `numberColocalisingVariants` and `tagVariantSourceList` aggregates are unchanged.)
 
 - [ ] **Step 4: Use native logsumexp for logsum1/2/12**
 
 Replace:
+
 ```python
                 .withColumn("logsum1", logsum(f.col("left_logBF")))
                 .withColumn("logsum2", logsum(f.col("right_logBF")))
                 .withColumn("logsum12", logsum(f.col("sum_log_bf")))
 ```
+
 with:
+
 ```python
                 .withColumn("logsum1", get_logsum_column(f.col("left_logBF")))
                 .withColumn("logsum2", get_logsum_column(f.col("right_logBF")))
@@ -398,13 +434,16 @@ with:
 - [ ] **Step 5: Drop vector_to_array in `anySnpBothSidesHigh`**
 
 In the `f.arrays_zip(...)` inside the `anySnpBothSidesHigh` column, replace:
+
 ```python
                                 fml.vector_to_array(f.col("left_posteriorProbability")),
                                 fml.vector_to_array(
                                     f.col("right_posteriorProbability")
                                 ),
 ```
+
 with:
+
 ```python
                                 f.col("left_posteriorProbability"),
                                 f.col("right_posteriorProbability"),
@@ -413,6 +452,7 @@ with:
 - [ ] **Step 6: Replace the posteriors UDF block with native softmax**
 
 Replace this block (the `allBF` build through the `h0..h4` extraction):
+
 ```python
                 # posteriors
                 .withColumn(
@@ -450,7 +490,9 @@ Replace this block (the `allBF` build through the `h0..h4` extraction):
                     "anySnpBothSidesHigh",
                 )
 ```
+
 with:
+
 ```python
                 # posteriors: softmax over the 5 hypothesis Bayes factors,
                 # computed natively as exp(lH_i - logsumexp(allBF)).
@@ -511,9 +553,11 @@ git commit -m "perf(coloc): rewrite Coloc posteriors in native Spark SQL"
 - [ ] **Step 1: Run the full colocalisation test surface**
 
 Run:
+
 ```
 uv run --group test --group dev pytest tests/gentropy/method/test_colocalisation_method.py tests/gentropy/step/test_colocalisation_step.py tests/gentropy/dataset/test_colocalisation.py tests/gentropy/common/test_stats.py "src/gentropy/method/colocalisation/coloc.py" "src/gentropy/method/colocalisation/coloc_pip.py" "src/gentropy/common/stats.py" -q
 ```
+
 Expected: PASS (unit, semantic, characterization, step, and doctests).
 
 - [ ] **Step 2: Confirm no stray vector/UDF references remain**
