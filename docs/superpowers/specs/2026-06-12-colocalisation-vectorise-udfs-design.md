@@ -136,7 +136,7 @@ to `get_logsum`'s value, and (c) characterization tests on full
 
 - Any change to `ECaviar` or the method dispatch.
 - The overlap-pipeline changes (`StudyLocus._overlapping_peaks` repartition,
-  `ColocalisationStep` persist) are out of scope *for this design doc* but ship
+  `ColocalisationStep` persist) are out of scope _for this design doc_ but ship
   in the same PR (#1232) as a separate, complementary set of commits.
 
 ## Files
