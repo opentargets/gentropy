@@ -161,26 +161,26 @@ class TestFinnGenMetaManifest:
             MetaAnalysisType.TWO_WAY: [
                 Row(
                     discoverySamples=[
-                        Row(sampleSize=444489, ancestry="fin"),
-                        Row(sampleSize=389150, ancestry="nfe"),
+                        Row(sampleSize=444489, ancestry="Finnish"),
+                        Row(sampleSize=389150, ancestry="European"),
                     ]
                 ),
                 Row(
                     discoverySamples=[
-                        Row(sampleSize=489237, ancestry="fin"),
-                        Row(sampleSize=380751, ancestry="nfe"),
+                        Row(sampleSize=489237, ancestry="Finnish"),
+                        Row(sampleSize=380751, ancestry="European"),
                     ]
                 ),
                 Row(
                     discoverySamples=[
-                        Row(sampleSize=494318, ancestry="fin"),
-                        Row(sampleSize=390987, ancestry="nfe"),
+                        Row(sampleSize=494318, ancestry="Finnish"),
+                        Row(sampleSize=390987, ancestry="European"),
                     ]
                 ),
                 Row(
                     discoverySamples=[
-                        Row(sampleSize=494048, ancestry="fin"),
-                        Row(sampleSize=408123, ancestry="nfe"),
+                        Row(sampleSize=494048, ancestry="Finnish"),
+                        Row(sampleSize=408123, ancestry="European"),
                     ]
                 ),
             ],
