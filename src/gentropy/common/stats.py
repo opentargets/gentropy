@@ -52,6 +52,16 @@ def get_logsum_column(arr: Column) -> Column:
 
     Returns:
         Column: logsumexp of the array, as a double column.
+
+    Examples:
+        >>> df = spark.createDataFrame([([0.2, 0.1, 0.05, 0.0],)], ["arr"])
+        >>> df.select(f.round(get_logsum_column(f.col("arr")), 6).alias("ls")).show()
+        +--------+
+        |      ls|
+        +--------+
+        |1.476557|
+        +--------+
+        <BLANKLINE>
     """
     max_val = f.array_max(arr)
     return max_val + f.log(
