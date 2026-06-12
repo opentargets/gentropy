@@ -66,17 +66,14 @@ class ColocPIP(ColocalisationMethodInterface):
         priorc1, priorc2, priorc12 = config.priorc1, config.priorc2, config.priorc12
 
         def _posteriors_batch(
-            left_variants: pd.Series,
+            variants: pd.Series,
             left_pips: pd.Series,
-            right_variants: pd.Series,
             right_pips: pd.Series,
         ) -> pd.Series:
             return pd.Series(
                 [
-                    cls._get_posteriors(lv, lp, rv, rp, priorc1, priorc2, priorc12)
-                    for lv, lp, rv, rp in zip(
-                        left_variants, left_pips, right_variants, right_pips
-                    )
+                    cls._get_posteriors(v, lp, rp, priorc1, priorc2, priorc12)
+                    for v, lp, rp in zip(variants, left_pips, right_pips)
                 ],
                 dtype=object,
             )
@@ -113,13 +110,13 @@ class ColocPIP(ColocalisationMethodInterface):
                     )
                     .cast(t.LongType())
                     .alias("numberColocalisingVariants"),
-                    # Collect variant IDs and PIPs for left study
-                    f.collect_list(f.col("tagVariantId")).alias("left_variants"),
+                    # The overlap is aligned by tag variant, so both traits share a
+                    # single variant list — collect it once (not once per side) to
+                    # halve the string-array memory fed into the pandas_udf.
+                    f.collect_list(f.col("tagVariantId")).alias("variants"),
                     f.collect_list(f.col("left_posteriorProbability")).alias(
                         "left_pips"
                     ),
-                    # Collect variant IDs and PIPs for right study
-                    f.collect_list(f.col("tagVariantId")).alias("right_variants"),
                     f.collect_list(f.col("right_posteriorProbability")).alias(
                         "right_pips"
                     ),
@@ -128,9 +125,8 @@ class ColocPIP(ColocalisationMethodInterface):
                 .withColumn(
                     "posteriors",
                     posteriors_udf(
-                        f.col("left_variants").cast("array<string>"),
+                        f.col("variants").cast("array<string>"),
                         f.col("left_pips").cast("array<double>"),
-                        f.col("right_variants").cast("array<string>"),
                         f.col("right_pips").cast("array<double>"),
                     ),
                 )
@@ -143,9 +139,8 @@ class ColocPIP(ColocalisationMethodInterface):
                 # Clean up intermediate columns
                 .drop(
                     "posteriors",
-                    "left_variants",
+                    "variants",
                     "left_pips",
-                    "right_variants",
                     "right_pips",
                 )
                 .withColumn("colocalisationMethod", f.lit(cls.METHOD_NAME))
@@ -160,9 +155,8 @@ class ColocPIP(ColocalisationMethodInterface):
 
     @staticmethod
     def _get_posteriors(
-        pip1_variants: NDArray[np.str_],
+        variants: NDArray[np.str_],
         pip1_values: NDArray[np.float64],
-        pip2_variants: NDArray[np.str_],
         pip2_values: NDArray[np.float64],
         p1: float,
         p2: float,
@@ -171,10 +165,10 @@ class ColocPIP(ColocalisationMethodInterface):
         """Approximate coloc posteriors using only PIPs, following the R coloc.pp logic.
 
         Args:
-            pip1_variants (NDArray[np.str_]): Array of variant names for trait 1
-            pip1_values (NDArray[np.float64]): Array of PIP values for trait 1
-            pip2_variants (NDArray[np.str_]): Array of variant names for trait 2
-            pip2_values (NDArray[np.float64]): Array of PIP values for trait 2
+            variants (NDArray[np.str_]): Array of variant names shared by both traits
+                (the overlap is aligned by tag variant, so both sides share one list)
+            pip1_values (NDArray[np.float64]): PIP values for trait 1, aligned to ``variants``
+            pip2_values (NDArray[np.float64]): PIP values for trait 2, aligned to ``variants``
             p1 (float): Prior on variant being causal for trait 1
             p2 (float): Prior on variant being causal for trait 2
             p12 (float): Prior on variant being causal for traits 1 and 2
@@ -182,10 +176,10 @@ class ColocPIP(ColocalisationMethodInterface):
         Returns:
             list[float]: [H0, H1, H2, H3, H4] posteriors
         """
-        # Union of SNPs
-        snp_names = np.unique(np.concatenate((pip1_variants, pip2_variants)))
-        pip1_dict = dict(zip(pip1_variants, pip1_values))
-        pip2_dict = dict(zip(pip2_variants, pip2_values))
+        # Both traits share the same (tag-variant-aligned) SNP list.
+        snp_names = np.unique(variants)
+        pip1_dict = dict(zip(variants, pip1_values))
+        pip2_dict = dict(zip(variants, pip2_values))
 
         # Ensure priors are never zero to avoid log(0)
         pseudocount = 1e-16
