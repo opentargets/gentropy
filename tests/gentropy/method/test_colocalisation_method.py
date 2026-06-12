@@ -835,3 +835,83 @@ def test_coloc_pip_beta_ratio(spark: SparkSession) -> None:
     assert "betaRatioSignAverage" in result.asDict(), (
         "Beta ratio should be included in results"
     )
+
+
+def test_coloc_characterization(spark: SparkSession) -> None:
+    """Pin Coloc posteriors at 1e-9 (single high-PP overlapping SNP)."""
+    observed_overlap = StudyLocusOverlap(
+        _df=spark.createDataFrame(
+            cast(
+                Any,
+                [
+                    {
+                        "leftStudyLocusId": "1",
+                        "rightStudyLocusId": "2",
+                        "rightStudyType": "eqtl",
+                        "chromosome": "1",
+                        "tagVariantId": "snp",
+                        "statistics": {
+                            "left_logBF": 10.3,
+                            "right_logBF": 10.5,
+                            "left_beta": 0.1,
+                            "right_beta": 0.2,
+                            "left_posteriorProbability": 0.91,
+                            "right_posteriorProbability": 0.92,
+                        },
+                    }
+                ],
+            ),
+            schema=StudyLocusOverlap.get_schema(),
+        ),
+        _schema=StudyLocusOverlap.get_schema(),
+    )
+    row = (
+        Coloc.colocalise(observed_overlap, overlap_size_cutoff=5, posterior_cutoff=0.1)
+        .df.select("h0", "h1", "h2", "h3", "h4")
+        .collect()[0]
+        .asDict()
+    )
+    expected = {
+        "h0": 9.254841951638903e-5,
+        "h1": 2.7517068829182966e-4,
+        "h2": 3.3609423764447284e-4,
+        "h3": 9.254841952564387e-13,
+        "h4": 0.9992961866536217,
+    }
+    for k, v in expected.items():
+        assert abs(row[k] - v) <= 1e-9, f"{k}: {row[k]} != {v}"
+
+
+def test_coloc_pip_characterization(spark: SparkSession) -> None:
+    """Pin ColocPIP h3/h4 at 1e-9 (single high-PIP overlapping SNP)."""
+    observed_overlap = StudyLocusOverlap(
+        _df=spark.createDataFrame(
+            cast(
+                Any,
+                [
+                    {
+                        "leftStudyLocusId": "1",
+                        "rightStudyLocusId": "2",
+                        "rightStudyType": "eqtl",
+                        "chromosome": "1",
+                        "tagVariantId": "snp1",
+                        "statistics": {
+                            "left_posteriorProbability": 0.95,
+                            "right_posteriorProbability": 0.90,
+                            "left_beta": 0.5,
+                            "right_beta": 0.3,
+                        },
+                    }
+                ],
+            ),
+            schema=StudyLocusOverlap.get_schema(),
+        ),
+        _schema=StudyLocusOverlap.get_schema(),
+    )
+    row = ColocPIP.colocalise(observed_overlap).df.collect()[0].asDict()
+    # H0-H2 are exactly zero in ColocPIP; H3+H4 normalise to 1.
+    assert row["h0"] == 0.0 and row["h1"] == 0.0 and row["h2"] == 0.0
+    # Single shared SNP is the degenerate diff_arg==0 branch: h3 -> 0, h4 -> 1
+    # in closed form. This pins the normalisation and the degenerate path.
+    assert abs(row["h3"] - 0.0) <= 1e-9, f"h3: {row['h3']}"
+    assert abs(row["h4"] - 1.0) <= 1e-9, f"h4: {row['h4']}"
