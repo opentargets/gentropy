@@ -160,7 +160,7 @@ class Coloc(ColocalisationMethodInterface):
                                 f.col("right_posteriorProbability"),
                                 f.col("tagVariantSourceList"),
                             ),
-                            # row["left_posteriorProbability"] = left PP, row["right_posteriorProbability"] = right PP
+                            # arrays_zip keys struct fields by input column name
                             lambda row: f.when(
                                 (row["tagVariantSourceList"] == "both")
                                 & (row["left_posteriorProbability"] > config.posterior_cutoff)
@@ -196,7 +196,7 @@ class Coloc(ColocalisationMethodInterface):
                     + f.log(f.col("priorc2"))
                     + f.col("logdiff"),
                 )
-                .drop("right_logsum", "left_logsum", "sumlogsum", "max", "logdiff")
+                .drop("sumlogsum", "max", "logdiff")
                 # h4
                 .withColumn("lH4bf", f.log(f.col("priorc12")) + f.col("logsum12"))
                 # cleaning
