@@ -801,7 +801,10 @@ def convert_bgzip_to_parquet(
             df.withColumn("fg_phenotype", extract_phenotype(f.input_file_name()))
             .withColumn("studyId", meta_analysis_type.study_id(release=finngen_release))
             .drop("fg_phenotype")
-            .repartitionByRange(60, "#CHR", "POS")
+            # One file per study: the harmonisation step re-shuffles on
+            # (chromosome, rangeId, variantId) anyway, so intra-study ordering
+            # here buys nothing and repartitionByRange(60) is redundant overhead.
+            .repartition(1)
         )
         # NOTE: Write is done per studyId partition from the thread pool to
         # make sure we do not need to collect all data after the thread execution.
