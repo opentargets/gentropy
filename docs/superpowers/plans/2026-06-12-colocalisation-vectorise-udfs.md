@@ -583,4 +583,4 @@ git commit -m "chore(coloc): drop unused imports after UDF removal"
 
 - `pandas_udf` requires `pyarrow` (already a project dependency); it does not depend on `spark.sql.execution.arrow.pyspark.enabled`.
 - Numeric equivalence: ColocPIP stays bit-identical (same per-row math via `get_logsum`); Coloc is equivalent within ≤1e-12 (Spark sequential `aggregate` sum vs numpy summation differ only for loci with >128 tags), covered by the 1e-9 characterization tolerance.
-- Do NOT touch `find_overlaps`, `ECaviar`, the method dispatch, or `coloc_pip_ecaviar` — those are out of scope (the overlap changes live in separate PR #1232).
+- Do NOT touch `find_overlaps`, `ECaviar`, the method dispatch, or `coloc_pip_ecaviar` — those are out of scope for this plan. (The overlap-pipeline changes — `_overlapping_peaks` repartition + `ColocalisationStep` persist — are a separate set of commits that ship in the same PR, #1232.)

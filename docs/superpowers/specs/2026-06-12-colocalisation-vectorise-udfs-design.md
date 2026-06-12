@@ -10,7 +10,8 @@ The colocalisation methods compute hypothesis posteriors with **row-at-a-time
 Python UDFs** (`f.udf`), which serialise data one row at a time and incur
 per-row Python pickling. On a release-scale `coloc_pip_ecaviar` run these UDFs
 are CPU-bound and a meaningful (secondary) cost. The dominant cost is the
-overlap self-join skew (addressed separately in PR #1232); this work targets
+overlap self-join skew (addressed by the `study_locus.py`/`colocalisation.py`
+changes that ship alongside this work in the same PR, #1232); this work targets
 the UDF serialization/compute overhead.
 
 Affected sites:
@@ -133,8 +134,10 @@ to `get_logsum`'s value, and (c) characterization tests on full
 
 ## Out of scope (YAGNI)
 
-- Any change to `ECaviar`, the method dispatch, or the overlap pipeline
-  (separate PR #1232).
+- Any change to `ECaviar` or the method dispatch.
+- The overlap-pipeline changes (`StudyLocus._overlapping_peaks` repartition,
+  `ColocalisationStep` persist) are out of scope *for this design doc* but ship
+  in the same PR (#1232) as a separate, complementary set of commits.
 
 ## Files
 
