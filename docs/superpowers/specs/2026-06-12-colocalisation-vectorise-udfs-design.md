@@ -1,8 +1,8 @@
-# Vectorise colocalisation posterior UDFs (pandas_udf)
+# Optimise colocalisation posterior computation (Coloc native-SQL + ColocPIP pandas_udf)
 
 **Date:** 2026-06-12
 **Branch:** `perf/colocalisation-vectorise-udfs` (off `dev`)
-**Status:** Approved (Approach A)
+**Status:** Approved (Approach A+C)
 
 ## Problem
 
@@ -11,7 +11,7 @@ Python UDFs** (`f.udf`), which serialise data one row at a time and incur
 per-row Python pickling. On a release-scale `coloc_pip_ecaviar` run these UDFs
 are CPU-bound and a meaningful (secondary) cost. The dominant cost is the
 overlap self-join skew (addressed separately in PR #1232); this work targets
-the UDF serialization overhead.
+the UDF serialization/compute overhead.
 
 Affected sites:
 
@@ -25,17 +25,21 @@ Affected sites:
 
 ## Goal
 
-Replace the Python UDFs with `pandas_udf` (Arrow-batched), keeping output
-**numerically equivalent** to the current implementation. No change to method
-signatures, dispatch, schema, or the `coloc_pip_ecaviar` merge.
+Eliminate the Python-UDF overhead, keeping output **numerically equivalent** to
+the current implementation. No change to method signatures, dispatch, schema, or
+the `coloc_pip_ecaviar` merge.
 
-## Approach A (chosen)
+## Chosen approach (A + C)
 
-Core technique: replace `f.udf(..., VectorUDT())` with
-`f.pandas_udf(..., ArrayType(DoubleType()))` and switch all UDF-facing columns
-from `VectorUDT` to `array<double>`. This deletes every `array_to_vector` /
-`vector_to_array` wrapper (they exist only to feed vector-typed UDFs); the
-existing `.getItem(i)` extraction works unchanged on arrays.
+Two different techniques, picked per method by what the data shape allows:
+
+- **ColocPIP → `pandas_udf` (Approach A).** Its ragged variant-name set-union
+  across two PIP arrays does not express cleanly in Spark SQL, so it stays a
+  UDF — but Arrow-batched instead of row-at-a-time.
+- **Coloc → native Spark SQL (Approach C).** Both its UDFs (logsumexp and the
+  5-hypothesis softmax) are pure log-space arithmetic that maps directly onto
+  native `array_max`/`transform`/`aggregate`/`exp`/`log`, removing Python
+  entirely.
 
 ### ColocPIP (`coloc_pip.py`)
 
@@ -44,29 +48,53 @@ existing `.getItem(i)` extraction works unchanged on arrays.
   are **bound via closure** (per-job constants) instead of passed as 3 constant
   `f.lit` columns.
 - Body iterates the Arrow batch (Series of ragged arrays) applying the **exact
-  current per-row math verbatim**; returns `list[float]` `[0,0,0,PP3,PP4]`
-  instead of `Vectors.dense(...)`.
-- Drop `fml.vector_to_array` at the `h0..h4` extraction.
+  current per-row math verbatim** (still calls `get_logsum` per row); returns
+  `list[float]` `[0,0,0,PP3,PP4]` instead of `Vectors.dense(...)`. Return type
+  `ArrayType(DoubleType())`.
+- Drop `fml.vector_to_array` at the `h0..h4` extraction (the column is now an
+  array).
 - Imports: remove `VectorUDT/DenseVector/Vectors/fml`; add `pandas as pd`,
   `ArrayType`.
 - Win = Arrow batch serialization replacing the row-at-a-time pickle path.
-  (Still loops in Python — ragged variant-name set-union can't go numpy-wide.)
+  (Still loops in Python — ragged set-union can't go numpy-wide.)
+- **Numerically bit-identical** to current code.
 
-### Coloc (`coloc.py`)
+### Shared helper (`common/stats.py`)
 
-- **logsum**: `f.udf(get_logsum, DoubleType())` → `pandas_udf(DoubleType())`
-  mapping `get_logsum` over the batch. Inputs (`left_logBF`, `right_logBF`,
-  `sum_log_bf`) become plain `f.collect_list(...)` arrays (drop
-  `array_to_vector`). `get_logsum` reused verbatim → bit-identical.
-- **`_get_posteriors`** (always exactly 5 BFs): `pandas_udf(ArrayType(DoubleType()))`
-  that **stacks the batch into an (n×5) numpy array and vectorises**
-  logsumexp→exp across the whole batch. `allBF` input becomes `f.array(...)`
-  (drop `array_to_vector`); output drops `vector_to_array`.
-- Remove the now-pointless `array_to_vector`→`vector_to_array` round-trip on
+Add a native column-expression sibling to `get_logsum`:
+
+```python
+def get_logsum_column(arr: Column) -> Column:
+    m = f.array_max(arr)
+    return m + f.log(
+        f.aggregate(
+            f.transform(arr, lambda x: f.exp(x - m)),
+            f.lit(0.0),
+            lambda acc, x: acc + x,
+        )
+    )
+```
+
+With a doctest pinned to the same value as `get_logsum`
+(`[0.2, 0.1, 0.05, 0] → 1.476557`).
+
+### Coloc (`coloc.py`) — fully UDF-free
+
+- **logsum1/2/12**: replace the 3 `logsum(...)` UDF calls with
+  `get_logsum_column(...)` on plain `f.collect_list(...)` arrays (drop the
+  `array_to_vector` wrappers).
+- **posteriors (softmax)**: replace the `_get_posteriors` UDF with native
+  columns — `denom = get_logsum_column(f.array(lH0bf..lH4bf))`, then
+  `h_i = f.exp(f.col("lH{i}bf") - denom)`. Delete the `_get_posteriors` method
+  (and its doctest), the `allBF` build, and the `array_to_vector` /
+  `vector_to_array` wrappers.
+- Remove the dead `array_to_vector`→`vector_to_array` round-trip on
   `left/right_posteriorProbability` (never fed to a UDF — only re-read as
   arrays in `anySnpBothSidesHigh`).
-- Update the `_get_posteriors` **doctest** to reflect ndarray/list return
-  instead of `DenseVector`.
+- The existing `logdiff`/`max`/h3 native log-space block is untouched.
+- Drop now-unused imports (`fml`, `VectorUDT/DenseVector/Vectors`, `DoubleType`,
+  `np`, `get_logsum`).
+- Result: **zero Python/serialization in Coloc**.
 
 ## Correctness strategy (test-first)
 
@@ -75,31 +103,42 @@ existing `.getItem(i)` extraction works unchanged on arrays.
    on a small fixture — golden values captured from current `dev`. Confirm they
    pass on current code, commit.
 2. Refactor → the same tests must still pass.
-3. Assertions: **exact** for counts / `numberColocalisingVariants`; **tight
-   float tolerance (≤1e-12)** for posteriors.
+3. Assertions: **exact** for counts / `numberColocalisingVariants`; **≤1e-9 abs
+   tolerance** for all posteriors.
 
 ## Numeric-equivalence note
 
-`ColocPIP` and `Coloc` logsum reuse `get_logsum` per row → **bit-identical**.
-The only spot that can differ at float-noise level (≤1e-12, from summation
-order) is `Coloc._get_posteriors`'s batch-vectorised logsumexp — scientifically
-irrelevant, covered by the test tolerance. (Approved default; bit-exact
-alternative would loop it per-row, forgoing vectorisation there.)
+- **ColocPIP**: **bit-identical** (`get_logsum` per row, unchanged math).
+- **Coloc**: **float-tolerance equivalent throughout**, not bit-identical.
+  Spark's sequential `aggregate` sum and numpy's summation differ in float
+  ordering for **large loci (>128 tags)**; for ≤128 elements they match, so the
+  5-element softmax is effectively exact. Differences are ≤1e-12 relative,
+  scientifically irrelevant — covered by the ≤1e-9 test tolerance. (Approved
+  trade-off: bit-exactness on Coloc given up to eliminate its Python.)
+
+## Risk
+
+Higher than a pure pandas_udf change: Coloc's `logsum1/2/12` and softmax are
+rewritten in SQL. Mitigated by (a) the existing `logdiff` block already being
+native log-space math, (b) `get_logsum_column` carrying its own doctest pinned
+to `get_logsum`'s value, and (c) characterization tests on full
+`Coloc.colocalise` output.
 
 ## Constraints / dependencies
 
-- Requires Arrow (`pyarrow` already a project dependency). Confirm
-  `spark.sql.execution.arrow.pyspark.enabled` is effective in the test session.
+- ColocPIP `pandas_udf` requires Arrow (`pyarrow` already a project
+  dependency). Confirm `spark.sql.execution.arrow.pyspark.enabled` is effective
+  in the test session.
 - No new dependencies.
 
 ## Out of scope (YAGNI)
 
-- Native Spark-SQL rewrite of Coloc's logsumexp (Approach C) — possible future
-  follow-up if Coloc's logsum stays hot after this change.
-- Any change to `ECaviar`, the method dispatch, or the overlap pipeline.
+- Any change to `ECaviar`, the method dispatch, or the overlap pipeline
+  (separate PR #1232).
 
 ## Files
 
-1. `src/gentropy/method/colocalisation/coloc_pip.py`
-2. `src/gentropy/method/colocalisation/coloc.py`
-3. `tests/gentropy/method/test_colocalisation_method.py`
+1. `src/gentropy/common/stats.py` (new `get_logsum_column` helper)
+2. `src/gentropy/method/colocalisation/coloc_pip.py`
+3. `src/gentropy/method/colocalisation/coloc.py`
+4. `tests/gentropy/method/test_colocalisation_method.py`
