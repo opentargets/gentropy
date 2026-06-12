@@ -41,6 +41,28 @@ def get_logsum(arr: NDArray[np.float64]) -> float:
     return float(result)
 
 
+def get_logsum_column(arr: Column) -> Column:
+    """Native Spark column logsumexp, matching :func:`get_logsum`.
+
+    Computes ``max(arr) + log(sum(exp(arr - max(arr))))`` using only Spark SQL
+    expressions, so it runs without Python serialization.
+
+    Args:
+        arr (Column): array<double> column.
+
+    Returns:
+        Column: logsumexp of the array, as a double column.
+    """
+    max_val = f.array_max(arr)
+    return max_val + f.log(
+        f.aggregate(
+            f.transform(arr, lambda x: f.exp(x - max_val)),
+            f.lit(0.0),
+            lambda acc, x: acc + x,
+        )
+    )
+
+
 def split_pvalue(pvalue: float) -> tuple[float, int]:
     """Convert a float to 10 based exponent and mantissa.
 
