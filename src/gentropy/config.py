@@ -92,9 +92,7 @@ class deCODESummaryStatisticsHarmonisationConfig(StepConfig):
     flipping_window_size: int = (
         10_000_000  # must match variant_direction.DEFAULT_WINDOW_SIZE
     )
-    remove_star_alleles: bool = True
     remove_equal_alleles: bool = True
-    remove_multiallelics: bool = True
     verify_atgc: bool = True
     _target_: str = "gentropy.decode_ingestion.deCODESummaryStatisticsHarmonisationStep"
 

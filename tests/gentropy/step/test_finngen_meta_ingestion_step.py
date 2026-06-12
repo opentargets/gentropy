@@ -96,10 +96,8 @@ class TestSumstatHarmonisationConfig:
             "perform_samples_size_filter",
             "sample_size_threshold",
             "flipping_window_size",
-            "remove_star_alleles",
             "remove_monomorphic_alleles",
             "remove_ambiguous_alleles",
-            "remove_multiallelic_alleles",
             "verify_atgc",
         }
         assert (
@@ -267,6 +265,18 @@ class TestThreeWayHarmonisationStep:
             variant_direction_path=vd_path,
             raw_summary_statistics_output_path=raw_path,
             harmonised_summary_statistics_output_path=harmonised_path,
+            perform_meta_analysis_filter=True,
+            imputation_score_threshold=0.8,
+            perform_imputation_score_filter=True,
+            min_allele_count_threshold=20,
+            perform_min_allele_count_filter=True,
+            min_allele_frequency_threshold=1e-4,
+            perform_min_allele_frequency_filter=False,
+            perform_samples_size_filter=True,
+            sample_size_threshold=1000,
+            remove_ambiguous_alleles=False,
+            verify_atgc=True,
+            remove_monomorphic_alleles=True,
         )
 
         msi_mock.from_parquet.assert_called_once_with(
@@ -290,7 +300,18 @@ class TestThreeWayHarmonisationStep:
                 harmonised_summary_statistics_output_path=(
                     tmp_path / "harmonised"
                 ).as_posix(),
+                perform_meta_analysis_filter=True,
                 imputation_score_threshold=2.0,
+                perform_imputation_score_filter=True,
+                min_allele_count_threshold=20,
+                perform_min_allele_count_filter=True,
+                min_allele_frequency_threshold=1e-4,
+                perform_min_allele_frequency_filter=False,
+                perform_samples_size_filter=True,
+                sample_size_threshold=1000,
+                remove_ambiguous_alleles=False,
+                verify_atgc=True,
+                remove_monomorphic_alleles=True,
             )
 
 
@@ -384,6 +405,16 @@ class TestTwoWayHarmonisationStep:
             variant_direction_path=vd_path,
             raw_summary_statistics_output_path=raw_path,
             harmonised_summary_statistics_output_path=harmonised_path,
+            perform_meta_analysis_filter=True,
+            min_allele_count_threshold=20,
+            perform_min_allele_count_filter=True,
+            min_allele_frequency_threshold=1e-4,
+            perform_min_allele_frequency_filter=False,
+            perform_samples_size_filter=True,
+            sample_size_threshold=1000,
+            remove_ambiguous_alleles=False,
+            verify_atgc=True,
+            remove_monomorphic_alleles=True,
         )
 
         msi_mock.from_parquet.assert_called_once_with(

@@ -5,15 +5,16 @@ from __future__ import annotations
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from enum import Enum
-from typing import TYPE_CHECKING, Annotated, Self
+from typing import TYPE_CHECKING, Annotated
 
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 from pyspark.sql import Column, DataFrame
 from pyspark.sql import functions as f
 from pyspark.sql import types as t
 
 from gentropy.common.processing import mac, maf
 from gentropy.common.spark import reduce_add
+from gentropy.config import ThreeWayMetaSumstatHarmonisationConfig as _Defaults
 from gentropy.dataset.variant_direction import DEFAULT_WINDOW_SIZE
 
 if TYPE_CHECKING:
@@ -38,60 +39,59 @@ class MetaAnalysisHarmonisationConfig(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    perform_meta_analysis_filter: bool = True
+    # NOTE: Defaults below are sourced from the Hydra step config
+    # `ThreeWayMetaSumstatHarmonisationConfig` (imported as `_Defaults`) so the
+    # values are declared in exactly one place (`gentropy.config`). The three-way
+    # config is used because it is the superset shared by both harmonisers.
+
+    perform_meta_analysis_filter: bool = _Defaults.perform_meta_analysis_filter
     """Whether to remove variants that were not meta-analysed."""
 
-    perform_imputation_score_filter: bool = True
+    perform_imputation_score_filter: bool = _Defaults.perform_imputation_score_filter
     """Whether to remove variants with low imputation score (INFO)."""
-    imputation_score_threshold: float = Field(default=0.8, ge=0.0, le=1.0)
+    imputation_score_threshold: float = Field(
+        default=_Defaults.imputation_score_threshold, ge=0.0, le=1.0
+    )
     """Minimum INFO/imputation score to retain a variant. Must be in [0, 1]."""
 
-    perform_min_allele_count_filter: bool = True
+    perform_min_allele_count_filter: bool = _Defaults.perform_min_allele_count_filter
     """Whether to remove variants with low MAC (minor allele count)."""
-    min_allele_count_threshold: int = Field(default=20, ge=1)
+    min_allele_count_threshold: int = Field(
+        default=_Defaults.min_allele_count_threshold, ge=1
+    )
     """Minimum allele count (AC) to retain a variant. Must be >= 1."""
 
-    perform_min_allele_frequency_filter: bool = False
+    perform_min_allele_frequency_filter: bool = (
+        _Defaults.perform_min_allele_frequency_filter
+    )
     """Whether to remove variants with low MAF (minor allele frequency)."""
-    min_allele_frequency_threshold: float = Field(default=1e-4, gt=0.0, lt=0.5)
+    min_allele_frequency_threshold: float = Field(
+        default=_Defaults.min_allele_frequency_threshold, gt=0.0, lt=0.5
+    )
     """Minimum allele frequency (AF) to retain a variant. Must be in (0, 0.5)."""
 
-    perform_samples_size_filter: bool = True
+    perform_samples_size_filter: bool = _Defaults.perform_samples_size_filter
     """Whether to remove variants with low sample size."""
-    sample_size_threshold: int = Field(default=1000, ge=1)
+    sample_size_threshold: int = Field(default=_Defaults.sample_size_threshold, ge=1)
     """Minimum sample size to retain a variant. Must be >= 1."""
 
     flipping_window_size: int = DEFAULT_WINDOW_SIZE
     """Window size (bp) used to partition the VariantDirection dataset (exact match only!).
         Defaults to `DEFAULT_WINDOW_SIZE` from `gentropy.dataset.variant_direction`.
     """
-    remove_star_alleles: bool = True
-    """Whether to remove variants with `*` alleles during harmonisation."""
-    remove_monomorphic_alleles: bool = True
+    remove_monomorphic_alleles: bool = _Defaults.remove_monomorphic_alleles
     """Whether to remove variants with equal effect and other alleles during harmonisation."""
-    remove_ambiguous_alleles: bool = False
+    remove_ambiguous_alleles: bool = _Defaults.remove_ambiguous_alleles
     """Whether to remove strand-ambiguous variants (A/T or C/G).
         This filter removes only strand-ambiguous variants from reference panel,
         meaning, if the summary statistics contain the strand-ambiguous variant, not found
         in reference, it is retained without flipping.
     """
-    remove_multiallelic_alleles: bool = True
-    """Whether to remove variants with multiple other alleles during harmonisation.
-        These alleles are marked as ! in summary statistics. For the sake of flipping, we
-        remove these from both effect and other allele columns.
+    verify_atgc: bool = _Defaults.verify_atgc
+    """Whether to verify that reference and alternate alleles are valid (A, T, G, C).
+        Strict ATGC validation also removes `*` (star) and `!` (multiallelic) alleles,
+        so no dedicated symbol filters are required.
     """
-    verify_atgc: bool = True
-    """Whether to verify that reference and alternate alleles are valid (A, T, G, C)."""
-
-    @model_validator(mode="after")
-    def validate_filters(self) -> Self:
-        """Disable redundant symbol filters when strict ATGC validation is enabled."""
-        if self.verify_atgc:
-            # Strict ATGC validation also removes '*' and '!' alleles.
-            self.remove_star_alleles = False
-            self.remove_multiallelic_alleles = False
-
-        return self
 
 
 THREE_WAY_MANIFEST_SCHEMA = t.StructType(

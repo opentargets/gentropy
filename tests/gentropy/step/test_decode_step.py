@@ -242,6 +242,8 @@ class TestdeCODESummaryStatisticsHarmonisationStep:
             min_mac_threshold=50,
             min_sample_size_threshold=30_000,
             flipping_window_size=10_000_000,
+            remove_equal_alleles=True,
+            verify_atgc=True,
         )
 
         variant_direction_mock.from_parquet.assert_called_once_with(

@@ -146,18 +146,23 @@ class TwoWayMetaSumstatHarmonisationStep:
         # Output
         harmonised_summary_statistics_output_path: str,
         # Harmonisation config
-        perform_meta_analysis_filter: bool = True,
-        min_allele_count_threshold: int = 20,
-        perform_min_allele_count_filter: bool = True,
-        min_allele_frequency_threshold: float = 1e-4,
-        perform_min_allele_frequency_filter: bool = False,
-        perform_samples_size_filter: bool = True,
-        sample_size_threshold: int = 1000,
-        remove_ambiguous_alleles: bool = False,
-        verify_atgc: bool = True,
-        remove_monomorphic_alleles: bool = True,
+        perform_meta_analysis_filter: bool,
+        min_allele_count_threshold: int,
+        perform_min_allele_count_filter: bool,
+        min_allele_frequency_threshold: float,
+        perform_min_allele_frequency_filter: bool,
+        perform_samples_size_filter: bool,
+        sample_size_threshold: int,
+        remove_ambiguous_alleles: bool,
+        verify_atgc: bool,
+        remove_monomorphic_alleles: bool,
     ) -> None:
         """Harmonise FinnGen meta-analysis summary statistics.
+
+        The harmonisation parameters carry no in-code defaults: their default
+        values are defined once on the Hydra step config
+        (`gentropy.config.TwoWayMetaSumstatHarmonisationConfig`) and supplied at
+        instantiation time.
 
         Args:
             session (Session): Session object.
@@ -165,16 +170,16 @@ class TwoWayMetaSumstatHarmonisationStep:
             variant_direction_path (str): Path to the variant direction file.
             raw_summary_statistics_output_path (str): Path to raw summary statistics produced by the conversion step.
             harmonised_summary_statistics_output_path (str): Output path for harmonised summary statistics, partitioned by studyId.
-            perform_meta_analysis_filter (bool, optional): Whether to remove variants not included in the meta-analysis.
-            min_allele_count_threshold (int, optional): Minimum allele count (>= 1). Defaults to 20.
-            perform_min_allele_count_filter (bool, optional): Whether to apply the minimum allele count filter.
-            min_allele_frequency_threshold (float, optional): Minimum allele frequency in (0, 0.5). Defaults to 1e-4.
-            perform_min_allele_frequency_filter (bool, optional): Whether to apply the minimum allele frequency filter.
-            perform_samples_size_filter (bool, optional): Whether to remove variants from studies below the sample-size threshold.
-            sample_size_threshold (int, optional): Minimum study sample size (>= 1). Defaults to 1000.
-            remove_ambiguous_alleles (bool, optional): Whether to remove strand-ambiguous variants.
-            verify_atgc (bool, optional): Whether to verify that reference and alternate alleles are valid (A, T, G, C).
-            remove_monomorphic_alleles (bool, optional): Whether to remove monomorphic variants (i.e. variants where all alleles are the same).
+            perform_meta_analysis_filter (bool): Whether to remove variants not included in the meta-analysis.
+            min_allele_count_threshold (int): Minimum allele count (>= 1).
+            perform_min_allele_count_filter (bool): Whether to apply the minimum allele count filter.
+            min_allele_frequency_threshold (float): Minimum allele frequency in (0, 0.5).
+            perform_min_allele_frequency_filter (bool): Whether to apply the minimum allele frequency filter.
+            perform_samples_size_filter (bool): Whether to remove variants from studies below the sample-size threshold.
+            sample_size_threshold (int): Minimum study sample size (>= 1).
+            remove_ambiguous_alleles (bool): Whether to remove strand-ambiguous variants.
+            verify_atgc (bool): Whether to verify that reference and alternate alleles are valid (A, T, G, C).
+            remove_monomorphic_alleles (bool): Whether to remove monomorphic variants (i.e. variants where all alleles are the same).
         """
         config = MetaAnalysisHarmonisationConfig(
             perform_meta_analysis_filter=perform_meta_analysis_filter,
@@ -286,20 +291,25 @@ class ThreeWayMetaSumstatHarmonisationStep:
         # Output
         harmonised_summary_statistics_output_path: str,
         # Harmonisation config
-        perform_meta_analysis_filter: bool = True,
-        imputation_score_threshold: float = 0.8,
-        perform_imputation_score_filter: bool = True,
-        min_allele_count_threshold: int = 20,
-        perform_min_allele_count_filter: bool = True,
-        min_allele_frequency_threshold: float = 1e-4,
-        perform_min_allele_frequency_filter: bool = False,
-        perform_samples_size_filter: bool = True,
-        sample_size_threshold: int = 1000,
-        remove_ambiguous_alleles: bool = False,
-        verify_atgc: bool = True,
-        remove_monomorphic_alleles: bool = True,
+        perform_meta_analysis_filter: bool,
+        imputation_score_threshold: float,
+        perform_imputation_score_filter: bool,
+        min_allele_count_threshold: int,
+        perform_min_allele_count_filter: bool,
+        min_allele_frequency_threshold: float,
+        perform_min_allele_frequency_filter: bool,
+        perform_samples_size_filter: bool,
+        sample_size_threshold: int,
+        remove_ambiguous_alleles: bool,
+        verify_atgc: bool,
+        remove_monomorphic_alleles: bool,
     ) -> None:
         """Harmonise FinnGen meta-analysis summary statistics.
+
+        The harmonisation parameters carry no in-code defaults: their default
+        values are defined once on the Hydra step config
+        (`gentropy.config.ThreeWayMetaSumstatHarmonisationConfig`) and supplied at
+        instantiation time.
 
         Args:
             session (Session): Session object.
@@ -307,18 +317,18 @@ class ThreeWayMetaSumstatHarmonisationStep:
             variant_direction_path (str): Path to the variant direction file.
             raw_summary_statistics_output_path (str): Path to raw summary statistics produced by the conversion step.
             harmonised_summary_statistics_output_path (str): Output path for harmonised summary statistics, partitioned by studyId.
-            perform_meta_analysis_filter (bool, optional): Whether to remove variants not included in the meta-analysis.
-            imputation_score_threshold (float, optional): Minimum INFO score in [0, 1]. Defaults to 0.8.
-            perform_imputation_score_filter (bool, optional): Whether to apply the imputation score filter.
-            min_allele_count_threshold (int, optional): Minimum allele count (>= 1). Defaults to 20.
-            perform_min_allele_count_filter (bool, optional): Whether to apply the minimum allele count filter.
-            min_allele_frequency_threshold (float, optional): Minimum allele frequency in (0, 0.5). Defaults to 1e-4.
-            perform_min_allele_frequency_filter (bool, optional): Whether to apply the minimum allele frequency filter.
-            perform_samples_size_filter (bool, optional): Whether to remove variants from studies below the sample-size threshold.
-            sample_size_threshold (int, optional): Minimum study sample size (>= 1). Defaults to 1000.
-            remove_ambiguous_alleles (bool, optional): Whether to remove strand-ambiguous variants.
-            verify_atgc (bool, optional): Whether to verify that reference and alternate alleles are valid (A, T, G, C).
-            remove_monomorphic_alleles (bool, optional): Whether to remove monomorphic variants (i.e. variants where all alleles are the same).
+            perform_meta_analysis_filter (bool): Whether to remove variants not included in the meta-analysis.
+            imputation_score_threshold (float): Minimum INFO score in [0, 1].
+            perform_imputation_score_filter (bool): Whether to apply the imputation score filter.
+            min_allele_count_threshold (int): Minimum allele count (>= 1).
+            perform_min_allele_count_filter (bool): Whether to apply the minimum allele count filter.
+            min_allele_frequency_threshold (float): Minimum allele frequency in (0, 0.5).
+            perform_min_allele_frequency_filter (bool): Whether to apply the minimum allele frequency filter.
+            perform_samples_size_filter (bool): Whether to remove variants from studies below the sample-size threshold.
+            sample_size_threshold (int): Minimum study sample size (>= 1).
+            remove_ambiguous_alleles (bool): Whether to remove strand-ambiguous variants.
+            verify_atgc (bool): Whether to verify that reference and alternate alleles are valid (A, T, G, C).
+            remove_monomorphic_alleles (bool): Whether to remove monomorphic variants (i.e. variants where all alleles are the same).
         """
         config = MetaAnalysisHarmonisationConfig(
             perform_meta_analysis_filter=perform_meta_analysis_filter,
