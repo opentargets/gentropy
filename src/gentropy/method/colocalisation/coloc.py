@@ -112,11 +112,8 @@ class Coloc(ColocalisationMethodInterface):
                     "rightStudyType",
                 )
                 .agg(
-                    f.size(
-                        f.filter(
-                            f.collect_list(f.col("tagVariantSource")),
-                            lambda x: x == "both",
-                        )
+                    f.sum(
+                        f.when(f.col("tagVariantSource") == "both", 1).otherwise(0)
                     )
                     .cast(t.LongType())
                     .alias("numberColocalisingVariants"),
