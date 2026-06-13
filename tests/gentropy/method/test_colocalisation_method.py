@@ -19,6 +19,7 @@ from gentropy.dataset.colocalisation import Colocalisation
 from gentropy.dataset.study_locus_overlap import StudyLocusOverlap
 from gentropy.method.colocalisation.coloc import Coloc
 from gentropy.method.colocalisation.coloc_pip import ColocPIP
+from gentropy.method.colocalisation.coloc_pip_ecaviar import ColocPIPECaviar
 from gentropy.method.colocalisation.ecaviar import ECaviar
 
 
@@ -915,3 +916,59 @@ def test_coloc_pip_characterization(spark: SparkSession) -> None:
     # in closed form. This pins the normalisation and the degenerate path.
     assert abs(row["h3"] - 0.0) <= 1e-9, f"h3: {row['h3']}"
     assert abs(row["h4"] - 1.0) <= 1e-9, f"h4: {row['h4']}"
+
+
+def test_coloc_pip_ecaviar_characterization(spark: SparkSession) -> None:
+    """Pin the combined ColocPIPECaviar output (h3/h4 from ColocPIP, clpp from eCAVIAR,
+    numberColocalisingVariants, betaRatioSignAverage) — guards the fused-aggregation
+    refactor (single groupBy + single beta-ratio) against the merge-based original.
+    """
+    observed_overlap = StudyLocusOverlap(
+        _df=spark.createDataFrame(
+            cast(
+                Any,
+                [
+                    {
+                        "leftStudyLocusId": "1",
+                        "rightStudyLocusId": "2",
+                        "rightStudyType": "eqtl",
+                        "chromosome": "1",
+                        "tagVariantId": "snp1",
+                        "statistics": {
+                            "left_posteriorProbability": 0.9,
+                            "right_posteriorProbability": 0.8,
+                            "left_beta": 0.5,
+                            "right_beta": 0.3,
+                        },
+                    },
+                    {
+                        "leftStudyLocusId": "1",
+                        "rightStudyLocusId": "2",
+                        "rightStudyType": "eqtl",
+                        "chromosome": "1",
+                        "tagVariantId": "snp2",
+                        "statistics": {
+                            "left_posteriorProbability": 0.1,
+                            "right_posteriorProbability": 0.15,
+                            "left_beta": 0.2,
+                            "right_beta": -0.1,
+                        },
+                    },
+                ],
+            ),
+            schema=StudyLocusOverlap.get_schema(),
+        ),
+        _schema=StudyLocusOverlap.get_schema(),
+    )
+    row = ColocPIPECaviar.colocalise(observed_overlap).df.collect()[0].asDict()
+    assert row["colocalisationMethod"] == "COLOC_PIP_ECAVIAR"
+    assert row["numberColocalisingVariants"] == 2
+    # clpp = sum(left_pp * right_pp) = 0.9*0.8 + 0.1*0.15 = 0.735 (eCAVIAR, raw).
+    assert abs(row["clpp"] - 0.735) <= 1e-9, f"clpp: {row['clpp']}"
+    # h3/h4 from ColocPIP floored sums: S1=1.0, S2=0.95, B=0.735, diff=0.215;
+    # pp3=1e-8*0.215, pp4=1e-5*0.735 -> h4≈0.9997076, h3≈0.0002924.
+    assert abs(row["h4"] - 0.99970757) <= 1e-6, f"h4: {row['h4']}"
+    assert abs(row["h3"] - 0.00029243) <= 1e-6, f"h3: {row['h3']}"
+    assert abs((row["h3"] + row["h4"]) - 1.0) <= 1e-9
+    # betaRatioSign: snp1 sign(0.5/0.3)=+1, snp2 sign(0.2/-0.1)=-1 -> avg 0.0.
+    assert abs(row["betaRatioSignAverage"] - 0.0) <= 1e-9
