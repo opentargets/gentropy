@@ -31,10 +31,10 @@ class ColocPIPECaviar(ColocalisationMethodInterface):
     ) -> Colocalisation:
         """Colocalise using colocPIP and eCAVIAR metrics in a single fused pass.
 
-        ColocPIP and eCAVIAR group the overlaps by the same keys, so both methods'
-        metrics are computed in ONE groupBy and the beta ratio is joined once -- replacing
-        the previous two separate groupBys + inner merge join + double beta-ratio (which
-        re-shuffled the multi-TiB overlaps ~3 times).
+        ColocPIP, eCAVIAR and the beta ratio all group the overlaps by the same keys, so
+        every metric is computed in ONE groupBy -- replacing the previous two separate
+        groupBys + inner merge join + a separate (multi-TiB) beta-ratio shuffle, which
+        re-shuffled the overlaps several times.
 
         Args:
             overlapping_signals (StudyLocusOverlap): overlapping peaks
@@ -95,6 +95,20 @@ class ColocPIPECaviar(ColocalisationMethodInterface):
                         f.col("right_posteriorProbability"),
                     )
                 ).alias("clpp"),
+                # Beta ratio folded into the same groupBy: rightStudyType is functionally
+                # determined by the right locus, so this 4-key grouping matches
+                # calculate_beta_ratio's (left, right, chromosome) granularity. avg ignores
+                # the nulls produced for filtered-out (null/zero beta) rows, so this equals
+                # the original filter-then-avg -- and removes a full ~TiB re-shuffle.
+                f.avg(
+                    f.when(
+                        f.col("left_beta").isNotNull()
+                        & f.col("right_beta").isNotNull()
+                        & (f.col("left_beta") != 0)
+                        & (f.col("right_beta") != 0),
+                        f.signum(f.col("left_beta") / f.col("right_beta")),
+                    )
+                ).alias("betaRatioSignAverage"),
             )
             .withColumn("h3", h3)
             .withColumn("h4", h4)
@@ -102,11 +116,7 @@ class ColocPIPECaviar(ColocalisationMethodInterface):
         )
 
         return Colocalisation(
-            _df=aggregated.join(
-                overlapping_signals.calculate_beta_ratio(),
-                on=["leftStudyLocusId", "rightStudyLocusId", "chromosome"],
-                how="left",
-            ).select(
+            _df=aggregated.select(
                 "leftStudyLocusId",
                 "rightStudyLocusId",
                 "rightStudyType",
