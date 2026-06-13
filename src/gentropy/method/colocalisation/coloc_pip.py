@@ -15,6 +15,8 @@ from gentropy.method.colocalisation.model import ColocalisationMethodInterface
 if TYPE_CHECKING:
     from typing import Any
 
+    from pyspark.sql import Column
+
 
 class _ColocPIPConfig(BaseModel):
     """Configuration for ColocPIP method."""
@@ -57,20 +59,13 @@ class ColocPIP(ColocalisationMethodInterface):
             ValidationError: When passed incorrect prior argument types.
         """
         config = _ColocPIPConfig(**kwargs)
-
-        # Floor priors and per-variant PIPs at a pseudocount, matching the previous
-        # per-row implementation (null PIP -> 0 -> pseudocount; priors >= pseudocount).
-        pseudocount = 1e-16
-        p1 = max(config.priorc1, pseudocount)
-        p2 = max(config.priorc2, pseudocount)
-        p12 = max(config.priorc12, pseudocount)
-        floored_pip1 = f.greatest(
-            f.coalesce(f.col("left_posteriorProbability"), f.lit(0.0)),
-            f.lit(pseudocount),
-        )
-        floored_pip2 = f.greatest(
-            f.coalesce(f.col("right_posteriorProbability"), f.lit(0.0)),
-            f.lit(pseudocount),
+        h3, h4 = cls._pip_posteriors(
+            f.col("sum_pip1"),
+            f.col("sum_pip2"),
+            f.col("sum_pip_prod"),
+            config.priorc1,
+            config.priorc2,
+            config.priorc12,
         )
 
         return Colocalisation(
@@ -90,41 +85,26 @@ class ColocPIP(ColocalisationMethodInterface):
                     "rightStudyType",
                 )
                 .agg(
-                    f.sum(
-                        f.when(f.col("tagVariantSource") == "both", 1).otherwise(0)
-                    )
+                    f.sum(f.when(f.col("tagVariantSource") == "both", 1).otherwise(0))
                     .cast(t.LongType())
                     .alias("numberColocalisingVariants"),
-                    f.sum(floored_pip1).alias("sum_pip1"),
-                    f.sum(floored_pip2).alias("sum_pip2"),
-                    f.sum(floored_pip1 * floored_pip2).alias("sum_pip_prod"),
-                )
-                # H4 (shared causal) ~ p12 * B; H3 (distinct causal) ~ p1*p2*(S1*S2 - B),
-                # where S1*S2 - B = sum_{i!=j} pip1_i*pip2_j. Then normalise H3,H4 to 1
-                # (H0=H1=H2=0 in this PIP approximation).
-                .withColumn(
-                    "_h3_unnorm",
-                    f.lit(p1 * p2)
-                    * f.greatest(
-                        f.col("sum_pip1") * f.col("sum_pip2") - f.col("sum_pip_prod"),
-                        f.lit(0.0),
+                    f.sum(cls._floored_pip(f.col("left_posteriorProbability"))).alias(
+                        "sum_pip1"
                     ),
+                    f.sum(cls._floored_pip(f.col("right_posteriorProbability"))).alias(
+                        "sum_pip2"
+                    ),
+                    f.sum(
+                        cls._floored_pip(f.col("left_posteriorProbability"))
+                        * cls._floored_pip(f.col("right_posteriorProbability"))
+                    ).alias("sum_pip_prod"),
                 )
-                .withColumn("_h4_unnorm", f.lit(p12) * f.col("sum_pip_prod"))
-                .withColumn("_denom", f.col("_h3_unnorm") + f.col("_h4_unnorm"))
                 .withColumn("h0", f.lit(0.0))
                 .withColumn("h1", f.lit(0.0))
                 .withColumn("h2", f.lit(0.0))
-                .withColumn("h3", f.col("_h3_unnorm") / f.col("_denom"))
-                .withColumn("h4", f.col("_h4_unnorm") / f.col("_denom"))
-                .drop(
-                    "sum_pip1",
-                    "sum_pip2",
-                    "sum_pip_prod",
-                    "_h3_unnorm",
-                    "_h4_unnorm",
-                    "_denom",
-                )
+                .withColumn("h3", h3)
+                .withColumn("h4", h4)
+                .drop("sum_pip1", "sum_pip2", "sum_pip_prod")
                 .withColumn("colocalisationMethod", f.lit(cls.METHOD_NAME))
                 .join(
                     overlapping_signals.calculate_beta_ratio(),
@@ -134,3 +114,55 @@ class ColocPIP(ColocalisationMethodInterface):
             ),
             _schema=Colocalisation.get_schema(),
         )
+
+    @staticmethod
+    def _floored_pip(pip: Column) -> Column:
+        """Floor a PIP column at a pseudocount (null -> 0 -> pseudocount).
+
+        Non-zero PIPs are required for the R coloc.pp log-space logic.
+
+        Args:
+            pip (Column): posterior inclusion probability column.
+
+        Returns:
+            Column: PIP floored at 1e-16.
+        """
+        return f.greatest(f.coalesce(pip, f.lit(0.0)), f.lit(1e-16))
+
+    @staticmethod
+    def _pip_posteriors(
+        sum_pip1: Column,
+        sum_pip2: Column,
+        sum_pip_prod: Column,
+        priorc1: float,
+        priorc2: float,
+        priorc12: float,
+    ) -> tuple[Column, Column]:
+        """Derive (h3, h4) from the per-overlap PIP sums.
+
+        H4 (shared causal) ~ p12 * B; H3 (distinct causal) ~ p1*p2*(S1*S2 - B), where
+        S1*S2 - B = sum_{i!=j} pip1_i*pip2_j. Returned normalised so h3 + h4 = 1
+        (H0=H1=H2=0 in this PIP approximation). Shared with ColocPIPECaviar so the two
+        cannot numerically diverge.
+
+        Args:
+            sum_pip1 (Column): S1 = sum of floored left PIPs per overlap.
+            sum_pip2 (Column): S2 = sum of floored right PIPs per overlap.
+            sum_pip_prod (Column): B = sum of floored left*right PIP products per overlap.
+            priorc1 (float): Prior on variant being causal for trait 1.
+            priorc2 (float): Prior on variant being causal for trait 2.
+            priorc12 (float): Prior on variant being causal for both traits.
+
+        Returns:
+            tuple[Column, Column]: (h3, h4) posterior columns.
+        """
+        pseudocount = 1e-16
+        p1 = max(priorc1, pseudocount)
+        p2 = max(priorc2, pseudocount)
+        p12 = max(priorc12, pseudocount)
+        h3_unnorm = f.lit(p1 * p2) * f.greatest(
+            sum_pip1 * sum_pip2 - sum_pip_prod, f.lit(0.0)
+        )
+        h4_unnorm = f.lit(p12) * sum_pip_prod
+        denom = h3_unnorm + h4_unnorm
+        return h3_unnorm / denom, h4_unnorm / denom
