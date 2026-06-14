@@ -76,6 +76,7 @@ class TestNoSpark:
                 f"Expected {key} to be set to {value}"
             )
 
+    @pytest.mark.hail
     @pytest.mark.usefixtures("_no_spark_session")
     def test_hail_configuration(self, hail_home: str) -> None:
         """Assert that Hail configuration is set when start_hail is True."""

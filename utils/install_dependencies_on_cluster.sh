@@ -51,7 +51,7 @@ function main() {
 
     echo "Install package..."
     uv pip install --system --upgrade opencv-python pandas numpy pyarrow scipy
-    run_with_retry uv pip install --no-break-system-packages --system "gentropy @ git+${REPO_URI}.git@${GENTROPY_REF}"
+    run_with_retry uv pip install --no-break-system-packages --system "gentropy[hail] @ git+${REPO_URI}.git@${GENTROPY_REF}"
 }
 
 main

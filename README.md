@@ -22,6 +22,13 @@ We recommend to install Open Targets Gentropy using Pypi:
 pip install gentropy
 ```
 
+Gentropy carves hail-backed datasources behind an optional extra. Pick the install command that matches your use case:
+
+| Use case                                                                      | Command                      |
+| ----------------------------------------------------------------------------- | ---------------------------- |
+| Spark-only steps                                                              | `pip install gentropy`       |
+| + hail-backed datasources (gnomAD LD, FinnGen finemapping, PanUKBB LD, susie) | `pip install gentropy[hail]` |
+
 For alternative ways to install the package visit the [Documentation](https://opentargets.github.io/gentropy/installation/)
 
 ## References

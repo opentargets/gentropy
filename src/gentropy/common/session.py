@@ -310,7 +310,12 @@ class Session:
             )
             # Initialize Hail if requested
             if start_hail:
-                import hail as hl
+                try:
+                    import hail as hl
+                except ImportError as exc:
+                    from gentropy.common.imports import install_hint
+
+                    raise ImportError(install_hint("hail")) from exc
 
                 self._extended_hail_conf.setdefault("log", "/dev/null")
                 self._extended_hail_conf.setdefault("quiet", True)
@@ -511,7 +516,12 @@ class Session:
             SparkConf: Adjusted spark configuration with Hail settings.
         """
         if not hail_home:
-            import hail as hl
+            try:
+                import hail as hl
+            except ImportError as exc:
+                from gentropy.common.imports import install_hint
+
+                raise ImportError(install_hint("hail")) from exc
 
             hail_home = Path(hl.__file__).parent.as_posix()
         jar_path = f"{hail_home}/backend/hail-all-spark.jar"

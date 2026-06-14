@@ -2,9 +2,15 @@
 
 from __future__ import annotations
 
-import hail as hl
 import pyspark.sql.functions as f
 import pyspark.sql.types as t
+
+try:
+    import hail as hl
+except ImportError as exc:
+    from gentropy.common.imports import install_hint
+
+    raise ImportError(install_hint("hail")) from exc
 
 from gentropy.common.types import VariantPopulation
 from gentropy.config import GnomadVariantConfig, VariantIndexConfig

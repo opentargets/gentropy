@@ -4,13 +4,19 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import hail as hl
 import pytest
 
 from gentropy.common.session import Session
 from gentropy.dataset.study_locus import StudyLocus
-from gentropy.datasource.finngen.finemapping import FinnGenFinemapping
-from gentropy.finngen_finemapping_ingestion import FinnGenFinemappingIngestionStep
+
+pytestmark = pytest.mark.hail
+
+hl = pytest.importorskip("hail")
+
+from gentropy.datasource.finngen.finemapping import FinnGenFinemapping  # noqa: E402
+from gentropy.finngen_finemapping_ingestion import (  # noqa: E402
+    FinnGenFinemappingIngestionStep,
+)
 
 
 @pytest.mark.parametrize(

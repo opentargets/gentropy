@@ -5,11 +5,17 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-import hail as hl
 import pyspark.sql.functions as f
 import pyspark.sql.types as t
 from pyspark.sql import SparkSession, Window
 from pyspark.sql.types import DoubleType, StringType, StructField, StructType
+
+try:
+    import hail as hl
+except ImportError as exc:
+    from gentropy.common.imports import install_hint
+
+    raise ImportError(install_hint("hail")) from exc
 
 from gentropy.common.spark import get_top_ranked_in_window
 from gentropy.common.stats import split_pvalue_column
