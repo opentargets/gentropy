@@ -20,3 +20,5 @@ hail*.log
 notebooks
 assets/*
 inter_data
+PRD-*.md
+issues/
