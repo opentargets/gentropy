@@ -75,14 +75,14 @@ class ColocalisationStep:
                 f.col("finemappingMethod").isin(FinemappingMethod.methods_with_lbf())
             )
 
+        # No `.persist()` on the aligned overlaps here: the production
+        # `coloc_pip_ecaviar` path consumes them once (a single fused groupBy), so
+        # caching would be pure overhead. `find_overlaps` already persists the
+        # genuinely-reused intermediate (`loci_to_overlap`).
         overlaps = cs.find_overlaps(
             restrict_right_studies=restrict_right_studies,
             gwas_v_qtl_overlap_only=gwas_v_qtl_overlap_only,
-        ).persist()
-        # Persist the aligned overlaps: every method scans `overlaps` twice (the
-        # main aggregation plus `calculate_beta_ratio`), and `coloc_pip_ecaviar`
-        # runs two methods over it, so without caching the expensive overlap
-        # alignment (outer join) would be recomputed up to four times.
+        )
         params = colocalisation_method_params or {}
         result = cm.colocalise(overlapping_signals=overlaps, **params)
 
