@@ -1,10 +1,8 @@
 """Interface for application configuration."""
 
-import os
 from dataclasses import dataclass, field
 from typing import Any
 
-from hail import __file__ as hail_location
 from hydra.core.config_store import ConfigStore
 from omegaconf import MISSING
 
@@ -16,7 +14,7 @@ class SessionConfig:
     spark_uri: str = "local[*]"
     start_hail: bool = False
     write_mode: str = "errorifexists"
-    hail_home: str = os.path.dirname(hail_location)
+    hail_home: str | None = None
     extended_spark_conf: dict[str, str] | None = field(default_factory=dict[str, str])
     extended_hail_conf: dict[str, str] | None = field(default_factory=dict[str, str])
     output_partitions: int = 200
