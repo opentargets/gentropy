@@ -9,7 +9,9 @@ from typing import TYPE_CHECKING, Any
 import numpy as np
 import pandas as pd
 
-try:
+from gentropy.common.imports import optional_imports
+
+with optional_imports("l2g"):
     import matplotlib.pyplot as plt
     import shap
     from sklearn.base import clone
@@ -29,10 +31,6 @@ try:
     from wandb.sdk.wandb_sweep import sweep as wandb_sweep
     from wandb.sklearn import plot_classifier
     from wandb.wandb_agent import agent as wandb_agent
-except ImportError as exc:
-    from gentropy.common.imports import install_hint
-
-    raise ImportError(install_hint("l2g")) from exc
 
 from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
 from gentropy.method.l2g.model import LocusToGeneModel

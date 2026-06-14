@@ -655,13 +655,11 @@ class LocusToGeneStep:
                 "Run LocusToGeneTrainTestSplitStep first."
             )
 
-        try:
+        from gentropy.common.imports import optional_imports
+
+        with optional_imports("l2g"):
             from wandb.sdk.wandb_login import login as wandb_login
             from xgboost import XGBClassifier
-        except ImportError as exc:
-            from gentropy.common.imports import install_hint
-
-            raise ImportError(install_hint("l2g")) from exc
 
         # ``LocusToGeneModel`` and ``LocusToGeneTrainer`` themselves carry the
         # module-level guard that produces the friendly ``install_hint``

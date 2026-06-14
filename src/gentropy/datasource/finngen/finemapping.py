@@ -10,12 +10,10 @@ import pyspark.sql.types as t
 from pyspark.sql import SparkSession, Window
 from pyspark.sql.types import DoubleType, StringType, StructField, StructType
 
-try:
-    import hail as hl
-except ImportError as exc:
-    from gentropy.common.imports import install_hint
+from gentropy.common.imports import optional_imports
 
-    raise ImportError(install_hint("hail")) from exc
+with optional_imports("hail"):
+    import hail as hl
 
 from gentropy.common.spark import get_top_ranked_in_window
 from gentropy.common.stats import split_pvalue_column

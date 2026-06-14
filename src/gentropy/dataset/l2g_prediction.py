@@ -11,14 +11,12 @@ from pydantic import SecretStr
 from pyspark.sql import DataFrame
 from pyspark.sql.types import StringType, StructType
 
-try:
+from gentropy.common.imports import optional_imports
+
+with optional_imports("l2g"):
     import shap
 
     from gentropy.method.l2g.model import LocusToGeneModel
-except ImportError as exc:
-    from gentropy.common.imports import install_hint
-
-    raise ImportError(install_hint("l2g")) from exc
 
 from gentropy.common.schemas import parse_spark_schema
 from gentropy.common.session import Session

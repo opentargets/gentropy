@@ -275,12 +275,10 @@ def liftover_loci(
     Warning:
         This function assumes hail is initialized in Session.
     """
-    try:
-        import hail as hl
-    except ImportError as exc:
-        from gentropy.common.imports import install_hint
+    from gentropy.common.imports import optional_imports
 
-        raise ImportError(install_hint("hail")) from exc
+    with optional_imports("hail"):
+        import hail as hl
 
     if not hl.get_reference("GRCh37").has_liftover(
         "GRCh38"

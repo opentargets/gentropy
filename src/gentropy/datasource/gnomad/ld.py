@@ -10,13 +10,11 @@ import numpy as np
 import pyspark.sql.functions as f
 from pyspark.sql import Window
 
-try:
+from gentropy.common.imports import optional_imports
+
+with optional_imports("hail"):
     import hail as hl
     from hail.linalg import BlockMatrix
-except ImportError as exc:
-    from gentropy.common.imports import install_hint
-
-    raise ImportError(install_hint("hail")) from exc
 
 from gentropy.common.spark import get_top_ranked_in_window, get_value_from_row
 from gentropy.common.types import LD_Population
