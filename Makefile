@@ -58,8 +58,8 @@ test-no-shared-spark-session-web-dependencies: ## Run tests that require to down
 	@echo "Running tests that can not rely on shared SparkSession and require downloading jar dependencies from web..."
 	@COVERAGE_FILE=.coverage.no_shared_spark_web_deps uv run pytest -n0 -m "download_jars_from_web" --cov-report=
 
-test: ## Run default test suite, syncing all extras and the test group first.
-	@uv sync --all-extras --group test
+test: ## Run default test suite, syncing all extras and all groups first.
+	@uv sync --all-extras --all-groups
 	@$(MAKE) test-no-shared-spark-session
 	@$(MAKE) test-shared-spark-session
 	@uv run coverage combine .coverage.shared_spark .coverage.no_shared_spark .coverage.shared_spark_hail .coverage.no_shared_spark_hail
