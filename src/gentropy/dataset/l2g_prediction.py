@@ -7,10 +7,18 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 import pyspark.sql.functions as f
-import shap
 from pydantic import SecretStr
 from pyspark.sql import DataFrame
 from pyspark.sql.types import StringType, StructType
+
+try:
+    import shap
+
+    from gentropy.method.l2g.model import LocusToGeneModel
+except ImportError as exc:
+    from gentropy.common.imports import install_hint
+
+    raise ImportError(install_hint("l2g")) from exc
 
 from gentropy.common.schemas import parse_spark_schema
 from gentropy.common.session import Session
@@ -19,7 +27,6 @@ from gentropy.dataset.dataset import Dataset
 from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
 from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import StudyLocus
-from gentropy.method.l2g.model import LocusToGeneModel
 
 if TYPE_CHECKING:
     from pandas import DataFrame as pd_dataframe

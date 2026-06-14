@@ -38,8 +38,10 @@ Choose the install command for your use case:
 | ----------------------------------------------------------------------------- | ---------------------------- |
 | Spark-only steps                                                              | `pip install gentropy`       |
 | + hail-backed datasources (gnomAD LD, FinnGen finemapping, PanUKBB LD, susie) | `pip install gentropy[hail]` |
+| + L2G training, prediction, and HuggingFace Hub publishing                    | `pip install gentropy[l2g]`  |
+| Full pipeline (hail + L2G)                                                    | `pip install gentropy[all]`  |
 
-If a hail-backed step is invoked from an environment without the `[hail]` extra, gentropy raises an `ImportError` naming the missing extra.
+If a hail-backed or L2G step is invoked from an environment without the matching extra, gentropy raises an `ImportError` naming the missing extra.
 
 ## Source
 
@@ -49,8 +51,10 @@ For any issues with the installation, check the [troubleshooting section](develo
 
 ## xgboost
 
-To use gentropy `LocusToGene` model the `xgboost` package is required. To reduce the size of the dependencies, gentropy uses the full `xgboost` package
-only when `xgboost-cpu` is not available:
+To use the gentropy `LocusToGene` model the `xgboost` package is required.
+It ships behind the `[l2g]` extra (`pip install gentropy[l2g]`). To reduce
+the size of the dependencies, gentropy uses the full `xgboost` package only
+when `xgboost-cpu` is not available:
 
 - `amd64` and `x86_64` will utilize `xgboost-cpu`.
 - `arm64` and `aarch64` will utilize `xgboost`.
