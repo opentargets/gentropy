@@ -9,13 +9,19 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import pandas as pd
-import skops.io as sio
-from huggingface_hub import HfApi, ModelCard, ModelCardData, create_repo
 from pandas import DataFrame as pd_dataframe
 from pandas import to_numeric as pd_to_numeric
 from pydantic import SecretStr
-from sklearn.ensemble import GradientBoostingClassifier
-from xgboost import XGBClassifier
+
+try:
+    import skops.io as sio
+    from huggingface_hub import HfApi, ModelCard, ModelCardData, create_repo
+    from sklearn.ensemble import GradientBoostingClassifier
+    from xgboost import XGBClassifier
+except ImportError as exc:
+    from gentropy.common.imports import install_hint
+
+    raise ImportError(install_hint("l2g")) from exc
 
 from gentropy.common.session import Session
 from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix

@@ -6,10 +6,21 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
-from xgboost import XGBClassifier
+import pytest
 
-from gentropy.method.l2g.model import LocusToGeneModel
-from gentropy.method.l2g.trainer import LocusToGeneTrainer
+pytestmark = pytest.mark.l2g
+
+# Heavy L2G-stack imports are gated behind ``pytest.importorskip`` so this
+# file can be collected on a core-only install: the file-scope ``l2g``
+# marker keeps the tests off the non-l2g partition, and ``importorskip``
+# bails out cleanly if the marker partition is not honoured for any reason.
+pytest.importorskip("xgboost")
+pytest.importorskip("sklearn")
+
+from xgboost import XGBClassifier  # noqa: E402
+
+from gentropy.method.l2g.model import LocusToGeneModel  # noqa: E402
+from gentropy.method.l2g.trainer import LocusToGeneTrainer  # noqa: E402
 
 if TYPE_CHECKING:
     from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix

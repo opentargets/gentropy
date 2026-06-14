@@ -9,12 +9,19 @@ from pyspark.sql import DataFrame
 from pyspark.sql import functions as f
 from pyspark.sql.types import FloatType
 
-from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
-from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
-from gentropy.dataset.l2g_prediction import L2GPrediction
-from gentropy.dataset.study_index import StudyIndex
-from gentropy.dataset.study_locus import StudyLocus
-from gentropy.dataset.study_locus_overlap import StudyLocusOverlap
+pytestmark = pytest.mark.l2g
+
+# ``L2GPrediction`` lives in a module guarded by the ``[l2g]`` extra.
+# The ``importorskip`` keeps this file safe to collect on a core-only install.
+pytest.importorskip("shap")
+pytest.importorskip("xgboost")
+
+from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix  # noqa: E402
+from gentropy.dataset.l2g_gold_standard import L2GGoldStandard  # noqa: E402
+from gentropy.dataset.l2g_prediction import L2GPrediction  # noqa: E402
+from gentropy.dataset.study_index import StudyIndex  # noqa: E402
+from gentropy.dataset.study_locus import StudyLocus  # noqa: E402
+from gentropy.dataset.study_locus_overlap import StudyLocusOverlap  # noqa: E402
 
 if TYPE_CHECKING:
     from pyspark.sql import SparkSession

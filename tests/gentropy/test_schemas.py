@@ -91,7 +91,10 @@ class TestValidateSchema:
 
     @pytest.mark.parametrize(
         "mock_dataset_instance",
-        ["mock_l2g_predictions", "mock_target_index"],
+        [
+            pytest.param("mock_l2g_predictions", marks=pytest.mark.l2g),
+            "mock_target_index",
+        ],
         indirect=True,
     )
     def test_validate_schema_extra_field(
@@ -106,7 +109,7 @@ class TestValidateSchema:
 
     @pytest.mark.parametrize(
         "mock_dataset_instance",
-        ["mock_l2g_predictions"],
+        [pytest.param("mock_l2g_predictions", marks=pytest.mark.l2g)],
         indirect=True,
     )
     def test_validate_schema_missing_field(
@@ -119,7 +122,10 @@ class TestValidateSchema:
 
     @pytest.mark.parametrize(
         "mock_dataset_instance",
-        ["mock_l2g_predictions", "mock_target_index"],
+        [
+            pytest.param("mock_l2g_predictions", marks=pytest.mark.l2g),
+            "mock_target_index",
+        ],
         indirect=True,
     )
     def test_validate_schema_duplicated_field(
@@ -134,7 +140,10 @@ class TestValidateSchema:
 
     @pytest.mark.parametrize(
         "mock_dataset_instance",
-        ["mock_l2g_predictions", "mock_target_index"],
+        [
+            pytest.param("mock_l2g_predictions", marks=pytest.mark.l2g),
+            "mock_target_index",
+        ],
         indirect=True,
     )
     def test_validate_schema_different_datatype(
