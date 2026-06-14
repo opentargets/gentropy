@@ -1,5 +1,7 @@
 """Test suite for the PanUKBBLDMatrix class in the gentropy package."""
 
+from __future__ import annotations
+
 from typing import Any
 from unittest.mock import MagicMock, patch
 
@@ -8,7 +10,11 @@ import pytest
 from numpy._typing._array_like import NDArray
 from pyspark.sql import DataFrame
 
-from gentropy.datasource.pan_ukbb_ld.ld import PanUKBBLDMatrix
+pytestmark = pytest.mark.hail
+
+pytest.importorskip("hail")
+
+from gentropy.datasource.pan_ukbb_ld.ld import PanUKBBLDMatrix  # noqa: E402
 
 
 @pytest.fixture

@@ -9,14 +9,14 @@ WORKDIR /app
 RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=uv.lock,target=uv.lock \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
-    uv sync --locked --no-install-project --no-dev
+    uv sync --locked --no-install-project --no-dev --all-extras
 COPY src /app/src
 COPY README.md /app/README.md
 COPY LICENSE.md /app/LICENSE.md
 COPY pyproject.toml /app/pyproject.toml
 COPY uv.lock /app/uv.lock
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --locked --no-dev
+    uv sync --locked --no-dev --all-extras
 
 # Stage 2: Runtime stage - Creates the final minimal image
 FROM python:3.12.11-slim-trixie AS production

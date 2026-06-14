@@ -7,13 +7,17 @@ from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock, patch
 
-import hail as hl
 import pytest
 from pyspark.sql import DataFrame, Row, SparkSession
 from pyspark.sql import functions as f
 
 from gentropy import Session
-from gentropy.datasource.gnomad.ld import GnomADLDMatrix
+
+pytestmark = pytest.mark.hail
+
+hl = pytest.importorskip("hail")
+
+from gentropy.datasource.gnomad.ld import GnomADLDMatrix  # noqa: E402
 
 
 @pytest.mark.parametrize(

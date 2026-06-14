@@ -6,7 +6,6 @@ from collections.abc import Generator
 from pathlib import Path
 
 import dbldatagen as dg
-import hail as hl
 import numpy as np
 import pandas as pd
 import pytest
@@ -35,11 +34,21 @@ from utils.spark import get_spark_testing_conf
 
 
 @pytest.fixture(scope="session")
-def spark() -> Generator[SparkSession, None, None]:
-    """Local spark session for testing purposes."""
+def spark(request: pytest.FixtureRequest) -> Generator[SparkSession, None, None]:
+    """Local spark session for testing purposes.
+
+    Builds the testing Spark conf with hail support iff at least one
+    collected test in the current run carries the ``hail`` marker, so the
+    ``pytest -m "not hail"`` partition stays honestly hail-free.
+    """
+    with_hail = any(
+        mark.name == "hail"
+        for item in request.session.items
+        for mark in item.iter_markers()
+    )
     spark = (
         SparkSession.Builder()
-        .config(conf=get_spark_testing_conf())
+        .config(conf=get_spark_testing_conf(with_hail=with_hail))
         .master("local[1]")
         .appName("test")
         .getOrCreate()
@@ -58,6 +67,7 @@ def session(spark: SparkSession) -> Session:
 @pytest.fixture()
 def hail_home() -> str:
     """Return the path to the Hail home directory."""
+    hl = pytest.importorskip("hail")
     return Path(hl.__file__).parent.as_posix()
 
 

@@ -29,6 +29,18 @@ We recommend installing Open Targets Gentropy using Pypi:
 pip install gentropy
 ```
 
+### Install matrix
+
+Gentropy ships optional extras that unlock additional functional surfaces.
+Choose the install command for your use case:
+
+| Use case                                                                      | Command                      |
+| ----------------------------------------------------------------------------- | ---------------------------- |
+| Spark-only steps                                                              | `pip install gentropy`       |
+| + hail-backed datasources (gnomAD LD, FinnGen finemapping, PanUKBB LD, susie) | `pip install gentropy[hail]` |
+
+If a hail-backed step is invoked from an environment without the `[hail]` extra, gentropy raises an `ImportError` naming the missing extra.
+
 ## Source
 
 Alternatively, you can install Open Targets Gentropy from source. Check the [contributing](development/contributing.md) section for more information.
