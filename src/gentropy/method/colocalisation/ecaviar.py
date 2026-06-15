@@ -66,11 +66,8 @@ class ECaviar(ColocalisationMethodInterface):
                 )
                 .agg(
                     # Count the number of tag variants that can be found in both loci:
-                    f.size(
-                        f.filter(
-                            f.collect_list(f.col("tagVariantSource")),
-                            lambda x: x == "both",
-                        )
+                    f.sum(
+                        f.when(f.col("tagVariantSource") == "both", 1).otherwise(0)
                     )
                     .cast(t.LongType())
                     .alias("numberColocalisingVariants"),
