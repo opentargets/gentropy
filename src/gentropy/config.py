@@ -25,8 +25,8 @@ class SessionConfig:
     log_level: str = "ERROR"
     add_s3_connector: bool = False
     add_gcs_connector: bool = False
-    s3_configuration: dict[str, str] | None = None
-    gcs_configuration: dict[str, str] | None = None
+    s3_configuration: dict[str, str] | None = field(default_factory=dict[str, str])
+    gcs_configuration: dict[str, str] | None = field(default_factory=dict[str, str])
     s3_configuration_path: str | None = None
     gcs_configuration_path: str | None = None
     _target_: str = "gentropy.common.session.Session"

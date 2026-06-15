@@ -582,6 +582,9 @@ class Session:
         """
         from gentropy.external.s3 import S3Config
 
+        if s3_configuration is not None and not isinstance(s3_configuration, (dict, str)):
+            s3_configuration = dict(s3_configuration)
+
         match s3_configuration:
             case dict():
                 conf = S3Config(**s3_configuration)
@@ -627,6 +630,10 @@ class Session:
             3. Environment variables (see `GCSConfig.from_env` for more details)
         """
         from gentropy.external.gcs import GCSConfig
+
+        # Hydra passes DictConfig (OmegaConf) objects which don't inherit from dict
+        if gcs_configuration is not None and not isinstance(gcs_configuration, (dict, str)):
+            gcs_configuration = dict(gcs_configuration)
 
         match gcs_configuration:
             case dict():
