@@ -5,10 +5,11 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from pyspark.sql import functions as f
+from pyspark.sql import types as t
 
 from gentropy.dataset.colocalisation import Colocalisation
 from gentropy.dataset.study_locus_overlap import StudyLocusOverlap
-from gentropy.method.colocalisation.coloc_pip import ColocPIP
+from gentropy.method.colocalisation.coloc_pip import ColocPIP, _ColocPIPConfig
 from gentropy.method.colocalisation.ecaviar import ECaviar
 from gentropy.method.colocalisation.model import ColocalisationMethodInterface
 
@@ -28,7 +29,12 @@ class ColocPIPECaviar(ColocalisationMethodInterface):
         overlapping_signals: StudyLocusOverlap,
         **kwargs: Any,
     ) -> Colocalisation:
-        """Colocalise using colocPIP and ECaviar methods.
+        """Colocalise using colocPIP and eCAVIAR metrics in a single fused pass.
+
+        ColocPIP, eCAVIAR and the beta ratio all group the overlaps by the same keys, so
+        every metric is computed in ONE groupBy -- replacing the previous two separate
+        groupBys + inner merge join + a separate (multi-TiB) beta-ratio shuffle, which
+        re-shuffled the overlaps several times.
 
         Args:
             overlapping_signals (StudyLocusOverlap): overlapping peaks
@@ -42,49 +48,85 @@ class ColocPIPECaviar(ColocalisationMethodInterface):
         Returns:
             Colocalisation: Colocalisation results
         """
-        coloc_pip_results = ColocPIP.colocalise(overlapping_signals, **kwargs)
-        ecaviar_results = ECaviar.colocalise(overlapping_signals)
+        config = _ColocPIPConfig(**kwargs)
+        # h3/h4 reuse ColocPIP's exact sums -> posteriors derivation (shared helper) so
+        # the fused path cannot numerically diverge from the standalone ColocPIP method.
+        h3, h4 = ColocPIP._pip_posteriors(
+            f.col("sum_pip1"),
+            f.col("sum_pip2"),
+            f.col("sum_pip_prod"),
+            config.priorc1,
+            config.priorc2,
+            config.priorc12,
+        )
 
-        # Merge results: join on key columns and combine metrics
-        join_keys = [
-            "leftStudyLocusId",
-            "rightStudyLocusId",
-            "chromosome",
-            "rightStudyType",
-        ]
+        # One groupBy over the (tag-variant-aligned) overlaps computes every metric for
+        # both methods at once: ColocPIP needs S1/S2/B (floored PIP sums); eCAVIAR needs
+        # clpp = sum(left_pp * right_pp) (raw); numberColocalisingVariants is identical in
+        # both. h0=h1=h2 are not produced for the combined method (matching the original).
+        aggregated = (
+            overlapping_signals.df.withColumn(
+                "tagVariantSource", cls.get_tag_variant_source(f.col("statistics"))
+            )
+            .select("*", "statistics.*")
+            .groupBy(
+                "chromosome",
+                "leftStudyLocusId",
+                "rightStudyLocusId",
+                "rightStudyType",
+            )
+            .agg(
+                f.sum(f.when(f.col("tagVariantSource") == "both", 1).otherwise(0))
+                .cast(t.LongType())
+                .alias("numberColocalisingVariants"),
+                f.sum(ColocPIP._floored_pip(f.col("left_posteriorProbability"))).alias(
+                    "sum_pip1"
+                ),
+                f.sum(ColocPIP._floored_pip(f.col("right_posteriorProbability"))).alias(
+                    "sum_pip2"
+                ),
+                f.sum(
+                    ColocPIP._floored_pip(f.col("left_posteriorProbability"))
+                    * ColocPIP._floored_pip(f.col("right_posteriorProbability"))
+                ).alias("sum_pip_prod"),
+                f.sum(
+                    ECaviar._get_clpp(
+                        f.col("left_posteriorProbability"),
+                        f.col("right_posteriorProbability"),
+                    )
+                ).alias("clpp"),
+                # Beta ratio folded into the same groupBy: rightStudyType is functionally
+                # determined by the right locus, so this 4-key grouping matches
+                # calculate_beta_ratio's (left, right, chromosome) granularity. avg ignores
+                # the nulls produced for filtered-out (null/zero beta) rows, so this equals
+                # the original filter-then-avg -- and removes a full ~TiB re-shuffle.
+                f.avg(
+                    f.when(
+                        f.col("left_beta").isNotNull()
+                        & f.col("right_beta").isNotNull()
+                        & (f.col("left_beta") != 0)
+                        & (f.col("right_beta") != 0),
+                        f.signum(f.col("left_beta") / f.col("right_beta")),
+                    )
+                ).alias("betaRatioSignAverage"),
+            )
+            .withColumn("h3", h3)
+            .withColumn("h4", h4)
+            .withColumn("colocalisationMethod", f.lit(cls.METHOD_NAME))
+        )
 
         return Colocalisation(
-            _df=coloc_pip_results.df.alias("pip")
-            .join(
-                ecaviar_results.df.alias("ecav").select(
-                    *join_keys,
-                    f.col("clpp").alias("clpp_ecaviar"),
-                    f.col("numberColocalisingVariants").alias(
-                        "numberColocalisingVariants_ecaviar"
-                    ),
-                ),
-                on=join_keys,
-                how="inner",
-            )
-            .select(
-                f.col("pip.leftStudyLocusId"),
-                f.col("pip.rightStudyLocusId"),
-                f.col("pip.rightStudyType"),
-                f.col("pip.chromosome"),
-                # Use a combined method name
-                f.lit(cls.METHOD_NAME).alias("colocalisationMethod"),
-                # Use the max number of colocalising variants from both methods
-                f.greatest(
-                    f.col("pip.numberColocalisingVariants"),
-                    f.col("numberColocalisingVariants_ecaviar"),
-                ).alias("numberColocalisingVariants"),
-                # Keep h3 and h4 from ColocPIP
-                f.col("pip.h3"),
-                f.col("pip.h4"),
-                # Add clpp from eCAVIAR
-                f.col("clpp_ecaviar").alias("clpp"),
-                # Keep beta ratio from ColocPIP
-                f.col("pip.betaRatioSignAverage"),
+            _df=aggregated.select(
+                "leftStudyLocusId",
+                "rightStudyLocusId",
+                "rightStudyType",
+                "chromosome",
+                "colocalisationMethod",
+                "numberColocalisingVariants",
+                "h3",
+                "h4",
+                "clpp",
+                "betaRatioSignAverage",
             ),
             _schema=Colocalisation.get_schema(),
         )

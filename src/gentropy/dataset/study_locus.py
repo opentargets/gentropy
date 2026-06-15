@@ -567,7 +567,11 @@ class StudyLocus(Dataset):
                 f.col("left.chromosome").alias("chromosome"),
             )
             .distinct()
-            .repartition("chromosome")
+            # NOTE: avoid `.repartition("chromosome")` here: with ~25 distinct
+            # chromosomes it collapses the result into a handful of severely
+            # skewed partitions (chr6/HLA dominates), capping downstream
+            # parallelism and risking spill/OOM. `.distinct()` already produces
+            # balanced `spark.sql.shuffle.partitions` partitions.
             .persist()
         )
 
