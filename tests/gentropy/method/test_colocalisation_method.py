@@ -920,10 +920,10 @@ def test_coloc_pip_characterization(spark: SparkSession) -> None:
 
 def test_coloc_pip_ecaviar_characterization(spark: SparkSession) -> None:
     """Pin the combined ColocPIPECaviar output.
-    
-    This guards the fused-aggregation refactor (single groupBy + single 
-    beta-ratio) against the merge-based original. Includes h3/h4 from 
-    ColocPIP, clpp from eCAVIAR, numberColocalisingVariants, and 
+
+    This guards the fused-aggregation refactor (single groupBy + single
+    beta-ratio) against the merge-based original. Includes h3/h4 from
+    ColocPIP, clpp from eCAVIAR, numberColocalisingVariants, and
     betaRatioSignAverage.
     """
     observed_overlap = StudyLocusOverlap(
