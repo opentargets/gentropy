@@ -4,23 +4,17 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-import numpy as np
-import pyspark.ml.functions as fml
 import pyspark.sql.functions as f
 import pyspark.sql.types as t
 from pydantic import BaseModel
-from pyspark.ml.linalg import DenseVector, Vectors, VectorUDT
-from pyspark.sql.types import DoubleType
 
-from gentropy.common.stats import get_logsum
+from gentropy.common.stats import get_logsum_column
 from gentropy.dataset.colocalisation import Colocalisation
 from gentropy.dataset.study_locus_overlap import StudyLocusOverlap
 from gentropy.method.colocalisation.model import ColocalisationMethodInterface
 
 if TYPE_CHECKING:
     from typing import Any
-
-    from numpy.typing import NDArray
 
 
 class _ColocConfig(BaseModel):
@@ -89,9 +83,6 @@ class Coloc(ColocalisationMethodInterface):
             TypeError: When passed incorrect keyword argument types.
         """
         config = _ColocConfig(**kwargs)
-        # register udfs
-        logsum = f.udf(get_logsum, DoubleType())
-        posteriors = f.udf(Coloc._get_posteriors, VectorUDT())
         return Colocalisation(
             _df=(
                 overlapping_signals.df.withColumn(
@@ -121,36 +112,27 @@ class Coloc(ColocalisationMethodInterface):
                     "rightStudyType",
                 )
                 .agg(
-                    f.size(
-                        f.filter(
-                            f.collect_list(f.col("tagVariantSource")),
-                            lambda x: x == "both",
-                        )
+                    f.sum(
+                        f.when(f.col("tagVariantSource") == "both", 1).otherwise(0)
                     )
                     .cast(t.LongType())
                     .alias("numberColocalisingVariants"),
-                    fml.array_to_vector(f.collect_list(f.col("left_logBF"))).alias(
-                        "left_logBF"
+                    f.collect_list(f.col("left_logBF")).alias("left_logBF"),
+                    f.collect_list(f.col("right_logBF")).alias("right_logBF"),
+                    f.collect_list(f.col("left_posteriorProbability")).alias(
+                        "left_posteriorProbability"
                     ),
-                    fml.array_to_vector(f.collect_list(f.col("right_logBF"))).alias(
-                        "right_logBF"
+                    f.collect_list(f.col("right_posteriorProbability")).alias(
+                        "right_posteriorProbability"
                     ),
-                    fml.array_to_vector(
-                        f.collect_list(f.col("left_posteriorProbability"))
-                    ).alias("left_posteriorProbability"),
-                    fml.array_to_vector(
-                        f.collect_list(f.col("right_posteriorProbability"))
-                    ).alias("right_posteriorProbability"),
-                    fml.array_to_vector(f.collect_list(f.col("sum_log_bf"))).alias(
-                        "sum_log_bf"
-                    ),
+                    f.collect_list(f.col("sum_log_bf")).alias("sum_log_bf"),
                     f.collect_list(f.col("tagVariantSource")).alias(
                         "tagVariantSourceList"
                     ),
                 )
-                .withColumn("logsum1", logsum(f.col("left_logBF")))
-                .withColumn("logsum2", logsum(f.col("right_logBF")))
-                .withColumn("logsum12", logsum(f.col("sum_log_bf")))
+                .withColumn("logsum1", get_logsum_column(f.col("left_logBF")))
+                .withColumn("logsum2", get_logsum_column(f.col("right_logBF")))
+                .withColumn("logsum12", get_logsum_column(f.col("sum_log_bf")))
                 .drop("left_logBF", "right_logBF", "sum_log_bf")
                 # Add priors
                 # priorc1 Prior on variant being causal for trait 1
@@ -171,17 +153,15 @@ class Coloc(ColocalisationMethodInterface):
                     f.aggregate(
                         f.transform(
                             f.arrays_zip(
-                                fml.vector_to_array(f.col("left_posteriorProbability")),
-                                fml.vector_to_array(
-                                    f.col("right_posteriorProbability")
-                                ),
+                                f.col("left_posteriorProbability"),
+                                f.col("right_posteriorProbability"),
                                 f.col("tagVariantSourceList"),
                             ),
-                            # row["0"] = left PP, row["1"] = right PP, row["tagVariantSourceList"]
+                            # arrays_zip keys struct fields by input column name
                             lambda row: f.when(
                                 (row["tagVariantSourceList"] == "both")
-                                & (row["0"] > config.posterior_cutoff)
-                                & (row["1"] > config.posterior_cutoff),
+                                & (row["left_posteriorProbability"] > config.posterior_cutoff)
+                                & (row["right_posteriorProbability"] > config.posterior_cutoff),
                                 1.0,
                             ).otherwise(0.0),
                         ),
@@ -213,17 +193,18 @@ class Coloc(ColocalisationMethodInterface):
                     + f.log(f.col("priorc2"))
                     + f.col("logdiff"),
                 )
-                .drop("right_logsum", "left_logsum", "sumlogsum", "max", "logdiff")
+                .drop("sumlogsum", "max", "logdiff")
                 # h4
                 .withColumn("lH4bf", f.log(f.col("priorc12")) + f.col("logsum12"))
                 # cleaning
                 .drop(
                     "priorc1", "priorc2", "priorc12", "logsum1", "logsum2", "logsum12"
                 )
-                # posteriors
+                # posteriors: softmax over the 5 hypothesis Bayes factors,
+                # computed natively as exp(lH_i - logsumexp(allBF)).
                 .withColumn(
-                    "allBF",
-                    fml.array_to_vector(
+                    "coloc_log_denom",
+                    get_logsum_column(
                         f.array(
                             f.col("lH0bf"),
                             f.col("lH1bf"),
@@ -233,18 +214,14 @@ class Coloc(ColocalisationMethodInterface):
                         )
                     ),
                 )
-                .withColumn(
-                    "posteriors", fml.vector_to_array(posteriors(f.col("allBF")))
-                )
-                .withColumn("h0", f.col("posteriors").getItem(0))
-                .withColumn("h1", f.col("posteriors").getItem(1))
-                .withColumn("h2", f.col("posteriors").getItem(2))
-                .withColumn("h3", f.col("posteriors").getItem(3))
-                .withColumn("h4", f.col("posteriors").getItem(4))
+                .withColumn("h0", f.exp(f.col("lH0bf") - f.col("coloc_log_denom")))
+                .withColumn("h1", f.exp(f.col("lH1bf") - f.col("coloc_log_denom")))
+                .withColumn("h2", f.exp(f.col("lH2bf") - f.col("coloc_log_denom")))
+                .withColumn("h3", f.exp(f.col("lH3bf") - f.col("coloc_log_denom")))
+                .withColumn("h4", f.exp(f.col("lH4bf") - f.col("coloc_log_denom")))
                 # clean up
                 .drop(
-                    "posteriors",
-                    "allBF",
+                    "coloc_log_denom",
                     "lH0bf",
                     "lH1bf",
                     "lH2bf",
@@ -264,22 +241,3 @@ class Coloc(ColocalisationMethodInterface):
             ),
             _schema=Colocalisation.get_schema(),
         )
-
-    @staticmethod
-    def _get_posteriors(all_bfs: NDArray[np.float64]) -> DenseVector:
-        """Calculate posterior probabilities for each hypothesis.
-
-        Args:
-            all_bfs (NDArray[np.float64]): h0-h4 bayes factors
-
-        Returns:
-            DenseVector: Posterior
-
-        Example:
-            >>> l = np.array([0.2, 0.1, 0.05, 0])
-            >>> Coloc._get_posteriors(l)
-            DenseVector([0.279, 0.2524, 0.2401, 0.2284])
-        """
-        diff = all_bfs - get_logsum(all_bfs)
-        bfs_posteriors = np.exp(diff)
-        return Vectors.dense(bfs_posteriors)

@@ -75,6 +75,10 @@ class ColocalisationStep:
                 f.col("finemappingMethod").isin(FinemappingMethod.methods_with_lbf())
             )
 
+        # No `.persist()` on the aligned overlaps here: the production
+        # `coloc_pip_ecaviar` path consumes them once (a single fused groupBy), so
+        # caching would be pure overhead. `find_overlaps` already persists the
+        # genuinely-reused intermediate (`loci_to_overlap`).
         overlaps = cs.find_overlaps(
             restrict_right_studies=restrict_right_studies,
             gwas_v_qtl_overlap_only=gwas_v_qtl_overlap_only,
