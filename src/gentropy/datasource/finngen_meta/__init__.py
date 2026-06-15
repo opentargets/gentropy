@@ -413,9 +413,9 @@ class MetaAnalysisType(str, Enum):
         """Get the study ID column based on the meta-analysis type and release."""
         match self:
             case MetaAnalysisType.THREE_WAY:
-                mix = f"{release.release_name}_UKBB_MVP_META"
+                mix = f"{release.release_name}_UKB_MVP_META"
             case MetaAnalysisType.TWO_WAY:
-                mix = f"{release.release_name}_UKBB_META"
+                mix = f"{release.release_name}_UKB_META"
             case _:
                 raise NotImplementedError(f"Unsupported meta-analysis type: {self}")
         return f.concat_ws("_", f.lit(mix), f.col("fg_phenotype")).alias("studyId")
@@ -424,9 +424,9 @@ class MetaAnalysisType(str, Enum):
         """Get the project ID column based on the meta-analysis type and release."""
         match self:
             case MetaAnalysisType.THREE_WAY:
-                return f.lit(f"{release.release_name}_UKBB_MVP_META").alias("projectId")
+                return f.lit(f"{release.release_name}_UKB_MVP_META").alias("projectId")
             case MetaAnalysisType.TWO_WAY:
-                return f.lit(f"{release.release_name}_UKBB_META").alias("projectId")
+                return f.lit(f"{release.release_name}_UKB_META").alias("projectId")
             case _:
                 raise NotImplementedError(f"Unsupported meta-analysis type: {self}")
 

@@ -80,16 +80,16 @@ class TestFinnGenMetaManifest:
         loaded, meta_analysis_type = manifest
         expected_study_ids = {
             MetaAnalysisType.TWO_WAY: [
-                Row(studyId="FINNGEN_R12_UKBB_META_AB1_AMOEBIASIS"),
-                Row(studyId="FINNGEN_R12_UKBB_META_AB1_ASPERGILLOSIS"),
-                Row(studyId="FINNGEN_R12_UKBB_META_AB1_CANDIDIASIS"),
-                Row(studyId="FINNGEN_R12_UKBB_META_AB1_DERMATOPHYTOSIS"),
+                Row(studyId="FINNGEN_R12_UKB_META_AB1_AMOEBIASIS"),
+                Row(studyId="FINNGEN_R12_UKB_META_AB1_ASPERGILLOSIS"),
+                Row(studyId="FINNGEN_R12_UKB_META_AB1_CANDIDIASIS"),
+                Row(studyId="FINNGEN_R12_UKB_META_AB1_DERMATOPHYTOSIS"),
             ],
             MetaAnalysisType.THREE_WAY: [
-                Row(studyId="FINNGEN_R12_UKBB_MVP_META_AB1_BACT_INTEST_OTH"),
-                Row(studyId="FINNGEN_R12_UKBB_MVP_META_AB1_CANDIDIASIS"),
-                Row(studyId="FINNGEN_R12_UKBB_MVP_META_AB1_INTESTINAL_INFECTIONS"),
-                Row(studyId="FINNGEN_R12_UKBB_MVP_META_AB1_OTHER_SUPERF_MYCOSIS"),
+                Row(studyId="FINNGEN_R12_UKB_MVP_META_AB1_BACT_INTEST_OTH"),
+                Row(studyId="FINNGEN_R12_UKB_MVP_META_AB1_CANDIDIASIS"),
+                Row(studyId="FINNGEN_R12_UKB_MVP_META_AB1_INTESTINAL_INFECTIONS"),
+                Row(studyId="FINNGEN_R12_UKB_MVP_META_AB1_OTHER_SUPERF_MYCOSIS"),
             ],
         }
         expected = expected_study_ids[meta_analysis_type]
@@ -107,8 +107,8 @@ class TestFinnGenMetaManifest:
         """Test that projectId is set correctly for both manifest variants."""
         loaded, meta_analysis_type = manifest
         expected_project_id = {
-            MetaAnalysisType.TWO_WAY: "FINNGEN_R12_UKBB_META",
-            MetaAnalysisType.THREE_WAY: "FINNGEN_R12_UKBB_MVP_META",
+            MetaAnalysisType.TWO_WAY: "FINNGEN_R12_UKB_META",
+            MetaAnalysisType.THREE_WAY: "FINNGEN_R12_UKB_MVP_META",
         }[meta_analysis_type]
         expected_df = session.spark.createDataFrame(
             [(expected_project_id,)] * 4, schema="projectId: STRING"
