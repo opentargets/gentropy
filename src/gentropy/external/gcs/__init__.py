@@ -84,11 +84,14 @@ class GCSConfig(ExternalConfig):
     ['paid-bucket-1', 'paid-bucket-2']
     """
 
-    _HADOOP_CONNECTOR_PKG: ClassVar[str] = (
-        "com.google.cloud.bigdataoss:gcs-connector:4.0.4"
+    _HADOOP_CONNECTOR_JAR: ClassVar[str] = (
+        "https://github.com/GoogleCloudDataproc/hadoop-connectors/releases/download/v3.1.17/gcs-connector-3.1.17-shaded.jar"
     )
     """Connector for Google Cloud Storage.
-        See https://mvnrepository.com/artifact/com.google.cloud.bigdataoss/gcs-connector/4.0.4"""
+        See https://github.com/GoogleCloudDataproc/hadoop-connectors/releases and
+        https://docs.cloud.google.com/managed-spark/docs/concepts/connectors/cloud-storage#connector-setup-on-non-dataproc-clusters
+        Note that the shaded version is recommended to avoid dependency conflicts.
+    """
 
     project_id: str | None = None
     """Google Cloud Project ID. Required only for list-buckets and create-bucket operations,
@@ -162,11 +165,13 @@ class GCSConfig(ExternalConfig):
         buckets_raw = os.getenv("GCS_REQUESTER_PAYS_BUCKETS")
         return cls(
             project_id=os.getenv("GCS_PROJECT_ID"),
-            auth_type=os.getenv("GCS_AUTH_TYPE", GCSAuthType.COMPUTE_ENGINE),
+            auth_type=GCSAuthType(
+                os.getenv("GCS_AUTH_TYPE", GCSAuthType.COMPUTE_ENGINE.value)
+            ),
             keyfile_path=os.getenv("GCS_KEYFILE_PATH"),
             impersonation_sa=os.getenv("GCS_IMPERSONATION_SA"),
-            requester_pays=os.getenv(
-                "GCS_REQUESTER_PAYS", GCSRequesterPaysMode.DISABLED
+            requester_pays=GCSRequesterPaysMode(
+                os.getenv("GCS_REQUESTER_PAYS", GCSRequesterPaysMode.DISABLED.value)
             ),
             requester_pays_project_id=os.getenv("GCS_REQUESTER_PAYS_PROJECT_ID"),
             requester_pays_buckets=buckets_raw.split(",") if buckets_raw else None,
