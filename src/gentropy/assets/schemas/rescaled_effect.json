@@ -20,7 +20,7 @@
     },
     {
       "metadata": {},
-      "name": "phenotypicVarianceExplained",
+      "name": "approximatedVarianceExplained",
       "nullable": false,
       "type": "double"
     },
@@ -44,13 +44,13 @@
           },
           {
             "metadata": {},
-            "name": "absBeta",
+            "name": "absEstimatedBeta",
             "nullable": false,
             "type": "double"
           },
           {
             "metadata": {},
-            "name": "standardError",
+            "name": "estimatedSE",
             "nullable": false,
             "type": "double"
           }
@@ -72,13 +72,13 @@
           },
           {
             "metadata": {},
-            "name": "absBeta",
+            "name": "absEstimatedBeta",
             "nullable": false,
             "type": "double"
           },
           {
             "metadata": {},
-            "name": "standardError",
+            "name": "estimatedSE",
             "nullable": false,
             "type": "double"
           }
