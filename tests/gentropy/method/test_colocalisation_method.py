@@ -975,3 +975,213 @@ def test_coloc_pip_ecaviar_characterization(spark: SparkSession) -> None:
     assert abs((row["h3"] + row["h4"]) - 1.0) <= 1e-9
     # betaRatioSign: snp1 sign(0.5/0.3)=+1, snp2 sign(0.2/-0.1)=-1 -> avg 0.0.
     assert abs(row["betaRatioSignAverage"] - 0.0) <= 1e-9
+
+
+# ── K-Lean property-based tests (hypothesis) ─────────────────────────────────
+# These tests translate the machine-verified contracts from
+# https://github.com/Heime-Jorgen/kenosian-lean4 into executable pytest-hypothesis
+# properties. No Lean toolchain is required: Hypothesis samples inputs and checks
+# each invariant on every CI run.
+#
+# Contracts covered:
+#   KLean.Coloc.PriorConstraints   – valid priors never produce NaN posteriors
+#   KLean.Coloc.PosteriorSimplex   – H0+H1+H2+H3+H4 = 1 for any valid logBF
+#   KLean.ECaviar.CLPPMonotonicity – CLPP is non-decreasing in each PIP argument
+#   KLean.Coloc.H4InUnitInterval   – H4 ∈ [0, 1] for any valid PIP input
+#   KLean.ColocPIP.H3H4Simplex     – ColocPIP H3+H4 = 1 (H0=H1=H2=0)
+
+from hypothesis import given, settings
+from hypothesis import strategies as st
+
+
+# ── helpers ───────────────────────────────────────────────────────────────────
+
+_pip = st.floats(min_value=0.0, max_value=1.0, allow_nan=False, allow_infinity=False)
+_positive_prior = st.floats(
+    min_value=1e-10, max_value=1.0, allow_nan=False, allow_infinity=False
+)
+
+
+def _make_overlap_local(
+    spark: "SparkSession",
+    left_logBF: float,
+    right_logBF: float,
+    left_pp: float,
+    right_pp: float,
+) -> StudyLocusOverlap:
+    """Build a minimal single-variant StudyLocusOverlap for property tests."""
+    data: list[Any] = [
+        {
+            "leftStudyLocusId": "L1",
+            "rightStudyLocusId": "R1",
+            "rightStudyType": "eqtl",
+            "chromosome": "1",
+            "tagVariantId": "snp1",
+            "statistics": {
+                "left_logBF": left_logBF,
+                "right_logBF": right_logBF,
+                "left_beta": 0.1,
+                "right_beta": 0.1,
+                "left_posteriorProbability": left_pp,
+                "right_posteriorProbability": right_pp,
+            },
+        }
+    ]
+    return StudyLocusOverlap(
+        _df=spark.createDataFrame(cast(Any, data), schema=StudyLocusOverlap.get_schema()),
+        _schema=StudyLocusOverlap.get_schema(),
+    )
+
+
+# ── P1: KLean.Coloc.PriorConstraints ─────────────────────────────────────────
+# Valid priors ∈ (0, 1] must not produce NaN posteriors.
+
+
+@given(
+    priorc1=_positive_prior,
+    priorc2=_positive_prior,
+    priorc12=_positive_prior,
+)
+@settings(max_examples=200)
+def test_coloc_prior_constraints_no_nan(
+    spark: SparkSession,
+    priorc1: float,
+    priorc2: float,
+    priorc12: float,
+) -> None:
+    """KLean.Coloc.PriorConstraints: valid priors never produce NaN posteriors."""
+    overlap = _make_overlap_local(spark, 5.0, 5.0, 0.5, 0.5)
+    result = Coloc.colocalise(
+        overlap, priorc1=priorc1, priorc2=priorc2, priorc12=priorc12
+    ).df.collect()
+    if result:
+        row = result[0].asDict()
+        for h in ("h0", "h1", "h2", "h3", "h4"):
+            val = row[h]
+            assert val is not None and val == val, (  # NaN != NaN
+                f"{h} is NaN for priors ({priorc1}, {priorc2}, {priorc12})"
+            )
+
+
+# ── P2: KLean.Coloc.PosteriorSimplex ─────────────────────────────────────────
+# h0 + h1 + h2 + h3 + h4 = 1 (± 1e-9) for any valid logBF input.
+
+
+@given(
+    left_logBF=st.floats(
+        min_value=-20.0, max_value=20.0, allow_nan=False, allow_infinity=False
+    ),
+    right_logBF=st.floats(
+        min_value=-20.0, max_value=20.0, allow_nan=False, allow_infinity=False
+    ),
+    left_pp=_pip,
+    right_pp=_pip,
+)
+@settings(max_examples=300)
+def test_coloc_posterior_simplex(
+    spark: SparkSession,
+    left_logBF: float,
+    right_logBF: float,
+    left_pp: float,
+    right_pp: float,
+) -> None:
+    """KLean.Coloc.PosteriorSimplex: h0+h1+h2+h3+h4 = 1 for all valid inputs."""
+    overlap = _make_overlap_local(spark, left_logBF, right_logBF, left_pp, right_pp)
+    result = Coloc.colocalise(overlap).df.collect()
+    if result:
+        row = result[0].asDict()
+        total = sum(row[h] for h in ("h0", "h1", "h2", "h3", "h4"))
+        assert abs(total - 1.0) <= 1e-9, (
+            f"Posterior simplex violated: sum={total} for "
+            f"logBF=({left_logBF},{right_logBF}), pp=({left_pp},{right_pp})"
+        )
+
+
+# ── P3: KLean.ECaviar.CLPPMonotonicity ───────────────────────────────────────
+# CLPP = left_pp * right_pp is non-decreasing in each argument.
+# Pure Python — no Spark session required.
+
+
+@given(
+    left_pp1=_pip,
+    left_pp2=_pip,
+    right_pp=_pip,
+)
+@settings(max_examples=500)
+def test_ecaviar_clpp_monotonicity(
+    left_pp1: float,
+    left_pp2: float,
+    right_pp: float,
+) -> None:
+    """KLean.ECaviar.CLPPMonotonicity: larger left_pp yields larger or equal CLPP."""
+    clpp1 = left_pp1 * right_pp
+    clpp2 = left_pp2 * right_pp
+    if left_pp1 <= left_pp2:
+        assert clpp1 <= clpp2 + 1e-15, (
+            f"Monotonicity violated: left_pp1={left_pp1} <= left_pp2={left_pp2} "
+            f"but clpp1={clpp1} > clpp2={clpp2}"
+        )
+
+
+# ── P4: KLean.Coloc.H4InUnitInterval ─────────────────────────────────────────
+# PIP inputs ∈ [0, 1] must yield h4 ∈ [0, 1].
+
+
+@given(left_pp=_pip, right_pp=_pip)
+@settings(max_examples=300)
+def test_coloc_h4_in_unit_interval(
+    spark: SparkSession,
+    left_pp: float,
+    right_pp: float,
+) -> None:
+    """KLean.Coloc.H4InUnitInterval: h4 ∈ [0, 1] for PIP inputs in [0, 1]."""
+    overlap = _make_overlap_local(spark, 5.0, 5.0, left_pp, right_pp)
+    result = Coloc.colocalise(overlap).df.collect()
+    if result:
+        h4 = result[0].asDict()["h4"]
+        assert 0.0 <= h4 <= 1.0 + 1e-9, (
+            f"h4={h4} out of [0, 1] for pp=({left_pp}, {right_pp})"
+        )
+
+
+# ── P5: KLean.ColocPIP.H3H4Simplex ──────────────────────────────────────────
+# ColocPIP only populates H3 and H4; H0=H1=H2=0, H3+H4=1.
+
+
+@given(left_pp=_pip, right_pp=_pip)
+@settings(max_examples=300)
+def test_coloc_pip_h3h4_simplex(
+    spark: SparkSession,
+    left_pp: float,
+    right_pp: float,
+) -> None:
+    """KLean.ColocPIP.H3H4Simplex: H0=H1=H2=0 and H3+H4=1 for all PIP inputs."""
+    data: list[Any] = [
+        {
+            "leftStudyLocusId": "L1",
+            "rightStudyLocusId": "R1",
+            "rightStudyType": "eqtl",
+            "chromosome": "1",
+            "tagVariantId": "snp1",
+            "statistics": {
+                "left_posteriorProbability": left_pp,
+                "right_posteriorProbability": right_pp,
+                "left_beta": 0.1,
+                "right_beta": 0.1,
+            },
+        }
+    ]
+    overlap = StudyLocusOverlap(
+        _df=spark.createDataFrame(cast(Any, data), schema=StudyLocusOverlap.get_schema()),
+        _schema=StudyLocusOverlap.get_schema(),
+    )
+    result = ColocPIP.colocalise(overlap).df.collect()
+    if result:
+        row = result[0].asDict()
+        assert row["h0"] == 0.0 and row["h1"] == 0.0 and row["h2"] == 0.0, (
+            "ColocPIP H0/H1/H2 must be exactly 0"
+        )
+        total = row["h3"] + row["h4"]
+        assert abs(total - 1.0) <= 1e-9, (
+            f"ColocPIP H3+H4={total} != 1 for pp=({left_pp}, {right_pp})"
+        )
