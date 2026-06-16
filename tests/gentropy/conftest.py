@@ -40,7 +40,7 @@ if TYPE_CHECKING:
 def spark(request: pytest.FixtureRequest) -> Generator[SparkSession, None, None]:
     """Local spark session for testing purposes.
 
-    Builds the testing Spark conf with hail support iff at least one
+    Builds the testing Spark conf with hail support if at least one
     collected test in the current run carries the ``hail`` marker, so the
     ``pytest -m "not hail"`` partition stays honestly hail-free.
     """
