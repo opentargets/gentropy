@@ -66,13 +66,13 @@
           },
           {
             "metadata": {},
-            "name": "absEstimatedBeta",
+            "name": "absBeta",
             "nullable": false,
             "type": "double"
           },
           {
             "metadata": {},
-            "name": "estimatedSE",
+            "name": "standardError",
             "nullable": false,
             "type": "double"
           }
@@ -94,13 +94,13 @@
           },
           {
             "metadata": {},
-            "name": "absEstimatedBeta",
+            "name": "absBeta",
             "nullable": false,
             "type": "double"
           },
           {
             "metadata": {},
-            "name": "estimatedSE",
+            "name": "standardError",
             "nullable": false,
             "type": "double"
           }
