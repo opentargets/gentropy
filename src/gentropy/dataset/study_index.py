@@ -498,9 +498,7 @@ class StudyIndex(Dataset):
         return StudyIndex(_df=validated_df, _schema=StudyIndex.get_schema())
 
     @qc_test
-    def collect_heritability(
-        self: StudyIndex, heritability_df: DataFrame
-    ) -> StudyIndex:
+    def collect_heritability(self: StudyIndex, heritability_df: DataFrame) -> StudyIndex:
         """Collecting heritability information from LDSC results into sumstatQCValues.
 
         Args:
@@ -509,26 +507,22 @@ class StudyIndex(Dataset):
         Returns:
             StudyIndex: with LDSC heritability values appended to sumstatQCValues.
         """
-        ldsc_fields = [
-            "h2",
-            "h2_se",
-            "intercept",
-            "intercept_se",
-            "mean_chisq",
-            "lambda_gc",
-        ]
+        ldsc_fields = ["h2", "h2_se", "intercept", "intercept_se", "mean_chisq", "lambda_gc"]
 
-        h2_annotations = heritability_df.filter(f.col("runStatus") == "success").select(
-            "studyId",
-            f.array(
-                *[
-                    f.struct(
-                        f.lit(field).alias("QCCheckName"),
-                        f.col(field).cast("float").alias("QCCheckValue"),
-                    )
-                    for field in ldsc_fields
-                ]
-            ).alias("ldsc_qc"),
+        h2_annotations = (
+            heritability_df.filter(f.col("runStatus") == "success")
+            .select(
+                "studyId",
+                f.array(
+                    *[
+                        f.struct(
+                            f.lit(field).alias("QCCheckName"),
+                            f.col(field).cast("float").alias("QCCheckValue"),
+                        )
+                        for field in ldsc_fields
+                    ]
+                ).alias("ldsc_qc"),
+            )
         )
 
         merged = (
@@ -987,13 +981,6 @@ class ProteinQuantitativeTraitLocusStudyIndex(StudyIndex):
         )
 
 
-class TraitType(str, Enum):
-    """Enumeration of trait types."""
-
-    QUANTITATIVE = "quantitative"
-    BINARY = "binary"
-
-
 class MetaAnalysisStudyIndex(StudyIndex):
     """Meta-analysis study index dataset.
 
@@ -1011,7 +998,6 @@ class MetaAnalysisStudyIndex(StudyIndex):
         return (
             super()
             .get_schema()
-            .add(t.StructField("traitType", t.StringType(), nullable=False))
             .add(
                 t.StructField(
                     "nSamplesPerCohort",
