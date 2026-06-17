@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import operator
 import re
 from collections.abc import Callable, Iterable
 from functools import reduce, wraps
@@ -752,10 +753,12 @@ def calculate_harmonic_sum(input_array: Column) -> Column:
             f.sequence(f.lit(1), f.size(input_array)).alias("pos"),
         ),
         f.lit(0.0),
-        lambda acc, x: acc
-        + x["score"]
-        / f.pow(x["pos"], 2)
-        / f.lit(sum(1 / ((i + 1) ** 2) for i in range(1000))),
+        lambda acc, x: (
+            acc
+            + x["score"]
+            / f.pow(x["pos"], 2)
+            / f.lit(sum(1 / ((i + 1) ** 2) for i in range(1000)))
+        ),
     )
 
 
@@ -976,3 +979,29 @@ def safe_split(c: Column, char: str) -> Column:
     char = re.escape(char)
     pat = rf"{char}?\s+{char}?"
     return f.split(f.regexp_replace(f.trim(c), pat, char), char)
+
+
+def reduce_add(*cols: Column) -> Column:
+    """Get the total number of samples from multiple columns.
+
+    Args:
+        *cols (Column): Columns to sum.
+
+    Returns:
+        Column: Column representing the total number of samples.
+
+
+    Examples:
+        >>> df = spark.createDataFrame([(1, 2, 3), (1, 2, None)], ["a", "b", "c"])
+        >>> df.select(reduce_add(f.col("a"), f.col("b"), f.col("c")).alias("total")).show()
+        +-----+
+        |total|
+        +-----+
+        |    6|
+        |    3|
+        +-----+
+        <BLANKLINE>
+    """
+    # Coalesce to 0 to handle nulls
+    ccols = [f.coalesce(col, f.lit(0)) for col in cols]
+    return reduce(operator.add, ccols).cast(t.IntegerType())

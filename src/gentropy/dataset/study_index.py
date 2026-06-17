@@ -979,3 +979,69 @@ class ProteinQuantitativeTraitLocusStudyIndex(StudyIndex):
             _df=non_ambiguous_df.unionByName(ambiguous_df),
             _schema=StudyIndex.get_schema(),
         )
+
+
+class MetaAnalysisStudyIndex(StudyIndex):
+    """Meta-analysis study index dataset.
+
+    A meta-analysis study index dataset captures all the metadata for meta-analysis studies.
+    This studyIndex defines additional fields capturing nCases and nSamples per individual cohorts.
+    """
+
+    @classmethod
+    def get_schema(cls) -> t.StructType:
+        """Get the Spark schema for the manifest DataFrame.
+
+        Returns:
+            t.StructType: Spark schema for the manifest DataFrame.
+        """
+        return (
+            super()
+            .get_schema()
+            .add(
+                t.StructField(
+                    "nSamplesPerCohort",
+                    t.ArrayType(
+                        t.StructType(
+                            [
+                                t.StructField("cohort", t.StringType(), nullable=False),
+                                t.StructField(
+                                    "nSamples", t.IntegerType(), nullable=False
+                                ),
+                            ]
+                        )
+                    ),
+                    nullable=False,
+                )
+            )
+            .add(
+                t.StructField(
+                    "nCasesPerCohort",
+                    t.ArrayType(
+                        t.StructType(
+                            [
+                                t.StructField("cohort", t.StringType(), nullable=False),
+                                t.StructField(
+                                    "nCases", t.IntegerType(), nullable=False
+                                ),
+                            ]
+                        )
+                    ),
+                    # Only relevant for binary traits
+                    nullable=True,
+                )
+            )
+        )
+
+    def to_study(self: MetaAnalysisStudyIndex) -> StudyIndex:
+        """Convert MetaAnalysisStudyIndex to StudyIndex.
+
+        This method maps the meta-analysis-specific fields to the corresponding fields in the StudyIndex dataset and returns a StudyIndex instance.
+
+        Returns:
+            StudyIndex: A StudyIndex instance with mapped fields from MetaAnalysisStudyIndex.
+        """
+        return StudyIndex(
+            _df=self.df.select(StudyIndex.get_schema().fieldNames()),
+            _schema=StudyIndex.get_schema(),
+        )
