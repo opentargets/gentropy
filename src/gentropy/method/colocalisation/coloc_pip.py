@@ -4,14 +4,10 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-import numpy as np
-import pyspark.ml.functions as fml
 from pydantic import BaseModel
-from pyspark.ml.linalg import DenseVector, Vectors, VectorUDT
 from pyspark.sql import functions as f
 from pyspark.sql import types as t
 
-from gentropy.common.stats import get_logsum
 from gentropy.dataset.colocalisation import Colocalisation
 from gentropy.dataset.study_locus_overlap import StudyLocusOverlap
 from gentropy.method.colocalisation.model import ColocalisationMethodInterface
@@ -19,7 +15,7 @@ from gentropy.method.colocalisation.model import ColocalisationMethodInterface
 if TYPE_CHECKING:
     from typing import Any
 
-    from numpy.typing import NDArray
+    from pyspark.sql import Column
 
 
 class _ColocPIPConfig(BaseModel):
@@ -63,9 +59,14 @@ class ColocPIP(ColocalisationMethodInterface):
             ValidationError: When passed incorrect prior argument types.
         """
         config = _ColocPIPConfig(**kwargs)
-
-        # Register UDF for calculating posteriors from PIPs
-        posteriors_udf = f.udf(cls._get_posteriors, VectorUDT())
+        h3, h4 = cls._pip_posteriors(
+            f.col("sum_pip1"),
+            f.col("sum_pip2"),
+            f.col("sum_pip_prod"),
+            config.priorc1,
+            config.priorc2,
+            config.priorc12,
+        )
 
         return Colocalisation(
             _df=(
@@ -73,15 +74,10 @@ class ColocPIP(ColocalisationMethodInterface):
                     "tagVariantSource", cls.get_tag_variant_source(f.col("statistics"))
                 )
                 .select("*", "statistics.*")
-                # Before processing, ensure posterior probabilities are not null
-                .fillna(
-                    0,
-                    subset=[
-                        "left_posteriorProbability",
-                        "right_posteriorProbability",
-                    ],
-                )
-                # Group by overlapping peaks and collect PIPs as arrays
+                # The overlap is aligned by tag variant, so the PIP approximation reduces
+                # to three per-overlap sums over the shared variants -- no per-locus arrays
+                # and no Python UDF:
+                #   S1 = sum(pip1), S2 = sum(pip2), B = sum(pip1 * pip2)
                 .groupBy(
                     "chromosome",
                     "leftStudyLocusId",
@@ -89,52 +85,26 @@ class ColocPIP(ColocalisationMethodInterface):
                     "rightStudyType",
                 )
                 .agg(
-                    f.size(
-                        f.filter(
-                            f.collect_list(f.col("tagVariantSource")),
-                            lambda x: x == "both",
-                        )
-                    )
+                    f.sum(f.when(f.col("tagVariantSource") == "both", 1).otherwise(0))
                     .cast(t.LongType())
                     .alias("numberColocalisingVariants"),
-                    # Collect variant IDs and PIPs for left study
-                    f.collect_list(f.col("tagVariantId")).alias("left_variants"),
-                    f.collect_list(f.col("left_posteriorProbability")).alias(
-                        "left_pips"
+                    f.sum(cls._floored_pip(f.col("left_posteriorProbability"))).alias(
+                        "sum_pip1"
                     ),
-                    # Collect variant IDs and PIPs for right study
-                    f.collect_list(f.col("tagVariantId")).alias("right_variants"),
-                    f.collect_list(f.col("right_posteriorProbability")).alias(
-                        "right_pips"
+                    f.sum(cls._floored_pip(f.col("right_posteriorProbability"))).alias(
+                        "sum_pip2"
                     ),
+                    f.sum(
+                        cls._floored_pip(f.col("left_posteriorProbability"))
+                        * cls._floored_pip(f.col("right_posteriorProbability"))
+                    ).alias("sum_pip_prod"),
                 )
-                # Calculate posteriors using the PIP approximation
-                .withColumn(
-                    "posteriors",
-                    posteriors_udf(
-                        f.col("left_variants").cast("array<string>"),
-                        f.col("left_pips").cast("array<double>"),
-                        f.col("right_variants").cast("array<string>"),
-                        f.col("right_pips").cast("array<double>"),
-                        f.lit(config.priorc1),
-                        f.lit(config.priorc2),
-                        f.lit(config.priorc12),
-                    ),
-                )
-                # Extract individual hypothesis posteriors
-                .withColumn("h0", fml.vector_to_array(f.col("posteriors")).getItem(0))
-                .withColumn("h1", fml.vector_to_array(f.col("posteriors")).getItem(1))
-                .withColumn("h2", fml.vector_to_array(f.col("posteriors")).getItem(2))
-                .withColumn("h3", fml.vector_to_array(f.col("posteriors")).getItem(3))
-                .withColumn("h4", fml.vector_to_array(f.col("posteriors")).getItem(4))
-                # Clean up intermediate columns
-                .drop(
-                    "posteriors",
-                    "left_variants",
-                    "left_pips",
-                    "right_variants",
-                    "right_pips",
-                )
+                .withColumn("h0", f.lit(0.0))
+                .withColumn("h1", f.lit(0.0))
+                .withColumn("h2", f.lit(0.0))
+                .withColumn("h3", h3)
+                .withColumn("h4", h4)
+                .drop("sum_pip1", "sum_pip2", "sum_pip_prod")
                 .withColumn("colocalisationMethod", f.lit(cls.METHOD_NAME))
                 .join(
                     overlapping_signals.calculate_beta_ratio(),
@@ -146,72 +116,53 @@ class ColocPIP(ColocalisationMethodInterface):
         )
 
     @staticmethod
-    def _get_posteriors(
-        pip1_variants: NDArray[np.str_],
-        pip1_values: NDArray[np.float64],
-        pip2_variants: NDArray[np.str_],
-        pip2_values: NDArray[np.float64],
-        p1: float,
-        p2: float,
-        p12: float,
-    ) -> DenseVector:
-        """Approximate coloc posteriors using only PIPs, following the R coloc.pp logic.
+    def _floored_pip(pip: Column) -> Column:
+        """Floor a PIP column at a pseudocount (null -> 0 -> pseudocount).
+
+        Non-zero PIPs are required for the R coloc.pp log-space logic.
 
         Args:
-            pip1_variants (NDArray[np.str_]): Array of variant names for trait 1
-            pip1_values (NDArray[np.float64]): Array of PIP values for trait 1
-            pip2_variants (NDArray[np.str_]): Array of variant names for trait 2
-            pip2_values (NDArray[np.float64]): Array of PIP values for trait 2
-            p1 (float): Prior on variant being causal for trait 1
-            p2 (float): Prior on variant being causal for trait 2
-            p12 (float): Prior on variant being causal for traits 1 and 2
+            pip (Column): posterior inclusion probability column.
 
         Returns:
-            DenseVector: [H0, H1, H2, H3, H4] posteriors
+            Column: PIP floored at 1e-16.
         """
-        # Union of SNPs
-        snp_names = np.unique(np.concatenate((pip1_variants, pip2_variants)))
-        pip1_dict = dict(zip(pip1_variants, pip1_values))
-        pip2_dict = dict(zip(pip2_variants, pip2_values))
+        return f.greatest(f.coalesce(pip, f.lit(0.0)), f.lit(1e-16))
 
-        # Ensure priors are never zero to avoid log(0)
+    @staticmethod
+    def _pip_posteriors(
+        sum_pip1: Column,
+        sum_pip2: Column,
+        sum_pip_prod: Column,
+        priorc1: float,
+        priorc2: float,
+        priorc12: float,
+    ) -> tuple[Column, Column]:
+        """Derive (h3, h4) from the per-overlap PIP sums.
+
+        H4 (shared causal) ~ p12 * B; H3 (distinct causal) ~ p1*p2*(S1*S2 - B), where
+        S1*S2 - B = sum_{i!=j} pip1_i*pip2_j. Returned normalised so h3 + h4 = 1
+        (H0=H1=H2=0 in this PIP approximation). Shared with ColocPIPECaviar so the two
+        cannot numerically diverge.
+
+        Args:
+            sum_pip1 (Column): S1 = sum of floored left PIPs per overlap.
+            sum_pip2 (Column): S2 = sum of floored right PIPs per overlap.
+            sum_pip_prod (Column): B = sum of floored left*right PIP products per overlap.
+            priorc1 (float): Prior on variant being causal for trait 1.
+            priorc2 (float): Prior on variant being causal for trait 2.
+            priorc12 (float): Prior on variant being causal for both traits.
+
+        Returns:
+            tuple[Column, Column]: (h3, h4) posterior columns.
+        """
         pseudocount = 1e-16
-        p1 = max(p1, pseudocount)
-        p2 = max(p2, pseudocount)
-        p12 = max(p12, pseudocount)
-        pip1_vec = np.array([pip1_dict.get(snp, np.nan) for snp in snp_names])
-        pip2_vec = np.array([pip2_dict.get(snp, np.nan) for snp in snp_names])
-
-        # Ensure no PIPs are exactly zero by adding pseudocount
-        pip1_vec = np.maximum(pip1_vec, pseudocount)
-        pip2_vec = np.maximum(pip2_vec, pseudocount)
-
-        # Work in log-space
-        log_pip1 = np.log(pip1_vec)
-        log_pip2 = np.log(pip2_vec)
-        sum_log_pip1 = get_logsum(log_pip1)
-        sum_log_pip2 = get_logsum(log_pip2)
-        log_sum_both = get_logsum((log_pip1 + log_pip2).astype(np.float64))
-
-        # Compute logdiff as in R coloc:::logdiff
-        x = sum_log_pip1 + sum_log_pip2
-        y = log_sum_both
-        my_max = max(x, y)
-        diff_arg = max(np.exp(x - my_max) - np.exp(y - my_max), 0)
-        if diff_arg == 0:
-            logdiff = -np.inf
-        else:
-            logdiff = my_max + np.log(diff_arg)
-
-        # H3: distinct causal
-        PP3 = np.log(p1) + np.log(p2) + logdiff
-
-        # H4: shared causal
-        PP4 = np.log(p12) + log_sum_both
-
-        # Normalize
-        denom = get_logsum(np.array([PP3, PP4]))
-        PP4 = np.exp(PP4 - denom)
-        PP3 = np.exp(PP3 - denom)
-
-        return Vectors.dense([0.0, 0.0, 0.0, PP3, PP4])
+        p1 = max(priorc1, pseudocount)
+        p2 = max(priorc2, pseudocount)
+        p12 = max(priorc12, pseudocount)
+        h3_unnorm = f.lit(p1 * p2) * f.greatest(
+            sum_pip1 * sum_pip2 - sum_pip_prod, f.lit(0.0)
+        )
+        h4_unnorm = f.lit(p12) * sum_pip_prod
+        denom = h3_unnorm + h4_unnorm
+        return h3_unnorm / denom, h4_unnorm / denom
