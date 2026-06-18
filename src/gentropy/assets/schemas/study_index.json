@@ -238,9 +238,27 @@
     {
       "name": "analysisFlags",
       "type": {
-        "type": "array",
-        "elementType": "string",
-        "containsNull": true
+        "type": "struct",
+        "fields": [
+          {
+            "name": "metaAnalysis",
+            "type": "boolean",
+            "nullable": true,
+            "metadata": {}
+          },
+          {
+            "name": "prevalence",
+            "type": "double",
+            "nullable": true,
+            "metadata": {}
+          },
+          {
+            "name": "traitType",
+            "type": "byte",
+            "nullable": true,
+            "metadata": {}
+          }
+        ]
       },
       "nullable": true,
       "metadata": {}

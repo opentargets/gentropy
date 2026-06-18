@@ -1,0 +1,138 @@
+{
+  "fields": [
+    {
+      "metadata": {},
+      "name": "studyLocusId",
+      "nullable": false,
+      "type": "string"
+    },
+    {
+      "metadata": {},
+      "name": "variantId",
+      "nullable": false,
+      "type": "string"
+    },
+    {
+      "metadata": {},
+      "name": "isLead",
+      "nullable": false,
+      "type": "boolean"
+    },
+    {
+      "metadata": {},
+      "name": "approximatedVarianceExplained",
+      "nullable": false,
+      "type": "double"
+    },
+    {
+      "metadata": {},
+      "name": "chi2Stat",
+      "nullable": true,
+      "type": "double"
+    },
+    {
+      "metadata": {},
+      "name": "varG",
+      "nullable": false,
+      "type": "double"
+    },
+    {
+      "metadata": {},
+      "name": "alleleFrequency",
+      "nullable": true,
+      "type": "float"
+    },
+    {
+      "metadata": {},
+      "name": "qualityControls",
+      "nullable": true,
+      "type": {
+        "containsNull": false,
+        "elementType": "string",
+        "type": "array"
+      }
+    },
+    {
+      "metadata": {},
+      "name": "marginalEffect",
+      "nullable": true,
+      "type": {
+        "fields": [
+          {
+            "metadata": {},
+            "name": "directionOfEffect",
+            "nullable": true,
+            "type": "byte"
+          },
+          {
+            "metadata": {},
+            "name": "absBeta",
+            "nullable": false,
+            "type": "double"
+          },
+          {
+            "metadata": {},
+            "name": "standardError",
+            "nullable": false,
+            "type": "double"
+          }
+        ],
+        "type": "struct"
+      }
+    },
+    {
+      "metadata": {},
+      "name": "conditionalEffect",
+      "nullable": true,
+      "type": {
+        "fields": [
+          {
+            "metadata": {},
+            "name": "directionOfEffect",
+            "nullable": true,
+            "type": "byte"
+          },
+          {
+            "metadata": {},
+            "name": "absBeta",
+            "nullable": false,
+            "type": "double"
+          },
+          {
+            "metadata": {},
+            "name": "standardError",
+            "nullable": false,
+            "type": "double"
+          }
+        ],
+        "type": "struct"
+      }
+    },
+    {
+      "metadata": {},
+      "name": "variantConsequence",
+      "nullable": true,
+      "type": {
+        "containsNull": true,
+        "elementType": {
+          "fields": [
+            {
+              "metadata": {},
+              "name": "targetId",
+              "nullable": false,
+              "type": "string"
+            },
+            {
+              "metadata": {},
+              "name": "functionalConsequence",
+              "nullable": false,
+              "type": "string"
+            }
+          ],
+          "type": "struct"
+        },
+        "type": "array"
+      }
+    }
+  ]
+}

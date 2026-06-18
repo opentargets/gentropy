@@ -44,42 +44,6 @@
     },
     {
       "metadata": {},
-      "name": "beta",
-      "nullable": true,
-      "type": "double"
-    },
-    {
-      "metadata": {},
-      "name": "zScore",
-      "nullable": true,
-      "type": "double"
-    },
-    {
-      "metadata": {},
-      "name": "pValueMantissa",
-      "nullable": true,
-      "type": "float"
-    },
-    {
-      "metadata": {},
-      "name": "pValueExponent",
-      "nullable": true,
-      "type": "integer"
-    },
-    {
-      "metadata": {},
-      "name": "effectAlleleFrequencyFromSource",
-      "nullable": true,
-      "type": "float"
-    },
-    {
-      "metadata": {},
-      "name": "standardError",
-      "nullable": true,
-      "type": "double"
-    },
-    {
-      "metadata": {},
       "name": "subStudyDescription",
       "nullable": true,
       "type": "string"
@@ -208,27 +172,77 @@
             },
             {
               "metadata": {},
-              "name": "pValueMantissa",
+              "name": "marginalEffect",
+              "nullable": true,
+              "type": {
+                "fields": [
+                  {
+                    "metadata": {},
+                    "name": "beta",
+                    "nullable": true,
+                    "type": "double"
+                  },
+                  {
+                    "metadata": {},
+                    "name": "standardError",
+                    "nullable": true,
+                    "type": "double"
+                  },
+                  {
+                    "metadata": {},
+                    "name": "pValueMantissa",
+                    "nullable": true,
+                    "type": "float"
+                  },
+                  {
+                    "metadata": {},
+                    "name": "pValueExponent",
+                    "nullable": true,
+                    "type": "integer"
+                  }
+                ],
+                "type": "struct"
+              }
+            },
+            {
+              "metadata": {},
+              "name": "conditionalEffect",
+              "nullable": true,
+              "type": {
+                "fields": [
+                  {
+                    "metadata": {},
+                    "name": "beta",
+                    "nullable": true,
+                    "type": "double"
+                  },
+                  {
+                    "metadata": {},
+                    "name": "standardError",
+                    "nullable": true,
+                    "type": "double"
+                  },
+                  {
+                    "metadata": {},
+                    "name": "pValueMantissa",
+                    "nullable": true,
+                    "type": "float"
+                  },
+                  {
+                    "metadata": {},
+                    "name": "pValueExponent",
+                    "nullable": true,
+                    "type": "integer"
+                  }
+                ],
+                "type": "struct"
+              }
+            },
+            {
+              "metadata": {},
+              "name": "effectAlleleFrequencyFromSource",
               "nullable": true,
               "type": "float"
-            },
-            {
-              "metadata": {},
-              "name": "pValueExponent",
-              "nullable": true,
-              "type": "integer"
-            },
-            {
-              "metadata": {},
-              "name": "beta",
-              "nullable": true,
-              "type": "double"
-            },
-            {
-              "metadata": {},
-              "name": "standardError",
-              "nullable": true,
-              "type": "double"
             },
             {
               "metadata": {},
