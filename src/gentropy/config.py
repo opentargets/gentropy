@@ -773,6 +773,22 @@ class SummaryStatisticsQCStepConfig(StepConfig):
 
 
 @dataclass
+class AnnotateSumstatQCStepConfig(StepConfig):
+    """Annotate study index with summary statistics QC step configuration."""
+
+    study_index_path: str = MISSING
+    sumstats_qc_path: str = MISSING
+    output_path: str = MISSING
+    threshold_mean_beta: float = 0.05
+    threshold_mean_diff_pz: float = 0.05
+    threshold_se_diff_pz: float = 0.05
+    threshold_min_gc_lambda: float = 0.7
+    threshold_max_gc_lambda: float = 2.5
+    threshold_min_n_variants: int = 2_000_000
+    _target_: str = "gentropy.annotate_sumstat_qc_step.AnnotateSumstatQCStep"
+
+
+@dataclass
 class CredibleSetQCStepConfig(StepConfig):
     """Credible set quality control step configuration."""
 
@@ -960,6 +976,11 @@ def register_config() -> None:
     cs.store(group="step", name="susie_finemapping", node=FinemapperConfig)
     cs.store(
         group="step", name="summary_statistics_qc", node=SummaryStatisticsQCStepConfig
+    )
+    cs.store(
+        group="step",
+        name="annotate_sumstat_qc",
+        node=AnnotateSumstatQCStepConfig,
     )
     cs.store(
         group="step", name="locus_breaker_clumping", node=LocusBreakerClumpingConfig
