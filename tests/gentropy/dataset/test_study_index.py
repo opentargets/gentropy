@@ -721,6 +721,88 @@ class TestStudyIndexAnnotation:
         assert annotated[1][0] == "s3", "s3 Should be annotated with the flag"
 
 
+class TestCollectHeritability:
+    """Test the collect_heritability method of StudyIndex."""
+
+    HERITABILITY_COLUMNS = [
+        "studyId",
+        "runStatus",
+        "h2",
+        "h2_se",
+        "intercept",
+        "intercept_se",
+        "mean_chisq",
+        "lambda_gc",
+    ]
+    HERITABILITY_DATA = [
+        ("s1", "success", 0.5, 0.05, 1.01, 0.01, 1.2, 1.05),
+        ("s2", "failed", 0.3, 0.03, 1.00, 0.02, 1.1, 0.99),
+    ]
+    STUDY_SCHEMA = "studyId STRING, studyType STRING, projectId STRING, qualityControls ARRAY<STRING>, sumstatQCValues ARRAY<STRUCT<QCCheckName: STRING, QCCheckValue: FLOAT>>"
+    STUDY_DATA: list[tuple[str, str, str, list[str], None]] = [
+        ("s1", "gwas", "p", [], None),
+        ("s2", "gwas", "p", [], None),
+        ("s3", "gwas", "p", [], None),
+    ]
+
+    @pytest.fixture(autouse=True)
+    def _setup(self: TestCollectHeritability, spark: SparkSession) -> None:
+        """Setup fixture."""
+        self.result = (
+            StudyIndex(
+                _df=spark.createDataFrame(self.STUDY_DATA, self.STUDY_SCHEMA),
+                _schema=StudyIndex.get_schema(),
+            )
+            .collect_heritability(
+                spark.createDataFrame(self.HERITABILITY_DATA, self.HERITABILITY_COLUMNS)
+            )
+            .persist()
+        )
+
+    @pytest.mark.parametrize(
+        ["study_id", "expected_names"],
+        [
+            pytest.param(
+                "s1",
+                {
+                    "LDSC_SNP-h2",
+                    "LDSC_SNP-h2_se",
+                    "LDSC_intercept",
+                    "LDSC_intercept_se",
+                    "LDSC_mean_chisq",
+                    "LDSC_gc_lambda",
+                },
+                id="successful run gets prefixed label names",
+            ),
+            pytest.param(
+                "s2",
+                set(),
+                id="failed run excluded from annotations",
+            ),
+            pytest.param(
+                "s3",
+                set(),
+                id="study absent from heritability_df gets no annotations",
+            ),
+        ],
+    )
+    def test_qc_check_names(
+        self: TestCollectHeritability, study_id: str, expected_names: set[str]
+    ) -> None:
+        """QCCheckNames must use prefixed labels; failed/absent studies get nothing."""
+        qc_values = (
+            self.result.df.filter(f.col("studyId") == study_id)
+            .select("sumstatQCValues")
+            .collect()[0]["sumstatQCValues"]
+        )
+        actual = (
+            {row["QCCheckName"] for row in qc_values}
+            if qc_values is not None
+            else set()
+        )
+        assert actual == expected_names
+
+
 class TestProjectIdValidation:
     """Test study index project id validation."""
 

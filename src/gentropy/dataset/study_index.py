@@ -498,7 +498,9 @@ class StudyIndex(Dataset):
         return StudyIndex(_df=validated_df, _schema=StudyIndex.get_schema())
 
     @qc_test
-    def collect_heritability(self: StudyIndex, heritability_df: DataFrame) -> StudyIndex:
+    def collect_heritability(
+        self: StudyIndex, heritability_df: DataFrame
+    ) -> StudyIndex:
         """Collecting heritability information from LDSC results into sumstatQCValues.
 
         Args:
@@ -507,22 +509,26 @@ class StudyIndex(Dataset):
         Returns:
             StudyIndex: with LDSC heritability values appended to sumstatQCValues.
         """
-        ldsc_fields = ["h2", "h2_se", "intercept", "intercept_se", "mean_chisq", "lambda_gc"]
+        ldsc_fields = {
+            "h2": "LDSC_SNP-h2",
+            "h2_se": "LDSC_SNP-h2_se",
+            "intercept": "LDSC_intercept",
+            "intercept_se": "LDSC_intercept_se",
+            "mean_chisq": "LDSC_mean_chisq",
+            "lambda_gc": "LDSC_gc_lambda",
+        }
 
-        h2_annotations = (
-            heritability_df.filter(f.col("runStatus") == "success")
-            .select(
-                "studyId",
-                f.array(
-                    *[
-                        f.struct(
-                            f.lit(field).alias("QCCheckName"),
-                            f.col(field).cast("float").alias("QCCheckValue"),
-                        )
-                        for field in ldsc_fields
-                    ]
-                ).alias("ldsc_qc"),
-            )
+        h2_annotations = heritability_df.filter(f.col("runStatus") == "success").select(
+            "studyId",
+            f.array(
+                *[
+                    f.struct(
+                        f.lit(label).alias("QCCheckName"),
+                        f.col(field).cast("float").alias("QCCheckValue"),
+                    )
+                    for field, label in ldsc_fields.items()
+                ]
+            ).alias("ldsc_qc"),
         )
 
         merged = (
