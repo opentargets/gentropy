@@ -907,10 +907,13 @@ class LocusToGeneTrainer:
             output_path (Path): Where to save the PNG.
         """
         y_true_all = np.concatenate([f["y_true"] for f in folds])
-        y_pred_all = (np.concatenate([f["y_pred_proba"] for f in folds]) >= 0.5).astype(int)
-        cm = confusion_matrix(y_true_all, y_pred_all)
-        classes = list(self.model.label_encoder.values())
-
+        y_pred_all = (
+            np.concatenate([f["y_pred_proba"] for f in folds]) >= 0.5
+        ).astype(int)
+        labels = [0, 1]
+        cm = confusion_matrix(y_true_all, y_pred_all, labels=labels)
+        inv_label_encoder = {v: k for k, v in self.model.label_encoder.items()}
+        classes = [inv_label_encoder[l] for l in labels]
         fig, ax = plt.subplots(figsize=(5, 4))
         im = ax.imshow(cm, cmap="Blues")
         plt.colorbar(im, ax=ax)
