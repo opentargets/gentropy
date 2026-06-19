@@ -199,7 +199,7 @@ class LocusToGeneModel:
         try:
             # dataclasses.field with default_factory (legacy path)
             return self.hyperparameters.default_factory()
-        except Exception:
+        except (AttributeError, TypeError):
             # OmegaConf DictConfig passed directly from Hydra
             return dict(self.hyperparameters)
 
