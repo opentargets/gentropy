@@ -38,13 +38,13 @@ def contig_index(session: Session) -> ContigIndex:
 def target_index(session: Session) -> TargetIndex:
     """Get a mock target index."""
     data = [
-        ("ENSG1", "Gene1"),
-        ("ENSG2", "Gene2"),
-        ("ENSG3", "Gene3"),
-        ("ENSG4", "Gene4"),
-        ("ENSG5", "Gene5"),
+        ("ENSG1", "Gene1", ("id", "1", 0, 10, "1")),
+        ("ENSG2", "Gene2", ("id", "2", 0, 10, "2")),
+        ("ENSG3", "Gene3", ("id", "3", 0, 10, "3")),
+        ("ENSG4", "Gene4", ("id", "4", 0, 10, "4")),
+        ("ENSG5", "Gene5", ("id", "5", 0, 10, "5")),
     ]
-    schema = "id STRING, approvedSymbol STRING"
+    schema = "id STRING, approvedSymbol STRING, canonicalTranscript STRUCT<id: STRING, chromosome: STRING, start: LONG, end: LONG, strand: STRING>"
     df = session.spark.createDataFrame(data, schema=schema)
     return TargetIndex(df)
 

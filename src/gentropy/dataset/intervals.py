@@ -42,6 +42,9 @@ class IntervalQualityCheck(str, Enum):
     AMBIGUOUS_INTERVAL_TYPE = (
         "Multiple interval types for the same (region, geneId) pair"
     )
+    TRANS_CHROMOSOMAL_EFFECT = (
+        "Interval chromosome does not match associated gene chromosome"
+    )
 
 
 class IntervalType(str, Enum):
@@ -112,6 +115,7 @@ class Intervals(Dataset):
             INVALID_CHROMOSOME: Interval chromosome was not found in contig index
             INVALID_RANGE: Interval range exceeded chromosome bounds
             AMBIGUOUS_INTERVAL_TYPE: Multiple interval types for the same (region, geneId) pair
+            TRANS_CHROMOSOMAL_EFFECT: Interval chromosome does not match associated gene chromosome
 
         """
         return {member.name: member.value for member in IntervalQualityCheck}
@@ -548,6 +552,64 @@ class Intervals(Dataset):
 
         return Intervals(_df=valid_df)
 
+    @qc_test
+    def validate_interval_chr_intersect_gene_chr(
+        self: Intervals, ti_lut: TargetIndex
+    ) -> Intervals:
+        """Validate that interval chromosome intersects with the chromosome of the gene.
+
+        Args:
+            ti_lut (TargetIndex): Target index.
+
+        Returns:
+            Intervals: Intervals dataset with invalid chromosome intersections flagged.
+
+        Examples:
+            >>> target_data = [("ENSG1", ("id", "1", 0, 10, "1")), ("ENSG2", ("id", "2", 0, 10, "2"))]
+            >>> target_schema = "id STRING, canonicalTranscript STRUCT<id: STRING, chromosome: STRING, start: LONG, end: LONG, strand: STRING>"
+            >>> target_df = spark.createDataFrame(data=target_data, schema=target_schema)
+            >>> target_index = TargetIndex(_df=target_df)
+            >>> data = [("1", 100, 200, "ENSG1", "E2G", "promoter", "interval1"),
+            ...         ("2", 150, 250, "ENSG1", "E2G", "enhancer", "interval2"),
+            ...         ("3", 300, 400, "ENSG2", "E2G", "intragenic", "interval3")]
+            >>> schema = "chromosome STRING, start LONG, end LONG, geneId STRING, datasourceId STRING, intervalType STRING, intervalId STRING"
+            >>> df = spark.createDataFrame(data=data, schema=schema)
+            >>> intervals = Intervals(_df=df)
+            >>> validated_intervals = intervals.validate_interval_chr_intersect_gene_chr(target_index)
+            >>> validated_intervals.df.select("intervalId", "qualityControls").show(truncate=False)
+            +----------+---------------------------------------------------------------+
+            |intervalId|qualityControls                                                |
+            +----------+---------------------------------------------------------------+
+            |interval1 |[]                                                             |
+            |interval2 |[Interval chromosome does not match associated gene chromosome]|
+            |interval3 |[Interval chromosome does not match associated gene chromosome]|
+            +----------+---------------------------------------------------------------+
+            <BLANKLINE>
+        """
+        qc_column = self.get_QC_column_name()
+        if qc_column not in self.df.columns:
+            self.df = self.df.withColumn(
+                qc_column, f.array().cast(t.ArrayType(t.StringType()))
+            )
+        ti_lut_df = ti_lut.df.select(
+            f.col("id").alias("geneId"),
+            f.col("canonicalTranscript").getField("chromosome").alias("geneChromosome"),
+        )
+        valid_df = (
+            self.df.join(ti_lut_df, on="geneId", how="left")
+            .withColumn(
+                qc_column,
+                self.update_quality_flag(
+                    f.col(qc_column),
+                    f.col("chromosome") != f.col("geneChromosome"),
+                    IntervalQualityCheck.TRANS_CHROMOSOMAL_EFFECT,
+                ),
+            )
+            .drop("geneChromosome")
+        )
+
+        return Intervals(_df=valid_df)
+
     def qc(
         self,
         contig_index: ContigIndex,
@@ -570,12 +632,14 @@ class Intervals(Dataset):
         Returns:
             DatasetValidationResult[Intervals]: Valid and invalid Intervals datasets.
         """
+        target_index = target_index.persist()
         if invalid_qc_reasons is None:
             invalid_qc_reasons = []
-        return (
+        intervals = (
             self.validate_datasource_id()
             .validate_interval_range(contig_index)
             .validate_target(target_index)
+            .validate_interval_chr_intersect_gene_chr(target_index)
             .validate_biosample(biosample_index)
             .validate_interval_type()
             .validate_score(min_valid_score, max_valid_score)
@@ -583,3 +647,5 @@ class Intervals(Dataset):
             .persist()
             .valid_rows(invalid_qc_reasons)
         )
+        target_index.unpersist()
+        return intervals
