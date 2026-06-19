@@ -677,13 +677,16 @@ class LocusToGeneTrainer:
         Returns:
             dict[str, Any]: Metrics dict (same keys as fold metrics, including locus-level stats).
         """
-        assert (
-            self.x_train is not None
-            and self.y_train is not None
-            and self.x_test is not None
-            and self.y_test is not None
-            and self.test_df is not None
-        ), "train/test arrays must be set before calling _eval_on_test_set"
+        if (
+            self.x_train is None
+            or self.y_train is None
+            or self.x_test is None
+            or self.y_test is None
+            or self.test_df is None
+        ):
+            raise ValueError(
+                "train/test arrays and test_df must be set before calling _eval_on_test_set"
+            )
         holdout_model = clone(self.model.model)
         if config:
             holdout_model.set_params(**config)
