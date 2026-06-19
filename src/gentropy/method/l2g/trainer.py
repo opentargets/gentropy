@@ -409,6 +409,11 @@ class LocusToGeneTrainer:
             cv_results_dir (str | None): Directory (local or ``gs://``) to write CV result files. Only used when ``wandb_run_name`` is not set. Defaults to None.
             holdout_only (bool): When True, skip CV folds and evaluate each config directly on the holdout set. Defaults to False.
         """
+        if holdout_only and not cv_results_dir:
+            raise ValueError(
+                "holdout_only=True requires cv_results_dir to be set."
+            )
+
         # If no grid is provided, use default ones set in the model
         parameter_grid = parameter_grid or {
             param: {"values": [value]}
