@@ -1,4 +1,5 @@
 """Step to generate variant annotation dataset."""
+
 from __future__ import annotations
 
 from gentropy.common.session import Session

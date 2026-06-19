@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Any
+from typing import Any, NotRequired, TypedDict
 
 import numpy as np
 import pandas as pd
@@ -32,6 +32,18 @@ from gentropy.external.wandb import WandbCredentials
 from gentropy.method.l2g.feature_factory import L2GFeatureInputLoader
 from gentropy.method.l2g.model import LocusToGeneModel
 from gentropy.method.l2g.trainer import LocusToGeneTrainer
+
+logger = logging.getLogger(__name__)
+
+
+class _SetStats(TypedDict):
+    """Per-split descriptive statistics returned by ``_compute_set_stats``."""
+
+    n_positive: int
+    n_negative: int
+    n_unique_loci: int
+    n_unique_positive_genes: int
+    n_unique_positive_gene_disease_pairs: NotRequired[int]
 
 
 class LocusToGeneFeatureMatrixStep:
@@ -192,7 +204,11 @@ class LocusToGeneTrainTestSplitStep:
             test_size (float): Proportion of study loci assigned to the test split. Defaults to 0.15.
             variant_index_path (str | None): Path to the variant index (required for OTG gold standard)
             gene_interactions_path (str | None): Path to the PPI dataset (required for OTG gold standard)
-            predefined_test_parquet_path (str | None): Path to an existing test-split parquet (produced by a previous run of this step). When provided the test set is loaded as-is and the training set is derived by removing all studyLocusIds from the annotated feature matrix whose positive genes overlap with the test set's positive genes. ``test_size`` is ignored. Defaults to None (performs a fresh hierarchical split).
+            predefined_test_parquet_path (str | None): Path to an existing test-split parquet
+                produced by a previous run of this step. When provided, the test set is loaded
+                as-is and the training set is derived by removing all studyLocusIds from the
+                annotated feature matrix whose positive genes overlap with the test set's positive
+                genes. ``test_size`` is ignored. Defaults to None (fresh hierarchical split).
             split_stats_path (str | None): Explicit path for the split statistics JSON file. Defaults to ``<train_parquet_path>_split_stats.json``.
         """
         credible_set = StudyLocus.from_parquet(
@@ -217,9 +233,12 @@ class LocusToGeneTrainTestSplitStep:
         )
 
         label_encoder = {"negative": 0, "positive": 1}
+        # SDFs that need to be unpersisted after writes; populated in the branches below.
+        to_unpersist = []
 
         if predefined_test_parquet_path:
-            predefined_test_sdf = session.spark.read.parquet(predefined_test_parquet_path)
+            predefined_test_sdf = session.spark.read.parquet(predefined_test_parquet_path).persist()
+            to_unpersist.append(predefined_test_sdf)
 
             n_original_total: int = annotated_fm._df.count()
             n_original_test: int = predefined_test_sdf.count()
@@ -255,16 +274,16 @@ class LocusToGeneTrainTestSplitStep:
             train_sdf = train_sdf.withColumn(
                 "goldStandardSet",
                 f.coalesce(label_map[f.col("goldStandardSet")], f.col("goldStandardSet").cast("int")),
-            )
+            ).persist()
             test_sdf = test_sdf.withColumn(
                 "goldStandardSet",
                 f.coalesce(label_map[f.col("goldStandardSet")], f.col("goldStandardSet").cast("int")),
-            )
+            ).persist()
+            to_unpersist.extend([train_sdf, test_sdf])
 
-            train_sdf = train_sdf.persist()
-            test_sdf = test_sdf.persist()
             n_train: int = train_sdf.count()
             n_test_new: int = test_sdf.count()
+            n_written_train, n_written_test = n_train, n_test_new
             split_stats: dict[str, Any] = {
                 "n_original_total": n_original_total,
                 "n_original_test": n_original_test,
@@ -275,13 +294,6 @@ class LocusToGeneTrainTestSplitStep:
                 "train": self._compute_set_stats(train_sdf.toPandas()),
                 "test": self._compute_set_stats(test_sdf.toPandas()),
             }
-            self._write_split_stats(split_stats, train_parquet_path, split_stats_path)
-            logging.info("Split stats: %s", split_stats)
-            train_sdf.write.mode(session.write_mode).parquet(train_parquet_path)
-            test_sdf.write.mode(session.write_mode).parquet(test_parquet_path)
-            train_sdf.unpersist()
-            test_sdf.unpersist()
-            n_written_train, n_written_test = n_train, n_test_new
         else:
             train_df, test_df = annotated_fm.generate_train_test_split(
                 test_size=test_size,
@@ -297,17 +309,17 @@ class LocusToGeneTrainTestSplitStep:
                 "train": self._compute_set_stats(train_df),
                 "test": self._compute_set_stats(test_df),
             }
-            self._write_split_stats(split_stats, train_parquet_path, split_stats_path)
-            logging.info("Split stats: %s", split_stats)
-            session.spark.createDataFrame(train_df).write.mode(
-                session.write_mode
-            ).parquet(train_parquet_path)
-            session.spark.createDataFrame(test_df).write.mode(
-                session.write_mode
-            ).parquet(test_parquet_path)
+            train_sdf = session.spark.createDataFrame(train_df)
+            test_sdf = session.spark.createDataFrame(test_df)
 
+        self._write_split_stats(split_stats, train_parquet_path, split_stats_path)
+        logger.info("Split stats: %s", split_stats)
+        train_sdf.write.mode(session.write_mode).parquet(train_parquet_path)
+        test_sdf.write.mode(session.write_mode).parquet(test_parquet_path)
+        for sdf in to_unpersist:
+            sdf.unpersist()
         annotated_fm._df.unpersist()
-        logging.info(
+        logger.info(
             "Train/test split written: %d train rows, %d test rows.",
             n_written_train,
             n_written_test,
@@ -405,18 +417,19 @@ class LocusToGeneTrainTestSplitStep:
                 raise TypeError("Incorrect gold standard dataset provided.")
 
     @staticmethod
-    def _compute_set_stats(df: pd.DataFrame) -> dict[str, Any]:
-        """Compute descriptive statistics for one split partition.
+    def _compute_set_stats(df: pd.DataFrame) -> _SetStats:
+        """Compute descriptive statistics for one train or test partition.
 
         Args:
-            df (pd.DataFrame): Split DataFrame with integer-encoded ``goldStandardSet`` (0/1).
+            df (pd.DataFrame): A train or test partition — a row-based slice of the annotated
+                feature matrix with integer-encoded ``goldStandardSet`` (0 = negative, 1 = positive).
 
         Returns:
-            dict[str, Any]: Stats dict containing counts of positive/negative rows, unique loci,
-                unique positive genes, and (when available) unique positive gene–disease pairs.
+            _SetStats: Counts of positive/negative rows, unique loci, unique positive genes,
+                and (when available) unique positive gene–disease pairs.
         """
         positive = df[df["goldStandardSet"] == 1]
-        stats: dict[str, Any] = {
+        stats: _SetStats = {
             "n_positive": int(positive.shape[0]),
             "n_negative": int((df["goldStandardSet"] == 0).sum()),
             "n_unique_loci": int(df["studyLocusId"].nunique()),
@@ -441,25 +454,14 @@ class LocusToGeneTrainTestSplitStep:
             train_parquet_path (str): Used to derive the default output path when ``split_stats_path`` is not provided.
             split_stats_path (str | None): Explicit destination path. Defaults to ``<train_parquet_path>_split_stats.json``.
         """
-        from urllib.parse import urlparse
+        from pathlib import Path
 
-        log_path = split_stats_path or train_parquet_path.rstrip("/") + "_split_stats.json"
-        payload = json.dumps(stats, indent=2)
-        if log_path.startswith("gs://"):
-            from google.cloud import storage
-
-            parsed = urlparse(log_path)
-            bucket = storage.Client().bucket(parsed.hostname)
-            bucket.blob(parsed.path.lstrip("/")).upload_from_string(
-                payload, content_type="application/json"
-            )
-        else:
-            from pathlib import Path
-
-            p = Path(log_path)
-            p.parent.mkdir(parents=True, exist_ok=True)
-            p.write_text(payload)
-        logging.info("Split stats written to %s", log_path)
+        stats_path = split_stats_path or train_parquet_path.rstrip("/") + "_split_stats.json"
+        if not stats_path.startswith("gs://"):
+            Path(stats_path).parent.mkdir(parents=True, exist_ok=True)
+        with pd.io.common.get_handle(stats_path, mode="wt") as ioargs:
+            json.dump(stats, ioargs.handle, indent=2)
+        logger.info("Split stats written to %s", stats_path)
 
 
 class LocusToGeneStep:
@@ -668,25 +670,30 @@ class LocusToGeneStep:
             features_list=self.features_list,
         )
 
-        # Load presplit data produced by LocusToGeneTrainTestSplitStep
-        presplit_train_df = self.session.spark.read.parquet(
-            self.train_parquet_path
-        ).toPandas()
-        presplit_test_df = self.session.spark.read.parquet(
-            self.test_parquet_path
-        ).toPandas()
+        # Load presplit data produced by LocusToGeneTrainTestSplitStep.
+        # Persist so toPandas() (for XGBoost) and the union (for HF Hub metadata) share the cache.
+        train_sdf = self.session.spark.read.parquet(self.train_parquet_path).persist()
+        test_sdf = self.session.spark.read.parquet(self.test_parquet_path).persist()
 
         # Reconstruct L2GFeatureMatrix for model metadata (column order, HF Hub upload).
-        # Labels are decoded back to strings so generate_train_test_split works if
-        # export_to_hugging_face_hub is called later.
-        label_decoder = {0: "negative", 1: "positive"}
-        combined = pd.concat([presplit_train_df, presplit_test_df], ignore_index=True)
-        if combined["goldStandardSet"].dtype != object:
-            combined["goldStandardSet"] = combined["goldStandardSet"].map(label_decoder)
+        # Labels are decoded back to strings because export_to_hugging_face_hub calls
+        # generate_train_test_split, which expects string-encoded labels.
+        label_map = f.create_map(f.lit(0), f.lit("negative"), f.lit(1), f.lit("positive"))
         feature_matrix = L2GFeatureMatrix(
-            _df=self.session.spark.createDataFrame(combined),
+            _df=train_sdf.union(test_sdf).withColumn(
+                "goldStandardSet",
+                f.coalesce(
+                    label_map[f.col("goldStandardSet").cast("int")],
+                    f.col("goldStandardSet").cast("string"),
+                ),
+            ),
             with_gold_standard=True,
         ).select_features(self.features_list)
+
+        presplit_train_df = train_sdf.toPandas()
+        presplit_test_df = test_sdf.toPandas()
+        train_sdf.unpersist()
+        test_sdf.unpersist()
 
         # Run the training
         trained_model = LocusToGeneTrainer(
