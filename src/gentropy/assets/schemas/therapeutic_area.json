@@ -1,0 +1,17 @@
+{
+  "type": "struct",
+  "fields": [
+    {
+      "name": "diseaseId",
+      "type": "string",
+      "nullable": false,
+      "metadata": {}
+    },
+    {
+      "name": "therapeuticAreaId",
+      "type": "string",
+      "nullable": false,
+      "metadata": {}
+    }
+  ]
+}
