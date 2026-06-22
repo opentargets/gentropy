@@ -230,6 +230,79 @@ class StudyIndex(Dataset):
             ),
         )
 
+    @staticmethod
+    def get_major_ancestry(ld_pop_struct: Column) -> Column:
+        """Extract the major ancestry from an ldPopulationStructure array column.
+
+        The major population is the one with the largest relativeSampleSize. In case of a
+        tie, nfe is preferred. If the array is null or empty, returns nfe with
+        relativeSampleSize 0.0 as the default.
+
+        The returned column is a struct with fields:
+        - ``ldPopulation`` (string): name of the major LD population.
+        - ``relativeSampleSize`` (double): its relative sample size.
+
+        Args:
+            ld_pop_struct (Column): Array of structs with ``ldPopulation`` and
+                ``relativeSampleSize`` fields, as stored in ``ldPopulationStructure``.
+
+        Returns:
+            Column: Struct column with ``ldPopulation`` and ``relativeSampleSize`` of the
+                major ancestry.
+
+        Examples:
+            >>> from gentropy.dataset.study_index import StudyIndex
+            >>> from pyspark.sql import functions as f
+            >>> schema = "ldPopulationStructure ARRAY<STRUCT<ldPopulation:STRING, relativeSampleSize:DOUBLE>>"
+            >>> data = [
+            ...     ([("nfe", 0.9), ("eas", 0.018), ("afr", 0.082)],),  # nfe is largest
+            ...     ([("nfe", 1.0)],),                                   # only nfe
+            ...     ([("eas", 0.5), ("nfe", 0.5)],),                     # tie -> nfe preferred
+            ...     ([("eas", 0.5), ("afr", 0.5)],),                     # tie, no nfe -> first
+            ...     ([],),                                               # empty -> nfe default
+            ...     (None,),                                             # null -> nfe default
+            ... ]
+            >>> df = spark.createDataFrame(data, schema)
+            >>> df.select(StudyIndex.get_major_ancestry(f.col("ldPopulationStructure")).alias("major")).show(truncate=False)
+            +----------+
+            |major     |
+            +----------+
+            |{nfe, 0.9}|
+            |{nfe, 1.0}|
+            |{nfe, 0.5}|
+            |{eas, 0.5}|
+            |{nfe, 0.0}|
+            |{nfe, 0.0}|
+            +----------+
+            <BLANKLINE>
+        """
+        default = f.struct(
+            f.lit("nfe").alias("ldPopulation"),
+            f.lit(0.0).alias("relativeSampleSize"),
+        )
+        # Sort descending by relativeSampleSize (nulls last) — first element is the candidate major
+        sorted_pops = f.array_sort(
+            ld_pop_struct,
+            lambda left, right: (
+                f.when(left.getField("relativeSampleSize").isNull() & right.getField("relativeSampleSize").isNull(), f.lit(0))
+                .when(left.getField("relativeSampleSize").isNull(), f.lit(1))
+                .when(right.getField("relativeSampleSize").isNull(), f.lit(-1))
+                .when(left.getField("relativeSampleSize") > right.getField("relativeSampleSize"), f.lit(-1))
+                .when(left.getField("relativeSampleSize") < right.getField("relativeSampleSize"), f.lit(1))
+                .otherwise(f.lit(0))
+            ),
+        )
+        top_size = sorted_pops.getItem(0).getField("relativeSampleSize")
+        # Among all entries sharing the top size, prefer nfe; otherwise take the first
+        tied_tops = f.filter(sorted_pops, lambda x: x.getField("relativeSampleSize") == top_size)
+        nfe_among_tied = f.filter(tied_tops, lambda x: x.getField("ldPopulation") == f.lit("nfe"))
+        winner = f.when(f.size(nfe_among_tied) > 0, nfe_among_tied.getItem(0)).otherwise(sorted_pops.getItem(0))
+
+        return f.when(
+            ld_pop_struct.isNull() | (f.size(ld_pop_struct) == 0),
+            default,
+        ).otherwise(winner)
+
     def study_type_lut(self: StudyIndex) -> DataFrame:
         """Return a lookup table of study type.
 

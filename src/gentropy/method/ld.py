@@ -6,42 +6,17 @@ from typing import TYPE_CHECKING
 
 from pyspark.sql import functions as f
 
-from gentropy.common.spark import order_array_of_structs_by_field
+from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import StudyLocus, StudyLocusQualityCheck
 
 if TYPE_CHECKING:
     from pyspark.sql import Column
 
     from gentropy.dataset.ld_index import LDIndex
-    from gentropy.dataset.study_index import StudyIndex
 
 
 class LDAnnotator:
     """Class to annotate linkage disequilibrium (LD) operations from GnomAD."""
-
-    @staticmethod
-    def _get_major_population(ordered_populations: Column) -> Column:
-        """Get major population based on an ldPopulationStructure array ordered by relativeSampleSize.
-
-        If there is a tie for the major population, nfe is selected if it is one of the major populations.
-        The first population in the array is selected if there is no tie for the major population, or there is a tie but nfe is not one of the major populations.
-
-        Args:
-            ordered_populations (Column): ldPopulationStructure array ordered by relativeSampleSize
-
-        Returns:
-            Column: major population
-        """
-        major_population_size = ordered_populations["relativeSampleSize"][0]
-        major_populations = f.filter(
-            ordered_populations,
-            lambda x: x["relativeSampleSize"] == major_population_size,
-        )
-        # Check if nfe (Non-Finnish European) is one of the major populations
-        has_nfe = f.filter(major_populations, lambda x: x["ldPopulation"] == "nfe")
-        return f.when(
-            (f.size(major_populations) > 1) & (f.size(has_nfe) == 1), f.lit("nfe")
-        ).otherwise(ordered_populations["ldPopulation"][0])
 
     @staticmethod
     def _calculate_r2_major(ld_set: Column, major_population: Column) -> Column:
@@ -124,9 +99,9 @@ class LDAnnotator:
         """Annotate linkage disequilibrium (LD) information to a set of studyLocus.
 
         This function:
-            1. Annotates study locus with population structure information ordered by relativeSampleSize from the study index
+            1. Annotates study locus with population structure from the study index
             2. Joins the LD index to the StudyLocus
-            3. Gets the major population from the population structure
+            3. Gets the major population via StudyIndex.get_major_ancestry
             4. Calculates R2 by using the R of the major ancestry
             5. Flags associations with variants that are not found in the LD reference
             6. Rescues lead variant when no LD information is available but lead variant is available
@@ -148,14 +123,9 @@ class LDAnnotator:
                 associations.df
                 # Drop ldSet column if already available
                 .select(*[col for col in associations.df.columns if col != "ldSet"])
-                # Annotate study locus with population structure ordered by relativeSampleSize from study index
+                # Annotate study locus with population structure from study index
                 .join(
-                    studies.df.select(
-                        "studyId",
-                        order_array_of_structs_by_field(
-                            "ldPopulationStructure", "relativeSampleSize"
-                        ).alias("ldPopulationStructure"),
-                    ),
+                    studies.df.select("studyId", "ldPopulationStructure"),
                     on="studyId",
                     how="left",
                 )
@@ -170,7 +140,7 @@ class LDAnnotator:
                     "majorPopulation",
                     f.when(
                         f.col("ldPopulationStructure").isNotNull(),
-                        cls._get_major_population(f.col("ldPopulationStructure")),
+                        StudyIndex.get_major_ancestry(f.col("ldPopulationStructure")).getField("ldPopulation"),
                     ),
                 )
                 # Calculate R2 using R of the major population
