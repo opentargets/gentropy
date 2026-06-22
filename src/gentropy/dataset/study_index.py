@@ -81,8 +81,8 @@ class StudyQualityCheck(Enum):
     BINARY_TRAIT_MISSING_CASES = "Binary trait with no cases reported"
     BINARY_TRAIT_MISSING_CONTROLS = "Binary trait with no controls reported"
     BINARY_TRAIT_N_SAMPLE_MISMATCH = "Binary trait where nCases + nControls != nSamples"
-    QUANT_TRAIT_CASES_DEFINED = "Quantitative trait with nCases defined"
-    QUANT_TRAIT_CONTROLS_DEFINED = "Quantitative trait with nControls defined"
+    QUANT_TRAIT_CASES_REPORTED = "Quantitative trait with nCases reported"
+    QUANT_TRAIT_CONTROLS_REPORTED = "Quantitative trait with nControls reported"
     UNCLASSIFIABLE_TRAIT = "Trait could not be classified as binary or quantitative"
 
 
@@ -975,9 +975,9 @@ class StudyIndex(Dataset):
             |s3     |[Binary trait with no cases reported]                                        |
             |s4     |[Binary trait with no cases reported, Binary trait with no controls reported]|
             |s5     |[Binary trait where nCases + nControls != nSamples]                          |
-            |s6     |[Quantitative trait with nCases defined]                                     |
-            |s7     |[Quantitative trait with nControls defined]                                  |
-            |s8     |[Quantitative trait with nCases defined]                                     |
+            |s6     |[Quantitative trait with nCases reported]                                    |
+            |s7     |[Quantitative trait with nControls reported]                                 |
+            |s8     |[Quantitative trait with nCases reported]                                    |
             |s9     |[Trait could not be classified as binary or quantitative]                    |
             +-------+-----------------------------------------------------------------------------+
             <BLANKLINE>
@@ -1026,7 +1026,7 @@ class StudyIndex(Dataset):
                 StudyIndex.update_quality_flag(
                     f.col("qualityControls"),
                     is_quant & has_cases,
-                    StudyQualityCheck.QUANT_TRAIT_CASES_DEFINED,
+                    StudyQualityCheck.QUANT_TRAIT_CASES_REPORTED,
                 ),
             )
             .withColumn(
@@ -1034,7 +1034,7 @@ class StudyIndex(Dataset):
                 StudyIndex.update_quality_flag(
                     f.col("qualityControls"),
                     is_quant & has_controls,
-                    StudyQualityCheck.QUANT_TRAIT_CONTROLS_DEFINED,
+                    StudyQualityCheck.QUANT_TRAIT_CONTROLS_REPORTED,
                 ),
             )
             .withColumn(
