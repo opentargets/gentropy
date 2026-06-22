@@ -172,7 +172,7 @@
             },
             {
               "metadata": {},
-              "name": "marginalEffect",
+              "name": "reportedEffect",
               "nullable": true,
               "type": {
                 "fields": [

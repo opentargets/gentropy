@@ -54,7 +54,7 @@
     },
     {
       "metadata": {},
-      "name": "marginalEffect",
+      "name": "reportedEffect",
       "nullable": true,
       "type": {
         "fields": [
@@ -106,32 +106,6 @@
           }
         ],
         "type": "struct"
-      }
-    },
-    {
-      "metadata": {},
-      "name": "variantConsequence",
-      "nullable": true,
-      "type": {
-        "containsNull": true,
-        "elementType": {
-          "fields": [
-            {
-              "metadata": {},
-              "name": "targetId",
-              "nullable": false,
-              "type": "string"
-            },
-            {
-              "metadata": {},
-              "name": "functionalConsequence",
-              "nullable": false,
-              "type": "string"
-            }
-          ],
-          "type": "struct"
-        },
-        "type": "array"
       }
     }
   ]
