@@ -18,6 +18,7 @@ from gentropy.assets import data
 from gentropy.common.schemas import parse_spark_schema
 from gentropy.common.spark import convert_from_wide_to_long, filter_array_struct
 from gentropy.dataset.dataset import Dataset, qc_test
+from gentropy.dataset.therapeutic_area import TherapeuticArea, TraitClassName
 
 if TYPE_CHECKING:
     from pyspark.sql import Column, DataFrame
@@ -77,6 +78,12 @@ class StudyQualityCheck(Enum):
     )
     CASE_CASE_STUDY_DESIGN = "Case-case study design"
     DEPRECATED_PROJECT = "Deprecated project"
+    BINARY_TRAIT_MISSING_CASES = "Binary trait with no cases reported"
+    BINARY_TRAIT_MISSING_CONTROLS = "Binary trait with no controls reported"
+    BINARY_TRAIT_N_SAMPLE_MISMATCH = "Binary trait where nCases + nControls != nSamples"
+    QUANT_TRAIT_CASES_REPORTED = "Quantitative trait with nCases reported"
+    QUANT_TRAIT_CONTROLS_REPORTED = "Quantitative trait with nControls reported"
+    UNCLASSIFIABLE_TRAIT = "Trait could not be classified as binary or quantitative"
 
 
 @dataclass
@@ -223,6 +230,79 @@ class StudyIndex(Dataset):
             ),
         )
 
+    @staticmethod
+    def get_major_ancestry(ld_pop_struct: Column) -> Column:
+        """Extract the major ancestry from an ldPopulationStructure array column.
+
+        The major population is the one with the largest relativeSampleSize. In case of a
+        tie, nfe is preferred. If the array is null or empty, returns nfe with
+        relativeSampleSize 0.0 as the default.
+
+        The returned column is a struct with fields:
+        - ``ldPopulation`` (string): name of the major LD population.
+        - ``relativeSampleSize`` (double): its relative sample size.
+
+        Args:
+            ld_pop_struct (Column): Array of structs with ``ldPopulation`` and
+                ``relativeSampleSize`` fields, as stored in ``ldPopulationStructure``.
+
+        Returns:
+            Column: Struct column with ``ldPopulation`` and ``relativeSampleSize`` of the
+                major ancestry.
+
+        Examples:
+            >>> from gentropy.dataset.study_index import StudyIndex
+            >>> from pyspark.sql import functions as f
+            >>> schema = "ldPopulationStructure ARRAY<STRUCT<ldPopulation:STRING, relativeSampleSize:DOUBLE>>"
+            >>> data = [
+            ...     ([("nfe", 0.9), ("eas", 0.018), ("afr", 0.082)],),  # nfe is largest
+            ...     ([("nfe", 1.0)],),                                   # only nfe
+            ...     ([("eas", 0.5), ("nfe", 0.5)],),                     # tie -> nfe preferred
+            ...     ([("eas", 0.5), ("afr", 0.5)],),                     # tie, no nfe -> first
+            ...     ([],),                                               # empty -> nfe default
+            ...     (None,),                                             # null -> nfe default
+            ... ]
+            >>> df = spark.createDataFrame(data, schema)
+            >>> df.select(StudyIndex.get_major_ancestry(f.col("ldPopulationStructure")).alias("major")).show(truncate=False)
+            +----------+
+            |major     |
+            +----------+
+            |{nfe, 0.9}|
+            |{nfe, 1.0}|
+            |{nfe, 0.5}|
+            |{eas, 0.5}|
+            |{nfe, 0.0}|
+            |{nfe, 0.0}|
+            +----------+
+            <BLANKLINE>
+        """
+        default = f.struct(
+            f.lit("nfe").alias("ldPopulation"),
+            f.lit(0.0).alias("relativeSampleSize"),
+        )
+        # Sort descending by relativeSampleSize (nulls last) — first element is the candidate major
+        sorted_pops = f.array_sort(
+            ld_pop_struct,
+            lambda left, right: (
+                f.when(left.getField("relativeSampleSize").isNull() & right.getField("relativeSampleSize").isNull(), f.lit(0))
+                .when(left.getField("relativeSampleSize").isNull(), f.lit(1))
+                .when(right.getField("relativeSampleSize").isNull(), f.lit(-1))
+                .when(left.getField("relativeSampleSize") > right.getField("relativeSampleSize"), f.lit(-1))
+                .when(left.getField("relativeSampleSize") < right.getField("relativeSampleSize"), f.lit(1))
+                .otherwise(f.lit(0))
+            ),
+        )
+        top_size = sorted_pops.getItem(0).getField("relativeSampleSize")
+        # Among all entries sharing the top size, prefer nfe; otherwise take the first
+        tied_tops = f.filter(sorted_pops, lambda x: x.getField("relativeSampleSize") == top_size)
+        nfe_among_tied = f.filter(tied_tops, lambda x: x.getField("ldPopulation") == f.lit("nfe"))
+        winner = f.when(f.size(nfe_among_tied) > 0, nfe_among_tied.getItem(0)).otherwise(sorted_pops.getItem(0))
+
+        return f.when(
+            ld_pop_struct.isNull() | (f.size(ld_pop_struct) == 0),
+            default,
+        ).otherwise(winner)
+
     def study_type_lut(self: StudyIndex) -> DataFrame:
         """Return a lookup table of study type.
 
@@ -246,6 +326,110 @@ class StudyIndex(Dataset):
             Column: True if the study is a GWAS study.
         """
         return self.df.studyType == "gwas"
+
+    @staticmethod
+    def compute_prevalence(n_cases: Column, n_samples: Column, trait_class: Column) -> Column:
+        """Compute prevalence for binary traits as nCases / nSamples.
+
+        Returns null for non-binary traits and guards against division by zero.
+
+        Args:
+            n_cases (Column): Number of cases.
+            n_samples (Column): Total number of samples.
+            trait_class (Column): Trait class value from analysisFlags (TraitClassName).
+
+        Returns:
+            Column: Prevalence in [0, 1] for binary traits; null otherwise.
+
+        Examples:
+            >>> from gentropy.dataset.study_index import StudyIndex
+            >>> from gentropy.dataset.therapeutic_area import TraitClassName
+            >>> from pyspark.sql import functions as f
+            >>> data = [
+            ...     (100, 400, TraitClassName.BINARY.value),        # binary: 0.25
+            ...     (None, 400, TraitClassName.BINARY.value),       # binary, no cases: null
+            ...     (100, None, TraitClassName.BINARY.value),       # binary, no samples: null
+            ...     (100, 0,   TraitClassName.BINARY.value),        # binary, zero samples: null
+            ...     (100, 400, TraitClassName.QUANTITATIVE.value),  # quantitative: null
+            ... ]
+            >>> schema = "nCases INT, nSamples INT, traitClass STRING"
+            >>> df = spark.createDataFrame(data, schema)
+            >>> df.select(StudyIndex.compute_prevalence(f.col("nCases"), f.col("nSamples"), f.col("traitClass")).alias("prev")).show()
+            +----+
+            |prev|
+            +----+
+            |0.25|
+            |NULL|
+            |NULL|
+            |NULL|
+            |NULL|
+            +----+
+            <BLANKLINE>
+        """
+        return (
+            f.when(
+                (trait_class == TraitClassName.BINARY.value)
+                & n_cases.isNotNull()
+                & n_samples.isNotNull()
+                & (n_samples > 0),
+                n_cases.cast("double") / n_samples.cast("double"),
+            )
+            .alias("prevalence")
+        )
+
+    @staticmethod
+    def compute_effective_sample_size(n_samples: Column, prevalence: Column, trait_class: Column) -> Column:
+        """Compute effective sample size from prevalence and total sample count.
+
+        For binary traits: prev * (1 - prev) * nSamples.
+        For quantitative traits (including QTLs): nSamples as-is.
+        Returns null when trait class is misclassified_phenotype or when required
+        inputs are null.
+
+        Args:
+            n_samples (Column): Total number of samples.
+            prevalence (Column): Prevalence column (output of compute_prevalence).
+            trait_class (Column): Trait class value from analysisFlags (TraitClassName).
+
+        Returns:
+            Column: Effective sample size as a double.
+
+        Examples:
+            >>> from gentropy.dataset.study_index import StudyIndex
+            >>> from gentropy.dataset.therapeutic_area import TraitClassName
+            >>> from pyspark.sql import functions as f
+            >>> data = [
+            ...     (400, 0.25, TraitClassName.BINARY.value),       # binary: 0.25*0.75*400 = 75.0
+            ...     (400, None, TraitClassName.BINARY.value),       # binary, no prev: null
+            ...     (400, 0.5,  TraitClassName.QUANTITATIVE.value), # quantitative: 400.0
+            ...     (None, 0.5, TraitClassName.QUANTITATIVE.value), # quantitative, no n: null
+            ...     (400, None, TraitClassName.UNKNOWN.value),      # misclassified: null
+            ... ]
+            >>> schema = "nSamples INT, prevalence DOUBLE, traitClass STRING"
+            >>> df = spark.createDataFrame(data, schema)
+            >>> df.select(StudyIndex.compute_effective_sample_size(f.col("nSamples"), f.col("prevalence"), f.col("traitClass")).alias("ess")).show()
+            +-----+
+            |  ess|
+            +-----+
+            | 75.0|
+            | NULL|
+            |400.0|
+            | NULL|
+            | NULL|
+            +-----+
+            <BLANKLINE>
+        """
+        return (
+            f.when(
+                (trait_class == TraitClassName.BINARY.value) & prevalence.isNotNull() & n_samples.isNotNull(),
+                prevalence * (f.lit(1.0) - prevalence) * n_samples.cast("double"),
+            )
+            .when(
+                (trait_class == TraitClassName.QUANTITATIVE.value) & n_samples.isNotNull(),
+                n_samples.cast("double"),
+            )
+            .alias("effectiveSampleSize")
+        )
 
     def has_mapped_trait(self: StudyIndex) -> Column:
         """Return a boolean column indicating if a study has mapped disease.
@@ -701,6 +885,241 @@ class StudyIndex(Dataset):
             _df=df,
             _schema=self.__class__.get_schema(),
         )
+
+    def annotate_trait_class(self: StudyIndex, therapeutic_area: TherapeuticArea) -> StudyIndex:
+        """Annotate each GWAS study with a trait class flag in analysisFlags.
+
+        Classification logic (in priority order):
+        - QTL studies (studyType ends with "qtl") → QUANTITATIVE regardless of disease.
+        - GWAS studies whose primary therapeutic area is EFO_0001444 ("measurement") → QUANTITATIVE.
+        - GWAS studies whose disease maps to any other therapeutic area in the hierarchy → BINARY.
+        - GWAS studies with no matching therapeutic area → UNKNOWN_TRAIT.
+        - Non-GWAS, non-QTL studies → no flag appended.
+
+        The resolved flag is appended to the `analysisFlags` array column. Requires `diseaseIds`
+        to be populated (i.e. run after `validate_disease`).
+
+        Args:
+            therapeutic_area (TherapeuticArea): Dataset providing the disease → trait class mapping.
+
+        Returns:
+            StudyIndex: with trait class flag appended to analysisFlags for each GWAS/QTL study.
+
+        Examples:
+            >>> from gentropy.dataset.study_index import StudyIndex, StudyAnalysisFlag
+            >>> from gentropy.dataset.therapeutic_area import TherapeuticArea
+            >>> from pyspark.sql import functions as f
+            >>> disease_data = [
+            ...     ("EFO_000001", ["EFO_0001444"]),    # measurement
+            ...     ("EFO_000002", ["MONDO_0045024"]),  # disease
+            ... ]
+            >>> disease_df = spark.createDataFrame(disease_data, "id STRING, therapeuticAreas ARRAY<STRING>")
+            >>> ta = TherapeuticArea.from_disease(disease_df)
+            >>> study_data = [
+            ...     ("s1", "gwas", "p1", ["EFO_000001"]),  # measurement gwas -> quantitative
+            ...     ("s2", "gwas", "p1", ["EFO_000002"]),  # disease gwas -> binary
+            ...     ("s3", "gwas", "p1", ["EFO_UNKNOWN"]), # no match -> misclassified_phenotype
+            ...     ("s4", "eqtl", "p1", None),            # qtl -> quantitative
+            ... ]
+            >>> schema = "studyId STRING, studyType STRING, projectId STRING, diseaseIds ARRAY<STRING>"
+            >>> df = spark.createDataFrame(study_data, schema).withColumn("analysisFlags", f.array().cast("array<string>"))
+            >>> si = StudyIndex(_df=df, _schema=StudyIndex.get_schema())
+            >>> result = si.annotate_trait_class(ta)
+            >>> result.df.select("studyId", "analysisFlags").orderBy("studyId").show(truncate=False)
+            +-------+-------------------------+
+            |studyId|analysisFlags            |
+            +-------+-------------------------+
+            |s1     |[quantitative]           |
+            |s2     |[binary]                 |
+            |s3     |[misclassified_phenotype]|
+            |s4     |[quantitative]           |
+            +-------+-------------------------+
+            <BLANKLINE>
+        """
+        # Classify each disease via therapeutic area hierarchy
+        trait_class_lut = therapeutic_area.classify_trait()
+
+        # Resolve per-study trait class:
+        # explode diseaseIds, join classification, pick the highest-priority class per study.
+        # Priority: quantitative > binary > misclassified_phenotype (measurement overrides disease TAs)
+        priority = (
+            f.when(f.col("traitClass") == TraitClassName.QUANTITATIVE.value, f.lit(0))
+            .when(f.col("traitClass") == TraitClassName.BINARY.value, f.lit(1))
+            .otherwise(f.lit(2))
+        )
+
+        study_trait_class = (
+            self.df.select("studyId", "studyType", f.explode_outer("diseaseIds").alias("diseaseId"))
+            .join(trait_class_lut, on="diseaseId", how="left")
+            .withColumn("traitClass", f.coalesce(f.col("traitClass"), f.lit(TraitClassName.UNKNOWN.value)))
+            .withColumn("priority", priority)
+            .groupBy("studyId", "studyType")
+            .agg(f.first("traitClass", ignorenulls=True).alias("traitClass"),
+                 f.min("priority").alias("minPriority"))
+            # Re-resolve after aggregation: min priority wins
+            .withColumn(
+                "traitClass",
+                f.when(f.col("minPriority") == 0, f.lit(TraitClassName.QUANTITATIVE.value))
+                .when(f.col("minPriority") == 1, f.lit(TraitClassName.BINARY.value))
+                .otherwise(f.lit(TraitClassName.UNKNOWN.value)),
+            )
+            # QTL studies are always quantitative regardless of disease
+            .withColumn(
+                "traitClass",
+                f.when(
+                    f.col("studyType").endswith("qtl"),
+                    f.lit(TraitClassName.QUANTITATIVE.value),
+                ).otherwise(f.col("traitClass")),
+            )
+            .select("studyId", "traitClass")
+        )
+
+        df = (
+            self.df.join(study_trait_class, on="studyId", how="left")
+            .withColumn(
+                "analysisFlags",
+                f.when(
+                    f.col("traitClass").isNotNull(),
+                    f.array_append(
+                        f.coalesce(f.col("analysisFlags"), f.array()),
+                        f.col("traitClass"),
+                    ),
+                ).otherwise(f.col("analysisFlags")),
+            )
+            .drop("traitClass")
+        )
+        return StudyIndex(_df=df, _schema=StudyIndex.get_schema())
+
+    @qc_test
+    def validate_sample_stats(self: StudyIndex) -> StudyIndex:
+        """Validate sample size statistics against the trait class in analysisFlags.
+
+        Flags are raised independently per column (nCases, nControls) and per trait class.
+        Requires `annotate_trait_class` to have run first so that analysisFlags contains
+        the traitClass value.
+
+        Rules applied per trait class:
+
+        - **binary**: flag BINARY_TRAIT_MISSING_CASES if nCases null/0; flag
+          BINARY_TRAIT_MISSING_CONTROLS if nControls null/0; flag
+          BINARY_TRAIT_N_SAMPLE_MISMATCH if both present but nCases + nControls != nSamples.
+        - **quantitative** (including QTL): flag QUANT_TRAIT_CASES_DEFINED if nCases > 0;
+          flag QUANT_TRAIT_CONTROLS_DEFINED if nControls > 0.
+        - **misclassified_phenotype**: flag UNCLASSIFIABLE_TRAIT if nCases > 0 or
+          nControls > 0.
+
+        Returns:
+            StudyIndex: with qualityControls updated based on traitClass × sample stats.
+
+        Examples:
+            >>> from gentropy.dataset.study_index import StudyIndex, StudyQualityCheck
+            >>> from gentropy.dataset.therapeutic_area import TraitClassName
+            >>> from pyspark.sql import functions as f
+            >>> data = [
+            ...     # binary: clean
+            ...     ("s1", "gwas", "p1", 100, 200, 300, [TraitClassName.BINARY.value]),
+            ...     # binary: missing controls
+            ...     ("s2", "gwas", "p1", 100,   0, 300, [TraitClassName.BINARY.value]),
+            ...     # binary: missing cases
+            ...     ("s3", "gwas", "p1",   0, 200, 300, [TraitClassName.BINARY.value]),
+            ...     # binary: both missing
+            ...     ("s4", "gwas", "p1",   0,   0, 300, [TraitClassName.BINARY.value]),
+            ...     # binary: sum mismatch
+            ...     ("s5", "gwas", "p1", 100, 200, 999, [TraitClassName.BINARY.value]),
+            ...     # quantitative: cases defined
+            ...     ("s6", "gwas", "p1", 100,   0, 100, [TraitClassName.QUANTITATIVE.value]),
+            ...     # quantitative: controls defined
+            ...     ("s7", "gwas", "p1",   0, 200, 200, [TraitClassName.QUANTITATIVE.value]),
+            ...     # qtl: treated same as quantitative
+            ...     ("s8", "eqtl", "p1", 100,   0, 100, [TraitClassName.QUANTITATIVE.value]),
+            ...     # misclassified: cases present
+            ...     ("s9", "gwas", "p1", 100,   0, 100, [TraitClassName.UNKNOWN.value]),
+            ... ]
+            >>> schema = "studyId STRING, studyType STRING, projectId STRING, nCases INT, nControls INT, nSamples INT, analysisFlags ARRAY<STRING>"
+            >>> df = spark.createDataFrame(data, schema).withColumn("qualityControls", f.array().cast("array<string>"))
+            >>> si = StudyIndex(_df=df, _schema=StudyIndex.get_schema())
+            >>> flagged = si.validate_sample_stats()
+            >>> flagged.df.select("studyId", "qualityControls").orderBy("studyId").show(truncate=False)
+            +-------+-----------------------------------------------------------------------------+
+            |studyId|qualityControls                                                              |
+            +-------+-----------------------------------------------------------------------------+
+            |s1     |[]                                                                           |
+            |s2     |[Binary trait with no controls reported]                                     |
+            |s3     |[Binary trait with no cases reported]                                        |
+            |s4     |[Binary trait with no cases reported, Binary trait with no controls reported]|
+            |s5     |[Binary trait where nCases + nControls != nSamples]                          |
+            |s6     |[Quantitative trait with nCases reported]                                    |
+            |s7     |[Quantitative trait with nControls reported]                                 |
+            |s8     |[Quantitative trait with nCases reported]                                    |
+            |s9     |[Trait could not be classified as binary or quantitative]                    |
+            +-------+-----------------------------------------------------------------------------+
+            <BLANKLINE>
+        """
+        n_cases = f.col("nCases")
+        n_controls = f.col("nControls")
+        n_samples = f.col("nSamples")
+
+        has_cases = n_cases.isNotNull() & (n_cases > 0)
+        has_controls = n_controls.isNotNull() & (n_controls > 0)
+        cases_missing = n_cases.isNull() | (n_cases == 0)
+        controls_missing = n_controls.isNull() | (n_controls == 0)
+
+        is_binary = f.array_contains(f.col("analysisFlags"), TraitClassName.BINARY.value)
+        is_quant = f.array_contains(f.col("analysisFlags"), TraitClassName.QUANTITATIVE.value)
+        is_unclassifiable = f.array_contains(f.col("analysisFlags"), TraitClassName.UNKNOWN.value)
+
+        df = (
+            self.df
+            .withColumn(
+                "qualityControls",
+                StudyIndex.update_quality_flag(
+                    f.col("qualityControls"),
+                    is_binary & cases_missing,
+                    StudyQualityCheck.BINARY_TRAIT_MISSING_CASES,
+                ),
+            )
+            .withColumn(
+                "qualityControls",
+                StudyIndex.update_quality_flag(
+                    f.col("qualityControls"),
+                    is_binary & controls_missing,
+                    StudyQualityCheck.BINARY_TRAIT_MISSING_CONTROLS,
+                ),
+            )
+            .withColumn(
+                "qualityControls",
+                StudyIndex.update_quality_flag(
+                    f.col("qualityControls"),
+                    is_binary & has_cases & has_controls & n_samples.isNotNull() & ((n_cases + n_controls) != n_samples),
+                    StudyQualityCheck.BINARY_TRAIT_N_SAMPLE_MISMATCH,
+                ),
+            )
+            .withColumn(
+                "qualityControls",
+                StudyIndex.update_quality_flag(
+                    f.col("qualityControls"),
+                    is_quant & has_cases,
+                    StudyQualityCheck.QUANT_TRAIT_CASES_REPORTED,
+                ),
+            )
+            .withColumn(
+                "qualityControls",
+                StudyIndex.update_quality_flag(
+                    f.col("qualityControls"),
+                    is_quant & has_controls,
+                    StudyQualityCheck.QUANT_TRAIT_CONTROLS_REPORTED,
+                ),
+            )
+            .withColumn(
+                "qualityControls",
+                StudyIndex.update_quality_flag(
+                    f.col("qualityControls"),
+                    is_unclassifiable & (has_cases | has_controls),
+                    StudyQualityCheck.UNCLASSIFIABLE_TRAIT,
+                ),
+            )
+        )
+        return StudyIndex(_df=df, _schema=StudyIndex.get_schema())
 
     @qc_test
     def validate_analysis_flags(self: StudyIndex) -> StudyIndex:
