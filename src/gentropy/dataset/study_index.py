@@ -254,6 +254,110 @@ class StudyIndex(Dataset):
         """
         return self.df.studyType == "gwas"
 
+    @staticmethod
+    def compute_prevalence(n_cases: Column, n_samples: Column, trait_class: Column) -> Column:
+        """Compute prevalence for binary traits as nCases / nSamples.
+
+        Returns null for non-binary traits and guards against division by zero.
+
+        Args:
+            n_cases (Column): Number of cases.
+            n_samples (Column): Total number of samples.
+            trait_class (Column): Trait class value from analysisFlags (TraitClassName).
+
+        Returns:
+            Column: Prevalence in [0, 1] for binary traits; null otherwise.
+
+        Examples:
+            >>> from gentropy.dataset.study_index import StudyIndex
+            >>> from gentropy.dataset.therapeutic_area import TraitClassName
+            >>> from pyspark.sql import functions as f
+            >>> data = [
+            ...     (100, 400, TraitClassName.BINARY.value),        # binary: 0.25
+            ...     (None, 400, TraitClassName.BINARY.value),       # binary, no cases: null
+            ...     (100, None, TraitClassName.BINARY.value),       # binary, no samples: null
+            ...     (100, 0,   TraitClassName.BINARY.value),        # binary, zero samples: null
+            ...     (100, 400, TraitClassName.QUANTITATIVE.value),  # quantitative: null
+            ... ]
+            >>> schema = "nCases INT, nSamples INT, traitClass STRING"
+            >>> df = spark.createDataFrame(data, schema)
+            >>> df.select(StudyIndex.compute_prevalence(f.col("nCases"), f.col("nSamples"), f.col("traitClass")).alias("prev")).show()
+            +----+
+            |prev|
+            +----+
+            |0.25|
+            |NULL|
+            |NULL|
+            |NULL|
+            |NULL|
+            +----+
+            <BLANKLINE>
+        """
+        return (
+            f.when(
+                (trait_class == TraitClassName.BINARY.value)
+                & n_cases.isNotNull()
+                & n_samples.isNotNull()
+                & (n_samples > 0),
+                n_cases.cast("double") / n_samples.cast("double"),
+            )
+            .alias("prevalence")
+        )
+
+    @staticmethod
+    def compute_effective_sample_size(n_samples: Column, prevalence: Column, trait_class: Column) -> Column:
+        """Compute effective sample size from prevalence and total sample count.
+
+        For binary traits: prev * (1 - prev) * nSamples.
+        For quantitative traits (including QTLs): nSamples as-is.
+        Returns null when trait class is misclassified_phenotype or when required
+        inputs are null.
+
+        Args:
+            n_samples (Column): Total number of samples.
+            prevalence (Column): Prevalence column (output of compute_prevalence).
+            trait_class (Column): Trait class value from analysisFlags (TraitClassName).
+
+        Returns:
+            Column: Effective sample size as a double.
+
+        Examples:
+            >>> from gentropy.dataset.study_index import StudyIndex
+            >>> from gentropy.dataset.therapeutic_area import TraitClassName
+            >>> from pyspark.sql import functions as f
+            >>> data = [
+            ...     (400, 0.25, TraitClassName.BINARY.value),       # binary: 0.25*0.75*400 = 75.0
+            ...     (400, None, TraitClassName.BINARY.value),       # binary, no prev: null
+            ...     (400, 0.5,  TraitClassName.QUANTITATIVE.value), # quantitative: 400.0
+            ...     (None, 0.5, TraitClassName.QUANTITATIVE.value), # quantitative, no n: null
+            ...     (400, None, TraitClassName.UNKNOWN.value),      # misclassified: null
+            ... ]
+            >>> schema = "nSamples INT, prevalence DOUBLE, traitClass STRING"
+            >>> df = spark.createDataFrame(data, schema)
+            >>> df.select(StudyIndex.compute_effective_sample_size(f.col("nSamples"), f.col("prevalence"), f.col("traitClass")).alias("ess")).show()
+            +-----+
+            |  ess|
+            +-----+
+            | 75.0|
+            | NULL|
+            |400.0|
+            | NULL|
+            | NULL|
+            +-----+
+            <BLANKLINE>
+        """
+        return (
+            f.when(
+                (trait_class == TraitClassName.BINARY.value) & prevalence.isNotNull() & n_samples.isNotNull(),
+                prevalence * (f.lit(1.0) - prevalence) * n_samples.cast("double"),
+            )
+            .when(
+                (trait_class == TraitClassName.QUANTITATIVE.value) & n_samples.isNotNull(),
+                n_samples.cast("double"),
+            )
+            .alias("effectiveSampleSize")
+        )
+
     def has_mapped_trait(self: StudyIndex) -> Column:
         """Return a boolean column indicating if a study has mapped disease.
 
