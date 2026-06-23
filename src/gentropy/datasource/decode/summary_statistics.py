@@ -18,18 +18,42 @@ from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor
 
-from pydantic import BaseModel
-from pyspark.sql import Column, DataFrame
+from pydantic import BaseModel, ConfigDict, Field
+from pyspark.sql import DataFrame
 from pyspark.sql import functions as f
 from pyspark.sql import types as t
 
 from gentropy import Session, SummaryStatistics
-from gentropy.common.processing import mac, normalize_chromosome
+from gentropy.common.processing import (
+    flag_equal_alleles,
+    flag_non_atgc_alleles,
+    infer_allele_frequency_from_maf,
+    mac,
+    normalize_chromosome,
+)
 from gentropy.common.stats import pvalue_from_neglogpval
+from gentropy.config import deCODESummaryStatisticsHarmonisationConfig as _Defaults
 from gentropy.dataset.study_index import ProteinQuantitativeTraitLocusStudyIndex
 from gentropy.dataset.variant_direction import DEFAULT_WINDOW_SIZE, VariantDirection
 from gentropy.datasource.decode import deCODEDataSource
 from gentropy.datasource.decode.study_index import deCODEStudyIndex
+
+DECODE_SCHEMA = t.StructType(
+    [
+        t.StructField("Chrom", t.StringType()),
+        t.StructField("Pos", t.LongType()),
+        t.StructField("Name", t.StringType()),
+        t.StructField("rsids", t.StringType()),
+        t.StructField("effectAllele", t.StringType()),
+        t.StructField("otherAllele", t.StringType()),
+        t.StructField("Beta", t.DoubleType()),
+        t.StructField("Pval", t.DoubleType()),
+        t.StructField("minus_log10_pval", t.DoubleType()),
+        t.StructField("SE", t.DoubleType()),
+        t.StructField("N", t.LongType()),
+        t.StructField("impMAF", t.DoubleType()),
+    ]
+)
 
 
 class deCODEHarmonisationConfig(BaseModel):
@@ -42,25 +66,41 @@ class deCODEHarmonisationConfig(BaseModel):
         to keep both sides in sync.
     """
 
-    min_mac: int
-    """Minimal value of Minor Allelic Count to include in harmonisation."""
-    min_sample_size: int
-    """Minimal value of Sample Size to include in harmonisation."""
+    model_config = ConfigDict(extra="forbid")
+
+    # NOTE: Defaults below are sourced from the Hydra step config
+    # `deCODESummaryStatisticsHarmonisationConfig` (imported as `_Defaults`) so the
+    # values are declared in exactly one place (`gentropy.config`). The Hydra config
+    # exposes a subset of these knobs under its own parameter names, which are
+    # mapped onto the validated field names here.
+
+    perform_min_allele_count_filter: bool = True
+    """Whether to filter variants based on minor allele count (MAC) threshold."""
+    min_allele_count_threshold: int = Field(
+        default=_Defaults.min_mac_threshold, ge=1
+    )
+    """Minimum minor allele count required to retain a variant."""
+
+    perform_samples_size_filter: bool = True
+    """Whether to remove variants with low sample size."""
+    sample_size_threshold: int = Field(
+        default=_Defaults.min_sample_size_threshold, ge=1
+    )
+    """Minimum sample size to retain a variant. Must be >= 1."""
+
     flipping_window_size: int = DEFAULT_WINDOW_SIZE
     """Window size (bp) used to partition the VariantDirection dataset (exact match only!).
         Defaults to `DEFAULT_WINDOW_SIZE` from `gentropy.dataset.variant_direction`.
     """
-    remove_star_alleles: bool = True
-    """Whether to remove variants with `*` alleles during harmonisation."""
-    remove_equal_alleles: bool = True
+    remove_monomorphic_alleles: bool = _Defaults.remove_equal_alleles
     """Whether to remove variants with equal effect and other alleles during harmonisation."""
-    remove_multiallelics: bool = True
-    """Whether to remove variants with multiple other alleles during harmonisation.
-        These alleles are marked as ! in summary statistics. For the sake of flipping, we
-        remove these from both effect and other allele columns.
+    remove_ambiguous_alleles: bool = False
+    """Whether to remove strand-ambiguous variants (A/T or C/G)."""
+    verify_atgc: bool = _Defaults.verify_atgc
+    """Whether to verify that all alleles are A/T/G/C during harmonisation.
+        Strict ATGC validation also removes `*` (star) and `!` (multiallelic) alleles,
+        so no dedicated symbol filters are required.
     """
-    verify_atgc: bool = True
-    """Whether to verify that all alleles are A/T/G/C during harmonisation."""
 
 
 class deCODESummaryStatistics:
@@ -86,23 +126,6 @@ class deCODESummaryStatistics:
 
     N_THREAD_OPTIMAL = 10
     N_THREAD_MAX = 500
-
-    raw_schema = t.StructType(
-        [
-            t.StructField("Chrom", t.StringType()),
-            t.StructField("Pos", t.LongType()),
-            t.StructField("Name", t.StringType()),
-            t.StructField("rsids", t.StringType()),
-            t.StructField("effectAllele", t.StringType()),
-            t.StructField("otherAllele", t.StringType()),
-            t.StructField("Beta", t.DoubleType()),
-            t.StructField("Pval", t.DoubleType()),
-            t.StructField("minus_log10_pval", t.DoubleType()),
-            t.StructField("SE", t.DoubleType()),
-            t.StructField("N", t.LongType()),
-            t.StructField("impMAF", t.DoubleType()),
-        ]
-    )
 
     @classmethod
     def txtgz_to_parquet(
@@ -157,7 +180,7 @@ class deCODESummaryStatistics:
                     input_path,
                     sep="\t",
                     header=True,
-                    schema=cls.raw_schema,
+                    schema=DECODE_SCHEMA,
                 )
                 .withColumn(
                     "studyId",
@@ -177,58 +200,12 @@ class deCODESummaryStatistics:
             )
 
         with ThreadPoolExecutor(max_workers=n_threads) as pool:
-            pool.map(
-                lambda path: process_one(path, raw_summary_statistics_output_path),
-                summary_statistics_list,
+            list(
+                pool.map(
+                    lambda path: process_one(path, raw_summary_statistics_output_path),
+                    summary_statistics_list,
+                )
             )
-
-    @classmethod
-    def _infer_allele_frequency(cls, imp_maf: Column, eur_af: Column) -> Column:
-        """Infer allele frequency from imputed MAF and European AF.
-
-        Args:
-            imp_maf (Column): Imputed minor allele frequency from source.
-            eur_af (Column): European allele frequency from gnomAD.
-
-        Returns:
-            Column: Inferred allele frequency.
-
-        !!! note "Inference logic"
-            The effect allele frequency (EAF) is inferred by comparing the imputed minor allele frequency (impMAF)
-            from deCODE with the European allele frequency (EUR_AF) from gnomAD.
-
-            * If `EUR_AF` is null, the effect allele frequency cannot be inferred. In this case, the imputed
-            minor allele frequency (`impMAF`) is used as the EAF. This typically occurs for variants that are
-            unique to deCODE and absent from the gnomAD European population.
-
-            * If `EUR_AF` is closer to `impMAF` than to `1 − impMAF`, the effect allele is assumed to be the
-            minor allele in the Icelandic population, and `impMAF` is used as the EAF.
-
-            * If `EUR_AF` is closer to `1 − impMAF` than to `impMAF`, the effect allele is assumed to be the
-            major allele in the Icelandic population, and `1 − impMAF` is used as the EAF.
-
-        Examples:
-            >>> data = [(0.01, 0.02), (0.01, 0.6), (0.01, None)]
-            >>> df = spark.createDataFrame(data, ["impMAF", "EUR_AF"])
-            >>> df.withColumn("EAF", deCODESummaryStatistics._infer_allele_frequency(f.col("impMAF"), f.col("EUR_AF"))).show()
-            +------+------+----+
-            |impMAF|EUR_AF| EAF|
-            +------+------+----+
-            |  0.01|  0.02|0.01|
-            |  0.01|   0.6|0.99|
-            |  0.01|  NULL|0.01|
-            +------+------+----+
-            <BLANKLINE>
-        """
-        d1 = f.abs(eur_af - imp_maf)
-        d2 = f.abs(eur_af - (1 - imp_maf))
-
-        return (
-            f.when(eur_af.isNull(), imp_maf)
-            .when(d1 <= d2, imp_maf)
-            .otherwise(1 - imp_maf)
-            .alias("effectAlleleFrequencyFromSource")
-        )
 
     @classmethod
     def from_source(
@@ -242,16 +219,15 @@ class deCODESummaryStatistics:
 
         The harmonisation pipeline performs the following steps in order:
 
-        1. **Schema alignment** – renames deCODE-specific column names to the
-           gentropy standard (e.g. ``Chrom`` → ``chromosome``, ``Beta`` → ``beta``).
-        2. **MAC / sample-size filtering** – discards variants below
-           ``config.min_mac`` or ``config.min_sample_size`` to remove underpowered
-           associations and reduce output volume (~33 M → ~25 M rows).
+        1. **Schema alignment** – renames deCODE-specific column names and builds
+           the source-oriented variant ID using ``effectAllele_otherAllele``.
+        2. **Allele, MAC, and sample-size filtering** – applies the enabled
+           validity filters and configurable thresholds.
         3. **Allele-flipping** – left-joins against the gnomAD `VariantDirection` dataset
            (positive strand only) using ``(chromosome, rangeId, variantId)``.
            Variants found in gnomAD are flipped to the gnomAD reference orientation;
            unmatched variants are kept as-is.
-        4. **EAF inference** – `_infer_allele_frequency` maps the deCODE
+        4. **EAF inference** – `infer_allele_frequency_from_maf` maps the deCODE
            ``impMAF`` to an effect-allele frequency using the gnomAD EUR AF.
         5. **Sanity filter** – applies the standard `SummaryStatistics.sanity_filter`.
         6. **Study-ID update** – replaces the raw study IDs derived from file paths
@@ -277,63 +253,14 @@ class deCODESummaryStatistics:
                 A 2-tuple of the harmonised summary statistics and the study index
                 with updated, curated study IDs.
         """
-        # Get the estimated number of distinct studies to set the number of partitions for the final join
-        n_sumstats = decode_study_index.df.count()
-        # Pre-filtering on alleles based on configuration.
-        if config.remove_star_alleles:
-            raw_summary_statistics = cls._remove_star_alleles(raw_summary_statistics)
-        if config.remove_equal_alleles:
-            raw_summary_statistics = cls._remove_equal_alleles(raw_summary_statistics)
-        if config.remove_multiallelics:
-            raw_summary_statistics = cls._remove_multiallelics(raw_summary_statistics)
-        if config.verify_atgc:
-            raw_summary_statistics = cls._verify_atgc(raw_summary_statistics)
-        pval = pvalue_from_neglogpval(f.col("neglogPval"))
-        # Prepare summary statistics format (column renaming, p-value conversion) and add join keys for variant flipping.
-        _sumstats = (
-            raw_summary_statistics.select(
-                normalize_chromosome(f.col("Chrom")).alias("chromosome"),
-                f.col("Pos").cast(t.IntegerType()).alias("position"),
-                f.col("effectAllele").alias("alt"),
-                f.col("otherAllele").alias("ref"),
-                f.col("Beta").cast(t.DoubleType()).alias("beta"),
-                f.col("minus_log10_pval").alias("neglogPval"),
-                f.col("SE").cast(t.DoubleType()).alias("standardError"),
-                f.col("N").cast(t.IntegerType()).alias("sampleSize"),
-                f.col("impMAF").cast(t.FloatType()).alias("impMAF"),
-                f.col("studyId"),
-            )
-            .select(
-                f.col("studyId"),
-                f.concat_ws(
-                    "_",
-                    f.col("chromosome"),
-                    f.col("position"),
-                    f.col("alt"),
-                    f.col("ref"),
-                ).alias("variantId"),
-                f.col("chromosome"),
-                f.col("position"),
-                f.col("beta"),
-                f.col("sampleSize"),
-                pval.mantissa.alias("pValueMantissa"),
-                pval.exponent.alias("pValueExponent"),
-                f.col("impMAF"),
-                f.col("standardError"),
-                f.floor(f.col("position") / config.flipping_window_size)
-                .cast(t.IntegerType())
-                .alias("rangeId"),
-            )
-            # Apply filtering on MAC and sample size
-            # This should reduce the number of variants from ~33mln to ~25mln
-            .filter(f.col("sampleSize") >= config.min_sample_size)
-            .filter(mac(f.col("impMAF"), f.col("sampleSize")) >= config.min_mac)
-            .alias("sumstats")
-        )
+        vd_slice = variant_direction.df
 
-        _vd = (
-            # Need only positive strand variants
-            variant_direction.df.filter(f.col("strand") == 1)
+        if config.remove_ambiguous_alleles:
+            vd_slice = vd_slice.filter(~f.col("isStrandAmbiguous"))
+
+        vd_slice = (
+            # deCODE alleles are compared only with positive-strand reference entries.
+            vd_slice.filter(f.col("strand") == 1)
             .select(
                 f.col("chromosome"),
                 f.col("rangeId"),
@@ -341,6 +268,8 @@ class deCODESummaryStatistics:
                 f.col("variantId"),
                 f.col("direction"),
                 f.filter(
+                    # NFE is the closest population-specific gnomAD frequency available.
+                    # TODO: consider using icelandic EAF https://www.ebi.ac.uk/ena/browser/view/PRJEB15197
                     f.col("originalAlleleFrequencies"),
                     lambda x: x.getField("populationName") == "nfe_adj",
                 )
@@ -356,25 +285,81 @@ class deCODESummaryStatistics:
             .alias("vd")
         )
 
-        _flipped = (
-            _sumstats.join(_vd, on=["chromosome", "rangeId", "variantId"], how="left")
-            .select(
-                f.col("sumstats.studyId").alias("studyId"),
-                f.coalesce(
-                    f.col("vd.originalVariantId"), f.col("sumstats.variantId")
+        # Estimate output partitions from the number of studies.
+        n_sumstats = decode_study_index.df.count()
+        # Pre-filtering on alleles based on configuration.
+        sumstats = raw_summary_statistics
+        if config.remove_monomorphic_alleles:
+            sumstats = sumstats.filter(
+                flag_equal_alleles(f.col("effectAllele"), f.col("otherAllele"))
+            )
+        if config.verify_atgc:
+            sumstats = sumstats.filter(
+                flag_non_atgc_alleles(f.col("effectAllele"), f.col("otherAllele"))
+            )
+
+        sumstats = (
+            sumstats.select(
+                f.col("studyId"),
+                normalize_chromosome(f.col("Chrom")).alias("chromosome"),
+                f.col("Pos").cast(t.IntegerType()).alias("position"),
+                # deCODE variant IDs use effectAllele_otherAllele ordering.
+                f.col("effectAllele").alias("alternateAllele"),
+                f.col("otherAllele").alias("referenceAllele"),
+                f.col("Beta").alias("beta"),
+                f.col("SE").alias("standardError"),
+                f.col("minus_log10_pval").alias("neglogPval"),
+                f.col("N").cast(t.IntegerType()).alias("sampleSize"),
+                f.col("impMAF").cast(t.FloatType()).alias("minorAlleleFrequency"),
+                f.floor(f.col("position") / config.flipping_window_size)
+                .cast(t.IntegerType())
+                .alias("rangeId"),
+            )
+            .filter(f.col("neglogPval").isNotNull())
+            .filter(f.col("beta").isNotNull())
+            .filter(f.col("standardError").isNotNull())
+            .withColumn(
+                "variantId",
+                f.concat_ws(
+                    "_",
+                    f.col("chromosome"),
+                    f.col("position"),
+                    f.col("alternateAllele"),
+                    f.col("referenceAllele"),
                 ).alias("variantId"),
-                f.col("sumstats.chromosome").alias("chromosome"),
-                f.col("sumstats.position").alias("position"),
-                (f.col("sumstats.beta") * f.coalesce(f.col("vd.direction"), f.lit(1)))
-                .cast("double")
-                .alias("beta"),
-                f.col("sumstats.sampleSize").alias("sampleSize"),
-                f.col("sumstats.pValueMantissa").alias("pValueMantissa"),
-                f.col("sumstats.pValueExponent").alias("pValueExponent"),
-                cls._infer_allele_frequency(
-                    f.col("sumstats.impMAF"), f.col("vd.eur_af")
+            )
+        )
+
+        if config.perform_samples_size_filter:
+            sumstats = sumstats.filter(
+                f.col("sampleSize") >= config.sample_size_threshold
+            )
+        if config.perform_min_allele_count_filter:
+            sumstats = sumstats.filter(
+                mac(f.col("minorAlleleFrequency"), f.col("sampleSize"))
+                >= config.min_allele_count_threshold
+            )
+
+        flipped = (
+            sumstats.join(
+                vd_slice, on=["chromosome", "rangeId", "variantId"], how="left"
+            )
+            .select(
+                f.col("studyId").alias("studyId"),
+                f.coalesce(f.col("originalVariantId"), f.col("variantId")).alias(
+                    "variantId"
+                ),
+                f.col("chromosome").alias("chromosome"),
+                f.col("position").alias("position"),
+                (f.col("beta") * f.coalesce(f.col("direction"), f.lit(1))).alias(
+                    "beta"
+                ),
+                f.col("sampleSize").alias("sampleSize"),
+                f.col("neglogPval").alias("neglogPval"),
+                infer_allele_frequency_from_maf(
+                    f.col("minorAlleleFrequency"), f.col("eur_af")
                 ).alias("effectAlleleFrequencyFromSource"),
-                f.col("sumstats.standardError").alias("standardError"),
+                f.col("standardError").alias("standardError"),
             )
             .select(
                 f.col("studyId"),
@@ -383,8 +368,7 @@ class deCODESummaryStatistics:
                 f.col("position"),
                 f.col("beta"),
                 f.col("sampleSize"),
-                f.col("pValueMantissa"),
-                f.col("pValueExponent"),
+                *pvalue_from_neglogpval(f.col("neglogPval")),
                 f.col("effectAlleleFrequencyFromSource"),
                 f.col("standardError"),
             )
@@ -399,10 +383,10 @@ class deCODESummaryStatistics:
                 f.col("studyId"), f.col("targetsFromSource")
             ),
         )
-        _vd.unpersist()
+        vd_slice.unpersist()
 
-        _harmonised = SummaryStatistics(
-            _df=SummaryStatistics(_flipped)
+        harmonised = SummaryStatistics(
+            _df=SummaryStatistics(flipped)
             .sanity_filter()
             .df.join(
                 si.select(f.col("updatedStudyId"), f.col("studyId")),
@@ -418,113 +402,10 @@ class deCODESummaryStatistics:
             .persist()
         )
 
-        _pqtl_si = ProteinQuantitativeTraitLocusStudyIndex(
+        pqtl_si = ProteinQuantitativeTraitLocusStudyIndex(
             _df=si.drop("studyId")
             .withColumnRenamed("updatedStudyId", "studyId")
             .persist()
         )
 
-        return (_harmonised, _pqtl_si)
-
-    @staticmethod
-    def _remove_star_alleles(df: DataFrame) -> DataFrame:
-        """Remove variants with `*` alleles from the summary statistics DataFrame.
-
-        Args:
-            df (DataFrame): Input DataFrame containing summary statistics with `effectAllele` and `otherAllele` columns.
-
-        Returns:
-            DataFrame: Filtered DataFrame with rows containing `*` in either `effectAllele` or `otherAllele` removed.
-
-        Examples:
-            >>> data = [("A", "T"), ("G", "C"), ("*", "A"), ("A", "*")]
-            >>> df = spark.createDataFrame(data, ["effectAllele", "otherAllele"])
-            >>> deCODESummaryStatistics._remove_star_alleles(df).show()
-            +------------+-----------+
-            |effectAllele|otherAllele|
-            +------------+-----------+
-            |           A|          T|
-            |           G|          C|
-            +------------+-----------+
-            <BLANKLINE>
-        """
-        return df.filter(
-            ~f.col("effectAllele").contains("*") & ~f.col("otherAllele").contains("*")
-        )
-
-    @staticmethod
-    def _remove_multiallelics(df: DataFrame) -> DataFrame:
-        """Remove variants with multiple alleles (marked as `!`) from the summary statistics DataFrame.
-
-        Args:
-            df (DataFrame): Input DataFrame containing summary statistics with `effectAllele` and `otherAllele` columns.
-
-        Returns:
-            DataFrame: Filtered DataFrame with rows containing `!` in either `effectAllele` or `otherAllele` removed.
-
-        Examples:
-            >>> data = [("A", "T"), ("G", "C"), ("!", "A"), ("A", "!")]
-            >>> df = spark.createDataFrame(data, ["effectAllele", "otherAllele"])
-            >>> deCODESummaryStatistics._remove_multiallelics(df).show()
-            +------------+-----------+
-            |effectAllele|otherAllele|
-            +------------+-----------+
-            |           A|          T|
-            |           G|          C|
-            +------------+-----------+
-            <BLANKLINE>
-        """
-        return df.filter(
-            ~f.col("effectAllele").contains("!") & ~f.col("otherAllele").contains("!")
-        )
-
-    @staticmethod
-    def _remove_equal_alleles(df: DataFrame) -> DataFrame:
-        """Remove variants with equal effect and other alleles from the summary statistics DataFrame.
-
-        Args:
-            df (DataFrame): Input DataFrame containing summary statistics with `effectAllele` and `otherAllele` columns.
-
-        Returns:
-            DataFrame: Filtered DataFrame with rows where `effectAllele` equals `otherAllele` removed.
-
-        Examples:
-            >>> data = [("AT", "T"), ("G", "C"), ("A", "A"), ("T", "T")]
-            >>> df = spark.createDataFrame(data, ["effectAllele", "otherAllele"])
-            >>> deCODESummaryStatistics._remove_equal_alleles(df).show()
-            +------------+-----------+
-            |effectAllele|otherAllele|
-            +------------+-----------+
-            |          AT|          T|
-            |           G|          C|
-            +------------+-----------+
-            <BLANKLINE>
-        """
-        return df.filter(f.col("effectAllele") != f.col("otherAllele"))
-
-    @staticmethod
-    def _verify_atgc(df: DataFrame) -> DataFrame:
-        """Verify that all alleles in the summary statistics DataFrame are A/T/G/C.
-
-        Args:
-            df (DataFrame): Input DataFrame containing summary statistics with `effectAllele` and `otherAllele` columns.
-
-        Returns:
-            DataFrame: Filtered DataFrame with rows containing non-ATGC alleles removed.
-
-        Examples:
-            >>> data = [("AT", "T"), ("G", "C"), ("N", "A"), ("A", "X")]
-            >>> df = spark.createDataFrame(data, ["effectAllele", "otherAllele"])
-            >>> deCODESummaryStatistics._verify_atgc(df).show()
-            +------------+-----------+
-            |effectAllele|otherAllele|
-            +------------+-----------+
-            |          AT|          T|
-            |           G|          C|
-            +------------+-----------+
-            <BLANKLINE>
-        """
-        return df.filter(
-            f.col("effectAllele").rlike(r"^[ATGC]+$")
-            & f.col("otherAllele").rlike(r"^[ATGC]+$")
-        )
+        return (harmonised, pqtl_si)

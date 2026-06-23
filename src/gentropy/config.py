@@ -25,8 +25,8 @@ class SessionConfig:
     log_level: str = "ERROR"
     add_s3_connector: bool = False
     add_gcs_connector: bool = False
-    s3_configuration: dict[str, str] | None = None
-    gcs_configuration: dict[str, str] | None = None
+    s3_configuration: dict[str, str] | None = field(default_factory=dict[str, str])
+    gcs_configuration: dict[str, str] | None = field(default_factory=dict[str, str])
     s3_configuration_path: str | None = None
     gcs_configuration_path: str | None = None
     _target_: str = "gentropy.common.session.Session"
@@ -92,9 +92,7 @@ class deCODESummaryStatisticsHarmonisationConfig(StepConfig):
     flipping_window_size: int = (
         10_000_000  # must match variant_direction.DEFAULT_WINDOW_SIZE
     )
-    remove_star_alleles: bool = True
     remove_equal_alleles: bool = True
-    remove_multiallelics: bool = True
     verify_atgc: bool = True
     _target_: str = "gentropy.decode_ingestion.deCODESummaryStatisticsHarmonisationStep"
 

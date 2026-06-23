@@ -273,13 +273,11 @@ class deCODESummaryStatisticsHarmonisationStep:
         harmonised_summary_statistics_path: str,
         protein_qtl_study_index_path: str,
         # config
-        min_mac_threshold: int = 50,
-        min_sample_size_threshold: int = 30_000,
-        flipping_window_size: int = 10_000_000,
-        remove_star_alleles: bool = True,
-        remove_equal_alleles: bool = True,
-        remove_multiallelics: bool = True,
-        verify_atgc: bool = True,
+        min_mac_threshold: int,
+        min_sample_size_threshold: int,
+        flipping_window_size: int,
+        remove_equal_alleles: bool,
+        verify_atgc: bool,
     ) -> None:
         """Initialise and execute the deCODE summary-statistics harmonisation step.
 
@@ -300,26 +298,25 @@ class deCODESummaryStatisticsHarmonisationStep:
             protein_qtl_study_index_path (str): Destination path for the pQTL study index
                 Parquet dataset annotated with QC results.
             min_mac_threshold (int): Minimum minor allele count (MAC) required to retain a
-                variant. Defaults to 50.
+                variant.
             min_sample_size_threshold (int): Minimum sample size required to retain a variant.
-                Defaults to 30,000.
             flipping_window_size (int): Genomic window size (bp) used to partition the
                 VariantDirection dataset for the allele-flipping join.  Must match the value
-                used when building the VariantDirection dataset. Defaults to 10,000,000.
-            remove_star_alleles (bool): Whether to remove variants with `*` alleles during harmonisation.
-                Defaults to `True`.
-            remove_equal_alleles (bool): Whether to remove variants with equal effect and other alleles during harmonisation. Defaults to `True`.
-            remove_multiallelics (bool): Whether to remove variants with multiple other alleles during harmonisation. Defaults to `True`.
-            verify_atgc (bool): Whether to verify that all alleles are A/T/G/C during harmonisation. Defaults to `True`.
+                used when building the VariantDirection dataset.
+            remove_equal_alleles (bool): Whether to remove variants with equal effect and other alleles during harmonisation.
+            verify_atgc (bool): Whether to verify that all alleles are A/T/G/C during harmonisation.
+                Strict ATGC validation also removes `*` (star) and `!` (multiallelic) alleles.
 
+        The harmonisation parameters carry no in-code defaults: their default
+        values are defined once on the Hydra step config
+        (`gentropy.config.deCODESummaryStatisticsHarmonisationConfig`) and supplied
+        at instantiation time.
         """
         config = deCODEHarmonisationConfig(
-            min_mac=min_mac_threshold,
-            min_sample_size=min_sample_size_threshold,
+            min_allele_count_threshold=min_mac_threshold,
+            sample_size_threshold=min_sample_size_threshold,
             flipping_window_size=flipping_window_size,
-            remove_star_alleles=remove_star_alleles,
-            remove_equal_alleles=remove_equal_alleles,
-            remove_multiallelics=remove_multiallelics,
+            remove_monomorphic_alleles=remove_equal_alleles,
             verify_atgc=verify_atgc,
         )
 
