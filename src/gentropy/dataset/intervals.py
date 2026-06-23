@@ -288,32 +288,39 @@ class Intervals(Dataset):
     def validate_target(self: Intervals, target_index: TargetIndex) -> Intervals:
         """Validate targets in the Intervals dataset.
 
+        Checks that each gene identifier resolves to a known target and that
+        the interval chromosome matches the gene's canonical transcript chromosome.
+        Both checks share a single join to avoid redundant lookups.
+
         Args:
             target_index (TargetIndex): Target index.
 
         Returns:
-            Intervals: Intervals dataset with invalid targets flagged.
+            Intervals: Intervals dataset with unresolved targets and
+                trans-chromosomal effects flagged.
 
         Examples:
-            >>> target_data = [("ENSG1",), ("ENSG2",)]
-            >>> target_schema = "id STRING"
+            >>> target_data = [("ENSG1", ("id", "1", 0, 10, "1")), ("ENSG2", ("id", "2", 0, 10, "2"))]
+            >>> target_schema = "id STRING, canonicalTranscript STRUCT<id: STRING, chromosome: STRING, start: LONG, end: LONG, strand: STRING>"
             >>> target_df = spark.createDataFrame(data=target_data, schema=target_schema)
             >>> target_index = TargetIndex(_df=target_df)
             >>> data = [("1", 100, 200, "ENSG1", "E2G", "promoter", "interval1"),
             ...         ("1", 150, 250, "", "E2G", "enhancer", "interval2"),
-            ...         ("2", 300, 400, "OTHER", "epiraction", "intragenic", "interval3")]
+            ...         ("2", 300, 400, "OTHER", "epiraction", "intragenic", "interval3"),
+            ...         ("2", 150, 250, "ENSG1", "E2G", "enhancer", "interval4")]
             >>> schema = "chromosome STRING, start LONG, end LONG, geneId STRING, datasourceId STRING, intervalType STRING, intervalId STRING"
             >>> df = spark.createDataFrame(data=data, schema=schema)
             >>> intervals = Intervals(_df=df)
             >>> validated_intervals = intervals.validate_target(target_index)
-            >>> validated_intervals.df.select("intervalId", "qualityControls").show(truncate=False)
-            +----------+-----------------------------------------------------+
-            |intervalId|qualityControls                                      |
-            +----------+-----------------------------------------------------+
-            |interval1 |[]                                                   |
-            |interval2 |[Target/gene identifier could not match to reference]|
-            |interval3 |[Target/gene identifier could not match to reference]|
-            +----------+-----------------------------------------------------+
+            >>> validated_intervals.df.select("intervalId", "qualityControls").orderBy("intervalId").show(truncate=False)
+            +----------+---------------------------------------------------------------+
+            |intervalId|qualityControls                                                |
+            +----------+---------------------------------------------------------------+
+            |interval1 |[]                                                             |
+            |interval2 |[Target/gene identifier could not match to reference]          |
+            |interval3 |[Target/gene identifier could not match to reference]          |
+            |interval4 |[Interval chromosome does not match associated gene chromosome]|
+            +----------+---------------------------------------------------------------+
             <BLANKLINE>
         """
         qc_column = self.get_QC_column_name()
@@ -321,11 +328,13 @@ class Intervals(Dataset):
             self.df = self.df.withColumn(
                 qc_column, f.array().cast(t.ArrayType(t.StringType()))
             )
-        gene_set = target_index.df.select(
-            f.col("id").alias("geneId"), f.lit(True).alias("isIdFound")
+        gene_lut = target_index.df.select(
+            f.col("id").alias("geneId"),
+            f.lit(True).alias("isIdFound"),
+            f.col("canonicalTranscript").getField("chromosome").alias("geneChromosome"),
         )
         validated_df = (
-            self.df.join(gene_set, on="geneId", how="left")
+            self.df.join(gene_lut, on="geneId", how="left")
             .withColumn(
                 qc_column,
                 self.update_quality_flag(
@@ -334,7 +343,15 @@ class Intervals(Dataset):
                     IntervalQualityCheck.UNRESOLVED_TARGET,
                 ),
             )
-            .drop("isIdFound")
+            .withColumn(
+                qc_column,
+                self.update_quality_flag(
+                    f.col(qc_column),
+                    f.col("chromosome") != f.col("geneChromosome"),
+                    IntervalQualityCheck.TRANS_CHROMOSOMAL_EFFECT,
+                ),
+            )
+            .drop("isIdFound", "geneChromosome")
         )
         return Intervals(_df=validated_df, _schema=Intervals.get_schema())
 
