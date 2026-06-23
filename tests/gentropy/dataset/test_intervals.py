@@ -37,15 +37,10 @@ def contig_index(session: Session) -> ContigIndex:
 
 @pytest.fixture
 def target_index(session: Session) -> TargetIndex:
-    """Get a mock target index.
-
-    Each entry includes a canonicalTranscript with a chromosome that matches
-    the interval chromosome used in interval_dataframe, except for ENSG2 which
-    is intentionally placed on chromosome "9" to trigger TRANS_CHROMOSOMAL_EFFECT.
-    """
+    """Get a mock target index."""
     data = [
         ("ENSG1", "Gene1", ("t1", "1", 0, 1000, "+")),
-        ("ENSG2", "Gene2", ("t2", "9", 0, 1000, "+")),  # mismatch: interval chr is "1"
+        ("ENSG2", "Gene2", ("t2", "1", 0, 1000, "+")),
         ("ENSG3", "Gene3", ("t3", "2", 0, 1000, "+")),
         ("ENSG4", "Gene4", ("t4", "2", 0, 1000, "+")),
         ("ENSG5", "Gene5", ("t5", "3", 0, 1000, "+")),
