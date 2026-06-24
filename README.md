@@ -22,6 +22,15 @@ We recommend to install Open Targets Gentropy using Pypi:
 pip install gentropy
 ```
 
+Gentropy carves hail-backed datasources and the L2G machine-learning stack behind optional extras. Pick the install command that matches your use case:
+
+| Use case                                                                      | Command                      |
+| ----------------------------------------------------------------------------- | ---------------------------- |
+| Spark-only steps                                                              | `pip install gentropy`       |
+| + hail-backed datasources (gnomAD LD, FinnGen finemapping, PanUKBB LD, susie) | `pip install gentropy[hail]` |
+| + L2G training, prediction, and HuggingFace Hub publishing                    | `pip install gentropy[l2g]`  |
+| Full pipeline (hail + L2G)                                                    | `pip install gentropy[all]`  |
+
 For alternative ways to install the package visit the [Documentation](https://opentargets.github.io/gentropy/installation/)
 
 ## References

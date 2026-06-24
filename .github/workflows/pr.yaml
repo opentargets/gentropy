@@ -35,7 +35,7 @@ jobs:
           enable-cache: true
       - name: Install dependencies
         if: steps.cached-uv-dependencies.outputs.cache-hit != 'true'
-        run: uv sync --all-groups
+        run: uv sync --all-groups --all-extras
       - name: Check dependencies
         run: uv run deptry .
       - name: Run tests

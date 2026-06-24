@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from collections.abc import Generator
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import dbldatagen as dg
-import hail as hl
 import numpy as np
 import pandas as pd
 import pytest
@@ -19,7 +19,6 @@ from gentropy.dataset.colocalisation import Colocalisation
 from gentropy.dataset.intervals import Intervals
 from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
-from gentropy.dataset.l2g_prediction import L2GPrediction
 from gentropy.dataset.ld_index import LDIndex
 from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import StudyLocus
@@ -33,13 +32,26 @@ from gentropy.datasource.gwas_catalog.associations import StudyLocusGWASCatalog
 from gentropy.datasource.gwas_catalog.study_index import StudyIndexGWASCatalog
 from utils.spark import get_spark_testing_conf
 
+if TYPE_CHECKING:
+    from gentropy.dataset.l2g_prediction import L2GPrediction
+
 
 @pytest.fixture(scope="session")
-def spark() -> Generator[SparkSession, None, None]:
-    """Local spark session for testing purposes."""
+def spark(request: pytest.FixtureRequest) -> Generator[SparkSession, None, None]:
+    """Local spark session for testing purposes.
+
+    Builds the testing Spark conf with hail support if at least one
+    collected test in the current run carries the ``hail`` marker, so the
+    ``pytest -m "not hail"`` partition stays honestly hail-free.
+    """
+    with_hail = any(
+        mark.name == "hail"
+        for item in request.session.items
+        for mark in item.iter_markers()
+    )
     spark = (
         SparkSession.Builder()
-        .config(conf=get_spark_testing_conf())
+        .config(conf=get_spark_testing_conf(with_hail=with_hail))
         .master("local[1]")
         .appName("test")
         .getOrCreate()
@@ -58,6 +70,7 @@ def session(spark: SparkSession) -> Session:
 @pytest.fixture()
 def hail_home() -> str:
     """Return the path to the Hail home directory."""
+    hl = pytest.importorskip("hail")
     return Path(hl.__file__).parent.as_posix()
 
 
@@ -805,7 +818,15 @@ def mock_l2g_gold_standard(spark: SparkSession) -> L2GGoldStandard:
 
 @pytest.fixture()
 def mock_l2g_predictions(spark: SparkSession) -> L2GPrediction:
-    """Mock l2g predictions dataset."""
+    """Mock l2g predictions dataset.
+
+    Skipped when the ``[l2g]`` extra is not installed, since
+    ``L2GPrediction`` lives in an L2G-stack-guarded module.
+    """
+    pytest.importorskip("shap")
+    pytest.importorskip("xgboost")
+    from gentropy.dataset.l2g_prediction import L2GPrediction
+
     schema = L2GPrediction.get_schema()
     data_spec = (
         dg.DataGenerator(

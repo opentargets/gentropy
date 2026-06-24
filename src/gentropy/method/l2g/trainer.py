@@ -6,27 +6,31 @@ import os
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import shap
-from sklearn.base import clone
-from sklearn.metrics import (
-    accuracy_score,
-    average_precision_score,
-    f1_score,
-    precision_score,
-    recall_score,
-    roc_auc_score,
-)
-from sklearn.model_selection import train_test_split
-from wandb.data_types import Image
-from wandb.errors.term import termlog as wandb_termlog
-from wandb.sdk.wandb_init import init as wandb_init
-from wandb.sdk.wandb_setup import _setup
-from wandb.sdk.wandb_sweep import sweep as wandb_sweep
-from wandb.sklearn import plot_classifier
-from wandb.wandb_agent import agent as wandb_agent
+
+from gentropy.common.imports import optional_imports
+
+with optional_imports("l2g"):
+    import matplotlib.pyplot as plt
+    import shap
+    from sklearn.base import clone
+    from sklearn.metrics import (
+        accuracy_score,
+        average_precision_score,
+        f1_score,
+        precision_score,
+        recall_score,
+        roc_auc_score,
+    )
+    from sklearn.model_selection import train_test_split
+    from wandb.data_types import Image
+    from wandb.errors.term import termlog as wandb_termlog
+    from wandb.sdk.wandb_init import init as wandb_init
+    from wandb.sdk.wandb_setup import _setup
+    from wandb.sdk.wandb_sweep import sweep as wandb_sweep
+    from wandb.sklearn import plot_classifier
+    from wandb.wandb_agent import agent as wandb_agent
 
 from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
 from gentropy.method.l2g.model import LocusToGeneModel

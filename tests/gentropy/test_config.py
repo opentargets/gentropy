@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import importlib
+import sys
 from dataclasses import fields, is_dataclass
 
 import pytest
@@ -63,6 +65,48 @@ class TestSessionConfig:
         assert config.write_mode == "overwrite"
         assert config.spark_uri == "local[4]"
         assert config.output_partitions == 100
+
+    def test_session_config_hail_home_default_is_none(self) -> None:
+        """hail_home must default to None so it is resolved lazily by Session.
+
+        Forces the CLI boot path to not pre-compute a hail-installation path,
+        which removes the eager `import hail` from config module load.
+        """
+        config = SessionConfig()
+        assert config.hail_home is None
+
+    def test_session_config_hail_home_annotation_is_optional_str(self) -> None:
+        """hail_home must be typed as `str | None` (not a bare `str`)."""
+        annotations = {f.name: f.type for f in fields(SessionConfig)}
+        assert annotations["hail_home"] == (str | None)
+
+    def test_session_config_importable_without_hail(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """SessionConfig must be importable when hail is not installed.
+
+        Simulates an environment without hail by blocking the `hail` module in
+        sys.modules and forcing a fresh import of gentropy.config. If the module
+        still eagerly imports hail at load time, this raises ImportError.
+        """
+
+        class _MissingHailFinder:
+            def find_module(self, name: str, path: object = None) -> None:
+                if name == "hail" or name.startswith("hail."):
+                    raise ImportError(f"simulated: hail not installed ({name})")
+
+        # Drop any cached hail / gentropy.config modules so the reload runs
+        # the module body again under the patched import system.
+        for mod_name in list(sys.modules):
+            if mod_name == "hail" or mod_name.startswith("hail."):
+                monkeypatch.delitem(sys.modules, mod_name, raising=False)
+        monkeypatch.delitem(sys.modules, "gentropy.config", raising=False)
+        monkeypatch.setattr(sys, "meta_path", [_MissingHailFinder(), *sys.meta_path])
+
+        reloaded = importlib.import_module("gentropy.config")
+
+        assert hasattr(reloaded, "SessionConfig")
+        assert reloaded.SessionConfig().hail_home is None
 
 
 class TestStepConfig:

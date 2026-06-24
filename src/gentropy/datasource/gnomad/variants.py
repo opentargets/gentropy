@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
-import hail as hl
 import pyspark.sql.functions as f
 import pyspark.sql.types as t
+
+from gentropy.common.imports import optional_imports
+
+with optional_imports("hail"):
+    import hail as hl
 
 from gentropy.common.types import VariantPopulation
 from gentropy.config import GnomadVariantConfig, VariantIndexConfig

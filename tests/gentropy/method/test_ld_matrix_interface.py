@@ -1,11 +1,18 @@
 """Test suite for the LDMatrixInterface class in the gentropy package."""
 
+from __future__ import annotations
+
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 from gentropy.common.session import Session
-from gentropy.method.ld_matrix_interface import LDMatrixInterface
+
+pytestmark = pytest.mark.hail
+
+pytest.importorskip("hail")
+
+from gentropy.method.ld_matrix_interface import LDMatrixInterface  # noqa: E402
 
 
 @pytest.fixture

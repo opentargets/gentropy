@@ -4,11 +4,15 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-import hail as hl
 import numpy as np
 import pyspark.sql.functions as f
-from hail.linalg import BlockMatrix
 from pyspark.sql.window import Window
+
+from gentropy.common.imports import optional_imports
+
+with optional_imports("hail"):
+    import hail as hl
+    from hail.linalg import BlockMatrix
 
 from gentropy.common.session import Session
 from gentropy.config import PanUKBBConfig

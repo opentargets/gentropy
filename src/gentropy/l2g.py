@@ -8,8 +8,6 @@ from typing import Any, NotRequired, TypedDict
 
 import pandas as pd
 import pyspark.sql.functions as f
-from wandb.sdk.wandb_login import login as wandb_login
-from xgboost import XGBClassifier
 
 from gentropy.common.schemas import compare_struct_schemas
 from gentropy.common.session import Session
@@ -18,7 +16,6 @@ from gentropy.dataset.colocalisation import Colocalisation
 from gentropy.dataset.intervals import Intervals
 from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
-from gentropy.dataset.l2g_prediction import L2GPrediction
 from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import StudyLocus
 from gentropy.dataset.target_index import TargetIndex
@@ -29,8 +26,12 @@ from gentropy.external.hf_hub import (
 )
 from gentropy.external.wandb import WandbCredentials
 from gentropy.method.l2g.feature_factory import L2GFeatureInputLoader
-from gentropy.method.l2g.model import LocusToGeneModel
-from gentropy.method.l2g.trainer import LocusToGeneTrainer
+
+# NOTE: heavy L2G types (``L2GPrediction``, ``LocusToGeneModel``,
+# ``LocusToGeneTrainer``) are intentionally imported lazily inside the step
+# methods that use them. Annotations referring to those names rely on
+# ``from __future__ import annotations`` so they remain string forward
+# references that never need to resolve at module-import time.
 
 logger = logging.getLogger(__name__)
 
@@ -606,6 +607,8 @@ class LocusToGeneStep:
         Raises:
             ValueError: If predictions_path is not provided for prediction mode
         """
+        from gentropy.dataset.l2g_prediction import L2GPrediction
+
         hf_token = None
         if self.download_from_hub:
             hf_hub_credentials = HuggingFaceHubCredentials.read(
@@ -651,6 +654,18 @@ class LocusToGeneStep:
                 "train_parquet_path and test_parquet_path are required for model training. "
                 "Run LocusToGeneTrainTestSplitStep first."
             )
+
+        from gentropy.common.imports import optional_imports
+
+        with optional_imports("l2g"):
+            from wandb.sdk.wandb_login import login as wandb_login
+            from xgboost import XGBClassifier
+
+        # ``LocusToGeneModel`` and ``LocusToGeneTrainer`` themselves carry the
+        # module-level guard that produces the friendly ``install_hint``
+        # message when the L2G stack is missing.
+        from gentropy.method.l2g.model import LocusToGeneModel
+        from gentropy.method.l2g.trainer import LocusToGeneTrainer
 
         # Initialize access to weights and biases
         if self.wandb_run_name:
@@ -743,6 +758,8 @@ class LocusToGeneEvidenceStep:
             evidence_output_path (str): Path to the L2G evidence output dataset. The output format is ndjson gzipped.
             locus_to_gene_threshold (float, optional): Threshold to consider a gene as a target. Defaults to 0.05.
         """
+        from gentropy.dataset.l2g_prediction import L2GPrediction
+
         # Reading the predictions
         locus_to_gene_prediction = L2GPrediction.from_parquet(
             session, locus_to_gene_predictions_path

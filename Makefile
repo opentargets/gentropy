@@ -38,22 +38,33 @@ check: ## Lint and format code
 	@uv run pydoclint --config=pyproject.toml src
 	@uv run pydoclint --config=pyproject.toml --skip-checking-short-docstrings=true tests
 
-test-no-shared-spark-session: ## Run tests that can not rely on shared SparkSession.
-	@echo "Running tests that can not rely on shared SparkSession fixture..."
-	@COVERAGE_FILE=.coverage.no_shared_spark uv run pytest -m "no_shared_spark and not download_jars_from_web" -n0 --cov-report=
+test-no-shared-spark-session: ## Run tests that can not rely on shared SparkSession, split by hail partition.
+	@echo "Running no_shared_spark tests (non-hail partition)..."
+	@COVERAGE_FILE=.coverage.no_shared_spark uv run pytest \
+		-n0 --cov-report= -m "no_shared_spark and not hail and not download_jars_from_web"
+	@echo "Running no_shared_spark tests (hail partition)..."
+	@COVERAGE_FILE=.coverage.no_shared_spark_hail uv run pytest \
+		-n0 --cov-report= -m "no_shared_spark and hail and not download_jars_from_web"
 
-test-shared-spark-session: ## Run tests that can use shared SparkSession fixture.
-	@echo "Running tests that can share SparkSession fixture..."
-	@COVERAGE_FILE=.coverage.shared_spark uv run pytest --cov-report=
+test-shared-spark-session: ## Run shared-SparkSession tests across non-hail and hail partitions.
+	@echo "Running shared-SparkSession tests (non-hail partition)..."
+	@COVERAGE_FILE=.coverage.shared_spark uv run pytest \
+		--cov-report= -m "not hail and not no_shared_spark and not download_jars_from_web"
+	@echo "Running shared-SparkSession tests (hail partition)..."
+	@COVERAGE_FILE=.coverage.shared_spark_hail uv run pytest \
+		--cov-report= -m "hail and not no_shared_spark and not download_jars_from_web"
 
 test-no-shared-spark-session-web-dependencies: ## Run tests that require to download spark dependency jars from the web (not run by default).
 	@echo "Running tests that can not rely on shared SparkSession and require downloading jar dependencies from web..."
 	@COVERAGE_FILE=.coverage.no_shared_spark_web_deps uv run pytest -n0 -m "download_jars_from_web" --cov-report=
 
-test: test-no-shared-spark-session test-shared-spark-session ## Run default test suite
-	@uv run coverage combine .coverage.shared_spark .coverage.no_shared_spark
+test: ## Run default test suite, syncing all extras and all groups first.
+	@uv sync --all-extras --all-groups
+	@$(MAKE) test-no-shared-spark-session
+	@$(MAKE) test-shared-spark-session
+	@uv run coverage combine .coverage.shared_spark .coverage.no_shared_spark .coverage.shared_spark_hail .coverage.no_shared_spark_hail
 	@uv run coverage xml
-	@rm -f .coverage.shared_spark .coverage.no_shared_spark
+	@rm -f .coverage.shared_spark .coverage.no_shared_spark .coverage.shared_spark_hail .coverage.no_shared_spark_hail
 
 build-documentation: ## Create local server with documentation
 	@echo "Building Documentation..."
