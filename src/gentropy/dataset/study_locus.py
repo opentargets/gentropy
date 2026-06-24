@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, NamedTuple
 
 import numpy as np
 import pyspark.sql.functions as f
@@ -17,7 +17,7 @@ from gentropy.common.spark import (
     get_struct_field_schema,
     order_array_of_structs_by_field,
 )
-from gentropy.common.stats import get_logsum, neglogpval_from_pvalue
+from gentropy.common.stats import PValComponents, get_logsum, neglogpval_from_pvalue
 from gentropy.config import WindowBasedClumpingStepConfig
 from gentropy.dataset.dataset import Dataset, qc_test
 from gentropy.dataset.study_index import StudyQualityCheck
@@ -35,6 +35,38 @@ if TYPE_CHECKING:
     from gentropy.dataset.summary_statistics import SummaryStatistics
     from gentropy.dataset.target_index import TargetIndex
     from gentropy.method.l2g.feature_factory import L2GFeatureInputLoader
+
+
+class EffectSize(NamedTuple):
+    """Structure for effect size information."""
+
+    beta: Column
+    standard_error: Column
+    p_value: PValComponents | None = None
+    direction_of_effect: Column | None = None
+
+    def to_effect_struct(self) -> Column:
+        """Convert the effect size information to a struct with effect size information."""
+        if self.p_value is None:
+            raise ValueError("p_value is None, cannot convert to effect struct")
+        return f.struct(
+            self.beta.alias("beta"),
+            self.standard_error.alias("standardError"),
+            self.p_value.mantissa.alias("pValueMantissa"),
+            self.p_value.exponent.alias("pValueExponent"),
+        )
+
+    def to_rescaled_effect_struct(self) -> Column:
+        """Convert the effect size information to a struct with rescaled effect size information."""
+        if self.direction_of_effect is None:
+            raise ValueError(
+                "direction_of_effect is None, cannot convert to rescaled effect struct"
+            )
+        return f.struct(
+            self.beta.alias("beta"),
+            self.standard_error.alias("standardError"),
+            self.direction_of_effect.alias("directionOfEffect"),
+        )
 
 
 class CredibleSetConfidenceClasses(Enum):
@@ -1389,14 +1421,28 @@ class StudyLocus(Dataset):
                 ],
                 how="inner",
             )
+            .orderBy(
+                "studyId",
+                "chromosome",
+                "studyLocusId",
+                f.desc("tag_pValueMantissa"),
+                f.desc("tag_pValueExponent"),
+            )
             .withColumn(
                 "locus",
                 f.struct(
                     f.col("tag_variantId").alias("variantId"),
-                    f.col("tag_beta").alias("beta"),
-                    f.col("tag_pValueMantissa").alias("pValueMantissa"),
-                    f.col("tag_pValueExponent").alias("pValueExponent"),
-                    f.col("tag_standardError").alias("standardError"),
+                    EffectSize(
+                        beta=f.col("tag_beta"),
+                        standard_error=f.col("tag_standardError"),
+                        p_value=PValComponents(
+                            mantissa=f.col("tag_pValueMantissa"),
+                            exponent=f.col("tag_pValueExponent"),
+                        ),
+                    ).to_effect_struct(),
+                    f.col("tag_effectAlleleFrequencyFromSource").alias(
+                        "effectAlleleFrequencyFromSource"
+                    ),
                 ),
             )
             .groupBy("studyLocusId")
