@@ -1024,8 +1024,9 @@ class GeneticCov(LD_Score_Regression):
         if ii is not None:
             N1 = N1[ii].reshape(-1, 1)
             N2 = N2[ii].reshape(-1, 1)
-            ld = ld[np.squeeze(ii)].reshape(-1, 1)
-            w_ld = w_ld[np.squeeze(ii)].reshape(-1, 1)
+            # ld and w_ld arrive here already sliced to the step-1 subset
+            # (the lambda closure in _run_twostep_ldsc uses x1/w1 which are
+            # x[step1_ii] / w[step1_ii]), so do NOT re-index them with ii.
 
         return self.weights(ld, w_ld, N1, N2, M, self._hsq1, self._hsq2, intercept_eff)
 
