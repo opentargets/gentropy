@@ -368,6 +368,7 @@ class StudyLocus(Dataset):
                     get_struct_field_schema(StudyLocus.get_schema(), qc_colname),
                 ),
             )
+        lead = self.lead_locus_element()
         return StudyLocus(
             _df=(
                 df.withColumn(
@@ -376,8 +377,8 @@ class StudyLocus(Dataset):
                     f.array_distinct(
                         self._qc_subsignificant_associations(
                             f.col("qualityControls"),
-                            f.col("pValueMantissa"),
-                            f.col("pValueExponent"),
+                            lead.getField("reportedEffect").getField("pValueMantissa"),
+                            lead.getField("reportedEffect").getField("pValueExponent"),
                             pvalue_cutoff,
                         )
                     ),
@@ -853,6 +854,41 @@ class StudyLocus(Dataset):
             ),
         )
 
+    @staticmethod
+    def _sort_locus_by_pvalue(locus_col: Column) -> Column:
+        """Sort a locus array by ascending p-value (exponent first, then mantissa).
+
+        Args:
+            locus_col (Column): Array column of locus structs containing a reportedEffect field.
+
+        Returns:
+            Column: The same array sorted so the most significant variant appears first.
+        """
+        return f.array_sort(
+            locus_col,
+            lambda left, right: f.when(
+                left.getField("reportedEffect").getField("pValueExponent")
+                < right.getField("reportedEffect").getField("pValueExponent"),
+                f.lit(-1),
+            )
+            .when(
+                left.getField("reportedEffect").getField("pValueExponent")
+                > right.getField("reportedEffect").getField("pValueExponent"),
+                f.lit(1),
+            )
+            .when(
+                left.getField("reportedEffect").getField("pValueMantissa")
+                < right.getField("reportedEffect").getField("pValueMantissa"),
+                f.lit(-1),
+            )
+            .when(
+                left.getField("reportedEffect").getField("pValueMantissa")
+                > right.getField("reportedEffect").getField("pValueMantissa"),
+                f.lit(1),
+            )
+            .otherwise(f.lit(0)),
+        )
+
     def find_overlaps(
         self: StudyLocus,
         restrict_right_studies: list[str] | None = None,
@@ -883,9 +919,9 @@ class StudyLocus(Dataset):
                 f.col("locus.variantId").alias("tagVariantId"),
                 f.col("locus.logBF").alias("logBF"),
                 f.col("locus.posteriorProbability").alias("posteriorProbability"),
-                f.col("locus.pValueMantissa").alias("pValueMantissa"),
-                f.col("locus.pValueExponent").alias("pValueExponent"),
-                f.col("locus.beta").alias("beta"),
+                f.col("locus.reportedEffect.pValueMantissa").alias("pValueMantissa"),
+                f.col("locus.reportedEffect.pValueExponent").alias("pValueExponent"),
+                f.col("locus.reportedEffect.beta").alias("beta"),
             )
             .persist()
         )
@@ -923,15 +959,71 @@ class StudyLocus(Dataset):
             .distinct()
         )
 
+    def lead_locus_element(self: StudyLocus) -> Column:
+        """Return the locus element whose variantId matches the lead variant.
+
+        Searches the locus[] array for the element where variantId equals the
+        top-level variantId column. Returns null when locus is null or the lead
+        is not present in the array.
+
+        Returns:
+            Column: The matching locus struct, or null if absent.
+
+        Examples:
+            >>> import pyspark.sql.functions as f
+            >>> from gentropy.dataset.study_locus import StudyLocus
+            >>> sl = StudyLocus(
+            ...     _df=spark.createDataFrame(
+            ...         [("sl1", "s1", "1_100_A_T", "1", 100)],
+            ...         "studyLocusId string, studyId string, variantId string, chromosome string, position int",
+            ...     ).withColumn(
+            ...         "locus",
+            ...         f.array(
+            ...             f.struct(
+            ...                 f.lit("1_100_A_T").alias("variantId"),
+            ...                 f.struct(
+            ...                     f.lit(0.5).alias("beta"),
+            ...                     f.lit(0.1).alias("standardError"),
+            ...                     f.lit(1.0).cast("float").alias("pValueMantissa"),
+            ...                     f.lit(-8).cast("integer").alias("pValueExponent"),
+            ...                 ).alias("reportedEffect"),
+            ...                 f.lit(None).cast("float").alias("effectAlleleFrequencyFromSource"),
+            ...                 f.lit(1000).cast("integer").alias("sampleSize"),
+            ...             )
+            ...         ),
+            ...     ),
+            ...     _schema=StudyLocus.get_schema(),
+            ... )
+            >>> sl.df.withColumn("lead", sl.lead_locus_element()).select(
+            ...     f.col("lead.reportedEffect.pValueExponent").alias("pValueExponent"),
+            ... ).show()
+            +--------------+
+            |pValueExponent|
+            +--------------+
+            |            -8|
+            +--------------+
+            <BLANKLINE>
+        """
+        return (
+            f.filter(
+                f.col("locus"),
+                lambda x: x.getField("variantId") == f.col("variantId"),
+            )
+            .getItem(0)
+        )
+
     def neglog_pvalue(self: StudyLocus) -> Column:
-        """Returns the negative log p-value.
+        """Returns the negative log p-value of the lead variant.
+
+        Reads the lead variant's p-value from the locus[] array via lead_locus_element().
 
         Returns:
             Column: Negative log p-value
         """
+        lead = self.lead_locus_element()
         return neglogpval_from_pvalue(
-            self.df.pValueMantissa,
-            self.df.pValueExponent,
+            lead.getField("reportedEffect").getField("pValueMantissa"),
+            lead.getField("reportedEffect").getField("pValueExponent"),
         )
 
     def build_feature_matrix(
@@ -1054,23 +1146,16 @@ class StudyLocus(Dataset):
         Returns:
             StudyLocus: with empty credible sets for linked variants and QC flag.
         """
+        lead = self.lead_locus_element()
         clumped_df = (
             self.df.withColumn(
-                "leadStatistics",
-                f.filter(
-                    f.col("locus"), lambda x: x.getField("variantId") == "variantId"
-                )
-                .getItem(0)
-                .getField("reportedEffect"),
-            )
-            .withColumn(
                 "is_lead_linked",
                 LDclumping._is_lead_linked(
                     f.col("studyId"),
                     f.col("chromosome"),
                     f.col("variantId"),
-                    f.col("leadStatistics").getField("pValueExponent"),
-                    f.col("leadStatistics").getField("pValueMantissa"),
+                    lead.getField("reportedEffect").getField("pValueExponent"),
+                    lead.getField("reportedEffect").getField("pValueMantissa"),
                     f.col("ldSet"),
                 ),
             )
@@ -1086,7 +1171,7 @@ class StudyLocus(Dataset):
                     StudyLocusQualityCheck.LD_CLUMPED,
                 ),
             )
-            .drop("is_lead_linked", "leadStatistics")
+            .drop("is_lead_linked")
         )
         return StudyLocus(
             _df=clumped_df,
@@ -1469,7 +1554,11 @@ class StudyLocus(Dataset):
                 ),
             )
             .groupBy("studyLocusId")
-            .agg(f.collect_list(f.col("locus")).alias("locus"))
+            .agg(
+                StudyLocus._sort_locus_by_pvalue(
+                    f.collect_list(f.col("locus"))
+                ).alias("locus")
+            )
         )
         # Rejoin back to the original StudyLocus, this preserves the original shape,
         # while keeping the locus object annotated with the summary statistics when possible.
@@ -1580,7 +1669,9 @@ class StudyLocus(Dataset):
             )
             .groupBy("studyLocusId")
             .agg(
-                f.collect_list(f.col("locus")).alias("locus"),
+                StudyLocus._sort_locus_by_pvalue(
+                    f.collect_list(f.col("locus"))
+                ).alias("locus")
             )
         )
         # Rejoin back to the original StudyLocus, this preserves the original shape,
