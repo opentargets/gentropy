@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from pyspark.sql import DataFrame
 from pyspark.sql import functions as f
 
 from gentropy.common.spark import order_array_of_structs_by_field
