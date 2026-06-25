@@ -6,6 +6,8 @@ from gentropy.common.session import Session
 from gentropy.config import WindowBasedClumpingStepConfig
 from gentropy.dataset.summary_statistics import SummaryStatistics
 
+_WBC_CONFIG_ = WindowBasedClumpingStepConfig()
+
 
 class WindowBasedClumpingStep:
     """Apply window based clumping on summary statistics datasets."""
@@ -15,13 +17,12 @@ class WindowBasedClumpingStep:
         session: Session,
         summary_statistics_input_path: str,
         study_locus_output_path: str,
-        distance: int = WindowBasedClumpingStepConfig().distance,
-        gwas_significance: float = WindowBasedClumpingStepConfig().gwas_significance,
-        collect_locus: bool = WindowBasedClumpingStepConfig().collect_locus,
-        collect_locus_distance: int = WindowBasedClumpingStepConfig().collect_locus_distance,
-        inclusion_list_path: str
-        | None = WindowBasedClumpingStepConfig().inclusion_list_path,
-        recursive_file_lookup: bool = WindowBasedClumpingStepConfig().recursive_file_lookup,
+        distance: int = _WBC_CONFIG_.distance,
+        gwas_significance: float = _WBC_CONFIG_.gwas_significance,
+        collect_locus: bool = _WBC_CONFIG_.collect_locus,
+        collect_locus_distance: int = _WBC_CONFIG_.collect_locus_distance,
+        inclusion_list_path: str | None = _WBC_CONFIG_.inclusion_list_path,
+        recursive_file_lookup: bool = _WBC_CONFIG_.recursive_file_lookup,
     ) -> None:
         """Run window-based clumping step.
 
@@ -63,8 +64,11 @@ class WindowBasedClumpingStep:
         # Optional locus collection:
         if collect_locus:
             # Collecting locus around semi-indices:
-            study_locus = study_locus.annotate_locus_statistics(
+            study_locus = study_locus.annotate_locus_statistics_by_distance(
                 ss, collect_locus_distance=collect_locus_distance
             )
+        else:
+            # or just annotating study locus with sentinel variant information
+            study_locus = study_locus.annotate_locus_by_sentinel_variant(ss)
 
         study_locus.df.write.mode(session.write_mode).parquet(study_locus_output_path)

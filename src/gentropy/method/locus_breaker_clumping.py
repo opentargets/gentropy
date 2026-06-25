@@ -42,8 +42,6 @@ class LocusBreakerClumping:
         Returns:
             StudyLocus: clumped study loci with locus start and end positions + lead variant from the locus.
         """
-        # Extract columns from the summary statistics:
-        columns_sumstats_columns = summary_statistics.df.columns
         # Convert pvalue_cutoff to neglog scale:
         neglog_pv_cutoff = -np.log10(pvalue_cutoff)
 
@@ -62,58 +60,60 @@ class LocusBreakerClumping:
             "studyId", "chromosome", "locusStart", "locusEnd"
         ).orderBy(f.col("negLogPValue").desc())
 
-        return StudyLocus(
-            _df=(
-                # Applying the baseline p-value cutoff:
-                summary_statistics.pvalue_filter(baseline_pvalue_cutoff)
+        clumped = (
+            # Applying the baseline p-value cutoff:
+            summary_statistics.pvalue_filter(baseline_pvalue_cutoff)
+            .df.select(
+                "studyId",
+                "variantId",
+                "chromosome",
+                "position",
                 # Calculating the neglog p-value for easier sorting:
-                .df.withColumn(
-                    "negLogPValue",
-                    neglogpval_from_pvalue(
-                        f.col("pValueMantissa"), f.col("pValueExponent")
+                neglogpval_from_pvalue(
+                    f.col("pValueMantissa"), f.col("pValueExponent")
+                ).alias("negLogPValue"),
+            )
+            # Calculating the distance between consecutive positions, then identifying the locus start and end:
+            .withColumn("next_position", f.lag(f.col("position")).over(w1))
+            .withColumn("distance", f.col("position") - f.col("next_position"))
+            .withColumn(
+                "locusStart",
+                f.when(
+                    (f.col("distance") > distance_cutoff) | f.col("distance").isNull(),
+                    f.col("position"),
+                ),
+            )
+            .withColumn(
+                "locusStart",
+                f.when(
+                    f.last(f.col("locusStart") - flanking_distance, True).over(
+                        w1.rowsBetween(-sys.maxsize, 0)
+                    )
+                    > 0,
+                    f.last(f.col("locusStart") - flanking_distance, True).over(
+                        w1.rowsBetween(-sys.maxsize, 0)
                     ),
-                )
-                # Calculating the distance between consecutive positions, then identifying the locus start and end:
-                .withColumn("next_position", f.lag(f.col("position")).over(w1))
-                .withColumn("distance", f.col("position") - f.col("next_position"))
-                .withColumn(
-                    "locusStart",
-                    f.when(
-                        (f.col("distance") > distance_cutoff)
-                        | f.col("distance").isNull(),
-                        f.col("position"),
-                    ),
-                )
-                .withColumn(
-                    "locusStart",
-                    f.when(
-                        f.last(f.col("locusStart") - flanking_distance, True).over(
-                            w1.rowsBetween(-sys.maxsize, 0)
-                        )
-                        > 0,
-                        f.last(f.col("locusStart") - flanking_distance, True).over(
-                            w1.rowsBetween(-sys.maxsize, 0)
-                        ),
-                    ).otherwise(f.lit(0)),
-                )
-                .withColumn(
-                    "locusEnd", f.max(f.col("position") + flanking_distance).over(w2)
-                )
-                .withColumn("rank", f.rank().over(w3))
-                .filter(
-                    (f.col("rank") == 1) & (f.col("negLogPValue") > neglog_pv_cutoff)
-                )
-                .select(
-                    *columns_sumstats_columns,
-                    # To make sure that the type of locusStart and locusEnd follows schema of StudyLocus:
-                    f.col("locusStart").cast(t.IntegerType()).alias("locusStart"),
-                    f.col("locusEnd").cast(t.IntegerType()).alias("locusEnd"),
-                    f.lit(None)
-                    .cast(t.ArrayType(t.StringType()))
-                    .alias("qualityControls"),
-                    StudyLocus.assign_study_locus_id(["studyId", "variantId"]),
-                )
-            ),
+                ).otherwise(f.lit(0)),
+            )
+            .withColumn(
+                "locusEnd", f.max(f.col("position") + flanking_distance).over(w2)
+            )
+            .withColumn("rank", f.rank().over(w3))
+            .filter((f.col("rank") == 1) & (f.col("negLogPValue") > neglog_pv_cutoff))
+            .select(
+                StudyLocus.assign_study_locus_id(["studyId", "variantId"]),
+                f.col("studyId"),
+                f.col("variantId"),
+                f.col("chromosome"),
+                f.col("position"),
+                f.lit(None).cast(t.ArrayType(t.StringType())).alias("qualityControls"),
+                # To make sure that the type of locusStart and locusEnd follows schema of StudyLocus:
+                f.col("locusStart").cast(t.IntegerType()).alias("locusStart"),
+                f.col("locusEnd").cast(t.IntegerType()).alias("locusEnd"),
+            )
+        )
+        return StudyLocus(
+            _df=clumped,
             _schema=StudyLocus.get_schema(),
         )
 

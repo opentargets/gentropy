@@ -70,7 +70,7 @@ class LocusBreakerClumpingStep:
             )
 
         if collect_locus:
-            clumped_result = clumped_result.annotate_locus_statistics_boundaries(
+            clumped_result = clumped_result.annotate_locus_statistics_by_boundaries(
                 sum_stats
             )
         clumped_result.df.write.partitionBy("studyLocusId").mode(

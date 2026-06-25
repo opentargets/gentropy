@@ -21,6 +21,9 @@ if TYPE_CHECKING:
     from gentropy.dataset.summary_statistics import SummaryStatistics
 
 
+_WBC_CONFIG_ = WindowBasedClumpingStepConfig()
+
+
 class WindowBasedClumping:
     """Get semi-lead snps from summary statistics using a window based function."""
 
@@ -155,7 +158,7 @@ class WindowBasedClumping:
     @staticmethod
     def clump(
         unclumped_associations: SummaryStatistics | StudyLocus,
-        distance: int = WindowBasedClumpingStepConfig().distance,
+        distance: int = _WBC_CONFIG_.distance,
     ) -> StudyLocus:
         """Clump single point associations from summary statistics or study locus dataset based on window.
 
@@ -166,6 +169,10 @@ class WindowBasedClumping:
         Returns:
             StudyLocus: clumped associations, where the clumped variants are flagged.
         """
+        # In case of StudyLocus, we need to transform them first to SummaryStatistics to flatten the locus (if exists)
+        if isinstance(unclumped_associations, StudyLocus):
+            unclumped_associations = unclumped_associations.to_summary_statistics()
+
         # Quality check expression that flags variants that are not considered lead variant:
         qc_check = f.col("semiIndices")[f.col("pvRank") - 1] <= 0
 
@@ -193,66 +200,76 @@ class WindowBasedClumping:
             "studyId", "chromosome", "cluster_id"
         ).orderBy(f.col("pValueExponent").asc(), f.col("pValueMantissa").asc())
 
-        return StudyLocus(
-            _df=(
-                unclumped_associations.df
-                # Clustering variants for efficient windowing (complexity reduction):
-                .withColumn(
-                    "cluster_id",
-                    WindowBasedClumping._cluster_peaks(
-                        f.col("studyId"),
-                        f.col("chromosome"),
-                        f.col("position"),
-                        distance,
+        clumped = (
+            unclumped_associations.df.select(
+                "studyId",
+                "variantId",
+                "chromosome",
+                "position",
+                "pValueMantissa",
+                "pValueExponent",
+            )
+            # Clustering variants for efficient windowing (complexity reduction):
+            .withColumn(
+                "cluster_id",
+                WindowBasedClumping._cluster_peaks(
+                    f.col("studyId"),
+                    f.col("chromosome"),
+                    f.col("position"),
+                    distance,
+                ),
+            )
+            # Within each cluster variants are ranked by significance:
+            .withColumn("pvRank", f.row_number().over(cluster_window))
+            # Collect positions in cluster for the most significant variant (complexity reduction):
+            .withColumn(
+                "collectedPositions",
+                f.when(
+                    f.col("pvRank") == 1,
+                    f.collect_list(f.col("position")).over(
+                        cluster_window.rowsBetween(
+                            Window.currentRow, Window.unboundedFollowing
+                        )
                     ),
-                )
-                # Within each cluster variants are ranked by significance:
-                .withColumn("pvRank", f.row_number().over(cluster_window))
-                # Collect positions in cluster for the most significant variant (complexity reduction):
-                .withColumn(
-                    "collectedPositions",
-                    f.when(
-                        f.col("pvRank") == 1,
-                        f.collect_list(f.col("position")).over(
-                            cluster_window.rowsBetween(
-                                Window.currentRow, Window.unboundedFollowing
-                            )
-                        ),
-                    ).otherwise(f.array()),
-                )
-                # Collect top loci per cluster:
-                .withColumn(
-                    "semiIndices",
-                    f.when(
-                        f.size(f.col("collectedPositions")) > 0,
-                        fml.vector_to_array(
-                            f.udf(WindowBasedClumping._prune_peak, VectorUDT())(
-                                fml.array_to_vector(f.col("collectedPositions")),
-                                f.lit(distance),
-                            )
-                        ),
+                ).otherwise(f.array()),
+            )
+            # Collect top loci per cluster:
+            .withColumn(
+                "semiIndices",
+                f.when(
+                    f.size(f.col("collectedPositions")) > 0,
+                    fml.vector_to_array(
+                        f.udf(WindowBasedClumping._prune_peak, VectorUDT())(
+                            fml.array_to_vector(f.col("collectedPositions")),
+                            f.lit(distance),
+                        )
                     ),
-                )
-                # Propagating the result of the above calculation for all rows:
-                .withColumn(
-                    "semiIndices",
-                    f.when(
-                        f.col("semiIndices").isNull(),
-                        f.first(f.col("semiIndices"), ignorenulls=True).over(
-                            cluster_window
-                        ),
-                    ).otherwise(f.col("semiIndices")),
-                )
-                # Adding study-locus id:
-                .withColumn(
-                    "studyLocusId",
-                    StudyLocus.assign_study_locus_id(
-                        ["studyId", "variantId"]
+                ),
+            )
+            # Propagating the result of the above calculation for all rows:
+            .withColumn(
+                "semiIndices",
+                f.when(
+                    f.col("semiIndices").isNull(),
+                    f.first(f.col("semiIndices"), ignorenulls=True).over(
+                        cluster_window
                     ),
-                )
-                # Initialize QC column as array of strings:
-                .withColumn("qualityControls", qc_expression)
-                .drop("pvRank", "collectedPositions", "semiIndices", "cluster_id")
-            ),
-            _schema=StudyLocus.get_schema(),
+                ).otherwise(f.col("semiIndices")),
+            )
+            # The QC column will hold the flag for variants that are clumped (not considered as sentinel)
+            .withColumn("qualityControls", qc_expression)
+            .select(
+                StudyLocus.assign_study_locus_id(["studyId", "variantId"]),
+                f.col("studyId"),
+                f.col("variantId"),
+                f.col("chromosome"),
+                f.col("position"),
+                f.col("qualityControls"),
+                (f.greatest(f.col("position") - f.lit(distance), f.lit(0))).alias(
+                    "locusStart"
+                ),
+                (f.col("position") + f.lit(distance)).alias("locusEnd"),
+            )
         )
+
+        return StudyLocus(_df=clumped, _schema=StudyLocus.get_schema())
