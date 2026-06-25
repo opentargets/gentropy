@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from pyspark.sql import DataFrame
 from pyspark.sql import functions as f
 
 from gentropy.common.spark import order_array_of_structs_by_field
@@ -88,6 +89,19 @@ class LDAnnotator:
             quality_controls,
             ld_set.isNull(),
             StudyLocusQualityCheck.UNRESOLVED_LD,
+        )
+
+    @staticmethod
+    def _qc_no_population(ld_pop: Column, qc: Column) -> Column:
+        """Flag associations where the study doesn't have population information to resolve LD.
+
+        Returns:
+            Column: Quality controls with added 'NO_POPULATION' field
+        """
+        return StudyLocus.update_quality_flag(
+            qc,
+            ld_pop.isNull(),
+            StudyLocusQualityCheck.NO_POPULATION,
         )
 
     @staticmethod
@@ -183,6 +197,12 @@ class LDAnnotator:
                         ),
                     ),
                 )
+                .withColumn(
+                    "qualityControls",
+                    cls._qc_no_population(
+                        f.col("ldPopulationStructure"), f.col("qualityControls")
+                    ),
+                )
                 .drop("ldPopulationStructure", "majorPopulation")
                 # Filter the LD set by the R2 threshold and set to null if no LD information passes the threshold
                 .withColumn(
@@ -216,4 +236,4 @@ class LDAnnotator:
                 )
             ),
             _schema=StudyLocus.get_schema(),
-        )._qc_no_population()
+        )

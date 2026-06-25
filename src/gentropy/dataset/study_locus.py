@@ -1261,27 +1261,6 @@ class StudyLocus(Dataset):
             _schema=StudyLocus.get_schema(),
         )
 
-    @qc_test
-    def _qc_no_population(self: StudyLocus) -> StudyLocus:
-        """Flag associations where the study doesn't have population information to resolve LD.
-
-        Returns:
-            StudyLocus: Updated study locus.
-        """
-        # If the tested column is not present, return self unchanged:
-        if "ldPopulationStructure" not in self.df.columns:
-            return self
-
-        self.df = self.df.withColumn(
-            "qualityControls",
-            self.update_quality_flag(
-                f.col("qualityControls"),
-                f.col("ldPopulationStructure").isNull(),
-                StudyLocusQualityCheck.NO_POPULATION,
-            ),
-        )
-        return self
-
     def assign_confidence(self: StudyLocus) -> StudyLocus:
         """Assign confidence to study locus.
 
