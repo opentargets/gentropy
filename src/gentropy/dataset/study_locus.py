@@ -19,7 +19,7 @@ from gentropy.common.spark import (
     order_array_of_structs_by_field,
 )
 from gentropy.common.stats import get_logsum, neglogpval_from_pvalue
-from gentropy.common.types import PValComponents, ReportedEffect
+from gentropy.common.types import ReportedEffect
 from gentropy.config import WindowBasedClumpingStepConfig
 from gentropy.dataset.dataset import Dataset, qc_test
 from gentropy.dataset.study_index import StudyQualityCheck
@@ -1470,10 +1470,8 @@ class StudyLocus(Dataset):
                     ReportedEffect(
                         beta=f.col("tag_beta"),
                         standard_error=f.col("tag_standardError"),
-                        p_value=PValComponents(
-                            mantissa=f.col("tag_pValueMantissa"),
-                            exponent=f.col("tag_pValueExponent"),
-                        ),
+                        p_value_mantissa=f.col("tag_pValueMantissa"),
+                        p_value_exponent=f.col("tag_pValueExponent"),
                     )
                     .to_struct()
                     .alias("reportedEffect"),
@@ -1582,10 +1580,8 @@ class StudyLocus(Dataset):
                     ReportedEffect(
                         beta=f.col("tag_beta"),
                         standard_error=f.col("tag_standardError"),
-                        p_value=PValComponents(
-                            mantissa=f.col("tag_pValueMantissa"),
-                            exponent=f.col("tag_pValueExponent"),
-                        ),
+                        p_value_mantissa=f.col("tag_pValueMantissa"),
+                        p_value_exponent=f.col("tag_pValueExponent"),
                     )
                     .to_struct()
                     .alias("reportedEffect"),
@@ -1690,10 +1686,8 @@ class StudyLocus(Dataset):
                             ReportedEffect(
                                 beta=f.col("beta"),
                                 standard_error=f.col("standardError"),
-                                p_value=PValComponents(
-                                    mantissa=f.col("pValueMantissa"),
-                                    exponent=f.col("pValueExponent"),
-                                ),
+                                p_value_mantissa=f.col("pValueMantissa"),
+                                p_value_exponent=f.col("pValueExponent"),
                             )
                             .to_struct()
                             .alias("reportedEffect"),

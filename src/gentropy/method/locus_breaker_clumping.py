@@ -118,20 +118,26 @@ class LocusBreakerClumping:
         )
 
     @staticmethod
-    def process_locus_breaker_output(
+    def merge_lbc_with_wbc_for_large_loci(
         lbc: StudyLocus,
         wbc: StudyLocus,
         large_loci_size: int,
     ) -> StudyLocus:
-        """Process the locus breaker method result, and run window-based clumping on large loci.
+        """Merge LBC and WBC results, replacing large LBC loci with fixed-width WBC windows.
+
+        Small LBC loci (span ≤ large_loci_size) are kept as-is. Large LBC loci are dropped
+        and replaced by the WBC leads whose positions fall within those large loci boundaries,
+        each assigned a fixed-width window of large_loci_size centred on the lead position.
 
         Args:
-            lbc (StudyLocus): StudyLocus object from locus-breaker clumping.
-            wbc (StudyLocus): StudyLocus object from window-based clumping.
-            large_loci_size (int): the size to define large loci which should be broken with wbc.
+            lbc (StudyLocus): StudyLocus from locus-breaker clumping.
+            wbc (StudyLocus): StudyLocus from window-based clumping (run on the same sumstats).
+            large_loci_size (int): Span threshold in base pairs above which an LBC locus is
+                replaced by WBC leads. Also defines the fixed window half-width assigned to
+                those WBC leads (position ± large_loci_size // 2).
 
         Returns:
-            StudyLocus: clumped study loci with large loci broken by window-based clumping.
+            StudyLocus: Union of small LBC loci and re-windowed WBC leads from large LBC loci.
         """
         large_loci_size = int(large_loci_size)
         small_loci = lbc.filter(
