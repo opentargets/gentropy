@@ -11,6 +11,7 @@ import pyspark.sql.functions as f
 from pyspark.sql.types import ArrayType, FloatType, LongType, StringType
 
 from gentropy.common.genomic_region import GenomicRegion, KnownGenomicRegions
+from gentropy.common.processing import extract_chromosome, extract_position
 from gentropy.common.schemas import parse_spark_schema
 from gentropy.common.spark import (
     create_empty_column_if_not_exists,
@@ -18,6 +19,7 @@ from gentropy.common.spark import (
     order_array_of_structs_by_field,
 )
 from gentropy.common.stats import get_logsum, neglogpval_from_pvalue
+from gentropy.common.types import PValComponents, ReportedEffect
 from gentropy.config import WindowBasedClumpingStepConfig
 from gentropy.dataset.dataset import Dataset, qc_test
 from gentropy.dataset.study_index import StudyQualityCheck
@@ -1024,74 +1026,6 @@ class StudyLocus(Dataset):
         )
         return self
 
-    def annotate_locus_statistics(
-        self: StudyLocus,
-        summary_statistics: SummaryStatistics,
-        collect_locus_distance: int,
-    ) -> StudyLocus:
-        """Annotates study locus with summary statistics in the specified distance around the position.
-
-        Args:
-            summary_statistics (SummaryStatistics): Summary statistics to be used for annotation.
-            collect_locus_distance (int): distance from variant defining window for inclusion of variants in locus.
-
-        Returns:
-            StudyLocus: Study locus annotated with summary statistics in `locus` column. If no statistics are found, the `locus` column will be empty.
-        """
-        # The clumps will be used several times (persisting)
-        self.df.persist()
-        # Renaming columns:
-        sumstats_renamed = summary_statistics.df.selectExpr(
-            *[f"{col} as tag_{col}" for col in summary_statistics.df.columns]
-        ).alias("sumstat")
-
-        locus_df = (
-            sumstats_renamed
-            # Joining the two datasets together:
-            .join(
-                f.broadcast(
-                    self.df.alias("clumped").select(
-                        "position", "chromosome", "studyId", "studyLocusId"
-                    )
-                ),
-                on=[
-                    (f.col("sumstat.tag_studyId") == f.col("clumped.studyId"))
-                    & (f.col("sumstat.tag_chromosome") == f.col("clumped.chromosome"))
-                    & (
-                        f.col("sumstat.tag_position")
-                        >= (f.col("clumped.position") - collect_locus_distance)
-                    )
-                    & (
-                        f.col("sumstat.tag_position")
-                        <= (f.col("clumped.position") + collect_locus_distance)
-                    )
-                ],
-                how="inner",
-            )
-            .withColumn(
-                "locus",
-                f.struct(
-                    f.col("tag_variantId").alias("variantId"),
-                    f.col("tag_beta").alias("beta"),
-                    f.col("tag_pValueMantissa").alias("pValueMantissa"),
-                    f.col("tag_pValueExponent").alias("pValueExponent"),
-                    f.col("tag_standardError").alias("standardError"),
-                ),
-            )
-            .groupBy("studyLocusId")
-            .agg(
-                f.collect_list(f.col("locus")).alias("locus"),
-            )
-        )
-
-        self.df = self.df.drop("locus").join(
-            locus_df,
-            on="studyLocusId",
-            how="left",
-        )
-
-        return self
-
     def annotate_ld(
         self: StudyLocus,
         study_index: StudyIndex,
@@ -1348,87 +1282,6 @@ class StudyLocus(Dataset):
         )
         return self
 
-    def annotate_locus_statistics_boundaries(
-        self: StudyLocus,
-        summary_statistics: SummaryStatistics,
-    ) -> StudyLocus:
-        """Annotates study locus with summary statistics in the specified boundaries - locusStart and locusEnd.
-
-        Args:
-            summary_statistics (SummaryStatistics): Summary statistics to be used for annotation.
-
-        Returns:
-            StudyLocus: Study locus annotated with summary statistics in `locus` column. If no statistics are found, the `locus` column will be empty.
-        """
-        # The clumps will be used several times (persisting)
-        self.df.persist()
-        # Renaming columns:
-        sumstats_renamed = summary_statistics.df.selectExpr(
-            *[f"{col} as tag_{col}" for col in summary_statistics.df.columns]
-        ).alias("sumstat")
-
-        locus_df = (
-            sumstats_renamed
-            # Joining the two datasets together:
-            .join(
-                f.broadcast(
-                    self.df.alias("clumped").select(
-                        "position",
-                        "chromosome",
-                        "studyId",
-                        "studyLocusId",
-                        "locusStart",
-                        "locusEnd",
-                    )
-                ),
-                on=[
-                    (f.col("sumstat.tag_studyId") == f.col("clumped.studyId"))
-                    & (f.col("sumstat.tag_chromosome") == f.col("clumped.chromosome"))
-                    & (f.col("sumstat.tag_position") >= (f.col("clumped.locusStart")))
-                    & (f.col("sumstat.tag_position") <= (f.col("clumped.locusEnd")))
-                ],
-                how="inner",
-            )
-            .withColumn(
-                "locus",
-                f.struct(
-                    f.col("tag_variantId").alias("variantId"),
-                    f.col("tag_beta").alias("beta"),
-                    f.col("tag_pValueMantissa").alias("pValueMantissa"),
-                    f.col("tag_pValueExponent").alias("pValueExponent"),
-                    f.col("tag_standardError").alias("standardError"),
-                ),
-            )
-            .groupBy("studyLocusId")
-            .agg(
-                f.collect_list(f.col("locus")).alias("locus"),
-            )
-        )
-
-        self.df = self.df.drop("locus").join(
-            locus_df,
-            on="studyLocusId",
-            how="left",
-        )
-
-        return self
-
-    def window_based_clumping(
-        self: StudyLocus,
-        window_size: int = WindowBasedClumpingStepConfig().distance,
-    ) -> StudyLocus:
-        """Clump study locus by window size.
-
-        Args:
-            window_size (int): Window size for clumping.
-
-        Returns:
-            StudyLocus: Clumped study locus, where clumped associations are flagged.
-        """
-        from gentropy.method.window_based_clumping import WindowBasedClumping
-
-        return WindowBasedClumping.clump(self, window_size)
-
     def assign_confidence(self: StudyLocus) -> StudyLocus:
         """Assign confidence to study locus.
 
@@ -1499,4 +1352,450 @@ class StudyLocus(Dataset):
         return StudyLocus(
             _df=df,
             _schema=self.get_schema(),
+        )
+
+    def window_based_clumping(
+        self: StudyLocus,
+        window_size: int = WindowBasedClumpingStepConfig().distance,
+    ) -> StudyLocus:
+        """Clump study locus by window size.
+
+        This method is only valid if the locus column is populated with variant level information.
+
+        Args:
+            window_size (int): Window size for clumping.
+
+        Returns:
+            StudyLocus: Clumped study locus, where clumped associations are flagged.
+        """
+        from gentropy.method.window_based_clumping import WindowBasedClumping
+
+        sumstats = self.to_summary_statistics()
+
+        return WindowBasedClumping.clump(sumstats, window_size)
+
+    def annotate_locus_statistics_by_boundaries(
+        self: StudyLocus,
+        summary_statistics: SummaryStatistics,
+    ) -> StudyLocus:
+        """Annotates study locus with summary statistics in the specified boundaries - locusStart and locusEnd.
+
+        This method annotates the `locus` column with the variant-level (including tag and lead) information from the summary statistics
+        that fall within the `locusStart` and `locusEnd` boundaries across chromosome and studyId.
+
+        The original `locus` column is replaced with the annotations from summary statistics.
+
+        Args:
+            summary_statistics (SummaryStatistics): Summary statistics to be used for annotation.
+
+        Returns:
+            StudyLocus: Study locus annotated with summary statistics in `locus` column.
+                If no statistics are found, the `locus` column will be empty.
+                If boundaries are not defined (locusStart and locusEnd), the `locus` column will be empty.
+
+        Examples:
+            Variants inside locusStart and locusEnd are collected into the locus array.
+            Study loci with null locusStart or locusEnd silently produce a null locus (NULL
+            comparisons in the join condition evaluate to false — no sumstat row matches).
+
+            >>> import pyspark.sql.functions as f
+            >>> from gentropy.dataset.study_locus import StudyLocus
+            >>> from gentropy.dataset.summary_statistics import SummaryStatistics
+            >>> sl = StudyLocus(
+            ...     _df=spark.createDataFrame(
+            ...         [
+            ...             ("sl1", "s1", "1_100_A_T", "1", 100, 80, 120),
+            ...             ("sl2", "s1", "1_500_G_C", "1", 500, None, None),
+            ...         ],
+            ...         "studyLocusId string, studyId string, variantId string, chromosome string, position int, locusStart int, locusEnd int",
+            ...     ),
+            ...     _schema=StudyLocus.get_schema(),
+            ... )
+            >>> ss = SummaryStatistics(
+            ...     _df=spark.createDataFrame(
+            ...         [
+            ...             ("s1", "1_90_C_G",  "1",  90, 0.5, 1.0, -6),
+            ...             ("s1", "1_100_A_T", "1", 100, 0.8, 1.0, -8),
+            ...             ("s1", "1_200_T_A", "1", 200, 0.3, 1.5, -4),
+            ...         ],
+            ...         "studyId string, variantId string, chromosome string, position int, beta double, pValueMantissa float, pValueExponent int",
+            ...     ),
+            ...     _schema=SummaryStatistics.get_schema(),
+            ... )
+            >>> sl.annotate_locus_statistics_by_boundaries(ss).df.select(
+            ...     "studyLocusId",
+            ...     f.col("locus").isNull().alias("locus_is_null"),
+            ... ).orderBy("studyLocusId").show()
+            +------------+-------------+
+            |studyLocusId|locus_is_null|
+            +------------+-------------+
+            |         sl1|        false|
+            |         sl2|         true|
+            +------------+-------------+
+            <BLANKLINE>
+        """
+        # The clumps will be used several times (persisting)
+        self.df.persist()
+        # Renaming columns:
+        sumstats_renamed = summary_statistics.df.selectExpr(
+            *[f"{col} as tag_{col}" for col in summary_statistics.df.columns]
+        ).alias("sumstat")
+
+        locus_df = (
+            sumstats_renamed
+            # Joining the two datasets together:
+            .join(
+                f.broadcast(
+                    self.df.alias("clumped").select(
+                        "studyLocusId",
+                        "position",
+                        "chromosome",
+                        "studyId",
+                        "locusStart",
+                        "locusEnd",
+                    )
+                ),
+                on=[
+                    (f.col("sumstat.tag_studyId") == f.col("clumped.studyId"))
+                    & (f.col("sumstat.tag_chromosome") == f.col("clumped.chromosome"))
+                    & (f.col("sumstat.tag_position") >= (f.col("clumped.locusStart")))
+                    & (f.col("sumstat.tag_position") <= (f.col("clumped.locusEnd")))
+                ],
+                how="inner",
+            )
+            .withColumn(
+                "locus",
+                f.struct(
+                    f.col("tag_variantId").alias("variantId"),
+                    ReportedEffect(
+                        beta=f.col("tag_beta"),
+                        standard_error=f.col("tag_standardError"),
+                        p_value=PValComponents(
+                            mantissa=f.col("tag_pValueMantissa"),
+                            exponent=f.col("tag_pValueExponent"),
+                        ),
+                    )
+                    .to_struct()
+                    .alias("reportedEffect"),
+                    f.col("tag_effectAlleleFrequencyFromSource").alias(
+                        "effectAlleleFrequencyFromSource"
+                    ),
+                    f.col("tag_sampleSize").alias("sampleSize"),
+                ),
+            )
+            .groupBy("studyLocusId")
+            .agg(f.collect_list(f.col("locus")).alias("locus"))
+        )
+        # Rejoin back to the original StudyLocus, this preserves the original shape,
+        # while keeping the locus object annotated with the summary statistics when possible.
+        df = self.df.drop("locus").join(locus_df, on="studyLocusId", how="left")
+
+        return StudyLocus(_df=df, _schema=StudyLocus.get_schema())
+
+    def annotate_locus_statistics_by_distance(
+        self: StudyLocus,
+        summary_statistics: SummaryStatistics,
+        collect_locus_distance: int,
+    ) -> StudyLocus:
+        """Annotates study locus with summary statistics in the specified distance around the position.
+
+        This method annotates the `locus` column with the variant-level information from the summary statistics
+        that fall within the `collect_locus_distance` around the `position` across chromosome and studyId.
+
+        Args:
+            summary_statistics (SummaryStatistics): Summary statistics to be used for annotation.
+            collect_locus_distance (int): distance from variant defining window for inclusion of variants in locus.
+
+        Returns:
+            StudyLocus: Study locus annotated with summary statistics in `locus` column.
+                If no statistics are found, the `locus` column will be empty.
+
+        Examples:
+            Only variants within position ± collect_locus_distance on the same chromosome and study
+            are collected. The variant at position 200 falls outside the 50 bp window and is excluded.
+
+            >>> import pyspark.sql.functions as f
+            >>> from gentropy.dataset.study_locus import StudyLocus
+            >>> from gentropy.dataset.summary_statistics import SummaryStatistics
+            >>> sl = StudyLocus(
+            ...     _df=spark.createDataFrame(
+            ...         [("sl1", "s1", "1_100_A_T", "1", 100)],
+            ...         "studyLocusId string, studyId string, variantId string, chromosome string, position int",
+            ...     ),
+            ...     _schema=StudyLocus.get_schema(),
+            ... )
+            >>> ss = SummaryStatistics(
+            ...     _df=spark.createDataFrame(
+            ...         [
+            ...             ("s1", "1_90_C_G",  "1",  90, 0.5, 1.0, -6),
+            ...             ("s1", "1_100_A_T", "1", 100, 0.8, 1.0, -8),
+            ...             ("s1", "1_200_T_A", "1", 200, 0.3, 1.5, -4),
+            ...         ],
+            ...         "studyId string, variantId string, chromosome string, position int, beta double, pValueMantissa float, pValueExponent int",
+            ...     ),
+            ...     _schema=SummaryStatistics.get_schema(),
+            ... )
+            >>> sl.annotate_locus_statistics_by_distance(ss, 50).df.select(
+            ...     f.size("locus").alias("locus_size"),
+            ... ).show()
+            +----------+
+            |locus_size|
+            +----------+
+            |         2|
+            +----------+
+            <BLANKLINE>
+        """
+        # The clumps will be used several times (persisting)
+        self.df.persist()
+        # Renaming columns:
+        sumstats_renamed = summary_statistics.df.selectExpr(
+            *[f"{col} as tag_{col}" for col in summary_statistics.df.columns]
+        ).alias("sumstat")
+
+        locus_df = (
+            sumstats_renamed
+            # Joining the two datasets together:
+            .join(
+                f.broadcast(
+                    self.df.alias("clumped").select(
+                        "position", "chromosome", "studyId", "studyLocusId"
+                    )
+                ),
+                on=[
+                    (f.col("sumstat.tag_studyId") == f.col("clumped.studyId"))
+                    & (f.col("sumstat.tag_chromosome") == f.col("clumped.chromosome"))
+                    & (
+                        f.col("sumstat.tag_position")
+                        >= (f.col("clumped.position") - collect_locus_distance)
+                    )
+                    & (
+                        f.col("sumstat.tag_position")
+                        <= (f.col("clumped.position") + collect_locus_distance)
+                    )
+                ],
+                how="inner",
+            )
+            .withColumn(
+                "locus",
+                f.struct(
+                    f.col("tag_variantId").alias("variantId"),
+                    ReportedEffect(
+                        beta=f.col("tag_beta"),
+                        standard_error=f.col("tag_standardError"),
+                        p_value=PValComponents(
+                            mantissa=f.col("tag_pValueMantissa"),
+                            exponent=f.col("tag_pValueExponent"),
+                        ),
+                    )
+                    .to_struct()
+                    .alias("reportedEffect"),
+                    f.col("tag_effectAlleleFrequencyFromSource").alias(
+                        "effectAlleleFrequencyFromSource"
+                    ),
+                    f.col("tag_sampleSize").alias("sampleSize"),
+                ),
+            )
+            .groupBy("studyLocusId")
+            .agg(
+                f.collect_list(f.col("locus")).alias("locus"),
+            )
+        )
+        # Rejoin back to the original StudyLocus, this preserves the original shape,
+        # while keeping the locus object annotated with the summary statistics when possible.
+        df = self.df.drop("locus").join(locus_df, on="studyLocusId", how="left")
+        return StudyLocus(_df=df, _schema=StudyLocus.get_schema())
+
+    def annotate_locus_by_sentinel_variant(
+        self: StudyLocus,
+        summary_statistics: SummaryStatistics,
+    ) -> StudyLocus:
+        """Annotate each lead variant with a single-element locus from summary statistics.
+
+        Performs an exact join on (studyId, variantId) to look up the lead variant's
+        reported effect in the summary statistics and stores it as a one-element locus
+        array. Any existing locus column is replaced.
+
+        This is the correct annotation method after WindowBasedClumping, where only the
+        lead's stats need to be carried forward (e.g. into PICS finemapping). It avoids
+        collecting the entire surrounding window, which annotate_locus_statistics_by_distance
+        and annotate_locus_statistics_by_boundaries do.
+
+        Args:
+            summary_statistics (SummaryStatistics): Summary statistics to look up the lead variant.
+
+        Returns:
+            StudyLocus: Updated with a single-element locus for each lead found in summary
+                statistics. Leads absent from summary statistics receive a null locus.
+
+        Examples:
+            The lead variant of sl1 is found in summary statistics and a one-element locus is
+            produced. The lead of sl2 is absent from summary statistics, so its locus is null.
+
+            >>> import pyspark.sql.functions as f
+            >>> from gentropy.dataset.study_locus import StudyLocus
+            >>> from gentropy.dataset.summary_statistics import SummaryStatistics
+            >>> sl = StudyLocus(
+            ...     _df=spark.createDataFrame(
+            ...         [
+            ...             ("sl1", "s1", "1_100_A_T", "1", 100),
+            ...             ("sl2", "s1", "1_500_G_C", "1", 500),
+            ...         ],
+            ...         "studyLocusId string, studyId string, variantId string, chromosome string, position int",
+            ...     ),
+            ...     _schema=StudyLocus.get_schema(),
+            ... )
+            >>> ss = SummaryStatistics(
+            ...     _df=spark.createDataFrame(
+            ...         [("s1", "1_100_A_T", "1", 100, 0.8, 1.0, -8)],
+            ...         "studyId string, variantId string, chromosome string, position int, beta double, pValueMantissa float, pValueExponent int",
+            ...     ),
+            ...     _schema=SummaryStatistics.get_schema(),
+            ... )
+            >>> sl.annotate_locus_by_sentinel_variant(ss).df.select(
+            ...     "studyLocusId",
+            ...     f.col("locus").isNull().alias("locus_is_null"),
+            ... ).orderBy("studyLocusId").show()
+            +------------+-------------+
+            |studyLocusId|locus_is_null|
+            +------------+-------------+
+            |         sl1|        false|
+            |         sl2|         true|
+            +------------+-------------+
+            <BLANKLINE>
+        """
+        df = (
+            self.df.drop("locus")
+            .join(
+                summary_statistics.df.select(
+                    "studyId",
+                    "variantId",
+                    "beta",
+                    "standardError",
+                    "pValueMantissa",
+                    "pValueExponent",
+                    "effectAlleleFrequencyFromSource",
+                    "sampleSize",
+                ),
+                on=["studyId", "variantId"],
+                how="left",
+            )
+            .withColumn(
+                "locus",
+                # beta is non-nullable in SummaryStatistics, so null here means no match.
+                f.when(
+                    f.col("beta").isNotNull(),
+                    f.array(
+                        f.struct(
+                            f.col("variantId").alias("variantId"),
+                            ReportedEffect(
+                                beta=f.col("beta"),
+                                standard_error=f.col("standardError"),
+                                p_value=PValComponents(
+                                    mantissa=f.col("pValueMantissa"),
+                                    exponent=f.col("pValueExponent"),
+                                ),
+                            )
+                            .to_struct()
+                            .alias("reportedEffect"),
+                            f.col("effectAlleleFrequencyFromSource").alias(
+                                "effectAlleleFrequencyFromSource"
+                            ),
+                            f.col("sampleSize").alias("sampleSize"),
+                        )
+                    ),
+                ),
+            )
+            .drop(
+                "beta",
+                "standardError",
+                "pValueMantissa",
+                "pValueExponent",
+                "effectAlleleFrequencyFromSource",
+                "sampleSize",
+            )
+        )
+        return StudyLocus(_df=df, _schema=StudyLocus.get_schema())
+
+    def to_summary_statistics(self: StudyLocus) -> SummaryStatistics:
+        """Convert study locus to summary statistics.
+
+        Note: if studyLocus does not contain any locus information, the resulting summary statistics will be empty.
+
+        Note: variantId must follow the `chromosome_position_ref_alt` format so that chromosome
+        and position can be parsed. Variants not matching this pattern produce empty strings and
+        null positions respectively.
+
+        Returns:
+            SummaryStatistics: Reconstructed summary statistics using the locus information from the studyLocus dataset.
+
+        Examples:
+            Each element of the locus array becomes one row. A null locus (sl2) contributes no rows.
+
+            >>> import pyspark.sql.functions as f
+            >>> from gentropy.dataset.study_locus import StudyLocus
+            >>> sl = StudyLocus(
+            ...     _df=spark.createDataFrame(
+            ...         [("sl1", "s1", "1_100_A_T")],
+            ...         "studyLocusId string, studyId string, variantId string",
+            ...     ).withColumn(
+            ...         "locus",
+            ...         f.array(
+            ...             f.struct(
+            ...                 f.lit("1_90_C_G").alias("variantId"),
+            ...                 f.struct(
+            ...                     f.lit(0.5).alias("beta"),
+            ...                     f.lit(0.1).alias("standardError"),
+            ...                     f.lit(1.0).cast("float").alias("pValueMantissa"),
+            ...                     f.lit(-6).cast("integer").alias("pValueExponent"),
+            ...                 ).alias("reportedEffect"),
+            ...                 f.lit(None).cast("float").alias("effectAlleleFrequencyFromSource"),
+            ...                 f.lit(1000).cast("integer").alias("sampleSize"),
+            ...             )
+            ...         ),
+            ...     ),
+            ...     _schema=StudyLocus.get_schema(),
+            ... )
+            >>> sl.to_summary_statistics().df.select("studyId", "variantId").show()
+            +-------+---------+
+            |studyId|variantId|
+            +-------+---------+
+            |     s1| 1_90_C_G|
+            +-------+---------+
+            <BLANKLINE>
+        """
+        from gentropy.dataset.summary_statistics import SummaryStatistics
+
+        return SummaryStatistics(
+            _df=self.df.select(
+                "studyId",
+                f.inline(
+                    f.transform(
+                        f.col("locus"),
+                        lambda tag: f.struct(
+                            tag.getField("variantId").alias("variantId"),
+                            tag.getField("reportedEffect")
+                            .getField("beta")
+                            .alias("beta"),
+                            tag.getField("reportedEffect")
+                            .getField("standardError")
+                            .alias("standardError"),
+                            tag.getField("reportedEffect")
+                            .getField("pValueMantissa")
+                            .alias("pValueMantissa"),
+                            tag.getField("reportedEffect")
+                            .getField("pValueExponent")
+                            .alias("pValueExponent"),
+                            tag.getField("effectAlleleFrequencyFromSource").alias(
+                                "effectAlleleFrequencyFromSource"
+                            ),
+                            tag.getField("sampleSize").alias("sampleSize"),
+                        ),
+                    )
+                ),
+            )
+            .withColumn("chromosome", extract_chromosome(f.col("variantId")))
+            .withColumn(
+                "position", extract_position(f.col("variantId")).cast("integer")
+            ),
+            _schema=SummaryStatistics.get_schema(),
         )

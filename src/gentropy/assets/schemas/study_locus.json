@@ -100,12 +100,7 @@
       "nullable": true,
       "type": "integer"
     },
-    {
-      "metadata": {},
-      "name": "sampleSize",
-      "nullable": true,
-      "type": "integer"
-    },
+
     {
       "metadata": {},
       "name": "ldSet",
@@ -243,6 +238,12 @@
               "name": "effectAlleleFrequencyFromSource",
               "nullable": true,
               "type": "float"
+            },
+            {
+              "metadata": {},
+              "name": "sampleSize",
+              "nullable": true,
+              "type": "integer"
             },
             {
               "metadata": {},
