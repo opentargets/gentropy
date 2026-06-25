@@ -1,4 +1,5 @@
 """Step to apply linkageg based clumping on study-locus dataset."""
+
 from __future__ import annotations
 
 from gentropy.common.session import Session
@@ -43,6 +44,8 @@ class LDBasedClumpingStep:
             .annotate_ld(study_index, ld_index)
             .clump()
             # Save result:
-            .df.write.mode(session.write_mode)
+            .df.orderBy("studyLocusId", "chromosome", "position")
+            .write.mode(session.write_mode)
+            .partitionBy("studyLocusId")
             .parquet(clumped_study_locus_output_path)
         )

@@ -1056,14 +1056,22 @@ class StudyLocus(Dataset):
         """
         clumped_df = (
             self.df.withColumn(
+                "leadStatistics",
+                f.filter(
+                    f.col("locus"), lambda x: x.getField("variantId") == "variantId"
+                )
+                .getItem(0)
+                .getField("reportedEffect"),
+            )
+            .withColumn(
                 "is_lead_linked",
                 LDclumping._is_lead_linked(
-                    self.df.studyId,
-                    self.df.chromosome,
-                    self.df.variantId,
-                    self.df.pValueExponent,
-                    self.df.pValueMantissa,
-                    self.df.ldSet,
+                    f.col("studyId"),
+                    f.col("chromosome"),
+                    f.col("variantId"),
+                    f.col("leadStatistics").getField("pValueExponent"),
+                    f.col("leadStatistics").getField("pValueMantissa"),
+                    f.col("ldSet"),
                 ),
             )
             .withColumn(
@@ -1078,7 +1086,7 @@ class StudyLocus(Dataset):
                     StudyLocusQualityCheck.LD_CLUMPED,
                 ),
             )
-            .drop("is_lead_linked")
+            .drop("is_lead_linked", "leadStatistics")
         )
         return StudyLocus(
             _df=clumped_df,
