@@ -59,9 +59,9 @@ class ColocalisationConfig(StepConfig):
 class deCODEManifestGenerationConfig(StepConfig):
     """deCODE data ingestion step configuration."""
 
-    bucket_listing_path: str = MISSING
+    bucket_name: str = MISSING
+    prefix: str = MISSING
     output_path: str = MISSING
-    s3_config_path: str | None = None
     _target_: str = "gentropy.decode_ingestion.deCODEManifestGenerationStep"
 
 
@@ -87,12 +87,15 @@ class deCODESummaryStatisticsHarmonisationConfig(StepConfig):
     harmonised_summary_statistics_path: str = MISSING
     protein_qtl_study_index_path: str = MISSING
     # config
+    perform_min_allele_count_filter: bool = True
     min_mac_threshold: int = 50
+    perform_samples_size_filter: bool = True
     min_sample_size_threshold: int = 30_000
     flipping_window_size: int = (
         10_000_000  # must match variant_direction.DEFAULT_WINDOW_SIZE
     )
     remove_equal_alleles: bool = True
+    remove_ambiguous_alleles: bool = False
     verify_atgc: bool = True
     _target_: str = "gentropy.decode_ingestion.deCODESummaryStatisticsHarmonisationStep"
 
