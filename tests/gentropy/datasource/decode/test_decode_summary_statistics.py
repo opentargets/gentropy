@@ -279,7 +279,7 @@ class TestdeCODESummaryStatistics:
         config = deCODEHarmonisationConfig(
             perform_min_allele_count_filter=True,
             min_allele_count_threshold=10,
-            perform_samples_size_filter=True,
+            perform_sample_size_filter=True,
             sample_size_threshold=30000,
             flipping_window_size=10000,
             remove_monomorphic_alleles=True,

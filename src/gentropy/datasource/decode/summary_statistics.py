@@ -70,7 +70,7 @@ class deCODEHarmonisationConfig(BaseModel):
     min_allele_count_threshold: int = Field(ge=1)
     """Minimum minor allele count required to retain a variant."""
 
-    perform_samples_size_filter: bool
+    perform_sample_size_filter: bool
     """Whether to remove variants with low sample size."""
     sample_size_threshold: int = Field(ge=1)
     """Minimum sample size to retain a variant. Must be >= 1."""
@@ -330,7 +330,7 @@ class deCODESummaryStatistics:
             )
         )
 
-        if config.perform_samples_size_filter:
+        if config.perform_sample_size_filter:
             sumstats = sumstats.filter(
                 f.col("sampleSize") >= config.sample_size_threshold
             )
