@@ -391,7 +391,7 @@ class LocusToGeneTrainTestSplitConfig(StepConfig):
 
 
 @dataclass
-class LocusToGeneCrossValidationConfig(StepConfig):
+class LocusToGeneModelTuningConfig(StepConfig):
     """Configuration for the L2G cross-validation step."""
 
     train_feature_matrix_path: str = MISSING
@@ -402,7 +402,7 @@ class LocusToGeneCrossValidationConfig(StepConfig):
     hyperparameter_grid: Any = None  # dict[str, Any] | None — Any avoids OmegaConf Optional[Dict] merge bug
     cv_results_dir: str | None = None
     holdout_only: bool = False
-    _target_: str = "gentropy.l2g.LocusToGeneCrossValidationStep"
+    _target_: str = "gentropy.l2g.LocusToGeneModelTuningStep"
 
 
 @dataclass
@@ -921,8 +921,8 @@ def register_config() -> None:
     )
     cs.store(
         group="step",
-        name="locus_to_gene_cross_validation",
-        node=LocusToGeneCrossValidationConfig,
+        name="locus_to_gene_model_tuning",
+        node=LocusToGeneModelTuningConfig,
     )
     cs.store(
         group="step",

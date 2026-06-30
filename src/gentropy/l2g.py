@@ -822,7 +822,7 @@ class LocusToGeneAssociationsStep:
         )
 
 
-class LocusToGeneCrossValidationStep:
+class LocusToGeneModelTuningStep:
     """Run L2G cross-validation on pre-built, annotated train and test feature matrices.
 
     Unlike LocusToGeneStep, this step does not construct the training set or perform

@@ -1,4 +1,4 @@
-"""Tests for LocusToGeneCrossValidationStep."""
+"""Tests for LocusToGeneModelTuningStep."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from gentropy.l2g import LocusToGeneCrossValidationStep
+from gentropy.l2g import LocusToGeneModelTuningStep
 
 if TYPE_CHECKING:
     from gentropy.common.session import Session
@@ -53,8 +53,8 @@ def split_parquets_int_labels(
     return train_path, test_path
 
 
-class TestLocusToGeneCrossValidationStep:
-    """Integration tests for LocusToGeneCrossValidationStep."""
+class TestLocusToGeneModelTuningStep:
+    """Integration tests for LocusToGeneModelTuningStep."""
 
     def test_runs_end_to_end(
         self,
@@ -63,7 +63,7 @@ class TestLocusToGeneCrossValidationStep:
     ) -> None:
         """Step completes without error given valid train/test parquets."""
         train_path, test_path = split_parquets
-        LocusToGeneCrossValidationStep(
+        LocusToGeneModelTuningStep(
             session=session,
             train_feature_matrix_path=train_path,
             test_feature_matrix_path=test_path,
@@ -80,7 +80,7 @@ class TestLocusToGeneCrossValidationStep:
         """features_list=None picks up feature columns from the feature matrix."""
         train_path, test_path = split_parquets
         # Should not raise; all non-metadata columns become features
-        LocusToGeneCrossValidationStep(
+        LocusToGeneModelTuningStep(
             session=session,
             train_feature_matrix_path=train_path,
             test_feature_matrix_path=test_path,
@@ -98,7 +98,7 @@ class TestLocusToGeneCrossValidationStep:
         """cv_results.json and cv_folds.csv are written when cv_results_dir is set."""
         train_path, test_path = split_parquets
         cv_dir = str(tmp_path / "cv_out")
-        LocusToGeneCrossValidationStep(
+        LocusToGeneModelTuningStep(
             session=session,
             train_feature_matrix_path=train_path,
             test_feature_matrix_path=test_path,
@@ -119,7 +119,7 @@ class TestLocusToGeneCrossValidationStep:
         """cv_results.json contains n_splits, n_configs, and per-fold metrics."""
         train_path, test_path = split_parquets
         cv_dir = str(tmp_path / "cv_struct")
-        LocusToGeneCrossValidationStep(
+        LocusToGeneModelTuningStep(
             session=session,
             train_feature_matrix_path=train_path,
             test_feature_matrix_path=test_path,
@@ -142,7 +142,7 @@ class TestLocusToGeneCrossValidationStep:
     ) -> None:
         """Step handles goldStandardSet encoded as 0/1 integers (output of the split step)."""
         train_path, test_path = split_parquets_int_labels
-        LocusToGeneCrossValidationStep(
+        LocusToGeneModelTuningStep(
             session=session,
             train_feature_matrix_path=train_path,
             test_feature_matrix_path=test_path,
@@ -160,7 +160,7 @@ class TestLocusToGeneCrossValidationStep:
         """Every config in hyperparameter_grid is evaluated and recorded."""
         train_path, test_path = split_parquets
         cv_dir = str(tmp_path / "cv_grid")
-        LocusToGeneCrossValidationStep(
+        LocusToGeneModelTuningStep(
             session=session,
             train_feature_matrix_path=train_path,
             test_feature_matrix_path=test_path,
