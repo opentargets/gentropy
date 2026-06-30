@@ -170,8 +170,8 @@ class TestdeCODESummaryStatistics:
         Row(
             chromosome="1",
             rangeId=45,
-            originalVariantId="1_455948_G_C",
-            variantId="1_455948_G_C",
+            originalVariantId="1_455948_C_G",
+            variantId="1_455948_C_G",
             direction=1,
             originalAlleleFrequencies=[
                 Row(populationName="nfe_adj", alleleFrequency=0.07662)
@@ -181,13 +181,13 @@ class TestdeCODESummaryStatistics:
     ]
 
     expected_harm_rows = [
-        # This allele is flipped with regards to source (variantId + beta sign)
+        # This allele is NOT flipped: variantId matches VD directly (direction=1)
         Row(
             studyId="deCODE-proteomics-smp_Proteomics_SMP_PC0_10000-2_GENE1_P12345",
             variantId="1_1111_T_C",
             chromosome="1",
             position=1111,
-            beta=0.0077,
+            beta=-0.0077,
             sampleSize=35678,
             pValueMantissa=7.943282,
             pValueExponent=-1,
@@ -197,7 +197,7 @@ class TestdeCODESummaryStatistics:
         # This allele does not have anything changed, is found in variant direction
         Row(
             studyId="deCODE-proteomics-smp_Proteomics_SMP_PC0_10000-2_GENE1_P12345",
-            variantId="1_455948_G_C",
+            variantId="1_455948_C_G",
             chromosome="1",
             position=455948,
             beta=0.1027,
@@ -210,7 +210,7 @@ class TestdeCODESummaryStatistics:
         # This allele does not have anything changed, is not found in variant direction
         Row(
             studyId="deCODE-proteomics-smp_Proteomics_SMP_PC0_10000-2_GENE1_P12345",
-            variantId="1_455949_G_C",
+            variantId="1_455949_C_G",
             chromosome="1",
             position=455949,
             beta=0.1027,
@@ -277,9 +277,14 @@ class TestdeCODESummaryStatistics:
         mock_si.df = si_df
 
         config = deCODEHarmonisationConfig(
+            perform_min_allele_count_filter=True,
             min_allele_count_threshold=10,
+            perform_samples_size_filter=True,
             sample_size_threshold=30000,
             flipping_window_size=10000,
+            remove_monomorphic_alleles=True,
+            remove_ambiguous_alleles=False,
+            verify_atgc=True,
         )
         result = deCODESummaryStatistics.from_source(
             raw_summary_statistics=raw,

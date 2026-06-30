@@ -32,7 +32,6 @@ from gentropy.common.processing import (
     normalize_chromosome,
 )
 from gentropy.common.stats import pvalue_from_neglogpval
-from gentropy.config import deCODESummaryStatisticsHarmonisationConfig as _Defaults
 from gentropy.dataset.study_index import ProteinQuantitativeTraitLocusStudyIndex
 from gentropy.dataset.variant_direction import DEFAULT_WINDOW_SIZE, VariantDirection
 from gentropy.datasource.decode import deCODEDataSource
@@ -66,41 +65,40 @@ class deCODEHarmonisationConfig(BaseModel):
         to keep both sides in sync.
     """
 
-    model_config = ConfigDict(extra="forbid")
-
-    # NOTE: Defaults below are sourced from the Hydra step config
-    # `deCODESummaryStatisticsHarmonisationConfig` (imported as `_Defaults`) so the
-    # values are declared in exactly one place (`gentropy.config`). The Hydra config
-    # exposes a subset of these knobs under its own parameter names, which are
-    # mapped onto the validated field names here.
-
-    perform_min_allele_count_filter: bool = True
+    perform_min_allele_count_filter: bool
     """Whether to filter variants based on minor allele count (MAC) threshold."""
-    min_allele_count_threshold: int = Field(
-        default=_Defaults.min_mac_threshold, ge=1
-    )
+    min_allele_count_threshold: int = Field(ge=1)
     """Minimum minor allele count required to retain a variant."""
 
-    perform_samples_size_filter: bool = True
+    perform_samples_size_filter: bool
     """Whether to remove variants with low sample size."""
-    sample_size_threshold: int = Field(
-        default=_Defaults.min_sample_size_threshold, ge=1
-    )
+    sample_size_threshold: int = Field(ge=1)
     """Minimum sample size to retain a variant. Must be >= 1."""
 
     flipping_window_size: int = DEFAULT_WINDOW_SIZE
     """Window size (bp) used to partition the VariantDirection dataset (exact match only!).
         Defaults to `DEFAULT_WINDOW_SIZE` from `gentropy.dataset.variant_direction`.
     """
-    remove_monomorphic_alleles: bool = _Defaults.remove_equal_alleles
+    remove_monomorphic_alleles: bool
     """Whether to remove variants with equal effect and other alleles during harmonisation."""
-    remove_ambiguous_alleles: bool = False
-    """Whether to remove strand-ambiguous variants (A/T or C/G)."""
-    verify_atgc: bool = _Defaults.verify_atgc
+    remove_ambiguous_alleles: bool
+    """Whether to exclude strand-ambiguous variants (A/T or C/G) from the gnomAD
+    reference slice used for allele flipping.
+
+    When ``True``, ambiguous entries are dropped from ``vd_slice`` so they cannot
+    influence the flip direction. Ambiguous variants in the summary statistics that
+    have **no gnomAD match** are still retained in the output with direction=1
+    (no flip) — they are not removed from the harmonised result. This is intentional:
+    excluding unmatched ambiguous variants would discard data without any evidence
+    that the orientation is wrong.
+    """
+    verify_atgc: bool
     """Whether to verify that all alleles are A/T/G/C during harmonisation.
         Strict ATGC validation also removes `*` (star) and `!` (multiallelic) alleles,
         so no dedicated symbol filters are required.
     """
+
+    model_config = ConfigDict(extra="forbid")
 
 
 class deCODESummaryStatistics:
@@ -121,7 +119,6 @@ class deCODESummaryStatistics:
     Class attributes:
         N_THREAD_OPTIMAL (int): Recommended number of ingestion threads (10).
         N_THREAD_MAX (int): Hard upper limit on ingestion threads (500).
-        raw_schema (StructType): Spark schema of the raw deCODE TSV files.
     """
 
     N_THREAD_OPTIMAL = 10
@@ -220,9 +217,13 @@ class deCODESummaryStatistics:
         The harmonisation pipeline performs the following steps in order:
 
         1. **Schema alignment** – renames deCODE-specific column names and builds
-           the source-oriented variant ID using ``effectAllele_otherAllele``.
+           the source-oriented variant ID using ``chr_pos_ref_alt``.
         2. **Allele, MAC, and sample-size filtering** – applies the enabled
-           validity filters and configurable thresholds.
+           validity filters and configurable thresholds. If
+           ``config.remove_ambiguous_alleles`` is ``True``, strand-ambiguous
+           variants (A/T or C/G) are removed from the gnomAD reference slice
+           only — ambiguous sumstat variants absent from gnomAD are **retained**
+           with no flip applied (see `deCODEHarmonisationConfig.remove_ambiguous_alleles`).
         3. **Allele-flipping** – left-joins against the gnomAD `VariantDirection` dataset
            (positive strand only) using ``(chromosome, rangeId, variantId)``.
            Variants found in gnomAD are flipped to the gnomAD reference orientation;
@@ -303,7 +304,6 @@ class deCODESummaryStatistics:
                 f.col("studyId"),
                 normalize_chromosome(f.col("Chrom")).alias("chromosome"),
                 f.col("Pos").cast(t.IntegerType()).alias("position"),
-                # deCODE variant IDs use effectAllele_otherAllele ordering.
                 f.col("effectAllele").alias("alternateAllele"),
                 f.col("otherAllele").alias("referenceAllele"),
                 f.col("Beta").alias("beta"),
@@ -324,8 +324,8 @@ class deCODESummaryStatistics:
                     "_",
                     f.col("chromosome"),
                     f.col("position"),
-                    f.col("alternateAllele"),
                     f.col("referenceAllele"),
+                    f.col("alternateAllele"),
                 ).alias("variantId"),
             )
         )
@@ -383,8 +383,6 @@ class deCODESummaryStatistics:
                 f.col("studyId"), f.col("targetsFromSource")
             ),
         )
-        vd_slice.unpersist()
-
         harmonised = SummaryStatistics(
             _df=SummaryStatistics(flipped)
             .sanity_filter()
@@ -401,6 +399,8 @@ class deCODESummaryStatistics:
             .drop("updatedStudyId")
             .persist()
         )
+        # vd_slice is no longer needed once harmonised is registered for caching.
+        vd_slice.unpersist()
 
         pqtl_si = ProteinQuantitativeTraitLocusStudyIndex(
             _df=si.drop("studyId")
