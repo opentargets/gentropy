@@ -69,7 +69,7 @@ class deCODEManifestGenerationConfig(StepConfig):
 class deCODESummaryStatisticsIngestionConfig(StepConfig):
     """deCODE summary statistics ingestion step configuration."""
 
-    decode_manifest_path: str = MISSING
+    manifest_path: str = MISSING
     raw_summary_statistics_path: str = MISSING
     _target_: str = "gentropy.decode_ingestion.deCODESummaryStatisticsIngestionStep"
 
