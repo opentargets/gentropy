@@ -165,6 +165,12 @@ class deCODESummaryStatistics:
             n_threads = cls.N_THREAD_MAX
 
         def process_one(input_path: str, output_path: str) -> None:
+            """Convert a single gzipped summary-statistics file to Parquet.
+
+            Args:
+                input_path (str): Path to the gzipped TSV summary-statistics file.
+                output_path (str): Destination path for the Parquet output.
+            """
             session.logger.info(
                 f"Converting gzipped summary statistics to Parquet from {input_path} to {output_path}."
             )
@@ -372,9 +378,14 @@ class deCODESummaryStatistics:
                 f.col("effectAlleleFrequencyFromSource"),
                 f.col("standardError"),
             )
-            .sort("studyId", "chromosome", "position")
-            # Approximate number of partitions = 15 * number of studies
+            # Approximate number of partitions = 10 * number of studies.
+            # repartitionByRange establishes the partitioning order, so no
+            # separate .sort() is required (a pre-sort would add a wasted shuffle).
             .repartitionByRange(n_sumstats * 10, "studyId", "chromosome", "position")
+            # Materialise the flipping join once. sanity_filter() runs
+            # drop_variant_duplicates() (a self-aggregation), which would
+            # otherwise recompute the entire sumstats x VariantDirection join.
+            .persist()
         )
 
         si = decode_study_index.df.withColumn(
@@ -386,8 +397,10 @@ class deCODESummaryStatistics:
         harmonised = SummaryStatistics(
             _df=SummaryStatistics(flipped)
             .sanity_filter()
+            # si is small (one row per study); broadcasting avoids shuffling the
+            # full harmonised summary statistics by studyId for this join.
             .df.join(
-                si.select(f.col("updatedStudyId"), f.col("studyId")),
+                f.broadcast(si.select(f.col("updatedStudyId"), f.col("studyId"))),
                 on="studyId",
                 how="left",
             )
@@ -399,8 +412,10 @@ class deCODESummaryStatistics:
             .drop("updatedStudyId")
             .persist()
         )
-        # vd_slice is no longer needed once harmonised is registered for caching.
+        # vd_slice and flipped are no longer needed once harmonised is registered
+        # for caching.
         vd_slice.unpersist()
+        flipped.unpersist()
 
         pqtl_si = ProteinQuantitativeTraitLocusStudyIndex(
             _df=si.drop("studyId")

@@ -301,7 +301,13 @@ class deCODESummaryStatisticsHarmonisationStep:
         rss = session.spark.read.parquet(raw_summary_statistics_path)
         hss, pqtl_si = deCODESummaryStatistics.from_source(rss, gvd, _pqtl_si, config)
 
-        hss.df.write.mode(session.write_mode).partitionBy("studyId").option(
+        # Sort within each Spark partition before the partitioned write so the
+        # per-studyId Parquet files are ordered by genomic position. This lets
+        # downstream readers skip row groups on position range queries.
+        # sortWithinPartitions (not a global sort) avoids an extra full shuffle.
+        hss.df.sortWithinPartitions(
+            "chromosome", "position", "variantId"
+        ).write.mode(session.write_mode).partitionBy("studyId").option(
             "maxRecordsPerFile", 50_000_000
         ).parquet(harmonised_summary_statistics_path)
         pqtl_si.df.coalesce(1).write.mode(session.write_mode).parquet(
