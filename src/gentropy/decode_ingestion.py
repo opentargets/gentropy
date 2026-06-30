@@ -5,20 +5,7 @@ r"""deCODE ingestion step.
 The ingestion pipeline for the deCODE dataset consists of the following steps, which
 must be executed in order:
 
-1. **Obtain an S3 bucket listing** from the deCODE S3 bucket:
-
-    ```bash
-        aws s3 ls \
-        --recursive \
-        --human-readable \
-        --summarize  \
-        --profile $1 \
-        $2 \
-        --endpoint-url https://${S3_HOST_URL}:${S3_HOST_PORT} \
-        | grep "Proteomics" > manifest.txt
-    ```
-
-2. **Generate the manifest** from the bucket listing using `deCODEManifestGenerationStep`.
+1. **Generate the manifest** by listing the deCODE S3 bucket directly using `deCODEManifestGenerationStep`.
 3. **Ingest protein-complex data** from predicted and experimental files using `MolecularComplexIngestionStep`.
 4. **Ingest raw summary statistics** from the `txt.gz` files to Parquet using `deCODESummaryStatisticsIngestionStep`.
 5. **Harmonise summary statistics** (including pQTL study-index creation) using `deCODESummaryStatisticsHarmonisationStep`.
@@ -59,8 +46,6 @@ must be executed in order:
 ```mermaid
 flowchart TD
   subgraph INPUTS
-    A1["S3 bucket listing (aws s3 ls)"]
-    A2["S3 config (s3_config_path)"]
     A3[AptamerMetadata]
     A4[gnomAD VariantDirection]
     A5[predicted_complex_tab]
@@ -75,9 +60,7 @@ flowchart TD
     O4[study_index]
   end
 
-    A1 --> MGEN[deCODEManifestGenerationStep]
-    A2 --> MGEN
-    MGEN --> P1[manifest]
+    MGEN[deCODEManifestGenerationStep] --> P1[manifest]
 
     A5 --> MCGEN[MolecularComplexIngestionStep]
     A6 --> MCGEN
@@ -105,12 +88,10 @@ flowchart TD
     TRANS --> O4
 
     classDef parquet fill:#bd757c,stroke:#73343A,color:#333
-    class A1,A2,A3,A4,A5,A6,A7,P1,P2,P3,O1,O2,O2B,O3,O4 parquet
+    class A3,A4,A5,A6,A7,P1,P2,P3,O1,O2,O2B,O3,O4 parquet
 ```
 
 ??? tip "Inputs"
-    - [x] **S3 bucket listing** — text file produced by `aws s3 ls`, required by `deCODEManifestGenerationStep`.
-    - [x] **S3 config** — JSON/YAML file with the bucket name used to construct `s3a://` paths.
     - [x] **AptamerMetadata** — SomaScan study table mapping aptamer IDs to gene symbols and UniProt IDs.
     - [x] **gnomAD VariantDirection** — used for allele flipping and EAF inference during harmonisation.
     - [x] **Protein-complex tables** — predicted and experimental files for `MolecularComplexIngestionStep`.
@@ -146,36 +127,35 @@ from gentropy.datasource.decode.summary_statistics import (
 
 
 class deCODEManifestGenerationStep:
-    """Build the deCODE manifest Parquet dataset from an ``aws s3 ls`` bucket listing.
+    """Build the deCODE manifest Parquet dataset by listing the S3 bucket directly.
 
-    This step should be run **once** after obtaining a fresh listing of the deCODE S3
-    bucket.  The resulting manifest is consumed by all downstream ingestion steps.
+    This step should be run **once** to produce a manifest that is consumed by all
+    downstream ingestion steps.  The session must be configured with
+    ``add_s3_connector=True`` using credentials requested from
+    https://www.decode.com/summarydata/ (see :class:`~gentropy.external.s3.S3Config`).
 
-    See `deCODEManifest.from_bucket_listing` for details on the expected input file format.
+    See `deCODEManifest.from_s3` for details.
     """
 
     def __init__(
         self,
         session: Session,
-        bucket_listing_path: str,
+        bucket_name: str,
+        prefix: str,
         output_path: str,
-        s3_config_path: str | None = None,
     ) -> None:
         """Initialise and execute the deCODE manifest generation step.
 
         Args:
-            session (Session): Active Gentropy Spark session.
-            bucket_listing_path (str): Path to the text file produced by
-                ``aws s3 ls --recursive --human-readable --summarize``.
+            session (Session): Active Gentropy Spark session with S3 connector configured.
+            bucket_name (str): Name of the S3 bucket to list (without any URI prefix).
+            prefix (str): Optional key prefix to restrict the listing (e.g. ``"Proteomics/"``).
             output_path (str): Destination path for the manifest Parquet dataset.
-            s3_config_path (str | None): Optional path to the S3 configuration file containing
-                the bucket name used to construct fully-qualified ``s3a://`` paths. If not provided,
-                the method will attempt to load from environment variables.
         """
-        manifest = deCODEManifest.from_bucket_listing(
+        manifest = deCODEManifest.from_s3(
             session=session,
-            s3_config_path=s3_config_path,
-            path=bucket_listing_path,
+            prefix=prefix,
+            bucket_name=bucket_name,
         )
         manifest.df.repartition(1).write.mode(session.write_mode).parquet(output_path)
 

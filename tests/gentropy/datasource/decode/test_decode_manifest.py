@@ -12,8 +12,6 @@ from gentropy.datasource.decode.manifest import deCODEManifest
 class TestdeCODEManifest:
     """Test methods of deCODEManifest."""
 
-    listing_path = "tests/gentropy/data_samples/aws_bucket_listing.txt"
-    s3_config_path = "tests/gentropy/data_samples/example_s3_config.json"
     expected_rows = [
         Row(
             projectId="deCODE-proteomics-smp",
@@ -32,18 +30,6 @@ class TestdeCODEManifest:
             accessionTimestamp=datetime(2022, 5, 29, 9, 27, 35),
         ),
     ]
-
-    def test_manifest_from_bucket_listing(self, session: Session) -> None:
-        """Test building manifest from bucket listing."""
-        manifest = deCODEManifest.from_bucket_listing(
-            session, self.listing_path, self.s3_config_path
-        )
-        assert isinstance(manifest, deCODEManifest), "should return deCODEManifest"
-        assert manifest.df.count() == 2, "should have 2 entries"
-
-        assert manifest.df.collect() == self.expected_rows, (
-            "should collect expected rows"
-        )
 
     def test_from_parquet(self, session: Session, tmp_path: Path) -> None:
         """Test round-trip: write expected rows to parquet and reload via from_parquet."""

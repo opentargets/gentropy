@@ -129,26 +129,22 @@ class TestdeCODEIngestionStep:
         decode_manifest_df: DataFrame,
     ) -> None:
         """Test deCODEManifestGenerationStep."""
-        s3_config_path = (tmp_path / "s3_config.json").as_posix()
-        bucket_listing_path = (tmp_path / "bucket_listing.txt").as_posix()
+        bucket_name = "largescaleplasma-2023"
         output_path = (tmp_path / "manifest_output").as_posix()
 
-        # Mock the manifest instance returned by from_bucket_listing
         manifest_instance = MagicMock()
         manifest_instance.df = decode_manifest_df
-        manifest_mock.from_bucket_listing.return_value = manifest_instance
+        manifest_mock.from_s3.return_value = manifest_instance
 
         deCODEManifestGenerationStep(
             session=session,
-            s3_config_path=s3_config_path,
-            bucket_listing_path=bucket_listing_path,
+            bucket_name=bucket_name,
             output_path=output_path,
         )
 
-        manifest_mock.from_bucket_listing.assert_called_once_with(
+        manifest_mock.from_s3.assert_called_once_with(
             session=session,
-            s3_config_path=s3_config_path,
-            path=bucket_listing_path,
+            bucket_name=bucket_name,
         )
         assert Path(output_path).exists()
 
