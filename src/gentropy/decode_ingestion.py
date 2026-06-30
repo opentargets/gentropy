@@ -179,7 +179,7 @@ class deCODESummaryStatisticsIngestionStep:
     def __init__(
         self,
         session: Session,
-        decode_manifest_path: str,
+        manifest_path: str,
         raw_summary_statistics_path: str,
     ) -> None:
         """Initialise and execute the deCODE summary-statistics ingestion step.
@@ -187,12 +187,12 @@ class deCODESummaryStatisticsIngestionStep:
         Args:
             session (Session): Active Gentropy Spark session with S3 connectivity
                 configured via the Hadoop AWS connector (see class docstring).
-            decode_manifest_path (str): Path to the manifest Parquet dataset produced
+            manifest_path (str): Path to the manifest Parquet dataset produced
                 by `deCODEManifestGenerationStep`.
             raw_summary_statistics_path (str): Destination path for the raw summary
                 statistics Parquet dataset, partitioned by ``studyId``.
         """
-        manifest = deCODEManifest.from_parquet(session, decode_manifest_path)
+        manifest = deCODEManifest.from_parquet(session, manifest_path)
         summary_statistics_paths = manifest.get_summary_statistics_paths()
         deCODESummaryStatistics.txtgz_to_parquet(
             session=session,
