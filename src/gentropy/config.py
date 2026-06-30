@@ -89,7 +89,7 @@ class deCODESummaryStatisticsHarmonisationConfig(StepConfig):
     # config
     perform_min_allele_count_filter: bool = True
     min_mac_threshold: int = 50
-    perform_samples_size_filter: bool = True
+    perform_sample_size_filter: bool = True
     min_sample_size_threshold: int = 30_000
     flipping_window_size: int = (
         10_000_000  # must match variant_direction.DEFAULT_WINDOW_SIZE

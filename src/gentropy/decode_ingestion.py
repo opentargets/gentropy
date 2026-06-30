@@ -18,7 +18,7 @@ must be executed in order:
     threshold (default 50) and sample size below the configured threshold (default 30,000) can be
     discarded to ensure sufficient statistical power and to reduce false positives. Both filters
     are optional and controlled by ``perform_min_allele_count_filter`` and
-    ``perform_samples_size_filter`` in the step configuration.
+    ``perform_sample_size_filter`` in the step configuration.
 
 !!! note "Allele flipping"
     The harmonisation step includes allele flipping based on the gnomAD EUR allele frequency:
@@ -231,7 +231,7 @@ class deCODESummaryStatisticsHarmonisationStep:
         # config
         perform_min_allele_count_filter: bool = True,
         min_mac_threshold: int = 50,
-        perform_samples_size_filter: bool = True,
+        perform_sample_size_filter: bool = True,
         min_sample_size_threshold: int = 30_000,
         flipping_window_size: int = DEFAULT_WINDOW_SIZE,
         remove_equal_alleles: bool = True,
@@ -259,7 +259,7 @@ class deCODESummaryStatisticsHarmonisationStep:
             perform_min_allele_count_filter (bool): Whether to apply the MAC threshold filter.
             min_mac_threshold (int): Minimum minor allele count (MAC) required to retain a
                 variant.
-            perform_samples_size_filter (bool): Whether to apply the sample-size threshold filter.
+            perform_sample_size_filter (bool): Whether to apply the sample-size threshold filter.
             min_sample_size_threshold (int): Minimum sample size required to retain a variant.
             flipping_window_size (int): Genomic window size (bp) used to partition the
                 VariantDirection dataset for the allele-flipping join.  Must match the value
@@ -279,7 +279,7 @@ class deCODESummaryStatisticsHarmonisationStep:
         config = deCODEHarmonisationConfig(
             perform_min_allele_count_filter=perform_min_allele_count_filter,
             min_allele_count_threshold=min_mac_threshold,
-            perform_samples_size_filter=perform_samples_size_filter,
+            perform_sample_size_filter=perform_sample_size_filter,
             sample_size_threshold=min_sample_size_threshold,
             flipping_window_size=flipping_window_size,
             remove_monomorphic_alleles=remove_equal_alleles,
