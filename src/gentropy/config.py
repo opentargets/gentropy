@@ -396,8 +396,8 @@ class LocusToGeneCrossValidationConfig(StepConfig):
 
     train_feature_matrix_path: str = MISSING
     test_feature_matrix_path: str = MISSING
-    features_list: Any = field(default_factory=lambda: list(_L2G_FEATURES_LIST))  # list[str] — Any avoids OmegaConf default_factory bug
-    hyperparameters: Any = field(default_factory=lambda: dict(_L2G_HYPERPARAMETERS))  # dict[str, Any] — Any avoids OmegaConf default_factory bug
+    features_list: Any = field(default_factory=lambda: _L2G_FEATURES_LIST)  # list[str] — Any avoids OmegaConf default_factory bug
+    hyperparameters: Any = field(default_factory=lambda: _L2G_HYPERPARAMETERS)  # dict[str, Any] — Any avoids OmegaConf default_factory bug
     n_splits: int = 5
     hyperparameter_grid: Any = None  # dict[str, Any] | None — Any avoids OmegaConf Optional[Dict] merge bug
     cv_results_dir: str | None = None

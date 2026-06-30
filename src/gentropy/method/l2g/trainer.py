@@ -33,10 +33,7 @@ from sklearn.model_selection import train_test_split
 from wandb.data_types import Image
 from wandb.errors.term import termlog as wandb_termlog
 from wandb.sdk.wandb_init import init as wandb_init
-from wandb.sdk.wandb_setup import _setup
-from wandb.sdk.wandb_sweep import sweep as wandb_sweep
 from wandb.sklearn import plot_classifier
-from wandb.wandb_agent import agent as wandb_agent
 
 from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
 from gentropy.method.l2g.model import LocusToGeneModel
@@ -382,7 +379,6 @@ class LocusToGeneTrainer:
 
     def cross_validate(  # noqa: C901
         self: LocusToGeneTrainer,
-        wandb_run_name: str | None = None,
         parameter_grid: dict[str, Any] | None = None,
         n_splits: int = 5,
         random_state: int = 42,
@@ -391,10 +387,9 @@ class LocusToGeneTrainer:
     ) -> None:
         """Log results of cross validation and hyperparameter tuning.
 
-        When ``wandb_run_name`` is set: runs a W&B grid sweep, one run per fold per config.
-        When ``cv_results_dir`` is set (without W&B): iterates the grid explicitly and writes
+        When ``cv_results_dir`` is set: iterates the grid explicitly and writes
         ``cv_results.json``, ``cv_folds.csv``, and per-config plots to ``cv_results_dir``.
-        Without either: logs fold metrics to the terminal using the base hyperparameters.
+        Without it: logs fold metrics to the terminal using the base hyperparameters.
 
         When ``holdout_only`` is True, the CV folds are skipped entirely. Each config is
         trained once on the full training set and evaluated on the holdout set. Requires
@@ -402,11 +397,10 @@ class LocusToGeneTrainer:
         is available and CV folds would add noise without additional information.
 
         Args:
-            wandb_run_name (str | None): Name of the W&B run. Unless this is provided, the model will not be logged to W&B.
             parameter_grid (dict[str, Any] | None): Dictionary containing the hyperparameters to sweep over. The keys are the hyperparameter names, and the values are dictionaries containing the values to sweep over.
             n_splits (int): Number of folds the data is splitted in. The model is trained and evaluated `k - 1` times. Defaults to 5.
             random_state (int): Random seed for reproducibility. Defaults to 42.
-            cv_results_dir (str | None): Directory (local or ``gs://``) to write CV result files. Only used when ``wandb_run_name`` is not set. Defaults to None.
+            cv_results_dir (str | None): Directory (local or ``gs://``) to write CV result files. Defaults to None.
             holdout_only (bool): When True, skip CV folds and evaluate each config directly on the holdout set. Defaults to False.
         """
         if holdout_only and not cv_results_dir:
@@ -420,7 +414,7 @@ class LocusToGeneTrainer:
             for param, value in self.model.hyperparameters.items()
         }
 
-        collect_for_file = cv_results_dir is not None and wandb_run_name is None
+        collect_for_file = cv_results_dir is not None
         fold_results: list[dict[str, Any]] = []
 
         def run_all_folds(run_config: dict[str, Any] | None = None) -> None:
@@ -428,21 +422,7 @@ class LocusToGeneTrainer:
 
             Args:
                 run_config (dict[str, Any] | None): Hyperparameter config for this sweep run.
-                    When called by wandb_agent, this is overridden by the sweep config.
             """
-            sweep_id = None
-            if wandb_run_name:
-                sweep_run = wandb_init(name=wandb_run_name)
-                sweep_id = sweep_run.sweep_id
-                sweep_url = sweep_run.get_sweep_url()
-                sweep_group_url = f"{sweep_run.get_project_url()}/groups/{sweep_id}"
-                sweep_run.notes = sweep_group_url
-                sweep_run.save()
-                run_config = dict(sweep_run.config)
-                _setup()
-                wandb_termlog(f"Sweep URL: {sweep_url}")
-                wandb_termlog(f"Sweep Group URL: {sweep_group_url}")
-
             for fold_index in range(n_splits):
                 fold_seed = random_state + fold_index
                 fold_train_df, fold_val_df = LocusToGeneTrainer.hierarchical_split(
@@ -454,25 +434,12 @@ class LocusToGeneTrainer:
                     fold_index=fold_index + 1,
                     fold_train_df=fold_train_df,
                     fold_val_df=fold_val_df,
-                    sweep_id=sweep_id,
-                    sweep_run_name=f"{wandb_run_name}-fold{fold_index + 1}"
-                    if wandb_run_name
-                    else None,
                     config=run_config,
                     collect_for_file=collect_for_file,
                     fold_results=fold_results,
                 )
 
-        if wandb_run_name:
-            sweep_config = {
-                "method": "grid",
-                "name": wandb_run_name,
-                "metric": {"name": "areaUnderROC", "goal": "maximize"},
-                "parameters": parameter_grid,
-            }
-            sweep_id = wandb_sweep(sweep_config, project=self.wandb_l2g_project_name)
-            wandb_agent(sweep_id, run_all_folds)
-        elif cv_results_dir:
+        if cv_results_dir:
             is_gcs = cv_results_dir.startswith("gs://")
             work_dir = (
                 Path(tempfile.mkdtemp(prefix="l2g_cv_"))
@@ -547,8 +514,6 @@ class LocusToGeneTrainer:
         fold_index: int,
         fold_train_df: pd.DataFrame,
         fold_val_df: pd.DataFrame,
-        sweep_id: str | None,
-        sweep_run_name: str | None,
         config: dict[str, Any] | None,
         collect_for_file: bool,
         fold_results: list[dict[str, Any]],
@@ -559,14 +524,10 @@ class LocusToGeneTrainer:
             fold_index (int): 1-based fold index used for logging.
             fold_train_df (pd.DataFrame): Training data for this fold.
             fold_val_df (pd.DataFrame): Validation data for this fold.
-            sweep_id (str | None): W&B sweep ID; None when not using W&B.
-            sweep_run_name (str | None): W&B run name for this fold; None when not using W&B.
             config (dict[str, Any] | None): Hyperparameter config to apply before fitting.
             collect_for_file (bool): Whether to append fold data to fold_results.
             fold_results (list[dict[str, Any]]): Mutable list that fold data is appended to.
         """
-        reset_wandb_env()
-
         x_fold_train = fold_train_df[self.features_list].values
         x_fold_val = fold_val_df[self.features_list].values
         y_fold_train = fold_train_df[self.feature_matrix.label_col].values
@@ -607,21 +568,7 @@ class LocusToGeneTrainer:
                 }
             )
 
-        if sweep_id and sweep_run_name and config:
-            os.environ["WANDB_SWEEP_ID"] = sweep_id
-            run = wandb_init(
-                project=self.wandb_l2g_project_name,
-                name=sweep_run_name,
-                config=config,
-                group=sweep_run_name,
-                job_type="fold",
-                reinit=True,
-            )
-            run.log(metrics)
-            wandb_termlog(f"Logged metrics for fold {fold_index}.")
-            run.finish()
-        else:
-            self.log_to_terminal(eval_id=f"Fold {fold_index}", metrics=metrics)
+        self.log_to_terminal(eval_id=f"Fold {fold_index}", metrics=metrics)
 
     def _maybe_append_holdout_row(
         self: LocusToGeneTrainer,
