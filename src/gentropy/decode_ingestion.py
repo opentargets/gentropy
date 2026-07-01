@@ -301,15 +301,22 @@ class deCODESummaryStatisticsHarmonisationStep:
         rss = session.spark.read.parquet(raw_summary_statistics_path)
         hss, pqtl_si = deCODESummaryStatistics.from_source(rss, gvd, _pqtl_si, config)
 
-        # Sort within each Spark partition before the partitioned write so the
-        # per-studyId Parquet files are ordered by genomic position. This lets
-        # downstream readers skip row groups on position range queries.
-        # sortWithinPartitions (not a global sort) avoids an extra full shuffle.
-        hss.df.sortWithinPartitions(
-            "chromosome", "position", "variantId"
-        ).write.mode(session.write_mode).partitionBy("studyId").option(
-            "maxRecordsPerFile", 50_000_000
-        ).parquet(harmonised_summary_statistics_path)
+        # Repartition by studyId immediately before the write so each Spark
+        # partition writes exactly one studyId directory. Without this, the
+        # sanity_filter shuffle upstream leaves rows for a given studyId spread
+        # across every task, and partitionBy("studyId") emits one small file
+        # per (task, studyId) pair — potentially millions of tiny files.
+        # sortWithinPartitions (not a global sort) then orders each per-study
+        # file by genomic position so downstream readers can skip row groups
+        # on position range queries without paying for a full shuffle.
+        (
+            hss.df.repartition("studyId")
+            .sortWithinPartitions("chromosome", "position", "variantId")
+            .write.mode(session.write_mode)
+            .partitionBy("studyId")
+            .option("maxRecordsPerFile", 50_000_000)
+            .parquet(harmonised_summary_statistics_path)
+        )
         pqtl_si.df.coalesce(1).write.mode(session.write_mode).parquet(
             protein_qtl_study_index_path
         )
