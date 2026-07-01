@@ -888,6 +888,66 @@ class GeneticCorrelationConfig(StepConfig):
 
 
 @dataclass
+class SpecificityLDScoreConfig(StepConfig):
+    """Configuration for annotation-stratified LD score computation.
+
+    This wraps :class:`gentropy.ldsc_cts.SpecificityLDScoreStep`, which computes
+    per-variant, per-cell-type LD scores from a single expression-specificity
+    matrix for use in the CELLECT / LDSC ``--h2-cts`` workflow.
+    """
+
+    specificity_input_path: str = MISSING
+    target_index_path: str = MISSING
+    ld_index_path: str = MISSING
+    output_path: str = MISSING
+    specificity_id: str = "specificity"
+    population: str = "nfe"
+    window_kb: int = 100
+    gene_id_column: str = "gene"
+    specificity_format: str = "csv"
+    specificity_sep: str = ","
+    strip_gene_version: bool = True
+    _target_: str = "gentropy.ldsc_cts.SpecificityLDScoreStep"
+
+
+@dataclass
+class CellTypeHeritabilityConfig(StepConfig):
+    """Configuration for cell-type heritability prioritisation.
+
+    This wraps :class:`gentropy.ldsc_cts_prioritise.CellTypeHeritabilityStep`,
+    which prioritises cell types for a single GWAS using stratified LD score
+    regression against precomputed annotation LD scores. The regression model
+    mirrors CELLECT ``--h2-cts`` (``baseline..., all_genes_control, cell_type``)
+    and supports either a single-column baseline or a multi-annotation baseline
+    plus a separate regression-weights LD-score file.
+    """
+
+    summary_statistics_input_path: str = MISSING
+    study_index_input_path: str = MISSING
+    annotation_ld_scores_path: str = MISSING
+    annotation_m_annot_path: str = MISSING
+    prioritisation_output_path: str = MISSING
+    ldscore_base_path: str = ""
+    ldscore_template: str = "gnomad_r2.1.1_{ancestry}_hg38.csv.gz"
+    baseline_ld_scores_path: str | None = None
+    baseline_format: str = "parquet"
+    baseline_sep: str = "\t"
+    baseline_annotation_columns: list[str] | None = None
+    baseline_base_column: str | None = None
+    baseline_m_path: str | None = None
+    weights_ld_scores_path: str | None = None
+    weights_format: str = "parquet"
+    weights_sep: str = "\t"
+    weights_column: str = "L2"
+    control_annotation: str = "all_genes_control"
+    n_blocks: int = 200
+    intercept: float | None = None
+    min_samples: int = 10_000
+    max_rows_for_collection: int = 20_000_000
+    _target_: str = "gentropy.ldsc_cts_prioritise.CellTypeHeritabilityStep"
+
+
+@dataclass
 class pQTLStudyIndexTransformationConfig(StepConfig):
     """pQTL study index transformation step configuration."""
 
@@ -1015,6 +1075,12 @@ def register_config() -> None:
         group="step", name="heritability_estimate", node=HeritabilityEstimateConfig
     )
     cs.store(group="step", name="genetic_correlation", node=GeneticCorrelationConfig)
+    cs.store(
+        group="step", name="specificity_ld_scores", node=SpecificityLDScoreConfig
+    )
+    cs.store(
+        group="step", name="cell_type_heritability", node=CellTypeHeritabilityConfig
+    )
     cs.store(
         group="step",
         name="pQTL_study_index_transformation",
