@@ -265,44 +265,25 @@ class deCODESummaryStatistics:
         if config.remove_ambiguous_alleles:
             vd_slice = vd_slice.filter(~f.col("isStrandAmbiguous"))
 
-        vd_slice = vd_slice.filter(f.col("strand") == 1).select(
-            f.col("chromosome"),
-            f.col("rangeId"),
-            f.col("originalVariantId"),
-            f.col("variantId"),
-            f.col("direction"),
-            f.filter(
-                # NFE is the closest population-specific gnomAD frequency available.
-                # TODO: consider using icelandic EAF https://www.ebi.ac.uk/ena/browser/view/PRJEB15197
-                f.col("originalAlleleFrequencies"),
-                lambda x: x.getField("populationName") == "nfe_adj",
-            )
-            .getItem(0)
-            .getField("alleleFrequency")
-            .cast(t.FloatType())
-            .alias("eur_af"),
-        )
-
-        # Prune vd_slice to only the (chromosome, rangeId) buckets that actually
-        # appear in the raw sumstats. For a subset run against the full gnomAD
-        # variant_direction dataset this typically cuts the persisted slice by
-        # orders of magnitude. The (chromosome, rangeId) key space is tiny
-        # (~600 rows for a 10 Mb window over the human genome), so the
-        # semi-join is safely broadcastable.
-        sumstat_ranges = (
-            raw_summary_statistics.select(
-                normalize_chromosome(f.col("Chrom")).alias("chromosome"),
-                f.floor(f.col("Pos") / config.flipping_window_size)
-                .cast(t.IntegerType())
-                .alias("rangeId"),
-            )
-            .distinct()
-        )
         vd_slice = (
-            vd_slice.join(
-                f.broadcast(sumstat_ranges),
-                on=["chromosome", "rangeId"],
-                how="left_semi",
+            # deCODE alleles are compared only with positive-strand reference entries.
+            vd_slice.filter(f.col("strand") == 1)
+            .select(
+                f.col("chromosome"),
+                f.col("rangeId"),
+                f.col("originalVariantId"),
+                f.col("variantId"),
+                f.col("direction"),
+                f.filter(
+                    # NFE is the closest population-specific gnomAD frequency available.
+                    # TODO: consider using icelandic EAF https://www.ebi.ac.uk/ena/browser/view/PRJEB15197
+                    f.col("originalAlleleFrequencies"),
+                    lambda x: x.getField("populationName") == "nfe_adj",
+                )
+                .getItem(0)
+                .getField("alleleFrequency")
+                .cast(t.FloatType())
+                .alias("eur_af"),
             )
             # NOTE: repartition("chromosome") produces very uneven partitions,
             # Spark attempts then to fall back to `dynamic partitioning` algorithm
@@ -311,6 +292,8 @@ class deCODESummaryStatistics:
             .alias("vd")
         )
 
+        # Estimate output partitions from the number of studies.
+        n_sumstats = decode_study_index.df.count()
         # Pre-filtering on alleles based on configuration.
         sumstats = raw_summary_statistics
         if config.remove_monomorphic_alleles:
@@ -395,12 +378,13 @@ class deCODESummaryStatistics:
                 f.col("effectAlleleFrequencyFromSource"),
                 f.col("standardError"),
             )
+            # Approximate number of partitions = 10 * number of studies.
+            # repartitionByRange establishes the partitioning order, so no
+            # separate .sort() is required (a pre-sort would add a wasted shuffle).
+            .repartitionByRange(n_sumstats * 10, "studyId", "chromosome", "position")
             # Materialise the flipping join once. sanity_filter() runs
             # drop_variant_duplicates() (a self-aggregation), which would
             # otherwise recompute the entire sumstats x VariantDirection join.
-            # Partition sizing is left to spark.sql.shuffle.partitions and AQE;
-            # the final partitioning for the parquet write is established in the
-            # write step (see deCODESummaryStatisticsHarmonisationStep).
             .persist()
         )
 
