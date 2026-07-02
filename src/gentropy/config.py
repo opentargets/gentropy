@@ -887,6 +887,27 @@ class GeneticCorrelationConfig(StepConfig):
     _target_: str = "gentropy.ldsc_rg.GeneticCorrelationStep"
 
 
+
+@dataclass
+class RepresentativeStudyManifestConfig(StepConfig):
+    """Configuration for representative study selection and pairs manifest generation."""
+
+    study_index_path: str = MISSING
+    heritability_estimates_path: str = MISSING
+    sumstats_base_path: str = MISSING
+    manifest_output_path: str = MISSING
+    previous_manifest_path: str | None = None
+    min_h2_z_squared: float = 4.0
+    min_neff: int = 10_000
+    min_h2: float = 0.0
+    max_h2: float = 1.0
+    min_lambda_gc: float = 0.8
+    max_lambda_gc: float = 2.5
+    include_ancestries: list[str] = field(default_factory=lambda: ["nfe"])
+    _target_: str = "gentropy.ldsc_rg_representative_manifest.RepresentativeStudyManifestStep"
+
+
+
 @dataclass
 class pQTLStudyIndexTransformationConfig(StepConfig):
     """pQTL study index transformation step configuration."""
@@ -1015,6 +1036,11 @@ def register_config() -> None:
         group="step", name="heritability_estimate", node=HeritabilityEstimateConfig
     )
     cs.store(group="step", name="genetic_correlation", node=GeneticCorrelationConfig)
+    cs.store(
+        group="step",
+        name="representative_study_manifest",
+        node=RepresentativeStudyManifestConfig,
+    )
     cs.store(
         group="step",
         name="pQTL_study_index_transformation",
