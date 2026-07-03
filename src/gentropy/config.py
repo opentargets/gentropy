@@ -25,8 +25,8 @@ class SessionConfig:
     log_level: str = "ERROR"
     add_s3_connector: bool = False
     add_gcs_connector: bool = False
-    s3_configuration: dict[str, str] | None = None
-    gcs_configuration: dict[str, str] | None = None
+    s3_configuration: dict[str, str] | None = field(default_factory=dict[str, str])
+    gcs_configuration: dict[str, str] | None = field(default_factory=dict[str, str])
     s3_configuration_path: str | None = None
     gcs_configuration_path: str | None = None
     _target_: str = "gentropy.common.session.Session"
@@ -59,9 +59,9 @@ class ColocalisationConfig(StepConfig):
 class deCODEManifestGenerationConfig(StepConfig):
     """deCODE data ingestion step configuration."""
 
-    bucket_listing_path: str = MISSING
+    bucket_name: str = MISSING
+    prefix: str = MISSING
     output_path: str = MISSING
-    s3_config_path: str | None = None
     _target_: str = "gentropy.decode_ingestion.deCODEManifestGenerationStep"
 
 
@@ -69,7 +69,7 @@ class deCODEManifestGenerationConfig(StepConfig):
 class deCODESummaryStatisticsIngestionConfig(StepConfig):
     """deCODE summary statistics ingestion step configuration."""
 
-    decode_manifest_path: str = MISSING
+    manifest_path: str = MISSING
     raw_summary_statistics_path: str = MISSING
     _target_: str = "gentropy.decode_ingestion.deCODESummaryStatisticsIngestionStep"
 
@@ -87,14 +87,15 @@ class deCODESummaryStatisticsHarmonisationConfig(StepConfig):
     harmonised_summary_statistics_path: str = MISSING
     protein_qtl_study_index_path: str = MISSING
     # config
+    perform_min_allele_count_filter: bool = True
     min_mac_threshold: int = 50
+    perform_sample_size_filter: bool = True
     min_sample_size_threshold: int = 30_000
     flipping_window_size: int = (
         10_000_000  # must match variant_direction.DEFAULT_WINDOW_SIZE
     )
-    remove_star_alleles: bool = True
     remove_equal_alleles: bool = True
-    remove_multiallelics: bool = True
+    remove_ambiguous_alleles: bool = False
     verify_atgc: bool = True
     _target_: str = "gentropy.decode_ingestion.deCODESummaryStatisticsHarmonisationStep"
 
