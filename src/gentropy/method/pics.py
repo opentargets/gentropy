@@ -242,8 +242,12 @@ class PICS:
         return StudyLocus(
             _df=(
                 associations.df
-                # Old locus column will be dropped if available
-                .select(*[col for col in associations.df.columns if col != "locus"])
+                # Old locus column will be retained to preserve the sentinel variant
+                # statistics
+                .select(
+                    *[col for col in associations.df.columns if col != "locus"],
+                    f.col("locus").alias("originalLocus"),
+                )
                 # Estimate neglog_pvalue for the lead variant
                 .withColumn("neglog_pvalue", associations.neglog_pvalue())
                 # New locus containing the PICS results

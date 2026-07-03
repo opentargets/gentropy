@@ -645,7 +645,7 @@ class LocusBreakerClumpingConfig(StepConfig):
     lbc_flanking_distance: int = 100_000
     large_loci_size: int = 1_500_000
     wbc_clump_distance: int = 500_000
-    wbc_pvalue_threshold: float = MISSING
+    wbc_pvalue_threshold: float = 1e-8
     collect_locus: bool = False
     remove_mhc: bool = True
     _target_: str = "gentropy.locus_breaker_clumping.LocusBreakerClumpingStep"

@@ -91,6 +91,19 @@ class LDAnnotator:
         )
 
     @staticmethod
+    def _qc_no_population(ld_pop: Column, qc: Column) -> Column:
+        """Flag associations where the study doesn't have population information to resolve LD.
+
+        Returns:
+            Column: Quality controls with added 'NO_POPULATION' field
+        """
+        return StudyLocus.update_quality_flag(
+            qc,
+            ld_pop.isNull(),
+            StudyLocusQualityCheck.NO_POPULATION,
+        )
+
+    @staticmethod
     def _rescue_lead_variant(ld_set: Column, variant_id: Column) -> Column:
         """Rescue lead variant.
 
@@ -183,6 +196,12 @@ class LDAnnotator:
                         ),
                     ),
                 )
+                .withColumn(
+                    "qualityControls",
+                    cls._qc_no_population(
+                        f.col("ldPopulationStructure"), f.col("qualityControls")
+                    ),
+                )
                 .drop("ldPopulationStructure", "majorPopulation")
                 # Filter the LD set by the R2 threshold and set to null if no LD information passes the threshold
                 .withColumn(
@@ -216,4 +235,4 @@ class LDAnnotator:
                 )
             ),
             _schema=StudyLocus.get_schema(),
-        )._qc_no_population()
+        )

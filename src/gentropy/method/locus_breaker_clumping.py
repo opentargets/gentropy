@@ -42,8 +42,6 @@ class LocusBreakerClumping:
         Returns:
             StudyLocus: clumped study loci with locus start and end positions + lead variant from the locus.
         """
-        # Extract columns from the summary statistics:
-        columns_sumstats_columns = summary_statistics.df.columns
         # Convert pvalue_cutoff to neglog scale:
         neglog_pv_cutoff = -np.log10(pvalue_cutoff)
 
@@ -62,76 +60,84 @@ class LocusBreakerClumping:
             "studyId", "chromosome", "locusStart", "locusEnd"
         ).orderBy(f.col("negLogPValue").desc())
 
-        return StudyLocus(
-            _df=(
-                # Applying the baseline p-value cutoff:
-                summary_statistics.pvalue_filter(baseline_pvalue_cutoff)
+        clumped = (
+            # Applying the baseline p-value cutoff:
+            summary_statistics.pvalue_filter(baseline_pvalue_cutoff)
+            .df.select(
+                "studyId",
+                "variantId",
+                "chromosome",
+                "position",
                 # Calculating the neglog p-value for easier sorting:
-                .df.withColumn(
-                    "negLogPValue",
-                    neglogpval_from_pvalue(
-                        f.col("pValueMantissa"), f.col("pValueExponent")
+                neglogpval_from_pvalue(
+                    f.col("pValueMantissa"), f.col("pValueExponent")
+                ).alias("negLogPValue"),
+            )
+            # Calculating the distance between consecutive positions, then identifying the locus start and end:
+            .withColumn("next_position", f.lag(f.col("position")).over(w1))
+            .withColumn("distance", f.col("position") - f.col("next_position"))
+            .withColumn(
+                "locusStart",
+                f.when(
+                    (f.col("distance") > distance_cutoff) | f.col("distance").isNull(),
+                    f.col("position"),
+                ),
+            )
+            .withColumn(
+                "locusStart",
+                f.when(
+                    f.last(f.col("locusStart") - flanking_distance, True).over(
+                        w1.rowsBetween(-sys.maxsize, 0)
+                    )
+                    > 0,
+                    f.last(f.col("locusStart") - flanking_distance, True).over(
+                        w1.rowsBetween(-sys.maxsize, 0)
                     ),
-                )
-                # Calculating the distance between consecutive positions, then identifying the locus start and end:
-                .withColumn("next_position", f.lag(f.col("position")).over(w1))
-                .withColumn("distance", f.col("position") - f.col("next_position"))
-                .withColumn(
-                    "locusStart",
-                    f.when(
-                        (f.col("distance") > distance_cutoff)
-                        | f.col("distance").isNull(),
-                        f.col("position"),
-                    ),
-                )
-                .withColumn(
-                    "locusStart",
-                    f.when(
-                        f.last(f.col("locusStart") - flanking_distance, True).over(
-                            w1.rowsBetween(-sys.maxsize, 0)
-                        )
-                        > 0,
-                        f.last(f.col("locusStart") - flanking_distance, True).over(
-                            w1.rowsBetween(-sys.maxsize, 0)
-                        ),
-                    ).otherwise(f.lit(0)),
-                )
-                .withColumn(
-                    "locusEnd", f.max(f.col("position") + flanking_distance).over(w2)
-                )
-                .withColumn("rank", f.rank().over(w3))
-                .filter(
-                    (f.col("rank") == 1) & (f.col("negLogPValue") > neglog_pv_cutoff)
-                )
-                .select(
-                    *columns_sumstats_columns,
-                    # To make sure that the type of locusStart and locusEnd follows schema of StudyLocus:
-                    f.col("locusStart").cast(t.IntegerType()).alias("locusStart"),
-                    f.col("locusEnd").cast(t.IntegerType()).alias("locusEnd"),
-                    f.lit(None)
-                    .cast(t.ArrayType(t.StringType()))
-                    .alias("qualityControls"),
-                    StudyLocus.assign_study_locus_id(["studyId", "variantId"]),
-                )
-            ),
+                ).otherwise(f.lit(0)),
+            )
+            .withColumn(
+                "locusEnd", f.max(f.col("position") + flanking_distance).over(w2)
+            )
+            .withColumn("rank", f.rank().over(w3))
+            .filter((f.col("rank") == 1) & (f.col("negLogPValue") > neglog_pv_cutoff))
+            .select(
+                StudyLocus.assign_study_locus_id(["studyId", "variantId"]),
+                f.col("studyId"),
+                f.col("variantId"),
+                f.col("chromosome"),
+                f.col("position"),
+                f.lit(None).cast(t.ArrayType(t.StringType())).alias("qualityControls"),
+                # To make sure that the type of locusStart and locusEnd follows schema of StudyLocus:
+                f.col("locusStart").cast(t.IntegerType()).alias("locusStart"),
+                f.col("locusEnd").cast(t.IntegerType()).alias("locusEnd"),
+            )
+        )
+        return StudyLocus(
+            _df=clumped,
             _schema=StudyLocus.get_schema(),
         )
 
     @staticmethod
-    def process_locus_breaker_output(
+    def merge_lbc_with_wbc_for_large_loci(
         lbc: StudyLocus,
         wbc: StudyLocus,
         large_loci_size: int,
     ) -> StudyLocus:
-        """Process the locus breaker method result, and run window-based clumping on large loci.
+        """Merge LBC and WBC results, replacing large LBC loci with fixed-width WBC windows.
+
+        Small LBC loci (span ≤ large_loci_size) are kept as-is. Large LBC loci are dropped
+        and replaced by the WBC leads whose positions fall within those large loci boundaries,
+        each assigned a fixed-width window of large_loci_size centred on the lead position.
 
         Args:
-            lbc (StudyLocus): StudyLocus object from locus-breaker clumping.
-            wbc (StudyLocus): StudyLocus object from window-based clumping.
-            large_loci_size (int): the size to define large loci which should be broken with wbc.
+            lbc (StudyLocus): StudyLocus from locus-breaker clumping.
+            wbc (StudyLocus): StudyLocus from window-based clumping (run on the same sumstats).
+            large_loci_size (int): Span threshold in base pairs above which an LBC locus is
+                replaced by WBC leads. Also defines the fixed window half-width assigned to
+                those WBC leads (position ± large_loci_size // 2).
 
         Returns:
-            StudyLocus: clumped study loci with large loci broken by window-based clumping.
+            StudyLocus: Union of small LBC loci and re-windowed WBC leads from large LBC loci.
         """
         large_loci_size = int(large_loci_size)
         small_loci = lbc.filter(
