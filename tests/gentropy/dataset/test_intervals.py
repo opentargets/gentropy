@@ -2,6 +2,7 @@
 
 import pytest
 from pyspark.sql import DataFrame
+from pyspark.sql import functions as f
 
 from gentropy import Session
 from gentropy.dataset.biosample_index import BiosampleIndex
@@ -38,13 +39,13 @@ def contig_index(session: Session) -> ContigIndex:
 def target_index(session: Session) -> TargetIndex:
     """Get a mock target index."""
     data = [
-        ("ENSG1", "Gene1"),
-        ("ENSG2", "Gene2"),
-        ("ENSG3", "Gene3"),
-        ("ENSG4", "Gene4"),
-        ("ENSG5", "Gene5"),
+        ("ENSG1", "Gene1", ("t1", "1", 0, 1000, "+")),
+        ("ENSG2", "Gene2", ("t2", "1", 0, 1000, "+")),
+        ("ENSG3", "Gene3", ("t3", "2", 0, 1000, "+")),
+        ("ENSG4", "Gene4", ("t4", "2", 0, 1000, "+")),
+        ("ENSG5", "Gene5", ("t5", "3", 0, 1000, "+")),
     ]
-    schema = "id STRING, approvedSymbol STRING"
+    schema = "id STRING, approvedSymbol STRING, canonicalTranscript STRUCT<id: STRING, chromosome: STRING, start: LONG, end: LONG, strand: STRING>"
     df = session.spark.createDataFrame(data, schema=schema)
     return TargetIndex(df)
 
@@ -90,3 +91,39 @@ class TestIntervalDataset:
         # Assert there are no INVALID_CHROMOSOME in valid intervals
         assert valid.df.count() == 5, "Expected 5 valid intervals"
         assert invalid.df.count() == 1, "Expected 1 interval with INVALID_CHROMOSOME"
+
+    def test_validate_target_flags_trans_chromosomal_effect(
+        self,
+        session: Session,
+    ) -> None:
+        """Validate that chromosome mismatches between interval and gene are flagged."""
+        target_data = [
+            ("ENSG1", ("t1", "1", 0, 1000, "+")),
+            ("ENSG2", ("t2", "2", 0, 1000, "+")),
+        ]
+        target_schema = "id STRING, canonicalTranscript STRUCT<id: STRING, chromosome: STRING, start: LONG, end: LONG, strand: STRING>"
+        target_index = TargetIndex(
+            session.spark.createDataFrame(target_data, schema=target_schema)
+        )
+
+        interval_data = [
+            ("1", 100, 200, "ENSG1", "E2G", "promoter", "i1"),  # chr match
+            ("3", 150, 250, "ENSG1", "E2G", "enhancer", "i2"),  # chr mismatch
+            ("2", 300, 400, "ENSG2", "E2G", "intragenic", "i3"),  # chr match
+        ]
+        interval_schema = "chromosome STRING, start LONG, end LONG, geneId STRING, datasourceId STRING, intervalType STRING, intervalId STRING"
+        intervals = Intervals(
+            session.spark.createDataFrame(interval_data, schema=interval_schema)
+        )
+
+        result = intervals.validate_target(target_index)
+        flagged = result.df.filter(
+            f.array_contains(
+                f.col("qualityControls"),
+                "Interval chromosome does not match associated gene chromosome",
+            )
+        )
+        assert flagged.count() == 1, (
+            "Expected exactly 1 interval flagged as TRANS_CHROMOSOMAL_EFFECT"
+        )
+        assert flagged.first()["intervalId"] == "i2"

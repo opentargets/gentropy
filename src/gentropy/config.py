@@ -22,6 +22,13 @@ class SessionConfig:
     output_partitions: int = 200
     use_enhanced_bgzip_codec: bool = False
     dynamic_allocation: bool = True
+    log_level: str = "ERROR"
+    add_s3_connector: bool = False
+    add_gcs_connector: bool = False
+    s3_configuration: dict[str, str] | None = field(default_factory=dict[str, str])
+    gcs_configuration: dict[str, str] | None = field(default_factory=dict[str, str])
+    s3_configuration_path: str | None = None
+    gcs_configuration_path: str | None = None
     _target_: str = "gentropy.common.session.Session"
 
 
@@ -46,6 +53,65 @@ class ColocalisationConfig(StepConfig):
     gwas_v_qtl_overlap_only: bool = False
     colocalisation_method_params: dict[str, Any] = field(default_factory=dict[str, Any])
     _target_: str = "gentropy.colocalisation.ColocalisationStep"
+
+
+@dataclass
+class deCODEManifestGenerationConfig(StepConfig):
+    """deCODE data ingestion step configuration."""
+
+    bucket_name: str = MISSING
+    prefix: str = MISSING
+    output_path: str = MISSING
+    _target_: str = "gentropy.decode_ingestion.deCODEManifestGenerationStep"
+
+
+@dataclass
+class deCODESummaryStatisticsIngestionConfig(StepConfig):
+    """deCODE summary statistics ingestion step configuration."""
+
+    manifest_path: str = MISSING
+    raw_summary_statistics_path: str = MISSING
+    _target_: str = "gentropy.decode_ingestion.deCODESummaryStatisticsIngestionStep"
+
+
+@dataclass
+class deCODESummaryStatisticsHarmonisationConfig(StepConfig):
+    """deCODE summary statistics harmonisation step configuration."""
+
+    raw_summary_statistics_path: str = MISSING
+    manifest_path: str = MISSING
+    aptamer_metadata_path: str = MISSING
+    variant_direction_path: str = MISSING
+    molecular_complex_path: str = MISSING
+    # outputs
+    harmonised_summary_statistics_path: str = MISSING
+    protein_qtl_study_index_path: str = MISSING
+    # config
+    perform_min_allele_count_filter: bool = True
+    min_mac_threshold: int = 50
+    perform_sample_size_filter: bool = True
+    min_sample_size_threshold: int = 30_000
+    flipping_window_size: int = (
+        10_000_000  # must match variant_direction.DEFAULT_WINDOW_SIZE
+    )
+    remove_equal_alleles: bool = True
+    remove_ambiguous_alleles: bool = False
+    verify_atgc: bool = True
+    _target_: str = "gentropy.decode_ingestion.deCODESummaryStatisticsHarmonisationStep"
+
+
+@dataclass
+class deCODESummaryStatisticsQCConfig(StepConfig):
+    """deCODE summary statistics QC step configuration."""
+
+    # INPUTS
+    harmonised_summary_statistics_path: str = MISSING
+    protein_qtl_study_index_path: str = MISSING
+    # OUTPUTS
+    qc_summary_statistics_path: str = MISSING
+    protein_qtl_study_index_qc_annotated_path: str = MISSING
+    pval_threshold: float = 5e-8
+    _target_: str = "gentropy.decode_ingestion.deCODESummaryStatisticsQCStep"
 
 
 @dataclass
@@ -227,14 +293,11 @@ class LocusToGeneConfig(StepConfig):
     """Locus to gene step configuration."""
 
     run_mode: str = MISSING
-    credible_set_path: str = MISSING
-    feature_matrix_path: str = MISSING
+    credible_set_path: str | None = None
+    feature_matrix_path: str | None = None
     predictions_path: str | None = None
-    l2g_threshold: float | None = 0.05
-    variant_index_path: str | None = None
-    model_path: str | None = None
-    gold_standard_curation_path: str | None = None
-    gene_interactions_path: str | None = None
+    l2g_threshold: float = 0.05
+    model_path: str = "opentargets/locus_to_gene"
     features_list: list[str] = field(
         default_factory=lambda: [
             # max CLPP for each (study, locus, gene) aggregating over a specific qtl type
@@ -275,6 +338,9 @@ class LocusToGeneConfig(StepConfig):
             "geneCount500kb",
             "proteinGeneCount500kb",
             "credibleSetConfidence",
+            # trans-pQTL colocalisation via protein-protein interactions
+            "transPQtlColocH4Maximum",
+            "transPQtlColocH4MaximumNeighbourhood",
         ]
     )
     hyperparameters: dict[str, Any] = field(
@@ -290,13 +356,70 @@ class LocusToGeneConfig(StepConfig):
         }
     )
     wandb_run_name: str | None = None
-    hf_hub_repo_id: str | None = None
-    hf_model_commit_message: str | None = None
-    hf_model_version: str | None = None
+    hf_hub_repo_id: str = "locus_to_gene"
+    hf_model_commit_message: str = "chore: update model"
+    hf_model_version: str | None = None  # Latest commit is picked when provided None
     download_from_hub: bool = True
     cross_validate: bool = True
-    explain_predictions: bool | None = False
+    train_on_full_dataset: bool = False
+    explain_predictions: bool = False
+    wandb_credentials_path: str | None = None
+    hf_credentials_path: str | None = None
+    train_parquet_path: str | None = None
+    test_parquet_path: str | None = None
     _target_: str = "gentropy.l2g.LocusToGeneStep"
+
+
+@dataclass
+class LocusToGeneTrainTestSplitConfig(StepConfig):
+    """Configuration for the train/test split step that precedes L2G training."""
+
+    credible_set_path: str = MISSING
+    feature_matrix_path: str = MISSING
+    gold_standard_curation_path: str = MISSING
+    train_parquet_path: str = MISSING
+    test_parquet_path: str = MISSING
+    test_size: float = 0.15
+    variant_index_path: str | None = None
+    gene_interactions_path: str | None = None
+    predefined_test_parquet_path: str | None = None
+    split_stats_path: str | None = None
+    features_list: list[str] = field(
+        default_factory=lambda: [
+            "eQtlColocClppMaximum",
+            "pQtlColocClppMaximum",
+            "sQtlColocClppMaximum",
+            "eQtlColocH4Maximum",
+            "pQtlColocH4Maximum",
+            "sQtlColocH4Maximum",
+            "eQtlColocClppMaximumNeighbourhood",
+            "pQtlColocClppMaximumNeighbourhood",
+            "sQtlColocClppMaximumNeighbourhood",
+            "eQtlColocH4MaximumNeighbourhood",
+            "pQtlColocH4MaximumNeighbourhood",
+            "sQtlColocH4MaximumNeighbourhood",
+            "distanceSentinelFootprint",
+            "distanceSentinelFootprintNeighbourhood",
+            "distanceFootprintMean",
+            "distanceFootprintMeanNeighbourhood",
+            "distanceTssMean",
+            "distanceTssMeanNeighbourhood",
+            "distanceSentinelTss",
+            "distanceSentinelTssNeighbourhood",
+            "vepMaximum",
+            "vepMaximumNeighbourhood",
+            "vepMean",
+            "vepMeanNeighbourhood",
+            "e2gMean",
+            "e2gMeanNeighbourhood",
+            "geneCount500kb",
+            "proteinGeneCount500kb",
+            "credibleSetConfidence",
+            "transPQtlColocH4Maximum",
+            "transPQtlColocH4MaximumNeighbourhood",
+        ]
+    )
+    _target_: str = "gentropy.l2g.LocusToGeneTrainTestSplitStep"
 
 
 @dataclass
@@ -318,6 +441,7 @@ class LocusToGeneFeatureMatrixConfig(StepConfig):
     study_index_path: str | None = None
     target_index_path: str | None = None
     intervals_path: str | None = None
+    gene_interactions_path: str | None = None
     feature_matrix_path: str = MISSING
     features_list: list[str] = field(
         default_factory=lambda: [
@@ -360,6 +484,9 @@ class LocusToGeneFeatureMatrixConfig(StepConfig):
             "proteinGeneCount500kb",
             "credibleSetConfidence",
             "isProteinCoding",
+            # trans-pQTL colocalisation via protein-protein interactions
+            "transPQtlColocH4Maximum",
+            "transPQtlColocH4MaximumNeighbourhood",
         ]
     )
     append_null_features: bool = False
@@ -418,6 +545,21 @@ class FinngenUkbMvpMetaSummaryStatisticsIngestionConfig(StepConfig):
     _target_: str = (
         "gentropy.finngen_ukb_mvp_meta.FinngenUkbMvpMetaSummaryStatisticsIngestionStep"
     )
+
+
+@dataclass
+class GnomadVariantDirectionStepConfig(StepConfig):
+    """GnomAD variant direction step configuration."""
+
+    session: Any = field(
+        default_factory=lambda: {
+            "start_hail": True,
+        }
+    )
+    variant_index_path: str = MISSING
+    variant_direction_path: str = MISSING
+    window_size: int = 10_000_000
+    _target_: str = "gentropy.gnomad_ingestion.GnomadVariantDirectionStep"
 
 
 @dataclass
@@ -577,6 +719,7 @@ class WindowBasedClumpingStepConfig(StepConfig):
     collect_locus: bool = False
     collect_locus_distance: int = 500_000
     inclusion_list_path: str | None = None
+    recursive_file_lookup: bool = True
     _target_: str = "gentropy.window_based_clumping.WindowBasedClumpingStep"
 
 
@@ -661,6 +804,7 @@ class StudyValidationStepConfig(StepConfig):
     invalid_study_index_path: str = MISSING
     invalid_qc_reasons: list[str] = MISSING
     deprecated_project_ids: list[str] | None = None
+    heritability_input_path: str | None = None
     _target_: str = "gentropy.study_validation.StudyValidationStep"
 
 
@@ -705,6 +849,48 @@ class StudyLocusValidationStepConfig(StepConfig):
 
 
 @dataclass
+class HeritabilityEstimateConfig(StepConfig):
+    """Configuration for LDSC-based heritability estimation.
+
+    This wraps :class:`gentropy.ldsc.HeritabilityEstimateStep` and exposes
+    the parameters required for SNP-heritability estimation on summary statistics.
+    """
+
+    summary_statistics_input_path: str = MISSING
+    study_index_input_path: str = MISSING
+    ldscore_base_path: str = MISSING
+    heritability_output_path: str = MISSING
+    ldscore_template: str = "gnomad_r2.1.1_{ancestry}_hg38.csv.gz"
+    twostep: float = 30.0
+    n_blocks: int = 200
+    intercept: float | None = None
+    max_rows_for_collection: int = 15_000_000
+    m_ldsc_override: float | None = None
+    _target_: str = "gentropy.ldsc.HeritabilityEstimateStep"
+
+
+@dataclass
+class pQTLStudyIndexTransformationConfig(StepConfig):
+    """pQTL study index transformation step configuration."""
+
+    protein_study_index_path: str = MISSING
+    study_index_path: str = MISSING
+    target_index_path: str = MISSING
+    _target_: str = "gentropy.pqtl_study.pQTLStudyIndexTransformationStep"
+
+
+@dataclass
+class MolecularComplexIngestionConfig(StepConfig):
+    """Molecular complex ingestion step configuration."""
+
+    predicted_complex_tab_path: str = MISSING
+    experimental_complex_tab_path: str = MISSING
+    output_path: str = MISSING
+
+    _target_: str = "gentropy.molecular_complex.MolecularComplexIngestionStep"
+
+
+@dataclass
 class Config:
     """Application configuration."""
 
@@ -745,6 +931,11 @@ def register_config() -> None:
     cs.store(group="step", name="ld_based_clumping", node=LDBasedClumpingConfig)
     cs.store(group="step", name="ld_index", node=LDIndexConfig)
     cs.store(group="step", name="locus_to_gene", node=LocusToGeneConfig)
+    cs.store(
+        group="step",
+        name="locus_to_gene_train_test_split",
+        node=LocusToGeneTrainTestSplitConfig,
+    )
     cs.store(
         group="step",
         name="locus_to_gene_feature_matrix",
@@ -802,3 +993,41 @@ def register_config() -> None:
     cs.store(group="step", name="credible_set_qc", node=CredibleSetQCStepConfig)
     cs.store(group="step", name="foldx_integration", node=FoldXVariantAnnotationConfig)
     cs.store(group="step", name="interval_e2g", node=IntervalE2GStepConfig)
+    cs.store(
+        group="step", name="heritability_estimate", node=HeritabilityEstimateConfig
+    )
+    cs.store(
+        group="step",
+        name="pQTL_study_index_transformation",
+        node=pQTLStudyIndexTransformationConfig,
+    )
+    cs.store(
+        group="step",
+        name="molecular_complex_ingestion",
+        node=MolecularComplexIngestionConfig,
+    )
+    cs.store(
+        group="step",
+        name="decode_manifest_generation",
+        node=deCODEManifestGenerationConfig,
+    )
+    cs.store(
+        group="step",
+        name="decode_summary_statistics_ingestion",
+        node=deCODESummaryStatisticsIngestionConfig,
+    )
+    cs.store(
+        group="step",
+        name="decode_summary_statistics_harmonisation",
+        node=deCODESummaryStatisticsHarmonisationConfig,
+    )
+    cs.store(
+        group="step",
+        name="gnomad_variant_direction",
+        node=GnomadVariantDirectionStepConfig,
+    )
+    cs.store(
+        group="step",
+        name="decode_summary_statistics_qc",
+        node=deCODESummaryStatisticsQCConfig,
+    )

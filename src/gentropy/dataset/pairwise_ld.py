@@ -36,19 +36,19 @@ class PairwiseLD(Dataset):
         """
         row_count = self.df.count()
 
-        assert (
-            int(sqrt(row_count)) == sqrt(row_count)
-        ), f"The number of rows in a pairwise LD table has to be square. Got: {row_count}"
+        assert int(sqrt(row_count)) == sqrt(row_count), (
+            f"The number of rows in a pairwise LD table has to be square. Got: {row_count}"
+        )
 
         self.dimension = (int(sqrt(row_count)), int(sqrt(row_count)))
         super().__post_init__()
 
     @classmethod
     def get_schema(cls: type[PairwiseLD]) -> StructType:
-        """Provide the schema for the StudyIndex dataset.
+        """Provide the schema for the dataset.
 
         Returns:
-            StructType: The schema of the StudyIndex dataset.
+            StructType: The schema of the dataset.
         """
         return parse_spark_schema("pairwise_ld.json")
 

@@ -17,3 +17,7 @@ hail*.log
 .python-version
 .idea
 .venv/
+notebooks
+assets/*
+inter_data
+decode_secret.json

@@ -1,0 +1,371 @@
+r"""deCODE ingestion step.
+
+## Process overview
+
+The ingestion pipeline for the deCODE dataset consists of the following steps, which
+must be executed in order:
+
+
+1. **Generate the manifest** from the bucket listing using `deCODEManifestGenerationStep`.
+2. **Ingest protein-complex data** from predicted and experimental files using `MolecularComplexIngestionStep`.
+3. **Ingest raw summary statistics** from the `txt.gz` files to Parquet using `deCODESummaryStatisticsIngestionStep`.
+4. **Harmonise summary statistics** (including pQTL study-index creation) using `deCODESummaryStatisticsHarmonisationStep`.
+5. **Run summary-statistics QC** and annotate the pQTL study index using `deCODESummaryStatisticsQCStep`.
+6. **Transform the QC-annotated pQTL study index** into a standard study index using `pQTLStudyIndexTransformationStep`.
+
+!!! note "Filtering variants"
+    During the harmonisation step, variants with minor allele count (MAC) below the configured
+    threshold (default 50) and sample size below the configured threshold (default 30,000) can be
+    discarded to ensure sufficient statistical power and to reduce false positives. Both filters
+    are optional and controlled by ``perform_min_allele_count_filter`` and
+    ``perform_sample_size_filter`` in the step configuration.
+
+!!! note "Allele flipping"
+    The harmonisation step includes allele flipping based on the gnomAD EUR allele frequency:
+
+    - If the allele exists in gnomAD, it is harmonised to the gnomAD allele order.
+    - If the allele does not exist in gnomAD, it is kept as-is (no flip).
+    - If the allele is strand-ambiguous it is kept as in gnomAD, or retained as-is if not in gnomAD.
+
+
+!!! note "Effect Allele frequency"
+    Because deCODE summary statistics report only the minor allele frequency _m_, the
+    effect allele frequency is **inferred using gnomAD EUR allele frequency** _e_:
+
+    ```math
+        \begin{aligned}
+        d_1 &:= |e - m|, \\
+        d_2 &:= |(1 - e) - m|, \\
+        \text{effectAlleleFrequencyFromSource} &=
+        \begin{cases}
+        m, & \text{if } e \text{ is null},\\[4pt]
+        m, & \text{if } d_1 \le d_2,\\[4pt]
+        1 - m, & \text{otherwise}.
+        \end{cases}
+        \end{aligned}
+    ```
+
+## Data flow
+
+```mermaid
+flowchart TD
+  subgraph INPUTS
+    A3[AptamerMetadata]
+    A4[gnomAD VariantDirection]
+    A5[predicted_complex_tab]
+    A6[experimental_complex_tab]
+    A7[TargetIndex]
+  end
+
+  subgraph OUTPUTS
+    O1[harmonised_summary_statistics]
+    O2[protein_qtl_study_index]
+    O3[qc_summary_statistics]
+    O4[study_index]
+  end
+
+    MGEN[deCODEManifestGenerationStep] --> P1[manifest]
+
+    A5 --> MCGEN[MolecularComplexIngestionStep]
+    A6 --> MCGEN
+    MCGEN --> P2[molecular_complex]
+
+    P1 --> INGEST[deCODESummaryStatisticsIngestionStep]
+    INGEST --> P3[raw_summary_statistics]
+
+    P3 --> HARM[deCODESummaryStatisticsHarmonisationStep]
+    P1 --> HARM
+    A3 --> HARM
+    A4 --> HARM
+    P2 --> HARM
+
+    HARM --> O1
+    HARM --> O2
+
+    O1 --> QC[deCODESummaryStatisticsQCStep]
+    O2 --> QC
+    QC --> O3
+    QC --> O2B[protein_qtl_study_index_qc_annotated]
+
+    O2B --> TRANS[pQTLStudyIndexTransformationStep]
+    A7 --> TRANS
+    TRANS --> O4
+
+    classDef parquet fill:#bd757c,stroke:#73343A,color:#333
+    class A3,A4,A5,A6,A7,P1,P2,P3,O1,O2,O2B,O3,O4 parquet
+```
+
+??? tip "Inputs"
+    - [x] **AptamerMetadata** — SomaScan study table mapping aptamer IDs to gene symbols and UniProt IDs.
+    - [x] **gnomAD VariantDirection** — used for allele flipping and EAF inference during harmonisation.
+    - [x] **Protein-complex tables** — predicted and experimental files for `MolecularComplexIngestionStep`.
+    - [x] **TargetIndex** — Ensembl gene annotations used by `pQTLStudyIndexTransformationStep`.
+
+??? tip "Outputs"
+    This pipeline produces 4 artefacts:
+
+    - [x] **harmonised_summary_statistics** — harmonised summary statistics in Parquet format.
+    - [x] **protein_qtl_study_index** — pQTL study index annotated with QC values.
+    - [x] **qc_summary_statistics** — per-study summary-statistics QC metrics in Parquet format.
+    - [x] **study_index** — standard study index with resolved Ensembl gene IDs.
+
+"""
+
+from __future__ import annotations
+
+from gentropy import (
+    Session,
+    SummaryStatistics,
+    SummaryStatisticsQC,
+)
+from gentropy.dataset.molecular_complex import MolecularComplex
+from gentropy.dataset.study_index import ProteinQuantitativeTraitLocusStudyIndex
+from gentropy.dataset.variant_direction import DEFAULT_WINDOW_SIZE, VariantDirection
+from gentropy.datasource.decode.aptamer_metadata import AptamerMetadata
+from gentropy.datasource.decode.manifest import deCODEManifest
+from gentropy.datasource.decode.study_index import deCODEStudyIndex
+from gentropy.datasource.decode.summary_statistics import (
+    deCODEHarmonisationConfig,
+    deCODESummaryStatistics,
+)
+
+
+class deCODEManifestGenerationStep:
+    """Build the deCODE manifest Parquet dataset by listing the S3 bucket directly.
+
+    This step should be run **once** to produce a manifest that is consumed by all
+    downstream ingestion steps.  The session must be configured with
+    ``add_s3_connector=True`` using credentials requested from
+    https://www.decode.com/summarydata/ (see :class:`~gentropy.external.s3.S3Config`).
+
+    See `deCODEManifest.from_s3` for details.
+    """
+
+    def __init__(
+        self,
+        session: Session,
+        bucket_name: str,
+        prefix: str,
+        output_path: str,
+    ) -> None:
+        """Initialise and execute the deCODE manifest generation step.
+
+        Args:
+            session (Session): Active Gentropy Spark session with S3 connector configured.
+            bucket_name (str): Name of the S3 bucket to list (without any URI prefix).
+            prefix (str): Key prefix to restrict the listing (e.g. ``"Proteomics/"``).
+            output_path (str): Destination path for the manifest Parquet dataset.
+        """
+        manifest = deCODEManifest.from_s3(
+            session=session,
+            prefix=prefix,
+            bucket_name=bucket_name,
+        )
+        manifest.df.repartition(1).write.mode(session.write_mode).parquet(output_path)
+
+
+class deCODESummaryStatisticsIngestionStep:
+    """Ingest deCODE summary statistics from gzipped TSV files into Parquet format.
+
+    Reads all summary-statistics paths recorded in the manifest and converts them
+    in parallel (up to `deCODESummaryStatistics.N_THREAD_MAX`
+    concurrent threads) from the deCODE S3 bucket into a single partitioned Parquet dataset.
+
+    The session must be configured with
+    ``add_s3_connector=True`` using credentials requested from
+    https://www.decode.com/summarydata/ (see :class:`~gentropy.external.s3.S3Config`).
+    """
+
+    def __init__(
+        self,
+        session: Session,
+        manifest_path: str,
+        raw_summary_statistics_path: str,
+    ) -> None:
+        """Initialise and execute the deCODE summary-statistics ingestion step.
+
+        Args:
+            session (Session): Active Gentropy Spark session with S3 connectivity
+                configured via the Hadoop AWS connector (see class docstring).
+            manifest_path (str): Path to the manifest Parquet dataset produced
+                by `deCODEManifestGenerationStep`.
+            raw_summary_statistics_path (str): Destination path for the raw summary
+                statistics Parquet dataset, partitioned by ``studyId``.
+        """
+        manifest = deCODEManifest.from_parquet(session, manifest_path)
+        summary_statistics_paths = manifest.get_summary_statistics_paths()
+        deCODESummaryStatistics.txtgz_to_parquet(
+            session=session,
+            summary_statistics_list=summary_statistics_paths,
+            raw_summary_statistics_output_path=raw_summary_statistics_path,
+            n_threads=deCODESummaryStatistics.N_THREAD_MAX,
+        )
+
+
+class deCODESummaryStatisticsHarmonisationStep:
+    """Harmonise ingested deCODE summary statistics and generate the pQTL study index.
+
+    The step performs the following operations in sequence:
+
+    1. Builds the `ProteinQuantitativeTraitLocusStudyIndex`
+       from the manifest, aptamer metadata, and molecular-complex datasets.
+    2. Runs the harmonisation pipeline (`deCODESummaryStatistics.from_source`)
+       which includes schema alignment, MAC/sample-size filtering, allele flipping
+       against gnomAD EUR AF, EAF inference, sanity filtering, and study-ID update.
+    QC calculation and study-index QC annotation are executed in
+    `deCODESummaryStatisticsQCStep`.
+    """
+
+    def __init__(
+        self,
+        session: Session,
+        # inputs
+        raw_summary_statistics_path: str,
+        manifest_path: str,
+        aptamer_metadata_path: str,
+        variant_direction_path: str,
+        molecular_complex_path: str,
+        # outputs
+        harmonised_summary_statistics_path: str,
+        protein_qtl_study_index_path: str,
+        # config
+        perform_min_allele_count_filter: bool = True,
+        min_mac_threshold: int = 50,
+        perform_sample_size_filter: bool = True,
+        min_sample_size_threshold: int = 30_000,
+        flipping_window_size: int = DEFAULT_WINDOW_SIZE,
+        remove_equal_alleles: bool = True,
+        remove_ambiguous_alleles: bool = False,
+        verify_atgc: bool = True,
+    ) -> None:
+        """Initialise and execute the deCODE summary-statistics harmonisation step.
+
+        Args:
+            session (Session): Active Gentropy Spark session.
+            raw_summary_statistics_path (str): Path to the raw summary-statistics Parquet
+                dataset produced by `deCODESummaryStatisticsIngestionStep`.
+            manifest_path (str): Path to the manifest Parquet dataset produced by
+                `deCODEManifestGenerationStep`.
+            aptamer_metadata_path (str): Path to the aptamer metadata TSV file.
+            variant_direction_path (str): Path to the gnomAD
+                `VariantDirection` Parquet dataset
+                used for allele flipping and EAF inference.
+            molecular_complex_path (str): Path to the molecular-complex Parquet dataset
+                produced by `MolecularComplexIngestionStep`.
+            harmonised_summary_statistics_path (str): Destination path for the harmonised
+                summary-statistics Parquet dataset, partitioned by ``studyId``.
+            protein_qtl_study_index_path (str): Destination path for the pQTL study index
+                Parquet dataset annotated with QC results.
+            perform_min_allele_count_filter (bool): Whether to apply the MAC threshold filter.
+            min_mac_threshold (int): Minimum minor allele count (MAC) required to retain a
+                variant.
+            perform_sample_size_filter (bool): Whether to apply the sample-size threshold filter.
+            min_sample_size_threshold (int): Minimum sample size required to retain a variant.
+            flipping_window_size (int): Genomic window size (bp) used to partition the
+                VariantDirection dataset for the allele-flipping join.  Must match the value
+                used when building the VariantDirection dataset.
+            remove_equal_alleles (bool): Whether to remove variants with equal effect and other alleles during harmonisation.
+            remove_ambiguous_alleles (bool): Whether to exclude strand-ambiguous variants (A/T or C/G)
+                from the gnomAD reference slice used for allele flipping. Ambiguous sumstat variants
+                that have no gnomAD match are still retained in the output with no flip applied.
+            verify_atgc (bool): Whether to verify that all alleles are A/T/G/C during harmonisation.
+                Strict ATGC validation also removes `*` (star) and `!` (multiallelic) alleles.
+
+        The harmonisation parameters have in-code defaults that mirror the values
+        in the Hydra step config
+        (`gentropy.config.deCODESummaryStatisticsHarmonisationConfig`).
+        When invoking via Hydra, the config values take precedence.
+        """
+        config = deCODEHarmonisationConfig(
+            perform_min_allele_count_filter=perform_min_allele_count_filter,
+            min_allele_count_threshold=min_mac_threshold,
+            perform_sample_size_filter=perform_sample_size_filter,
+            sample_size_threshold=min_sample_size_threshold,
+            flipping_window_size=flipping_window_size,
+            remove_monomorphic_alleles=remove_equal_alleles,
+            remove_ambiguous_alleles=remove_ambiguous_alleles,
+            verify_atgc=verify_atgc,
+        )
+
+        # 1. Produce the PQTLStudyIndex
+        m = deCODEManifest.from_parquet(session, manifest_path).persist()
+        mc = MolecularComplex.from_parquet(session, molecular_complex_path).persist()
+        am = AptamerMetadata.from_source(session, aptamer_metadata_path).persist()
+        _pqtl_si = deCODEStudyIndex.from_manifest(m, am, mc).persist()
+        m.unpersist()
+        am.unpersist()
+        mc.unpersist()
+
+        # 2. Produce harmonised summary statistics
+        gvd = VariantDirection.from_parquet(session, variant_direction_path)
+        rss = session.spark.read.parquet(raw_summary_statistics_path)
+        hss, pqtl_si = deCODESummaryStatistics.from_source(rss, gvd, _pqtl_si, config)
+
+        # Repartition by studyId immediately before the write so each Spark
+        # partition writes exactly one studyId directory. Without this, the
+        # sanity_filter shuffle upstream leaves rows for a given studyId spread
+        # across every task, and partitionBy("studyId") emits one small file
+        # per (task, studyId) pair — potentially millions of tiny files, and
+        # each task holds many open output buffers simultaneously (OOM risk on
+        # primary workers under EFM). See 2026-07-03 failure investigation.
+        # sortWithinPartitions (not a global sort) then orders each per-study
+        # file by genomic position so downstream readers can skip row groups
+        # on position range queries without paying for a full shuffle.
+        (
+            hss.df.repartition("studyId")
+            .sortWithinPartitions("chromosome", "position", "variantId")
+            .write.mode(session.write_mode)
+            .partitionBy("studyId")
+            .option("maxRecordsPerFile", 50_000_000)
+            .parquet(harmonised_summary_statistics_path)
+        )
+        pqtl_si.df.coalesce(1).write.mode(session.write_mode).parquet(
+            protein_qtl_study_index_path
+        )
+
+
+class deCODESummaryStatisticsQCStep:
+    """Step to calculate quality control metrics on the harmonised deCODE summary statistics."""
+
+    def __init__(
+        self,
+        session: Session,
+        # inputs
+        harmonised_summary_statistics_path: str,
+        protein_qtl_study_index_path: str,
+        # outputs
+        qc_summary_statistics_path: str,
+        protein_qtl_study_index_qc_annotated_path: str,
+        # config
+        pval_threshold: float = 5e-8,
+    ):
+        """Run quality control on the harmonised deCODE summary statistics and annotate the pQTL study index with QC results.
+
+        Args:
+            session (Session): Active Gentropy Spark session.
+            harmonised_summary_statistics_path (str): Path to the harmonised summary-statistics Parquet dataset produced by `deCODESummaryStatisticsHarmonisationStep`.
+            protein_qtl_study_index_path (str): Path to the pQTL study index Parquet dataset produced by `deCODESummaryStatisticsHarmonisationStep`.
+            qc_summary_statistics_path (str): Destination path for the QC summary-statistics Parquet dataset, partitioned by ``studyId``.
+            protein_qtl_study_index_qc_annotated_path (str): Destination path for the pQTL study index Parquet dataset annotated with QC results.
+            pval_threshold (float): P-value threshold used to define significant variants for QC purposes. Defaults to 5e-8.
+
+        """
+        hss = SummaryStatistics.from_parquet(
+            session, harmonised_summary_statistics_path
+        ).persist()
+        hss_qc = SummaryStatisticsQC.from_summary_statistics(
+            hss, pval_threshold
+        ).persist()
+        hss.unpersist()
+        pqtl_si = ProteinQuantitativeTraitLocusStudyIndex.from_parquet(
+            session, protein_qtl_study_index_path
+        ).persist()
+        hss_qc.df.coalesce(1).write.mode(session.write_mode).parquet(
+            qc_summary_statistics_path
+        )
+        (
+            pqtl_si.annotate_sumstats_qc(hss_qc)
+            .df.coalesce(1)
+            .write.mode(session.write_mode)
+            .parquet(protein_qtl_study_index_qc_annotated_path)
+        )
