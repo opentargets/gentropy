@@ -97,9 +97,9 @@ class LocusToGeneTrainer:
             and self.y_train is not None
             and self.features_list is not None
         ):
-            assert (
-                self.x_train.size != 0 and self.y_train.size != 0
-            ), "Train data not set, nothing to fit."
+            assert self.x_train.size != 0 and self.y_train.size != 0, (
+                "Train data not set, nothing to fit."
+            )
             fitted_model = self.model.model.fit(X=self.x_train, y=self.y_train)
             self.model = LocusToGeneModel(
                 model=fitted_model,
@@ -196,9 +196,9 @@ class LocusToGeneTrainer:
             or self.features_list is None
         ):
             raise RuntimeError("Train data not set, we cannot log to W&B.")
-        assert (
-            self.x_train.size != 0 and self.y_train.size != 0
-        ), "Train data not set, nothing to evaluate."
+        assert self.x_train.size != 0 and self.y_train.size != 0, (
+            "Train data not set, nothing to evaluate."
+        )
         fitted_classifier = self.model.model
         y_predicted = fitted_classifier.predict(self.x_test)
         y_probas = fitted_classifier.predict_proba(self.x_test)
@@ -277,32 +277,54 @@ class LocusToGeneTrainer:
         cross_validate: bool = True,
         n_splits: int = 5,
         hyperparameter_grid: dict[str, Any] | None = None,
+        train_on_full_dataset: bool = False,
+        presplit_train_df: pd.DataFrame | None = None,
+        presplit_test_df: pd.DataFrame | None = None,
     ) -> LocusToGeneModel:
         """Train the Locus to Gene model.
 
-        If cross_validation is set to True, we implement the following strategy:
-            1. Create held-out test set
-            2. Perform cross-validation on training set
-            3. Train final model on full training set
-            4. Evaluate once on test set
+        The training strategy is as follows:
+            1. Create held-out test set via hierarchical splitting (or use pre-split DataFrames)
+            2. Optionally perform cross-validation on the training set
+            3. Train model on the training set (held-out set excluded)
+            4. Evaluate once on the held-out test set — this is the reported benchmark
+            5. Optionally retrain on the full dataset (train + held-out) for the saved model
+
+        Step 5 follows the standard practice of using train/test splits exclusively for
+        honest evaluation, then retraining on all available labelled data before saving.
+        The rationale is that the held-out set gives an unbiased performance estimate, but
+        withholding it from the final model needlessly discards signal — more training data
+        consistently improves generalisation. The reported metrics are always from step 4
+        and are not affected by whether step 5 runs.
 
         Args:
             wandb_run_name (str | None): Name of the W&B run. Unless this is provided, the model will not be logged to W&B.
-            test_size (float): Proportion of the test set
+            test_size (float): Proportion of the test set. Ignored when ``presplit_train_df`` and ``presplit_test_df`` are provided.
             cross_validate (bool): Whether to run cross-validation. Defaults to True.
             n_splits(int): Number of folds the data is splitted in. The model is trained and evaluated `k - 1` times. Defaults to 5.
             hyperparameter_grid (dict[str, Any] | None): Hyperparameter grid to sweep over. Defaults to None.
+            train_on_full_dataset (bool): Whether to retrain the final saved model on the full dataset (train + held-out) after evaluation. Defaults to False.
+            presplit_train_df (pd.DataFrame | None): Pre-split training DataFrame with labels already encoded as integers. When provided together with ``presplit_test_df``, the internal ``generate_train_test_split`` call is skipped.
+            presplit_test_df (pd.DataFrame | None): Pre-split test DataFrame with labels already encoded as integers. See ``presplit_train_df``.
 
         Returns:
             LocusToGeneModel: Fitted model
         """
-        # Create held-out test set using hierarchical splitting
-        self.train_df, self.test_df = self.feature_matrix.generate_train_test_split(
-            test_size=test_size,
-            verbose=True,
-            label_encoder=self.model.label_encoder,
-            label_col=self.feature_matrix.label_col,
-        )
+        if (presplit_train_df is None) != (presplit_test_df is None):
+            raise ValueError(
+                "presplit_train_df and presplit_test_df must both be provided, or neither."
+            )
+        if presplit_train_df is not None and presplit_test_df is not None:
+            self.train_df = presplit_train_df
+            self.test_df = presplit_test_df
+        else:
+            # Create held-out test set using hierarchical splitting
+            self.train_df, self.test_df = self.feature_matrix.generate_train_test_split(
+                test_size=test_size,
+                verbose=True,
+                label_encoder=self.model.label_encoder,
+                label_col=self.feature_matrix.label_col,
+            )
         self.x_train = self.train_df[self.features_list].apply(pd.to_numeric).values
         self.y_train = (
             self.train_df[self.feature_matrix.label_col].apply(pd.to_numeric).values
@@ -321,13 +343,11 @@ class LocusToGeneTrainer:
                 n_splits=n_splits,
             )
 
-        # Train final model on full training set
+        # Train model on training set and evaluate on held-out test set
         self.fit()
 
-        # Evaluate once on hold out test set
         if wandb_run_name:
-            wandb_run_name = f"{wandb_run_name}-holdout"
-            self.log_to_wandb(wandb_run_name)
+            self.log_to_wandb(f"{wandb_run_name}-holdout")
         else:
             self.log_to_terminal(
                 eval_id="Hold-out",
@@ -337,6 +357,31 @@ class LocusToGeneTrainer:
                     y_pred_proba=self.model.model.predict_proba(self.x_test),
                 ),
             )
+
+        # Retrain on full dataset so the saved model benefits from all labelled data.
+        # Evaluation above is already complete and unaffected by this step.
+        if train_on_full_dataset:
+            logging.info(
+                "Retraining final model on full dataset (train + held-out). "
+                "Reported metrics reflect held-out performance only."
+            )
+            if (
+                self.x_train is None
+                or self.x_test is None
+                or self.y_train is None
+                or self.y_test is None
+            ):
+                raise ValueError(
+                    "Training and test arrays must be initialised before retraining "
+                    "on the full dataset."
+                )
+            self.x_train = np.vstack((self.x_train, self.x_test))
+            self.y_train = np.concatenate((self.y_train, self.y_test))
+            self.fit()
+            if wandb_run_name:
+                self.x_test = self.x_train
+                self.y_test = self.y_train
+                self.log_to_wandb(f"{wandb_run_name}-full-dataset")
 
         return self.model
 

@@ -498,6 +498,57 @@ class StudyIndex(Dataset):
         return StudyIndex(_df=validated_df, _schema=StudyIndex.get_schema())
 
     @qc_test
+    def collect_heritability(
+        self: StudyIndex, heritability_df: DataFrame
+    ) -> StudyIndex:
+        """Collecting heritability information from LDSC results into sumstatQCValues.
+
+        Args:
+            heritability_df (DataFrame): A dataframe containing heritability information for a subset of studies.
+
+        Returns:
+            StudyIndex: with LDSC heritability values appended to sumstatQCValues.
+        """
+        ldsc_fields = {
+            "h2": "LDSC_SNP-h2",
+            "h2_se": "LDSC_SNP-h2_se",
+            "intercept": "LDSC_intercept",
+            "intercept_se": "LDSC_intercept_se",
+            "mean_chisq": "LDSC_mean_chisq",
+            "lambda_gc": "LDSC_gc_lambda",
+        }
+
+        h2_annotations = heritability_df.filter(f.col("runStatus") == "success").select(
+            "studyId",
+            f.array(
+                *[
+                    f.struct(
+                        f.lit(label).alias("QCCheckName"),
+                        f.col(field).cast("float").alias("QCCheckValue"),
+                    )
+                    for field, label in ldsc_fields.items()
+                ]
+            ).alias("ldsc_qc"),
+        )
+
+        merged = (
+            self.df.join(h2_annotations, on="studyId", how="left")
+            .withColumn(
+                "sumstatQCValues",
+                f.when(
+                    f.col("ldsc_qc").isNotNull(),
+                    f.when(
+                        f.col("sumstatQCValues").isNotNull(),
+                        f.concat(f.col("sumstatQCValues"), f.col("ldsc_qc")),
+                    ).otherwise(f.col("ldsc_qc")),
+                ).otherwise(f.col("sumstatQCValues")),
+            )
+            .drop("ldsc_qc")
+        )
+
+        return StudyIndex(_df=merged, _schema=StudyIndex.get_schema())
+
+    @qc_test
     def validate_biosample(
         self: StudyIndex, biosample_index: BiosampleIndex
     ) -> StudyIndex:
@@ -901,7 +952,7 @@ class ProteinQuantitativeTraitLocusStudyIndex(StudyIndex):
         _symbol_annot_si = (
             self.df.withColumn("targetFromSource", f.explode("targetsFromSource"))
             .select(
-                *StudyIndex.get_schema().fieldNames(),
+                *[n for n in StudyIndex.get_schema().fieldNames() if n != "geneId"],
                 f.col("targetFromSource.geneId").alias("geneIdFromSource"),
                 f.col("targetFromSource.geneSymbol").alias("geneSymbol"),
                 f.col("targetFromSource.proteinId").alias("proteinId"),
@@ -932,5 +983,71 @@ class ProteinQuantitativeTraitLocusStudyIndex(StudyIndex):
 
         return StudyIndex(
             _df=non_ambiguous_df.unionByName(ambiguous_df),
+            _schema=StudyIndex.get_schema(),
+        )
+
+
+class MetaAnalysisStudyIndex(StudyIndex):
+    """Meta-analysis study index dataset.
+
+    A meta-analysis study index dataset captures all the metadata for meta-analysis studies.
+    This studyIndex defines additional fields capturing nCases and nSamples per individual cohorts.
+    """
+
+    @classmethod
+    def get_schema(cls) -> t.StructType:
+        """Get the Spark schema for the manifest DataFrame.
+
+        Returns:
+            t.StructType: Spark schema for the manifest DataFrame.
+        """
+        return (
+            super()
+            .get_schema()
+            .add(
+                t.StructField(
+                    "nSamplesPerCohort",
+                    t.ArrayType(
+                        t.StructType(
+                            [
+                                t.StructField("cohort", t.StringType(), nullable=False),
+                                t.StructField(
+                                    "nSamples", t.IntegerType(), nullable=False
+                                ),
+                            ]
+                        )
+                    ),
+                    nullable=False,
+                )
+            )
+            .add(
+                t.StructField(
+                    "nCasesPerCohort",
+                    t.ArrayType(
+                        t.StructType(
+                            [
+                                t.StructField("cohort", t.StringType(), nullable=False),
+                                t.StructField(
+                                    "nCases", t.IntegerType(), nullable=False
+                                ),
+                            ]
+                        )
+                    ),
+                    # Only relevant for binary traits
+                    nullable=True,
+                )
+            )
+        )
+
+    def to_study(self: MetaAnalysisStudyIndex) -> StudyIndex:
+        """Convert MetaAnalysisStudyIndex to StudyIndex.
+
+        This method maps the meta-analysis-specific fields to the corresponding fields in the StudyIndex dataset and returns a StudyIndex instance.
+
+        Returns:
+            StudyIndex: A StudyIndex instance with mapped fields from MetaAnalysisStudyIndex.
+        """
+        return StudyIndex(
+            _df=self.df.select(StudyIndex.get_schema().fieldNames()),
             _schema=StudyIndex.get_schema(),
         )

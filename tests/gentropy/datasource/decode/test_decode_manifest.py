@@ -12,8 +12,6 @@ from gentropy.datasource.decode.manifest import deCODEManifest
 class TestdeCODEManifest:
     """Test methods of deCODEManifest."""
 
-    listing_path = "tests/gentropy/data_samples/aws_bucket_listing.txt"
-    s3_config_path = "tests/gentropy/data_samples/example_s3_config.json"
     expected_rows = [
         Row(
             projectId="deCODE-proteomics-smp",
@@ -33,14 +31,28 @@ class TestdeCODEManifest:
         ),
     ]
 
+    # Pre-collected listing rows: (summarystatsLocation, size_str, mod_time_ms).
+    # ms values are computed from the expected local datetimes so the test is
+    # independent of the JVM/Spark timezone configuration.
+    _listing_rows: list[tuple[str, str, int]] = [
+        (
+            "s3a://my_bucket/some_folder/Proteomics_SMP_PC0_10000_2_GENE1_PROTEIN1_00000001.txt.gz",
+            "927.2 MiB",
+            int(datetime(2022, 5, 29, 9, 27, 28).timestamp() * 1000),
+        ),
+        (
+            "s3a://my_bucket/some_folder/Proteomics_PC0_10001_1_GENE2__SOME_PROTEIN_2_00000001.txt.gz",
+            "926.0 MiB",
+            int(datetime(2022, 5, 29, 9, 27, 35).timestamp() * 1000),
+        ),
+    ]
+
     def test_manifest_from_bucket_listing(self, session: Session) -> None:
-        """Test building manifest from bucket listing."""
-        manifest = deCODEManifest.from_bucket_listing(
-            session, self.listing_path, self.s3_config_path
-        )
+        """Test _rows_to_manifest transforms listing rows into the expected manifest."""
+        manifest = deCODEManifest._rows_to_manifest(session, self._listing_rows)
+
         assert isinstance(manifest, deCODEManifest), "should return deCODEManifest"
         assert manifest.df.count() == 2, "should have 2 entries"
-
         assert manifest.df.collect() == self.expected_rows, (
             "should collect expected rows"
         )
