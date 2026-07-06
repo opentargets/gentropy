@@ -32,7 +32,7 @@ from gentropy.dataset.l2g_features.distance import (
     DistanceTssMeanFeature,
     DistanceTssMeanNeighbourhoodFeature,
 )
-from gentropy.dataset.l2g_features.l2g_feature import L2GFeature
+from gentropy.dataset.l2g_features.l2g_feature import FeatureDependencyType, L2GFeature
 from gentropy.dataset.l2g_features.other import (
     CredibleSetConfidenceFeature,
     GeneCountFeature,
@@ -68,22 +68,25 @@ class L2GFeatureInputLoader:
         self.input_dependencies = {k: v for k, v in kwargs.items() if v is not None}
 
     def get_dependency_by_type(
-        self, dependency_type: list[Any] | Any
+        self, dependency_type: FeatureDependencyType
     ) -> dict[str, Any]:
         """Returns the dependency that matches the provided type.
 
         Args:
-            dependency_type (list[Any] | Any): type(s) of the dependency to return.
+            dependency_type (FeatureDependencyType): type(s) of the dependency to return.
 
         Returns:
             dict[str, Any]: dictionary of dependenci(es) that match the provided type(s).
         """
-        if not isinstance(dependency_type, list):
-            dependency_type = [dependency_type]
+        dependency_types = (
+            (dependency_type,)
+            if isinstance(dependency_type, type)
+            else tuple(dependency_type)
+        )
         return {
             k: v
             for k, v in self.input_dependencies.items()
-            if isinstance(v, tuple(dependency_type))
+            if isinstance(v, dependency_types)
         }
 
     def __iter__(self) -> Iterator[tuple[str, Any]]:
@@ -199,6 +202,8 @@ class FeatureFactory:
         # Extract feature class and dependency type
         feature_cls = self.feature_mapper[feature_name]
         feature_dependency_type = feature_cls.feature_dependency_type
+        if feature_dependency_type is None:
+            raise ValueError(f"Feature {feature_name} has no dependency type.")
         return feature_cls.compute(
             study_loci_to_annotate=self.study_loci_to_annotate,
             feature_dependency=features_input_loader.get_dependency_by_type(
