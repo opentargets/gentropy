@@ -21,6 +21,7 @@ class WindowBasedClumpingStep:
         collect_locus_distance: int = WindowBasedClumpingStepConfig().collect_locus_distance,
         inclusion_list_path: str
         | None = WindowBasedClumpingStepConfig().inclusion_list_path,
+        recursive_file_lookup: bool = WindowBasedClumpingStepConfig().recursive_file_lookup,
     ) -> None:
         """Run window-based clumping step.
 
@@ -33,23 +34,25 @@ class WindowBasedClumpingStep:
             collect_locus (bool): Whether to collect locus around semi-indices. Optional.
             collect_locus_distance (int): Distance, within which tagging variants are collected around the semi-index. Optional.
             inclusion_list_path (str | None): Path to the inclusion list (list of white-listed study identifier). Optional.
+            recursive_file_lookup (bool): Whether to recursively look for summary statistics files in the input path. Defaults to `True`.
+                Note that if an inclusion list is provided, this flag is set to `True` always.
 
         Check WindowBasedClumpingStepConfig object for default values.
         """
         # If inclusion list path is provided, only these studies will be read:
         if inclusion_list_path:
             study_ids_to_ingest = [
-                f'{summary_statistics_input_path}/{row["studyId"]}.parquet'
+                f"{summary_statistics_input_path}/{row['studyId']}.parquet"
                 for row in session.spark.read.parquet(inclusion_list_path).collect()
             ]
+            # Force recursive file lookup if inclusion list is provided
+            recursive_file_lookup = True
         else:
             # If no inclusion list is provided, read all summary stats in folder:
             study_ids_to_ingest = [summary_statistics_input_path]
 
         ss = SummaryStatistics.from_parquet(
-            session,
-            study_ids_to_ingest,
-            recursiveFileLookup=True,
+            session, study_ids_to_ingest, recursiveFileLookup=recursive_file_lookup
         )
 
         # Clumping:

@@ -30,6 +30,7 @@ class StudyValidationStep:
         # https://github.com/satwikkansal/wtfpython?tab=readme-ov-file#-beware-of-default-mutable-arguments
         invalid_qc_reasons: list[str] | None = None,
         deprecated_project_ids: list[str] | None = None,
+        heritability_input_path: str | None = None,
     ) -> None:
         """Initialize step.
 
@@ -43,6 +44,7 @@ class StudyValidationStep:
             invalid_study_index_path (str): Path to write the output file.
             invalid_qc_reasons (list[str] | None): List of invalid quality check reason names from `StudyQualityCheck` (e.g. ['DUPLICATED_STUDY']).
             deprecated_project_ids (list[str] | None): List of deprecated projectIds, (e.g. ['GTEx']).
+            heritability_input_path (str | None): Optional path to LDSC heritability parquet output. When provided, heritability estimates are annotated onto the study index.
         """
         invalid_qc_reasons = list(invalid_qc_reasons) if invalid_qc_reasons else []
         deprecated_project_ids = (
@@ -70,7 +72,7 @@ class StudyValidationStep:
         study_index = StudyIndex.from_parquet(session, list(study_index_path))
 
         # Running validation:
-        study_index_with_qc = (
+        validated = (
             study_index.deconvolute_studies()  # Deconvolute studies where the same study is ingested from multiple sources
             .validate_study_type()  # Flagging non-supported study types
             .validate_project_id(deprecated_project_ids)  # Flag obsolete projectIds
@@ -78,8 +80,13 @@ class StudyValidationStep:
             .validate_disease(disease_index)  # Flagging invalid EFOs
             .validate_biosample(biosample_index)  # Flagging invalid biosample in QTLs
             .validate_analysis_flags()  # Flagging studies with case case design
-            .persist()  # we will need this for 2 types of outputs
         )
+
+        if heritability_input_path is not None:
+            heritability_df = session.spark.read.parquet(heritability_input_path)
+            validated = validated.collect_heritability(heritability_df)
+
+        study_index_with_qc = validated.persist()  # we will need this for 2 types of outputs
 
         result = study_index_with_qc.valid_rows(invalid_qc_reasons)
         (
