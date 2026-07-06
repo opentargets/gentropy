@@ -176,6 +176,10 @@ class Session:
         for bucket-level operations or as a requester-pays billing project fallback.
         See :class:`~gentropy.external.gcs.GCSConfig` for the full set of options.
 
+        To allow running locally with GCS credentials, one can set the ``auth_type``
+        to ``APPLICATION_DEFAULT`` and ensure that ``gcloud auth application-default login``
+        has been run to populate the local ADC credentials file.
+
         >>> session = Session(
         ...     add_gcs_connector=True,
         ...     gcs_configuration={'project_id': 'my-gcp-project'},
@@ -225,8 +229,8 @@ class Session:
         log_level: str | None = "INFO",
         add_s3_connector: bool = False,
         add_gcs_connector: bool = False,
-        s3_configuration: dict[str, str] | None = None,
-        gcs_configuration: dict[str, str] | None = None,
+        s3_configuration: dict[str, Any] | None = None,
+        gcs_configuration: dict[str, Any] | None = None,
         s3_configuration_path: str | None = None,
         gcs_configuration_path: str | None = None,
     ) -> None:
@@ -258,9 +262,9 @@ class Session:
                 If specified as `true`, the session will request the GCS connector and attempt to resolve
                 necessary credentials (see `gentropy.external.gcs.GCSConfig`) from the provided `gcs_configuration` parameter, `gcs_configuration_path` or environment variables
                 in that order of precedence. If no credentials are provided, the failure is raised.
-            s3_configuration (dict[str, str] | None): Optional dictionary with s3 configuration parameters to include in the session. Defaults to None.
+            s3_configuration (dict[str, Any] | None): Optional dictionary with s3 configuration parameters to include in the session. Defaults to None.
                 The object needs to follow the `gentropy.external.s3.S3Config` class.
-            gcs_configuration (dict[str, str] | None): Optional dictionary with GCS configuration parameters to include in the session. Defaults to None.
+            gcs_configuration (dict[str, Any] | None): Optional dictionary with GCS configuration parameters to include in the session. Defaults to None.
                 The object needs to follow the `gentropy.external.gcs.GCSConfig` class.
             s3_configuration_path (str | None): Optional path to a JSON file with S3 configuration parameters. Defaults to None. If file is provided,
                 it will need to live in `shared` folder that is accessible by the Spark cluster (not in the distributed file system.)
@@ -557,13 +561,13 @@ class Session:
         ).set("spark.gentropy.useEnhancedBgzipCodec", "true")
 
     def _setup_s3_connector(
-        self, c: SparkConf, s3_configuration: dict[str, str] | str | None = None
+        self, c: SparkConf, s3_configuration: dict[str, Any] | str | None = None
     ) -> SparkConf:
         """Setup Spark configuration for S3 compatible storage.
 
         Args:
             c (SparkConf): Existing Spark configuration.
-            s3_configuration (dict[str, str] | str | None): Dictionary with s3 configuration or path to json containing
+            s3_configuration (dict[str, Any] | str | None): Dictionary with s3 configuration or path to json containing
                  parameters to include in the session or path to configuration file.
 
         Returns:
@@ -577,6 +581,9 @@ class Session:
 
         """
         from gentropy.external.s3 import S3Config
+
+        if s3_configuration is not None and not isinstance(s3_configuration, (dict, str)):
+            s3_configuration = dict(s3_configuration)
 
         match s3_configuration:
             case dict():
@@ -602,13 +609,15 @@ class Session:
         return c
 
     def _setup_gcs_connector(
-        self, c: SparkConf, gcs_configuration: dict[str, str] | str | None = None
+        self,
+        c: SparkConf,
+        gcs_configuration: dict[str, Any] | str | None = None,
     ) -> SparkConf:
         """Setup Spark configuration for GCS compatible storage.
 
         Args:
             c (SparkConf): Existing Spark configuration.
-            gcs_configuration (dict[str, str] | str | None): Dictionary with GCS configuration parameters to include in the session or path to json containing
+            gcs_configuration (dict[str, Any] | str | None): Dictionary with GCS configuration parameters to include in the session or path to json containing
                  parameters to include in the session or path to configuration file.
 
         Returns:
@@ -621,6 +630,10 @@ class Session:
             3. Environment variables (see `GCSConfig.from_env` for more details)
         """
         from gentropy.external.gcs import GCSConfig
+
+        # Hydra passes DictConfig (OmegaConf) objects which don't inherit from dict
+        if gcs_configuration is not None and not isinstance(gcs_configuration, (dict, str)):
+            gcs_configuration = dict(gcs_configuration)
 
         match gcs_configuration:
             case dict():
@@ -661,7 +674,7 @@ class Session:
 
         for key, value in options.items():
             c = c.set(key, value)
-        c = self._append_package(c, GCSConfig._HADOOP_CONNECTOR_PKG)
+        c = self._append_jar(c, GCSConfig._HADOOP_CONNECTOR_JAR)
         self._gcs_configuration = dict(conf)
         return c
 
@@ -699,6 +712,27 @@ class Session:
                 f"{existing_packages},{package}" if existing_packages else package
             )
             return c.set("spark.jars.packages", new_packages)
+        return c
+
+    @staticmethod
+    def _append_repository(c: SparkConf, repository: str) -> SparkConf:
+        """Append a Maven repository URL to the existing spark.jars.repositories configuration.
+
+        Ivy consults these repositories in addition to Maven Central when resolving
+        packages declared via ``spark.jars.packages``.
+
+        Args:
+            c (SparkConf): Existing Spark configuration.
+            repository (str): Maven repository URL to add (e.g. ``https://maven.google.com``).
+
+        Returns:
+            SparkConf: Adjusted spark configuration with the repository appended to
+                ``spark.jars.repositories``.
+        """
+        existing = c.get("spark.jars.repositories", "")
+        if repository not in existing:
+            new_repos = f"{existing},{repository}" if existing else repository
+            return c.set("spark.jars.repositories", new_repos)
         return c
 
     @staticmethod
@@ -894,6 +928,44 @@ class Session:
                 samplingRatio=kwargs.get("samplingRation", 0.4),
             )
         return self.spark.createDataFrame(data=df, schema=schema, verifySchema=True)
+
+    def list_hadoop_paths(self, path: str) -> list[str]:
+        """List files matching a Hadoop-compatible filesystem path or glob pattern.
+
+        Delegates to Hadoop's ``FileSystem.globStatus``, which resolves the correct
+        connector (GCS, S3A, HDFS, local…) from the URI scheme using auth already
+        configured in the SparkContext. This is a driver-side metadata call — no data
+        is read from the files themselves.
+
+        Args:
+            path (str): Hadoop path, optionally with glob wildcards
+                (e.g. ``gs://bucket/prefix/*.tsv.gz``).
+
+        Returns:
+            list[str]: Sorted list of matching file path strings.
+                Empty list when no files match the pattern.
+
+        Examples:
+            List all parquet files under a GCS prefix:
+
+            >>> session.list_hadoop_paths("gs://bucket/data/*.parquet") # doctest: +SKIP
+            ['gs://bucket/data/part-00000.parquet', 'gs://bucket/data/part-00001.parquet']
+
+            Returns an empty list when nothing matches:
+
+            >>> session.list_hadoop_paths("gs://bucket/nonexistent/*.tsv.gz") # doctest: +SKIP
+            []
+        """
+        sc = self.spark.sparkContext
+        # NOTE: The code below uses the PySpark JVM hadoop FileSystem to list objects
+        # This is not the most elegant way of listing, but does not bound us to any
+        # specific library to list objects through the object storage, rather
+        # uses direct Hadoop FileSystem API which should work as long as the connector is properly configured in the session.
+        jpath = sc._jvm.org.apache.hadoop.fs.Path(path)
+        conf = sc._jsc.hadoopConfiguration()
+        fs = sc._jvm.org.apache.hadoop.fs.FileSystem.get(jpath.toUri(), conf)
+        statuses = fs.globStatus(jpath)
+        return [] if statuses is None else sorted(str(s.getPath()) for s in statuses)
 
 
 class JavaLogger(Protocol):

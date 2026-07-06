@@ -202,7 +202,7 @@ class TestGCSConnectorConfiguration:
         assert conf.get("spark.hadoop.fs.gs.status.parallel.enable") == "true"
         assert conf.get("spark.hadoop.fs.gs.copy.with.rewrite.enable") == "true"
         assert conf.get("spark.hadoop.fs.gs.glob.algorithm") == "CONCURRENT"
-        assert GCSConfig._HADOOP_CONNECTOR_PKG in conf.get("spark.jars.packages", "")
+        assert GCSConfig._HADOOP_CONNECTOR_JAR in conf.get("spark.jars", "")
 
     @pytest.mark.usefixtures("_no_spark_session")
     def test_gcs_service_account_keyfile_connector(self) -> None:
@@ -241,4 +241,4 @@ class TestGCSConnectorConfiguration:
             conf.get("spark.hadoop.fs.gs.requester.pays.project.id")
             == "billing-project"
         )
-        assert GCSConfig._HADOOP_CONNECTOR_PKG in conf.get("spark.jars.packages", "")
+        assert GCSConfig._HADOOP_CONNECTOR_JAR in conf.get("spark.jars", "")

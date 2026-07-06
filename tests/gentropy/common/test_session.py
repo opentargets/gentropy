@@ -17,6 +17,30 @@ if TYPE_CHECKING:
     from typing import Any
 
 
+def test_list_hadoop_paths(session: Session, tmp_path: Path) -> None:
+    """Test Session.list_hadoop_paths with the local Hadoop filesystem.
+
+    Uses tmp_path (local files) so no GCS/S3/HDFS connection is needed —
+    Hadoop's LocalFileSystem handles file:// paths identically to remote schemes.
+    """
+    (tmp_path / "a.tsv").write_text("col\nval\n")
+    (tmp_path / "b.tsv").write_text("col\nval\n")
+    (tmp_path / "c.parquet").write_bytes(b"PAR1")  # must not appear in *.tsv results
+
+    matched = session.list_hadoop_paths((tmp_path / "*.tsv").as_posix())
+
+    # Hadoop returns fully-qualified file:// URIs; compare by filename only
+    assert len(matched) == 2
+    assert {p.rsplit("/", 1)[-1] for p in matched} == {"a.tsv", "b.tsv"}
+    assert all(p.endswith(".tsv") for p in matched)
+    assert matched == sorted(matched)  # result must be sorted
+
+
+def test_list_hadoop_paths_empty(session: Session, tmp_path: Path) -> None:
+    """Test that list_hadoop_paths returns an empty list when no files match."""
+    assert session.list_hadoop_paths((tmp_path / "*.nonexistent").as_posix()) == []
+
+
 def test_log4j_creation(spark: SparkSession) -> None:
     """Test session log4j."""
     assert isinstance(Log4j(spark=spark), Log4j)
