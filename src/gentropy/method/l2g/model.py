@@ -13,6 +13,7 @@ import skops.io as sio
 from huggingface_hub import HfApi, ModelCard, ModelCardData, create_repo
 from pandas import DataFrame as pd_dataframe
 from pandas import to_numeric as pd_to_numeric
+from pydantic import SecretStr
 from sklearn.ensemble import GradientBoostingClassifier
 from xgboost import XGBClassifier
 
@@ -129,7 +130,7 @@ class LocusToGeneModel:
         session: Session,
         hf_model_id: str,
         hf_model_version: str | None = None,
-        hf_token: str | None = None,
+        hf_token: SecretStr | None = None,
     ) -> LocusToGeneModel:
         """Load a model from the Hugging Face Hub. This will download the model from the hub and load it from disk.
 
@@ -137,7 +138,7 @@ class LocusToGeneModel:
             session (Session): Session object to load the training data
             hf_model_id (str): Model ID on the Hugging Face Hub
             hf_model_version (str | None): Tag, branch, or commit hash to download the model from the Hub. If None, the latest commit is downloaded.
-            hf_token (str | None): Hugging Face Hub token to download the model (only required if private)
+            hf_token (SecretStr | None): Hugging Face Hub token to download the model (only required if private)
 
         Returns:
             LocusToGeneModel: L2G model loaded from the Hugging Face Hub
@@ -169,7 +170,7 @@ class LocusToGeneModel:
             repo_id=hf_model_id,
             local_dir=hf_model_id,
             revision=hf_model_version,
-            token=hf_token,
+            token=hf_token.get_secret_value() if hf_token else None,
         )
         features_list = get_features_list_from_metadata()
         return cls.load_from_disk(
@@ -342,7 +343,7 @@ doi={10.1038/s41588-021-00945-5}
     def export_to_hugging_face_hub(
         self: LocusToGeneModel,
         model_path: str,
-        hf_hub_token: str,
+        hf_token: SecretStr,
         feature_matrix: L2GFeatureMatrix,
         commit_message: str,
         repo_id: str = "opentargets/locus_to_gene",
@@ -355,7 +356,7 @@ doi={10.1038/s41588-021-00945-5}
 
         Args:
             model_path (str): The path to the L2G model file.
-            hf_hub_token (str): Hugging Face Hub token
+            hf_token (SecretStr): Hugging Face Hub token
             feature_matrix (L2GFeatureMatrix): Data used to train the model. This is used to have an example input for the model and to store the column order.
             commit_message (str): Commit message for the push
             repo_id (str): The Hugging Face Hub repo id where the model will be stored.
@@ -404,8 +405,8 @@ doi={10.1038/s41588-021-00945-5}
                 self._create_hugging_face_model_card(str(temp_dir_path))
 
                 # Create repo if it doesn't exist and upload
-                api = HfApi(token=hf_hub_token)
-                create_repo(repo_id, exist_ok=True, token=hf_hub_token)
+                api = HfApi(token=hf_token.get_secret_value())
+                create_repo(repo_id, exist_ok=True, token=hf_token.get_secret_value())
 
                 api.upload_folder(
                     folder_path=str(temp_dir_path),

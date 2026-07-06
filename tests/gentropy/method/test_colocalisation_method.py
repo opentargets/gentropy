@@ -11,12 +11,16 @@ from typing import Any, cast
 
 import pytest
 from pandas.testing import assert_frame_equal
-from pyspark.sql import DataFrame, SparkSession
+from pydantic import ValidationError
+from pyspark.sql import SparkSession
 from pyspark.sql.types import DoubleType, StringType, StructField, StructType
 
 from gentropy.dataset.colocalisation import Colocalisation
 from gentropy.dataset.study_locus_overlap import StudyLocusOverlap
-from gentropy.method.colocalisation import Coloc, ColocPIP, ECaviar
+from gentropy.method.colocalisation.coloc import Coloc
+from gentropy.method.colocalisation.coloc_pip import ColocPIP
+from gentropy.method.colocalisation.coloc_pip_ecaviar import ColocPIPECaviar
+from gentropy.method.colocalisation.ecaviar import ECaviar
 
 
 def test_coloc(mock_study_locus_overlap: StudyLocusOverlap) -> None:
@@ -277,12 +281,9 @@ def test_coloc_semantic(
         _schema=StudyLocusOverlap.get_schema(),
     )
 
-    observed_coloc_df = cast(
-        DataFrame,
-        Coloc.colocalise(
-            observed_overlap, overlap_size_cutoff=5, posterior_cutoff=0.1
-        ).df,
-    )
+    observed_coloc_df = Coloc.colocalise(
+        observed_overlap, overlap_size_cutoff=5, posterior_cutoff=0.1
+    ).df
 
     # Define schema for the expected DataFrame
     result_schema = StructType(
@@ -382,7 +383,7 @@ def test_coloc_no_logbf(
         ),
         StudyLocusOverlap.get_schema(),
     )
-    observed_coloc_df = cast(DataFrame, Coloc.colocalise(observed_overlap).df)
+    observed_coloc_df = Coloc.colocalise(observed_overlap).df
     row_h0 = observed_coloc_df.select("h0").collect()[0].asDict()
     assert row_h0["h0"] > minimum_expected_h0, (
         "COLOC should return a high h0 (no association) when the input data has irrelevant logBF."
@@ -448,7 +449,7 @@ def test_coloc_no_betas(spark: SparkSession) -> None:
         ),
         StudyLocusOverlap.get_schema(),
     )
-    observed_coloc_df = cast(DataFrame, Coloc.colocalise(observed_overlap).df)
+    observed_coloc_df = Coloc.colocalise(observed_overlap).df
     beta_ratio_row = (
         observed_coloc_df.select("betaRatioSignAverage").collect()[0].asDict()
     )
@@ -610,7 +611,7 @@ def test_coloc_pip_semantic(
         _schema=StudyLocusOverlap.get_schema(),
     )
 
-    observed_coloc_df = cast(DataFrame, ColocPIP.colocalise(observed_overlap).df)
+    observed_coloc_df = ColocPIP.colocalise(observed_overlap).df
 
     assert not observed_coloc_df.rdd.isEmpty(), (
         "ColocPIP should return results for valid overlaps"
@@ -737,8 +738,8 @@ def test_coloc_pip_priors(spark: SparkSession) -> None:
 
 
 def test_coloc_pip_type_error(mock_study_locus_overlap: StudyLocusOverlap) -> None:
-    """Test that ColocPIP raises TypeError for incorrect prior types."""
-    with pytest.raises(TypeError):
+    """Test that ColocPIP raises ValidationError for incorrect prior types."""
+    with pytest.raises(ValidationError):
         ColocPIP.colocalise(
             mock_study_locus_overlap,
             priorc1="invalid",
@@ -835,3 +836,142 @@ def test_coloc_pip_beta_ratio(spark: SparkSession) -> None:
     assert "betaRatioSignAverage" in result.asDict(), (
         "Beta ratio should be included in results"
     )
+
+
+def test_coloc_characterization(spark: SparkSession) -> None:
+    """Pin Coloc posteriors at 1e-9 (single high-PP overlapping SNP)."""
+    observed_overlap = StudyLocusOverlap(
+        _df=spark.createDataFrame(
+            cast(
+                Any,
+                [
+                    {
+                        "leftStudyLocusId": "1",
+                        "rightStudyLocusId": "2",
+                        "rightStudyType": "eqtl",
+                        "chromosome": "1",
+                        "tagVariantId": "snp",
+                        "statistics": {
+                            "left_logBF": 10.3,
+                            "right_logBF": 10.5,
+                            "left_beta": 0.1,
+                            "right_beta": 0.2,
+                            "left_posteriorProbability": 0.91,
+                            "right_posteriorProbability": 0.92,
+                        },
+                    }
+                ],
+            ),
+            schema=StudyLocusOverlap.get_schema(),
+        ),
+        _schema=StudyLocusOverlap.get_schema(),
+    )
+    row = (
+        Coloc.colocalise(observed_overlap, overlap_size_cutoff=5, posterior_cutoff=0.1)
+        .df.select("h0", "h1", "h2", "h3", "h4")
+        .collect()[0]
+        .asDict()
+    )
+    expected = {
+        "h0": 9.254841951638903e-5,
+        "h1": 2.7517068829182966e-4,
+        "h2": 3.3609423764447284e-4,
+        "h3": 9.254841952564387e-13,
+        "h4": 0.9992961866536217,
+    }
+    for k, v in expected.items():
+        assert abs(row[k] - v) <= 1e-9, f"{k}: {row[k]} != {v}"
+
+
+def test_coloc_pip_characterization(spark: SparkSession) -> None:
+    """Pin ColocPIP h3/h4 at 1e-9 (single high-PIP overlapping SNP)."""
+    observed_overlap = StudyLocusOverlap(
+        _df=spark.createDataFrame(
+            cast(
+                Any,
+                [
+                    {
+                        "leftStudyLocusId": "1",
+                        "rightStudyLocusId": "2",
+                        "rightStudyType": "eqtl",
+                        "chromosome": "1",
+                        "tagVariantId": "snp1",
+                        "statistics": {
+                            "left_posteriorProbability": 0.95,
+                            "right_posteriorProbability": 0.90,
+                            "left_beta": 0.5,
+                            "right_beta": 0.3,
+                        },
+                    }
+                ],
+            ),
+            schema=StudyLocusOverlap.get_schema(),
+        ),
+        _schema=StudyLocusOverlap.get_schema(),
+    )
+    row = ColocPIP.colocalise(observed_overlap).df.collect()[0].asDict()
+    # H0-H2 are exactly zero in ColocPIP; H3+H4 normalise to 1.
+    assert row["h0"] == 0.0 and row["h1"] == 0.0 and row["h2"] == 0.0
+    # Single shared SNP is the degenerate diff_arg==0 branch: h3 -> 0, h4 -> 1
+    # in closed form. This pins the normalisation and the degenerate path.
+    assert abs(row["h3"] - 0.0) <= 1e-9, f"h3: {row['h3']}"
+    assert abs(row["h4"] - 1.0) <= 1e-9, f"h4: {row['h4']}"
+
+
+def test_coloc_pip_ecaviar_characterization(spark: SparkSession) -> None:
+    """Pin the combined ColocPIPECaviar output.
+
+    This guards the fused-aggregation refactor (single groupBy + single
+    beta-ratio) against the merge-based original. Includes h3/h4 from
+    ColocPIP, clpp from eCAVIAR, numberColocalisingVariants, and
+    betaRatioSignAverage.
+    """
+    observed_overlap = StudyLocusOverlap(
+        _df=spark.createDataFrame(
+            cast(
+                Any,
+                [
+                    {
+                        "leftStudyLocusId": "1",
+                        "rightStudyLocusId": "2",
+                        "rightStudyType": "eqtl",
+                        "chromosome": "1",
+                        "tagVariantId": "snp1",
+                        "statistics": {
+                            "left_posteriorProbability": 0.9,
+                            "right_posteriorProbability": 0.8,
+                            "left_beta": 0.5,
+                            "right_beta": 0.3,
+                        },
+                    },
+                    {
+                        "leftStudyLocusId": "1",
+                        "rightStudyLocusId": "2",
+                        "rightStudyType": "eqtl",
+                        "chromosome": "1",
+                        "tagVariantId": "snp2",
+                        "statistics": {
+                            "left_posteriorProbability": 0.1,
+                            "right_posteriorProbability": 0.15,
+                            "left_beta": 0.2,
+                            "right_beta": -0.1,
+                        },
+                    },
+                ],
+            ),
+            schema=StudyLocusOverlap.get_schema(),
+        ),
+        _schema=StudyLocusOverlap.get_schema(),
+    )
+    row = ColocPIPECaviar.colocalise(observed_overlap).df.collect()[0].asDict()
+    assert row["colocalisationMethod"] == "COLOC_PIP_ECAVIAR"
+    assert row["numberColocalisingVariants"] == 2
+    # clpp = sum(left_pp * right_pp) = 0.9*0.8 + 0.1*0.15 = 0.735 (eCAVIAR, raw).
+    assert abs(row["clpp"] - 0.735) <= 1e-9, f"clpp: {row['clpp']}"
+    # h3/h4 from ColocPIP floored sums: S1=1.0, S2=0.95, B=0.735, diff=0.215;
+    # pp3=1e-8*0.215, pp4=1e-5*0.735 -> h4≈0.9997076, h3≈0.0002924.
+    assert abs(row["h4"] - 0.99970757) <= 1e-6, f"h4: {row['h4']}"
+    assert abs(row["h3"] - 0.00029243) <= 1e-6, f"h3: {row['h3']}"
+    assert abs((row["h3"] + row["h4"]) - 1.0) <= 1e-9
+    # betaRatioSign: snp1 sign(0.5/0.3)=+1, snp2 sign(0.2/-0.1)=-1 -> avg 0.0.
+    assert abs(row["betaRatioSignAverage"] - 0.0) <= 1e-9

@@ -1,6 +1,7 @@
 """Test colocalisation step."""
 
 from pathlib import Path
+from typing import Literal
 
 import pytest
 
@@ -8,7 +9,13 @@ from gentropy.colocalisation import ColocalisationStep
 from gentropy.common.session import Session
 from gentropy.dataset.colocalisation import Colocalisation
 from gentropy.dataset.study_locus import StudyLocus
-from gentropy.method.colocalisation import Coloc, ColocalisationMethodInterface, ECaviar
+from gentropy.method.colocalisation import (
+    ColocalisationMethod,
+    InvalidColocalisationMethodError,
+)
+from gentropy.method.colocalisation.coloc import Coloc
+from gentropy.method.colocalisation.ecaviar import ECaviar
+from gentropy.method.colocalisation.model import ColocalisationMethodInterface
 
 
 @pytest.mark.step_test
@@ -210,19 +217,19 @@ class TestColocalisationStep:
             pytest.param("ECaviar", ECaviar, id="uppercase label"),
         ],
     )
-    def test_get_colocalisation_class(
+    def test_colocalisation_method_enum(
         self, label: str, expected_method: type[ColocalisationMethodInterface]
     ) -> None:
-        """Test _get_colocalisation_class method on ColocalisationStep."""
-        method = ColocalisationStep._get_colocalisation_class(label)
+        """Test colocalisation method enum."""
+        method = ColocalisationMethod.get_method_class(label)
         assert method is expected_method, (
-            "Incorrect colocalisation class returned by ColocalisationStep._get_colocalisation_class(label)"
+            "Incorrect colocalisation class returned by ColocalisationMethod.get_method_class(label)"
         )
 
     def test_label_with_invalid_method(self) -> None:
         """Test what happens when invalid method_label is passed to the _get_colocalisation_class."""
-        with pytest.raises(ValueError):
-            ColocalisationStep._get_colocalisation_class("NewMethod")
+        with pytest.raises(InvalidColocalisationMethodError):
+            ColocalisationMethod.get_method_class("NewMethod")
 
     @pytest.mark.parametrize(
         ["coloc_method", "expected_data"],
@@ -267,7 +274,7 @@ class TestColocalisationStep:
     )
     def test_colocalise(
         self,
-        coloc_method: str,
+        coloc_method: Literal["coloc", "ecaviar"],
         expected_data: dict[str, list[float] | list[str]],
         session: Session,
     ) -> None:
