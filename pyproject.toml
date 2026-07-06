@@ -44,6 +44,7 @@ Documentation = "https://opentargets.github.io/gentropy/"
 gentropy = "gentropy.cli:main"
 
 
+
 [dependency-groups]
 docs = [
   "mkdocs >=1.5.3, <1.6.0",
@@ -291,6 +292,7 @@ skip-checking-short-docstrings = false
 check-class-attributes = false
 should-declare-assert-error-if-assert-statement-exists = true # make sure that assert Raises are captured in docstrings
 skip-checking-raises = true
+
 
 [build-system]
 requires = ["hatchling"]
