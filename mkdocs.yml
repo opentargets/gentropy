@@ -14,7 +14,7 @@ plugins:
       handlers:
         python:
           options:
-            filters: ["!^_", "!__new__", "__init__"]
+            filters: ["!^_", "!__new__", "!__init__"]
             show_signature_annotations: true
             show_root_heading: true
             heading_level: 3

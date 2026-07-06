@@ -148,6 +148,15 @@ class FinemappingMethod(Enum):
     SUSIE = "SuSie"
     SUSIE_INF = "SuSiE-inf"
 
+    @classmethod
+    def methods_with_lbf(cls) -> list[str]:
+        """List of finemapping methods that report log Bayes factors.
+
+        Returns:
+            list[str]: List of finemapping methods that report log Bayes factors.
+        """
+        return [cls.SUSIE.value, cls.SUSIE_INF.value]
+
 
 @dataclass
 class StudyLocus(Dataset):
@@ -558,7 +567,11 @@ class StudyLocus(Dataset):
                 f.col("left.chromosome").alias("chromosome"),
             )
             .distinct()
-            .repartition("chromosome")
+            # NOTE: avoid `.repartition("chromosome")` here: with ~25 distinct
+            # chromosomes it collapses the result into a handful of severely
+            # skewed partitions (chr6/HLA dominates), capping downstream
+            # parallelism and risking spill/OOM. `.distinct()` already produces
+            # balanced `spark.sql.shuffle.partitions` partitions.
             .persist()
         )
 
@@ -817,7 +830,7 @@ class StudyLocus(Dataset):
                 "locus",
                 f.filter(
                     f.col("locus"),
-                    lambda tag: (tag[credible_interval.value]),
+                    lambda tag: tag[credible_interval.value],
                 ),
             ),
             _schema=self._schema,
