@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from gentropy.common.schemas import parse_spark_schema
 from gentropy.dataset.dataset import Dataset
@@ -16,24 +17,14 @@ if TYPE_CHECKING:
     from gentropy.dataset.study_locus import StudyLocus
 
 
+FeatureDependencyType = type[Any] | Sequence[type[Any]]
+
+
 @dataclass
 class L2GFeature(Dataset, ABC):
     """Locus-to-gene feature dataset that serves as template to generate each of the features that inform about locus to gene assignments."""
 
-    def __post_init__(
-        self: L2GFeature,
-        feature_dependency_type: Any = None,
-        credible_set: StudyLocus | None = None,
-    ) -> None:
-        """Initializes a L2GFeature dataset. Any child class of L2GFeature must implement the `compute` method.
-
-        Args:
-            feature_dependency_type (Any): The dependency that the L2GFeature dataset depends on. Defaults to None.
-            credible_set (StudyLocus | None): The credible set that the L2GFeature dataset is based on. Defaults to None.
-        """
-        super().__post_init__()
-        self.feature_dependency_type = feature_dependency_type
-        self.credible_set = credible_set
+    feature_dependency_type: ClassVar[FeatureDependencyType | None] = None
 
     @classmethod
     def get_schema(cls: type[L2GFeature]) -> StructType:
