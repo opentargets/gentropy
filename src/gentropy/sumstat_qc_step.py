@@ -15,7 +15,7 @@ class SummaryStatisticsQCStep:
         session: Session,
         gwas_path: str,
         output_path: str,
-        pval_threshold: float = 1e-8,
+        pval_threshold: float = 5e-8,
     ) -> None:
         """Calculating quality control metrics on the provided GWAS study.
 
@@ -23,7 +23,7 @@ class SummaryStatisticsQCStep:
             session (Session): Spark session
             gwas_path (str): Path to the GWAS summary statistics.
             output_path (str): Output path for the QC results.
-            pval_threshold (float): P-value threshold for the QC. Default is 1e-8.
+            pval_threshold (float): P-value threshold for the QC. Default is 5e-8.
         """
         gwas = SummaryStatistics.from_parquet(session, path=gwas_path)
 
