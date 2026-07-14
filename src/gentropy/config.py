@@ -907,6 +907,32 @@ class RepresentativeStudyManifestConfig(StepConfig):
     _target_: str = "gentropy.ldsc_rg_representative_manifest.RepresentativeStudyManifestStep"
 
 
+@dataclass
+class LdscMungeConfig(StepConfig):
+    """Configuration for pre-munging sumstats with LD scores."""
+
+    manifest_path: str = MISSING
+    study_index_path: str = MISSING
+    ldscore_base_path: str = MISSING
+    munged_output_path: str = MISSING
+    ldscore_template: str = "gnomad_r2.1.1_{ancestry}_hg38.csv.gz"
+    _target_: str = "gentropy.ldsc_munge.LdscMungeStep"
+
+
+@dataclass
+class GeneticCorrelationManifestConfig(StepConfig):
+    """Configuration for Dataproc-based pairwise rg using pre-munged parquets."""
+
+    manifest_path: str = MISSING
+    munged_path: str = MISSING
+    rg_output_path: str = MISSING
+    pairs_per_partition: int = 100
+    twostep: float = 30.0
+    n_blocks: int = 200
+    intercept: float | None = None
+    min_overlap_snps: int = 50
+    _target_: str = "gentropy.ldsc_rg_manifest.GeneticCorrelationManifestStep"
+
 
 @dataclass
 class pQTLStudyIndexTransformationConfig(StepConfig):
@@ -1040,6 +1066,12 @@ def register_config() -> None:
         group="step",
         name="representative_study_manifest",
         node=RepresentativeStudyManifestConfig,
+    )
+    cs.store(group="step", name="ldsc_munge", node=LdscMungeConfig)
+    cs.store(
+        group="step",
+        name="genetic_correlation_manifest",
+        node=GeneticCorrelationManifestConfig,
     )
     cs.store(
         group="step",
