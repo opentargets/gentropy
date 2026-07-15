@@ -33,6 +33,7 @@ class LocusToGeneModel:
     features_list: list[str] = field(default_factory=list)
     hyperparameters: dict[str, Any] = field(
         default_factory=lambda: {
+            "n_estimators": 300,
             "max_depth": 5,
             "reg_alpha": 1,  # L1 regularization
             "reg_lambda": 1.0,  # L2 regularization
@@ -41,6 +42,8 @@ class LocusToGeneModel:
             "eta": 0.05,
             "min_child_weight": 10,
             "scale_pos_weight": 0.8,
+            "gamma": 0,  # min loss reduction to make a split
+            "max_delta_step": 1,  # stabilises updates for imbalanced data
         }
     )
     training_data: L2GFeatureMatrix | None = None
@@ -193,7 +196,12 @@ class LocusToGeneModel:
             raise ValueError("Hyperparameters have not been set.")
         elif isinstance(self.hyperparameters, dict):
             return self.hyperparameters
-        return self.hyperparameters.default_factory()
+        try:
+            # dataclasses.field with default_factory (legacy path)
+            return self.hyperparameters.default_factory()
+        except (AttributeError, TypeError):
+            # OmegaConf DictConfig passed directly from Hydra
+            return dict(self.hyperparameters)
 
     def predict(
         self: LocusToGeneModel,

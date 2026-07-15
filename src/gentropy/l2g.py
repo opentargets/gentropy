@@ -6,6 +6,7 @@ import json
 import logging
 from typing import Any, NotRequired, TypedDict
 
+import numpy as np
 import pandas as pd
 import pyspark.sql.functions as f
 from wandb.sdk.wandb_login import login as wandb_login
@@ -473,7 +474,6 @@ class LocusToGeneStep:
         run_mode: str,
         hyperparameters: dict[str, Any],
         download_from_hub: bool,
-        cross_validate: bool,
         train_on_full_dataset: bool,
         credible_set_path: str | None = None,
         feature_matrix_path: str | None = None,
@@ -498,7 +498,6 @@ class LocusToGeneStep:
             run_mode (str): Run mode, either 'train' or 'predict'
             hyperparameters (dict[str, Any]): Hyperparameters for the model
             download_from_hub (bool): Whether to download the model from Hugging Face Hub
-            cross_validate (bool): Whether to run cross validation (5-fold by default) to train the model.
             train_on_full_dataset (bool): Whether to retrain the final saved model on the full dataset (train + held-out) after evaluation. Follows the standard practice of reporting honest held-out metrics while ensuring the deployed model benefits from all available labelled data.
             credible_set_path (str | None): Path to the credible set dataset. Required for predict mode; unused in train mode when pre-split parquets are provided.
             feature_matrix_path (str | None): Path to the L2G feature matrix input dataset. Required for predict mode; unused in train mode when pre-split parquets are provided.
@@ -558,7 +557,6 @@ class LocusToGeneStep:
 
         # Train parameters
         self.hyperparameters = dict(hyperparameters)
-        self.cross_validate = cross_validate
 
         # External resource parameters
         self.hf_hub_repo_id = hf_hub_repo_id
@@ -702,7 +700,6 @@ class LocusToGeneStep:
             model=l2g_model, feature_matrix=feature_matrix
         ).train(
             wandb_run_name=self.wandb_run_name,
-            cross_validate=self.cross_validate,
             train_on_full_dataset=self.train_on_full_dataset,
             presplit_train_df=presplit_train_df,
             presplit_test_df=presplit_test_df,
@@ -822,4 +819,121 @@ class LocusToGeneAssociationsStep:
             )
             .write.mode(session.write_mode)
             .parquet(indirect_associations_output_path)
+        )
+
+
+class LocusToGeneModelTuningStep:
+    """Run L2G cross-validation on pre-built, annotated train and test feature matrices.
+
+    Unlike LocusToGeneStep, this step does not construct the training set or perform
+    any gold-standard parsing. It expects parquet files that already contain the
+    feature columns and the ``goldStandardSet`` label column.
+    """
+
+    def __init__(
+        self,
+        session: Session,
+        *,
+        train_feature_matrix_path: str,
+        test_feature_matrix_path: str,
+        hyperparameters: dict[str, Any],
+        features_list: list[str] | None = None,
+        n_splits: int = 5,
+        hyperparameter_grid: dict[str, Any] | None = None,
+        cv_results_dir: str | None = None,
+        holdout_only: bool = False,
+    ) -> None:
+        """Initialise the step and run cross-validation.
+
+        Args:
+            session (Session): Session object that contains the Spark session
+            train_feature_matrix_path (str): Path to the parquet file containing the
+                annotated training feature matrix.  Must include ``studyLocusId``,
+                ``geneId``, a ``goldStandardSet`` column with values ``"positive"``/
+                ``"negative"`` (strings) or ``1``/``0`` (integers), and one column per feature.
+            test_feature_matrix_path (str): Path to the parquet file containing the
+                annotated test feature matrix with the same schema as the training file.
+            hyperparameters (dict[str, Any]): Hyperparameters passed to XGBClassifier.
+            features_list (list[str] | None): Subset of feature columns to use.  When
+                ``None`` every column that is not a fixed metadata column is used.
+            n_splits (int): Number of cross-validation folds. Defaults to 5.
+            hyperparameter_grid (dict[str, Any] | None): Grid to sweep over in the form
+                ``{"param": {"values": [v1, v2, ...]}, ...}``.  When provided with
+                ``cv_results_dir``, all configs are evaluated and written to file.
+                Defaults to None (CV uses the fixed ``hyperparameters``).
+            cv_results_dir (str | None): Directory (local or ``gs://``) to write
+                ``cv_results.json``, ``cv_folds.csv``, and per-config plots.  When None,
+                metrics are logged to the terminal. Defaults to None.
+            holdout_only (bool): When True, skip CV folds and evaluate each config directly
+                on the holdout set. Requires ``cv_results_dir`` and a non-empty test set.
+                Defaults to False.
+        """
+        train_feature_matrix = L2GFeatureMatrix(
+            _df=session.load_data(train_feature_matrix_path, "parquet"),
+            features_list=features_list,
+            with_gold_standard=True,
+        ).persist()
+
+        test_feature_matrix = L2GFeatureMatrix(
+            _df=session.load_data(test_feature_matrix_path, "parquet"),
+            features_list=features_list,
+            with_gold_standard=True,
+        ).persist()
+
+        effective_features = train_feature_matrix.features_list
+
+        l2g_model = LocusToGeneModel(
+            model=XGBClassifier(random_state=777, eval_metric="aucpr"),
+            hyperparameters=hyperparameters,
+            features_list=effective_features,
+        )
+
+        trainer = LocusToGeneTrainer(
+            model=l2g_model,
+            feature_matrix=train_feature_matrix,
+        )
+
+        # Convert to pandas and encode labels, mirroring generate_train_test_split
+        label_col = train_feature_matrix.label_col
+        train_pd: pd.DataFrame = train_feature_matrix._df.toPandas()
+        test_pd: pd.DataFrame = test_feature_matrix._df.toPandas()
+        train_feature_matrix._df.unpersist()
+        test_feature_matrix._df.unpersist()
+        # The split step saves goldStandardSet as integers 0/1; only encode if still strings.
+        for df in (train_pd, test_pd):
+            if df[label_col].dtype == object:
+                df[label_col] = df[label_col].map(l2g_model.label_encoder)
+
+        x_train: np.ndarray = (
+            train_pd[effective_features].apply(pd.to_numeric).to_numpy()
+        )
+        y_train: np.ndarray = train_pd[label_col].apply(pd.to_numeric).to_numpy()
+        x_test: np.ndarray = (
+            test_pd[effective_features].apply(pd.to_numeric).to_numpy()
+        )
+        y_test: np.ndarray = test_pd[label_col].apply(pd.to_numeric).to_numpy()
+
+        trainer.train_df = train_pd
+        trainer.test_df = test_pd
+        trainer.x_train = x_train
+        trainer.y_train = y_train
+        trainer.x_test = x_test
+        trainer.y_test = y_test
+
+        trainer.cross_validate(
+            parameter_grid=hyperparameter_grid,
+            n_splits=n_splits,
+            cv_results_dir=cv_results_dir,
+            holdout_only=holdout_only,
+        )
+
+        trainer.fit()
+
+        trainer.log_to_terminal(
+            eval_id="Hold-out",
+            metrics=trainer.evaluate(
+                y_true=y_test,
+                y_pred=trainer.model.model.predict(x_test),
+                y_pred_proba=trainer.model.model.predict_proba(x_test),
+            ),
         )
