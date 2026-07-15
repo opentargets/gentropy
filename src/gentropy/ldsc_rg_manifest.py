@@ -50,38 +50,43 @@ logger = logging.getLogger(__name__)
 
 # ── Output schema ─────────────────────────────────────────────────────────────
 
-RG_RESULT_SCHEMA = StructType([
-    StructField("studyId_1",     StringType(),  False),
-    StructField("studyId_2",     StringType(),  False),
-    StructField("ancestry",      StringType(),  True),
-    StructField("run_status",    StringType(),  True),
-    StructField("skip_reason",   StringType(),  True),
-    StructField("n_snps",        LongType(),    True),
-    StructField("rg",            DoubleType(),  True),
-    StructField("rg_se",         DoubleType(),  True),
-    StructField("rg_clipped",    BooleanType(), True),
-    StructField("h2_1",          DoubleType(),  True),
-    StructField("h2_1_se",       DoubleType(),  True),
-    StructField("h2_2",          DoubleType(),  True),
-    StructField("h2_2_se",       DoubleType(),  True),
-    StructField("gcov",          DoubleType(),  True),
-    StructField("gcov_se",       DoubleType(),  True),
-    StructField("intercept",     DoubleType(),  True),
-    StructField("intercept_se",  DoubleType(),  True),
-    StructField("M_ldsc",        DoubleType(),  True),
-])
+RG_RESULT_SCHEMA = StructType(
+    [
+        StructField("studyId_1", StringType(), False),
+        StructField("studyId_2", StringType(), False),
+        StructField("ancestry", StringType(), True),
+        StructField("run_status", StringType(), True),
+        StructField("skip_reason", StringType(), True),
+        StructField("n_snps", LongType(), True),
+        StructField("rg", DoubleType(), True),
+        StructField("rg_se", DoubleType(), True),
+        StructField("rg_clipped", BooleanType(), True),
+        StructField("h2_1", DoubleType(), True),
+        StructField("h2_1_se", DoubleType(), True),
+        StructField("h2_2", DoubleType(), True),
+        StructField("h2_2_se", DoubleType(), True),
+        StructField("gcov", DoubleType(), True),
+        StructField("gcov_se", DoubleType(), True),
+        StructField("intercept", DoubleType(), True),
+        StructField("intercept_se", DoubleType(), True),
+        StructField("M_ldsc", DoubleType(), True),
+    ]
+)
 
 
-PARTITION_SUMMARY_SCHEMA = StructType([
-    StructField("n_pairs",          LongType(),   False),
-    StructField("n_success",        LongType(),   False),
-    StructField("n_skipped",        LongType(),   False),
-    StructField("n_error",          LongType(),   False),
-    StructField("elapsed_seconds",  DoubleType(), False),
-    StructField("output_path",      StringType(), False),
-])
+PARTITION_SUMMARY_SCHEMA = StructType(
+    [
+        StructField("n_pairs", LongType(), False),
+        StructField("n_success", LongType(), False),
+        StructField("n_skipped", LongType(), False),
+        StructField("n_error", LongType(), False),
+        StructField("elapsed_seconds", DoubleType(), False),
+        StructField("output_path", StringType(), False),
+    ]
+)
 
 # ── Module-level helpers (serialised into each Spark executor) ─────────────────
+
 
 def _flip_variant_key(key: str) -> str:
     """Swap ref↔alt in a chr_pos_ref_alt variant key.
@@ -110,8 +115,7 @@ def _read_munged(munged_base: str, ancestry: str, study_id: str) -> pd.DataFrame
         pd.DataFrame: Columns: variantKey, beta, se, n, L2.
     """
     path = (
-        munged_base.rstrip("/")
-        + f"/ancestry={ancestry}/studyId={study_id}"
+        munged_base.rstrip("/") + f"/ancestry={ancestry}/studyId={study_id}"
     ).replace("gs://", "")
 
     gcs = pafs.GcsFileSystem()
@@ -147,11 +151,23 @@ def _run_rg_pair(
         dict[str, Any]: Result row matching ``RG_RESULT_SCHEMA``.
     """
     base: dict[str, Any] = {
-        "studyId_1": s1, "studyId_2": s2, "ancestry": ancestry,
-        "run_status": None, "skip_reason": None, "n_snps": None,
-        "rg": None, "rg_se": None, "rg_clipped": None,
-        "h2_1": None, "h2_1_se": None, "h2_2": None, "h2_2_se": None,
-        "gcov": None, "gcov_se": None, "intercept": None, "intercept_se": None,
+        "studyId_1": s1,
+        "studyId_2": s2,
+        "ancestry": ancestry,
+        "run_status": None,
+        "skip_reason": None,
+        "n_snps": None,
+        "rg": None,
+        "rg_se": None,
+        "rg_clipped": None,
+        "h2_1": None,
+        "h2_1_se": None,
+        "h2_2": None,
+        "h2_2_se": None,
+        "gcov": None,
+        "gcov_se": None,
+        "intercept": None,
+        "intercept_se": None,
         "M_ldsc": None,
     }
 
@@ -163,12 +179,16 @@ def _run_rg_pair(
     df2_flipped["beta"] = -df2_flipped["beta"]
 
     merged_flipped = df1.merge(
-        df2_flipped.rename(columns={"beta": "beta2", "se": "se2", "n": "n2", "L2": "L2_2"}),
+        df2_flipped.rename(
+            columns={"beta": "beta2", "se": "se2", "n": "n2", "L2": "L2_2"}
+        ),
         on="variantKey",
         suffixes=("", "_f"),
     )
 
-    full = pd.concat([merged, merged_flipped], ignore_index=True).drop_duplicates("variantKey")
+    full = pd.concat([merged, merged_flipped], ignore_index=True).drop_duplicates(
+        "variantKey"
+    )
 
     if len(full) < min_overlap_snps:
         return {
@@ -179,32 +199,41 @@ def _run_rg_pair(
         }
 
     beta1 = full["beta1"].values.astype(float)
-    se1   = full["se1"].values.astype(float)
-    N1    = full["n1"].values.astype(float)
+    se1 = full["se1"].values.astype(float)
+    N1 = full["n1"].values.astype(float)
     beta2 = full["beta2"].values.astype(float)
-    se2   = full["se2"].values.astype(float)
-    N2    = full["n2"].values.astype(float)
-    ld    = full["L2"].values.astype(float)
+    se2 = full["se2"].values.astype(float)
+    N2 = full["n2"].values.astype(float)
+    ld = full["L2"].values.astype(float)
 
     w_raw = 1.0 / np.maximum(ld, 1.0)
-    w_ld  = w_raw / np.mean(w_raw)
+    w_ld = w_raw / np.mean(w_raw)
 
     # M_ldsc proxy: geometric mean of the two study LD-score coverages
     m_ldsc = float(np.sqrt(len(df1) * len(df2)))
 
     try:
         res = run_ldsc_rg_from_arrays(
-            beta1=beta1, se1=se1, N1=N1,
-            beta2=beta2, se2=se2, N2=N2,
-            ld=ld, w_ld=w_ld,
+            beta1=beta1,
+            se1=se1,
+            N1=N1,
+            beta2=beta2,
+            se2=se2,
+            N2=N2,
+            ld=ld,
+            w_ld=w_ld,
             M_ldsc_scalar=m_ldsc,
             intercept=intercept,
             twostep=twostep,
             n_blocks=n_blocks,
         )
     except Exception as exc:
-        return {**base, "run_status": "error", "skip_reason": f"ldsc error: {exc}",
-                "n_snps": len(full)}
+        return {
+            **base,
+            "run_status": "error",
+            "skip_reason": f"ldsc error: {exc}",
+            "n_snps": len(full),
+        }
 
     intercept_se_val: float | None = None
     if res.get("intercept_se") not in (None, "NA"):
@@ -213,24 +242,27 @@ def _run_rg_pair(
 
     return {
         **base,
-        "run_status":   "success",
-        "n_snps":       int(res["n_snps"]),
-        "rg":           res["rg"],
-        "rg_se":        res["rg_se"],
-        "rg_clipped":   res["rg_clipped"],
-        "h2_1":         res["h2_1"],
-        "h2_1_se":      res["h2_1_se"],
-        "h2_2":         res["h2_2"],
-        "h2_2_se":      res["h2_2_se"],
-        "gcov":         res["gcov"],
-        "gcov_se":      res["gcov_se"],
-        "intercept":    float(res["intercept"]) if res.get("intercept") is not None else None,
+        "run_status": "success",
+        "n_snps": int(res["n_snps"]),
+        "rg": res["rg"],
+        "rg_se": res["rg_se"],
+        "rg_clipped": res["rg_clipped"],
+        "h2_1": res["h2_1"],
+        "h2_1_se": res["h2_1_se"],
+        "h2_2": res["h2_2"],
+        "h2_2_se": res["h2_2_se"],
+        "gcov": res["gcov"],
+        "gcov_se": res["gcov_se"],
+        "intercept": float(res["intercept"])
+        if res.get("intercept") is not None
+        else None,
         "intercept_se": intercept_se_val,
-        "M_ldsc":       m_ldsc,
+        "M_ldsc": m_ldsc,
     }
 
 
 # ── UDF factory (complexity kept low by delegating to module-level helpers) ────
+
 
 def _make_rg_udf(
     munged_base: str,
@@ -257,6 +289,7 @@ def _make_rg_udf(
         Callable[[Iterator[pd.DataFrame]], Iterator[pd.DataFrame]]: A function
             compatible with ``DataFrame.mapInPandas``.
     """
+
     def rg_batch_udf(batch_iter: Iterator[pd.DataFrame]) -> Iterator[pd.DataFrame]:
         """Process one Spark partition, write results to GCS, and yield a summary row.
 
@@ -289,7 +322,9 @@ def _make_rg_udf(
                 lru.move_to_end(key)
                 return lru[key]
             try:
-                result: pd.DataFrame | Exception = _read_munged(munged_base, ancestry, study_id)
+                result: pd.DataFrame | Exception = _read_munged(
+                    munged_base, ancestry, study_id
+                )
             except Exception as exc:  # noqa: BLE001
                 result = exc
             lru[key] = result
@@ -307,25 +342,49 @@ def _make_rg_udf(
                 d2 = get_study(anc, s2)  # noqa: B023
                 if isinstance(d1, Exception) or isinstance(d2, Exception):
                     err = d1 if isinstance(d1, Exception) else d2
-                    rows.append({
-                        "studyId_1": s1, "studyId_2": s2, "ancestry": anc,
-                        "run_status": "error", "skip_reason": f"read error: {err}",
-                        "n_snps": None, "rg": None, "rg_se": None, "rg_clipped": None,
-                        "h2_1": None, "h2_1_se": None, "h2_2": None, "h2_2_se": None,
-                        "gcov": None, "gcov_se": None, "intercept": None,
-                        "intercept_se": None, "M_ldsc": None,
-                    })
+                    rows.append(
+                        {
+                            "studyId_1": s1,
+                            "studyId_2": s2,
+                            "ancestry": anc,
+                            "run_status": "error",
+                            "skip_reason": f"read error: {err}",
+                            "n_snps": None,
+                            "rg": None,
+                            "rg_se": None,
+                            "rg_clipped": None,
+                            "h2_1": None,
+                            "h2_1_se": None,
+                            "h2_2": None,
+                            "h2_2_se": None,
+                            "gcov": None,
+                            "gcov_se": None,
+                            "intercept": None,
+                            "intercept_se": None,
+                            "M_ldsc": None,
+                        }
+                    )
                 else:
                     rows.append(
                         _run_rg_pair(
-                            s1, s2, anc, d1, d2,
-                            intercept, twostep, n_blocks, min_overlap_snps,
+                            s1,
+                            s2,
+                            anc,
+                            d1,
+                            d2,
+                            intercept,
+                            twostep,
+                            n_blocks,
+                            min_overlap_snps,
                         )
                     )
 
             # Write this partition's results directly to GCS without waiting for
             # other partitions — files appear as each executor completes.
-            part_gcs = rg_output_path.rstrip("/").replace("gs://", "") + f"/part-{uuid.uuid4()}.parquet"
+            part_gcs = (
+                rg_output_path.rstrip("/").replace("gs://", "")
+                + f"/part-{uuid.uuid4()}.parquet"
+            )
             pq.write_table(
                 pa.Table.from_pandas(pd.DataFrame(rows)),
                 part_gcs,
@@ -336,21 +395,26 @@ def _make_rg_udf(
             elapsed = time.time() - t0
             n_success = sum(1 for r in rows if r.get("run_status") == "success")
             n_skipped = sum(1 for r in rows if r.get("run_status") == "skipped")
-            n_error   = sum(1 for r in rows if r.get("run_status") == "error")
+            n_error = sum(1 for r in rows if r.get("run_status") == "error")
 
-            yield pd.DataFrame([{
-                "n_pairs":         len(rows),
-                "n_success":       n_success,
-                "n_skipped":       n_skipped,
-                "n_error":         n_error,
-                "elapsed_seconds": elapsed,
-                "output_path":     out_uri,
-            }])
+            yield pd.DataFrame(
+                [
+                    {
+                        "n_pairs": len(rows),
+                        "n_success": n_success,
+                        "n_skipped": n_skipped,
+                        "n_error": n_error,
+                        "elapsed_seconds": elapsed,
+                        "output_path": out_uri,
+                    }
+                ]
+            )
 
     return rg_batch_udf
 
 
 # ── Step class ────────────────────────────────────────────────────────────────
+
 
 class GeneticCorrelationManifestStep:
     """Run LDSC pairwise rg for all pairs in a manifest using Spark parallelism.
@@ -415,7 +479,9 @@ class GeneticCorrelationManifestStep:
                 lambda r: (r["studyId_1"], r["studyId_2"]) in done, axis=1
             )
             manifest_pd = manifest_pd[~mask]
-            logger.info("  %d pairs already computed — skipping.", n_total - len(manifest_pd))
+            logger.info(
+                "  %d pairs already computed — skipping.", n_total - len(manifest_pd)
+            )
 
         if manifest_pd.empty:
             logger.info("All pairs already computed.")
@@ -425,9 +491,9 @@ class GeneticCorrelationManifestStep:
 
         # Sort by studyId_1 so consecutive pairs in each partition share the same
         # studyId_1, maximising LRU cache hits inside the UDF.
-        manifest_pd = manifest_pd.sort_values(
-            ["studyId_1", "studyId_2"]
-        ).reset_index(drop=True)
+        manifest_pd = manifest_pd.sort_values(["studyId_1", "studyId_2"]).reset_index(
+            drop=True
+        )
         n_partitions = max(1, len(manifest_pd) // self.pairs_per_partition)
         manifest_pd["_pid"] = manifest_pd.index // self.pairs_per_partition
 
@@ -449,11 +515,18 @@ class GeneticCorrelationManifestStep:
             min_overlap_snps=self.min_overlap_snps,
         )
 
-        summaries = pairs_sdf.mapInPandas(udf, schema=PARTITION_SUMMARY_SCHEMA).collect()
+        summaries = pairs_sdf.mapInPandas(
+            udf, schema=PARTITION_SUMMARY_SCHEMA
+        ).collect()
         for s in summaries:
             logger.info(
                 "Partition done: %d pairs in %.1fs — success=%d skipped=%d error=%d → %s",
-                s.n_pairs, s.elapsed_seconds, s.n_success, s.n_skipped, s.n_error, s.output_path,
+                s.n_pairs,
+                s.elapsed_seconds,
+                s.n_success,
+                s.n_skipped,
+                s.n_error,
+                s.output_path,
             )
         logger.info(
             "All partitions complete: %d pairs total, %d success, %d skipped, %d error",
