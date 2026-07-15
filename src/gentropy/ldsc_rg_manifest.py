@@ -22,11 +22,14 @@ from __future__ import annotations
 
 import contextlib
 import logging
+import time
+import uuid
 from collections.abc import Callable, Iterator
 from typing import Any
 
 import numpy as np
 import pandas as pd
+import pyarrow as pa
 import pyarrow.fs as pafs
 import pyarrow.parquet as pq
 from pyspark.sql import DataFrame
@@ -67,6 +70,15 @@ RG_RESULT_SCHEMA = StructType([
     StructField("M_ldsc",        DoubleType(),  True),
 ])
 
+
+PARTITION_SUMMARY_SCHEMA = StructType([
+    StructField("n_pairs",          LongType(),   False),
+    StructField("n_success",        LongType(),   False),
+    StructField("n_skipped",        LongType(),   False),
+    StructField("n_error",          LongType(),   False),
+    StructField("elapsed_seconds",  DoubleType(), False),
+    StructField("output_path",      StringType(), False),
+])
 
 # ── Module-level helpers (serialised into each Spark executor) ─────────────────
 
@@ -110,19 +122,21 @@ def _run_rg_pair(
     s1: str,
     s2: str,
     ancestry: str,
-    munged_base: str,
+    df1: pd.DataFrame,
+    df2: pd.DataFrame,
     intercept: float | None,
     twostep: float,
     n_blocks: int,
     min_overlap_snps: int,
 ) -> dict[str, Any]:
-    """Run LDSC rg for one pair and return a result dict.
+    """Run LDSC rg for one pair given pre-loaded DataFrames.
 
     Args:
         s1 (str): Study ID for trait 1.
         s2 (str): Study ID for trait 2.
         ancestry (str): LD ancestry label.
-        munged_base (str): GCS base path for pre-munged study parquets.
+        df1 (pd.DataFrame): Pre-loaded munged data for study 1.
+        df2 (pd.DataFrame): Pre-loaded munged data for study 2.
         intercept (float | None): Fixed cross-trait intercept, or None to estimate.
         twostep (float): LDSC two-step chi-square cut-off.
         n_blocks (int): Number of jackknife blocks.
@@ -139,11 +153,6 @@ def _run_rg_pair(
         "gcov": None, "gcov_se": None, "intercept": None, "intercept_se": None,
         "M_ldsc": None,
     }
-    try:
-        df1 = _read_munged(munged_base, ancestry, s1)
-        df2 = _read_munged(munged_base, ancestry, s2)
-    except Exception as exc:
-        return {**base, "run_status": "error", "skip_reason": f"read error: {exc}"}
 
     # Inner join on variantKey; also try allele-flipped variant keys for trait 2
     merged = df1.merge(df2, on="variantKey", suffixes=("1", "2"))
@@ -224,15 +233,20 @@ def _run_rg_pair(
 
 def _make_rg_udf(
     munged_base: str,
+    rg_output_path: str,
     twostep: float,
     n_blocks: int,
     intercept: float | None,
     min_overlap_snps: int,
 ) -> Callable[[Iterator[pd.DataFrame]], Iterator[pd.DataFrame]]:
-    """Return a ``mapInPandas``-compatible UDF closed over the run parameters.
+    """Return a ``mapInPandas``-compatible UDF that writes its partition directly to GCS.
+
+    Each partition writes one parquet file to ``rg_output_path`` as soon as it
+    completes and yields a single summary row (counts + elapsed time) for logging.
 
     Args:
         munged_base (str): GCS base path for pre-munged study parquets.
+        rg_output_path (str): GCS destination directory for result parquets.
         twostep (float): LDSC two-step chi-square cut-off.
         n_blocks (int): Number of jackknife blocks.
         intercept (float | None): Fixed cross-trait intercept, or None to estimate.
@@ -243,23 +257,73 @@ def _make_rg_udf(
             compatible with ``DataFrame.mapInPandas``.
     """
     def rg_batch_udf(batch_iter: Iterator[pd.DataFrame]) -> Iterator[pd.DataFrame]:
-        """Process one Spark partition (a batch of pairs) and yield results.
+        """Process one Spark partition, write results to GCS, and yield a summary row.
 
         Args:
             batch_iter (Iterator[pd.DataFrame]): Iterator over partition chunks.
 
         Yields:
-            pd.DataFrame: One row per pair with rg results.
+            pd.DataFrame: One summary row per partition with counts and elapsed time.
         """
         for batch in batch_iter:
-            rows = [
-                _run_rg_pair(
-                    row["studyId_1"], row["studyId_2"], row["ancestry"],
-                    munged_base, intercept, twostep, n_blocks, min_overlap_snps,
-                )
-                for _, row in batch.iterrows()
-            ]
-            yield pd.DataFrame(rows)
+            t0 = time.time()
+
+            # Pre-load each unique (ancestry, studyId) once to avoid redundant GCS reads.
+            study_cache: dict[tuple[str, str], pd.DataFrame | Exception] = {}
+            for ancestry, study_id in set(zip(batch["ancestry"], batch["studyId_1"])) | set(
+                zip(batch["ancestry"], batch["studyId_2"])
+            ):
+                try:
+                    study_cache[(ancestry, study_id)] = _read_munged(munged_base, ancestry, study_id)
+                except Exception as exc:
+                    study_cache[(ancestry, study_id)] = exc
+
+            rows = []
+            for _, row in batch.iterrows():
+                s1, s2, anc = row["studyId_1"], row["studyId_2"], row["ancestry"]
+                d1 = study_cache.get((anc, s1))
+                d2 = study_cache.get((anc, s2))
+                if isinstance(d1, Exception) or isinstance(d2, Exception):
+                    err = d1 if isinstance(d1, Exception) else d2
+                    rows.append({
+                        "studyId_1": s1, "studyId_2": s2, "ancestry": anc,
+                        "run_status": "error", "skip_reason": f"read error: {err}",
+                        "n_snps": None, "rg": None, "rg_se": None, "rg_clipped": None,
+                        "h2_1": None, "h2_1_se": None, "h2_2": None, "h2_2_se": None,
+                        "gcov": None, "gcov_se": None, "intercept": None,
+                        "intercept_se": None, "M_ldsc": None,
+                    })
+                else:
+                    rows.append(
+                        _run_rg_pair(
+                            s1, s2, anc, d1, d2,
+                            intercept, twostep, n_blocks, min_overlap_snps,
+                        )
+                    )
+
+            # Write this partition's results directly to GCS without waiting for
+            # other partitions — files appear as each executor completes.
+            part_gcs = rg_output_path.rstrip("/").replace("gs://", "") + f"/part-{uuid.uuid4()}.parquet"
+            pq.write_table(
+                pa.Table.from_pandas(pd.DataFrame(rows)),
+                part_gcs,
+                filesystem=pafs.GcsFileSystem(),
+            )
+            out_uri = f"gs://{part_gcs}"
+
+            elapsed = time.time() - t0
+            n_success = sum(1 for r in rows if r.get("run_status") == "success")
+            n_skipped = sum(1 for r in rows if r.get("run_status") == "skipped")
+            n_error   = sum(1 for r in rows if r.get("run_status") == "error")
+
+            yield pd.DataFrame([{
+                "n_pairs":         len(rows),
+                "n_success":       n_success,
+                "n_skipped":       n_skipped,
+                "n_error":         n_error,
+                "elapsed_seconds": elapsed,
+                "output_path":     out_uri,
+            }])
 
     return rg_batch_udf
 
@@ -343,15 +407,26 @@ class GeneticCorrelationManifestStep:
 
         udf = _make_rg_udf(
             munged_base=self.munged_path,
+            rg_output_path=self.rg_output_path,
             twostep=self.twostep,
             n_blocks=self.n_blocks,
             intercept=self.intercept,
             min_overlap_snps=self.min_overlap_snps,
         )
 
-        results_sdf = pairs_sdf.mapInPandas(udf, schema=RG_RESULT_SCHEMA)
-        results_sdf.write.mode("append").parquet(self.rg_output_path)
-        logger.info("Results written to %s", self.rg_output_path)
+        summaries = pairs_sdf.mapInPandas(udf, schema=PARTITION_SUMMARY_SCHEMA).collect()
+        for s in summaries:
+            logger.info(
+                "Partition done: %d pairs in %.1fs — success=%d skipped=%d error=%d → %s",
+                s.n_pairs, s.elapsed_seconds, s.n_success, s.n_skipped, s.n_error, s.output_path,
+            )
+        logger.info(
+            "All partitions complete: %d pairs total, %d success, %d skipped, %d error",
+            sum(s.n_pairs for s in summaries),
+            sum(s.n_success for s in summaries),
+            sum(s.n_skipped for s in summaries),
+            sum(s.n_error for s in summaries),
+        )
 
     def _already_computed(self) -> set[tuple[str, str]]:
         """Return (studyId_1, studyId_2) pairs that already have a result row.
