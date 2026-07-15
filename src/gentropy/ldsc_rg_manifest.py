@@ -24,6 +24,7 @@ import contextlib
 import logging
 import time
 import uuid
+from collections import OrderedDict
 from collections.abc import Callable, Iterator
 from typing import Any
 
@@ -265,24 +266,44 @@ def _make_rg_udf(
         Yields:
             pd.DataFrame: One summary row per partition with counts and elapsed time.
         """
+        # Bounded LRU cache shared across all batches in this partition.
+        # Because the manifest is sorted by studyId_1, studyId_1 stays hot in the
+        # cache; studyId_2 entries are evicted as newer ones arrive.
+        # Peak memory ≈ cache_maxsize × study_size, not n_unique_studies × study_size.
+        lru: OrderedDict[tuple[str, str], pd.DataFrame | Exception] = OrderedDict()
+        lru_maxsize = 20
+
+        def get_study(ancestry: str, study_id: str) -> pd.DataFrame | Exception:
+            """Return a study DataFrame from the LRU cache, loading from GCS on miss.
+
+            Args:
+                ancestry (str): LD ancestry label (e.g. ``"nfe"``).
+                study_id (str): Study identifier.
+
+            Returns:
+                pd.DataFrame | Exception: Loaded DataFrame or the exception raised on read.
+            """
+            key = (ancestry, study_id)
+            if key in lru:
+                lru.move_to_end(key)
+                return lru[key]
+            try:
+                result: pd.DataFrame | Exception = _read_munged(munged_base, ancestry, study_id)
+            except Exception as exc:  # noqa: BLE001
+                result = exc
+            lru[key] = result
+            if len(lru) > lru_maxsize:
+                lru.popitem(last=False)
+            return result
+
         for batch in batch_iter:
             t0 = time.time()
-
-            # Pre-load each unique (ancestry, studyId) once to avoid redundant GCS reads.
-            study_cache: dict[tuple[str, str], pd.DataFrame | Exception] = {}
-            for ancestry, study_id in set(zip(batch["ancestry"], batch["studyId_1"])) | set(
-                zip(batch["ancestry"], batch["studyId_2"])
-            ):
-                try:
-                    study_cache[(ancestry, study_id)] = _read_munged(munged_base, ancestry, study_id)
-                except Exception as exc:
-                    study_cache[(ancestry, study_id)] = exc
 
             rows = []
             for _, row in batch.iterrows():
                 s1, s2, anc = row["studyId_1"], row["studyId_2"], row["ancestry"]
-                d1 = study_cache.get((anc, s1))
-                d2 = study_cache.get((anc, s2))
+                d1 = get_study(anc, s1)  # noqa: B023
+                d2 = get_study(anc, s2)  # noqa: B023
                 if isinstance(d1, Exception) or isinstance(d2, Exception):
                     err = d1 if isinstance(d1, Exception) else d2
                     rows.append({
@@ -401,9 +422,22 @@ class GeneticCorrelationManifestStep:
 
         logger.info("  Running %d pairs …", len(manifest_pd))
 
-        pairs_sdf = self.session.spark.createDataFrame(manifest_pd)
+        # Sort by studyId_1 so consecutive pairs in each partition share the same
+        # studyId_1, maximising LRU cache hits inside the UDF.
+        manifest_pd = manifest_pd.sort_values(
+            ["studyId_1", "studyId_2"]
+        ).reset_index(drop=True)
         n_partitions = max(1, len(manifest_pd) // self.pairs_per_partition)
-        pairs_sdf = pairs_sdf.repartition(n_partitions)
+        manifest_pd["_pid"] = manifest_pd.index // self.pairs_per_partition
+
+        pairs_sdf = self.session.spark.createDataFrame(manifest_pd)
+        # Repartition by _pid so sequential groups stay together, then sort within
+        # each partition to guarantee studyId_1 ordering before the UDF sees the data.
+        pairs_sdf = (
+            pairs_sdf.repartition(n_partitions, "_pid")
+            .sortWithinPartitions("studyId_1", "studyId_2")
+            .drop("_pid")
+        )
 
         udf = _make_rg_udf(
             munged_base=self.munged_path,
