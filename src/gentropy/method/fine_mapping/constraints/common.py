@@ -2,7 +2,12 @@ from pyspark.sql import Column, DataFrame
 from pyspark.sql import functions as f
 from pyspark.sql.window import Window
 
-from gentropy.dataset.study_index import StudyIndex
+from gentropy.common.ld_population import LDPopulation
+from gentropy.dataset.study_index import (
+    StudyAnalysisFlag,
+    StudyIndex,
+    StudyQualityCheck,
+)
 from gentropy.method.fine_mapping.constraints.model import MethodConstraint
 
 
@@ -41,7 +46,7 @@ class HasAllowedAncestry(MethodConstraint):
 
     def __init__(
         self,
-        allowed_ancestries: list[str],
+        allowed_ancestries: list[LDPopulation],
         relative_sample_size_threshold: float,
         multi_ancestry: bool,
     ):
@@ -116,7 +121,7 @@ class HasAllowedAncestry(MethodConstraint):
             .filter(
                 f.col("majorAncestry")
                 .getField("ldPopulation")
-                .isin(self.allowed_ancestries)
+                .isin([population.value for population in self.allowed_ancestries])
             )
         )
 
@@ -143,13 +148,10 @@ class HasAllowedAncestry(MethodConstraint):
 
 
 class PassSumstatQC(MethodConstraint):
-    """Class representing the constraint for the MultiSuSuSiE method."""
+    """Class representing the constraint for the MultiSuSiE method."""
 
-    def __init__(self, allowed_reasons: list[str]) -> None:
-        qc_mappings_dict = StudyIndex.get_QC_mappings()
-        self.invalid_reasons = [
-            qc_mappings_dict[key] for key in allowed_reasons if key in qc_mappings_dict
-        ]
+    def __init__(self, disallowed_reasons: list[StudyQualityCheck]) -> None:
+        self.invalid_reasons = disallowed_reasons
 
     def apply(self, df: DataFrame) -> DataFrame:
         """Mark the rows of the dataframe that satisfy the constraint.
@@ -163,17 +165,17 @@ class PassSumstatQC(MethodConstraint):
         return df.filter(
             f.arrays_overlap(
                 f.col("qualityControls"),
-                f.array([f.lit(reason) for reason in self.invalid_reasons]),
+                f.array([f.lit(reason.value) for reason in self.invalid_reasons]),
             )
             == f.lit(True)
         )
 
 
 class HasAllowedAnalysisFlags(MethodConstraint):
-    """Class representing the constraint for the MultiSuSuSiE method."""
+    """Class representing the constraint for the MultiSuSiE method."""
 
-    def __init__(self, allowed_flags: list[str]) -> None:
-        self.allowed_flags = allowed_flags
+    def __init__(self, disallowed_flags: list[StudyAnalysisFlag]) -> None:
+        self.disallowed_flags = disallowed_flags
 
     def apply(self, df: DataFrame) -> DataFrame:
         """Mark the rows of the dataframe that satisfy the constraint.
@@ -187,7 +189,7 @@ class HasAllowedAnalysisFlags(MethodConstraint):
         return df.filter(
             f.arrays_overlap(
                 f.col("analysisFlags"),
-                f.array([f.lit(flag) for flag in self.allowed_flags]),
+                f.array([f.lit(flag.value) for flag in self.disallowed_flags]),
             )
             == f.lit(True)
         )

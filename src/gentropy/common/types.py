@@ -1,6 +1,6 @@
 """Types and type aliases used in the package."""
 
-from enum import StrEnum
+from enum import Enum
 from typing import Literal, NamedTuple
 
 from pyspark.sql.column import Column
@@ -10,7 +10,7 @@ VariantPopulation = Literal[
 ]
 
 
-class LDPopulation(StrEnum):
+class LDPopulation(Enum):
     """Enum representing GnomAD LD populations."""
 
     AFR = "afr"
@@ -31,6 +31,8 @@ class LDPopulation(StrEnum):
     """North-Western European population"""
     SEU = "seu"
     """Southern European population"""
+    CSA = "csa"
+    """Central/South Asian population"""
 
 
 class PValComponents(NamedTuple):

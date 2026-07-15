@@ -1,7 +1,12 @@
 """Module for multisusie constraints."""
 
+from gentropy.common.types import LDPopulation
 from gentropy.dataset.fine_mapping import FineMappingPlanner, FineMappingRoute
-from gentropy.dataset.study_index import StudyIndex
+from gentropy.dataset.study_index import (
+    StudyAnalysisFlag,
+    StudyIndex,
+    StudyQualityCheck,
+)
 from gentropy.method.fine_mapping.constraints.common import (
     HasAllowedAnalysisFlags,
     HasAllowedAncestry,
@@ -15,17 +20,24 @@ from gentropy.method.fine_mapping.constraints.model import ConstraintSet
 class MultiSuSiEConstraintSet(ConstraintSet):
     """Class representing a set of constraints for the MultiSuSiE method."""
 
-    def __init__(self):
+    def __init__(
+        self,
+        allowed_ancestries: list[LDPopulation],
+        relative_sample_size_threshold: float,
+        multi_ancestry: bool,
+        disallowed_reasons: list[StudyQualityCheck],
+        disallowed_flags: list[StudyAnalysisFlag],
+    ):
         self.constraints = [
             IsGwasStudyType(),
             HasSumstats(),
             HasAllowedAncestry(
-                allowed_ancestries=["EUR", "CSA", "AFR"],
-                relative_sample_size_threshold=0.95,
-                multi_ancestry=True,
+                allowed_ancestries=allowed_ancestries,
+                relative_sample_size_threshold=relative_sample_size_threshold,
+                multi_ancestry=multi_ancestry,
             ),
-            PassSumstatQC(allowed_reasons=[]),
-            HasAllowedAnalysisFlags(allowed_flags=[]),
+            PassSumstatQC(disallowed_reasons=disallowed_reasons),
+            HasAllowedAnalysisFlags(disallowed_flags=disallowed_flags),
         ]
 
         self.route = FineMappingRoute.MULTI_SUSIE_ROUTE
