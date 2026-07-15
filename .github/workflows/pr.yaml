@@ -16,7 +16,7 @@ jobs:
         python-version: ["3.11", "3.12", "3.13"]
         os: [ubuntu-latest, ubuntu-22.04-arm] # macos-latest is arm64
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 1
       - name: Set up Python
@@ -41,7 +41,7 @@ jobs:
       - name: Run tests
         run: make test
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./coverage.xml
