@@ -269,9 +269,10 @@ def _make_rg_udf(
         # Bounded LRU cache shared across all batches in this partition.
         # Because the manifest is sorted by studyId_1, studyId_1 stays hot in the
         # cache; studyId_2 entries are evicted as newer ones arrive.
-        # Peak memory ≈ cache_maxsize × study_size, not n_unique_studies × study_size.
+        # maxsize=3: with 4 cores per executor and ~180MB/study, 4 * 3 * 180MB = 2.2GB
+        # peak cache, leaving headroom within the ~6GB Python budget on n1-standard-4.
         lru: OrderedDict[tuple[str, str], pd.DataFrame | Exception] = OrderedDict()
-        lru_maxsize = 20
+        lru_maxsize = 3
 
         def get_study(ancestry: str, study_id: str) -> pd.DataFrame | Exception:
             """Return a study DataFrame from the LRU cache, loading from GCS on miss.
