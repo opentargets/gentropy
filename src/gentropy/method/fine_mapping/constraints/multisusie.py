@@ -6,12 +6,13 @@ from gentropy.dataset.study_index import (
     StudyAnalysisFlag,
     StudyIndex,
     StudyQualityCheck,
+    StudyType,
 )
 from gentropy.method.fine_mapping.constraints.common import (
     HasAllowedAnalysisFlags,
     HasAllowedAncestry,
     HasSumstats,
-    IsGwasStudyType,
+    IsAllowedStudyType,
     PassSumstatQC,
 )
 from gentropy.method.fine_mapping.constraints.model import ConstraintSet
@@ -29,7 +30,7 @@ class MultiSuSiEConstraintSet(ConstraintSet):
         disallowed_flags: list[StudyAnalysisFlag],
     ):
         self.constraints = [
-            IsGwasStudyType(),
+            IsAllowedStudyType(allowed_study_types=[StudyType.GWAS]),
             HasSumstats(),
             HasAllowedAncestry(
                 allowed_ancestries=allowed_ancestries,

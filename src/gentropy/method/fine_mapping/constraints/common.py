@@ -1,18 +1,23 @@
+"""Common constraints for fine-mapping methods."""
+
 from pyspark.sql import Column, DataFrame
 from pyspark.sql import functions as f
 from pyspark.sql.window import Window
 
-from gentropy.common.ld_population import LDPopulation
+from gentropy.common.types import LDPopulation
 from gentropy.dataset.study_index import (
     StudyAnalysisFlag,
-    StudyIndex,
     StudyQualityCheck,
+    StudyType,
 )
 from gentropy.method.fine_mapping.constraints.model import MethodConstraint
 
 
-class IsGwasStudyType(MethodConstraint):
-    """Class representing the constraint for the MultiSuSuSiE method."""
+class IsAllowedStudyType(MethodConstraint):
+    """Class representing the constraint for allowed study types."""
+
+    def __init__(self, allowed_study_types: list[StudyType]) -> None:
+        self.allowed_study_types = allowed_study_types
 
     def apply(self, df: DataFrame) -> DataFrame:
         """Mark the rows of the dataframe that satisfy the constraint.
@@ -23,11 +28,13 @@ class IsGwasStudyType(MethodConstraint):
         Returns:
             DataFrame: The dataframe with an additional column indicating whether the constraint is satisfied.
         """
-        return df.filter(f.col("studyType") == "gwas")
+        return df.filter(
+            f.col("studyType").isin([s.value for s in self.allowed_study_types])
+        )
 
 
 class HasSumstats(MethodConstraint):
-    """Class representing the constraint for the MultiSuSuSiE method."""
+    """Class representing the constraint for the MultiSuSiE method."""
 
     def apply(self, df: DataFrame) -> DataFrame:
         """Mark the rows of the dataframe that satisfy the constraint.
@@ -50,7 +57,7 @@ class HasAllowedAncestry(MethodConstraint):
         relative_sample_size_threshold: float,
         multi_ancestry: bool,
     ):
-        self.allowed_ancestries = allowed_ancestries
+        self.allowed_ancestries = [a.value for a in allowed_ancestries]
         self.relative_sample_size_threshold = relative_sample_size_threshold
         self.multi_ancestry = multi_ancestry
 
@@ -121,7 +128,7 @@ class HasAllowedAncestry(MethodConstraint):
             .filter(
                 f.col("majorAncestry")
                 .getField("ldPopulation")
-                .isin([population.value for population in self.allowed_ancestries])
+                .isin(self.allowed_ancestries)
             )
         )
 

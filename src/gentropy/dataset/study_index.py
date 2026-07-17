@@ -110,6 +110,20 @@ class StudyType(Enum):
     SCTUQTL = "sctuqtl"
 
 
+class StudyType(Enum):
+    """Enum type hosting the expected study types."""
+
+    GWAS = "gwas"
+    EQTL = "eqtl"
+    PQTL = "pqtl"
+    SQTL = "sqtl"
+    TUQTL = "tuqtl"
+    SCEQTL = "sceqtl"
+    SCPQTL = "scpqtl"
+    SCSQTL = "scsqtl"
+    SCTUQTL = "sctuqtl"
+
+
 @dataclass
 class StudyIndex(Dataset):
     """Study index dataset.
