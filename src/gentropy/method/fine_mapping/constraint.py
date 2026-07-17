@@ -5,9 +5,8 @@ from __future__ import annotations
 from typing import ClassVar, Protocol
 
 import pyspark.sql.types as t
-from pyspark.sql import Column, DataFrame
+from pyspark.sql import Column
 from pyspark.sql import functions as f
-from pyspark.sql.window import Window
 
 from gentropy.common.spark import order_array_of_structs_by_field
 from gentropy.common.types import LDPopulation
