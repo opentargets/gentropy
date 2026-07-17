@@ -60,8 +60,6 @@ class MethodConstraint(Protocol):
 
         Args:
             si (StudyIndex): The input StudyIndex.
-            name (str): The name of the constraint.
-            exp (Column): The expression representing the constraint.
 
         Returns:
             ConstraintResult: The result of applying the constraint.
@@ -72,14 +70,29 @@ class MethodConstraint(Protocol):
                 f.array(
                     f.struct(
                         f.lit(self.name).alias("name"), self.expression.alias("value")
-                    ).alias("constraints"),
-                ),
+                    )
+                ).alias("constraints"),
             )
         )
 
 
 class IsAllowedStudyType(MethodConstraint):
-    """Class representing the constraint for allowed study types."""
+    """Class representing the constraint for allowed study types.
+
+    Examples:
+        >>> data = [("s1", "p", "gwas"), ("s2", "p", "eqtl")]
+        >>> schema = "studyId STRING, projectId STRING, studyType STRING"
+        >>> si = StudyIndex(_df=spark.createDataFrame(data, schema))
+        >>> constraint = IsAllowedStudyType(allowed_study_types=[StudyType.GWAS])
+        >>> constraint.annotate(si).df.show(truncate=False)
+        +-------+-----------------------------+
+        |studyId|constraints                  |
+        +-------+-----------------------------+
+        |s1     |[{isAllowedStudyType, true}] |
+        |s2     |[{isAllowedStudyType, false}]|
+        +-------+-----------------------------+
+        <BLANKLINE>
+    """
 
     name = "isAllowedStudyType"
 
@@ -95,7 +108,21 @@ class IsAllowedStudyType(MethodConstraint):
 
 
 class HasSumstats(MethodConstraint):
-    """Class representing the constraint for the MultiSuSiE method."""
+    """Class representing the constraint for the MultiSuSiE method.
+
+    Examples:
+        >>> data = [("s1", "p", "gwas", True), ("s2", "p", "gwas", False)]
+        >>> schema = "studyId STRING, projectId STRING, studyType STRING, hasSumstats BOOLEAN"
+        >>> si = StudyIndex(_df=spark.createDataFrame(data, schema))
+        >>> HasSumstats().annotate(si).df.show(truncate=False)
+        +-------+----------------------+
+        |studyId|constraints           |
+        +-------+----------------------+
+        |s1     |[{hasSumstats, true}] |
+        |s2     |[{hasSumstats, false}]|
+        +-------+----------------------+
+        <BLANKLINE>
+    """
 
     name = "hasSumstats"
 
@@ -105,7 +132,22 @@ class HasSumstats(MethodConstraint):
 
 
 class PassSumstatQC(MethodConstraint):
-    """Class representing the constraint for the MultiSuSiE method."""
+    """Class representing the constraint for the MultiSuSiE method.
+
+    Examples:
+        >>> data = [("s1", "p", "gwas", []), ("s2", "p", "gwas", [StudyQualityCheck.UNRESOLVED_TARGET.value])]
+        >>> schema = "studyId STRING, projectId STRING, studyType STRING, qualityControls ARRAY<STRING>"
+        >>> si = StudyIndex(_df=spark.createDataFrame(data, schema))
+        >>> constraint = PassSumstatQC(disallowed_reasons=[StudyQualityCheck.UNRESOLVED_TARGET])
+        >>> constraint.annotate(si).df.show(truncate=False)
+        +-------+------------------------+
+        |studyId|constraints             |
+        +-------+------------------------+
+        |s1     |[{passSumstatQC, true}] |
+        |s2     |[{passSumstatQC, false}]|
+        +-------+------------------------+
+        <BLANKLINE>
+    """
 
     name = "passSumstatQC"
 
@@ -122,7 +164,22 @@ class PassSumstatQC(MethodConstraint):
 
 
 class HasAllowedAnalysisFlags(MethodConstraint):
-    """Class representing the constraint for the MultiSuSiE method."""
+    """Class representing the constraint for the MultiSuSiE method.
+
+    Examples:
+        >>> data = [("s1", "p", "gwas", []), ("s2", "p", "gwas", [StudyAnalysisFlag.CASE_CASE_STUDY.value])]
+        >>> schema = "studyId STRING, projectId STRING, studyType STRING, analysisFlags ARRAY<STRING>"
+        >>> si = StudyIndex(_df=spark.createDataFrame(data, schema))
+        >>> constraint = HasAllowedAnalysisFlags(disallowed_flags=[StudyAnalysisFlag.CASE_CASE_STUDY])
+        >>> constraint.annotate(si).df.show(truncate=False)
+        +-------+----------------------------------+
+        |studyId|constraints                       |
+        +-------+----------------------------------+
+        |s1     |[{hasAllowedAnalysisFlags, true}] |
+        |s2     |[{hasAllowedAnalysisFlags, false}]|
+        +-------+----------------------------------+
+        <BLANKLINE>
+    """
 
     name = "hasAllowedAnalysisFlags"
 
@@ -138,8 +195,57 @@ class HasAllowedAnalysisFlags(MethodConstraint):
         )
 
 
+class HasMappedTrait(MethodConstraint):
+    """Class representing the constraint requiring at least one mapped trait.
+
+    Examples:
+        >>> data = [("s1", "p", "gwas", ["EFO_1"]), ("s2", "p", "gwas", [])]
+        >>> schema = "studyId STRING, projectId STRING, studyType STRING, traitFromSourceMappedIds ARRAY<STRING>"
+        >>> si = StudyIndex(_df=spark.createDataFrame(data, schema))
+        >>> HasMappedTrait().annotate(si).df.show(truncate=False)
+        +-------+-------------------------+
+        |studyId|constraints              |
+        +-------+-------------------------+
+        |s1     |[{hasMappedTrait, true}] |
+        |s2     |[{hasMappedTrait, false}]|
+        +-------+-------------------------+
+        <BLANKLINE>
+    """
+
+    name = "hasMappedTrait"
+
+    def __init__(self) -> None:
+        """Initialize the constraint requiring at least one mapped trait."""
+        self.expression = (
+            f.size(f.coalesce(f.col("traitFromSourceMappedIds"), f.array())) > 0
+        )
+
+
 class HasAllowedMajorAncestry(MethodConstraint):
-    """Class representing the constraint for single & allowed ancestry for SuSiE based methods."""
+    """Class representing the constraint for single & allowed ancestry for SuSiE based methods.
+
+    Examples:
+        >>> data = [
+        ...     ("s1", "p", "gwas", [("nfe", 0.8), ("afr", 0.2)]),
+        ...     ("s2", "p", "gwas", [("nfe", 0.4), ("afr", 0.6)]),
+        ...     ("s3", "p", "gwas", [("eas", 0.9)]),
+        ... ]
+        >>> schema = (
+        ...     "studyId STRING, projectId STRING, studyType STRING, "
+        ...     "ldPopulationStructure ARRAY<STRUCT<ldPopulation:STRING,relativeSampleSize:DOUBLE>>"
+        ... )
+        >>> si = StudyIndex(_df=spark.createDataFrame(data, schema))
+        >>> constraint = HasAllowedMajorAncestry(allowed_ancestries=[LDPopulation.NFE], relative_sample_size_threshold=0.5)
+        >>> constraint.annotate(si).df.orderBy("studyId").show(truncate=False)
+        +-------+----------------------------------+
+        |studyId|constraints                       |
+        +-------+----------------------------------+
+        |s1     |[{hasAllowedMajorAncestry, true}] |
+        |s2     |[{hasAllowedMajorAncestry, false}]|
+        |s3     |[{hasAllowedMajorAncestry, false}]|
+        +-------+----------------------------------+
+        <BLANKLINE>
+    """
 
     name = "hasAllowedMajorAncestry"
 

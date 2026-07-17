@@ -34,7 +34,7 @@ class FineMappingPlanner(Dataset):
         """
         return t.StructType(
             [
-                t.StructField("runId", t.StringType(), nullable=False),
+                t.StructField("runId", t.StringType(), nullable=True),
                 t.StructField("studyId", t.StringType(), nullable=False),
                 t.StructField("route", t.StringType(), nullable=False),
                 t.StructField(

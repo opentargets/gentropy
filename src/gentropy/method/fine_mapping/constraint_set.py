@@ -22,6 +22,7 @@ from gentropy.method.fine_mapping.constraint import (
     ConstraintResult,
     HasAllowedAnalysisFlags,
     HasAllowedMajorAncestry,
+    HasMappedTrait,
     HasSumstats,
     IsAllowedStudyType,
     MethodConstraint,
@@ -60,6 +61,7 @@ class MultiSuSiEConstraintSet(ConstraintSet):
         self.constraints: list[MethodConstraint] = [
             IsAllowedStudyType(allowed_study_types=[StudyType.GWAS]),
             HasSumstats(),
+            HasMappedTrait(),
             PassSumstatQC(disallowed_reasons=disallowed_reasons),
             HasAllowedAnalysisFlags(disallowed_flags=disallowed_flags),
             HasAllowedMajorAncestry(
@@ -160,7 +162,9 @@ class MultiSuSiEConstraintSet(ConstraintSet):
                 "constraints",
             )
             .withColumn(
-                "representativeStudy", f.row_number().over(representative_study) == 1
+                "representativeStudy",
+                (f.row_number().over(representative_study) == 1)
+                & f.col("isElligible"),
             )
             .withColumn(
                 "hasOtherAncestryCounterpart",
@@ -199,8 +203,23 @@ class MultiSuSiEConstraintSet(ConstraintSet):
                     ),
                 ).otherwise(f.lit(None)),
             )
+            .withColumn(
+                "runId",
+                f.when(
+                    f.col("runId").isNotNull(),
+                    f.concat_ws(
+                        ",",
+                        f.array_sort(
+                            f.array_distinct(
+                                f.collect_list("studyId").over(
+                                    Window().partitionBy("runId")
+                                )
+                            )
+                        ),
+                    ),
+                ).otherwise(f.lit(None)),
+            )
             .select(
-                "id",
                 "studyId",
                 "runId",
                 "constraints",

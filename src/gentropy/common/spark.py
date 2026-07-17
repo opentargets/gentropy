@@ -1021,18 +1021,20 @@ def all_struct_fields_in_array(
         Column: A boolean column indicating if all structs have the specified field equal to the given value.
 
     Examples:
-        >>> data = [([{"a": 1}, {"a": 1}],), ([{"a": 1}, {"a": 2}],), ([{"a": 2}, {"a": 2}],)]
-        >>> df = spark.createDataFrame(data, ["array_col"])
+        >>> data = [([(1,), (1,)],), ([(1,), (2,)],), ([(2,), (2,)],)]
+        >>> df = spark.createDataFrame(data, "array_col array<struct<a:int>>")
         >>> df.withColumn("all_a_1", all_struct_fields_in_array(f.col("array_col"), "a", f.lit(1))).show()
-        +----------------+--------+
-        |       array_col|all_a_1|
-        +----------------+--------+
-        |[{1}, {1}]      |   true|
-        |[{1}, {2}]      |  false|
-        |[{2}, {2}]      |  false|
-        +----------------+--------+
+        +----------+-------+
+        | array_col|all_a_1|
+        +----------+-------+
+        |[{1}, {1}]|   true|
+        |[{1}, {2}]|  false|
+        |[{2}, {2}]|  false|
+        +----------+-------+
         <BLANKLINE>
     """
-    return f.expr(
-        f"aggregate({array_col}, true, (acc, x) -> acc AND x.{struct_field} = {value})"
+    return f.aggregate(
+        array_col,
+        f.lit(True),
+        lambda acc, x: acc & (x[struct_field] == value),
     )
