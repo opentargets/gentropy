@@ -12,18 +12,19 @@ import pytest
 from pyspark.sql import SparkSession
 
 from gentropy.common.types import LDPopulation
-from gentropy.dataset.study_index import StudyIndex, StudyType
+from gentropy.dataset.study_index import StudyIndex, StudyQualityCheck, StudyType
 from gentropy.method.fine_mapping.constraint import (
     ConstraintResult,
     HasAllowedMajorAncestry,
     HasMappedTrait,
     HasSumstats,
+    PassSumstatQC,
 )
 
 STUDY_REQUIRED_SCHEMA = (
     "studyId STRING, projectId STRING, studyType STRING, hasSumstats BOOLEAN, "
     "ldPopulationStructure ARRAY<STRUCT<ldPopulation:STRING,relativeSampleSize:DOUBLE>>, "
-    "traitFromSourceMappedIds ARRAY<STRING>"
+    "traitFromSourceMappedIds ARRAY<STRING>, qualityControls ARRAY<STRING>"
 )
 
 
@@ -36,6 +37,7 @@ def _study_index(spark: SparkSession, **overrides: object) -> StudyIndex:
         "hasSumstats": False,
         "ldPopulationStructure": [(LDPopulation.NFE.value, 1.0)],
         "traitFromSourceMappedIds": ["EFO_1"],
+        "qualityControls": [],
         **overrides,
     }
     data = [
@@ -46,6 +48,7 @@ def _study_index(spark: SparkSession, **overrides: object) -> StudyIndex:
             row["hasSumstats"],
             row["ldPopulationStructure"],
             row["traitFromSourceMappedIds"],
+            row["qualityControls"],
         )
     ]
     return StudyIndex(_df=spark.createDataFrame(data, STUDY_REQUIRED_SCHEMA))
@@ -112,3 +115,25 @@ def test_has_allowed_major_ancestry_at_exact_threshold(spark: SparkSession) -> N
     )
     result = constraint.annotate(si)
     assert _constraint_value(result, "hasAllowedMajorAncestry") is True
+
+
+@pytest.mark.parametrize(
+    ["quality_controls", "expected"],
+    [
+        pytest.param([], True, id="empty quality control list passes"),
+        pytest.param(None, False, id="null quality control list is disallowed"),
+        pytest.param(
+            [StudyQualityCheck.UNRESOLVED_TARGET.value],
+            False,
+            id="disallowed reason present fails",
+        ),
+    ],
+)
+def test_pass_sumstat_qc_edge_cases(
+    spark: SparkSession, quality_controls: list[str] | None, expected: bool
+) -> None:
+    """PassSumstatQC must treat a null qualityControls array as failing, not unknown."""
+    si = _study_index(spark, qualityControls=quality_controls)
+    constraint = PassSumstatQC(disallowed_reasons=[StudyQualityCheck.UNRESOLVED_TARGET])
+    result = constraint.annotate(si)
+    assert _constraint_value(result, "passSumstatQC") is expected

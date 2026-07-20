@@ -134,16 +134,17 @@ class PassSumstatQC(MethodConstraint):
     """Class representing the constraint for the MultiSuSiE method.
 
     Examples:
-        >>> data = [("s1", "p", "gwas", []), ("s2", "p", "gwas", [StudyQualityCheck.UNRESOLVED_TARGET.value])]
+        >>> data = [("s1", "p", "gwas", []), ("s2", "p", "gwas", [StudyQualityCheck.UNRESOLVED_TARGET.value]), ("s3", "p", "gwas", None)]
         >>> schema = "studyId STRING, projectId STRING, studyType STRING, qualityControls ARRAY<STRING>"
         >>> si = StudyIndex(_df=spark.createDataFrame(data, schema))
         >>> constraint = PassSumstatQC(disallowed_reasons=[StudyQualityCheck.UNRESOLVED_TARGET])
-        >>> constraint.annotate(si).df.show(truncate=False)
+        >>> constraint.annotate(si).df.orderBy("studyId").show(truncate=False)
         +-------+------------------------+
         |studyId|constraints             |
         +-------+------------------------+
         |s1     |[{passSumstatQC, true}] |
         |s2     |[{passSumstatQC, false}]|
+        |s3     |[{passSumstatQC, false}]|
         +-------+------------------------+
         <BLANKLINE>
     """
@@ -156,9 +157,12 @@ class PassSumstatQC(MethodConstraint):
         Args:
             disallowed_reasons (list[StudyQualityCheck]): The list of disallowed quality check reasons.
         """
-        self.expression = ~f.arrays_overlap(
-            f.col("qualityControls"),
-            f.array([f.lit(reason.value) for reason in disallowed_reasons]),
+        self.expression = (
+            ~f.arrays_overlap(
+                f.coalesce(f.col("qualityControls"), f.array()),
+                f.array([f.lit(reason.value) for reason in disallowed_reasons]),
+            )
+            & f.col("qualityControls").isNotNull()
         )
 
 
