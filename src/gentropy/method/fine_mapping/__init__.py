@@ -40,6 +40,7 @@ class FineMappingConstraintRegistry:
                     StudyQualityCheck.FAILED_PZ_CHECK,
                     StudyQualityCheck.NO_OT_CURATION,
                     StudyQualityCheck.SMALL_NUMBER_OF_SNPS,
+                    StudyQualityCheck.SUMSTATS_NOT_AVAILABLE,
                 ],
                 relative_sample_size_threshold=0.95,
             ),

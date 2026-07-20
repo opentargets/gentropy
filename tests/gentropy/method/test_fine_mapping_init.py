@@ -88,6 +88,17 @@ def test_multi_susie_disallows_failed_gc_lambda_check(spark: SparkSession) -> No
     assert _constraint_flag(result, "passSumstatQC") is False
 
 
+def test_multi_susie_disallows_sumstats_not_available(spark: SparkSession) -> None:
+    """A study whose sumstats are not available is excluded by passSumstatQC too, not only hasSumstats."""
+    row = _study_row(
+        "s1",
+        [("nfe", 1.0)],
+        quality_controls=["Harmonized summary statistics are not available or empty"],
+    )
+    result = _resolve_eligibility(spark, row)
+    assert _constraint_flag(result, "passSumstatQC") is False
+
+
 def test_multi_susie_relative_sample_size_threshold_is_strict(
     spark: SparkSession,
 ) -> None:
