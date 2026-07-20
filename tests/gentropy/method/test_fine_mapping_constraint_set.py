@@ -60,11 +60,13 @@ def _constraint_set(
 
 
 def _resolve(spark: SparkSession, rows: list[tuple[object, ...]]) -> FineMappingPlanner:
+    """Build a StudyIndex from the given rows and resolve it with a permissive MultiSuSiEConstraintSet."""
     si = StudyIndex(_df=spark.createDataFrame(rows, STUDY_REQUIRED_SCHEMA))
     return _constraint_set().resolve(si)
 
 
 def _constraint_flag(row: Row, name: str) -> bool:
+    """Look up a named constraint's value from a resolved plan row."""
     return next(c["value"] for c in row["constraints"] if c["name"] == name)
 
 
@@ -167,6 +169,28 @@ def test_resolve_case_control_uses_effective_sample_size(spark: SparkSession) ->
     rows_by_id = {r["studyId"]: r for r in result.df.collect()}
     assert _constraint_flag(rows_by_id["case_control"], "representativeStudy") is True
     assert _constraint_flag(rows_by_id["measurement"], "representativeStudy") is False
+
+
+def test_resolve_undetermined_study_design_is_never_representative(
+    spark: SparkSession,
+) -> None:
+    """A study whose design is neither case-control nor measurement (n_eff undetermined) is never representative, even as the sole study for its trait/ancestry group."""
+    rows = [
+        # Only nCases populated (nControls null) -> validate_ccs() flags
+        # ONE_ONLY_CASE_OR_CONTROL, neither CASE_CONTROL_STUDY_DESIGN nor
+        # MEASUREMENT_STUDY_DESIGN, so n_eff is null.
+        _study_row(
+            "s1",
+            ["EFO_1"],
+            [(LDPopulation.NFE.value, 1.0)],
+            n_samples=10_000,
+            n_cases=5_000,
+            n_controls=None,
+        ),
+    ]
+    result = _resolve(spark, rows)
+    row = result.df.collect()[0]
+    assert _constraint_flag(row, "representativeStudy") is False
 
 
 def test_resolve_different_traits_are_independent(spark: SparkSession) -> None:

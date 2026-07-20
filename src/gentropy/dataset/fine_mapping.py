@@ -1,4 +1,12 @@
-"""Fine mapping planner dataset module."""
+"""Fine mapping planner dataset module.
+
+This module captures the schema for the dataset that represents the availablity of executing the fine-mapping methods for each study.
+The dataset unique key is (studyId, route), where studyId represents the single study identifier from StudyIndex and route
+represents a single fine-mapping method route (e.g. MultiSuSiE).
+
+The eligibility of the study to undergo the
+fine-mapping under a specific route is defined by the constraints that have to be satisfied for that study or combination of studies.
+"""
 
 from __future__ import annotations
 
@@ -12,18 +20,30 @@ from gentropy.dataset.dataset import Dataset
 class FineMappingRoute(StrEnum):
     """Enum representing the route of the fine-mapping method."""
 
-    SUSIE_INF_ROUTE = "susie_inf_route"
-    """Route for SuSiE inference fine-mapping methods."""
-
-    PICS_ROUTE = "pics_route"
-    """Route for PICS fine-mapping methods."""
-
     MULTI_SUSIE_ROUTE = "multi_susie_route"
     """Route for multi-SuSiE fine-mapping methods."""
 
 
 class FineMappingPlanner(Dataset):
-    """Class representing a planner for fine-mapping methods."""
+    """Class representing a planner for fine-mapping methods.
+
+    Examples:
+    ---
+    >>> data = [("run1", "study1", "multi_susie_route", [("constraint1", True), ("constraint2", False)]),
+    ...         ("run2", "study2", "multi_susie_route", [("constraint2", False),])]
+    >>> df = spark.createDataFrame(data, schema=FineMappingPlanner.get_schema())
+    >>> from gentropy.dataset.fine_mapping import FineMappingPlanner
+    >>> planner = FineMappingPlanner(df)
+    >>> assert isinstance(planner, FineMappingPlanner)
+    >>> planner.df.show(truncate=False)
+    +-----+-------+-----------------+-------------------------------------------+
+    |runId|studyId|route            |constraints                                |
+    +-----+-------+-----------------+-------------------------------------------+
+    |run1 |study1 |multi_susie_route|[{constraint1, true}, {constraint2, false}]|
+    |run2 |study2 |multi_susie_route|[{constraint2, false}]                     |
+    +-----+-------+-----------------+-------------------------------------------+
+    <BLANKLINE>
+    """
 
     @classmethod
     def get_schema(cls) -> t.StructType:

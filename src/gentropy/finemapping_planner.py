@@ -3,12 +3,7 @@
 from functools import reduce
 
 from gentropy import Session, StudyIndex
-from gentropy.common.types import LDPopulation
-from gentropy.dataset.study_index import StudyAnalysisFlag, StudyQualityCheck
-from gentropy.method.fine_mapping.constraint_set import (
-    ConstraintSet,
-    MultiSuSiEConstraintSet,
-)
+from gentropy.method.fine_mapping import FineMappingConstraintRegistry
 
 
 class FineMappingPlanGeneratorStep:
@@ -23,33 +18,7 @@ class FineMappingPlanGeneratorStep:
             output_path (str): Path to write the combined fine-mapping plan to, partitioned by route.
         """
         study_index = StudyIndex.from_parquet(session, input_path)
-
-        registry: dict[str, ConstraintSet] = {
-            "MultiSuSiE": MultiSuSiEConstraintSet(
-                disallowed_flags=[
-                    StudyAnalysisFlag.MULTIVARIATE_ANALYSIS,
-                    StudyAnalysisFlag.EXWAS,
-                    StudyAnalysisFlag.NON_ADDITIVE,
-                    StudyAnalysisFlag.WGS_WAS,
-                    StudyAnalysisFlag.GXG,
-                    StudyAnalysisFlag.GxE,
-                    StudyAnalysisFlag.CASE_CASE_STUDY,
-                ],
-                allowed_ancestries=[
-                    LDPopulation.NFE,
-                    LDPopulation.AFR,
-                    LDPopulation.CSA,
-                ],
-                disallowed_reasons=[
-                    StudyQualityCheck.FAILED_GC_LAMBDA_CHECK,
-                    StudyQualityCheck.FAILED_MEAN_BETA_CHECK,
-                    StudyQualityCheck.FAILED_PZ_CHECK,
-                    StudyQualityCheck.NO_OT_CURATION,
-                    StudyQualityCheck.SMALL_NUMBER_OF_SNPS,
-                ],
-                relative_sample_size_threshold=0.95,
-            ),
-        }
+        registry = FineMappingConstraintRegistry().registry
 
         self.plans = {
             method_name: constraint_set.resolve(study_index)

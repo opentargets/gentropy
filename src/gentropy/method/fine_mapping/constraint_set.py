@@ -1,6 +1,6 @@
 """Sets of fine-mapping constraints composed into sets for methods."""
 
-from concurrent.futures import ThreadPoolExecutor
+import logging
 from typing import Protocol
 
 from pyspark.sql import DataFrame, Window
@@ -30,9 +30,13 @@ from gentropy.method.fine_mapping.constraint import (
     PassSumstatQC,
 )
 
+logger = logging.getLogger(__name__)
+
 
 class ConstraintSet(Protocol):
     """Class representing a set of constraints for the methods of fine-mapping."""
+
+    constraints: list[MethodConstraint]
 
     def resolve(self, si: StudyIndex) -> FineMappingPlanner:
         """Resolve all of the constrains on the dataframe and return a new dataframe.
@@ -47,6 +51,29 @@ class ConstraintSet(Protocol):
         raise NotImplementedError(
             "The resolve method should be implemented in the subclasses of FineMappingConstraintSet."
         )
+
+    def _resolve_constraints(self, si: StudyIndex) -> ConstraintResult:
+        """Evaluate every constraint's expression on the study index in a single pass.
+
+        Args:
+            si (StudyIndex): The input StudyIndex.
+
+        Returns:
+            ConstraintResult: One row per studyId with every constraint's result.
+        """
+        merged_df = si.df.select(
+            "studyId",
+            f.array(
+                *[
+                    f.struct(
+                        f.lit(constraint.name).alias("name"),
+                        constraint.expression.alias("value"),
+                    )
+                    for constraint in self.constraints
+                ]
+            ).alias("constraints"),
+        )
+        return ConstraintResult(_df=merged_df)
 
 
 class MultiSuSiEConstraintSet(ConstraintSet):
@@ -81,38 +108,13 @@ class MultiSuSiEConstraintSet(ConstraintSet):
 
         self.route = FineMappingRoute.MULTI_SUSIE_ROUTE
 
-    def _resolve_constraints(self, si: StudyIndex) -> ConstraintResult:
-        """Evaluate every constraint's expression on the study index in a single pass.
-
-        Each constraint's own `annotate()` still works standalone (used and tested
-        independently), but here we read each constraint's `name`/`expression` directly
-        and build one combined `.select()` instead of resolving each constraint via its
-        own `annotate()` call and unioning the results - this avoids Spark scheduling one
-        independent scan of the (cached) study index per constraint.
-
-        Args:
-            si (StudyIndex): The input StudyIndex.
-
-        Returns:
-            ConstraintResult: One row per studyId with every constraint's result.
-        """
-        merged_df = si.df.select(
-            "studyId",
-            f.array(
-                *[
-                    f.struct(
-                        f.lit(constraint.name).alias("name"),
-                        constraint.expression.alias("value"),
-                    )
-                    for constraint in self.constraints
-                ]
-            ).alias("constraints"),
-        )
-        return ConstraintResult(_df=merged_df)
-
     @staticmethod
     def _compute_n_eff(df: DataFrame) -> DataFrame:
         """Compute the effective sample size, using case-control formula when applicable.
+
+        A study design that is neither case-control nor a plain measurement study has no
+        well-defined sample-size basis, so n_eff is null rather than falling back to
+        nSamples.
 
         Args:
             df (DataFrame): Study-level dataframe with qualityControls, nCases, nControls, nSamples.
@@ -128,7 +130,15 @@ class MultiSuSiEConstraintSet(ConstraintSet):
                     StudyQualityCheck.CASE_CONTROL_STUDY_DESIGN.value,
                 ),
                 effective_sample_size(f.col("nCases"), f.col("nControls")),
-            ).otherwise(f.col("nSamples")),
+            )
+            .when(
+                f.array_contains(
+                    f.col("qualityControls"),
+                    StudyQualityCheck.MEASUREMENT_STUDY_DESIGN.value,
+                ),
+                f.col("nSamples"),
+            )
+            .otherwise(f.lit(None)),
         )
 
     @staticmethod
@@ -152,9 +162,6 @@ class MultiSuSiEConstraintSet(ConstraintSet):
 
     def _compute_representative_selection_inputs(self, si: StudyIndex) -> DataFrame:
         """Build the traitSet/n_eff/majorAncestry branch used for representative-study selection.
-
-        This branch and `_resolve_constraints` both only depend on the (already cached)
-        study index, not on each other, so `resolve()` runs them concurrently.
 
         Args:
             si (StudyIndex): The input StudyIndex.
@@ -205,7 +212,9 @@ class MultiSuSiEConstraintSet(ConstraintSet):
         """Flag, per (traitSet, majorAncestry), the eligible study with the highest n_eff.
 
         An ineligible study is never selected as representative, even when it is the
-        sole (ineligible) study within its trait/ancestry group.
+        sole (ineligible) study within its trait/ancestry group. Likewise, a study whose
+        n_eff could not be established (undetermined study design) is never representative,
+        even when it is the sole study within its trait/ancestry group.
 
         Args:
             df (DataFrame): Study-level dataframe with traitSet, majorAncestry, isElligible, n_eff columns.
@@ -225,7 +234,8 @@ class MultiSuSiEConstraintSet(ConstraintSet):
         return df.withColumn(
             "representativeStudy",
             (f.row_number().over(representative_study_window) == 1)
-            & f.col("isElligible"),
+            & f.col("isElligible")
+            & f.col("n_eff").isNotNull(),
         )
 
     @staticmethod
@@ -347,37 +357,23 @@ class MultiSuSiEConstraintSet(ConstraintSet):
             ValueError: If the number of distinct studies in the output plan doesn't match the input.
         """
         si.persist()
-        # Force the study index cache to materialize now, before any downstream branch
-        # is built. Without this, downstream branches can race to populate the same
-        # cache concurrently, each triggering its own independent parquet scan instead
-        # of reusing one materialized cache. This also gives us the input study count
-        # for the sanity check below.
+        # Materialize the study index cache now so both branches below reuse it
+        # instead of each triggering its own independent parquet scan. This also
+        # gives us the input study count for the sanity check below.
         input_study_count = si.df.select("studyId").distinct().count()
+        logger.info("Input study index: %s distinct studies.", input_study_count)
 
-        # _resolve_constraints and the representative-selection inputs (traitSet/n_eff/
-        # majorAncestry, via validate_ccs()) only depend on the cached si above, not on
-        # each other - Spark's own scheduler does not parallelize independent branches
-        # like these on its own (verified: only one stage is ever active at a time on a
-        # dataset this size), so each branch is built AND materialized (persist + count)
-        # inside its own thread, letting both Spark jobs run concurrently.
-        def _build_and_materialize_constraints() -> ConstraintResult:
-            result = self._resolve_constraints(si)
-            result.persist()
-            result.df.count()
-            return result
+        all_constraints = self._resolve_constraints(si)
+        all_constraints.persist()
+        constraints_count = all_constraints.df.count()
+        logger.info("Resolved constraints for %s studies.", constraints_count)
 
-        def _build_and_materialize_selection_inputs() -> DataFrame:
-            result = self._compute_representative_selection_inputs(si).persist()
-            result.count()
-            return result
-
-        with ThreadPoolExecutor(max_workers=2) as executor:
-            constraints_future = executor.submit(_build_and_materialize_constraints)
-            selection_inputs_future = executor.submit(
-                _build_and_materialize_selection_inputs
-            )
-            all_constraints = constraints_future.result()
-            selection_inputs = selection_inputs_future.result()
+        selection_inputs = self._compute_representative_selection_inputs(si).persist()
+        selection_inputs_count = selection_inputs.count()
+        logger.info(
+            "Computed representative-selection inputs for %s studies.",
+            selection_inputs_count,
+        )
 
         df = (
             selection_inputs.transform(
@@ -408,6 +404,9 @@ class MultiSuSiEConstraintSet(ConstraintSet):
         )
 
         output_study_count = df.select("studyId").distinct().count()
+        logger.info(
+            "Output fine-mapping plan: %s distinct studies.", output_study_count
+        )
         if output_study_count != input_study_count:
             raise ValueError(
                 "Fine-mapping plan resolution changed the number of distinct studies: "

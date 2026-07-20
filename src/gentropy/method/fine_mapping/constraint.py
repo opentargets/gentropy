@@ -1,4 +1,14 @@
-"""Definitions of per-study constraints for fine-mapping methods."""
+"""Definitions of per-study constraints for fine-mapping methods.
+
+The constraints are defined as classes that implement the MethodConstraint protocol.
+Each constraint class has a `name` class variable and `expression` instance variable that defines how the constraint is
+evaluated on the StudyIndex dataset.
+
+The constraints are self-contained and can be used independently to mark studies as eligible for a specific fine-mapping method route.
+Callers evaluate a constraint by creating an instance (passing any required parameters to the constructor) and reading its
+`name`/`expression` directly, typically to build a single combined `.select()` over a StudyIndex rather than resolving each
+constraint separately.
+"""
 
 from __future__ import annotations
 
@@ -13,14 +23,13 @@ from gentropy.common.types import LDPopulation
 from gentropy.dataset.dataset import Dataset
 from gentropy.dataset.study_index import (
     StudyAnalysisFlag,
-    StudyIndex,
     StudyQualityCheck,
     StudyType,
 )
 
 
 class ConstraintResult(Dataset):
-    """Class representing the result of applying a constraint to a dataset."""
+    """Class representing the result of applying a constraint to a StudyIndex dataset."""
 
     @classmethod
     def get_schema(cls) -> t.StructType:
@@ -52,27 +61,9 @@ class MethodConstraint(Protocol):
     """Class representing the unique constraint on applying fine-mapping methods to a study."""
 
     name: ClassVar[str]
+    """Class variable representing the name of the constraint."""
     expression: Column
-
-    def annotate(self, si: StudyIndex) -> ConstraintResult:
-        """Apply the constraint to the StudyIndex and return the result.
-
-        Args:
-            si (StudyIndex): The input StudyIndex.
-
-        Returns:
-            ConstraintResult: The result of applying the constraint.
-        """
-        return ConstraintResult(
-            _df=si.df.select(
-                "studyId",
-                f.array(
-                    f.struct(
-                        f.lit(self.name).alias("name"), self.expression.alias("value")
-                    )
-                ).alias("constraints"),
-            )
-        )
+    """Instance variable representing the expression to evaluate the constraint."""
 
 
 class IsAllowedStudyType(MethodConstraint):
@@ -81,15 +72,16 @@ class IsAllowedStudyType(MethodConstraint):
     Examples:
         >>> data = [("s1", "p", "gwas"), ("s2", "p", "eqtl")]
         >>> schema = "studyId STRING, projectId STRING, studyType STRING"
+        >>> from gentropy.dataset.study_index import StudyIndex
         >>> si = StudyIndex(_df=spark.createDataFrame(data, schema))
         >>> constraint = IsAllowedStudyType(allowed_study_types=[StudyType.GWAS])
-        >>> constraint.annotate(si).df.show(truncate=False)
-        +-------+-----------------------------+
-        |studyId|constraints                  |
-        +-------+-----------------------------+
-        |s1     |[{isAllowedStudyType, true}] |
-        |s2     |[{isAllowedStudyType, false}]|
-        +-------+-----------------------------+
+        >>> si.df.select("studyId", constraint.expression.alias("isAllowedStudyType")).show(truncate=False)
+        +-------+------------------+
+        |studyId|isAllowedStudyType|
+        +-------+------------------+
+        |s1     |true              |
+        |s2     |false             |
+        +-------+------------------+
         <BLANKLINE>
     """
 
@@ -112,14 +104,16 @@ class HasSumstats(MethodConstraint):
     Examples:
         >>> data = [("s1", "p", "gwas", True), ("s2", "p", "gwas", False)]
         >>> schema = "studyId STRING, projectId STRING, studyType STRING, hasSumstats BOOLEAN"
+        >>> from gentropy.dataset.study_index import StudyIndex
         >>> si = StudyIndex(_df=spark.createDataFrame(data, schema))
-        >>> HasSumstats().annotate(si).df.show(truncate=False)
-        +-------+----------------------+
-        |studyId|constraints           |
-        +-------+----------------------+
-        |s1     |[{hasSumstats, true}] |
-        |s2     |[{hasSumstats, false}]|
-        +-------+----------------------+
+        >>> constraint = HasSumstats()
+        >>> si.df.select("studyId", constraint.expression.alias("hasSumstats")).show(truncate=False)
+        +-------+-----------+
+        |studyId|hasSumstats|
+        +-------+-----------+
+        |s1     |true       |
+        |s2     |false      |
+        +-------+-----------+
         <BLANKLINE>
     """
 
@@ -136,16 +130,17 @@ class PassSumstatQC(MethodConstraint):
     Examples:
         >>> data = [("s1", "p", "gwas", []), ("s2", "p", "gwas", [StudyQualityCheck.UNRESOLVED_TARGET.value]), ("s3", "p", "gwas", None)]
         >>> schema = "studyId STRING, projectId STRING, studyType STRING, qualityControls ARRAY<STRING>"
+        >>> from gentropy.dataset.study_index import StudyIndex
         >>> si = StudyIndex(_df=spark.createDataFrame(data, schema))
         >>> constraint = PassSumstatQC(disallowed_reasons=[StudyQualityCheck.UNRESOLVED_TARGET])
-        >>> constraint.annotate(si).df.orderBy("studyId").show(truncate=False)
-        +-------+------------------------+
-        |studyId|constraints             |
-        +-------+------------------------+
-        |s1     |[{passSumstatQC, true}] |
-        |s2     |[{passSumstatQC, false}]|
-        |s3     |[{passSumstatQC, false}]|
-        +-------+------------------------+
+        >>> si.df.select("studyId", constraint.expression.alias("passSumstatQC")).orderBy("studyId").show(truncate=False)
+        +-------+-------------+
+        |studyId|passSumstatQC|
+        +-------+-------------+
+        |s1     |true         |
+        |s2     |false        |
+        |s3     |false        |
+        +-------+-------------+
         <BLANKLINE>
     """
 
@@ -153,6 +148,14 @@ class PassSumstatQC(MethodConstraint):
 
     def __init__(self, disallowed_reasons: list[StudyQualityCheck]) -> None:
         """Initialize the constraint for the MultiSuSiE method.
+
+        The constraint checks for:
+
+        1. The `qualityControls` column is not null.
+        2. The `qualityControls` column does not contain any of the disallowed reasons.
+
+        If any of the reasons is inside the `qualityControls` column or the column is null (indicating no qc performed),
+            the study is marked as not passing the constraint.
 
         Args:
             disallowed_reasons (list[StudyQualityCheck]): The list of disallowed quality check reasons.
@@ -172,15 +175,16 @@ class HasAllowedAnalysisFlags(MethodConstraint):
     Examples:
         >>> data = [("s1", "p", "gwas", []), ("s2", "p", "gwas", [StudyAnalysisFlag.CASE_CASE_STUDY.value])]
         >>> schema = "studyId STRING, projectId STRING, studyType STRING, analysisFlags ARRAY<STRING>"
+        >>> from gentropy.dataset.study_index import StudyIndex
         >>> si = StudyIndex(_df=spark.createDataFrame(data, schema))
         >>> constraint = HasAllowedAnalysisFlags(disallowed_flags=[StudyAnalysisFlag.CASE_CASE_STUDY])
-        >>> constraint.annotate(si).df.show(truncate=False)
-        +-------+----------------------------------+
-        |studyId|constraints                       |
-        +-------+----------------------------------+
-        |s1     |[{hasAllowedAnalysisFlags, true}] |
-        |s2     |[{hasAllowedAnalysisFlags, false}]|
-        +-------+----------------------------------+
+        >>> si.df.select("studyId", constraint.expression.alias("hasAllowedAnalysisFlags")).show(truncate=False)
+        +-------+-----------------------+
+        |studyId|hasAllowedAnalysisFlags|
+        +-------+-----------------------+
+        |s1     |true                   |
+        |s2     |false                  |
+        +-------+-----------------------+
         <BLANKLINE>
     """
 
@@ -189,8 +193,15 @@ class HasAllowedAnalysisFlags(MethodConstraint):
     def __init__(self, disallowed_flags: list[StudyAnalysisFlag]) -> None:
         """Initialize the constraint for the MultiSuSiE method.
 
+        The constraint checks for the following:
+
+        1. The `analysisFlags` column does not contain any of the disallowed flags.
+
+        If any of the flags is inside the `analysisFlags` column, the study is marked as not passing the constraint.
+
         Args:
             disallowed_flags (list[StudyAnalysisFlag]): The list of disallowed analysis flags.
+
         """
         self.expression = ~f.arrays_overlap(
             f.col("analysisFlags"),
@@ -201,17 +212,21 @@ class HasAllowedAnalysisFlags(MethodConstraint):
 class HasMappedTrait(MethodConstraint):
     """Class representing the constraint requiring at least one mapped trait.
 
+    If the `traitFromSourceMappedIds` column is empty or null, the study is marked as not passing the constraint.
+
     Examples:
         >>> data = [("s1", "p", "gwas", ["EFO_1"]), ("s2", "p", "gwas", [])]
         >>> schema = "studyId STRING, projectId STRING, studyType STRING, traitFromSourceMappedIds ARRAY<STRING>"
+        >>> from gentropy.dataset.study_index import StudyIndex
         >>> si = StudyIndex(_df=spark.createDataFrame(data, schema))
-        >>> HasMappedTrait().annotate(si).df.show(truncate=False)
-        +-------+-------------------------+
-        |studyId|constraints              |
-        +-------+-------------------------+
-        |s1     |[{hasMappedTrait, true}] |
-        |s2     |[{hasMappedTrait, false}]|
-        +-------+-------------------------+
+        >>> constraint = HasMappedTrait()
+        >>> si.df.select("studyId", constraint.expression.alias("hasMappedTrait")).show(truncate=False)
+        +-------+--------------+
+        |studyId|hasMappedTrait|
+        +-------+--------------+
+        |s1     |true          |
+        |s2     |false         |
+        +-------+--------------+
         <BLANKLINE>
     """
 
@@ -227,6 +242,9 @@ class HasMappedTrait(MethodConstraint):
 class HasAllowedMajorAncestry(MethodConstraint):
     """Class representing the constraint for single & allowed ancestry for SuSiE based methods.
 
+    If the major ancestry (the one with the highest relative sample size) is not in the allowed ancestries or its relative sample size is below the threshold,
+        the study is marked as not passing the constraint.
+
     Examples:
         >>> data = [
         ...     ("s1", "p", "gwas", [("nfe", 0.8), ("afr", 0.2)]),
@@ -237,16 +255,17 @@ class HasAllowedMajorAncestry(MethodConstraint):
         ...     "studyId STRING, projectId STRING, studyType STRING, "
         ...     "ldPopulationStructure ARRAY<STRUCT<ldPopulation:STRING,relativeSampleSize:DOUBLE>>"
         ... )
+        >>> from gentropy.dataset.study_index import StudyIndex
         >>> si = StudyIndex(_df=spark.createDataFrame(data, schema))
         >>> constraint = HasAllowedMajorAncestry(allowed_ancestries=[LDPopulation.NFE], relative_sample_size_threshold=0.5)
-        >>> constraint.annotate(si).df.orderBy("studyId").show(truncate=False)
-        +-------+----------------------------------+
-        |studyId|constraints                       |
-        +-------+----------------------------------+
-        |s1     |[{hasAllowedMajorAncestry, true}] |
-        |s2     |[{hasAllowedMajorAncestry, false}]|
-        |s3     |[{hasAllowedMajorAncestry, false}]|
-        +-------+----------------------------------+
+        >>> si.df.select("studyId", constraint.expression.alias("hasAllowedMajorAncestry")).orderBy("studyId").show(truncate=False)
+        +-------+-----------------------+
+        |studyId|hasAllowedMajorAncestry|
+        +-------+-----------------------+
+        |s1     |true                   |
+        |s2     |false                  |
+        |s3     |false                  |
+        +-------+-----------------------+
         <BLANKLINE>
     """
 

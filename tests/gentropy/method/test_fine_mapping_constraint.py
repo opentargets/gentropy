@@ -2,8 +2,7 @@
 
 Happy-path behaviour for each MethodConstraint is covered by doctests in
 gentropy.method.fine_mapping.constraint. This file only covers edge cases
-that are awkward to express in a doctest (nulls, ordering nuances) plus the
-shared annotate() output shape.
+that are awkward to express in a doctest (nulls, ordering nuances).
 """
 
 from __future__ import annotations
@@ -14,10 +13,9 @@ from pyspark.sql import SparkSession
 from gentropy.common.types import LDPopulation
 from gentropy.dataset.study_index import StudyIndex, StudyQualityCheck, StudyType
 from gentropy.method.fine_mapping.constraint import (
-    ConstraintResult,
     HasAllowedMajorAncestry,
     HasMappedTrait,
-    HasSumstats,
+    MethodConstraint,
     PassSumstatQC,
 )
 
@@ -54,20 +52,9 @@ def _study_index(spark: SparkSession, **overrides: object) -> StudyIndex:
     return StudyIndex(_df=spark.createDataFrame(data, STUDY_REQUIRED_SCHEMA))
 
 
-def _constraint_value(result: ConstraintResult, name: str) -> bool:
-    constraints = result.df.collect()[0]["constraints"]
-    return next(c["value"] for c in constraints if c["name"] == name)
-
-
-def test_annotate_output_schema(spark: SparkSession) -> None:
-    """annotate() produces the ConstraintResult schema: studyId + constraints[name, value]."""
-    si = _study_index(spark)
-    result = HasSumstats().annotate(si)
-    assert isinstance(result, ConstraintResult)
-    assert result.df.columns == ["studyId", "constraints"]
-    row = result.df.collect()[0]
-    assert row["studyId"] == "s1"
-    assert row["constraints"] == [("hasSumstats", False)]
+def _constraint_value(si: StudyIndex, constraint: MethodConstraint) -> bool:
+    """Evaluate a single constraint's expression against a StudyIndex and return its value."""
+    return si.df.select(constraint.expression.alias("value")).collect()[0]["value"]
 
 
 @pytest.mark.parametrize(
@@ -83,8 +70,7 @@ def test_has_mapped_trait_edge_cases(
 ) -> None:
     """HasMappedTrait must treat both null and empty arrays as no mapped trait."""
     si = _study_index(spark, traitFromSourceMappedIds=trait_ids)
-    result = HasMappedTrait().annotate(si)
-    assert _constraint_value(result, "hasMappedTrait") is expected
+    assert _constraint_value(si, HasMappedTrait()) is expected
 
 
 def test_has_allowed_major_ancestry_picks_highest_relative_sample_size(
@@ -102,8 +88,7 @@ def test_has_allowed_major_ancestry_picks_highest_relative_sample_size(
         allowed_ancestries=[LDPopulation.NFE],
         relative_sample_size_threshold=0.5,
     )
-    result = constraint.annotate(si)
-    assert _constraint_value(result, "hasAllowedMajorAncestry") is True
+    assert _constraint_value(si, constraint) is True
 
 
 def test_has_allowed_major_ancestry_at_exact_threshold(spark: SparkSession) -> None:
@@ -113,8 +98,7 @@ def test_has_allowed_major_ancestry_at_exact_threshold(spark: SparkSession) -> N
         allowed_ancestries=[LDPopulation.NFE],
         relative_sample_size_threshold=0.5,
     )
-    result = constraint.annotate(si)
-    assert _constraint_value(result, "hasAllowedMajorAncestry") is True
+    assert _constraint_value(si, constraint) is True
 
 
 @pytest.mark.parametrize(
@@ -135,5 +119,4 @@ def test_pass_sumstat_qc_edge_cases(
     """PassSumstatQC must treat a null qualityControls array as failing, not unknown."""
     si = _study_index(spark, qualityControls=quality_controls)
     constraint = PassSumstatQC(disallowed_reasons=[StudyQualityCheck.UNRESOLVED_TARGET])
-    result = constraint.annotate(si)
-    assert _constraint_value(result, "passSumstatQC") is expected
+    assert _constraint_value(si, constraint) is expected
