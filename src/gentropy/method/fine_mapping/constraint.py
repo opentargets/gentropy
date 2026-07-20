@@ -27,7 +27,7 @@ class ConstraintResult(Dataset):
         """Get the schema of the constraint result.
 
         Returns:
-            StructType: The schema of the constraint result.
+            t.StructType: The schema of the constraint result.
         """
         return t.StructType(
             [

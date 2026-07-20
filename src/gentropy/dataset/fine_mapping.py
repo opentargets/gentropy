@@ -30,7 +30,7 @@ class FineMappingPlanner(Dataset):
         """Get the schema of the planner.
 
         Returns:
-            StructType: The schema of the planner.
+            t.StructType: The schema of the planner.
         """
         return t.StructType(
             [
@@ -54,6 +54,11 @@ class FineMappingPlanner(Dataset):
 
     def __add__(self, other: FineMappingPlanner) -> FineMappingPlanner:
         """Combine two FineMappingPlanner datasets.
+
+        The combined dataset is unique per (studyId, route), not per studyId alone: a
+        study eligible for more than one fine-mapping route (e.g. both MultiSuSiE and
+        SuSiE-inf) legitimately appears once per eligible route. Callers must not assume
+        studyId is unique across the combined output.
 
         Args:
             other (FineMappingPlanner): Another FineMappingPlanner dataset to combine with.

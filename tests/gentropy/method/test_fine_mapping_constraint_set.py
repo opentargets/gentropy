@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from pyspark.sql import SparkSession
+import pytest
+from pyspark.sql import Row, SparkSession
 
 from gentropy.common.types import LDPopulation
 from gentropy.dataset.fine_mapping import FineMappingPlanner, FineMappingRoute
@@ -63,7 +64,7 @@ def _resolve(spark: SparkSession, rows: list[tuple[object, ...]]) -> FineMapping
     return _constraint_set().resolve(si)
 
 
-def _constraint_flag(row: object, name: str) -> bool:
+def _constraint_flag(row: Row, name: str) -> bool:
     return next(c["value"] for c in row["constraints"] if c["name"] == name)
 
 
@@ -215,3 +216,40 @@ def test_resolve_no_representative_when_all_studies_ineligible(
     result = _resolve(spark, rows)
     for row in result.df.collect():
         assert _constraint_flag(row, "representativeStudy") is False
+
+
+def test_resolve_preserves_distinct_study_count(spark: SparkSession) -> None:
+    """resolve() never drops or duplicates studies: output distinct studyId count matches input."""
+    rows = [
+        _study_row("s1", ["EFO_1"], [(LDPopulation.NFE.value, 1.0)]),
+        _study_row("s2", ["EFO_1"], [(LDPopulation.AFR.value, 1.0)]),
+        _study_row("s3", [], [(LDPopulation.NFE.value, 1.0)]),  # ineligible, kept
+        _study_row(
+            "s4", ["EFO_2"], [(LDPopulation.NFE.value, 1.0)], has_sumstats=False
+        ),
+    ]
+    result = _resolve(spark, rows)
+    assert result.df.select("studyId").distinct().count() == 4
+    assert {r["studyId"] for r in result.df.collect()} == {"s1", "s2", "s3", "s4"}
+
+
+def test_resolve_raises_when_study_count_invariant_is_broken(
+    spark: SparkSession, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """resolve() raises ValueError if a bug caused the output to lose (or duplicate) studies."""
+    rows = [
+        _study_row("s1", ["EFO_1"], [(LDPopulation.NFE.value, 1.0)]),
+        _study_row("s2", ["EFO_1"], [(LDPopulation.AFR.value, 1.0)]),
+    ]
+    si = StudyIndex(_df=spark.createDataFrame(rows, STUDY_REQUIRED_SCHEMA))
+    constraint_set = _constraint_set()
+
+    original_assign_run_id = MultiSuSiEConstraintSet._assign_run_id
+    monkeypatch.setattr(
+        MultiSuSiEConstraintSet,
+        "_assign_run_id",
+        staticmethod(lambda df: original_assign_run_id(df.filter("studyId != 's2'"))),
+    )
+
+    with pytest.raises(ValueError, match="distinct studies"):
+        constraint_set.resolve(si)
