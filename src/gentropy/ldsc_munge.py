@@ -40,6 +40,7 @@ class LdscMungeStep:
         ldscore_base_path: str,
         munged_output_path: str,
         ldscore_template: str = "gnomad_r2.1.1_{ancestry}_hg38.csv.gz",
+        batch_size: int = 50,
     ) -> None:
         """Initialise and run the munge step.
 
@@ -53,6 +54,9 @@ class LdscMungeStep:
             munged_output_path (str): GCS (or local) path for the munged parquets.
             ldscore_template (str): LD score filename template with ``{ancestry}``
                 placeholder.
+            batch_size (int): Number of studies to process per Spark job. Each
+                batch commits independently so restarts only lose the in-progress
+                batch. Defaults to 50.
         """
         self.session = session
         self.manifest_path = manifest_path
@@ -60,6 +64,7 @@ class LdscMungeStep:
         self.ldscore_base_path = ldscore_base_path
         self.munged_output_path = munged_output_path.rstrip("/")
         self.ldscore_template = ldscore_template
+        self.batch_size = batch_size
 
         self.session.spark.conf.set(
             "spark.sql.sources.partitionOverwriteMode", "dynamic"
@@ -95,11 +100,18 @@ class LdscMungeStep:
         for ancestry, group in to_process.groupby("ancestry"):
             study_ids = group["studyId"].tolist()
             sumstats_paths = group["sumstats_path"].tolist()
-            logger.info("  %s: %d studies …", ancestry, len(study_ids))
+            n_batches = max(1, len(study_ids) // self.batch_size)
+            logger.info("  %s: %d studies in %d batches …", ancestry, len(study_ids), n_batches)
 
             ld_df = self._load_ld_scores(str(ancestry))
-            self._munge_batch(study_ids, sumstats_paths, str(ancestry), study_index_df, ld_df)
-            logger.info("  %s: written.", ancestry)
+            for i in range(0, len(study_ids), self.batch_size):
+                batch_ids = study_ids[i : i + self.batch_size]
+                batch_paths = sumstats_paths[i : i + self.batch_size]
+                self._munge_batch(batch_ids, batch_paths, str(ancestry), study_index_df, ld_df)
+                logger.info(
+                    "  %s: batch %d/%d done (%d studies committed).",
+                    ancestry, i // self.batch_size + 1, n_batches, len(batch_ids),
+                )
 
     # ── helpers ───────────────────────────────────────────────────────────────
 
