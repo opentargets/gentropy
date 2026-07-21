@@ -358,7 +358,9 @@ class LocusToGeneConfig(StepConfig):
     l2g_threshold: float = 0.05
     model_path: str = "opentargets/locus_to_gene"
     features_list: list[str] = field(default_factory=lambda: list(_L2G_FEATURES_LIST))
-    hyperparameters: dict[str, Any] = field(default_factory=lambda: dict(_L2G_HYPERPARAMETERS))
+    hyperparameters: dict[str, Any] = field(
+        default_factory=lambda: dict(_L2G_HYPERPARAMETERS)
+    )
     wandb_run_name: str | None = None
     hf_hub_repo_id: str = "locus_to_gene"
     hf_model_commit_message: str = "chore: update model"
@@ -397,10 +399,16 @@ class LocusToGeneModelTuningConfig(StepConfig):
 
     train_feature_matrix_path: str = MISSING
     test_feature_matrix_path: str = MISSING
-    features_list: Any = field(default_factory=lambda: _L2G_FEATURES_LIST)  # list[str] — Any avoids OmegaConf default_factory bug
-    hyperparameters: Any = field(default_factory=lambda: _L2G_HYPERPARAMETERS)  # dict[str, Any] — Any avoids OmegaConf default_factory bug
+    features_list: Any = field(
+        default_factory=lambda: _L2G_FEATURES_LIST
+    )  # list[str] — Any avoids OmegaConf default_factory bug
+    hyperparameters: Any = field(
+        default_factory=lambda: _L2G_HYPERPARAMETERS
+    )  # dict[str, Any] — Any avoids OmegaConf default_factory bug
     n_splits: int = 5
-    hyperparameter_grid: Any = None  # dict[str, Any] | None — Any avoids OmegaConf Optional[Dict] merge bug
+    hyperparameter_grid: Any = (
+        None  # dict[str, Any] | None — Any avoids OmegaConf Optional[Dict] merge bug
+    )
     cv_results_dir: str | None = None
     holdout_only: bool = False
     _target_: str = "gentropy.l2g.LocusToGeneModelTuningStep"
@@ -875,6 +883,15 @@ class MolecularComplexIngestionConfig(StepConfig):
 
 
 @dataclass
+class FineMappingPlanGeneratorConfig(StepConfig):
+    """Fine-mapping plan generator step configuration."""
+
+    input_path: str = MISSING
+    output_path: str = MISSING
+    _target_: str = "gentropy.finemapping_planner.FineMappingPlanGeneratorStep"
+
+
+@dataclass
 class Config:
     """Application configuration."""
 
@@ -1019,4 +1036,9 @@ def register_config() -> None:
         group="step",
         name="decode_summary_statistics_qc",
         node=deCODESummaryStatisticsQCConfig,
+    )
+    cs.store(
+        group="step",
+        name="fine_mapping_plan_generator",
+        node=FineMappingPlanGeneratorConfig,
     )
