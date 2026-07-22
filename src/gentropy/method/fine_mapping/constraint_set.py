@@ -29,6 +29,7 @@ from gentropy.method.fine_mapping.constraint import (
     MethodConstraint,
     PassSumstatQC,
 )
+from gentropy.method.ld import LDAnnotator
 
 logger = logging.getLogger(__name__)
 
@@ -151,13 +152,21 @@ class MultiSuSiEConstraintSet(ConstraintSet):
         Returns:
             DataFrame: Same dataframe with an added majorAncestry column.
         """
-        return df.withColumn(
-            "majorAncestry",
-            order_array_of_structs_by_field(
-                "ldPopulationStructure", "relativeSampleSize"
+        return (
+            df.withColumn(
+                "ldPopulationStructure",
+                order_array_of_structs_by_field(
+                    "ldPopulationStructure", "relativeSampleSize"
+                ).alias("ldPopulationStructure"),
             )
-            .getItem(0)
-            .getField("ldPopulation"),
+            .withColumn(
+                "majorAncestry",
+                f.when(
+                    f.col("ldPopulationStructure").isNotNull(),
+                    LDAnnotator._get_major_population(f.col("ldPopulationStructure")),
+                ),
+            )
+            .drop("ldPopulationStructure")
         )
 
     def _compute_representative_selection_inputs(self, si: StudyIndex) -> DataFrame:
@@ -180,7 +189,10 @@ class MultiSuSiEConstraintSet(ConstraintSet):
                 "nCases",
                 "nControls",
             )
-            .withColumn("traitSet", f.array_distinct(f.col("traitFromSourceMappedIds")))
+            .withColumn(
+                "traitSet",
+                f.array_sort(f.array_distinct(f.col("traitFromSourceMappedIds"))),
+            )
             .transform(self._compute_n_eff)
             .transform(self._compute_major_ancestry)
         )

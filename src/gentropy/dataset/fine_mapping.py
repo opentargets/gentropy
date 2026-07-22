@@ -88,3 +88,44 @@ class FineMappingPlanner(Dataset):
         """
         combined_df = self.df.unionByName(other.df)
         return FineMappingPlanner(combined_df)
+
+
+class FineMappingManifest(Dataset):
+    """Class representing a manifest for fine-mapping.
+
+    Examples:
+    ---
+    >>> data = [("run1", "study1", "multi_susie_route", "path/to/summary_stats1", "EUR", "trait1"),
+    ...         ("run2", "study2", "multi_susie_route", "path/to/summary_stats2", "AFR", "trait2,trait3")]
+    >>> df = spark.createDataFrame(data, schema=FineMappingManifest.get_schema())
+    >>> manifest = FineMappingManifest(df)
+    >>> assert isinstance(manifest, FineMappingManifest)
+    >>> manifest.df.show(truncate=False)
+    +-----+-------+-----------------+----------------------+-------------+------------------------+
+    |runId|studyId|route            |summarystatsLocation  |majorAncestry|traitFromSourceMappedIds|
+    +-----+-------+-----------------+----------------------+-------------+------------------------+
+    |run1 |study1 |multi_susie_route|path/to/summary_stats1|EUR          |trait1                  |
+    |run2 |study2 |multi_susie_route|path/to/summary_stats2|AFR          |trait2,trait3           |
+    +-----+-------+-----------------+----------------------+-------------+------------------------+
+    <BLANKLINE>
+    """
+
+    @classmethod
+    def get_schema(cls) -> t.StructType:
+        """Get the schema of the fine-mapping manifest.
+
+        Returns:
+            t.StructType: The schema of the fine-mapping manifest.
+        """
+        return t.StructType(
+            [
+                t.StructField("runId", t.StringType(), nullable=False),
+                t.StructField("studyId", t.StringType(), nullable=False),
+                t.StructField("route", t.StringType(), nullable=False),
+                t.StructField("summarystatsLocation", t.StringType(), nullable=False),
+                t.StructField("majorAncestry", t.StringType(), nullable=False),
+                t.StructField(
+                    "traitFromSourceMappedIds", t.StringType(), nullable=False
+                ),
+            ]
+        )

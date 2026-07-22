@@ -26,6 +26,7 @@ from gentropy.dataset.study_index import (
     StudyQualityCheck,
     StudyType,
 )
+from gentropy.method.ld import LDAnnotator
 
 
 class ConstraintResult(Dataset):
@@ -283,15 +284,21 @@ class HasAllowedMajorAncestry(MethodConstraint):
             relative_sample_size_threshold (float): The threshold for relative sample size.
 
         """
-        major_anc = order_array_of_structs_by_field(
+        ld_exists = f.col("ldPopulationStructure").isNotNull() & (
+            f.size(f.col("ldPopulationStructure")) > 0
+        )
+        ld_pops_sorted = order_array_of_structs_by_field(
             "ldPopulationStructure", "relativeSampleSize"
-        ).getItem(0)
-
+        )
+        major_anc = f.when(
+            ld_pops_sorted.isNotNull(),
+            LDAnnotator._get_major_population(ld_pops_sorted),
+        )
         major_above_threshold = (
-            major_anc.getField("relativeSampleSize") >= relative_sample_size_threshold
+            # In case of tie, we can just pick the first one.
+            ld_pops_sorted.getItem(0).getField("relativeSampleSize")
+            >= relative_sample_size_threshold
         )
-        major_allowed = major_anc.getField("ldPopulation").isin(
-            [a.value for a in allowed_ancestries]
-        )
+        major_allowed = major_anc.isin([a.value for a in allowed_ancestries])
 
-        self.expression = major_above_threshold & major_allowed
+        self.expression = ld_exists & major_above_threshold & major_allowed
