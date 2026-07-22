@@ -696,8 +696,16 @@ class StudyIndex(Dataset):
         threshold_min_gc_lambda: float = 0.7,
         threshold_max_gc_lambda: float = 2.5,
         threshold_min_n_variants: int = 2_000_000,
+        seq_threshold_mean_beta: float = 1.0,
+        seq_threshold_min_gc_lambda: float = 0.1,
+        seq_threshold_max_gc_lambda: float = 2.5,
+        seq_threshold_min_n_variants: int = 1_000_000,
     ) -> StudyIndex:
         """Annotate summary stats QC information.
+
+        For studies whose ``analysisFlags`` contain ``ExWAS`` or ``wgsGWAS``, relaxed
+        thresholds are applied because the genetic data source is exome or whole genome
+        sequencing. The PZ check (mean/se diff PZ) is skipped for these studies.
 
         Args:
             sumstats_qc (SummaryStatisticsQC): Dataset containing summary statistics-based quality controls.
@@ -707,6 +715,10 @@ class StudyIndex(Dataset):
             threshold_min_gc_lambda (float): Minimum threshold for GC lambda check. Defaults to 0.7.
             threshold_max_gc_lambda (float): Maximum threshold for GC lambda check. Defaults to 2.5.
             threshold_min_n_variants (int): Minimum number of variants for SuSiE check. Defaults to 2_000_000.
+            seq_threshold_mean_beta (float): Mean beta threshold for exome/wgs-gwas studies. Defaults to 1.0.
+            seq_threshold_min_gc_lambda (float): Minimum GC lambda threshold for exome/wgs-gwas studies. Defaults to 0.1.
+            seq_threshold_max_gc_lambda (float): Maximum GC lambda threshold for exome/wgs-gwas studies. Defaults to 2.5.
+            seq_threshold_min_n_variants (int): Minimum number of variants for exome/wgs-gwas studies. Defaults to 1_000_000.
 
         Returns:
             StudyIndex: Updated study index with QC information
@@ -735,6 +747,19 @@ class StudyIndex(Dataset):
             "sumstatQCValues", "QCCheckName", x, "QCCheckValue"
         )
 
+        # Studies sourced from exome or whole genome sequencing get relaxed thresholds:
+        if "analysisFlags" in studies.columns:
+            is_seq = f.coalesce(
+                f.array_contains("analysisFlags", StudyAnalysisFlag.EXWAS.value)
+                | f.array_contains("analysisFlags", StudyAnalysisFlag.WGS_WAS.value),
+                f.lit(False),
+            )
+        else:
+            is_seq = f.lit(False)
+        seq_or: Callable[[float, float], Column] = lambda seq_val, default_val: f.when(
+            is_seq, f.lit(seq_val)
+        ).otherwise(f.lit(default_val))
+
         df = (
             studies.drop("sumstatQCValues", "hasSumstats")
             .join(qc_df, how="left", on="studyId")
@@ -751,7 +776,10 @@ class StudyIndex(Dataset):
                 "qualityControls",
                 StudyIndex.update_quality_flag(
                     f.col("qualityControls"),
-                    ~(f.abs(extract_qc_value("mean_beta")) <= threshold_mean_beta),
+                    ~(
+                        f.abs(extract_qc_value("mean_beta"))
+                        <= seq_or(seq_threshold_mean_beta, threshold_mean_beta)
+                    ),
                     StudyQualityCheck.FAILED_MEAN_BETA_CHECK,
                 ),
             )
@@ -759,7 +787,9 @@ class StudyIndex(Dataset):
                 "qualityControls",
                 StudyIndex.update_quality_flag(
                     f.col("qualityControls"),
-                    ~(
+                    # PZ check is skipped for exome/wgs-gwas studies:
+                    ~is_seq
+                    & ~(
                         (
                             f.abs(extract_qc_value("mean_diff_pz"))
                             <= threshold_mean_diff_pz
@@ -774,8 +804,18 @@ class StudyIndex(Dataset):
                 StudyIndex.update_quality_flag(
                     f.col("qualityControls"),
                     ~(
-                        (extract_qc_value("gc_lambda") <= threshold_max_gc_lambda)
-                        & (extract_qc_value("gc_lambda") >= threshold_min_gc_lambda)
+                        (
+                            extract_qc_value("gc_lambda")
+                            <= seq_or(
+                                seq_threshold_max_gc_lambda, threshold_max_gc_lambda
+                            )
+                        )
+                        & (
+                            extract_qc_value("gc_lambda")
+                            >= seq_or(
+                                seq_threshold_min_gc_lambda, threshold_min_gc_lambda
+                            )
+                        )
                     ),
                     StudyQualityCheck.FAILED_GC_LAMBDA_CHECK,
                 ),
@@ -784,7 +824,8 @@ class StudyIndex(Dataset):
                 "qualityControls",
                 StudyIndex.update_quality_flag(
                     f.col("qualityControls"),
-                    extract_qc_value("n_variants") < threshold_min_n_variants,
+                    extract_qc_value("n_variants")
+                    < seq_or(seq_threshold_min_n_variants, threshold_min_n_variants),
                     StudyQualityCheck.SMALL_NUMBER_OF_SNPS,
                 ),
             )

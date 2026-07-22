@@ -689,6 +689,46 @@ class TestStudyIndexAnnotation:
         )
         assert non_annotated[0][0] == [], "Should not be annotated with the flag"
 
+    def test_annotation_relaxed_thresholds_for_seq_studies(
+        self: TestStudyIndexAnnotation,
+    ) -> None:
+        """Exome/wgs-gwas studies get relaxed QC thresholds and skip the PZ check."""
+        # QC values that fail every default check but pass the relaxed ones:
+        qc_data = [
+            ("s1", 0.5, 0.5, 0.5, 0.5, 1, 1),  # case-case -> non-seq
+            ("s2", 0.5, 0.5, 0.5, 0.5, 1, 1),  # ExWAS -> seq
+            ("s3", 0.5, 0.5, 0.5, 0.5, 1, 1),  # case-case + ExWAS -> seq
+            ("s4", 0.5, 0.5, 0.5, 0.5, 1, 1),  # no flags -> non-seq
+        ]
+        qc_schema = SummaryStatisticsQC.get_schema()
+        qc = SummaryStatisticsQC(_df=self.spark.createDataFrame(qc_data, qc_schema))
+
+        si_df = self.spark.createDataFrame(
+            self.STUDY_WITH_ANALYSIS_FLAGS, self.STUDY_WITH_ANALYSIS_FLAGS_SCHEMA
+        )
+        study_index = StudyIndex(_df=si_df)
+
+        annotated = study_index.annotate_sumstats_qc(
+            qc,
+            **self.thresholds,
+            seq_threshold_mean_beta=1.0,
+            seq_threshold_min_gc_lambda=0.1,
+            seq_threshold_max_gc_lambda=2.5,
+            seq_threshold_min_n_variants=1,
+        )
+        flags = {
+            row["studyId"]: row["qualityControls"]
+            for row in annotated.df.select("studyId", "qualityControls").collect()
+        }
+        # Seq studies pass all relaxed checks:
+        assert flags["s2"] == [], "ExWAS study should not be flagged"
+        assert flags["s3"] == [], "case-case + ExWAS study should not be flagged"
+        # Non-seq studies still fail the strict checks:
+        assert StudyQualityCheck.FAILED_MEAN_BETA_CHECK.value in flags["s1"]
+        assert StudyQualityCheck.FAILED_PZ_CHECK.value in flags["s1"]
+        assert StudyQualityCheck.FAILED_GC_LAMBDA_CHECK.value in flags["s1"]
+        assert StudyQualityCheck.SMALL_NUMBER_OF_SNPS.value in flags["s4"]
+
     def test_validation_of_analysis_flags(
         self: TestStudyIndexAnnotation,
     ) -> None:
