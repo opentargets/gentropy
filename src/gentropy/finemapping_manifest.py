@@ -4,7 +4,9 @@ from pyspark.sql import functions as f
 
 from gentropy import Session, StudyIndex
 from gentropy.common.spark import order_array_of_structs_by_field
+from gentropy.common.stats import effective_sample_size
 from gentropy.dataset.fine_mapping import FineMappingManifest, FineMappingPlanner
+from gentropy.dataset.study_index import StudyQualityCheck
 from gentropy.method.ld import LDAnnotator
 
 
@@ -57,16 +59,30 @@ class GWASCatalogFineMappingManifestGenerator:
             FineMappingManifest: A FineMappingManifest object containing the generated manifest.
         """
         si_df = (
-            si.df.filter(f.col("projectId") == f.lit("GCST"))
+            si.validate_ccs()
+            .df.filter(f.col("projectId") == f.lit("GCST"))
             .filter("hasSumstats")
             .filter(f.col("summarystatsLocation").isNotNull())
             .filter(f.col("traitFromSourceMappedIds").isNotNull())
             .filter(f.col("ldPopulationStructure").isNotNull())
+            .filter(
+                f.arrays_overlap(
+                    f.col("qualityControls"),
+                    f.array(
+                        f.lit(StudyQualityCheck.CASE_CONTROL_STUDY_DESIGN.value),
+                        f.lit(StudyQualityCheck.MEASUREMENT_STUDY_DESIGN.value),
+                    ),
+                )
+            )
             .select(
                 "studyId",
                 "ldPopulationStructure",
                 "summarystatsLocation",
                 "traitFromSourceMappedIds",
+                "qualityControls",
+                "nSamples",
+                "nCases",
+                "nControls",
             )
             .withColumn(
                 "ldPopulationStructure",
@@ -80,9 +96,22 @@ class GWASCatalogFineMappingManifestGenerator:
             )
             .withColumn(
                 "traitFromSourceMappedIds",
-                f.concat_ws(
-                    ",",
-                    f.array_sort(f.array_distinct(f.col("traitFromSourceMappedIds"))),
+                f.array_sort(f.array_distinct(f.col("traitFromSourceMappedIds"))),
+            )
+            .withColumn(
+                "effectiveSampleSize",
+                f.when(
+                    f.array_contains(
+                        f.col("qualityControls"),
+                        StudyQualityCheck.CASE_CONTROL_STUDY_DESIGN.value,
+                    ),
+                    effective_sample_size(f.col("nCases"), f.col("nControls")),
+                ).when(
+                    f.array_contains(
+                        f.col("qualityControls"),
+                        StudyQualityCheck.MEASUREMENT_STUDY_DESIGN.value,
+                    ),
+                    f.col("nSamples"),
                 ),
             )
             .select(
@@ -90,6 +119,7 @@ class GWASCatalogFineMappingManifestGenerator:
                 "summarystatsLocation",
                 "majorAncestry",
                 "traitFromSourceMappedIds",
+                "effectiveSampleSize",
             )
         ).persist()
         self._session.logger.info(
@@ -124,6 +154,7 @@ class GWASCatalogFineMappingManifestGenerator:
                 "summarystatsLocation",
                 "majorAncestry",
                 "traitFromSourceMappedIds",
+                "effectiveSampleSize",
             )
         )
 

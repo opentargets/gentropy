@@ -56,6 +56,7 @@ class TestGWASCatalogFineMappingManifestGeneratorIntegration:
         # nSamples, nCases, nControls
         si_data: list[tuple[object, ...]] = [
             # eligible: GCST project, hasSumstats, non-null sumstats location, LD structure
+            # measurement study design (nCases/nControls empty, nSamples > 0)
             (
                 "GCST001",
                 "GCST",
@@ -70,6 +71,7 @@ class TestGWASCatalogFineMappingManifestGeneratorIntegration:
                 None,
                 None,
             ),
+            # eligible: case-control study design (nCases + nControls == nSamples)
             (
                 "GCST002",
                 "GCST",
@@ -81,8 +83,8 @@ class TestGWASCatalogFineMappingManifestGeneratorIntegration:
                 ["EFO_2", "EFO_3"],
                 [("afr", 1.0)],
                 50_000,
-                None,
-                None,
+                20_000,
+                30_000,
             ),
             # ineligible: wrong project
             (
@@ -140,10 +142,16 @@ class TestGWASCatalogFineMappingManifestGeneratorIntegration:
         assert ancestry_by_study["GCST001"] == "nfe"
         assert ancestry_by_study["GCST002"] == "afr"
 
-        # traitFromSourceMappedIds is deduped, sorted, comma-joined
+        # traitFromSourceMappedIds is deduped and sorted; written to TSV as a list repr
         trait_by_study = dict(zip(df["studyId"], df["traitFromSourceMappedIds"]))
-        assert trait_by_study["GCST001"] == "EFO_1"
-        assert trait_by_study["GCST002"] == "EFO_2,EFO_3"
+        assert trait_by_study["GCST001"] == "['EFO_1']"
+        assert trait_by_study["GCST002"] == "['EFO_2', 'EFO_3']"
+
+        # effectiveSampleSize: measurement studies use nSamples; case-control studies
+        # use the effective_sample_size formula (4 * cases * controls) / (cases + controls)
+        ess_by_study = dict(zip(df["studyId"], df["effectiveSampleSize"]))
+        assert ess_by_study["GCST001"] == 100_000
+        assert ess_by_study["GCST002"] == int((4 * 20_000 * 30_000) / (20_000 + 30_000))
 
     @pytest.mark.step_test
     @patch("gentropy.finemapping_manifest.FineMappingPlanner")

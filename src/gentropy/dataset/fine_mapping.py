@@ -95,18 +95,18 @@ class FineMappingManifest(Dataset):
 
     Examples:
     ---
-    >>> data = [("run1", "study1", "multi_susie_route", "path/to/summary_stats1", "EUR", "trait1"),
-    ...         ("run2", "study2", "multi_susie_route", "path/to/summary_stats2", "AFR", "trait2,trait3")]
+    >>> data = [("run1", "study1", "multi_susie_route", "path/to/summary_stats1", "EUR", ["trait1"], 1000),
+    ...         ("run2", "study2", "multi_susie_route", "path/to/summary_stats2", "AFR", ["trait2", "trait3"], 2000)]
     >>> df = spark.createDataFrame(data, schema=FineMappingManifest.get_schema())
     >>> manifest = FineMappingManifest(df)
     >>> assert isinstance(manifest, FineMappingManifest)
     >>> manifest.df.show(truncate=False)
-    +-----+-------+-----------------+----------------------+-------------+------------------------+
-    |runId|studyId|route            |summarystatsLocation  |majorAncestry|traitFromSourceMappedIds|
-    +-----+-------+-----------------+----------------------+-------------+------------------------+
-    |run1 |study1 |multi_susie_route|path/to/summary_stats1|EUR          |trait1                  |
-    |run2 |study2 |multi_susie_route|path/to/summary_stats2|AFR          |trait2,trait3           |
-    +-----+-------+-----------------+----------------------+-------------+------------------------+
+    +-----+-------+-----------------+----------------------+-------------+------------------------+-------------------+
+    |runId|studyId|route            |summarystatsLocation  |majorAncestry|traitFromSourceMappedIds|effectiveSampleSize|
+    +-----+-------+-----------------+----------------------+-------------+------------------------+-------------------+
+    |run1 |study1 |multi_susie_route|path/to/summary_stats1|EUR          |[trait1]                |1000               |
+    |run2 |study2 |multi_susie_route|path/to/summary_stats2|AFR          |[trait2, trait3]        |2000               |
+    +-----+-------+-----------------+----------------------+-------------+------------------------+-------------------+
     <BLANKLINE>
     """
 
@@ -125,7 +125,10 @@ class FineMappingManifest(Dataset):
                 t.StructField("summarystatsLocation", t.StringType(), nullable=False),
                 t.StructField("majorAncestry", t.StringType(), nullable=False),
                 t.StructField(
-                    "traitFromSourceMappedIds", t.StringType(), nullable=False
+                    "traitFromSourceMappedIds",
+                    t.ArrayType(t.StringType(), containsNull=False),
+                    nullable=False,
                 ),
+                t.StructField("effectiveSampleSize", t.IntegerType(), nullable=False),
             ]
         )
