@@ -171,20 +171,26 @@ def _run_rg_pair(
         "M_ldsc": None,
     }
 
-    # Inner join on variantKey; also try allele-flipped variant keys for trait 2
-    merged = df1.merge(df2, on="variantKey", suffixes=("1", "2"))
-
-    df2_flipped = df2.copy()
-    df2_flipped["variantKey"] = df2_flipped["variantKey"].apply(_flip_variant_key)
-    df2_flipped["beta"] = -df2_flipped["beta"]
-
-    merged_flipped = df1.merge(
-        df2_flipped.rename(
-            columns={"beta": "beta2", "se": "se2", "n": "n2", "L2": "L2_2"}
-        ),
-        on="variantKey",
-        suffixes=("", "_f"),
+    # Inner join on variantKey; also try allele-flipped variant keys for trait 2.
+    # df2's columns are renamed up front (beta2/se2/n2/L2_2) rather than relying on
+    # pd.merge's suffixes=("1","2"): df1 and df2 both have a column literally named
+    # "L2", so suffixing would rename it to L21/L22 here but leave a plain "L2" column
+    # in the flipped branch below (df2_flipped is pre-renamed, so nothing to suffix on
+    # that side). pd.concat then aligns the two halves by column name, and every
+    # direct-match row — typically the majority — ends up with ld=NaN. Renaming both
+    # branches the same way keeps "L2" (df1's LD score) unambiguous in the concatenated
+    # result; L2 itself is the same reference-panel value regardless of which study's
+    # munged file it came from, so only one copy is needed.
+    df2_renamed = df2.rename(
+        columns={"beta": "beta2", "se": "se2", "n": "n2", "L2": "L2_2"}
     )
+    merged = df1.merge(df2_renamed, on="variantKey")
+
+    df2_flipped = df2_renamed.copy()
+    df2_flipped["variantKey"] = df2_flipped["variantKey"].apply(_flip_variant_key)
+    df2_flipped["beta2"] = -df2_flipped["beta2"]
+
+    merged_flipped = df1.merge(df2_flipped, on="variantKey", suffixes=("", "_f"))
 
     full = pd.concat([merged, merged_flipped], ignore_index=True).drop_duplicates(
         "variantKey"
@@ -198,9 +204,9 @@ def _run_rg_pair(
             "n_snps": len(full),
         }
 
-    beta1 = full["beta1"].values.astype(float)
-    se1 = full["se1"].values.astype(float)
-    N1 = full["n1"].values.astype(float)
+    beta1 = full["beta"].values.astype(float)
+    se1 = full["se"].values.astype(float)
+    N1 = full["n"].values.astype(float)
     beta2 = full["beta2"].values.astype(float)
     se2 = full["se2"].values.astype(float)
     N2 = full["n2"].values.astype(float)
