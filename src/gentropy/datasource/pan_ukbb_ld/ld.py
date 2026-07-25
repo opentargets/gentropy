@@ -58,16 +58,40 @@ class PanUKBBLDMatrix:
             hail_table_path (str): Path to hail table with Pan-UKBB variant LD index
             hail_table_output (str): Path to output the aligned Pan-UKBB variant LD index with alleles in the correct order
         """
-        ht = hl.read_table(hail_table_path.format(POP=population))
-        ht = (
-            ht.to_spark()
+        raw_index = (
+            hl.read_table(hail_table_path.format(POP=population))
+            .to_spark()
             .select(
                 "`locus.contig`",
                 "`locus.position`",
                 "`alleles`",
                 "`idx`",
             )
-            .withColumns(
+        )
+        self.prepare_aligned_ld_index(
+            raw_index=raw_index,
+            variant_annotation=variant_annotation,
+            population=population,
+        ).write.mode("overwrite").parquet(hail_table_output.format(POP=population))
+
+    @staticmethod
+    def prepare_aligned_ld_index(
+        raw_index: DataFrame,
+        variant_annotation: DataFrame,
+        population: str,
+    ) -> DataFrame:
+        """Prepare a PanUKBB LD variant index aligned to Open Targets alleles.
+
+        Args:
+            raw_index (DataFrame): PanUKBB LD variant table converted from Hail.
+            variant_annotation (DataFrame): Open Targets variant annotation.
+            population (str): PanUKBB population label.
+
+        Returns:
+            DataFrame: Prepared LD index with variant ID, matrix index, population, and allele orientation.
+        """
+        ht = (
+            raw_index.withColumns(
                 {
                     "chromosome": f.split("`locus.contig`", "chr")[1],
                     "position": f.col("`locus.position`"),
@@ -134,17 +158,42 @@ class PanUKBBLDMatrix:
                 "position",
                 f.col("new_referenceAllele").alias("referenceAllele"),
                 f.col("new_alternateAllele").alias("alternateAllele"),
-                "alleleOrder",
                 "idx",
+                f.lit(population).alias("population"),
+                "alleleOrder",
             )
         )
         window_spec = Window.partitionBy("idx").orderBy(f.col("alleleOrder").desc())
-        ht_va = (
+        return (
             ht_va.withColumn("rank", f.rank().over(window_spec))
             .filter(f.col("rank") == 1)
             .drop("rank")
         )
-        ht_va.write.mode("overwrite").parquet(hail_table_output.format(POP=population))
+
+    @staticmethod
+    def filter_ld_index_to_variants(
+        ld_index: DataFrame,
+        variants: DataFrame,
+    ) -> DataFrame:
+        """Filter a prepared PanUKBB LD index to a requested variant set.
+
+        Args:
+            ld_index (DataFrame): Prepared PanUKBB LD index.
+            variants (DataFrame): Variant set containing variantId and chromosome.
+
+        Returns:
+            DataFrame: Filtered LD index preserving the input schema.
+        """
+        requested_variants = variants.select("variantId", "chromosome").dropDuplicates()
+        return (
+            ld_index.join(
+                f.broadcast(requested_variants),
+                on=["variantId", "chromosome"],
+                how="inner",
+            )
+            .select(*ld_index.columns)
+            .sort("idx")
+        )
 
     def get_numpy_matrix(
         self: PanUKBBLDMatrix,
@@ -171,11 +220,44 @@ class PanUKBBLDMatrix:
         idx: list[int],
         ancestry: str,
     ) -> np.ndarray:
-        return (
-            BlockMatrix.read(self.pan_ukbb_bm_path.format(POP=ancestry))
-            .filter(idx, idx)
-            .to_numpy()
+        return self._filter_hail_block_matrix(idx, ancestry).to_numpy()
+
+    def _filter_hail_block_matrix(
+        self: PanUKBBLDMatrix,
+        idx: list[int],
+        ancestry: str,
+    ) -> BlockMatrix:
+        """Read and filter a PanUKBB BlockMatrix before materialisation.
+
+        Args:
+            idx (list[int]): Matrix indices to keep.
+            ancestry (str): PanUKBB ancestry label.
+
+        Returns:
+            BlockMatrix: Filtered block matrix slice.
+        """
+        return BlockMatrix.read(self.pan_ukbb_bm_path.format(POP=ancestry)).filter(
+            idx, idx
         )
+
+    def write_filtered_block_matrix(
+        self: PanUKBBLDMatrix,
+        locus_index: DataFrame,
+        ancestry: str,
+        output_path: str,
+    ) -> None:
+        """Write a bounded PanUKBB BlockMatrix slice for the provided index.
+
+        Args:
+            locus_index (DataFrame): Prepared LD index rows to keep.
+            ancestry (str): PanUKBB ancestry label.
+            output_path (str): Output Hail BlockMatrix path.
+        """
+        idx = [
+            row["idx"]
+            for row in locus_index.select("idx").dropDuplicates().sort("idx").collect()
+        ]
+        self._filter_hail_block_matrix(idx, ancestry).write(output_path, overwrite=True)
 
     def _get_outer_allele_order(
         self: PanUKBBLDMatrix, locus_index: DataFrame

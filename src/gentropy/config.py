@@ -594,9 +594,13 @@ class PanUKBBConfig(StepConfig):
             "start_hail": True,
         }
     )
+    variant_annotation_path: str = MISSING
     pan_ukbb_ht_path: str = "gs://panukbb-ld-matrixes/ukb-diverse-pops-public-build-38/UKBB.{POP}.ldadj.variant.b38"
     pan_ukbb_bm_path: str = "gs://panukbb-ld-matrixes/UKBB.{POP}.ldadj"
     ukbb_annotation_path: str = "gs://panukbb-ld-matrixes/UKBB.{POP}.aligned.parquet"
+    variant_filter_paths: dict[str, str] = field(default_factory=dict)
+    filtered_ukbb_annotation_path: str | None = None
+    filtered_pan_ukbb_bm_path: str | None = None
     pan_ukbb_pops: list[str] = field(
         default_factory=lambda: [
             "AFR",  # African
@@ -957,6 +961,7 @@ def register_config() -> None:
 
     cs.store(group="step", name="pics", node=PICSConfig)
     cs.store(group="step", name="gnomad_variants", node=GnomadVariantConfig)
+    cs.store(group="step", name="pan_ukbb_variant_index", node=PanUKBBConfig)
     cs.store(group="step", name="ukb_ppp_eur_sumstat_preprocess", node=UkbPppEurConfig)
     cs.store(group="step", name="lof_curation_ingestion", node=LOFIngestionConfig)
     cs.store(group="step", name="variant_index", node=VariantIndexConfig)

@@ -1,12 +1,14 @@
 """Test suite for the PanUKBBLDMatrix class in the gentropy package."""
 
+from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock, patch
 
 import numpy as np
+import pyspark.sql.functions as f
 import pytest
 from numpy._typing._array_like import NDArray
-from pyspark.sql import DataFrame
+from pyspark.sql import DataFrame, SparkSession
 
 from gentropy.datasource.pan_ukbb_ld.ld import PanUKBBLDMatrix
 
@@ -178,3 +180,123 @@ class TestGetNumpyMatrix:
 
             # Verify result is what was returned from _construct_ld_matrix
             assert result is mock_final_matrix
+
+
+class TestPreparePanUKBBReference:
+    """Test PanUKBB LD reference preparation helpers."""
+
+    def test_prepare_aligned_ld_index_adds_population_and_allele_orientation(
+        self, spark: SparkSession
+    ) -> None:
+        """Prepared PanUKBB index contains signed allele orientation and population."""
+        raw_index = spark.createDataFrame(
+            [
+                ("chr1", 100, ["A", "C"], 2),
+                ("chr1", 200, ["G", "T"], 1),
+                ("chr2", 300, ["C", "A"], 3),
+            ],
+            ["contig", "position", "alleles", "idx"],
+        ).select(
+            f.col("contig").alias("locus.contig"),
+            f.col("position").alias("locus.position"),
+            "alleles",
+            "idx",
+        )
+        variant_annotation = spark.createDataFrame(
+            [
+                ("1", 100, "A", "C"),
+                ("1", 200, "T", "G"),
+            ],
+            ["chromosome", "position", "referenceAllele", "alternateAllele"],
+        )
+
+        observed = PanUKBBLDMatrix.prepare_aligned_ld_index(
+            raw_index=raw_index,
+            variant_annotation=variant_annotation,
+            population="EUR",
+        )
+
+        assert observed.columns == [
+            "variantId",
+            "chromosome",
+            "position",
+            "referenceAllele",
+            "alternateAllele",
+            "idx",
+            "population",
+            "alleleOrder",
+        ]
+        assert observed.orderBy("idx").collect() == [
+            ("1_200_T_G", "1", 200, "T", "G", 1, "EUR", -1),
+            ("1_100_A_C", "1", 100, "A", "C", 2, "EUR", 1),
+            ("2_300_C_A", "2", 300, "C", "A", 3, "EUR", 1),
+        ]
+
+    def test_filter_ld_index_to_variants_uses_variant_id_and_chromosome(
+        self, spark: SparkSession
+    ) -> None:
+        """Filtered indexes keep only variants from the requested test variant set."""
+        ld_index = spark.createDataFrame(
+            [
+                ("1_100_A_C", "1", 100, "A", "C", 2, "EUR", 1),
+                ("1_200_T_G", "1", 200, "T", "G", 1, "EUR", -1),
+                ("2_300_C_A", "2", 300, "C", "A", 3, "EUR", 1),
+            ],
+            [
+                "variantId",
+                "chromosome",
+                "position",
+                "referenceAllele",
+                "alternateAllele",
+                "idx",
+                "population",
+                "alleleOrder",
+            ],
+        )
+        requested_variants = spark.createDataFrame(
+            [
+                ("1_100_A_C", "1"),
+                ("2_300_C_A", "1"),
+            ],
+            ["variantId", "chromosome"],
+        )
+
+        observed = PanUKBBLDMatrix.filter_ld_index_to_variants(
+            ld_index, requested_variants
+        )
+
+        assert observed.select("variantId", "chromosome", "idx").collect() == [
+            ("1_100_A_C", "1", 2)
+        ]
+
+    def test_write_filtered_block_matrix_filters_indices_before_write(
+        self, spark: SparkSession, tmp_path: Path
+    ) -> None:
+        """Bounded test BlockMatrices are written from filtered indices only."""
+        locus_index = spark.createDataFrame(
+            [
+                ("1_200_T_G", 7),
+                ("1_100_A_C", 3),
+            ],
+            ["variantId", "idx"],
+        )
+        mock_block_matrix: MagicMock = MagicMock()
+        mock_filtered_matrix: MagicMock = MagicMock()
+        mock_block_matrix.filter.return_value = mock_filtered_matrix
+        output_path = str(tmp_path / "UKBB.EUR.test.ldadj")
+
+        with patch(
+            "gentropy.datasource.pan_ukbb_ld.ld.BlockMatrix.read",
+            return_value=mock_block_matrix,
+        ) as mock_read:
+            PanUKBBLDMatrix(
+                pan_ukbb_bm_path="gs://panukbb/UKBB.{POP}.ldadj"
+            ).write_filtered_block_matrix(
+                locus_index=locus_index,
+                ancestry="EUR",
+                output_path=output_path,
+            )
+
+        mock_read.assert_called_once_with("gs://panukbb/UKBB.EUR.ldadj")
+        mock_block_matrix.filter.assert_called_once_with([3, 7], [3, 7])
+        mock_filtered_matrix.write.assert_called_once_with(output_path, overwrite=True)
