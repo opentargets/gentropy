@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 import hail as hl
 import numpy as np
 import pyspark.sql.functions as f
-from hail.linalg import BlockMatrix
+from hail.linalg import BlockMatrix  # type: ignore[import-untyped]
 from pyspark.sql.window import Window
 
 from gentropy.common.session import Session
@@ -230,6 +230,73 @@ class PanUKBBLDMatrix:
         outer_allele_order = self._get_outer_allele_order(locus_index)
         ld_matrix = self._construct_ld_matrix(half_matrix, outer_allele_order)
         return ld_matrix
+
+    def get_long_format_ld_matrix(
+        self: PanUKBBLDMatrix,
+        locus_index: DataFrame,
+        ancestry: str,
+    ) -> DataFrame:
+        """Extract signed long-format LD pairs for the supplied prepared PanUKBB index.
+
+        Args:
+            locus_index (DataFrame): Prepared and filtered PanUKBB LD index.
+            ancestry (str): Ancestry label for the requested LD matrix.
+
+        Returns:
+            DataFrame: Long-format LD pairs with ancestry, variantIdI, variantIdJ, and signed r.
+        """
+        normalized_ancestry = normalize_pan_ukbb_population(ancestry)
+        ordered_locus_index = locus_index.sort("idx", "variantId")
+        index_rows = ordered_locus_index.select("variantId").collect()
+
+        if not index_rows:
+            return ordered_locus_index.sparkSession.createDataFrame(
+                [],
+                "ancestry string, variantIdI string, variantIdJ string, r double",
+            )
+
+        variant_ids = [row["variantId"] for row in index_rows]
+        ld_matrix = self.get_numpy_matrix(ordered_locus_index, normalized_ancestry)
+        ld_rows = [
+            (
+                i,
+                j,
+                normalized_ancestry,
+                variant_ids[i],
+                variant_ids[j],
+                float(ld_matrix[i, j]),
+            )
+            for i in range(len(variant_ids))
+            for j in range(len(variant_ids))
+        ]
+
+        return (
+            ordered_locus_index.sparkSession.createDataFrame(
+                ld_rows,
+                ["idx_i", "idx_j", "ancestry", "variantIdI", "variantIdJ", "r"],
+            )
+            .orderBy("idx_i", "idx_j")
+            .select("ancestry", "variantIdI", "variantIdJ", "r")
+        )
+
+    def write_long_format_ld_matrix(
+        self: PanUKBBLDMatrix,
+        locus_index: DataFrame,
+        ancestry: str,
+        output_path: str,
+        write_mode: str = "errorifexists",
+    ) -> None:
+        """Write signed long-format LD pairs for the supplied prepared PanUKBB index.
+
+        Args:
+            locus_index (DataFrame): Prepared and filtered PanUKBB LD index.
+            ancestry (str): Ancestry label for the requested LD matrix.
+            output_path (str): Output parquet path.
+            write_mode (str): Spark write mode.
+        """
+        self.get_long_format_ld_matrix(locus_index, ancestry).write.mode(
+            write_mode
+        ).parquet(output_path)
 
     def _load_hail_block_matrix(
         self: PanUKBBLDMatrix,

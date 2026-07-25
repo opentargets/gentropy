@@ -330,3 +330,98 @@ class TestPreparePanUKBBReference:
         mock_read.assert_called_once_with("gs://panukbb/UKBB.EUR.ldadj")
         mock_block_matrix.filter.assert_called_once_with([3, 7], [3, 7])
         mock_filtered_matrix.write.assert_called_once_with(output_path, overwrite=True)
+
+    @pytest.mark.parametrize(
+        ("ancestry", "expected_ancestry"),
+        [
+            ("nfe", "EUR"),
+            ("AFR", "AFR"),
+        ],
+    )
+    def test_get_long_format_ld_matrix_returns_signed_symmetric_pairs(
+        self, spark: SparkSession, ancestry: str, expected_ancestry: str
+    ) -> None:
+        """Long-format PanUKBB pair rows reuse signed-r construction and idx ordering."""
+        ld_index = spark.createDataFrame(
+            [
+                ("1_200_T_G", "1", 200, "T", "G", 7, "EUR", -1),
+                ("1_100_A_C", "1", 100, "A", "C", 3, "EUR", 1),
+            ],
+            [
+                "variantId",
+                "chromosome",
+                "position",
+                "referenceAllele",
+                "alternateAllele",
+                "idx",
+                "population",
+                "alleleOrder",
+            ],
+        )
+
+        with patch.object(
+            PanUKBBLDMatrix,
+            "_load_hail_block_matrix",
+            return_value=np.array([[1.0, 0.4], [0.0, 1.0]]),
+        ) as mock_load_hail_block_matrix:
+            observed = PanUKBBLDMatrix().get_long_format_ld_matrix(ld_index, ancestry)
+
+        mock_load_hail_block_matrix.assert_called_once_with([3, 7], expected_ancestry)
+        assert observed.columns == ["ancestry", "variantIdI", "variantIdJ", "r"]
+        assert observed.collect() == [
+            (expected_ancestry, "1_100_A_C", "1_100_A_C", 1.0),
+            (expected_ancestry, "1_100_A_C", "1_200_T_G", -0.4),
+            (expected_ancestry, "1_200_T_G", "1_100_A_C", -0.4),
+            (expected_ancestry, "1_200_T_G", "1_200_T_G", 1.0),
+        ]
+        assert (
+            observed.filter(
+                (f.col("variantIdI") == "1_300_G_A")
+                | (f.col("variantIdJ") == "1_300_G_A")
+            ).count()
+            == 0
+        )
+
+    def test_get_long_format_ld_matrix_returns_empty_schema_for_empty_index(
+        self, spark: SparkSession
+    ) -> None:
+        """Empty prepared indexes produce no LD pairs with the expected schema."""
+        empty_ld_index = spark.createDataFrame(
+            [],
+            "variantId string, chromosome string, position int, referenceAllele string, alternateAllele string, idx int, population string, alleleOrder int",
+        )
+
+        observed = PanUKBBLDMatrix().get_long_format_ld_matrix(empty_ld_index, "EUR")
+
+        assert observed.columns == ["ancestry", "variantIdI", "variantIdJ", "r"]
+        assert observed.count() == 0
+
+    def test_write_long_format_ld_matrix_writes_parquet(
+        self, spark: SparkSession, tmp_path: Path
+    ) -> None:
+        """Long-format LD pairs are written as a parquet dataset."""
+        locus_index = spark.createDataFrame(
+            [("1_100_A_C", 3)],
+            ["variantId", "idx"],
+        )
+        ld_pairs = spark.createDataFrame(
+            [("EUR", "1_100_A_C", "1_100_A_C", 1.0)],
+            "ancestry string, variantIdI string, variantIdJ string, r double",
+        )
+        output_path = str(tmp_path / "ld_pairs.parquet")
+        matrix = PanUKBBLDMatrix()
+
+        with patch.object(
+            matrix, "get_long_format_ld_matrix", return_value=ld_pairs
+        ) as mock_get_long_format_ld_matrix:
+            matrix.write_long_format_ld_matrix(
+                locus_index=locus_index,
+                ancestry="nfe",
+                output_path=output_path,
+                write_mode="overwrite",
+            )
+
+        mock_get_long_format_ld_matrix.assert_called_once_with(locus_index, "nfe")
+        assert spark.read.parquet(output_path).collect() == [
+            ("EUR", "1_100_A_C", "1_100_A_C", 1.0)
+        ]
