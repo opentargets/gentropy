@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 import hail as hl
 import numpy as np
 import pyspark.sql.functions as f
-from hail.linalg import BlockMatrix  # type: ignore[import-untyped]
+from hail.linalg import BlockMatrix
 from pyspark.sql.window import Window
 
 from gentropy.common.session import Session
@@ -18,7 +18,14 @@ if TYPE_CHECKING:
 
 
 def normalize_pan_ukbb_population(population: str) -> str:
-    """Normalize pipeline ancestry labels to PanUKBB population labels."""
+    """Normalize pipeline ancestry labels to PanUKBB population labels.
+
+    Args:
+        population (str): Pipeline ancestry alias or PanUKBB population label.
+
+    Returns:
+        str: Normalized PanUKBB population label.
+    """
     lowered_population = population.lower()
     if lowered_population == "nfe":
         return "EUR"
@@ -303,6 +310,15 @@ class PanUKBBLDMatrix:
         idx: list[int],
         ancestry: str,
     ) -> np.ndarray:
+        """Load a filtered PanUKBB Hail BlockMatrix slice as a NumPy array.
+
+        Args:
+            idx (list[int]): Matrix indices to keep.
+            ancestry (str): PanUKBB ancestry label.
+
+        Returns:
+            np.ndarray: Filtered LD matrix slice.
+        """
         return self._filter_hail_block_matrix(idx, ancestry).to_numpy()
 
     def _filter_hail_block_matrix(
@@ -346,6 +362,14 @@ class PanUKBBLDMatrix:
     def _get_outer_allele_order(
         self: PanUKBBLDMatrix, locus_index: DataFrame
     ) -> np.ndarray:
+        """Build the pairwise allele-orientation matrix for a locus index.
+
+        Args:
+            locus_index (DataFrame): Prepared PanUKBB LD index rows.
+
+        Returns:
+            np.ndarray: Outer product of allele-order signs with unit diagonal.
+        """
         alleleOrder = [
             row["alleleOrder"] for row in locus_index.select("alleleOrder").collect()
         ]
@@ -358,6 +382,15 @@ class PanUKBBLDMatrix:
         half_matrix: np.ndarray,
         outer_allele_order: np.ndarray,
     ) -> np.ndarray:
+        """Construct a signed symmetric LD matrix from a triangular matrix.
+
+        Args:
+            half_matrix (np.ndarray): Upper-triangular LD matrix returned by Hail.
+            outer_allele_order (np.ndarray): Pairwise allele-orientation signs.
+
+        Returns:
+            np.ndarray: Signed symmetric LD matrix with unit diagonal.
+        """
         ld_matrix = (half_matrix + half_matrix.T) - np.diag(np.diag(half_matrix))
         ld_matrix = ld_matrix * outer_allele_order
         np.fill_diagonal(ld_matrix, 1)

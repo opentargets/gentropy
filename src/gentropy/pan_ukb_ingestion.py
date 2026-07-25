@@ -85,7 +85,17 @@ class PanUKBBVariantIndexStep:
         filtered_ukbb_annotation_path: str | None,
         filtered_pan_ukbb_bm_path: str | None,
     ) -> None:
-        """Write filtered PanUKBB reference indexes and matching bounded matrices."""
+        """Write filtered PanUKBB reference indexes and matching bounded matrices.
+
+        Args:
+            session (Session): Session object.
+            matrix (PanUKBBLDMatrix): PanUKBB LD matrix helper.
+            population (str): Normalized PanUKBB population label.
+            prepared_index_path (str): Prepared LD variant-index parquet path.
+            variant_filter_paths (Mapping[str, str]): Named variant-set parquet filters.
+            filtered_ukbb_annotation_path (str | None): Filtered index output template.
+            filtered_pan_ukbb_bm_path (str | None): Filtered BlockMatrix output template.
+        """
         prepared_index = session.spark.read.parquet(prepared_index_path)
         for filter_name, variant_filter_path in sorted(variant_filter_paths.items()):
             variants = session.spark.read.parquet(variant_filter_path)
