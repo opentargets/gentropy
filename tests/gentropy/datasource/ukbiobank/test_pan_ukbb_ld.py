@@ -10,7 +10,10 @@ import pytest
 from numpy._typing._array_like import NDArray
 from pyspark.sql import DataFrame, SparkSession
 
-from gentropy.datasource.pan_ukbb_ld.ld import PanUKBBLDMatrix
+from gentropy.datasource.pan_ukbb_ld.ld import (
+    PanUKBBLDMatrix,
+    normalize_pan_ukbb_population,
+)
 
 
 @pytest.fixture
@@ -180,6 +183,33 @@ class TestGetNumpyMatrix:
 
             # Verify result is what was returned from _construct_ld_matrix
             assert result is mock_final_matrix
+
+
+class TestNormalizePanUKBBPopulation:
+    """Test PanUKBB population label normalisation."""
+
+    @pytest.mark.parametrize(
+        ("population", "expected"),
+        [
+            ("nfe", "EUR"),
+            ("eur", "EUR"),
+            ("EUR", "EUR"),
+            ("csa", "CSA"),
+            ("CSA", "CSA"),
+            ("afr", "AFR"),
+            ("AFR", "AFR"),
+        ],
+    )
+    def test_normalize_pan_ukbb_population_accepts_supported_labels(
+        self, population: str, expected: str
+    ) -> None:
+        """Pipeline aliases and PanUKBB labels normalize to PanUKBB labels."""
+        assert normalize_pan_ukbb_population(population) == expected
+
+    def test_normalize_pan_ukbb_population_rejects_unsupported_labels(self) -> None:
+        """Unsupported labels fail instead of producing invalid PanUKBB paths."""
+        with pytest.raises(ValueError, match="Unsupported PanUKBB population"):
+            normalize_pan_ukbb_population("eas")
 
 
 class TestPreparePanUKBBReference:

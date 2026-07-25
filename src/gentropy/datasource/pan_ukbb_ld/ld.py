@@ -17,6 +17,19 @@ if TYPE_CHECKING:
     from pyspark.sql import DataFrame, Row
 
 
+def normalize_pan_ukbb_population(population: str) -> str:
+    """Normalize pipeline ancestry labels to PanUKBB population labels."""
+    lowered_population = population.lower()
+    if lowered_population == "nfe":
+        return "EUR"
+
+    upper_population = population.upper()
+    if upper_population in {"AFR", "CSA", "EUR"}:
+        return upper_population
+
+    raise ValueError(f"Unsupported PanUKBB population: {population}")
+
+
 class PanUKBBLDMatrix:
     """Toolset to work with Pan UKBB LD matrices."""
 
@@ -40,7 +53,9 @@ class PanUKBBLDMatrix:
         """
         self.pan_ukbb_ht_path = pan_ukbb_ht_path
         self.pan_ukbb_bm_path = pan_ukbb_bm_path
-        self.ld_populations = ld_populations
+        self.ld_populations = [
+            normalize_pan_ukbb_population(population) for population in ld_populations
+        ]
         self.ukbb_annotation_output_path = ukbb_annotation_path
 
     def align_ld_index_alleles(
@@ -58,6 +73,7 @@ class PanUKBBLDMatrix:
             hail_table_path (str): Path to hail table with Pan-UKBB variant LD index
             hail_table_output (str): Path to output the aligned Pan-UKBB variant LD index with alleles in the correct order
         """
+        population = normalize_pan_ukbb_population(population)
         raw_index = (
             hl.read_table(hail_table_path.format(POP=population))
             .to_spark()
@@ -236,6 +252,7 @@ class PanUKBBLDMatrix:
         Returns:
             BlockMatrix: Filtered block matrix slice.
         """
+        ancestry = normalize_pan_ukbb_population(ancestry)
         return BlockMatrix.read(self.pan_ukbb_bm_path.format(POP=ancestry)).filter(
             idx, idx
         )
@@ -296,6 +313,7 @@ class PanUKBBLDMatrix:
             DataFrame: Returns the index of the pan-ukbb matrix for the locus
 
         """
+        ancestry = normalize_pan_ukbb_population(ancestry)
         chromosome = str(study_locus_row["chromosome"])
         start = int(study_locus_row["locusStart"])
         end = int(study_locus_row["locusEnd"])

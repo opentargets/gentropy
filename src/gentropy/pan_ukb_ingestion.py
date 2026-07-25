@@ -7,7 +7,10 @@ from collections.abc import Mapping, Sequence
 from gentropy.common.session import Session
 from gentropy.config import PanUKBBConfig
 from gentropy.dataset.variant_index import VariantIndex
-from gentropy.datasource.pan_ukbb_ld.ld import PanUKBBLDMatrix
+from gentropy.datasource.pan_ukbb_ld.ld import (
+    PanUKBBLDMatrix,
+    normalize_pan_ukbb_population,
+)
 
 
 class PanUKBBVariantIndexStep:
@@ -41,14 +44,17 @@ class PanUKBBVariantIndexStep:
         variant_annotation = VariantIndex.from_parquet(
             session=session, path=variant_annotation_path
         ).df
+        normalized_populations = [
+            normalize_pan_ukbb_population(population) for population in pan_ukbb_pops
+        ]
         matrix = PanUKBBLDMatrix(
             pan_ukbb_ht_path=pan_ukbb_ht_path,
             pan_ukbb_bm_path=pan_ukbb_bm_path,
             ukbb_annotation_path=ukbb_annotation_path,
-            ld_populations=list(pan_ukbb_pops),
+            ld_populations=normalized_populations,
         )
 
-        for population in pan_ukbb_pops:
+        for population in normalized_populations:
             matrix.align_ld_index_alleles(
                 variant_annotation=variant_annotation,
                 population=population,
