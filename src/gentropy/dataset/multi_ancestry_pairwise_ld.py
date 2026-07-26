@@ -2,8 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from math import isqrt
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from pyspark.sql import functions as f
@@ -18,23 +17,10 @@ if TYPE_CHECKING:
 
 @dataclass
 class MultiAncestryPairwiseLD(Dataset):
-    """Pairwise LD matrices for multiple ancestries in one dataset."""
-
-    dimensions: dict[str, tuple[int, int]] = field(init=False)
+    """Global ancestry-aware LD pairs for downstream locus-specific filtering."""
 
     def __post_init__(self: MultiAncestryPairwiseLD) -> None:
-        """Validate one square pairwise matrix for every ancestry."""
-        row_counts = self.df.groupBy("ancestry").count().collect()
-        self.dimensions = {}
-        for row in row_counts:
-            row_count = row["count"]
-            dimension = isqrt(row_count)
-            assert dimension * dimension == row_count, (
-                "The number of rows in a multi-ancestry pairwise LD table has to "
-                f"be square for each ancestry. Ancestry {row['ancestry']} has "
-                f"{row_count} rows."
-            )
-            self.dimensions[row["ancestry"]] = (dimension, dimension)
+        """Validate the combined ancestry-aware pair schema."""
         super().__post_init__()
 
     @classmethod
@@ -46,19 +32,30 @@ class MultiAncestryPairwiseLD(Dataset):
         """
         return parse_spark_schema("multi_ancestry_pairwise_ld.json")
 
-    def for_ancestry(self: MultiAncestryPairwiseLD, ancestry: str) -> PairwiseLD:
-        """Return one ancestry-specific matrix using the PairwiseLD contract.
+    def overlap_with_locus(
+        self: MultiAncestryPairwiseLD,
+        ancestry: str,
+        locus_variants: list[str],
+    ) -> PairwiseLD:
+        """Return one ancestry-specific locus matrix using PairwiseLD.
 
         Args:
             ancestry (str): Ancestry to project into a PairwiseLD dataset.
+            locus_variants (list[str]): Variants defining one locus matrix.
 
         Returns:
-            PairwiseLD: Ancestry-specific pairwise LD dataset.
+            PairwiseLD: Ancestry-specific pairwise LD for the locus.
         """
-        if ancestry not in self.dimensions:
+        if ancestry not in self.ancestries():
             raise ValueError(f"Unknown ancestry: {ancestry}")
         return PairwiseLD(
-            _df=self.df.filter(f.col("ancestry") == ancestry).drop("ancestry"),
+            _df=(
+                self.df.filter(
+                    (f.col("ancestry") == ancestry)
+                    & f.col("variantIdI").isin(locus_variants)
+                    & f.col("variantIdJ").isin(locus_variants)
+                ).drop("ancestry")
+            ),
             _schema=PairwiseLD.get_schema(),
         )
 
@@ -68,4 +65,4 @@ class MultiAncestryPairwiseLD(Dataset):
         Returns:
             list[str]: Sorted ancestry labels.
         """
-        return sorted(self.dimensions)
+        return [row["ancestry"] for row in self.df.select("ancestry").distinct().orderBy("ancestry").collect()]
