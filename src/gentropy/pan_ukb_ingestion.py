@@ -21,12 +21,10 @@ class PanUKBBVariantIndexStep:
         session: Session,
         variant_annotation_path: str,
         pan_ukbb_ht_path: str = PanUKBBConfig().pan_ukbb_ht_path,
-        pan_ukbb_bm_path: str = PanUKBBConfig().pan_ukbb_bm_path,
         ukbb_annotation_path: str = PanUKBBConfig().ukbb_annotation_path,
         pan_ukbb_pops: Sequence[str] = PanUKBBConfig().pan_ukbb_pops,
         variant_filter_paths: Mapping[str, str] | None = None,
         filtered_ukbb_annotation_path: str | None = None,
-        filtered_pan_ukbb_bm_path: str | None = None,
     ) -> None:
         """Run the PanUKBB LD reference-preparation step.
 
@@ -34,12 +32,10 @@ class PanUKBBVariantIndexStep:
             session (Session): Session object.
             variant_annotation_path (str): Open Targets variant annotation parquet path.
             pan_ukbb_ht_path (str): PanUKBB Hail variant-table path template with ``{POP}``.
-            pan_ukbb_bm_path (str): PanUKBB Hail BlockMatrix path template with ``{POP}``.
             ukbb_annotation_path (str): Full prepared variant-index output template with ``{POP}``.
             pan_ukbb_pops (Sequence[str]): PanUKBB populations to prepare.
             variant_filter_paths (Mapping[str, str] | None): Optional named variant-set parquet filters.
             filtered_ukbb_annotation_path (str | None): Filtered index output template with ``{POP}`` and ``{FILTER}``.
-            filtered_pan_ukbb_bm_path (str | None): Filtered BlockMatrix output template with ``{POP}`` and ``{FILTER}``.
         """
         variant_annotation = VariantIndex.from_parquet(
             session=session, path=variant_annotation_path
@@ -49,7 +45,6 @@ class PanUKBBVariantIndexStep:
         ]
         matrix = PanUKBBLDMatrix(
             pan_ukbb_ht_path=pan_ukbb_ht_path,
-            pan_ukbb_bm_path=pan_ukbb_bm_path,
             ukbb_annotation_path=ukbb_annotation_path,
             ld_populations=normalized_populations,
         )
@@ -72,7 +67,6 @@ class PanUKBBVariantIndexStep:
                     prepared_index_path=prepared_index_path,
                     variant_filter_paths=variant_filter_paths,
                     filtered_ukbb_annotation_path=filtered_ukbb_annotation_path,
-                    filtered_pan_ukbb_bm_path=filtered_pan_ukbb_bm_path,
                 )
 
     @staticmethod
@@ -83,9 +77,8 @@ class PanUKBBVariantIndexStep:
         prepared_index_path: str,
         variant_filter_paths: Mapping[str, str],
         filtered_ukbb_annotation_path: str | None,
-        filtered_pan_ukbb_bm_path: str | None,
     ) -> None:
-        """Write filtered PanUKBB reference indexes and matching bounded matrices.
+        """Write filtered PanUKBB reference indexes.
 
         Args:
             session (Session): Session object.
@@ -94,7 +87,6 @@ class PanUKBBVariantIndexStep:
             prepared_index_path (str): Prepared LD variant-index parquet path.
             variant_filter_paths (Mapping[str, str]): Named variant-set parquet filters.
             filtered_ukbb_annotation_path (str | None): Filtered index output template.
-            filtered_pan_ukbb_bm_path (str | None): Filtered BlockMatrix output template.
         """
         prepared_index = session.spark.read.parquet(prepared_index_path)
         for filter_name, variant_filter_path in sorted(variant_filter_paths.items()):
@@ -111,14 +103,3 @@ class PanUKBBVariantIndexStep:
                     filtered_index_path
                 )
                 session.logger.info(filtered_index_path)
-
-            if filtered_pan_ukbb_bm_path:
-                filtered_block_matrix_path = filtered_pan_ukbb_bm_path.format(
-                    POP=population, FILTER=filter_name
-                )
-                matrix.write_filtered_block_matrix(
-                    locus_index=filtered_index,
-                    ancestry=population,
-                    output_path=filtered_block_matrix_path,
-                )
-                session.logger.info(filtered_block_matrix_path)

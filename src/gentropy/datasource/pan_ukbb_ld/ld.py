@@ -17,6 +17,9 @@ if TYPE_CHECKING:
     from pyspark.sql import DataFrame, Row
 
 
+DEFAULT_PAN_UKBB_BM_PATH = "gs://panukbb-ld-matrixes/UKBB.{POP}.ldadj"
+
+
 def normalize_pan_ukbb_population(population: str) -> str:
     """Normalize pipeline ancestry labels to PanUKBB population labels.
 
@@ -43,7 +46,7 @@ class PanUKBBLDMatrix:
     def __init__(
         self,
         pan_ukbb_ht_path: str = PanUKBBConfig().pan_ukbb_ht_path,
-        pan_ukbb_bm_path: str = PanUKBBConfig().pan_ukbb_bm_path,
+        pan_ukbb_bm_path: str = DEFAULT_PAN_UKBB_BM_PATH,
         ld_populations: list[str] = PanUKBBConfig().pan_ukbb_pops,
         ukbb_annotation_path: str = PanUKBBConfig().ukbb_annotation_path,
     ):
@@ -56,7 +59,7 @@ class PanUKBBLDMatrix:
             pan_ukbb_bm_path (str): Path to hail block matrix
             ld_populations (list[str]): List of populations
             ukbb_annotation_path (str): Path to pan-ukbb variant LD index with alleles flipped to match the order in OT variant annotation
-        Default values are set in PanUKBBConfig.
+        Default variant-table and annotation paths are set in PanUKBBConfig.
         """
         self.pan_ukbb_ht_path = pan_ukbb_ht_path
         self.pan_ukbb_bm_path = pan_ukbb_bm_path
@@ -127,63 +130,70 @@ class PanUKBBLDMatrix:
                 ["chromosome", "position", "referenceAllele", "alternateAllele"]
             )
         )
-        ht_va = (
-            ht.alias("ukbb")
-            .join(
-                variant_annotation.select(
+        va = variant_annotation.select(
+            "chromosome",
+            "position",
+            f.col("referenceAllele").alias("va_ref"),
+            f.col("alternateAllele").alias("va_alt"),
+        ).dropDuplicates(["chromosome", "position", "va_ref", "va_alt"])
+        va_positions = va.select("chromosome", "position").dropDuplicates().withColumn(
+            "has_variant_annotation_at_position", f.lit(True)
+        )
+        va_orientations = (
+            va.select(
+                "chromosome",
+                "position",
+                f.col("va_ref").alias("referenceAllele"),
+                f.col("va_alt").alias("alternateAllele"),
+                f.col("va_ref").alias("new_referenceAllele"),
+                f.col("va_alt").alias("new_alternateAllele"),
+                f.lit(1).alias("matchedAlleleOrder"),
+            )
+            .unionByName(
+                va.select(
                     "chromosome",
                     "position",
-                    f.col("referenceAllele").alias("va_ref"),
-                    f.col("alternateAllele").alias("va_alt"),
-                ).dropDuplicates(["chromosome", "position", "va_ref", "va_alt"]),
-                on=["chromosome", "position"],
+                    f.col("va_alt").alias("referenceAllele"),
+                    f.col("va_ref").alias("alternateAllele"),
+                    f.col("va_ref").alias("new_referenceAllele"),
+                    f.col("va_alt").alias("new_alternateAllele"),
+                    f.lit(-1).alias("matchedAlleleOrder"),
+                )
+            )
+            .dropDuplicates(
+                ["chromosome", "position", "referenceAllele", "alternateAllele"]
+            )
+        )
+        ht_va = (
+            ht.join(
+                va_orientations,
+                on=["chromosome", "position", "referenceAllele", "alternateAllele"],
                 how="left",
             )
+            .join(va_positions, on=["chromosome", "position"], how="left")
             .filter(
-                (
-                    (f.col("referenceAllele") == f.col("va_ref"))
-                    & (f.col("alternateAllele") == f.col("va_alt"))
-                )
-                | (
-                    (f.col("referenceAllele") == f.col("va_alt"))
-                    & (f.col("alternateAllele") == f.col("va_ref"))
-                )
-                | (f.col("va_ref").isNull() | f.col("va_alt").isNull())
-            )
-            .withColumns(
-                {
-                    "alleleOrder": f.when(
-                        (f.col("referenceAllele") == f.col("va_alt"))
-                        & (f.col("alternateAllele") == f.col("va_ref")),
-                        -1,
-                    ).otherwise(1),
-                    "new_referenceAllele": f.when(
-                        (f.col("referenceAllele") == f.col("va_alt"))
-                        & (f.col("alternateAllele") == f.col("va_ref")),
-                        f.col("va_ref"),
-                    ).otherwise(f.col("referenceAllele")),
-                    "new_alternateAllele": f.when(
-                        (f.col("alternateAllele") == f.col("va_ref"))
-                        & (f.col("referenceAllele") == f.col("va_alt")),
-                        f.col("va_alt"),
-                    ).otherwise(f.col("alternateAllele")),
-                }
+                f.col("matchedAlleleOrder").isNotNull()
+                | f.col("has_variant_annotation_at_position").isNull()
             )
             .select(
                 f.concat_ws(
                     "_",
                     "chromosome",
                     "position",
-                    "new_referenceAllele",
-                    "new_alternateAllele",
+                    f.coalesce("new_referenceAllele", "referenceAllele"),
+                    f.coalesce("new_alternateAllele", "alternateAllele"),
                 ).alias("variantId"),
                 "chromosome",
                 "position",
-                f.col("new_referenceAllele").alias("referenceAllele"),
-                f.col("new_alternateAllele").alias("alternateAllele"),
+                f.coalesce("new_referenceAllele", "referenceAllele").alias(
+                    "referenceAllele"
+                ),
+                f.coalesce("new_alternateAllele", "alternateAllele").alias(
+                    "alternateAllele"
+                ),
                 "idx",
                 f.lit(population).alias("population"),
-                "alleleOrder",
+                f.coalesce("matchedAlleleOrder", f.lit(1)).alias("alleleOrder"),
             )
         )
         window_spec = Window.partitionBy("idx").orderBy(f.col("alleleOrder").desc())
@@ -210,7 +220,7 @@ class PanUKBBLDMatrix:
         requested_variants = variants.select("variantId", "chromosome").dropDuplicates()
         return (
             ld_index.join(
-                f.broadcast(requested_variants),
+                requested_variants,
                 on=["variantId", "chromosome"],
                 how="inner",
             )

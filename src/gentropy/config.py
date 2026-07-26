@@ -596,11 +596,9 @@ class PanUKBBConfig(StepConfig):
     )
     variant_annotation_path: str = MISSING
     pan_ukbb_ht_path: str = "gs://panukbb-ld-matrixes/ukb-diverse-pops-public-build-38/UKBB.{POP}.ldadj.variant.b38"
-    pan_ukbb_bm_path: str = "gs://panukbb-ld-matrixes/UKBB.{POP}.ldadj"
     ukbb_annotation_path: str = "gs://panukbb-ld-matrixes/UKBB.{POP}.aligned.parquet"
     variant_filter_paths: dict[str, str] = field(default_factory=dict)
     filtered_ukbb_annotation_path: str | None = None
-    filtered_pan_ukbb_bm_path: str | None = None
     pan_ukbb_pops: list[str] = field(
         default_factory=lambda: [
             "AFR",  # African

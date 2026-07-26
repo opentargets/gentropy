@@ -262,6 +262,44 @@ class TestPreparePanUKBBReference:
             ("2_300_C_A", "2", 300, "C", "A", 3, "EUR", 1),
         ]
 
+    def test_prepare_aligned_ld_index_avoids_positional_join_expansion(
+        self, spark: SparkSession
+    ) -> None:
+        """Allele alignment joins by oriented allele keys, not position alone."""
+        raw_index = spark.createDataFrame(
+            [
+                ("chr1", 100, ["A", "C"], 1),
+                ("chr1", 100, ["C", "A"], 2),
+                ("chr1", 100, ["A", "G"], 3),
+                ("chr1", 101, ["G", "A"], 4),
+            ],
+            ["contig", "position", "alleles", "idx"],
+        ).select(
+            f.col("contig").alias("locus.contig"),
+            f.col("position").alias("locus.position"),
+            "alleles",
+            "idx",
+        )
+        variant_annotation = spark.createDataFrame(
+            [
+                ("1", 100, "A", "C"),
+                ("1", 100, "T", "G"),
+            ],
+            ["chromosome", "position", "referenceAllele", "alternateAllele"],
+        )
+
+        observed = PanUKBBLDMatrix.prepare_aligned_ld_index(
+            raw_index=raw_index,
+            variant_annotation=variant_annotation,
+            population="AFR",
+        )
+
+        assert observed.orderBy("idx").collect() == [
+            ("1_100_A_C", "1", 100, "A", "C", 1, "AFR", 1),
+            ("1_100_A_C", "1", 100, "A", "C", 2, "AFR", -1),
+            ("1_101_G_A", "1", 101, "G", "A", 4, "AFR", 1),
+        ]
+
     def test_filter_ld_index_to_variants_uses_variant_id_and_chromosome(
         self, spark: SparkSession
     ) -> None:

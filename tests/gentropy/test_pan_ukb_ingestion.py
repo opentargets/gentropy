@@ -57,7 +57,6 @@ def test_pan_ukbb_variant_index_step_normalizes_populations_for_all_outputs() ->
             session=session,
             variant_annotation_path="/variant-index",
             pan_ukbb_ht_path="gs://panukbb/UKBB.{POP}.ldadj.variant.b38",
-            pan_ukbb_bm_path="gs://panukbb/UKBB.{POP}.ldadj",
             ukbb_annotation_path="/ld-reference/UKBB.{POP}.aligned.parquet",
             pan_ukbb_pops=["csa", "EUR", "afr"],
             variant_filter_paths={
@@ -65,7 +64,6 @@ def test_pan_ukbb_variant_index_step_normalizes_populations_for_all_outputs() ->
                 "full_test": "/filters/full-test.parquet",
             },
             filtered_ukbb_annotation_path="/ld-reference/{FILTER}/UKBB.{POP}.aligned.parquet",
-            filtered_pan_ukbb_bm_path="/ld-reference/{FILTER}/UKBB.{POP}.ldadj",
         )
 
     mock_variant_index_from_parquet.assert_called_once_with(
@@ -73,7 +71,6 @@ def test_pan_ukbb_variant_index_step_normalizes_populations_for_all_outputs() ->
     )
     mock_matrix_class.assert_called_once_with(
         pan_ukbb_ht_path="gs://panukbb/UKBB.{POP}.ldadj.variant.b38",
-        pan_ukbb_bm_path="gs://panukbb/UKBB.{POP}.ldadj",
         ukbb_annotation_path="/ld-reference/UKBB.{POP}.aligned.parquet",
         ld_populations=["CSA", "EUR", "AFR"],
     )
@@ -140,35 +137,4 @@ def test_pan_ukbb_variant_index_step_normalizes_populations_for_all_outputs() ->
     afr_full_test_filtered_index.write.mode.return_value.parquet.assert_called_once_with(
         "/ld-reference/full_test/UKBB.AFR.aligned.parquet"
     )
-    assert matrix.write_filtered_block_matrix.call_args_list == [
-        call(
-            locus_index=csa_chr1_filtered_index,
-            ancestry="CSA",
-            output_path="/ld-reference/chr1/UKBB.CSA.ldadj",
-        ),
-        call(
-            locus_index=csa_full_test_filtered_index,
-            ancestry="CSA",
-            output_path="/ld-reference/full_test/UKBB.CSA.ldadj",
-        ),
-        call(
-            locus_index=eur_chr1_filtered_index,
-            ancestry="EUR",
-            output_path="/ld-reference/chr1/UKBB.EUR.ldadj",
-        ),
-        call(
-            locus_index=eur_full_test_filtered_index,
-            ancestry="EUR",
-            output_path="/ld-reference/full_test/UKBB.EUR.ldadj",
-        ),
-        call(
-            locus_index=afr_chr1_filtered_index,
-            ancestry="AFR",
-            output_path="/ld-reference/chr1/UKBB.AFR.ldadj",
-        ),
-        call(
-            locus_index=afr_full_test_filtered_index,
-            ancestry="AFR",
-            output_path="/ld-reference/full_test/UKBB.AFR.ldadj",
-        ),
-    ]
+    matrix.write_filtered_block_matrix.assert_not_called()

@@ -149,11 +149,9 @@ class TestPanUKBBConfig:
         expected_fields = {
             "variant_annotation_path",
             "pan_ukbb_ht_path",
-            "pan_ukbb_bm_path",
             "ukbb_annotation_path",
             "variant_filter_paths",
             "filtered_ukbb_annotation_path",
-            "filtered_pan_ukbb_bm_path",
             "pan_ukbb_pops",
         }
 
