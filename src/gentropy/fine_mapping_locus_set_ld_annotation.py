@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, cast
 
 from gentropy.common.session import Session
 from gentropy.dataset.fine_mapping_study_metadata import FineMappingStudyMetadata
@@ -116,18 +116,20 @@ class FineMappingLocusSetLDAnnotationStep:
         return normalized
 
     @staticmethod
-    def _locus_variant_ids(locus: list[Mapping[str, Any]] | None) -> list[str]:
+    def _locus_variant_ids(locus: list[Mapping[str, object]] | None) -> list[str]:
         """Return unique variant IDs from one collected locus array.
 
         Args:
-            locus (list[Mapping[str, Any]] | None): Collected locus variants.
+            locus (list[Mapping[str, object]] | None): Collected locus variants.
 
         Returns:
             list[str]: Unique variant IDs in input order.
         """
         if not locus:
             return []
-        return list(dict.fromkeys(variant["variantId"] for variant in locus))
+        return list(
+            dict.fromkeys(cast(str, variant["variantId"]) for variant in locus)
+        )
 
     @staticmethod
     def _validate_reference_coverage(

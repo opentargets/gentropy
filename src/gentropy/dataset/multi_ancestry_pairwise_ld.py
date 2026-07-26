@@ -19,10 +19,6 @@ if TYPE_CHECKING:
 class MultiAncestryPairwiseLD(Dataset):
     """Global ancestry-aware LD pairs for downstream locus-specific filtering."""
 
-    def __post_init__(self: MultiAncestryPairwiseLD) -> None:
-        """Validate the combined ancestry-aware pair schema."""
-        super().__post_init__()
-
     @classmethod
     def get_schema(cls: type[MultiAncestryPairwiseLD]) -> StructType:
         """Provide the schema for the dataset.
