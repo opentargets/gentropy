@@ -601,7 +601,7 @@ class Session:
         if conf.anonymous:
             data[
                 "spark.hadoop.fs.s3a.aws.credentials.provider"
-            ] = "com.amazonaws.auth.AnonymousAWSCredentialsProvider"
+            ] = "org.apache.hadoop.fs.s3a.AnonymousAWSCredentialsProvider"
         else:
             assert conf.access_key_id is not None
             assert conf.secret_access_key is not None

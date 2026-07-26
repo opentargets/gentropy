@@ -41,10 +41,10 @@ class S3Config(ExternalConfig):
     """
 
     _HADOOP_CONNECTOR_PKG: ClassVar[str] = (
-        "org.apache.hadoop:hadoop-aws:3.3.6,com.amazonaws:aws-java-sdk-bundle:1.12.367"
+        "org.apache.hadoop:hadoop-aws:3.3.4,com.amazonaws:aws-java-sdk-bundle:1.12.367"
     )
     """Connector for AWS S3 compatible storage.
-        See https://mvnrepository.com/artifact/org.apache.hadoop/hadoop-aws/3.3.6"""
+        See https://mvnrepository.com/artifact/org.apache.hadoop/hadoop-aws/3.3.4"""
 
     bucket_name: str = ""
     """Name of the bucket, without s3:// or s3a:// prefix."""

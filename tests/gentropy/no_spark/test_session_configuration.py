@@ -181,7 +181,7 @@ class TestS3ConnectorConfiguration:
 
         assert (
             conf.get("spark.hadoop.fs.s3a.aws.credentials.provider")
-            == "com.amazonaws.auth.AnonymousAWSCredentialsProvider"
+            == "org.apache.hadoop.fs.s3a.AnonymousAWSCredentialsProvider"
         )
         assert "spark.hadoop.fs.s3a.access.key" not in conf
         assert "spark.hadoop.fs.s3a.secret.key" not in conf
