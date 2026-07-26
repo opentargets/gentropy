@@ -463,3 +463,28 @@ class TestPreparePanUKBBReference:
         assert spark.read.parquet(output_path).collect() == [
             ("EUR", "1_100_A_C", "1_100_A_C", 1.0)
         ]
+
+    def test_get_multi_ancestry_long_format_ld_matrix_combines_ancestries(
+        self, spark: SparkSession
+    ) -> None:
+        """Multiple ancestry extractions are returned as one typed dataset."""
+        matrix = PanUKBBLDMatrix()
+        eur_pairs = spark.createDataFrame(
+            [("EUR", "1_100_A_C", "1_100_A_C", 1.0)],
+            ["ancestry", "variantIdI", "variantIdJ", "r"],
+        )
+        afr_pairs = spark.createDataFrame(
+            [("AFR", "1_100_A_C", "1_100_A_C", 1.0)],
+            ["ancestry", "variantIdI", "variantIdJ", "r"],
+        )
+        with patch.object(
+            matrix,
+            "get_long_format_ld_matrix",
+            side_effect=[eur_pairs, afr_pairs],
+        ):
+            observed = matrix.get_multi_ancestry_long_format_ld_matrix(
+                {"EUR": MagicMock(), "AFR": MagicMock()}
+            )
+
+        assert observed.ancestries() == ["AFR", "EUR"]
+        assert observed.df.count() == 2

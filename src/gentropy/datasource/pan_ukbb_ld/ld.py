@@ -12,6 +12,7 @@ from pyspark.sql.window import Window
 
 from gentropy.common.session import Session
 from gentropy.config import PanUKBBConfig
+from gentropy.dataset.multi_ancestry_pairwise_ld import MultiAncestryPairwiseLD
 
 if TYPE_CHECKING:
     from pyspark.sql import DataFrame, Row
@@ -314,6 +315,42 @@ class PanUKBBLDMatrix:
         self.get_long_format_ld_matrix(locus_index, ancestry).write.mode(
             write_mode
         ).parquet(output_path)
+
+    def get_multi_ancestry_long_format_ld_matrix(
+        self: PanUKBBLDMatrix,
+        locus_indexes: dict[str, DataFrame],
+    ) -> MultiAncestryPairwiseLD:
+        """Extract and combine long-format LD pairs for multiple ancestries.
+
+        Args:
+            locus_indexes (dict[str, DataFrame]): One prepared locus index per
+                ancestry. Each index must contain the matrix indexes and allele
+                orientation required by :meth:`get_long_format_ld_matrix`.
+
+        Returns:
+            MultiAncestryPairwiseLD: Combined ancestry-aware pairwise LD dataset.
+        """
+        if not locus_indexes:
+            raise ValueError("At least one ancestry-specific locus index is required")
+
+        ancestry_order = sorted(locus_indexes)
+        normalized_ancestry_order = [
+            normalize_pan_ukbb_population(ancestry) for ancestry in ancestry_order
+        ]
+        if len(set(normalized_ancestry_order)) != len(normalized_ancestry_order):
+            raise ValueError("Locus indexes must contain each ancestry at most once")
+
+        pairwise_ld = [
+            self.get_long_format_ld_matrix(locus_indexes[ancestry], ancestry)
+            for ancestry in ancestry_order
+        ]
+        combined = pairwise_ld[0]
+        for pairs in pairwise_ld[1:]:
+            combined = combined.unionByName(pairs)
+        return MultiAncestryPairwiseLD(
+            _df=combined,
+            _schema=MultiAncestryPairwiseLD.get_schema(),
+        )
 
     def _load_hail_block_matrix(
         self: PanUKBBLDMatrix,
