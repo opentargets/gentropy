@@ -77,6 +77,25 @@ class TestGetNumpyMatrix:
             mock_filtered.to_numpy.assert_called_once()
             assert result is mock_numpy
 
+    def test_load_hail_block_matrix_uses_concrete_path_without_population_formatting(
+        self,
+    ) -> None:
+        """Concrete registry paths are passed to Hail unchanged."""
+        mock_block_matrix: MagicMock = MagicMock()
+        mock_filtered: MagicMock = MagicMock()
+        mock_filtered.to_numpy.return_value = np.eye(2)
+        mock_block_matrix.filter.return_value = mock_filtered
+
+        with patch(
+            "gentropy.datasource.pan_ukbb_ld.ld.BlockMatrix.read",
+            return_value=mock_block_matrix,
+        ) as mock_read:
+            PanUKBBLDMatrix(
+                pan_ukbb_bm_path="s3://bucket/UKBB.CSA.ldadj.bm"
+            )._load_hail_block_matrix([1, 2], "eas")
+
+        mock_read.assert_called_once_with("s3://bucket/UKBB.CSA.ldadj.bm")
+
     def test_get_outer_allele_order(self, mock_locus_index: MagicMock) -> None:
         """Test _get_outer_allele_order correctly computes outer product of allele orders."""
         matrix: PanUKBBLDMatrix = PanUKBBLDMatrix()

@@ -2,16 +2,15 @@
 
 from __future__ import annotations
 
+import json
 from collections.abc import Mapping, Sequence
+from pathlib import Path
 from typing import TYPE_CHECKING, cast
 
 from gentropy.common.session import Session
 from gentropy.dataset.fine_mapping_study_metadata import FineMappingStudyMetadata
 from gentropy.dataset.multi_ancestry_pairwise_ld import MultiAncestryPairwiseLD
-from gentropy.datasource.pan_ukbb_ld.ld import (
-    PanUKBBLDMatrix,
-    normalize_pan_ukbb_population,
-)
+from gentropy.datasource.pan_ukbb_ld.ld import PanUKBBLDMatrix
 
 if TYPE_CHECKING:
     from pyspark.sql import DataFrame
@@ -24,26 +23,28 @@ class FineMappingLocusSetLDAnnotationStep:
         self,
         session: Session,
         fine_mapping_locus_set_input_path: str,
-        fine_mapping_study_metadata_input_path: str,
+        fine_mapping_study_metadata_jsonl_input_path: str,
         multi_ancestry_pairwise_ld_output_path: str,
-        ld_references: Sequence[Mapping[str, str]],
+        stats_output_path: str,
+        ld_registry: Sequence[Mapping[str, str]],
     ) -> None:
         """Run LD annotation for a fine-mapping locus-set dataset.
 
         Args:
             session (Session): Gentropy session.
             fine_mapping_locus_set_input_path (str): FineMappingLocusSet parquet path.
-            fine_mapping_study_metadata_input_path (str): Study metadata parquet path.
+            fine_mapping_study_metadata_jsonl_input_path (str): Study metadata JSONL path.
             multi_ancestry_pairwise_ld_output_path (str): Output parquet path.
-            ld_references (Sequence[Mapping[str, str]]): LD references with
+            stats_output_path (str): Output JSONL path for ancestry pair counts.
+            ld_registry (Sequence[Mapping[str, str]]): LD references with
                 ``ancestry``, ``vi_path``, and ``bm_path`` keys.
         """
-        references = self._normalize_ld_references(ld_references)
-        metadata = FineMappingStudyMetadata.from_parquet(
-            session, fine_mapping_study_metadata_input_path
+        references = self._normalize_ld_registry(ld_registry)
+        metadata = FineMappingStudyMetadata.from_jsonl(
+            session, fine_mapping_study_metadata_jsonl_input_path
         )
         study_ancestries = {
-            row["studyId"]: normalize_pan_ukbb_population(row["ancestry"])
+            row["studyId"]: row["ancestry"]
             for row in metadata.df.select("studyId", "ancestry").collect()
         }
         self._validate_reference_coverage(list(study_ancestries.values()), references)
@@ -79,33 +80,39 @@ class FineMappingLocusSetLDAnnotationStep:
                 )
             )
 
-        output = self._union_pairwise_datasets(locus_set, pairwise_datasets)
-        output.dropDuplicates(["ancestry", "variantIdI", "variantIdJ"]).write.mode(
-            session.write_mode
-        ).parquet(multi_ancestry_pairwise_ld_output_path)
+        output = self._union_pairwise_datasets(locus_set, pairwise_datasets).dropDuplicates(
+            ["ancestry", "variantIdI", "variantIdJ"]
+        )
+        output.coalesce(session.output_partitions).write.mode(session.write_mode).parquet(
+            multi_ancestry_pairwise_ld_output_path
+        )
+        self._write_ld_pair_stats(
+            self._ld_pair_counts(output, sorted(set(study_ancestries.values()))),
+            stats_output_path,
+        )
 
     @staticmethod
-    def _normalize_ld_references(
-        ld_references: Sequence[Mapping[str, str]],
+    def _normalize_ld_registry(
+        ld_registry: Sequence[Mapping[str, str]],
     ) -> dict[str, dict[str, str]]:
-        """Validate and normalize flat LD reference configuration.
+        """Validate and retain flat LD registry configuration.
 
         Args:
-            ld_references (Sequence[Mapping[str, str]]): Flat LD references.
+            ld_registry (Sequence[Mapping[str, str]]): Flat LD references.
 
         Returns:
-            dict[str, dict[str, str]]: References keyed by normalized ancestry.
+            dict[str, dict[str, str]]: Registry records keyed by ancestry.
         """
-        if not ld_references:
+        if not ld_registry:
             raise ValueError("At least one LD reference is required")
         normalized: dict[str, dict[str, str]] = {}
-        for reference in ld_references:
+        for reference in ld_registry:
             missing = {"ancestry", "vi_path", "bm_path"} - reference.keys()
             if missing:
                 raise ValueError(
                     f"LD reference is missing required keys: {sorted(missing)}"
                 )
-            ancestry = normalize_pan_ukbb_population(reference["ancestry"])
+            ancestry = reference["ancestry"]
             if ancestry in normalized:
                 raise ValueError(f"Duplicate LD reference ancestry: {ancestry}")
             normalized[ancestry] = {
@@ -129,6 +136,44 @@ class FineMappingLocusSetLDAnnotationStep:
             return []
         return list(
             dict.fromkeys(cast(str, variant["variantId"]) for variant in locus)
+        )
+
+    @staticmethod
+    def _ld_pair_counts(
+        pairwise_ld: DataFrame, requested_ancestries: Sequence[str]
+    ) -> list[dict[str, int | str]]:
+        """Count final LD rows for every requested ancestry.
+
+        Args:
+            pairwise_ld (DataFrame): Final deduplicated LD pair dataframe.
+            requested_ancestries (Sequence[str]): Ancestries expected in this run.
+
+        Returns:
+            list[dict[str, int | str]]: Deterministically ordered ancestry counts, including zeroes.
+        """
+        observed = {
+            row["ancestry"]: row["count"]
+            for row in pairwise_ld.groupBy("ancestry").count().collect()
+        }
+        return [
+            {"ancestry": ancestry, "n_ld_pairs": int(observed.get(ancestry, 0))}
+            for ancestry in sorted(requested_ancestries)
+        ]
+
+    @staticmethod
+    def _write_ld_pair_stats(
+        stats: Sequence[Mapping[str, int | str]], path: str | Path
+    ) -> None:
+        """Write LD pair counts as compact JSONL records.
+
+        Args:
+            stats (Sequence[Mapping[str, int | str]]): Ancestry pair counts.
+            path (str | Path): Destination JSONL path.
+        """
+        Path(path).write_text(
+            "\n".join(json.dumps(record, separators=(",", ":")) for record in stats)
+            + "\n",
+            encoding="utf-8",
         )
 
     @staticmethod

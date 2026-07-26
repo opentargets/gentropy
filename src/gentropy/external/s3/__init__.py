@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import os
-from typing import ClassVar
+from typing import ClassVar, Self
 
-from pydantic import SecretStr
+from pydantic import SecretStr, model_validator
 
 from gentropy.external import ExternalConfig
 
@@ -46,16 +46,29 @@ class S3Config(ExternalConfig):
     """Connector for AWS S3 compatible storage.
         See https://mvnrepository.com/artifact/org.apache.hadoop/hadoop-aws/3.3.6"""
 
-    bucket_name: str
+    bucket_name: str = ""
     """Name of the bucket, without s3:// or s3a:// prefix."""
-    s3_host_port: int
+    s3_host_port: int = 443
     """Port number of the S3 host."""
-    s3_host_url: str
+    s3_host_url: str = "s3.amazonaws.com"
     """URL of the S3 host."""
-    access_key_id: SecretStr
+    access_key_id: SecretStr | None = None
     """Access key ID for S3 authentication."""
-    secret_access_key: SecretStr
+    secret_access_key: SecretStr | None = None
     """Secret access key for S3 authentication."""
+    anonymous: bool = False
+    """Use Hadoop's anonymous credentials provider instead of access keys."""
+
+    @model_validator(mode="after")
+    def validate_credentials(self) -> Self:
+        """Require credentials unless anonymous mode was explicitly selected."""
+        if not self.anonymous and (
+            self.access_key_id is None or self.secret_access_key is None
+        ):
+            raise ValueError(
+                "access_key_id and secret_access_key are required unless anonymous is true"
+            )
+        return self
 
     @classmethod
     def from_env(cls) -> S3Config:

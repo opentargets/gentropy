@@ -263,7 +263,11 @@ class PanUKBBLDMatrix:
         Returns:
             DataFrame: Long-format LD pairs with ancestry, variantIdI, variantIdJ, and signed r.
         """
-        normalized_ancestry = normalize_pan_ukbb_population(ancestry)
+        output_ancestry = (
+            normalize_pan_ukbb_population(ancestry)
+            if "{POP}" in self.pan_ukbb_bm_path
+            else ancestry
+        )
         ordered_locus_index = locus_index.sort("idx", "variantId")
         index_rows = ordered_locus_index.select("variantId").collect()
 
@@ -274,12 +278,12 @@ class PanUKBBLDMatrix:
             )
 
         variant_ids = [row["variantId"] for row in index_rows]
-        ld_matrix = self.get_numpy_matrix(ordered_locus_index, normalized_ancestry)
+        ld_matrix = self.get_numpy_matrix(ordered_locus_index, output_ancestry)
         ld_rows = [
             (
                 i,
                 j,
-                normalized_ancestry,
+                output_ancestry,
                 variant_ids[i],
                 variant_ids[j],
                 float(ld_matrix[i, j]),
@@ -382,8 +386,10 @@ class PanUKBBLDMatrix:
         Returns:
             BlockMatrix: Filtered block matrix slice.
         """
-        ancestry = normalize_pan_ukbb_population(ancestry)
-        return BlockMatrix.read(self.pan_ukbb_bm_path.format(POP=ancestry)).filter(
+        matrix_path = self.pan_ukbb_bm_path
+        if "{POP}" in matrix_path:
+            matrix_path = matrix_path.format(POP=normalize_pan_ukbb_population(ancestry))
+        return BlockMatrix.read(matrix_path).filter(
             idx, idx
         )
 

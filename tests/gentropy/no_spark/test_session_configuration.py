@@ -169,6 +169,23 @@ class TestS3ConnectorConfiguration:
         assert conf.get("spark.hadoop.fs.s3a.secret.key") == "env-secret-key"
         assert S3Config._HADOOP_CONNECTOR_PKG in conf.get("spark.jars.packages", "")
 
+    @pytest.mark.usefixtures("_no_spark_session")
+    def test_s3_connector_anonymous(self) -> None:
+        """Anonymous mode configures Hadoop without requiring credentials."""
+        session = _create_session_no_spark(
+            add_s3_connector=True,
+            s3_configuration={"anonymous": True},
+            dynamic_allocation=False,
+        )
+        conf = _conf_dict(session, add_s3=True)
+
+        assert (
+            conf.get("spark.hadoop.fs.s3a.aws.credentials.provider")
+            == "com.amazonaws.auth.AnonymousAWSCredentialsProvider"
+        )
+        assert "spark.hadoop.fs.s3a.access.key" not in conf
+        assert "spark.hadoop.fs.s3a.secret.key" not in conf
+
 
 # ---------------------------------------------------------------------------
 # GCS connector tests

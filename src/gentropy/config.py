@@ -25,8 +25,8 @@ class SessionConfig:
     log_level: str = "ERROR"
     add_s3_connector: bool = False
     add_gcs_connector: bool = False
-    s3_configuration: dict[str, str] | None = field(default_factory=dict[str, str])
-    gcs_configuration: dict[str, str] | None = field(default_factory=dict[str, str])
+    s3_configuration: dict[str, Any] | None = field(default_factory=dict[str, Any])
+    gcs_configuration: dict[str, Any] | None = field(default_factory=dict[str, Any])
     s3_configuration_path: str | None = None
     gcs_configuration_path: str | None = None
     _target_: str = "gentropy.common.session.Session"
@@ -614,9 +614,10 @@ class FineMappingLocusSetLDAnnotationConfig(StepConfig):
     """Fine-mapping locus-set LD annotation step configuration."""
 
     fine_mapping_locus_set_input_path: str = MISSING
-    fine_mapping_study_metadata_input_path: str = MISSING
+    fine_mapping_study_metadata_jsonl_input_path: str = MISSING
     multi_ancestry_pairwise_ld_output_path: str = MISSING
-    ld_references: list[dict[str, str]] = MISSING
+    stats_output_path: str = MISSING
+    ld_registry: list[dict[str, str]] = MISSING
     _target_: str = (
         "gentropy.fine_mapping_locus_set_ld_annotation."
         "FineMappingLocusSetLDAnnotationStep"
