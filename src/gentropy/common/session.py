@@ -982,6 +982,13 @@ class Session:
 class JavaLogger(Protocol):
     """Protocol for Java Log4j Logger accessed through PySpark JVM bridge."""
 
+    def setLevel(self, level: Any) -> None:  # noqa: N802
+        """Set the logger threshold for Gentropy messages.
+
+        Args:
+            level (Any): Log4j level to apply.
+        """
+
     def error(self, message: str) -> None:
         """Log an error message.
 
@@ -1019,6 +1026,11 @@ class Log4j:
             spark.sparkContext.setLogLevel(level)
         # Cast to our protocol type for type safety
         self.logger: JavaLogger = log4j.LogManager.getLogger(__name__)
+        if level:
+            # The bundled properties intentionally keep the root logger at ERROR
+            # during Spark startup. Set the Gentropy logger explicitly so a
+            # requested INFO/WARN level is visible in process logs as well.
+            self.logger.setLevel(log4j.Level.toLevel(level))
 
     def error(self, message: str) -> None:
         """Log an error.

@@ -448,6 +448,8 @@ class TestPreparePanUKBBReference:
             ).count()
             == 0
         )
+        plan = observed._jdf.queryExecution().executedPlan().toString()
+        assert plan.count("BroadcastHashJoin") == 2
 
     def test_get_long_format_ld_matrix_omits_zero_pairs(
         self, spark: SparkSession

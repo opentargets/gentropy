@@ -352,8 +352,8 @@ class PanUKBBLDMatrix:
             f.col("alleleOrder").alias("alleleOrderJ"),
         )
         return (
-            pairs.join(left, on="i")
-            .join(right, on="j")
+            pairs.join(f.broadcast(left), on="i")
+            .join(f.broadcast(right), on="j")
             .select(
                 f.lit(ancestry).alias("ancestry"),
                 "variantIdI",

@@ -1,5 +1,7 @@
 """Tests for fine-mapping locus-set LD annotation helpers."""
 
+from contextlib import redirect_stdout
+from io import StringIO
 from pathlib import Path
 
 import pytest
@@ -74,6 +76,34 @@ def test_ld_pair_counts_include_requested_ancestries_with_zero_rows(
         {"ancestry": "afr", "n_ld_pairs": 0},
         {"ancestry": "nfe", "n_ld_pairs": 1},
     ]
+
+
+def test_materialize_output_persists_the_ld_plan(spark: SparkSession) -> None:
+    """Materialization caches the LD output for subsequent actions."""
+    output = spark.createDataFrame(
+        [("nfe", "1_1_A_C", "1_2_G_T", 0.5)],
+        ["ancestry", "variantIdI", "variantIdJ", "r"],
+    )
+
+    materialized, row_count = (
+        FineMappingLocusSetLDAnnotationStep._persist_and_materialize(output)
+    )
+
+    assert materialized.is_cached
+    assert row_count == 1
+    plan = StringIO()
+    with redirect_stdout(plan):
+        materialized.explain(mode="formatted")
+    assert "InMemoryTableScan" in plan.getvalue()
+    materialized.unpersist()
+
+
+def test_deduplication_is_skipped_for_unique_ancestries() -> None:
+    """Unique ancestry inputs cannot create cross-input pair duplicates."""
+    assert not FineMappingLocusSetLDAnnotationStep._needs_pair_deduplication(
+        ["afr", "nfe", "eas"]
+    )
+    assert FineMappingLocusSetLDAnnotationStep._needs_pair_deduplication(["nfe", "nfe"])
 
 
 def test_ld_pair_stats_are_written_as_jsonl(tmp_path: Path) -> None:

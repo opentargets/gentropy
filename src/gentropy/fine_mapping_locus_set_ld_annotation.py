@@ -7,6 +7,8 @@ from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import TYPE_CHECKING, cast
 
+from pyspark import StorageLevel
+
 from gentropy.common.session import Session
 from gentropy.dataset.fine_mapping_study_metadata import FineMappingStudyMetadata
 from gentropy.dataset.multi_ancestry_pairwise_ld import MultiAncestryPairwiseLD
@@ -50,46 +52,121 @@ class FineMappingLocusSetLDAnnotationStep:
         self._validate_reference_coverage(list(study_ancestries.values()), references)
         locus_set = session.spark.read.parquet(fine_mapping_locus_set_input_path)
         self._validate_locus_set_schema(locus_set)
-        index_by_ancestry = {
-            ancestry: session.spark.read.parquet(reference["vi_path"])
-            for ancestry, reference in references.items()
-        }
-        matrix_by_ancestry = {
-            ancestry: PanUKBBLDMatrix(pan_ukbb_bm_path=reference["bm_path"])
-            for ancestry, reference in references.items()
-        }
-
-        pairwise_datasets: list[DataFrame] = []
-        for row in locus_set.select("studyId", "locus").toLocalIterator():
-            study_id = row["studyId"]
-            if study_id not in study_ancestries:
-                raise ValueError(f"No metadata found for studyId: {study_id}")
-            ancestry = study_ancestries[study_id]
-            variants = self._locus_variant_ids(row["locus"])
-            if not variants:
-                continue
-            index = index_by_ancestry[ancestry]
-            locus_index = index.filter(index.variantId.isin(variants)).dropDuplicates(
-                ["variantId"]
+        locus_set = locus_set.persist(StorageLevel.MEMORY_AND_DISK)
+        try:
+            locus_count = locus_set.count()
+            session.logger.info(
+                f"LD annotation checkpoint: loaded {locus_count} locus rows from "
+                f"{fine_mapping_locus_set_input_path}"
             )
-            if locus_index.limit(1).count() == 0:
-                continue
-            pairwise_datasets.append(
-                matrix_by_ancestry[ancestry].get_long_format_ld_matrix(
-                    locus_index, ancestry
+            index_by_ancestry = {
+                ancestry: session.spark.read.parquet(reference["vi_path"])
+                for ancestry, reference in references.items()
+            }
+            matrix_by_ancestry = {
+                ancestry: PanUKBBLDMatrix(pan_ukbb_bm_path=reference["bm_path"])
+                for ancestry, reference in references.items()
+            }
+
+            pairwise_datasets: list[DataFrame] = []
+            requested_ancestries: list[str] = []
+            for row in locus_set.select("studyId", "locus").toLocalIterator():
+                study_id = row["studyId"]
+                if study_id not in study_ancestries:
+                    raise ValueError(f"No metadata found for studyId: {study_id}")
+                ancestry = study_ancestries[study_id]
+                requested_ancestries.append(ancestry)
+                variants = self._locus_variant_ids(row["locus"])
+                if not variants:
+                    continue
+                index = index_by_ancestry[ancestry]
+                locus_index = index.filter(
+                    index.variantId.isin(variants)
+                ).dropDuplicates(["variantId"])
+                locus_index = locus_index.persist(StorageLevel.MEMORY_AND_DISK)
+                try:
+                    matched_variant_count = locus_index.count()
+                    session.logger.info(
+                        f"LD annotation checkpoint: studyId={study_id} ancestry={ancestry} "
+                        f"requested_variants={len(variants)} "
+                        f"matched_index_variants={matched_variant_count}"
+                    )
+                    if matched_variant_count == 0:
+                        continue
+                    pairwise_datasets.append(
+                        matrix_by_ancestry[ancestry].get_long_format_ld_matrix(
+                            locus_index, ancestry
+                        )
+                    )
+                finally:
+                    locus_index.unpersist()
+
+            output = self._union_pairwise_datasets(locus_set, pairwise_datasets)
+            if self._needs_pair_deduplication(requested_ancestries):
+                session.logger.info(
+                    "LD annotation checkpoint: applying pair deduplication because ancestries are repeated"
                 )
+                output = output.dropDuplicates(
+                    ["ancestry", "variantIdI", "variantIdJ"]
+                )
+            else:
+                session.logger.info(
+                    "LD annotation checkpoint: skipping pair deduplication because ancestries are unique"
+                )
+            output, output_count = self._persist_and_materialize(output)
+            session.logger.info(
+                f"LD annotation checkpoint: materialized output rows={output_count} "
+                f"storage_level={output.storageLevel}"
             )
+            try:
+                output.coalesce(session.output_partitions).write.mode(
+                    session.write_mode
+                ).parquet(multi_ancestry_pairwise_ld_output_path)
+                session.logger.info(
+                    f"LD annotation checkpoint: wrote output path="
+                    f"{multi_ancestry_pairwise_ld_output_path} "
+                    f"partitions={session.output_partitions}"
+                )
+                stats = self._ld_pair_counts(
+                    output, sorted(set(study_ancestries.values()))
+                )
+                self._write_ld_pair_stats(
+                    stats,
+                    stats_output_path,
+                )
+                session.logger.info(
+                    f"LD annotation checkpoint: wrote stats path={stats_output_path} "
+                    f"counts={stats}"
+                )
+            finally:
+                output.unpersist()
+        finally:
+            locus_set.unpersist()
 
-        output = self._union_pairwise_datasets(locus_set, pairwise_datasets).dropDuplicates(
-            ["ancestry", "variantIdI", "variantIdJ"]
-        )
-        output.coalesce(session.output_partitions).write.mode(session.write_mode).parquet(
-            multi_ancestry_pairwise_ld_output_path
-        )
-        self._write_ld_pair_stats(
-            self._ld_pair_counts(output, sorted(set(study_ancestries.values()))),
-            stats_output_path,
-        )
+    @staticmethod
+    def _persist_and_materialize(output: DataFrame) -> tuple[DataFrame, int]:
+        """Persist and materialize output reused by writing and statistics actions.
+
+        Args:
+            output (DataFrame): Final LD-pair dataframe.
+
+        Returns:
+            tuple[DataFrame, int]: The persisted dataframe and its row count.
+        """
+        output = output.persist(StorageLevel.MEMORY_AND_DISK)
+        return output, output.count()
+
+    @staticmethod
+    def _needs_pair_deduplication(requested_ancestries: Sequence[str]) -> bool:
+        """Return whether multiple inputs can emit the same ancestry pair.
+
+        Args:
+            requested_ancestries (Sequence[str]): Ancestry for each input locus.
+
+        Returns:
+            bool: Whether the final union requires pair deduplication.
+        """
+        return len(requested_ancestries) != len(set(requested_ancestries))
 
     @staticmethod
     def _normalize_ld_registry(
