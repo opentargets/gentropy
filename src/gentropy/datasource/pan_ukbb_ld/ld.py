@@ -137,8 +137,10 @@ class PanUKBBLDMatrix:
             f.col("referenceAllele").alias("va_ref"),
             f.col("alternateAllele").alias("va_alt"),
         ).dropDuplicates(["chromosome", "position", "va_ref", "va_alt"])
-        va_positions = va.select("chromosome", "position").dropDuplicates().withColumn(
-            "has_variant_annotation_at_position", f.lit(True)
+        va_positions = (
+            va.select("chromosome", "position")
+            .dropDuplicates()
+            .withColumn("has_variant_annotation_at_position", f.lit(True))
         )
         va_orientations = (
             va.select(
@@ -269,36 +271,100 @@ class PanUKBBLDMatrix:
             else ancestry
         )
         ordered_locus_index = locus_index.sort("idx", "variantId")
-        index_rows = ordered_locus_index.select("variantId").collect()
+        return self._get_distributed_long_format_ld_matrix(
+            ordered_locus_index, output_ancestry
+        )
 
+    def _get_distributed_long_format_ld_matrix(
+        self,
+        ordered_locus_index: DataFrame,
+        ancestry: str,
+    ) -> DataFrame:
+        """Extract sparse signed LD pairs without materialising a dense matrix.
+
+        The PanUKBB block matrices store one triangular half.  Hail entries are
+        converted directly to Spark rows, non-zero upper-triangle entries are
+        mirrored, and allele orientation is applied by distributed joins.  The
+        diagonal is emitted explicitly because it is required even when a
+        source matrix stores it sparsely.
+
+        Args:
+            ordered_locus_index (DataFrame): Sorted, prepared LD index for one locus.
+            ancestry (str): Normalized ancestry label for the matrix.
+
+        Returns:
+            DataFrame: Sparse signed LD pairs with both matrix directions.
+        """
+        index_rows = ordered_locus_index.select(
+            "idx", "variantId", "alleleOrder"
+        ).collect()
         if not index_rows:
             return ordered_locus_index.sparkSession.createDataFrame(
                 [],
                 "ancestry string, variantIdI string, variantIdJ string, r double",
             )
 
-        variant_ids = [row["variantId"] for row in index_rows]
-        ld_matrix = self.get_numpy_matrix(ordered_locus_index, output_ancestry)
-        ld_rows = [
-            (
-                i,
-                j,
-                output_ancestry,
-                variant_ids[i],
-                variant_ids[j],
-                float(ld_matrix[i, j]),
-            )
-            for i in range(len(variant_ids))
-            for j in range(len(variant_ids))
+        matrix_indices = [row["idx"] for row in index_rows]
+        position_rows = [
+            (position, row["variantId"], row["alleleOrder"])
+            for position, row in enumerate(index_rows)
         ]
-
-        return (
-            ordered_locus_index.sparkSession.createDataFrame(
-                ld_rows,
-                ["idx_i", "idx_j", "ancestry", "variantIdI", "variantIdJ", "r"],
+        spark = ordered_locus_index.sparkSession
+        positions = spark.createDataFrame(
+            position_rows,
+            "position int, variantId string, alleleOrder int",
+        )
+        entries_table = self._filter_hail_block_matrix(
+            matrix_indices, ancestry
+        ).entries(keyed=False)
+        entries = (
+            entries_table.filter(
+                (entries_table.i < entries_table.j) & (entries_table.entry != 0)
             )
-            .orderBy("idx_i", "idx_j")
-            .select("ancestry", "variantIdI", "variantIdJ", "r")
+            .to_spark()
+            .select(
+                f.col("i").cast("int"),
+                f.col("j").cast("int"),
+                f.col("entry").cast("double"),
+            )
+        )
+        diagonal = positions.select(
+            f.col("position").alias("i"),
+            f.col("position").alias("j"),
+            f.lit(1.0).alias("entry"),
+        )
+        canonical = diagonal.unionByName(entries)
+        pairs = canonical.unionByName(
+            entries.select(
+                f.col("j").alias("i"),
+                f.col("i").alias("j"),
+                "entry",
+            )
+        )
+        left = positions.select(
+            f.col("position").alias("i"),
+            f.col("variantId").alias("variantIdI"),
+            f.col("alleleOrder").alias("alleleOrderI"),
+        )
+        right = positions.select(
+            f.col("position").alias("j"),
+            f.col("variantId").alias("variantIdJ"),
+            f.col("alleleOrder").alias("alleleOrderJ"),
+        )
+        return (
+            pairs.join(left, on="i")
+            .join(right, on="j")
+            .select(
+                f.lit(ancestry).alias("ancestry"),
+                "variantIdI",
+                "variantIdJ",
+                f.when(f.col("i") == f.col("j"), f.lit(1.0))
+                .otherwise(
+                    f.col("entry") * f.col("alleleOrderI") * f.col("alleleOrderJ")
+                )
+                .cast("double")
+                .alias("r"),
+            )
         )
 
     def write_long_format_ld_matrix(
@@ -388,10 +454,10 @@ class PanUKBBLDMatrix:
         """
         matrix_path = self.pan_ukbb_bm_path
         if "{POP}" in matrix_path:
-            matrix_path = matrix_path.format(POP=normalize_pan_ukbb_population(ancestry))
-        return BlockMatrix.read(matrix_path).filter(
-            idx, idx
-        )
+            matrix_path = matrix_path.format(
+                POP=normalize_pan_ukbb_population(ancestry)
+            )
+        return BlockMatrix.read(matrix_path).filter(idx, idx)
 
     def write_filtered_block_matrix(
         self: PanUKBBLDMatrix,

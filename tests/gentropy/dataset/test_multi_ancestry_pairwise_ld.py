@@ -52,3 +52,30 @@ class TestMultiAncestryPairwiseLD:
 
         with pytest.raises(ValueError, match="Unknown ancestry"):
             dataset.overlap_with_locus("AFR", ["1_100_A_C"])
+
+    def test_projects_sparse_pairs_using_requested_variant_order(
+        self, spark: SparkSession
+    ) -> None:
+        """Sparse pairs can be reconstructed with zeros for omitted correlations."""
+        variants = ["1_100_A_C", "1_200_G_A", "1_300_C_T"]
+        dataset = MultiAncestryPairwiseLD(
+            _df=spark.createDataFrame(
+                [
+                    ("EUR", variants[0], variants[0], 1.0),
+                    ("EUR", variants[1], variants[1], 1.0),
+                    ("EUR", variants[2], variants[2], 1.0),
+                    ("EUR", variants[0], variants[1], 0.2),
+                    ("EUR", variants[1], variants[0], 0.2),
+                ],
+                ["ancestry", "variantIdI", "variantIdJ", "r"],
+            ),
+            _schema=MultiAncestryPairwiseLD.get_schema(),
+        )
+
+        observed = dataset.overlap_with_locus("EUR", variants).r_to_numpy_matrix()
+
+        assert observed.tolist() == [
+            [1.0, 0.2, 0.0],
+            [0.2, 1.0, 0.0],
+            [0.0, 0.0, 1.0],
+        ]

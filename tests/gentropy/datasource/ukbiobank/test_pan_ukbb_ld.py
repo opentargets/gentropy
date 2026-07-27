@@ -416,16 +416,26 @@ class TestPreparePanUKBBReference:
             ],
         )
 
+        mock_block_matrix = MagicMock()
+        mock_entries = mock_block_matrix.entries.return_value
+        mock_entries.i = f.col("i")
+        mock_entries.j = f.col("j")
+        mock_entries.entry = f.col("entry")
+        mock_entries.filter.return_value.to_spark.return_value = spark.createDataFrame(
+            [(0, 1, 0.4)],
+            ["i", "j", "entry"],
+        )
+
         with patch.object(
             PanUKBBLDMatrix,
-            "_load_hail_block_matrix",
-            return_value=np.array([[1.0, 0.4], [0.0, 1.0]]),
-        ) as mock_load_hail_block_matrix:
+            "_filter_hail_block_matrix",
+            return_value=mock_block_matrix,
+        ) as mock_filter_hail_block_matrix:
             observed = PanUKBBLDMatrix().get_long_format_ld_matrix(ld_index, ancestry)
 
-        mock_load_hail_block_matrix.assert_called_once_with([3, 7], expected_ancestry)
+        mock_filter_hail_block_matrix.assert_called_once_with([3, 7], expected_ancestry)
         assert observed.columns == ["ancestry", "variantIdI", "variantIdJ", "r"]
-        assert observed.collect() == [
+        assert observed.orderBy("variantIdI", "variantIdJ").collect() == [
             (expected_ancestry, "1_100_A_C", "1_100_A_C", 1.0),
             (expected_ancestry, "1_100_A_C", "1_200_T_G", -0.4),
             (expected_ancestry, "1_200_T_G", "1_100_A_C", -0.4),
@@ -438,6 +448,38 @@ class TestPreparePanUKBBReference:
             ).count()
             == 0
         )
+
+    def test_get_long_format_ld_matrix_omits_zero_pairs(
+        self, spark: SparkSession
+    ) -> None:
+        """Sparse output keeps diagonals and non-zero correlations only."""
+        ld_index = spark.createDataFrame(
+            [
+                ("1_100_A_C", 3, 1),
+                ("1_200_T_G", 7, 1),
+                ("1_300_C_T", 11, 1),
+            ],
+            "variantId string, idx int, alleleOrder int",
+        )
+        mock_block_matrix = MagicMock()
+        mock_entries = mock_block_matrix.entries.return_value
+        mock_entries.i = f.col("i")
+        mock_entries.j = f.col("j")
+        mock_entries.entry = f.col("entry")
+        mock_entries.filter.return_value.to_spark.return_value = spark.createDataFrame(
+            [(0, 1, 0.4)],
+            ["i", "j", "entry"],
+        )
+
+        with patch.object(
+            PanUKBBLDMatrix,
+            "_filter_hail_block_matrix",
+            return_value=mock_block_matrix,
+        ):
+            observed = PanUKBBLDMatrix().get_long_format_ld_matrix(ld_index, "EUR")
+
+        assert observed.count() == 5
+        assert observed.filter(f.col("r") == 0).count() == 0
 
     def test_get_long_format_ld_matrix_returns_empty_schema_for_empty_index(
         self, spark: SparkSession

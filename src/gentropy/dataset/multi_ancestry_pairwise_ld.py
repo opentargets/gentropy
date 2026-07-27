@@ -53,6 +53,7 @@ class MultiAncestryPairwiseLD(Dataset):
                 ).drop("ancestry")
             ),
             _schema=PairwiseLD.get_schema(),
+            variant_ids=locus_variants,
         )
 
     def ancestries(self: MultiAncestryPairwiseLD) -> list[str]:
@@ -61,4 +62,10 @@ class MultiAncestryPairwiseLD(Dataset):
         Returns:
             list[str]: Sorted ancestry labels.
         """
-        return [row["ancestry"] for row in self.df.select("ancestry").distinct().orderBy("ancestry").collect()]
+        return [
+            row["ancestry"]
+            for row in self.df.select("ancestry")
+            .distinct()
+            .orderBy("ancestry")
+            .collect()
+        ]
