@@ -115,6 +115,35 @@ class deCODESummaryStatisticsQCConfig(StepConfig):
 
 
 @dataclass
+class BigBrainSummaryStatisticsIngestionConfig(StepConfig):
+    """BigBrain summary statistics ingestion step configuration."""
+
+    full_assoc_url: str = MISSING
+    top_assoc_url: str = MISSING
+    raw_full_assoc_path: str = MISSING
+    raw_top_assoc_path: str = MISSING
+    _target_: str = (
+        "gentropy.bigbrain_ingestion.BigBrainSummaryStatisticsIngestionStep"
+    )
+
+
+@dataclass
+class BigBrainSummaryStatisticsHarmonisationConfig(StepConfig):
+    """BigBrain summary statistics harmonisation step configuration."""
+
+    qtl_type: str = MISSING
+    # inputs
+    raw_full_assoc_path: str = MISSING
+    raw_top_assoc_path: str = MISSING
+    # outputs
+    harmonised_summary_statistics_path: str = MISSING
+    study_index_path: str = MISSING
+    _target_: str = (
+        "gentropy.bigbrain_ingestion.BigBrainSummaryStatisticsHarmonisationStep"
+    )
+
+
+@dataclass
 class BiosampleIndexConfig(StepConfig):
     """Biosample index step configuration."""
 
@@ -1097,4 +1126,14 @@ def register_config() -> None:
         group="step",
         name="decode_summary_statistics_qc",
         node=deCODESummaryStatisticsQCConfig,
+    )
+    cs.store(
+        group="step",
+        name="bigbrain_summary_statistics_ingestion",
+        node=BigBrainSummaryStatisticsIngestionConfig,
+    )
+    cs.store(
+        group="step",
+        name="bigbrain_summary_statistics_harmonisation",
+        node=BigBrainSummaryStatisticsHarmonisationConfig,
     )

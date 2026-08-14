@@ -21,14 +21,13 @@ class TestBigBrainSummaryStatistics:
 
     raw_rows = [
         Row(
-            # Allele == alt: no flip needed, effectAllele stays "C".
+            # ref is always the effect allele; otherAllele resolves to alt.
             feature="ENSG00000177757.2",
             variant_id="rs374545136",
             chr="chr1",
             pos=17556,
             ref="T",
             alt="C",
-            Allele="C",
             fixed_beta=-0.116786,
             fixed_sd=0.0895386,
             fixed_z=-1.30431,
@@ -41,14 +40,12 @@ class TestBigBrainSummaryStatistics:
             Random_FDR=0.6383092451154466,
         ),
         Row(
-            # Allele == ref: effect allele is "T", so otherAllele should resolve to "C".
             feature="ENSG00000177757.2",
             variant_id="rs11111111",
             chr="chr1",
             pos=20000,
             ref="T",
             alt="C",
-            Allele="T",
             fixed_beta=0.25,
             fixed_sd=0.05,
             fixed_z=5.0,
@@ -68,7 +65,6 @@ class TestBigBrainSummaryStatistics:
             pos=30000,
             ref="A",
             alt="G",
-            Allele="G",
             fixed_beta=0.0,
             fixed_sd=0.0,
             fixed_z=0.0,
@@ -93,15 +89,14 @@ class TestBigBrainSummaryStatistics:
         # The filler row (fixed_beta == 0) must be dropped.
         assert len(rows) == 2
 
-        # Allele == alt: no flip, variantId ends in effect allele "C".
-        row1 = rows["1_17556_T_C"]
+        # ref ("T") is the effect allele, alt ("C") is the other allele.
+        row1 = rows["1_17556_C_T"]
         assert row1.studyId == "BigBrain_eqtl_EUR_ENSG00000177757.2"
         assert row1.beta == -0.116786
         assert row1.sampleSize == 10_725
         assert row1.effectAlleleFrequencyFromSource is None
         assert row1.pValueExponent == -1
 
-        # Allele == ref: otherAllele/effectAllele are resolved from Allele, not assumed from alt.
         row2 = rows["1_20000_C_T"]
         assert row2.beta == 0.25
         assert row2.pValueExponent == -174
@@ -121,7 +116,7 @@ class TestBigBrainSummaryStatistics:
 
         output_path = tmp_path / "full_assoc.tsv.gz"
         BigBrainSummaryStatistics.download_tsv_gz(
-            "https://zenodo.org/records/17226890/files/full_assoc.tsv.gz/content",
+            "https://zenodo.org/api/records/17226890/files/BigBrain_cis_eQTL_EUR_full_assoc.tsv.gz/content",
             output_path.as_posix(),
             session,
         )

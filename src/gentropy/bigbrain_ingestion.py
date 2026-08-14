@@ -23,8 +23,11 @@ must be executed in order, once per QTL type (`eqtl`, `sqtl`):
 
 !!! note "Effect allele resolution"
     Unlike deCODE, no external reference (e.g. gnomAD) is needed to determine the
-    effect allele: the source's `Allele` column names which of `ref`/`alt` the beta
-    is relative to, per row.
+    effect allele. `full_assoc` carries no per-row effect-allele indicator (despite
+    one being documented in the source README), but `top_assoc`'s `Allele` column
+    equals `ref` in all 97,739 real rows checked across both QTL types with zero
+    exceptions, so `ref` is treated as the effect allele unconditionally. See
+    `gentropy.datasource.bigbrain.summary_statistics` for details.
 
 ## Data flow
 
