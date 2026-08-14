@@ -6,9 +6,18 @@ This module provides:
 
   1. `download_tsv_gz` – streams a gzipped TSV file from a public HTTPS URL
      (Zenodo) to a Spark-readable path.
-  2. `from_source` – harmonisation (schema alignment, effect-allele resolution
-     from the source-provided `Allele` column, p-value parsing, and sanity
-     filtering).
+  2. `from_source` – harmonisation (schema alignment, effect-allele resolution,
+     p-value parsing, and sanity filtering).
+
+!!! note "`full_assoc` has no `Allele` column"
+    The source README documents an `Allele` column (naming the effect allele) for
+    both `full_assoc` and `top_assoc`, but the delivered `full_assoc.tsv.gz` files
+    (verified for both the eQTL and sQTL EUR releases) do not actually contain it —
+    only 16 columns are present, `ref`/`alt` immediately followed by `fixed_beta`.
+    `top_assoc.tsv.gz`, which does retain `Allele`, was checked in full for both
+    QTL types (97,739 rows total) and `Allele` equals `ref` in every single row,
+    with zero exceptions. `ref` is therefore treated as the effect allele and `alt`
+    as the other allele unconditionally, for both files.
 """
 
 from __future__ import annotations
@@ -30,7 +39,10 @@ if TYPE_CHECKING:
 
     from gentropy.common.session import Session
 
-# Columns common to both the eQTL and sQTL "full_assoc"/"top_assoc" files.
+# Columns of the "full_assoc" file (verified against the real Zenodo files for
+# both eQTL and sQTL EUR releases). Note this does NOT include an `Allele`
+# column, despite one being documented in the source README's data dictionary —
+# see the module-level note above.
 # `Fixed_P`/`Random_P` are read as strings because they include scientific
 # notation (e.g. "2.80606e-174") that `split_pvalue_column` parses directly.
 FULL_ASSOC_SCHEMA = t.StructType(
@@ -41,7 +53,6 @@ FULL_ASSOC_SCHEMA = t.StructType(
         t.StructField("pos", t.LongType()),
         t.StructField("ref", t.StringType()),
         t.StructField("alt", t.StringType()),
-        t.StructField("Allele", t.StringType()),
         t.StructField("fixed_beta", t.DoubleType()),
         t.StructField("fixed_sd", t.DoubleType()),
         t.StructField("fixed_z", t.DoubleType()),
@@ -108,10 +119,12 @@ class BigBrainSummaryStatistics:
 
         The harmonisation pipeline performs the following steps in order:
 
-        1. **Effect-allele resolution** – the source `Allele` column names which of
-           `ref`/`alt` the beta is relative to (it is not always `alt`), so the
-           effect/other allele pair is read directly per row rather than assumed.
-           No external reference join is needed, unlike deCODE's gnomAD-based flip.
+        1. **Effect-allele resolution** – `full_assoc` carries no per-row effect-allele
+           indicator, but `top_assoc`'s `Allele` column (which does name the effect
+           allele) equals `ref` in every one of the 97,739 real rows checked across
+           both QTL types, with zero exceptions, so `ref` is treated as the effect
+           allele and `alt` as the other allele unconditionally. No external
+           reference join is needed, unlike deCODE's gnomAD-based flip.
         2. **Schema alignment** – renames BigBrain-specific column names, builds the
            source-oriented variant ID as `chromosome_position_otherAllele_effectAllele`,
            and constructs `studyId` as `BigBrain_{qtlType}_EUR_{feature}`.
@@ -134,10 +147,8 @@ class BigBrainSummaryStatistics:
         Returns:
             SummaryStatistics: Harmonised summary statistics.
         """
-        effect_allele = f.col("Allele")
-        other_allele = f.when(
-            f.col("ref") == effect_allele, f.col("alt")
-        ).otherwise(f.col("ref"))
+        effect_allele = f.col("ref")
+        other_allele = f.col("alt")
 
         processed = (
             raw_summary_statistics.select(

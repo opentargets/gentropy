@@ -83,8 +83,8 @@ class TestBigBrainSummaryStatisticsIngestionStep:
 
         BigBrainSummaryStatisticsIngestionStep(
             session=session,
-            full_assoc_url="https://zenodo.org/records/17226890/files/full_assoc.tsv.gz/content",
-            top_assoc_url="https://zenodo.org/records/17226890/files/top_assoc.tsv.gz/content",
+            full_assoc_url="https://zenodo.org/api/records/17226890/files/BigBrain_cis_eQTL_EUR_full_assoc.tsv.gz/content",
+            top_assoc_url="https://zenodo.org/api/records/17226890/files/BigBrain_cis_eQTL_EUR_top_assoc.tsv.gz/content",
             raw_full_assoc_path=raw_full_assoc_path,
             raw_top_assoc_path=raw_top_assoc_path,
         )
