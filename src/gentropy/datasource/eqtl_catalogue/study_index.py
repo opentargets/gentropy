@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 import pyspark.sql.functions as f
 from pyspark.sql.types import IntegerType, StringType, StructField, StructType
 
-from gentropy.common.session import Session
+from gentropy.common.session import NativeFileFormat, Session
 from gentropy.dataset.study_index import StudyIndex
 from gentropy.datasource.eqtl_catalogue import QuantificationMethod, StudyType
 
@@ -86,26 +86,6 @@ class EqtlCatalogueStudyIndex:
         ).otherwise(qtl_type_mapping)
 
     @classmethod
-    def get_studies_of_interest(
-        cls: type[EqtlCatalogueStudyIndex],
-        studies_metadata: DataFrame,
-    ) -> list[str]:
-        """Filter studies of interest from the raw studies metadata.
-
-        Args:
-            studies_metadata (DataFrame): raw studies metadata filtered with studies of interest.
-
-        Returns:
-            list[str]: QTD IDs defining the studies of interest for ingestion.
-        """
-        return (
-            studies_metadata.select("dataset_id")
-            .distinct()
-            .toPandas()["dataset_id"]
-            .tolist()
-        )
-
-    @classmethod
     def from_susie_results(
         cls: type[EqtlCatalogueStudyIndex],
         processed_finemapping_df: DataFrame,
@@ -158,5 +138,7 @@ class EqtlCatalogueStudyIndex:
                     + f"Available options are: {list(cls.method_to_qtl_type_mapping.keys())}"
                 )
         return session.load_data(
-            metadata_path, schema=cls.raw_studies_metadata_schema, fmt="tsv"
+            metadata_path,
+            schema=cls.raw_studies_metadata_schema,
+            fmt=NativeFileFormat.TSV.value,
         ).filter(~(f.col("quant_method").isin(mqtl_quantification_methods_blacklist)))

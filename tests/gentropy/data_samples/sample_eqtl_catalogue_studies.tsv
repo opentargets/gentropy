@@ -1,2 +1,2 @@
 study_id	dataset_id	study_label	sample_group	tissue_id	tissue_label	condition_label	sample_size	quant_method	pmid	study_type
-QTS000001	QTD000001	Alasoo_2018	macrophage_naive	CL_0000235	macrophage	naive	84	ge	29379200	bulk
+QTS000001	QTD000001	Alasoo_2018	TN-TCM_CXCR4+_STIM_40H	CL_0000235	macrophage	naive	84	ge	29379200	bulk
