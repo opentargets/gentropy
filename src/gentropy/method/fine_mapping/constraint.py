@@ -36,7 +36,6 @@ class ConstraintResult(Dataset):
     ---
     >>> data = [("s1", [("constraint1", True), ("constraint2", False)]), ("s2", [("constraint1", False)])]
     >>> schema = "studyId STRING, constraints ARRAY<STRUCT<name:STRING,value:BOOLEAN>>"
-    >>> from gentropy.dataset.fine_mapping import ConstraintResult
     >>> result = ConstraintResult(_df=spark.createDataFrame(data, schema))
     >>> assert isinstance(result, ConstraintResult)
     >>> result.df.show(truncate=False)
