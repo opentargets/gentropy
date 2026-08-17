@@ -46,6 +46,9 @@ class StudyLocusValidationStep:
         # Running validation then writing output:
         study_locus_with_qc = (
             StudyLocus.from_parquet(session, list(study_locus_path))
+            # Flagging credible sets with a non-unique identifier. The input is a union of several
+            # independently generated datasets, so uniqueness can only be established here.
+            .validate_unique_study_locus_id()
             # Add flag for MHC region
             .qc_MHC_region()
             .validate_chromosome_label()  # Flagging credible sets with unsupported chromosomes

@@ -422,19 +422,30 @@ class Dataset(ABC):
         ).otherwise(qc)
 
     @staticmethod
-    def flag_duplicates(test_column: Column) -> Column:
+    def flag_duplicates(
+        test_column: Column, order_by: list[Column] | None = None
+    ) -> Column:
         """Return True for rows, where the value was already seen in column.
 
         This implementation allows keeping the first occurrence of the value.
 
+        The ordering that decides which occurrence is kept must be deterministic, otherwise
+        repeated runs over the same input flag different rows and the resulting dataset is not
+        reproducible. When no ordering is given, rows are ordered by
+        `monotonically_increasing_id()`, which preserves the order the rows were read in.
+
         Args:
             test_column (Column): Column to check for duplicates
+            order_by (list[Column] | None): Ordering deciding which duplicate is kept, the first
+                row of each group being the one that is not flagged. Defaults to
+                `monotonically_increasing_id()`.
 
         Returns:
             Column: Column with a boolean flag for duplicates
         """
+        ordering = order_by if order_by else [f.monotonically_increasing_id()]
         return (
-            f.row_number().over(Window.partitionBy(test_column).orderBy(f.rand())) > 1
+            f.row_number().over(Window.partitionBy(test_column).orderBy(*ordering)) > 1
         )
 
     @staticmethod
