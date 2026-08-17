@@ -30,7 +30,31 @@ from gentropy.method.ld import LDAnnotator
 
 
 class ConstraintResult(Dataset):
-    """Class representing the result of applying a constraint to a StudyIndex dataset."""
+    """Class representing the result of applying a constraint to a StudyIndex dataset.
+
+    Examples:
+    ---
+    >>> data = [("s1", [("constraint1", True), ("constraint2", False)]), ("s2", [("constraint1", False)])]
+    >>> schema = "studyId STRING, constraints ARRAY<STRUCT<name:STRING,value:BOOLEAN>>"
+    >>> from gentropy.dataset.fine_mapping import ConstraintResult
+    >>> result = ConstraintResult(_df=spark.createDataFrame(data, schema))
+    >>> assert isinstance(result, ConstraintResult)
+    >>> result.df.show(truncate=False)
+    +-------+-------------------------------------------+
+    |studyId|constraints                                |
+    +-------+-------------------------------------------+
+    |s1     |[{constraint1, true}, {constraint2, false}]|
+    |s2     |[{constraint1, false}]                     |
+    +-------+-------------------------------------------+
+    <BLANKLINE>
+
+    Schema definition:
+    - studyId: Unique identifier for the study.
+    - constraints: A list of constraints that determine the eligibility of the study for fine-mapping
+      under the specified route. Each constraint is represented as a struct with two fields:
+        - name: The name of the constraint.
+        - value: A boolean indicating whether the constraint is satisfied (True) or not (False).
+    """
 
     @classmethod
     def get_schema(cls) -> t.StructType:
@@ -59,7 +83,7 @@ class ConstraintResult(Dataset):
 
 
 class MethodConstraint(Protocol):
-    """Class representing the unique constraint on applying fine-mapping methods to a study."""
+    """Class representing the unique constraint that determines the eligibility of a study for a fine-mapping method."""
 
     name: ClassVar[str]
     """Class variable representing the name of the constraint."""

@@ -1,4 +1,15 @@
-"""Sets of fine-mapping constraints composed into sets for methods."""
+"""Sets of fine-mapping constraints composed into sets for methods.
+
+This module contains the `ConstraintSet` protocol and it's implementation for the
+`MultiSuSiE` method.
+
+The `ConstraintSet` protocol defines the set of constraints that together determine the
+eligibility of a study to undergo a specific fine-mapping procedure.
+
+Each `ConstraintSet` implementation shall implement the `resolve` method that takes a `gentropy.dataset.study_index.StudyIndex`
+dataset as input and returns a `gentropy.dataset.fine_mapping.FineMappingPlanner` dataset as output by applying
+a fine-mapping method specific set of constraints to the input dataset.
+"""
 
 import logging
 from typing import Protocol
