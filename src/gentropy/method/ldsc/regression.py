@@ -29,6 +29,8 @@ class LD_Score_Regression:
         tot (float): Total heritability or covariance (sum over annotations).
         tot_cov (float): Variance of `tot`.
         tot_se (float): Standard error of `tot`.
+        tot_delete_values (np.ndarray): Per-jackknife-block delete values of
+            `tot`, shape (n_blocks,).
         jknife (Any): Jackknife object containing delete values and covariances.
         M (np.ndarray): Row vector of annotation sizes used in the regression.
     """
@@ -484,12 +486,37 @@ class LD_Score_Regression:
             self.coef,
             self.coef_cov,
         )
+        self.tot_delete_values = self._tot_delete_values(jknife, M, Nbar)
 
         if not self.constrain_intercept:
             self.intercept, self.intercept_se = self._intercept(jknife)
 
         self.jknife = jknife
         self.M = M
+
+    def _tot_delete_values(
+        self, jknife: Any, M: np.ndarray, Nbar: float
+    ) -> np.ndarray:
+        """Compute per-jackknife-block delete values of `tot`.
+
+        Applies the same per-annotation-to-total conversion as `_tot_from_coef`
+        to each block's leave-one-block-out coefficient estimate, giving the
+        block-wise delete values needed for jackknife estimators built on top
+        of `tot` (e.g. the genetic correlation standard error).
+
+        Args:
+            jknife (Any): Jackknife object with a `delete_values` field of
+                shape (n_blocks, n_annot [+ 1 if intercept was estimated]).
+            M (np.ndarray): Row vector of annotation sizes of shape
+                (1, n_annot).
+            Nbar (float): Mean sample size used to rescale coefficients.
+
+        Returns:
+            np.ndarray: Delete values of `tot`, shape (n_blocks,).
+        """
+        n_annot = self.n_annot
+        coef_delete_values = jknife.delete_values[:, 0:n_annot] / Nbar
+        return coef_delete_values @ M.reshape(-1)
 
 
     @classmethod

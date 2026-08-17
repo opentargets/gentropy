@@ -35,18 +35,12 @@ def synthetic_rg_data() -> dict[str, Any]:
     z1 = np.sqrt(N1) * g1 + rng.normal(size=n)
     z2 = np.sqrt(N2) * g2 + rng.normal(size=n)
 
-    se1 = 1.0 / np.sqrt(N1)
-    se2 = 1.0 / np.sqrt(N2)
-    beta1 = z1 * se1
-    beta2 = z2 * se2
     w_ld = ld.copy()
 
     return {
-        "beta1": beta1,
-        "se1": se1,
+        "z1": z1,
         "N1": N1,
-        "beta2": beta2,
-        "se2": se2,
+        "z2": z2,
         "N2": N2,
         "ld": ld,
         "w_ld": w_ld,
@@ -64,11 +58,9 @@ class TestRunLdscRg:
         """Check that the wrapper returns all expected output keys."""
         d = synthetic_rg_data
         out = run_ldsc_rg_from_arrays(
-            beta1=d["beta1"],
-            se1=d["se1"],
+            z1=d["z1"],
             N1=d["N1"],
-            beta2=d["beta2"],
-            se2=d["se2"],
+            z2=d["z2"],
             N2=d["N2"],
             ld=d["ld"],
             w_ld=d["w_ld"],
@@ -91,11 +83,9 @@ class TestRunLdscRg:
         """Check that rg and rg_se are finite and rg is bounded to [-1, 1]."""
         d = synthetic_rg_data
         out = run_ldsc_rg_from_arrays(
-            beta1=d["beta1"],
-            se1=d["se1"],
+            z1=d["z1"],
             N1=d["N1"],
-            beta2=d["beta2"],
-            se2=d["se2"],
+            z2=d["z2"],
             N2=d["N2"],
             ld=d["ld"],
             w_ld=d["w_ld"],
@@ -112,11 +102,9 @@ class TestRunLdscRg:
         """Check that rg is positive when traits are positively correlated."""
         d = synthetic_rg_data
         out = run_ldsc_rg_from_arrays(
-            beta1=d["beta1"],
-            se1=d["se1"],
+            z1=d["z1"],
             N1=d["N1"],
-            beta2=d["beta2"],
-            se2=d["se2"],
+            z2=d["z2"],
             N2=d["N2"],
             ld=d["ld"],
             w_ld=d["w_ld"],
@@ -130,11 +118,9 @@ class TestRunLdscRg:
         d = synthetic_rg_data
         with pytest.raises(ValueError, match="1D"):
             run_ldsc_rg_from_arrays(
-                beta1=d["beta1"].reshape(1, -1),
-                se1=d["se1"],
+                z1=d["z1"].reshape(1, -1),
                 N1=d["N1"],
-                beta2=d["beta2"],
-                se2=d["se2"],
+                z2=d["z2"],
                 N2=d["N2"],
                 ld=d["ld"],
                 w_ld=d["w_ld"],

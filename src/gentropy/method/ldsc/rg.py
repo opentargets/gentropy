@@ -5,16 +5,15 @@ from typing import Any
 
 import numpy as np
 
+from gentropy.method.ldsc.jackknife import Jackknife
 from gentropy.method.ldsc.regression import GeneticCov, Hsq
 from gentropy.method.ldsc.utils import _as_float_or_none
 
 
 def run_ldsc_rg_from_arrays(
-    beta1: np.ndarray,
-    se1: np.ndarray,
+    z1: np.ndarray,
     N1: np.ndarray,
-    beta2: np.ndarray,
-    se2: np.ndarray,
+    z2: np.ndarray,
     N2: np.ndarray,
     ld: np.ndarray,
     w_ld: np.ndarray,
@@ -28,14 +27,21 @@ def run_ldsc_rg_from_arrays(
     Estimates the genetic correlation between two traits by:
     1. Running heritability regression (Hsq) on each trait independently.
     2. Running genetic covariance regression (GeneticCov) on z1*z2.
-    3. Computing rg = gcov / sqrt(h2_1 * h2_2) with delta-method SE.
+    3. Computing rg = gcov / sqrt(h2_1 * h2_2), with its standard error from a
+       block jackknife over the same blocks used by the h2 and gcov
+       regressions, following Bulik-Sullivan et al. (2015) "An atlas of
+       genetic correlations across human diseases and traits" (Nat. Genet.)
+       and the `RG` class in the reference implementation
+       (https://github.com/bulik/ldsc/blob/master/ldscore/regressions.py).
+
+    Callers are expected to have already reduced effect sizes to Z-scores
+    (beta / se) — this is the only quantity used downstream, so passing the
+    two components separately would only double the arrays held in memory.
 
     Args:
-        beta1 (np.ndarray): Effect estimates for trait 1, shape (n_snp,).
-        se1 (np.ndarray): Standard errors for trait 1, shape (n_snp,).
+        z1 (np.ndarray): Z-scores for trait 1, shape (n_snp,).
         N1 (np.ndarray): Sample sizes for trait 1, shape (n_snp,).
-        beta2 (np.ndarray): Effect estimates for trait 2, shape (n_snp,).
-        se2 (np.ndarray): Standard errors for trait 2, shape (n_snp,).
+        z2 (np.ndarray): Z-scores for trait 2, shape (n_snp,).
         N2 (np.ndarray): Sample sizes for trait 2, shape (n_snp,).
         ld (np.ndarray): Per-SNP LD scores, shape (n_snp,).
         w_ld (np.ndarray): Per-SNP LD scores used for weighting, shape (n_snp,).
@@ -47,71 +53,63 @@ def run_ldsc_rg_from_arrays(
     Returns:
         dict[str, Any]: Keys: rg, rg_se, gcov, gcov_se, h2_1, h2_1_se,
             h2_2, h2_2_se, intercept, intercept_se, n_snps.
+
+    Raises:
+        ValueError: If the input arrays are not all 1D with the same shape.
     """
-    for arr in (beta1, se1, N1, beta2, se2, N2, ld, w_ld):
-        arr = np.asarray(arr, dtype=float)
-        if arr.ndim != 1:
-            raise ValueError("All input arrays must be 1D.")
+    arrays = (z1, N1, z2, N2, ld, w_ld)
+    expected_shape = np.asarray(z1).shape
+    if len(expected_shape) != 1 or any(
+        np.asarray(arr).shape != expected_shape for arr in arrays
+    ):
+        raise ValueError("All input arrays must have the same 1D shape.")
 
-    beta1 = np.asarray(beta1, dtype=float)
-    se1 = np.asarray(se1, dtype=float)
-    N1 = np.asarray(N1, dtype=float)
-    beta2 = np.asarray(beta2, dtype=float)
-    se2 = np.asarray(se2, dtype=float)
-    N2 = np.asarray(N2, dtype=float)
-    ld = np.asarray(ld, dtype=float)
-    w_ld = np.asarray(w_ld, dtype=float)
-
-    z1 = beta1 / se1
-    z2 = beta2 / se2
-    n = z1.shape[0]
+    z1 = np.asarray(z1, dtype=float).reshape((-1, 1))
+    N1 = np.asarray(N1, dtype=float).reshape((-1, 1))
+    z2 = np.asarray(z2, dtype=float).reshape((-1, 1))
+    N2 = np.asarray(N2, dtype=float).reshape((-1, 1))
+    x = np.asarray(ld, dtype=float).reshape((-1, 1))
+    w = np.asarray(w_ld, dtype=float).reshape((-1, 1))
+    n = expected_shape[0]
 
     M_mat = np.array([[float(M_ldsc_scalar)]])
-    x = ld.reshape((n, 1))
-    w = w_ld.reshape((n, 1))
+    step_cutoff = twostep if intercept is None else None
 
     # Step 1: Estimate h2 for each trait
-    def _run_hsq(z: np.ndarray, N: np.ndarray) -> tuple[float, float]:
-        """Run Hsq regression on a single trait and return (h2, h2_se).
+    def _run_hsq(z: np.ndarray, N: np.ndarray) -> Hsq:
+        """Run Hsq regression on a single trait's Z-scores.
 
         Args:
-            z (np.ndarray): Z-scores for the trait, shape (n_snp,).
-            N (np.ndarray): Sample sizes, shape (n_snp,).
+            z (np.ndarray): Z-scores for the trait, shape (n_snp, 1).
+            N (np.ndarray): Sample sizes, shape (n_snp, 1).
 
         Returns:
-            tuple[float, float]: Heritability estimate and its standard error.
+            Hsq: Fitted heritability regression.
         """
-        chisq = z ** 2
-        y_h = chisq.reshape((n, 1))
-        N_mat = N.reshape((n, 1))
-        step_cutoff = twostep if intercept is None else None
-        hsqhat = Hsq(
-            y_h, x, w, N_mat, M_mat,
+        return Hsq(
+            z ** 2, x, w, N, M_mat,
             n_blocks=n_blocks,
             intercept=intercept,
             twostep=step_cutoff,
         )
-        h2 = float(max(hsqhat.tot, 0.0))
-        h2_se = float(hsqhat.tot_se)
-        return h2, h2_se
 
-    h2_1, h2_1_se = _run_hsq(z1, N1)
-    h2_2, h2_2_se = _run_hsq(z2, N2)
+    hsq1 = _run_hsq(z1, N1)
+    hsq2 = _run_hsq(z2, N2)
+    h2_1 = float(max(hsq1.tot, 0.0))
+    h2_1_se = float(hsq1.tot_se)
+    h2_2 = float(max(hsq2.tot, 0.0))
+    h2_2_se = float(hsq2.tot_se)
 
     # Step 2: Genetic covariance regression
-    y_gc = (z1 * z2).reshape((n, 1))
-    N1_mat = N1.reshape((n, 1))
-    N2_mat = N2.reshape((n, 1))
-
-    step_cutoff_gc = twostep if intercept is None else None
+    y_gc = z1 * z2
 
     gencov = GeneticCov(
-        y_gc, x, w, N1_mat, N2_mat, M_mat,
+        y_gc, x, w, N1, N2, M_mat,
         n_blocks=n_blocks,
         intercept=intercept,
         hsq1=h2_1,
         hsq2=h2_2,
-        twostep=step_cutoff_gc,
+        twostep=step_cutoff,
     )
 
     gcov = float(gencov.tot)
@@ -119,22 +117,18 @@ def run_ldsc_rg_from_arrays(
     intercept_out = _as_float_or_none(gencov.intercept)
     intercept_se_out = gencov.intercept_se
 
-    # Step 3: rg and delta-method SE
+    # Step 3: rg and its block-jackknife SE
     denom_sq = h2_1 * h2_2
     if denom_sq > 0:
         rg_raw = gcov / np.sqrt(denom_sq)
-        # Delta method: Var(rg) ≈ rg^2 * [(gcov_se/gcov)^2 + 0.25*(h2_1_se/h2_1)^2 + 0.25*(h2_2_se/h2_2)^2]
-        terms = []
-        if gcov != 0:
-            terms.append((gcov_se / gcov) ** 2)
-        if h2_1 > 0:
-            terms.append(0.25 * (h2_1_se / h2_1) ** 2)
-        if h2_2 > 0:
-            terms.append(0.25 * (h2_2_se / h2_2) ** 2)
-        rg_var = rg_raw ** 2 * sum(terms) if terms else float("nan")
-        rg_se = float(np.sqrt(max(rg_var, 0.0)))
         rg = float(np.clip(rg_raw, -1.0, 1.0))
-        rg_clipped = abs(rg_raw) > 1.0
+        rg_clipped = bool(abs(rg_raw) > 1.0)
+        rg_se = _rg_jackknife_se(
+            rg_raw,
+            gencov.tot_delete_values,
+            hsq1.tot_delete_values,
+            hsq2.tot_delete_values,
+        )
     else:
         rg = float("nan")
         rg_se = float("nan")
@@ -154,3 +148,40 @@ def run_ldsc_rg_from_arrays(
         "intercept_se": intercept_se_out,
         "n_snps": n,
     }
+
+
+def _rg_jackknife_se(
+    rg: float,
+    gcov_delete_values: np.ndarray,
+    h2_1_delete_values: np.ndarray,
+    h2_2_delete_values: np.ndarray,
+) -> float:
+    """Estimate the standard error of rg via block jackknife.
+
+    Recomputes rg once per leave-one-block-out delete value of gcov, h2_1,
+    and h2_2 (all fit over the same jackknife blocks), converts the
+    resulting delete values of rg to pseudovalues, and takes their jackknife
+    standard error. This automatically accounts for the covariance between
+    the gcov and h2 estimates, unlike a delta-method approximation that
+    treats them as independent.
+
+    Args:
+        rg (float): Full-sample genetic correlation estimate (unclipped).
+        gcov_delete_values (np.ndarray): Per-block delete values of gcov, shape (n_blocks,).
+        h2_1_delete_values (np.ndarray): Per-block delete values of h2 for trait 1, shape (n_blocks,).
+        h2_2_delete_values (np.ndarray): Per-block delete values of h2 for trait 2, shape (n_blocks,).
+
+    Returns:
+        float: Jackknife standard error of rg, or NaN if any block has a
+            non-positive h2_1 * h2_2 product.
+    """
+    denom_sq_delete = h2_1_delete_values * h2_2_delete_values
+    if np.any(denom_sq_delete <= 0):
+        return float("nan")
+
+    rg_delete_values = gcov_delete_values / np.sqrt(denom_sq_delete)
+    pseudovalues = Jackknife.delete_values_to_pseudovalues(
+        rg_delete_values.reshape((-1, 1)), np.array([[rg]])
+    )
+    _, _, jknife_se, _ = Jackknife.jknife(pseudovalues)
+    return float(jknife_se[0, 0])

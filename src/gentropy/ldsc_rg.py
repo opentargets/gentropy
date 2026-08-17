@@ -163,11 +163,9 @@ class GeneticCorrelationStep:
         w_ld = w_raw / np.mean(w_raw)
 
         result = run_ldsc_rg_from_arrays(
-            beta1=arrays["beta1"],
-            se1=arrays["se1"],
+            z1=arrays["z1"],
             N1=arrays["n1"],
-            beta2=arrays["beta2"],
-            se2=arrays["se2"],
+            z2=arrays["z2"],
             N2=arrays["n2"],
             ld=arrays["ld"],
             w_ld=w_ld,
@@ -190,7 +188,7 @@ class GeneticCorrelationStep:
             ld_ancestry=ancestry,
             result=result,
             m_ldsc=m_ldsc,
-            n_snps_used=len(arrays["beta1"]),
+            n_snps_used=len(arrays["z1"]),
         )
 
     def _read_sumstats(self, path: str) -> DataFrame:
@@ -338,13 +336,68 @@ class GeneticCorrelationStep:
             .dropDuplicates(["chromosome", "position", "ref", "alt"])
         )
 
+    def _align_to_ld_reference(
+        self,
+        prepared: DataFrame,
+        ld_ref: DataFrame,
+        beta_col: str,
+        se_col: str,
+        n_col: str,
+    ) -> DataFrame:
+        """Align a trait's summary statistics to the LD-score reference allele coding.
+
+        A SNP is matched either directly (its ref/alt as reported already agrees with
+        the LD reference panel) or with ref/alt swapped and the effect size sign
+        negated. Matching against the LD reference panel — rather than matching trait 2
+        against whatever coding trait 1 happens to report — means each trait's allele
+        orientation is independently verified against a fixed reference instead of
+        assumed correct.
+
+        Args:
+            prepared (DataFrame): Prepared summary statistics for one trait.
+            ld_ref (DataFrame): chromosome/position/ref/alt columns from the LD-score
+                reference panel, deduplicated.
+            beta_col (str): Name to alias the effect size column to.
+            se_col (str): Name to alias the standard error column to.
+            n_col (str): Name to alias the sample size column to.
+
+        Returns:
+            DataFrame: chromosome, position, ref, alt (as in `ld_ref`), beta, se, n.
+        """
+        join_cols = ["chromosome", "position", "ref", "alt"]
+
+        renamed = prepared.select(
+            "chromosome", "position", "ref", "alt",
+            F.col("beta").alias(beta_col),
+            F.col("standardError").alias(se_col),
+            F.col("sampleSize").alias(n_col),
+        ).persist()
+        renamed.count()
+
+        direct = renamed.join(ld_ref, on=join_cols, how="inner")
+
+        flipped = (
+            renamed.select(
+                "chromosome",
+                "position",
+                F.col("alt").alias("ref"),
+                F.col("ref").alias("alt"),
+                (-F.col(beta_col)).alias(beta_col),
+                se_col,
+                n_col,
+            )
+            .join(ld_ref, on=join_cols, how="inner")
+        )
+
+        return direct.unionByName(flipped)
+
     def _merge_all(
         self,
         prepared_1: DataFrame,
         prepared_2: DataFrame,
         ld_df: DataFrame,
     ) -> tuple[DataFrame, float]:
-        """Join trait 1, trait 2, and LD scores with allele-flip handling.
+        """Join trait 1, trait 2, and LD scores, aligning both traits to the LD reference.
 
         Args:
             prepared_1 (DataFrame): Prepared summary statistics for trait 1.
@@ -362,50 +415,15 @@ class GeneticCorrelationStep:
             else float(ld_df.count())
         )
 
-        # Rename columns to avoid ambiguity
-        t1 = prepared_1.select(
-            F.col("chromosome"), F.col("position"),
-            F.col("ref"), F.col("alt"),
-            F.col("beta").alias("beta1"),
-            F.col("standardError").alias("se1"),
-            F.col("sampleSize").alias("n1"),
-        )
-        t2 = prepared_2.select(
-            F.col("chromosome"), F.col("position"),
-            F.col("ref"), F.col("alt"),
-            F.col("beta").alias("beta2"),
-            F.col("standardError").alias("se2"),
-            F.col("sampleSize").alias("n2"),
-        )
+        ld_ref = ld_df.select("chromosome", "position", "ref", "alt").persist()
+        ld_ref.count()
 
-        # Direct join (same ref/alt)
-        t2_direct = t2.withColumn("flipped", F.lit(False))
+        t1 = self._align_to_ld_reference(prepared_1, ld_ref, "beta1", "se1", "n1")
+        t2 = self._align_to_ld_reference(prepared_2, ld_ref, "beta2", "se2", "n2")
 
-        # Flipped join: swap ref/alt in trait 2, negate beta2 later
-        t2_flipped = t2.select(
-            F.col("chromosome"),
-            F.col("position"),
-            F.col("alt").alias("ref"),    # swap
-            F.col("ref").alias("alt"),    # swap
-            F.col("beta2"),
-            F.col("se2"),
-            F.col("n2"),
-        ).withColumn("flipped", F.lit(True))
+        merged = t1.join(t2, on=join_cols, how="inner").join(ld_df, on=join_cols, how="inner")
 
-        t2_combined = t2_direct.unionByName(t2_flipped).dropDuplicates(join_cols)
-
-        # Negate beta2 where alleles were flipped
-        t2_combined = t2_combined.withColumn(
-            "beta2",
-            F.when(F.col("flipped"), -F.col("beta2")).otherwise(F.col("beta2")),
-        ).drop("flipped")
-
-        merged = (
-            t1
-            .join(t2_combined, on=join_cols, how="inner")
-            .join(ld_df, on=join_cols, how="inner")
-            .dropDuplicates(join_cols)
-        )
+        ld_ref.unpersist()
 
         return merged, m_ldsc
 
@@ -414,35 +432,35 @@ class GeneticCorrelationStep:
     ) -> dict[str, np.ndarray]:
         """Collect the merged SNP data into numpy arrays for LDSC.
 
+        Reduces each trait's beta/se pair to a Z-score while collecting, since
+        that is the only quantity `run_ldsc_rg_from_arrays` needs — this keeps
+        two float arrays per trait in memory instead of four.
+
         Args:
             merged_df (DataFrame): Three-way joined dataframe of both sumstats and LD scores.
 
         Returns:
-            dict[str, np.ndarray]: Dict with keys beta1, se1, n1, beta2, se2, n2, ld.
+            dict[str, np.ndarray]: Dict with keys z1, n1, z2, n2, ld.
         """
         rows = merged_df.select(
             "beta1", "se1", "n1", "beta2", "se2", "n2", "L2"
         ).collect()
 
-        beta1_list, se1_list, n1_list = [], [], []
-        beta2_list, se2_list, n2_list = [], [], []
+        z1_list, n1_list = [], []
+        z2_list, n2_list = [], []
         ld_list = []
 
         for row in rows:
-            beta1_list.append(row["beta1"])
-            se1_list.append(row["se1"])
+            z1_list.append(row["beta1"] / row["se1"])
             n1_list.append(row["n1"])
-            beta2_list.append(row["beta2"])
-            se2_list.append(row["se2"])
+            z2_list.append(row["beta2"] / row["se2"])
             n2_list.append(row["n2"])
             ld_list.append(row["L2"])
 
         return {
-            "beta1": np.array(beta1_list, dtype=float),
-            "se1": np.array(se1_list, dtype=float),
+            "z1": np.array(z1_list, dtype=float),
             "n1": np.array(n1_list, dtype=float),
-            "beta2": np.array(beta2_list, dtype=float),
-            "se2": np.array(se2_list, dtype=float),
+            "z2": np.array(z2_list, dtype=float),
             "n2": np.array(n2_list, dtype=float),
             "ld": np.array(ld_list, dtype=float),
         }
