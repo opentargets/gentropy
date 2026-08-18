@@ -105,28 +105,24 @@ class TestEqtlCatalogueStep:
             session=session,
         )
         studies_metadata_mock.persist.assert_called_once()
-        studies_metadata_mock.count.assert_called_once()
 
         finemapping_mock.read_credible_set_from_source.assert_called_once_with(
             credible_set_input_glob,
             session=session,
         )
         credible_sets_mock.persist.assert_called_once()
-        credible_sets_mock.count.assert_called_once()
 
         finemapping_mock.read_lbf_from_source.assert_called_once_with(
             lbf_variable_input_glob,
             session=session,
         )
         lbf_mock.persist.assert_called_once()
-        lbf_mock.count.assert_called_once()
 
         # --- Transform ---
         finemapping_mock.parse_susie_results.assert_called_once_with(
             credible_sets_mock, lbf_mock, studies_metadata_mock
         )
         processed_susie_mock.persist.assert_called_once()
-        processed_susie_mock.count.assert_called_once()
 
         # The raw inputs are freed as soon as the join that consumes them is materialised.
         studies_metadata_mock.unpersist.assert_called_once()
