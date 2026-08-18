@@ -130,13 +130,13 @@ class EqtlCatalogueStudyIndex:
 
         Example metadata_path: "https://raw.githubusercontent.com/eQTL-Catalogue/eQTL-Catalogue-resources/fe3c4b4ed911b3a184271a6aadcd8c8769a66aba/data_tables/dataset_metadata.tsv"
         """
-        session = session or Session.find()
         for method in mqtl_quantification_methods_blacklist:
             if method not in cls.method_to_qtl_type_mapping:
                 raise ValueError(
                     f"Quantification method '{method}' is not supported. "
                     + f"Available options are: {list(cls.method_to_qtl_type_mapping.keys())}"
                 )
+        session = session or Session.find()
         return session.load_data(
             metadata_path,
             schema=cls.raw_studies_metadata_schema,

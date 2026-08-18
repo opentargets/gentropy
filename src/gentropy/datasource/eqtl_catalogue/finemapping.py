@@ -32,8 +32,8 @@ class EqtlCatalogueFinemapping:
 
     Credible sets from SuSIE are extracted and transformed into StudyLocus objects:
     - A study ID is defined as a triad between: the publication, the tissue, and the measured trait (e.g. Braineac2_substantia_nigra_ENSG00000248275)
-    - Each row in the `credible_sets.parquet` files is represented by molecular_trait_id/variant/rsid trios relevant for a given tissue. Each have their own finemapping statistics
-    - log Bayes Factors are available for all variants in the `lbf_variable.parquet` files
+    - Each row in the `*.credible_set.parquet` files is represented by molecular_trait_id/variant/rsid trios relevant for a given tissue. Each have their own finemapping statistics
+    - log Bayes Factors are available for all variants in the `*.lbf_variable.parquet` files
     """
 
     raw_credible_set_schema: StructType = StructType(

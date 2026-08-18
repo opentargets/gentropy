@@ -35,9 +35,9 @@ class EqtlCatalogueStep:
             session (Session): Session object.
             eqtl_catalogue_dataset_metadata_path (str): Path to the eQTL Catalogue dataset metadata file.
             credible_set_input_glob (str): Glob pattern to read SuSIE credible set parquet files.
-                example of files in `https://ftp.ebi.ac.uk/pub/databases/spot/eQTL/susie/QTS*/QTD*/QTD*.credible_sets.tsv.gz`
+                example of files in `gs://bucket/susie/QTS*/QTD*/QTD*.credible_set.parquet`
             lbf_variable_input_glob (str): Glob pattern to read SuSIE LBF parquet files.
-                example of files in `https://ftp.ebi.ac.uk/pub/databases/spot/eQTL/susie/QTS*/QTD*/QTD*.lbf_variable.txt.gz`
+                example of files in `gs://bucket/susie/QTS*/QTD*/QTD*.lbf_variable.parquet`
             study_index_output_path (str): Path to write the study index parquet file.
                 Written as a coalesce(1) parquet dataset.
             credible_set_output_path (str): Path to write the credible set parquet file.
@@ -58,9 +58,6 @@ class EqtlCatalogueStep:
             mqtl_quantification_methods_blacklist or [],
             session=session,
         ).persist()
-        # `.persist()` is lazy until an action runs; `.count()` forces it now so the
-        # cache is populated once, deterministically, instead of on first use downstream.
-        studies_metadata.count()
 
         # Read all parquet files from the nested QTS*/QTD*/ structure via glob.
         # The metadata join in parse_susie_results drops any QTDs absent from the metadata.
@@ -68,13 +65,11 @@ class EqtlCatalogueStep:
             credible_set_input_glob,
             session=session,
         ).persist()
-        credible_sets_df.count()
 
         lbf_df = EqtlCatalogueFinemapping.read_lbf_from_source(
             lbf_variable_input_glob,
             session=session,
         ).persist()
-        lbf_df.count()
 
         # Transform
         processed_susie_df = EqtlCatalogueFinemapping.parse_susie_results(
