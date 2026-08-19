@@ -124,6 +124,27 @@ class TestBigBrainSummaryStatistics:
             Fixed_FDR=1.0,
             Random_FDR=1.0,
         ),
+        Row(
+            # Indel whose event gnomAD lists in both orientations (e.g.
+            # "1_60000_T_TG" and "1_60000_TG_T" as separate source variants). Must
+            # resolve to exactly one output row, on the exact/direct match.
+            feature="ENSG00000177757.2",
+            variant_id="rs55555555",
+            chr="chr1",
+            pos=60000,
+            ref="TG",
+            alt="T",
+            fixed_beta=0.4,
+            fixed_sd=0.1,
+            fixed_z=4.0,
+            Random_Z=4.0,
+            Fixed_P="0.01",
+            Random_P="0.01",
+            Fixed_bonf=1.0,
+            Random_bonf=1.0,
+            Fixed_FDR=1.0,
+            Random_FDR=1.0,
+        ),
     ]
 
     vd_rows = [
@@ -160,6 +181,41 @@ class TestBigBrainSummaryStatistics:
             direction=-1,
             strand=1,
         ),
+        # gnomAD lists the same 60000 indel event in both orientations as separate
+        # source variants — otherAllele="T"/effectAllele="TG" gives BigBrain
+        # variantId "1_60000_T_TG", which matches BOTH of the next two rows.
+        Row(
+            chromosome="1",
+            rangeId=60000 // TEST_WINDOW_SIZE,
+            variantId="1_60000_T_TG",
+            originalVariantId="1_60000_T_TG",
+            direction=1,
+            strand=1,
+        ),
+        Row(
+            chromosome="1",
+            rangeId=60000 // TEST_WINDOW_SIZE,
+            variantId="1_60000_T_TG",
+            originalVariantId="1_60000_TG_T",
+            direction=-1,
+            strand=1,
+        ),
+        Row(
+            chromosome="1",
+            rangeId=60000 // TEST_WINDOW_SIZE,
+            variantId="1_60000_TG_T",
+            originalVariantId="1_60000_TG_T",
+            direction=1,
+            strand=1,
+        ),
+        Row(
+            chromosome="1",
+            rangeId=60000 // TEST_WINDOW_SIZE,
+            variantId="1_60000_TG_T",
+            originalVariantId="1_60000_T_TG",
+            direction=-1,
+            strand=1,
+        ),
     ]
 
     def test_from_source(self, session: Session) -> None:
@@ -173,11 +229,16 @@ class TestBigBrainSummaryStatistics:
         )
 
         assert isinstance(result, SummaryStatistics)
-        rows = {row.variantId: row for row in result.df.collect()}
+        collected = result.df.collect()
+        rows = {row.variantId: row for row in collected}
+
+        # No duplicate variantIds: the indel-both-orientations case must not
+        # produce two contradictory output rows for the same input variant.
+        assert len(collected) == len(rows)
 
         # The filler row (fixed_beta == 0) and the confirmed allele-mismatch row
         # (position 50000) must both be dropped.
-        assert len(rows) == 3
+        assert len(rows) == 4
 
         # Direct gnomAD match (direction=1): unchanged.
         row1 = rows["1_17556_C_T"]
@@ -195,6 +256,11 @@ class TestBigBrainSummaryStatistics:
         # Absent from gnomAD entirely: kept unchanged.
         row3 = rows["1_40000_A_G"]
         assert row3.beta == 0.5
+
+        # Indel listed in both orientations in gnomAD: resolves to exactly one
+        # row, on the exact/direct match (direction=1, no flip).
+        row4 = rows["1_60000_T_TG"]
+        assert row4.beta == 0.4
 
     @patch("gentropy.datasource.bigbrain.summary_statistics.requests.get")
     def test_download_tsv_gz(
