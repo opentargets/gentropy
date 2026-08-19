@@ -32,22 +32,33 @@ class EqtlCatalogueFinemapping:
 
     Credible sets from SuSIE are extracted and transformed into StudyLocus objects:
     - A study ID is defined as a triad between: the publication, the tissue, and the measured trait (e.g. Braineac2_substantia_nigra_ENSG00000248275)
-    - Each row in the `credible_sets.tsv.gz` files is represented by molecular_trait_id/variant/rsid trios relevant for a given tissue. Each have their own finemapping statistics
-    - log Bayes Factors are available for all variants in the `lbf_variable.txt` files
+    - Each row in the `*.credible_set.parquet` files is represented by molecular_trait_id/variant/rsid trios relevant for a given tissue. Each have their own finemapping statistics
+    - log Bayes Factors are available for all variants in the `*.lbf_variable.parquet` files
     """
 
     raw_credible_set_schema: StructType = StructType(
         [
             StructField("molecular_trait_id", StringType(), True),
-            StructField("gene_id", StringType(), True),
-            StructField("cs_id", StringType(), True),
+            StructField("chromosome", StringType(), True),
+            StructField("position", IntegerType(), True),
+            StructField("ref", StringType(), True),
+            StructField("alt", StringType(), True),
             StructField("variant", StringType(), True),
-            StructField("rsid", StringType(), True),
-            StructField("cs_size", IntegerType(), True),
-            StructField("pip", DoubleType(), True),
+            StructField("ma_samples", IntegerType(), True),
+            StructField("maf", DoubleType(), True),
             StructField("pvalue", DoubleType(), True),
             StructField("beta", DoubleType(), True),
             StructField("se", DoubleType(), True),
+            StructField("type", StringType(), True),
+            StructField("ac", IntegerType(), True),
+            StructField("r2", StringType(), True),
+            StructField("molecular_trait_object_id", StringType(), True),
+            StructField("gene_id", StringType(), True),
+            StructField("median_tmp", DoubleType(), True),
+            StructField("rsid", StringType(), True),
+            StructField("cs_id", StringType(), True),
+            StructField("cs_size", IntegerType(), True),
+            StructField("pip", DoubleType(), True),
             StructField("z", DoubleType(), True),
             StructField("cs_min_r2", DoubleType(), True),
             StructField("region", StringType(), True),
@@ -60,16 +71,10 @@ class EqtlCatalogueFinemapping:
             StructField("variant", StringType(), True),
             StructField("chromosome", StringType(), True),
             StructField("position", IntegerType(), True),
-            StructField("lbf_variable1", DoubleType(), True),
-            StructField("lbf_variable2", DoubleType(), True),
-            StructField("lbf_variable3", DoubleType(), True),
-            StructField("lbf_variable4", DoubleType(), True),
-            StructField("lbf_variable5", DoubleType(), True),
-            StructField("lbf_variable6", DoubleType(), True),
-            StructField("lbf_variable7", DoubleType(), True),
-            StructField("lbf_variable8", DoubleType(), True),
-            StructField("lbf_variable9", DoubleType(), True),
-            StructField("lbf_variable10", DoubleType(), True),
+            *[
+                StructField(f"lbf_variable{i}", DoubleType(), True)
+                for i in range(1, 11)
+            ],
         ]
     )
 
@@ -109,7 +114,7 @@ class EqtlCatalogueFinemapping:
             Column: The dataset_id.
 
         Examples:
-            >>> spark.createDataFrame([("QTD000046.credible_sets.tsv",)], ["filename"]).select(EqtlCatalogueFinemapping._extract_dataset_id_from_file_path(f.col("filename"))).show()
+            >>> spark.createDataFrame([("gs://bucket/susie/QTS000001/QTD000046/QTD000046.credible_sets.parquet",)], ["filename"]).select(EqtlCatalogueFinemapping._extract_dataset_id_from_file_path(f.col("filename"))).show()
             +----------+
             |dataset_id|
             +----------+
@@ -141,7 +146,12 @@ class EqtlCatalogueFinemapping:
         return (
             lbf.join(
                 credible_sets.join(f.broadcast(studies_metadata), on="dataset_id"),
-                on=["molecular_trait_id", "region", "variant", "dataset_id"],
+                on=[
+                    "molecular_trait_id",
+                    "region",
+                    "variant",
+                    "dataset_id",
+                ],
                 how="inner",
             )
             .withColumn(
@@ -269,7 +279,7 @@ class EqtlCatalogueFinemapping:
         """Load raw credible sets from eQTL Catalogue.
 
         Args:
-            credible_set_path (str | list[str]): Path to raw table(s) containing finemapping results for any variant belonging to a credible set.
+            credible_set_path (str | list[str]): Path(s) or glob to parquet files containing finemapping results for any variant belonging to a credible set.
             session (Session | None, optional): Session object. If not provided, the method will try to find an active session. Defaults to None.
 
         Returns:
@@ -279,21 +289,27 @@ class EqtlCatalogueFinemapping:
         return (
             session.load_data(
                 credible_set_path,
+                fmt=NativeFileFormat.PARQUET.value,
                 schema=cls.raw_credible_set_schema,
-                fmt=NativeFileFormat.TSV.value,
             )
-            .withColumns(
-                {
-                    # Adding dataset id based on the input file name:
-                    "dataset_id": cls._extract_dataset_id_from_file_path(
-                        f.input_file_name()
-                    ),
-                    # Parsing credible set index from the cs_id:
-                    "credibleSetIndex": cls._extract_credible_set_index(f.col("cs_id")),
-                }
+            .select(
+                "molecular_trait_id",
+                "chromosome",
+                "position",
+                "variant",
+                "pvalue",
+                "beta",
+                "se",
+                "pip",
+                "cs_id",
+                "region",
+                "gene_id",
+                # Adding dataset id based on the input file name:
+                cls._extract_dataset_id_from_file_path(f.input_file_name()),
+                # Parsing credible set index from the cs_id:
+                cls._extract_credible_set_index(f.col("cs_id")),
             )
             # Remove duplicates caused by explosion of single variants to multiple rsid-s:
-            .drop("rsid")
             .distinct()
         )
 
@@ -306,7 +322,7 @@ class EqtlCatalogueFinemapping:
         """Load raw log Bayes Factors from eQTL Catalogue.
 
         Args:
-            lbf_path (str | list[str]): Path to raw table(s) containing Log Bayes Factors for each variant.
+            lbf_path (str | list[str]): Path(s) or glob to parquet files containing Log Bayes Factors for each variant.
             session (Session | None, optional): Session object. If not provided, the method will try to find an active session. Defaults to None.
 
         Returns:
@@ -316,11 +332,14 @@ class EqtlCatalogueFinemapping:
         return (
             session.load_data(
                 lbf_path,
+                fmt=NativeFileFormat.PARQUET.value,
                 schema=cls.raw_lbf_schema,
-                fmt=NativeFileFormat.TSV.value,
             )
-            .withColumn(
-                "dataset_id",
+            .select(
+                "molecular_trait_id",
+                "region",
+                "variant",
+                *[f"lbf_variable{i}" for i in range(1, 11)],
                 cls._extract_dataset_id_from_file_path(f.input_file_name()),
             )
             .distinct()
