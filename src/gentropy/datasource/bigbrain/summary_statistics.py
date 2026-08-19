@@ -41,6 +41,16 @@ This module provides:
     case silently produces a `variantId` that fails downstream gnomAD-keyed joins.
     Variants absent from gnomAD altogether are kept as-is (no evidence of a
     problem).
+
+!!! note "Indels represented in both orientations in gnomAD"
+    For some indels, gnomAD's own reference data lists the same event twice, in
+    both orientations (e.g. both `1_100_TG_T` and `1_100_T_TG` as separate source
+    variants) — confirmed against the full gnomAD v4.1 variant index, where this
+    affects ~0.4% of matched sites. Left un-deduplicated, this makes a single
+    BigBrain variantId match two `VariantDirection` entries with opposite
+    directions, duplicating the row with contradictory corrections. `from_source`
+    deduplicates the `VariantDirection` slice per `(chromosome, rangeId,
+    variantId)`, keeping the exact/direct match over the flipped one.
 """
 
 from __future__ import annotations
@@ -49,6 +59,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 import requests
+from pyspark.sql import Window
 from pyspark.sql import functions as f
 from pyspark.sql import types as t
 
@@ -170,6 +181,10 @@ class BigBrainSummaryStatistics:
                just missing reference data.
              - Variants absent from gnomAD altogether are kept unchanged (no evidence
                the reported orientation is wrong).
+           The `VariantDirection` reference is deduplicated per `(chromosome,
+           rangeId, variantId)` first, keeping the exact/direct match — some indels
+           are listed in both orientations in gnomAD itself, which would otherwise
+           duplicate the row with contradictory corrections (see module docstring).
         5. **P-value parsing** – `Fixed_P` (the fixed-effect meta-analysis p-value,
            consistent with `fixed_beta`/`fixed_sd`) is split into mantissa/exponent.
         6. **Sample size / EAF** – `sampleSize` is backfilled with the constant
@@ -230,12 +245,20 @@ class BigBrainSummaryStatistics:
             )
             .withColumn(
                 "rangeId",
-                f.floor(f.col("position") / flipping_window_size).cast(
-                    t.IntegerType()
-                ),
+                f.floor(f.col("position") / flipping_window_size).cast(t.IntegerType()),
             )
         )
 
+        # Indel representation is sometimes ambiguous in gnomAD itself (e.g. both
+        # "1_100_TG_T" and "1_100_T_TG" appear as separate source variants for the
+        # same underlying event), so a single BigBrain variantId can match two
+        # VariantDirection entries with opposite directions. Deduplicating on
+        # (chromosome, rangeId, variantId) keeps the exact/direct match
+        # (direction=1) over the flipped one, and prevents row-duplication with
+        # contradictory corrections.
+        exact_match_first = Window.partitionBy(
+            "chromosome", "rangeId", "variantId"
+        ).orderBy(f.col("direction").desc())
         vd_slice = (
             # BigBrain alleles are compared only with positive-strand reference entries,
             # mirroring deCODE's gnomAD-based flip.
@@ -247,6 +270,9 @@ class BigBrainSummaryStatistics:
                 f.col("originalVariantId"),
                 f.col("direction"),
             )
+            .withColumn("_rank", f.row_number().over(exact_match_first))
+            .filter(f.col("_rank") == 1)
+            .drop("_rank")
             .persist()
         )
         # Positions covered by gnomAD, regardless of which specific alleles are
@@ -285,7 +311,9 @@ class BigBrainSummaryStatistics:
                 .cast(t.IntegerType())
                 .alias("sampleSize"),
                 *split_pvalue_column(f.col("pValue")),
-                f.lit(None).cast(t.FloatType()).alias("effectAlleleFrequencyFromSource"),
+                f.lit(None)
+                .cast(t.FloatType())
+                .alias("effectAlleleFrequencyFromSource"),
                 f.col("standardError"),
             )
         )
