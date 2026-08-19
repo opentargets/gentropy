@@ -135,9 +135,14 @@ class BigBrainSummaryStatisticsHarmonisationConfig(StepConfig):
     # inputs
     raw_full_assoc_path: str = MISSING
     raw_top_assoc_path: str = MISSING
+    variant_direction_path: str = MISSING
     # outputs
     harmonised_summary_statistics_path: str = MISSING
     study_index_path: str = MISSING
+    # config
+    flipping_window_size: int = (
+        10_000_000  # must match variant_direction.DEFAULT_WINDOW_SIZE
+    )
     _target_: str = (
         "gentropy.bigbrain_ingestion.BigBrainSummaryStatisticsHarmonisationStep"
     )

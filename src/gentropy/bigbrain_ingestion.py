@@ -22,11 +22,15 @@ must be executed in order, once per QTL type (`eqtl`, `sqtl`):
     null.
 
 !!! note "Effect allele resolution"
-    Unlike deCODE, no external reference (e.g. gnomAD) is needed to determine the
-    effect allele. `full_assoc` carries no per-row effect-allele indicator (despite
-    one being documented in the source README), but `top_assoc`'s `Allele` column
-    equals `ref` in all 97,739 real rows checked across both QTL types with zero
-    exceptions, so `ref` is treated as the effect allele unconditionally. See
+    `full_assoc` carries no per-row effect-allele indicator (despite one being
+    documented in the source README), but `top_assoc`'s `Allele` column equals
+    `ref` in all 97,739 real rows checked across both QTL types with zero
+    exceptions, so `ref` is treated as the effect allele unconditionally.
+    However, source `ref`/`alt` do **not** reliably follow the genome-reference
+    convention (empirically, source `ref` equals gnomAD's alternate allele ~99%
+    of the time among matched variants), so the harmonisation step still joins
+    against a gnomAD `VariantDirection` reference to correct orientation for the
+    residual mismatches and drop confirmed allele conflicts. See
     `gentropy.datasource.bigbrain.summary_statistics` for details.
 
 ## Data flow
@@ -36,6 +40,7 @@ flowchart TD
   subgraph INPUTS
     A1[full_assoc.tsv.gz @ Zenodo]
     A2[top_assoc.tsv.gz @ Zenodo]
+    A3[gnomAD VariantDirection]
   end
 
   subgraph OUTPUTS
@@ -50,6 +55,7 @@ flowchart TD
 
     P1 --> HARM[BigBrainSummaryStatisticsHarmonisationStep]
     P2 --> HARM
+    A3 --> HARM
 
     HARM --> O1
     HARM --> O2
@@ -58,12 +64,13 @@ flowchart TD
     QC --> O3[qc_summary_statistics]
 
     classDef parquet fill:#bd757c,stroke:#73343A,color:#333
-    class A1,A2,P1,P2,O1,O2,O3 parquet
+    class A1,A2,A3,P1,P2,O1,O2,O3 parquet
 ```
 
 ??? tip "Inputs"
     - [x] **full_assoc.tsv.gz** — genome-wide SNP-feature association file for the given QTL type, EUR ancestry.
     - [x] **top_assoc.tsv.gz** — per-feature top-hit file; also the source of the sQTL feature-to-gene mapping.
+    - [x] **gnomAD VariantDirection** — used to correct variant orientation during harmonisation.
 
 ??? tip "Outputs"
     This pipeline produces 2 artefacts per QTL type:
@@ -75,6 +82,7 @@ flowchart TD
 from __future__ import annotations
 
 from gentropy.common.session import Session
+from gentropy.dataset.variant_direction import DEFAULT_WINDOW_SIZE, VariantDirection
 from gentropy.datasource.bigbrain.study_index import BigBrainStudyIndex
 from gentropy.datasource.bigbrain.summary_statistics import (
     FULL_ASSOC_SCHEMA,
@@ -151,9 +159,12 @@ class BigBrainSummaryStatisticsHarmonisationStep:
         # inputs
         raw_full_assoc_path: str,
         raw_top_assoc_path: str,
+        variant_direction_path: str,
         # outputs
         harmonised_summary_statistics_path: str,
         study_index_path: str,
+        # config
+        flipping_window_size: int = DEFAULT_WINDOW_SIZE,
     ) -> None:
         """Initialise and execute the BigBrain summary-statistics harmonisation step.
 
@@ -164,12 +175,20 @@ class BigBrainSummaryStatisticsHarmonisationStep:
                 by `BigBrainSummaryStatisticsIngestionStep`.
             raw_top_assoc_path (str): Path to the raw `top_assoc` Parquet dataset produced
                 by `BigBrainSummaryStatisticsIngestionStep`.
+            variant_direction_path (str): Path to the gnomAD `VariantDirection` Parquet
+                dataset used to correct variant orientation during harmonisation.
             harmonised_summary_statistics_path (str): Destination path for the harmonised
                 summary-statistics Parquet dataset, partitioned by `studyId`.
             study_index_path (str): Destination path for the study index Parquet dataset.
+            flipping_window_size (int): Genomic window size (bp) used to partition the
+                VariantDirection dataset for the orientation-correction join. Must match
+                the value used when building the VariantDirection dataset.
         """
         raw = session.spark.read.parquet(raw_full_assoc_path)
-        harmonised = BigBrainSummaryStatistics.from_source(raw, qtl_type)
+        gvd = VariantDirection.from_parquet(session, variant_direction_path)
+        harmonised = BigBrainSummaryStatistics.from_source(
+            raw, qtl_type, gvd, flipping_window_size
+        )
 
         features = raw.select("feature").distinct()
         if qtl_type == "sqtl":

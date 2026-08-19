@@ -7,7 +7,7 @@ This module provides:
   1. `download_tsv_gz` – streams a gzipped TSV file from a public HTTPS URL
      (Zenodo) to a Spark-readable path.
   2. `from_source` – harmonisation (schema alignment, effect-allele resolution,
-     p-value parsing, and sanity filtering).
+     gnomAD-based orientation correction, p-value parsing, and sanity filtering).
 
 !!! note "`full_assoc` has no `Allele` column"
     The source README documents an `Allele` column (naming the effect allele) for
@@ -18,6 +18,29 @@ This module provides:
     QTL types (97,739 rows total) and `Allele` equals `ref` in every single row,
     with zero exceptions. `ref` is therefore treated as the effect allele and `alt`
     as the other allele unconditionally, for both files.
+
+!!! warning "`ref`/`alt` do not follow the genome-reference convention"
+    Despite the naming, source `ref` is **not** reliably the GRCh38 reference-genome
+    allele. An empirical check of a sample of harmonised variants against gnomAD's
+    variant index (`VariantIndex`, joint EUR/`nfe_adj` frequencies) found that, among
+    variants also present in gnomAD, source `ref` equals gnomAD's **alternate**
+    allele ~99% of the time and gnomAD's **reference** allele only ~1% of the time —
+    a near-total, systematic pattern, not noise. This is consistent with the
+    resulting effect-allele frequency being skewed low (median ~0.21), as expected
+    for an alt/minor-allele-as-effect-allele convention, not a true reference-allele
+    convention.
+
+    This does not make the harmonisation wrong: `variantId` is built as
+    `chromosome_position_otherAllele_effectAllele` (`otherAllele` = source `alt`,
+    `effectAllele` = source `ref`), so the ~99% case above already produces an ID
+    in gnomAD's own `chromosome_position_referenceAllele_alternateAllele` order —
+    the two inversions cancel. `from_source` still runs a gnomAD `VariantDirection`
+    join to (a) correct the ~1% of variants where they don't cancel (flipping `beta`
+    and normalising `variantId` to gnomAD's orientation) and (b) drop variants whose
+    position is in gnomAD but whose alleles match neither orientation, so neither
+    case silently produces a `variantId` that fails downstream gnomAD-keyed joins.
+    Variants absent from gnomAD altogether are kept as-is (no evidence of a
+    problem).
 """
 
 from __future__ import annotations
@@ -32,6 +55,7 @@ from pyspark.sql import types as t
 from gentropy.common.processing import normalize_chromosome
 from gentropy.common.stats import split_pvalue_column
 from gentropy.dataset.summary_statistics import SummaryStatistics
+from gentropy.dataset.variant_direction import DEFAULT_WINDOW_SIZE, VariantDirection
 from gentropy.datasource.bigbrain import BigBrainPublicationMetadata
 
 if TYPE_CHECKING:
@@ -114,6 +138,8 @@ class BigBrainSummaryStatistics:
         cls,
         raw_summary_statistics: DataFrame,
         qtl_type: str,
+        variant_direction: VariantDirection,
+        flipping_window_size: int = DEFAULT_WINDOW_SIZE,
     ) -> SummaryStatistics:
         """Harmonise raw BigBrain full-association summary statistics.
 
@@ -123,26 +149,50 @@ class BigBrainSummaryStatistics:
            indicator, but `top_assoc`'s `Allele` column (which does name the effect
            allele) equals `ref` in every one of the 97,739 real rows checked across
            both QTL types, with zero exceptions, so `ref` is treated as the effect
-           allele and `alt` as the other allele unconditionally. No external
-           reference join is needed, unlike deCODE's gnomAD-based flip.
+           allele and `alt` as the other allele unconditionally.
         2. **Schema alignment** – renames BigBrain-specific column names, builds the
            source-oriented variant ID as `chromosome_position_otherAllele_effectAllele`,
            and constructs `studyId` as `BigBrain_{qtlType}_EUR_{feature}`.
         3. **Untested-row filtering** – drops `fixed_beta == 0` filler rows (mirrors
            `EqtlCatalogueSummaryStats.from_source`, which applies the same filter for
            the same reason).
-        4. **P-value parsing** – `Fixed_P` (the fixed-effect meta-analysis p-value,
+        4. **gnomAD orientation correction** – despite the effect-allele resolution
+           above, source `ref`/`alt` do not reliably follow the genome-reference
+           convention (see the module-level warning). Variants are left-joined
+           against the gnomAD `VariantDirection` reference (positive strand only) on
+           `(chromosome, rangeId, variantId)`:
+             - Variants that resolve to gnomAD's flipped orientation have `beta`
+               negated and `variantId` normalised to gnomAD's `originalVariantId`.
+             - Variants that resolve directly (the dominant case, ~99% of matched
+               variants empirically) are left unchanged.
+             - Variants whose position is in gnomAD but whose alleles match neither
+               orientation are dropped — this is a confirmed allele mismatch, not
+               just missing reference data.
+             - Variants absent from gnomAD altogether are kept unchanged (no evidence
+               the reported orientation is wrong).
+        5. **P-value parsing** – `Fixed_P` (the fixed-effect meta-analysis p-value,
            consistent with `fixed_beta`/`fixed_sd`) is split into mantissa/exponent.
-        5. **Sample size / EAF** – `sampleSize` is backfilled with the constant
+        6. **Sample size / EAF** – `sampleSize` is backfilled with the constant
            `BigBrainPublicationMetadata.SAMPLE_SIZE`; `effectAlleleFrequencyFromSource`
            is left null (not reported at the variant level by the source).
-        6. **Sanity filter** – applies the standard `SummaryStatistics.sanity_filter`.
+        7. **Sanity filter** – applies the standard `SummaryStatistics.sanity_filter`.
+
+        !!! note "Variant flipping window"
+            `flipping_window_size` **must** match the window used when building the
+            `VariantDirection` dataset. A mismatch will silently produce incorrect
+            join keys.
 
         Args:
             raw_summary_statistics (DataFrame): Raw `full_assoc` DataFrame as produced
                 by reading the downloaded TSV with `FULL_ASSOC_SCHEMA`.
             qtl_type (str): QTL type identifier embedded in the study ID, e.g.
                 `BigBrainQtlType.EQTL.value` or `BigBrainQtlType.SQTL.value`.
+            variant_direction (VariantDirection): gnomAD variant-direction reference
+                used to correct variant orientation (see step 4 above).
+            flipping_window_size (int): Genomic window size (bp) used to partition the
+                `VariantDirection` dataset for the join. Must match the value used
+                when building the `VariantDirection` dataset. Defaults to
+                `DEFAULT_WINDOW_SIZE`.
 
         Returns:
             SummaryStatistics: Harmonised summary statistics.
@@ -178,12 +228,59 @@ class BigBrainSummaryStatistics:
                     f.col("effectAllele"),
                 ),
             )
+            .withColumn(
+                "rangeId",
+                f.floor(f.col("position") / flipping_window_size).cast(
+                    t.IntegerType()
+                ),
+            )
+        )
+
+        vd_slice = (
+            # BigBrain alleles are compared only with positive-strand reference entries,
+            # mirroring deCODE's gnomAD-based flip.
+            variant_direction.df.filter(f.col("strand") == 1)
+            .select(
+                f.col("chromosome"),
+                f.col("rangeId"),
+                f.col("variantId"),
+                f.col("originalVariantId"),
+                f.col("direction"),
+            )
+            .persist()
+        )
+        # Positions covered by gnomAD, regardless of which specific alleles are
+        # reported there. Used to tell "not in gnomAD" (kept as-is) apart from "in
+        # gnomAD, but with different alleles" (dropped) for variants whose exact
+        # variantId doesn't match the join above.
+        gnomad_positions = (
+            vd_slice.select(
+                f.col("chromosome"),
+                f.split(f.col("originalVariantId"), "_")
+                .getItem(1)
+                .cast(t.IntegerType())
+                .alias("position"),
+            )
+            .distinct()
+            .withColumn("_inGnomad", f.lit(True))
+        )
+
+        processed = (
+            processed.join(
+                vd_slice, on=["chromosome", "rangeId", "variantId"], how="left"
+            )
+            .join(gnomad_positions, on=["chromosome", "position"], how="left")
+            .filter(f.col("direction").isNotNull() | f.col("_inGnomad").isNull())
             .select(
                 f.col("studyId"),
-                f.col("variantId"),
+                f.coalesce(f.col("originalVariantId"), f.col("variantId")).alias(
+                    "variantId"
+                ),
                 f.col("chromosome"),
                 f.col("position"),
-                f.col("beta"),
+                (f.col("beta") * f.coalesce(f.col("direction"), f.lit(1))).alias(
+                    "beta"
+                ),
                 f.lit(BigBrainPublicationMetadata().SAMPLE_SIZE)
                 .cast(t.IntegerType())
                 .alias("sampleSize"),
@@ -192,6 +289,8 @@ class BigBrainSummaryStatistics:
                 f.col("standardError"),
             )
         )
+
+        vd_slice.unpersist()
 
         return SummaryStatistics(
             _df=processed, _schema=SummaryStatistics.get_schema()

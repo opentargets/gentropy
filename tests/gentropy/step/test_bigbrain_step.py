@@ -99,8 +99,10 @@ class TestBigBrainSummaryStatisticsHarmonisationStep:
 
     @patch("gentropy.bigbrain_ingestion.BigBrainStudyIndex")
     @patch("gentropy.bigbrain_ingestion.BigBrainSummaryStatistics")
+    @patch("gentropy.bigbrain_ingestion.VariantDirection")
     def test_bigbrain_harmonisation_step_eqtl(
         self,
+        variant_direction_mock: MagicMock,
         summary_statistics_mock: MagicMock,
         study_index_mock: MagicMock,
         session: Session,
@@ -111,12 +113,16 @@ class TestBigBrainSummaryStatisticsHarmonisationStep:
         """For eqtl, the harmonisation step should use gene_map_from_feature (not top_assoc)."""
         raw_full_assoc_path = (tmp_path / "raw_full_assoc").as_posix()
         raw_top_assoc_path = (tmp_path / "raw_top_assoc").as_posix()
+        variant_direction_path = (tmp_path / "variant_direction.parquet").as_posix()
         harmonised_summary_statistics_path = (
             tmp_path / "harmonised_summary_statistics"
         ).as_posix()
         study_index_path = (tmp_path / "study_index").as_posix()
 
         bigbrain_raw_full_assoc_df.write.mode("overwrite").parquet(raw_full_assoc_path)
+
+        vd_instance = MagicMock()
+        variant_direction_mock.from_parquet.return_value = vd_instance
 
         harmonised_instance = MagicMock()
         harmonised_instance.df = bigbrain_summary_statistics_df
@@ -131,10 +137,14 @@ class TestBigBrainSummaryStatisticsHarmonisationStep:
             qtl_type="eqtl",
             raw_full_assoc_path=raw_full_assoc_path,
             raw_top_assoc_path=raw_top_assoc_path,
+            variant_direction_path=variant_direction_path,
             harmonised_summary_statistics_path=harmonised_summary_statistics_path,
             study_index_path=study_index_path,
         )
 
+        variant_direction_mock.from_parquet.assert_called_once_with(
+            session, variant_direction_path
+        )
         summary_statistics_mock.from_source.assert_called_once()
         study_index_mock.gene_map_from_feature.assert_called_once()
         study_index_mock.gene_map_from_top_assoc.assert_not_called()
@@ -143,8 +153,10 @@ class TestBigBrainSummaryStatisticsHarmonisationStep:
 
     @patch("gentropy.bigbrain_ingestion.BigBrainStudyIndex")
     @patch("gentropy.bigbrain_ingestion.BigBrainSummaryStatistics")
+    @patch("gentropy.bigbrain_ingestion.VariantDirection")
     def test_bigbrain_harmonisation_step_sqtl_uses_top_assoc(
         self,
+        variant_direction_mock: MagicMock,
         summary_statistics_mock: MagicMock,
         study_index_mock: MagicMock,
         session: Session,
@@ -155,6 +167,7 @@ class TestBigBrainSummaryStatisticsHarmonisationStep:
         """For sqtl, the harmonisation step should read raw_top_assoc_path and use gene_map_from_top_assoc."""
         raw_full_assoc_path = (tmp_path / "raw_full_assoc").as_posix()
         raw_top_assoc_path = (tmp_path / "raw_top_assoc").as_posix()
+        variant_direction_path = (tmp_path / "variant_direction.parquet").as_posix()
         harmonised_summary_statistics_path = (
             tmp_path / "harmonised_summary_statistics"
         ).as_posix()
@@ -162,6 +175,9 @@ class TestBigBrainSummaryStatisticsHarmonisationStep:
 
         bigbrain_raw_full_assoc_df.write.mode("overwrite").parquet(raw_full_assoc_path)
         bigbrain_raw_full_assoc_df.write.mode("overwrite").parquet(raw_top_assoc_path)
+
+        vd_instance = MagicMock()
+        variant_direction_mock.from_parquet.return_value = vd_instance
 
         harmonised_instance = MagicMock()
         harmonised_instance.df = bigbrain_summary_statistics_df
@@ -176,6 +192,7 @@ class TestBigBrainSummaryStatisticsHarmonisationStep:
             qtl_type="sqtl",
             raw_full_assoc_path=raw_full_assoc_path,
             raw_top_assoc_path=raw_top_assoc_path,
+            variant_direction_path=variant_direction_path,
             harmonised_summary_statistics_path=harmonised_summary_statistics_path,
             study_index_path=study_index_path,
         )
