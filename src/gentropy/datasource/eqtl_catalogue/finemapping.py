@@ -130,7 +130,7 @@ class EqtlCatalogueFinemapping:
         credible_sets: DataFrame,
         lbf: DataFrame,
         studies_metadata: DataFrame,
-        ss_ftp_path_template: str = "https://ftp.ebi.ac.uk/pub/databases/spot/eQTL/sumstats",
+        ss_ftp_path_template: str = "https://ftp.ebi.ac.uk/pub/databases/spot/eQTL/r8_beta/sumstats",
     ) -> DataFrame:
         """Parse the SuSIE results into a DataFrame containing the finemapping statistics and metadata about the studies.
 
@@ -138,7 +138,7 @@ class EqtlCatalogueFinemapping:
             credible_sets (DataFrame): DataFrame containing raw statistics of all variants in the credible sets.
             lbf (DataFrame): DataFrame containing the raw log Bayes Factors for all variants.
             studies_metadata (DataFrame): DataFrame containing the study metadata.
-            ss_ftp_path_template (str, optional): eQTL Catalogue FTP path template for summary statistics. Defaults to "https://ftp.ebi.ac.uk/pub/databases/spot/eQTL/sumstats".
+            ss_ftp_path_template (str, optional): eQTL Catalogue FTP path template for summary statistics. Defaults to "https://ftp.ebi.ac.uk/pub/databases/spot/eQTL/r8_beta/sumstats".
 
         Returns:
             DataFrame: Processed SuSIE results to contain metadata about the studies and the finemapping statistics.
@@ -188,6 +188,8 @@ class EqtlCatalogueFinemapping:
                 clean_strings_from_symbols(
                     f.concat_ws(
                         "_",
+                        f.col("study_id"),
+                        f.col("dataset_id"),
                         f.col("study_label"),
                         f.col("quant_method"),
                         f.col("sample_group"),
