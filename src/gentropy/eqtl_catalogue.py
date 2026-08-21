@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from gentropy.common.session import Session
-from gentropy.config import EqtlCatalogueConfig
 from gentropy.datasource.eqtl_catalogue.finemapping import EqtlCatalogueFinemapping
 from gentropy.datasource.eqtl_catalogue.study_index import EqtlCatalogueStudyIndex
 
@@ -11,74 +10,92 @@ from gentropy.datasource.eqtl_catalogue.study_index import EqtlCatalogueStudyInd
 class EqtlCatalogueStep:
     """eQTL Catalogue ingestion step.
 
-    From SuSIE fine mapping results (available at [their FTP](https://ftp.ebi.ac.uk/pub/databases/spot/eQTL/susie/) ), we extract credible sets and study index datasets from gene expression QTL studies.
+    From SuSIE fine mapping results (available at [their FTP](https://ftp.ebi.ac.uk/pub/databases/spot/eQTL/susie/) ),
+    we extract credible sets and study index datasets from gene expression QTL studies.
+
+    !!! note "eQTL Catalogue data"
+        The data needs to be downloaded to hadoop compatible filesystem before
+        running the step.
     """
 
     def __init__(
         self,
         session: Session,
-        mqtl_quantification_methods_blacklist: list[str],
-        eqtl_catalogue_paths_imported: str,
-        eqtl_catalogue_study_index_out: str,
-        eqtl_catalogue_credible_sets_out: str,
-        eqtl_catalogue_metadata_path: str = EqtlCatalogueConfig().eqtl_catalogue_metadata_path,
-        eqtl_lead_pvalue_threshold: float = EqtlCatalogueConfig().eqtl_lead_pvalue_threshold,
+        eqtl_catalogue_dataset_metadata_path: str,
+        credible_set_input_glob: str,
+        lbf_variable_input_glob: str,
+        study_index_output_path: str,
+        credible_set_output_path: str,
+        lead_pvalue_threshold: float,
+        mqtl_quantification_methods_blacklist: list[str] | None = None,
     ) -> None:
         """Run eQTL Catalogue ingestion step.
 
         Args:
             session (Session): Session object.
-            mqtl_quantification_methods_blacklist (list[str]): Molecular trait quantification methods that we don't want to ingest. Available options in https://github.com/eQTL-Catalogue/eQTL-Catalogue-resources/blob/master/data_tables/dataset_metadata.tsv
-            eqtl_catalogue_paths_imported (str): Input eQTL Catalogue fine mapping results path.
-            eqtl_catalogue_study_index_out (str): Output eQTL Catalogue study index path.
-            eqtl_catalogue_credible_sets_out (str): Output eQTL Catalogue credible sets path.
-            eqtl_catalogue_metadata_path (str): Path to the data_table hosted on the eQTL Catalogue github. Defaults to EqtlCatalogueConfig().eqtl_catalogue_metadata_path
-            eqtl_lead_pvalue_threshold (float, optional): Lead p-value threshold. Defaults to EqtlCatalogueConfig().eqtl_lead_pvalue_threshold.
+            eqtl_catalogue_dataset_metadata_path (str): Path to the eQTL Catalogue dataset metadata file.
+            credible_set_input_glob (str): Glob pattern to read SuSIE credible set parquet files.
+                example of files in `gs://bucket/susie/QTS*/QTD*/QTD*.credible_set.parquet`
+            lbf_variable_input_glob (str): Glob pattern to read SuSIE LBF parquet files.
+                example of files in `gs://bucket/susie/QTS*/QTD*/QTD*.lbf_variable.parquet`
+            study_index_output_path (str): Path to write the study index parquet file.
+                Written as a coalesce(1) parquet dataset.
+            credible_set_output_path (str): Path to write the credible set parquet file.
+                Written as a partitioned by studyId parquet dataset.
+            lead_pvalue_threshold (float): P-value threshold to flag sub-significant loci.
+            mqtl_quantification_methods_blacklist (list[str] | None): List of quantification methods to exclude from the study index.
+                Can be used to exclude mQTL studies from the study index. Allowed values are
+                in gentropy.datasource.eqtl_catalogue.QuantificationMethod.
+
+
+        !!! note "glob patterns"
+            The glob patterns need to point to a compatible hadoop filesystem (ex. S3, gcs, etc.), using the
+            ebi ftp server directly will not work with spark.
         """
         # Extract
         studies_metadata = EqtlCatalogueStudyIndex.read_studies_from_source(
-            eqtl_catalogue_metadata_path,
-            list(mqtl_quantification_methods_blacklist),
+            eqtl_catalogue_dataset_metadata_path,
+            mqtl_quantification_methods_blacklist or [],
             session=session,
-        )
+        ).persist()
 
-        # Load raw data only for the studies we are interested in ingestion. This makes the proces much lighter.
-        studies_to_ingest = EqtlCatalogueStudyIndex.get_studies_of_interest(
-            studies_metadata
-        )
+        # Read all parquet files from the nested QTS*/QTD*/ structure via glob.
+        # The metadata join in parse_susie_results drops any QTDs absent from the metadata.
         credible_sets_df = EqtlCatalogueFinemapping.read_credible_set_from_source(
-            credible_set_path=[
-                f"{eqtl_catalogue_paths_imported}/{qtd_id}.credible_sets.tsv"
-                for qtd_id in studies_to_ingest
-            ],
+            credible_set_input_glob,
             session=session,
-        )
+        ).persist()
+
         lbf_df = EqtlCatalogueFinemapping.read_lbf_from_source(
-            lbf_path=[
-                f"{eqtl_catalogue_paths_imported}/{qtd_id}.lbf_variable.txt"
-                for qtd_id in studies_to_ingest
-            ],
+            lbf_variable_input_glob,
             session=session,
-        )
+        ).persist()
 
         # Transform
         processed_susie_df = EqtlCatalogueFinemapping.parse_susie_results(
             credible_sets_df, lbf_df, studies_metadata
-        )
+        ).persist()
+        processed_susie_df.count()
+
+        studies_metadata.unpersist()
+        credible_sets_df.unpersist()
+        lbf_df.unpersist()
 
         (
             EqtlCatalogueStudyIndex.from_susie_results(processed_susie_df)
-            # Writing the output:
             .coalesce(1)
             .df.write.mode(session.write_mode)
-            .parquet(eqtl_catalogue_study_index_out)
+            .parquet(study_index_output_path)
         )
 
         (
             EqtlCatalogueFinemapping.from_susie_results(processed_susie_df)
-            # Flagging sub-significnat loci:
-            .validate_lead_pvalue(pvalue_cutoff=eqtl_lead_pvalue_threshold)
-            # Writing the output:
-            .df.write.mode(session.write_mode)
-            .parquet(eqtl_catalogue_credible_sets_out)
+            # Flagging sub-significant loci:
+            .validate_lead_pvalue(pvalue_cutoff=lead_pvalue_threshold)
+            .df.repartition(session.output_partitions, "studyId", "chromosome")
+            .sortWithinPartitions("chromosome", "variantId")
+            .write.mode(session.write_mode)
+            .option("maxRecordsPerFile", 50_000_000)
+            .parquet(credible_set_output_path)
         )
+        processed_susie_df.unpersist()
