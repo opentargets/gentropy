@@ -190,7 +190,7 @@ class EqtlCatalogueFinemapping:
             <BLANKLINE>
 
         Returns:
-            DataFrame: DataFrame with alpha columns added.
+            DataFrame: DataFrame where `pip` is replaced with recomputed per-credible-set alpha for affected studies.
         """
         # First we compute the boolean condition checking if PIP sum over single credible
         # set variants ia above 1.0 + tolerance
