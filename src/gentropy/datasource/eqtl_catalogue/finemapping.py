@@ -193,7 +193,7 @@ class EqtlCatalogueFinemapping:
             DataFrame: DataFrame where `pip` is replaced with recomputed per-credible-set alpha for affected studies.
         """
         # First we compute the boolean condition checking if PIP sum over single credible
-        # set variants ia above 1.0 + tolerance
+        # set variants is above 1.0 + tolerance
         cs = Window.partitionBy("cs_id", "gene_id", "region", "dataset_id", "study_id")
         study = Window.partitionBy("study_id")
 
