@@ -786,7 +786,7 @@ def clean_strings_from_symbols(source: Column) -> Column:
         +-------------+-------------+
         <BLANKLINE>
     """
-    characters_to_replace = r"[^a-z0-9-_]{1}"
+    characters_to_replace = r"[^a-z0-9_-]{1}"
     return f.regexp_replace(f.lower(source), characters_to_replace, "_")
 
 
