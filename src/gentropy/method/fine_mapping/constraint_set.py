@@ -35,6 +35,7 @@ from gentropy.method.fine_mapping.constraint import (
     HasAllowedAnalysisFlags,
     HasAllowedMajorAncestry,
     HasMappedTrait,
+    HasSufficientESS,
     HasSumstats,
     IsAllowedStudyType,
     MethodConstraint,
@@ -97,6 +98,7 @@ class MultiSuSiEConstraintSet(ConstraintSet):
         relative_sample_size_threshold: float,
         disallowed_reasons: list[StudyQualityCheck],
         disallowed_flags: list[StudyAnalysisFlag],
+        min_ess: int = 1000,
     ):
         """Initialize the constraint set for the MultiSuSiE method.
 
@@ -105,6 +107,7 @@ class MultiSuSiEConstraintSet(ConstraintSet):
             relative_sample_size_threshold (float): The threshold for relative sample size.
             disallowed_reasons (list[StudyQualityCheck]): The list of disallowed quality check reasons.
             disallowed_flags (list[StudyAnalysisFlag]): The list of disallowed analysis flags.
+            min_ess (int): The minimum effective sample size a study must have to be eligible.
         """
         self.constraints: list[MethodConstraint] = [
             IsAllowedStudyType(allowed_study_types=[StudyType.GWAS]),
@@ -116,6 +119,7 @@ class MultiSuSiEConstraintSet(ConstraintSet):
                 allowed_ancestries=allowed_ancestries,
                 relative_sample_size_threshold=relative_sample_size_threshold,
             ),
+            HasSufficientESS(min_ess=min_ess),
         ]
 
         self.route = FineMappingRoute.MULTI_SUSIE_ROUTE

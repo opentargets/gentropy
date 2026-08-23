@@ -9,16 +9,19 @@ from gentropy.method.fine_mapping import FineMappingConstraintRegistry
 class FineMappingPlanGeneratorStep:
     """Step generating a fine-mapping plan from a study index."""
 
-    def __init__(self, session: Session, input_path: str, output_path: str) -> None:
+    def __init__(
+        self, session: Session, input_path: str, output_path: str, min_ess: int = 1000
+    ) -> None:
         """Resolve every registered constraint set against the study index and write the combined plan.
 
         Args:
             session (Session): Session object.
             input_path (str): Path to the input study index.
             output_path (str): Path to write the combined fine-mapping plan to, partitioned by route.
+            min_ess (int): The minimum effective sample size a study must have to be eligible.
         """
         study_index = StudyIndex.from_parquet(session, input_path)
-        registry = FineMappingConstraintRegistry().registry
+        registry = FineMappingConstraintRegistry(min_ess=min_ess).registry
 
         self.plans = {
             method_name: constraint_set.resolve(study_index)
