@@ -36,6 +36,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get update && apt-get install -y --no-install-recommends google-cloud-cli=581.0.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
+ENV CLOUDSDK_PYTHON=/usr/local/bin/python3
+
 # Create app user and group
 RUN groupadd --gid 1000 app && \
     useradd --uid 1000 --gid app --shell /bin/bash --create-home app
