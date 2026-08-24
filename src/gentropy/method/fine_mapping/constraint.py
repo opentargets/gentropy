@@ -337,6 +337,11 @@ class HasSufficientESS(MethodConstraint):
     nSamples. A study design that is neither case-control nor a plain measurement study
     has no well-defined sample-size basis and therefore fails the constraint.
 
+    The design flags are expected to be present in the ``qualityControls`` array. Study
+    indexes produced by the ingestion pipeline do not store them; when resolving such an
+    index, ``MultiSuSiEConstraintSet.resolve`` derives the design from the sample-size
+    columns via ``StudyIndex.validate_ccs`` before evaluating the constraints.
+
         >>> from gentropy.dataset.study_index import StudyIndex, StudyQualityCheck
         >>> cc = StudyQualityCheck.CASE_CONTROL_STUDY_DESIGN.value
         >>> meas = StudyQualityCheck.MEASUREMENT_STUDY_DESIGN.value

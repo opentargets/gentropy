@@ -340,3 +340,33 @@ def test_resolve_raises_when_study_count_invariant_is_broken(
 
     with pytest.raises(ValueError, match="distinct studies"):
         constraint_set.resolve(si)
+
+
+def test_resolve_derives_study_design_when_not_stored(spark: SparkSession) -> None:
+    """Production study indexes do not store the study design in qualityControls - resolve() must derive it from the sample-size columns so HasSufficientESS can compute an effective sample size and the study can become representative."""
+    rows = [
+        # Consistent case-control study; no design flags stored.
+        _study_row(
+            "cc",
+            ["EFO_1"],
+            [(LDPopulation.NFE.value, 1.0)],
+            n_samples=20_000,
+            n_cases=10_000,
+            n_controls=10_000,
+            quality_controls=[],
+        ),
+        # Measurement study; no design flags stored.
+        _study_row(
+            "meas",
+            ["EFO_2"],
+            [(LDPopulation.NFE.value, 1.0)],
+            n_samples=20_000,
+            quality_controls=[],
+        ),
+    ]
+    result = _resolve(spark, rows)
+    rows_by_id = {r["studyId"]: r for r in result.df.collect()}
+    assert _constraint_flag(rows_by_id["cc"], "hasSufficientESS") is True
+    assert _constraint_flag(rows_by_id["cc"], "representativeStudy") is True
+    assert _constraint_flag(rows_by_id["meas"], "hasSufficientESS") is True
+    assert _constraint_flag(rows_by_id["meas"], "representativeStudy") is True
