@@ -19,6 +19,7 @@ from pyspark.sql import Column
 from pyspark.sql import functions as f
 
 from gentropy.common.spark import order_array_of_structs_by_field
+from gentropy.common.stats import effective_sample_size
 from gentropy.common.types import LDPopulation
 from gentropy.dataset.dataset import Dataset
 from gentropy.dataset.study_index import (
@@ -325,3 +326,70 @@ class HasAllowedMajorAncestry(MethodConstraint):
         major_allowed = major_anc.isin([a.value for a in allowed_ancestries])
 
         self.expression = ld_exists & major_above_threshold & major_allowed
+
+
+class HasSufficientESS(MethodConstraint):
+    """Class representing the constraint for a minimum effective sample size.
+
+    A study must have a computable effective sample size (ESS) that meets the configured
+    minimum. ESS is derived from the study design: case-control studies use the effective
+    sample size formula 4*nCases*nControls/(nCases+nControls); measurement studies use
+    nSamples. A study design that is neither case-control nor a plain measurement study
+    has no well-defined sample-size basis and therefore fails the constraint.
+
+    The design flags are expected to be present in the ``qualityControls`` array. Study
+    indexes produced by the ingestion pipeline do not store them; when resolving such an
+    index, ``MultiSuSiEConstraintSet.resolve`` derives the design from the sample-size
+    columns via ``StudyIndex.validate_ccs`` before evaluating the constraints.
+
+        >>> from gentropy.dataset.study_index import StudyIndex, StudyQualityCheck
+        >>> cc = StudyQualityCheck.CASE_CONTROL_STUDY_DESIGN.value
+        >>> meas = StudyQualityCheck.MEASUREMENT_STUDY_DESIGN.value
+        >>> data = [
+        ...     ("s1", "p", "gwas", [meas], 500, None, None),
+        ...     ("s2", "p", "gwas", [meas], 1000, None, None),
+        ...     ("s3", "p", "gwas", [meas], 1001, None, None),
+        ...     ("s4", "p", "gwas", [cc], 2000, 1000, 1000),
+        ...     ("s5", "p", "gwas", [], 10000, None, None),
+        ... ]
+        >>> schema = (
+        ...     "studyId STRING, projectId STRING, studyType STRING, "
+        ...     "qualityControls ARRAY<STRING>, nSamples INT, nCases INT, nControls INT"
+        ... )
+        >>> si = StudyIndex(_df=spark.createDataFrame(data, schema))
+        >>> constraint = HasSufficientESS(min_ess=1000)
+        >>> si.df.select("studyId", constraint.expression.alias("hasSufficientESS")).orderBy("studyId").show(truncate=False)
+        +-------+----------------+
+        |studyId|hasSufficientESS|
+        +-------+----------------+
+        |s1     |false           |
+        |s2     |true            |
+        |s3     |true            |
+        |s4     |true            |
+        |s5     |false           |
+        +-------+----------------+
+        <BLANKLINE>
+    """
+
+    name = "hasSufficientESS"
+
+    def __init__(self, min_ess: int) -> None:
+        """Initialize the minimum effective sample size constraint.
+
+        Args:
+            min_ess (int): The minimum effective sample size a study must have to pass.
+        """
+        ess = f.when(
+            f.array_contains(
+                f.col("qualityControls"),
+                StudyQualityCheck.CASE_CONTROL_STUDY_DESIGN.value,
+            ),
+            effective_sample_size(f.col("nCases"), f.col("nControls")),
+        ).when(
+            f.array_contains(
+                f.col("qualityControls"),
+                StudyQualityCheck.MEASUREMENT_STUDY_DESIGN.value,
+            ),
+            f.col("nSamples"),
+        )
+        self.expression = ess.isNotNull() & (ess >= min_ess)

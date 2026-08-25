@@ -884,6 +884,7 @@ class FineMappingPlanGeneratorConfig(StepConfig):
 
     input_path: str = MISSING
     output_path: str = MISSING
+    min_ess: int = 1000
     _target_: str = "gentropy.finemapping_planner.FineMappingPlanGeneratorStep"
 
 
