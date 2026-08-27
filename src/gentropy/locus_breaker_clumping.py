@@ -50,13 +50,30 @@ class LocusBreakerClumpingStep:
             session,
             summary_statistics_input_path,
         )
-        lbc = sum_stats.locus_breaker_clumping(
+
+        # Locus-breaker and window-based clumping each only ever consider rows
+        # passing their own p-value cutoff, so they can share a single scan of the
+        # summary statistics taken at the looser of the two thresholds. Both
+        # methods re-apply their own cutoff internally, so this is a pure read
+        # optimisation -- previously each one triggered its own full scan of the
+        # input, which on the GWAS Catalog dataset is ~3M parquet files.
+        #
+        # `sum_stats` deliberately stays unfiltered for
+        # annotate_locus_statistics_boundaries below, which needs every variant
+        # inside a locus window and not only the significant ones.
+        significant = sum_stats.pvalue_filter(
+            max(lbc_baseline_pvalue, wbc_pvalue_threshold)
+        ).persist()
+
+        lbc = significant.locus_breaker_clumping(
             lbc_baseline_pvalue,
             lbc_distance_cutoff,
             lbc_pvalue_threshold,
             lbc_flanking_distance,
         )
-        wbc = sum_stats.window_based_clumping(wbc_clump_distance, wbc_pvalue_threshold)
+        wbc = significant.window_based_clumping(
+            wbc_clump_distance, wbc_pvalue_threshold
+        )
 
         clumped_result = LocusBreakerClumping.process_locus_breaker_output(
             lbc,
@@ -76,3 +93,4 @@ class LocusBreakerClumpingStep:
         clumped_result.df.write.partitionBy("studyLocusId").mode(
             session.write_mode
         ).parquet(clumped_study_locus_output_path)
+        significant.unpersist()
