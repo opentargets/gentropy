@@ -28,6 +28,28 @@ _LD_POPULATION_MAP = {
 }
 
 
+def _extract_ld_population_and_weight(entry: Any) -> tuple[Any, Any]:
+    """Extract population and relative sample-size fields from one record."""
+    if isinstance(entry, Mapping):
+        population = entry.get("ldPopulation") or entry.get("population")
+        weight = entry.get("relativeSampleSize")
+        if weight is None:
+            weight = entry.get("weight")
+        if weight is None:
+            weight = entry.get("proportion")
+        return population, weight
+
+    population = getattr(entry, "ldPopulation", None) or getattr(
+        entry, "population", None
+    )
+    weight = getattr(entry, "relativeSampleSize", None)
+    if weight is None:
+        weight = getattr(entry, "weight", None)
+    if weight is None:
+        weight = getattr(entry, "proportion", None)
+    return population, weight
+
+
 def infer_ld_ancestry(ld_population_structure: Any) -> str:
     """Select the largest-population LDSC reference from study metadata.
 
@@ -58,22 +80,7 @@ def infer_ld_ancestry(ld_population_structure: Any) -> str:
 
     aggregate: dict[str, float] = {}
     for entry in ld_population_structure:
-        population: Any = None
-        weight: Any = None
-        if isinstance(entry, Mapping):
-            population = entry.get("ldPopulation") or entry.get("population")
-            weight = entry.get("relativeSampleSize")
-            if weight is None:
-                weight = entry.get("weight") or entry.get("proportion")
-        else:
-            population = getattr(entry, "ldPopulation", None) or getattr(
-                entry, "population", None
-            )
-            weight = getattr(entry, "relativeSampleSize", None)
-            if weight is None:
-                weight = getattr(entry, "weight", None) or getattr(
-                    entry, "proportion", None
-                )
+        population, weight = _extract_ld_population_and_weight(entry)
 
         canonical = _LD_POPULATION_MAP.get(str(population).strip().lower()) if population else None
         try:
