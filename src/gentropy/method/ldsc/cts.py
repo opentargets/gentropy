@@ -11,12 +11,88 @@ the cell-type annotation is enriched for trait heritability.
 from __future__ import annotations
 
 import math
+from collections.abc import Iterable, Mapping
 from typing import Any
 
 import numpy as np
 
 from gentropy.method.ldsc.regression import Hsq
 from gentropy.method.ldsc.utils import _as_float_or_none
+
+_LD_POPULATION_MAP = {
+    "afr": "afr",
+    "amr": "amr",
+    "eas": "eas",
+    "fin": "fin",
+    "nfe": "nfe",
+}
+
+
+def infer_ld_ancestry(ld_population_structure: Any) -> str:
+    """Select the largest-population LDSC reference from study metadata.
+
+    ``ldPopulationStructure`` is an array of population records containing an
+    ``ldPopulation`` and a ``relativeSampleSize``. Duplicate population records
+    are aggregated before choosing the largest plurality. Ties retain the
+    existing deterministic policy: prefer NFE, then the lexicographically first
+    canonical population.
+
+    Args:
+        ld_population_structure: Iterable of mappings or Spark Row-like objects.
+
+    Returns:
+        Canonical LDSC population label.
+
+    Raises:
+        ValueError: If no recognised population has a usable weight.
+        TypeError: If the value is not iterable.
+    """
+    if ld_population_structure is None:
+        raise ValueError("ldPopulationStructure is None")
+    if isinstance(ld_population_structure, (str, bytes)) or not isinstance(
+        ld_population_structure, Iterable
+    ):
+        raise TypeError(
+            "ldPopulationStructure must be an iterable of population records"
+        )
+
+    aggregate: dict[str, float] = {}
+    for entry in ld_population_structure:
+        population: Any = None
+        weight: Any = None
+        if isinstance(entry, Mapping):
+            population = entry.get("ldPopulation") or entry.get("population")
+            weight = entry.get("relativeSampleSize")
+            if weight is None:
+                weight = entry.get("weight") or entry.get("proportion")
+        else:
+            population = getattr(entry, "ldPopulation", None) or getattr(
+                entry, "population", None
+            )
+            weight = getattr(entry, "relativeSampleSize", None)
+            if weight is None:
+                weight = getattr(entry, "weight", None) or getattr(
+                    entry, "proportion", None
+                )
+
+        canonical = _LD_POPULATION_MAP.get(str(population).strip().lower()) if population else None
+        try:
+            numeric_weight = float(weight)
+        except (TypeError, ValueError):
+            numeric_weight = float("nan")
+        if canonical is None or not math.isfinite(numeric_weight):
+            continue
+        aggregate[canonical] = aggregate.get(canonical, 0.0) + numeric_weight
+
+    if not aggregate:
+        raise ValueError(
+            "Could not map any populations from ldPopulationStructure: "
+            f"{ld_population_structure}"
+        )
+
+    maximum = max(aggregate.values())
+    tied = [population for population, weight in aggregate.items() if weight == maximum]
+    return "nfe" if "nfe" in tied else sorted(tied)[0]
 
 
 def _one_sided_p_value(z: float) -> float:

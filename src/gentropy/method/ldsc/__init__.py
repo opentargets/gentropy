@@ -7,7 +7,7 @@ from gentropy.method.ldsc.cell_type_annotation import (
     map_genes_to_variants,
     melt_specificity_matrix,
 )
-from gentropy.method.ldsc.cts import run_ldsc_cts_from_arrays
+from gentropy.method.ldsc.cts import infer_ld_ancestry, run_ldsc_cts_from_arrays
 from gentropy.method.ldsc.h2 import run_ldsc_h2_from_arrays
 from gentropy.method.ldsc.irwls import IRWLS
 from gentropy.method.ldsc.jackknife import (
@@ -23,6 +23,7 @@ __all__ = [
     "run_ldsc_h2_from_arrays",
     "run_ldsc_rg_from_arrays",
     "run_ldsc_cts_from_arrays",
+    "infer_ld_ancestry",
     "CONTROL_ANNOTATION",
     "melt_specificity_matrix",
     "map_genes_to_variants",

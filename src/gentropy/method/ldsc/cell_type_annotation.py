@@ -214,6 +214,7 @@ def explode_ld_index(ld_index_df: DataFrame, population: str) -> DataFrame:
 def compute_annotation_ld_scores(
     annotations_long: DataFrame,
     ld_edges: DataFrame,
+    score_variants: DataFrame | None = None,
 ) -> tuple[DataFrame, DataFrame]:
     """Compute annotation-stratified LD scores and per-annotation ``M`` totals.
 
@@ -230,34 +231,80 @@ def compute_annotation_ld_scores(
         ld_edges (DataFrame): Pairwise LD edge list with columns ``variantId``,
             ``tagVariantId`` and ``r`` (see :func:`explode_ld_index`). Edges are
             assumed to be directed; they are symmetrised internally.
+        score_variants (DataFrame | None): Optional single-column dataframe of
+            ``variantId`` values to retain as scored/index variants ``j``. Tag
+            variants ``k`` are never restricted by this filter, so contributions
+            from the complete edge reference are preserved. M values are always
+            computed from the complete ``annotations_long`` dataframe.
 
     Returns:
         tuple[DataFrame, DataFrame]: A pair ``(ld_scores_long, m_annot)`` where
         ``ld_scores_long`` has columns ``variantId``, ``annotation`` and
         ``ldScore``, and ``m_annot`` has columns ``annotation`` and ``M``.
     """
+    # Flat exports contain one directed row for each index/tag pair.  Restore
+    # the reverse row for every scored endpoint, including scored variants that
+    # also occur on the tag side of another row.  Restricting the union to the
+    # scored endpoint keeps the work bounded by the output SNP universe while
+    # retaining all tag contributions.  The production exporter emits an
+    # upper-triangle edge set, so no global edge deduplication is needed here.
     directed = ld_edges.filter(f.col("variantId") != f.col("tagVariantId"))
-    swapped = directed.select(
-        f.col("tagVariantId").alias("variantId"),
-        f.col("variantId").alias("tagVariantId"),
-        f.col("r"),
+    if score_variants is not None:
+        score_ids = score_variants.select("variantId").distinct()
+        forward = directed.join(score_ids, on="variantId", how="inner")
+        reverse = (
+            directed.join(
+                score_ids.withColumnRenamed("variantId", "tagVariantId"),
+                on="tagVariantId",
+                how="inner",
+            )
+            .select(
+                f.col("tagVariantId").alias("variantId"),
+                f.col("variantId").alias("tagVariantId"),
+                f.col("r"),
+            )
+        )
+        candidate_edges = forward.unionByName(reverse)
+    else:
+        candidate_edges = directed.unionByName(
+            directed.select(
+                f.col("tagVariantId").alias("variantId"),
+                f.col("variantId").alias("tagVariantId"),
+                f.col("r"),
+            )
+        )
+    # Zero-correlation rows cannot contribute to any annotation LD score.  The
+    # generated min-r2=0 exports contain a large number of these rows, so this
+    # predicate is a substantial memory reduction and is mathematically exact.
+    candidate_edges = candidate_edges.filter(f.col("r") != 0.0)
+
+    # Push the annotation-tag restriction into the edge read.  It is equivalent
+    # to applying the join below, but avoids shuffling/storing unannotated LD
+    # partners (the dominant cost for the complete 1-cM edge sets).
+    annotation_tags = annotations_long.select("variantId").distinct()
+    candidate_edges = candidate_edges.join(
+        annotation_tags.withColumnRenamed("variantId", "tagVariantId"),
+        on="tagVariantId",
+        how="inner",
     )
-    symmetric = directed.unionByName(swapped).dropDuplicates(
-        ["variantId", "tagVariantId"]
-    )
-    # Self term (r = 1) for every reference variant and every annotated variant so
-    # that isolated variants still receive their own annotation contribution.
-    self_universe = (
-        symmetric.select("variantId")
-        .unionByName(annotations_long.select("variantId"))
-        .distinct()
-    )
+
+    # Self term (r = 1) for every scored/reference variant that has an
+    # annotation.  Existing self rows are intentionally replaced by the exact
+    # mathematical self term, rather than trusting rounded source values.
+    if score_variants is not None:
+        self_universe = score_ids.join(annotation_tags, on="variantId", how="inner")
+    else:
+        self_universe = (
+            candidate_edges.select("variantId")
+            .unionByName(annotations_long.select("variantId"))
+            .distinct()
+        )
     self_edges = (
         self_universe.withColumn("tagVariantId", f.col("variantId"))
         .withColumn("r", f.lit(1.0))
         .select("variantId", "tagVariantId", "r")
     )
-    all_edges = symmetric.unionByName(self_edges)
+    all_edges = candidate_edges.unionByName(self_edges)
 
     contributions = (
         all_edges.withColumn("r2", f.col("r") * f.col("r"))
