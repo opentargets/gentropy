@@ -21,6 +21,24 @@ def test_infer_ld_ancestry_aggregates_relative_sample_size() -> None:
     ) == "eas"
 
 
+def test_infer_ld_ancestry_accepts_one_population() -> None:
+    """A single recognised population is selected directly."""
+    assert infer_ld_ancestry(
+        [{"ldPopulation": "nfe", "relativeSampleSize": 1.0}]
+    ) == "nfe"
+
+
+def test_infer_ld_ancestry_selects_largest_aggregate() -> None:
+    """The plurality winner is selected independently of input ordering."""
+    assert infer_ld_ancestry(
+        [
+            {"ldPopulation": "afr", "relativeSampleSize": 0.2},
+            {"ldPopulation": "eas", "relativeSampleSize": 0.7},
+            {"ldPopulation": "nfe", "relativeSampleSize": 0.3},
+        ]
+    ) == "eas"
+
+
 def test_infer_ld_ancestry_tie_prefers_nfe() -> None:
     """The tie rule is deterministic and retains the existing NFE preference."""
     assert infer_ld_ancestry(
@@ -31,10 +49,26 @@ def test_infer_ld_ancestry_tie_prefers_nfe() -> None:
     ) == "nfe"
 
 
+def test_infer_ld_ancestry_tie_uses_sorted_population() -> None:
+    """Ties without NFE use the canonical lexical tie-breaker."""
+    assert infer_ld_ancestry(
+        [
+            {"ldPopulation": "eas", "relativeSampleSize": 0.5},
+            {"ldPopulation": "afr", "relativeSampleSize": 0.5},
+        ]
+    ) == "afr"
+
+
 def test_infer_ld_ancestry_rejects_unusable_structure() -> None:
     """Empty or unrecognised study metadata cannot select a reference."""
     with pytest.raises(ValueError):
         infer_ld_ancestry([{"ldPopulation": "unknown", "relativeSampleSize": 1.0}])
+    with pytest.raises(ValueError):
+        infer_ld_ancestry([{"ldPopulation": "nfe", "relativeSampleSize": "not-a-number"}])
+    with pytest.raises(ValueError):
+        infer_ld_ancestry([{"ldPopulation": "nfe", "relativeSampleSize": 0.0}])
+    with pytest.raises(TypeError):
+        infer_ld_ancestry(1.0)
 
 
 def test_flat_edges_preserve_tag_contributions_and_self_terms(spark) -> None:

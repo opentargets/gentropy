@@ -80,7 +80,9 @@ def infer_ld_ancestry(ld_population_structure: Any) -> str:
             numeric_weight = float(weight)
         except (TypeError, ValueError):
             numeric_weight = float("nan")
-        if canonical is None or not math.isfinite(numeric_weight):
+        # Relative sample sizes are proportions, so zero/negative and non-finite
+        # values do not provide usable evidence for choosing a reference panel.
+        if canonical is None or not math.isfinite(numeric_weight) or numeric_weight <= 0:
             continue
         aggregate[canonical] = aggregate.get(canonical, 0.0) + numeric_weight
 
