@@ -71,7 +71,7 @@ def infer_ld_ancestry(ld_population_structure: Any) -> str:
     """
     if ld_population_structure is None:
         raise ValueError("ldPopulationStructure is None")
-    if isinstance(ld_population_structure, (str, bytes)) or not isinstance(
+    if isinstance(ld_population_structure, (str, bytes, Mapping)) or not isinstance(
         ld_population_structure, Iterable
     ):
         raise TypeError(

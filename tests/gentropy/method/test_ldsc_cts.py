@@ -68,7 +68,7 @@ def test_infer_ld_ancestry_rejects_unusable_structure() -> None:
     with pytest.raises(ValueError):
         infer_ld_ancestry([{"ldPopulation": "nfe", "relativeSampleSize": 0.0}])
     with pytest.raises(TypeError):
-        infer_ld_ancestry(1.0)
+        infer_ld_ancestry({"ldPopulation": "nfe", "relativeSampleSize": 1.0})
 
 
 def test_flat_edges_preserve_tag_contributions_and_self_terms(spark) -> None:
