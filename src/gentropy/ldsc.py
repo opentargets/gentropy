@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable
 from typing import Any
 
 import numpy as np
@@ -19,7 +18,7 @@ from pyspark.sql.types import (
 )
 
 from gentropy.common.session import Session
-from gentropy.method.ldsc import run_ldsc_h2_from_arrays
+from gentropy.method.ldsc import infer_ld_ancestry, run_ldsc_h2_from_arrays
 
 
 class HeritabilityEstimateStep:
@@ -574,7 +573,7 @@ class HeritabilityEstimateStep:
 
         ancestry: str | None
         try:
-            ancestry = self._infer_ld_ancestry(row["ldPopulationStructure"])
+            ancestry = infer_ld_ancestry(row["ldPopulationStructure"])
         except Exception:
             ancestry = None
             skip_reasons.append("Could not infer ancestry")
@@ -585,100 +584,6 @@ class HeritabilityEstimateStep:
             "analysis_flags": analysis_flags,
             "ancestry": ancestry,
         }
-
-    @staticmethod
-    def _extract_population_and_weight(entry: Any) -> tuple[str | None, float | None]:
-        """Extract population label and weight from a population structure entry.
-
-        Args:
-            entry (Any): Population structure entry.
-
-        Returns:
-            tuple[str | None, float | None]: Population label and weight.
-        """
-        pop = None
-        weight = None
-
-        if hasattr(entry, "population"):
-            pop = entry.population
-        elif hasattr(entry, "ldPopulation"):
-            pop = entry.ldPopulation
-
-        if hasattr(entry, "proportion"):
-            weight = entry.proportion
-        elif hasattr(entry, "relativeSampleSize"):
-            weight = entry.relativeSampleSize
-
-        if isinstance(entry, dict):
-            pop = pop or entry.get("population") or entry.get("ldPopulation")
-            weight = (
-                weight
-                or entry.get("proportion")
-                or entry.get("relativeSampleSize")
-                or entry.get("weight")
-            )
-
-        try:
-            weight = float(weight) if weight is not None else None
-        except Exception:
-            weight = None
-
-        return (str(pop).strip().lower() if pop else None, weight)
-
-    @staticmethod
-    def _infer_ld_ancestry(ld_pop_struct: Any) -> str:
-        """Infer canonical LD ancestry from ldPopulationStructure.
-
-        In the event of a tie, prefer ``nfe`` if it is one of the tied ancestries.
-
-        Args:
-            ld_pop_struct (Any): Iterable population structure.
-
-        Returns:
-            str: Canonical ancestry label.
-        """
-        if ld_pop_struct is None:
-            raise ValueError("ldPopulationStructure is None, cannot infer ancestry")
-
-        if not isinstance(ld_pop_struct, Iterable):
-            raise TypeError(
-                f"ldPopulationStructure has unexpected type {type(ld_pop_struct)}; "
-                "expected iterable of population structures."
-            )
-
-        pop_map = {
-            "afr": "afr",
-            "amr": "amr",
-            "eas": "eas",
-            "fin": "fin",
-            "nfe": "nfe",
-        }
-
-        agg: dict[str, float] = {}
-
-        for entry in ld_pop_struct:
-            pop, weight = HeritabilityEstimateStep._extract_population_and_weight(entry)
-            if pop is None or weight is None:
-                continue
-
-            canonical = pop_map.get(pop)
-            if canonical is None:
-                continue
-
-            agg[canonical] = agg.get(canonical, 0.0) + weight
-
-        if not agg:
-            raise ValueError(
-                f"Could not map any populations from ldPopulationStructure: {ld_pop_struct}"
-            )
-
-        max_weight = max(agg.values())
-        tied = [pop for pop, weight in agg.items() if weight == max_weight]
-
-        if "nfe" in tied:
-            return "nfe"
-
-        return sorted(tied)[0]
 
     @staticmethod
     def _normalise_analysis_flags(analysis_flags: Any) -> list[str]:
