@@ -55,15 +55,35 @@ class LocusBreakerClumpingStep:
         # passing their own p-value cutoff, so they can share a single scan of the
         # summary statistics taken at the looser of the two thresholds. Both
         # methods re-apply their own cutoff internally, so this is a pure read
-        # optimisation -- previously each one triggered its own full scan of the
-        # input, which on the GWAS Catalog dataset is ~3M parquet files.
+        # optimisation.
+        #
+        # The shared subset is written out and read back rather than held in an
+        # in-memory cache. `persist()` on its own does not achieve a single scan:
+        # nothing is materialised until the final write action, and at that point
+        # three branches consume the subset -- locus-breaker once, window-based
+        # twice, because process_locus_breaker_output uses it both as a semi-join
+        # filter and to re-clump large loci. Those branches are independent, so
+        # AQE submits them concurrently and each races to compute the same
+        # partitions on a different executor. Measured on the GWAS Catalog run of
+        # 2026-08-27: 993 of 1,004 sampled cache blocks were read, decompressed
+        # and stored three times over.
+        #
+        # Checkpointing also fixes the partitioning. The filtered subset is ~0.02%
+        # of the input, so scanning it in place leaves ~121k partitions holding
+        # ~45KB each; every downstream window Exchange then has a 121k-partition
+        # map side. Writing at a sane width shrinks the map side of all three by
+        # two orders of magnitude.
         #
         # `sum_stats` deliberately stays unfiltered for
         # annotate_locus_statistics_boundaries below, which needs every variant
         # inside a locus window and not only the significant ones.
-        significant = sum_stats.pvalue_filter(
+        significant_subset_path = (
+            f"{clumped_study_locus_output_path}_significant_subset"
+        )
+        sum_stats.pvalue_filter(
             max(lbc_baseline_pvalue, wbc_pvalue_threshold)
-        ).persist()
+        ).df.repartition(1000).write.mode("overwrite").parquet(significant_subset_path)
+        significant = SummaryStatistics.from_parquet(session, significant_subset_path)
 
         lbc = significant.locus_breaker_clumping(
             lbc_baseline_pvalue,
@@ -93,4 +113,3 @@ class LocusBreakerClumpingStep:
         clumped_result.df.write.partitionBy("studyLocusId").mode(
             session.write_mode
         ).parquet(clumped_study_locus_output_path)
-        significant.unpersist()
