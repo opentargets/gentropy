@@ -485,7 +485,8 @@ class LocusToGeneTrainer:
         Args:
             y_true (np.ndarray): True labels
             y_pred (np.ndarray): Predicted labels
-            y_pred_proba (np.ndarray): Predicted probabilities for the positive class
+            y_pred_proba (np.ndarray): Class probabilities, shape (n_samples, 2). Column 1 holds
+                the probability of the positive class and is what the threshold-free metrics use.
 
         Returns:
             dict[str, float]: Dictionary of evaluation metrics
@@ -498,9 +499,10 @@ class LocusToGeneTrainer:
             ),
             "accuracy": accuracy_score(y_true, y_pred),
             "weightedPrecision": precision_score(y_true, y_pred, average="weighted"),
-            "averagePrecision": average_precision_score(
-                y_true, y_pred, average="weighted"
-            ),
+            # Average precision summarises the whole precision-recall curve, so it needs the
+            # scores rather than the thresholded labels. Given 0/1 predictions the curve has a
+            # single interior point and the area comes out far below the model's real value.
+            "averagePrecision": average_precision_score(y_true, y_pred_proba[:, 1]),
             "weightedRecall": recall_score(y_true, y_pred, average="weighted"),
             "f1": f1_score(y_true, y_pred, average="weighted"),
             "TP": tp,
