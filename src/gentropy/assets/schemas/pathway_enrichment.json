@@ -1,0 +1,41 @@
+{
+  "type": "struct",
+  "fields": [
+    {
+      "name": "diseaseId",
+      "type": "string",
+      "nullable": false,
+      "metadata": {}
+    },
+    {
+      "name": "pathway",
+      "type": "string",
+      "nullable": false,
+      "metadata": {}
+    },
+    {
+      "name": "source",
+      "type": "string",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "nes",
+      "type": "double",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "pval",
+      "type": "double",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "fdr",
+      "type": "double",
+      "nullable": true,
+      "metadata": {}
+    }
+  ]
+}

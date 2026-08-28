@@ -20,6 +20,8 @@ from gentropy.dataset.intervals import Intervals
 from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
 from gentropy.dataset.l2g_prediction import L2GPrediction
+from gentropy.dataset.pathway_enrichment import PathwayEnrichment
+from gentropy.dataset.pathway_index import PathwayIndex
 from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import StudyLocus
 from gentropy.dataset.target_index import TargetIndex
@@ -61,6 +63,8 @@ class LocusToGeneFeatureMatrixStep:
         target_index_path: str | None = None,
         intervals_path: str | None = None,
         gene_interactions_path: str | None = None,
+        pathway_index_path: str | None = None,
+        pathway_enrichment_path: str | None = None,
         feature_matrix_path: str,
         append_null_features: bool = False,
     ) -> None:
@@ -76,6 +80,8 @@ class LocusToGeneFeatureMatrixStep:
             target_index_path (str | None): Path to the target index dataset
             intervals_path (str | None): Path to the interval dataset
             gene_interactions_path (str | None): Path to the protein-protein interaction (PPI) dataset
+            pathway_index_path (str | None): Path to the pathway library, as a GMT file
+            pathway_enrichment_path (str | None): Path to the disease-pathway enrichment dataset
             feature_matrix_path (str): Path to the L2G feature matrix output dataset
             append_null_features (bool): Whether to append null features to the feature matrix. Defaults to False.
         """
@@ -122,6 +128,20 @@ class LocusToGeneFeatureMatrixStep:
             else None
         )
 
+        pathway_index = (
+            PathwayIndex.from_gmt(session, pathway_index_path)
+            if pathway_index_path
+            else None
+        )
+
+        # No recursive file lookup here: the enrichment results are partitioned by diseaseId,
+        # and recursing would stop Spark from reading that partition column back.
+        pathway_enrichment = (
+            PathwayEnrichment.from_parquet(session, pathway_enrichment_path)
+            if pathway_enrichment_path
+            else None
+        )
+
         trans_pqtl_features = {
             "transPQtlColocH4Maximum",
             "transPQtlColocH4MaximumNeighbourhood",
@@ -137,6 +157,23 @@ class LocusToGeneFeatureMatrixStep:
                 "Provide `target_index_path`."
             )
 
+        pathway_features = {
+            "pathwayEnrichment500kb",
+            "pathwayEnrichment500kbNeighbourhood",
+        }
+        if pathway_features.intersection(features_list) and (
+            pathway_index is None
+            or pathway_enrichment is None
+            or target_index is None
+            or studies is None
+        ):
+            raise ValueError(
+                "Pathway enrichment features need the pathway library, the enrichment "
+                "results, the target index and the study index. Provide "
+                "`pathway_index_path`, `pathway_enrichment_path`, `target_index_path` "
+                "and `study_index_path`."
+            )
+
         features_input_loader = L2GFeatureInputLoader(
             variant_index=variant_index,
             colocalisation=coloc,
@@ -145,6 +182,8 @@ class LocusToGeneFeatureMatrixStep:
             target_index=target_index,
             intervals=intervals,
             interactions=interactions,
+            pathway_index=pathway_index,
+            pathway_enrichment=pathway_enrichment,
         )
 
         fm = credible_set.filter(f.col("studyType") == "gwas").build_feature_matrix(

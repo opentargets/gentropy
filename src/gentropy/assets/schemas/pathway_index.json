@@ -1,0 +1,27 @@
+{
+  "type": "struct",
+  "fields": [
+    {
+      "name": "pathway",
+      "type": "string",
+      "nullable": false,
+      "metadata": {}
+    },
+    {
+      "name": "source",
+      "type": "string",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "geneSymbols",
+      "type": {
+        "type": "array",
+        "elementType": "string",
+        "containsNull": false
+      },
+      "nullable": false,
+      "metadata": {}
+    }
+  ]
+}
