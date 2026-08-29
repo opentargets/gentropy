@@ -9,7 +9,7 @@ import pyspark.sql.functions as f
 from pandas import DataFrame as pd_dataframe
 from pyspark.sql import Window
 
-from gentropy.common.spark import convert_from_long_to_wide
+from gentropy.common.spark import convert_from_long_to_wide, persist_dataframe
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
 from gentropy.method.l2g.feature_factory import FeatureFactory, L2GFeatureInputLoader
 
@@ -203,7 +203,7 @@ class L2GFeatureMatrix:
         Returns:
             Self: Persisted Dataset
         """
-        self._df = self._df.persist()
+        self._df = persist_dataframe(self._df)
         return self
 
     def append_null_features(self, features_list: list[str]) -> L2GFeatureMatrix:

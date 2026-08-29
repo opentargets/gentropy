@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import operator
 import re
 from collections.abc import Callable, Iterable
@@ -1040,3 +1041,42 @@ def all_struct_fields_in_array(
         f.lit(True),
         lambda acc, x: acc & (x[struct_field] == value),
     )
+
+
+def persist_dataframe(df: DataFrame) -> DataFrame:
+    """Persist a dataframe, falling back to `cache` where `persist` cannot run.
+
+    `DataFrame.persist` builds a Java `StorageLevel` from Python, and on some Spark
+    distributions py4j cannot reach that constructor because it is `private[spark]` in Scala.
+    Dataproc image 2.2 is one of them, and the call dies with::
+
+        py4j.Py4JException: Constructor org.apache.spark.storage.StorageLevel(
+          [Boolean, Boolean, Boolean, Boolean, Integer]) does not exist
+
+    This is not a version skew: aligning the pyspark client to the cluster's Spark version does
+    not change it. `DataFrame.cache` calls `_jdf.cache()` straight on the JVM and never builds a
+    `StorageLevel`, so it works where `persist` does not, and it uses the same storage level that
+    a no-argument `persist` asks for.
+
+    Every gentropy caller persists at the default level, so the fallback is equivalent rather
+    than a downgrade. `persist` is still tried first, making this a no-op wherever it works.
+
+    Args:
+        df (DataFrame): Dataframe to persist.
+
+    Returns:
+        DataFrame: The same dataframe, marked for caching.
+
+    Examples:
+        >>> df = spark.createDataFrame([(1,)], "a int")
+        >>> persist_dataframe(df).is_cached
+        True
+        >>> df.unpersist() and None
+    """
+    try:
+        return df.persist()
+    except Exception as error:  # noqa: BLE001 - fall back on any persist-time failure
+        logging.warning(
+            "DataFrame.persist() failed (%s); falling back to DataFrame.cache().", error
+        )
+        return df.cache()

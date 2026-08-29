@@ -8,7 +8,7 @@ import pyspark.sql.functions as f
 from pyspark.sql import DataFrame, Window
 
 from gentropy.common.processing import extract_chromosome, extract_position
-from gentropy.common.spark import convert_from_wide_to_long
+from gentropy.common.spark import convert_from_wide_to_long, persist_dataframe
 from gentropy.dataset.intervals import Intervals
 from gentropy.dataset.l2g_features.l2g_feature import L2GFeature
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
@@ -183,13 +183,13 @@ def e2g_interval_feature_wide_logic_binned(
     )
 
     # Weight and aggregate to gene per locus
-    base_df = (
+    base_df = persist_dataframe(
         per_variant_gene.withColumn(
             "weightedIntervalScore", f.col("maxScore") * f.col("pp")
         )
         .groupBy("studyLocusId", "geneId")
         .agg(f.sum("weightedIntervalScore").alias(base_name))
-    ).persist()
+    )
 
     # Neighbourhood ratio within locus, using locus max as the denominator
     w = Window.partitionBy("studyLocusId")
@@ -307,13 +307,13 @@ def e2g_interval_feature_wide_logic(
         f.first("pp", ignorenulls=True).alias("pp"),
     )
 
-    base_df = (
+    base_df = persist_dataframe(
         per_variant_gene.withColumn(
             "weightedIntervalScore", f.col("maxScore") * f.col("pp")
         )
         .groupBy("studyLocusId", "geneId")
         .agg(f.sum("weightedIntervalScore").alias(base_name))
-    ).persist()
+    )
 
     w = Window.partitionBy("studyLocusId")
     with_max = base_df.withColumn("regional_max", f.max(base_name).over(w))
@@ -380,8 +380,8 @@ def get_or_make_e2g_wide(
             max_bins_per_interval=max_bins_per_interval,
             repartitions_variants=repartitions_variants,
             repartitions_intervals=repartitions_intervals,
-        ).persist()
-        feature_dependency[cache_key] = wide
+        )
+        feature_dependency[cache_key] = persist_dataframe(wide)
     return feature_dependency[cache_key]
 
 

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from unittest.mock import patch
+
 import pytest
 from pyspark.sql import Column, SparkSession
 from pyspark.sql import functions as f
@@ -10,6 +12,7 @@ from pyspark.sql import types as t
 from gentropy.common.spark import (
     enforce_schema,
     order_array_of_structs_by_field,
+    persist_dataframe,
 )
 
 
@@ -153,3 +156,31 @@ class TestEnforceSchema:
             "struct_6",
         ]:
             assert self.test_dataset.schema[column].dataType == self.EXPECTED_SCHEMA
+
+
+def test_persist_dataframe(spark: SparkSession) -> None:
+    """Test that persist_dataframe marks a dataframe for caching."""
+    df = spark.createDataFrame([(1,)], "a int")
+    try:
+        assert persist_dataframe(df).is_cached
+    finally:
+        df.unpersist()
+
+
+def test_persist_dataframe_falls_back_to_cache(spark: SparkSession) -> None:
+    """Test the fallback taken where persist cannot build a Java StorageLevel.
+
+    On some Spark distributions - Dataproc image 2.2 among them - py4j cannot reach the
+    `private[spark]` StorageLevel constructor, so `persist` raises where `cache`, which calls
+    the JVM directly, succeeds.
+    """
+    df = spark.createDataFrame([(1,)], "a int")
+    failure = Exception(
+        "py4j.Py4JException: Constructor org.apache.spark.storage.StorageLevel("
+        "[Boolean, Boolean, Boolean, Boolean, Integer]) does not exist"
+    )
+    try:
+        with patch.object(type(df), "persist", side_effect=failure):
+            assert persist_dataframe(df).is_cached
+    finally:
+        df.unpersist()
