@@ -15,7 +15,7 @@ from pyspark.sql.types import (
     StructType,
 )
 
-from gentropy.common.processing import normalize_chromosome
+from gentropy.common.processing import flag_non_atgc_alleles, normalize_chromosome
 from gentropy.common.session import NativeFileFormat, Session
 from gentropy.common.spark import clean_strings_from_symbols
 from gentropy.common.stats import split_pvalue_column
@@ -79,6 +79,146 @@ class EqtlCatalogueFinemapping:
     )
 
     @classmethod
+    def scale_pip(
+        cls: type[EqtlCatalogueFinemapping],
+        df: DataFrame,
+        tolerance: float = 0.00001,
+    ) -> DataFrame:
+        r"""Scales PIP when PIPsum is above 1.0 + tolerance.
+
+        This computation ensures that PIPsum is in the range $`[0, 1.0]`$. The origin of this bug
+        in the data comes from incorrect assignment of PIP value computed in SuSiE results per variant instead of
+        per (credible-set x variant) alpha value assignment. The actual credible-set PIP values (alpha) can be
+        rescued from lbf variables for the $`l`$-th component.
+
+        Assumes a flat prior and the LBF in named $`L_1,\ldots,L_l`$ columns.
+
+        For variant $`j`$, $`\alpha_j`$ is defined as:
+
+        ```math
+        \alpha_j =
+        \frac{
+            \exp\left(\operatorname{LBF}_j\right)
+        }{
+            \sum_{k \in V}
+            \exp\left(\operatorname{LBF}_k\right)
+        }
+        ```
+
+        For numerical stability, the denominator is computed using log-sum-exp.
+        First, define the maximum log Bayes factor:
+
+        ```math
+        m = \max_{k \in V}\operatorname{LBF}_k
+        ```
+
+        The log-sum-exp is then:
+
+        ```math
+        \operatorname{LSE}
+        =
+        m
+        +
+        \log\left(
+            \sum_{k \in V}
+            \exp\left(\operatorname{LBF}_k-m\right)
+        \right)
+        ```
+
+        Finally, alpha is computed as:
+
+        ```math
+        \alpha_j
+        =
+        \exp\left(
+            \operatorname{LBF}_j-\operatorname{LSE}
+        \right)
+        ```
+
+        The resulting alpha values satisfy:
+
+        ```math
+        0 \leq \alpha_j \leq 1,
+        \qquad
+        \sum_{j \in V}\alpha_j = 1
+        ```
+
+        This function does following:
+
+        1. Compute PIPsum over the $`l`$-th credible set using the reported `pip` column.
+        2. When PIPsum is above the cutoff (1.0 + tolerance), mark the whole study as having per-variant PIP in the column instead of a per-variant, per-credible-set alpha value.*
+        3. Choose the `lbf_variable` that represents the $`l`$-th credible-set component (e.g. $`\mathtt{credibleSetIndex}=1 \rightarrow l=1 \rightarrow \mathtt{lbf\_variable1}`$).
+        4. Find $`\max(\operatorname{lbf}_l)`$ over all variants in the $`l`$-th credible-set component.
+        5. Compute $`\operatorname{logsumexp}(\operatorname{lbf}_l)`$ over all variants in the $`l`$-th credible-set component.
+        6. Compute alpha by exponentiating the difference between the $`j`$-th variant's log Bayes factor in the $`l`$-th component, $`\operatorname{lbf}_{jl}`$, and $`\operatorname{logsumexp}(\operatorname{lbf}_l)`$.
+
+        *The whole study is misaligned because all credible sets come from the same input file and therefore share the same problem with PIP values, even when PIPsum is not above $`1.0+\mathtt{tolerance}`$ for some credible sets.
+
+        Args:
+            df (DataFrame): DataFrame containing the log Bayes factor columns.
+            tolerance (float): Delta tolerance added to 1.0 to reflect numerical precision issues.
+
+        Examples:
+            `study1` has two credible sets (`cs1`, `cs2`). `cs1`'s reported `pip` sums to `1.2`,
+            above the cutoff, so the whole study is treated as carrying per-variant PIP and `cs2`
+            is corrected too, even though its own sum (`0.6`) was within tolerance. `study2`'s
+            `cs3` sums to `0.4`, so it is never flagged and its `pip` values are left untouched.
+
+            >>> data = [
+            ...     ("study1", "d1", "r1", "g1", "cs1", "v1", 0.6, 2.0),
+            ...     ("study1", "d1", "r1", "g1", "cs1", "v2", 0.6, 1.0),
+            ...     ("study1", "d1", "r1", "g1", "cs2", "v3", 0.3, 1.5),
+            ...     ("study1", "d1", "r1", "g1", "cs2", "v4", 0.3, 0.5),
+            ...     ("study2", "d2", "r2", "g2", "cs3", "v5", 0.2, 1.0),
+            ...     ("study2", "d2", "r2", "g2", "cs3", "v6", 0.2, 0.0),
+            ... ]
+            >>> columns = ["study_id", "dataset_id", "region", "gene_id", "cs_id", "variant", "pip", "logBF"]
+            >>> df = spark.createDataFrame(data, columns)
+            >>> EqtlCatalogueFinemapping.scale_pip(df).select(
+            ...     "study_id", "cs_id", "variant", f.round("pip", 4).alias("pip")
+            ... ).orderBy("study_id", "cs_id", "variant").show()
+            +--------+-----+-------+------+
+            |study_id|cs_id|variant|   pip|
+            +--------+-----+-------+------+
+            |  study1|  cs1|     v1|0.7311|
+            |  study1|  cs1|     v2|0.2689|
+            |  study1|  cs2|     v3|0.7311|
+            |  study1|  cs2|     v4|0.2689|
+            |  study2|  cs3|     v5|   0.2|
+            |  study2|  cs3|     v6|   0.2|
+            +--------+-----+-------+------+
+            <BLANKLINE>
+
+        Returns:
+            DataFrame: DataFrame where `pip` is replaced with recomputed per-credible-set alpha for affected studies.
+        """
+        # First we compute the boolean condition checking if PIP sum over single credible
+        # set variants is above 1.0 + tolerance
+        cs = Window.partitionBy("cs_id", "gene_id", "region", "dataset_id", "study_id")
+        study = Window.partitionBy("study_id")
+
+        lbf_jl = f.col("logBF")
+        max_lbf_l = f.max(lbf_jl).over(cs)
+        sum_lbf_l = max_lbf_l + f.log(f.sum(f.exp(lbf_jl - max_lbf_l)).over(cs))
+
+        return (
+            df.withColumn(
+                "pipSumAboveCutoff",
+                f.sum("pip").over(cs) > 1.0 + tolerance,
+            )
+            .withColumn(
+                "pip",
+                f.when(
+                    f.max("pipSumAboveCutoff").over(study),
+                    f.exp(lbf_jl - sum_lbf_l),
+                ).otherwise(
+                    f.col("pip"),
+                ),
+            )
+            .drop("pipSumAboveCutoff")
+        )
+
+    @classmethod
     def _extract_credible_set_index(
         cls: type[EqtlCatalogueFinemapping], cs_id: Column
     ) -> Column:
@@ -130,20 +270,26 @@ class EqtlCatalogueFinemapping:
         credible_sets: DataFrame,
         lbf: DataFrame,
         studies_metadata: DataFrame,
-        ss_ftp_path_template: str = "https://ftp.ebi.ac.uk/pub/databases/spot/eQTL/sumstats",
+        ss_ftp_path_template: str = "https://ftp.ebi.ac.uk/pub/databases/spot/eQTL/r8_beta/sumstats",
     ) -> DataFrame:
         """Parse the SuSIE results into a DataFrame containing the finemapping statistics and metadata about the studies.
+
+        Some source studies (e.g. CommonMind/QTS000008, Kim-Hellmuth/QTS000042) report the per-variant
+        `pip` computed by SuSiE instead of the per-(credible-set x variant) alpha value, which makes the
+        posterior probabilities within a credible set sum to more than 1.0. This is corrected via
+        [`scale_pip`][gentropy.datasource.eqtl_catalogue.finemapping.EqtlCatalogueFinemapping.scale_pip],
+        which recomputes alpha from the log Bayes factors for any study affected by this issue.
 
         Args:
             credible_sets (DataFrame): DataFrame containing raw statistics of all variants in the credible sets.
             lbf (DataFrame): DataFrame containing the raw log Bayes Factors for all variants.
             studies_metadata (DataFrame): DataFrame containing the study metadata.
-            ss_ftp_path_template (str, optional): eQTL Catalogue FTP path template for summary statistics. Defaults to "https://ftp.ebi.ac.uk/pub/databases/spot/eQTL/sumstats".
+            ss_ftp_path_template (str, optional): eQTL Catalogue FTP path template for summary statistics. Defaults to "https://ftp.ebi.ac.uk/pub/databases/spot/eQTL/r8_beta/sumstats".
 
         Returns:
             DataFrame: Processed SuSIE results to contain metadata about the studies and the finemapping statistics.
         """
-        return (
+        results = (
             lbf.join(
                 credible_sets.join(f.broadcast(studies_metadata), on="dataset_id"),
                 on=[
@@ -167,6 +313,7 @@ class EqtlCatalogueFinemapping:
                 .when(f.col("credibleSetIndex") == 9, f.col("lbf_variable9"))
                 .when(f.col("credibleSetIndex") == 10, f.col("lbf_variable10")),
             )
+            .transform(cls.scale_pip)
             .select(
                 f.regexp_replace(f.col("variant"), r"chr", "").alias("variantId"),
                 f.col("region"),
@@ -188,6 +335,8 @@ class EqtlCatalogueFinemapping:
                 clean_strings_from_symbols(
                     f.concat_ws(
                         "_",
+                        f.col("study_id"),
+                        f.col("dataset_id"),
                         f.col("study_label"),
                         f.col("quant_method"),
                         f.col("sample_group"),
@@ -209,6 +358,7 @@ class EqtlCatalogueFinemapping:
                 f.col("condition_label").alias("condition"),
             )
         )
+        return results
 
     @classmethod
     def from_susie_results(
@@ -278,6 +428,11 @@ class EqtlCatalogueFinemapping:
     ) -> DataFrame:
         """Load raw credible sets from eQTL Catalogue.
 
+        Variants whose `ref`/`alt` are not purely A/T/G/C (e.g. `<DEL>`, `<DUP>` CNV notation used
+        for large structural variants) are dropped, as they are reported with imprecise coordinates
+        and were the source of duplicate credible-set entries (e.g. AFR_LCL/QTS000044, MAGE/QTS000055).
+        The `ref`/`alt` columns are only needed to apply this filter and are not present in the output.
+
         Args:
             credible_set_path (str | list[str]): Path(s) or glob to parquet files containing finemapping results for any variant belonging to a credible set.
             session (Session | None, optional): Session object. If not provided, the method will try to find an active session. Defaults to None.
@@ -296,6 +451,8 @@ class EqtlCatalogueFinemapping:
                 "molecular_trait_id",
                 "chromosome",
                 "position",
+                "ref",
+                "alt",
                 "variant",
                 "pvalue",
                 "beta",
@@ -309,6 +466,9 @@ class EqtlCatalogueFinemapping:
                 # Parsing credible set index from the cs_id:
                 cls._extract_credible_set_index(f.col("cs_id")),
             )
+            # Remove non-ATGC alleles, this removes the <DEL>, <DUP> variants:
+            .filter(flag_non_atgc_alleles(f.col("ref"), f.col("alt")))
+            .drop("ref", "alt")
             # Remove duplicates caused by explosion of single variants to multiple rsid-s:
             .distinct()
         )

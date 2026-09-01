@@ -42,6 +42,10 @@ markdown_extensions:
           class: mermaid
           format: !!python/name:pymdownx.superfences.fence_code_format
 
+        - name: math
+          class: arithmatex
+          format: !!python/name:pymdownx.arithmatex.arithmatex_fenced_format
+
   - pymdownx.snippets:
       base_path: "docs"
       dedent_subsections: true
@@ -58,7 +62,9 @@ markdown_extensions:
   - markdown_katex:
       no_inline_svg: true
       insert_fonts_css: true
-
+  - pymdownx.arithmatex:
+      generic: true
+      inline_syntax: ["dollar"]
 hooks:
   - src/utils/schemadocs.py
 
