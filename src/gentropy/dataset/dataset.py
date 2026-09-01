@@ -429,10 +429,12 @@ class Dataset(ABC):
 
         This implementation allows keeping the first occurrence of the value.
 
-        The ordering that decides which occurrence is kept must be deterministic, otherwise
-        repeated runs over the same input flag different rows and the resulting dataset is not
-        reproducible. When no ordering is given, rows are ordered by
-        `monotonically_increasing_id()`, which preserves the order the rows were read in.
+        The ordering decides which occurrence is kept, so callers that care which row survives
+        should pass `order_by` with columns from the data itself, for example the credible set
+        Bayes factor. The default, `monotonically_increasing_id()`, only replaces the unseeded
+        `rand()` that was used before: it is a stable function of the physical row layout rather
+        than a random draw, but that layout is not guaranteed across runs, so the default picks an
+        arbitrary row and should not be relied on for reproducibility.
 
         Args:
             test_column (Column): Column to check for duplicates
@@ -442,6 +444,24 @@ class Dataset(ABC):
 
         Returns:
             Column: Column with a boolean flag for duplicates
+
+        Examples:
+            >>> df = spark.createDataFrame(
+            ...     [("sl1", 12.0), ("sl1", 30.0), ("sl2", 5.0)],
+            ...     ["studyLocusId", "credibleSetlog10BF"],
+            ... )
+            >>> duplicate = Dataset.flag_duplicates(
+            ...     f.col("studyLocusId"), [f.col("credibleSetlog10BF").desc()]
+            ... )
+            >>> df.withColumn("isDuplicate", duplicate).orderBy("studyLocusId", "credibleSetlog10BF").show()
+            +------------+------------------+-----------+
+            |studyLocusId|credibleSetlog10BF|isDuplicate|
+            +------------+------------------+-----------+
+            |         sl1|              12.0|       true|
+            |         sl1|              30.0|      false|
+            |         sl2|               5.0|      false|
+            +------------+------------------+-----------+
+            <BLANKLINE>
         """
         ordering = order_by if order_by else [f.monotonically_increasing_id()]
         return (
