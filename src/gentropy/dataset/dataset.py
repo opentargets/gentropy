@@ -430,8 +430,8 @@ class Dataset(ABC):
         This implementation allows keeping the first occurrence of the value.
 
         The ordering decides which occurrence is kept, so callers that care which row survives
-        should pass `order_by` with columns from the data itself, for example the credible set
-        Bayes factor. The default, `monotonically_increasing_id()`, only replaces the unseeded
+        should pass `order_by` with columns from the data itself, for example the size of the
+        credible set. The default, `monotonically_increasing_id()`, only replaces the unseeded
         `rand()` that was used before: it is a stable function of the physical row layout rather
         than a random draw, but that layout is not guaranteed across runs, so the default picks an
         arbitrary row and should not be relied on for reproducibility.
@@ -447,20 +447,20 @@ class Dataset(ABC):
 
         Examples:
             >>> df = spark.createDataFrame(
-            ...     [("sl1", 12.0), ("sl1", 30.0), ("sl2", 5.0)],
-            ...     ["studyLocusId", "credibleSetlog10BF"],
+            ...     [("sl1", ["v1", "v2", "v3"]), ("sl1", ["v1"]), ("sl2", ["v4", "v5"])],
+            ...     "studyLocusId string, locus array<string>",
             ... )
             >>> duplicate = Dataset.flag_duplicates(
-            ...     f.col("studyLocusId"), [f.col("credibleSetlog10BF").desc()]
+            ...     f.col("studyLocusId"), [f.size("locus").asc()]
             ... )
-            >>> df.withColumn("isDuplicate", duplicate).orderBy("studyLocusId", "credibleSetlog10BF").show()
-            +------------+------------------+-----------+
-            |studyLocusId|credibleSetlog10BF|isDuplicate|
-            +------------+------------------+-----------+
-            |         sl1|              12.0|       true|
-            |         sl1|              30.0|      false|
-            |         sl2|               5.0|      false|
-            +------------+------------------+-----------+
+            >>> df.withColumn("isDuplicate", duplicate).orderBy("studyLocusId", f.size("locus")).show()
+            +------------+------------+-----------+
+            |studyLocusId|       locus|isDuplicate|
+            +------------+------------+-----------+
+            |         sl1|        [v1]|      false|
+            |         sl1|[v1, v2, v3]|       true|
+            |         sl2|    [v4, v5]|      false|
+            +------------+------------+-----------+
             <BLANKLINE>
         """
         ordering = order_by if order_by else [f.monotonically_increasing_id()]
