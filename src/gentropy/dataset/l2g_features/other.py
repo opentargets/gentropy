@@ -336,6 +336,10 @@ class CredibleSetConfidenceFeature(L2GFeature):
         """
         return (
             f.when(
+                f.col("confidence") == CredibleSetConfidenceClasses.REPLICATED.value,
+                f.lit(1.0),
+            )
+            .when(
                 f.col("confidence")
                 == CredibleSetConfidenceClasses.FINEMAPPED_IN_SAMPLE_LD.value,
                 f.lit(1.0),

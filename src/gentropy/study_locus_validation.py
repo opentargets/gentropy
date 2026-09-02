@@ -74,9 +74,16 @@ class StudyLocusValidationStep:
 
         result = study_locus_with_qc.valid_rows(invalid_qc_reasons)
 
+        # Replication is assessed once every other check is done, on the credible sets that
+        # passed them: a credible set dropped by an earlier flag is not evidence of replication.
+        # The confidence is then re-assigned, this time taking replication into account.
+        valid_study_locus = result.valid.qc_replication(study_index).assign_confidence(
+            use_replication=True
+        )
+
         (
             # Valid study locus partitioned to simplify the finding of overlaps
-            result.valid.df.repartitionByRange(
+            valid_study_locus.df.repartitionByRange(
                 session.output_partitions,
                 "chromosome",
                 "position",
