@@ -141,7 +141,7 @@ class BigBrainStudyIndex:
                 f.array(
                     f.struct(
                         f.lit(pub.SAMPLE_SIZE).alias("sampleSize"),
-                        f.lit(pub.ANCESTRY).alias("ancestry"),
+                        f.lit(pub.ANCESTRY_LABEL).alias("ancestry"),
                     )
                 ),
             )
