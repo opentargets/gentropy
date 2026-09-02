@@ -888,6 +888,46 @@ class FineMappingPlanGeneratorConfig(StepConfig):
 
 
 @dataclass
+class EffectorGeneListConfig(StepConfig):
+    """Effector Gene List (EGL) generation step configuration."""
+
+    effector_gene_list_path: str = MISSING
+    rare_variant_evidence_paths: list[str] | None = None
+    rare_variant_score_threshold: float = 0.75
+    clinical_evidence_path: str | None = None
+    approved_clinical_phases: list[str] = field(
+        default_factory=lambda: ["PHASE_4", "APPROVAL", "PHASE_3", "PREAPPROVAL"]
+    )
+    gold_standard_path: str | None = None
+    gold_standard_confidence: list[str] = field(
+        default_factory=lambda: ["High", "Medium"]
+    )
+    _target_: str = "gentropy.effector_gene_list.EffectorGeneListStep"
+
+
+@dataclass
+class TrainingSetConfig(StepConfig):
+    """L2G training set (gold standard) generation step configuration."""
+
+    feature_matrix_path: str = MISSING
+    credible_set_path: str = MISSING
+    study_index_path: str = MISSING
+    effector_gene_list_path: str = MISSING
+    training_set_path: str = MISSING
+    interaction_path: str | None = None
+    apply_replication_filter: bool = True
+    min_replication_studies: int = 2
+    max_gsp_per_locus: int = 2
+    apply_interaction_filter: bool = True
+    interaction_source: str = "string"
+    interaction_score_threshold: float = 0.75
+    apply_distance_filter: bool = True
+    protein_coding_only: bool = True
+    apply_deduplication: bool = True
+    _target_: str = "gentropy.training_set.TrainingSetStep"
+
+
+@dataclass
 class Config:
     """Application configuration."""
 
@@ -1037,4 +1077,14 @@ def register_config() -> None:
         group="step",
         name="fine_mapping_plan_generator",
         node=FineMappingPlanGeneratorConfig,
+    )
+    cs.store(
+        group="step",
+        name="effector_gene_list",
+        node=EffectorGeneListConfig,
+    )
+    cs.store(
+        group="step",
+        name="training_set",
+        node=TrainingSetConfig,
     )
