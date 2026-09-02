@@ -1430,6 +1430,7 @@ class TestStudyLocusConfidenceWithReplication:
             ],
         ),
         ("6", "v6", "s1", "unknown", [StudyLocusQualityCheck.NOT_REPLICATED.value]),
+        ("7", "v7", "s1", "PICS", []),
     ]
 
     STUDY_LOCUS_SCHEMA = t.StructType(
@@ -1457,7 +1458,7 @@ class TestStudyLocusConfidenceWithReplication:
     def test_replicated_credible_sets_get_highest_confidence(
         self: TestStudyLocusConfidenceWithReplication,
     ) -> None:
-        """Replicated credible sets are the most confident ones, whatever the fine-mapping method."""
+        """Replicated credible sets are the most confident ones, curated top hits excepted."""
         confidence = {
             row["studyLocusId"]: row["confidence"]
             for row in self.study_locus.assign_confidence(use_replication=True)
@@ -1468,10 +1469,11 @@ class TestStudyLocusConfidenceWithReplication:
         assert confidence == {
             "1": CredibleSetConfidenceClasses.REPLICATED.value,
             "2": CredibleSetConfidenceClasses.FINEMAPPED_IN_SAMPLE_LD.value,
-            "3": CredibleSetConfidenceClasses.REPLICATED.value,
+            "3": CredibleSetConfidenceClasses.REPLICATED_TOP_HIT.value,
             "4": CredibleSetConfidenceClasses.PICSED_TOP_HIT.value,
             "5": CredibleSetConfidenceClasses.FINEMAPPED_OUT_OF_SAMPLE_LD.value,
             "6": CredibleSetConfidenceClasses.UNKNOWN.value,
+            "7": CredibleSetConfidenceClasses.REPLICATED.value,
         }
 
     def test_replication_is_ignored_by_default(
@@ -1481,7 +1483,10 @@ class TestStudyLocusConfidenceWithReplication:
         assert (
             self.study_locus.assign_confidence()
             .df.filter(
-                f.col("confidence") == CredibleSetConfidenceClasses.REPLICATED.value
+                f.col("confidence").isin(
+                    CredibleSetConfidenceClasses.REPLICATED.value,
+                    CredibleSetConfidenceClasses.REPLICATED_TOP_HIT.value,
+                )
             )
             .count()
             == 0
