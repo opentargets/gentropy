@@ -1385,21 +1385,53 @@ class TestStudyLocusReplicationFlagging:
 
         assert flagged == {"3", "4", "5", "8", "9", "10", "11"}
 
-    def test_replication_flag_without_annotation(
-        self: TestStudyLocusReplicationFlagging,
+    @pytest.mark.parametrize(
+        "missing_columns",
+        [["diseaseIds", "geneId"], ["diseaseIds"], ["geneId"]],
+    )
+    def test_replication_flag_needs_both_annotations(
+        self: TestStudyLocusReplicationFlagging, missing_columns: list[str]
     ) -> None:
-        """Without disease and gene annotation in the study index nothing can be assessed."""
-        unannotated = StudyIndex(
-            _df=self.study_index.df.drop("diseaseIds", "geneId"),
+        """Partial annotation leaves one study type unassessable, so the check does not run."""
+        partial = StudyIndex(
+            _df=self.study_index.df.drop(*missing_columns),
             _schema=StudyIndex.get_schema(),
         )
 
+        assert not StudyLocus.can_assess_replication(partial)
         assert (
-            self.study_locus.qc_replication(unannotated)
+            self.study_locus.qc_replication(partial)
             .df.filter(f.size("qualityControls") > 0)
             .count()
             == 0
         )
+
+    def test_replication_without_independence_annotation(
+        self: TestStudyLocusReplicationFlagging,
+    ) -> None:
+        """Without cohorts, publication and LD structure, GWAS studies stand in for independence."""
+        no_independence_annotation = StudyIndex(
+            _df=self.study_index.df.drop(
+                "cohorts", "pubmedId", "ldPopulationStructure"
+            ),
+            _schema=StudyIndex.get_schema(),
+        )
+
+        flagged = {
+            row["studyLocusId"]
+            for row in self.study_locus.qc_replication(no_independence_annotation)
+            .df.filter(
+                f.array_contains(
+                    f.col("qualityControls"),
+                    StudyLocusQualityCheck.NOT_REPLICATED.value,
+                )
+            )
+            .collect()
+        }
+
+        # Credible sets 3 and 4 are now counted as replicated: s1 and s3 can no longer be told
+        # apart from two genuinely independent studies. Everything else is unchanged.
+        assert flagged == {"5", "8", "9", "10", "11"}
 
 
 class TestStudyLocusConfidenceWithReplication:

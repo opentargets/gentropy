@@ -418,6 +418,20 @@ class StudyLocus(Dataset):
             _schema=StudyLocus.get_schema(),
         )
 
+    @staticmethod
+    def can_assess_replication(study_index: StudyIndex) -> bool:
+        """Whether credible set replication can be assessed against the given study index.
+
+        Args:
+            study_index (StudyIndex): Study index to test for the annotation `qc_replication` needs.
+
+        Returns:
+            bool: True if the study index carries both the disease and the gene annotation.
+        """
+        return all(
+            column in study_index.df.columns for column in ["diseaseIds", "geneId"]
+        )
+
     @qc_test
     def qc_replication(self: StudyLocus, study_index: StudyIndex) -> StudyLocus:
         """Flagging credible sets whose lead variant is not replicated in an independent study.
@@ -435,79 +449,81 @@ class StudyLocus(Dataset):
         study and the lead variant, so two credible sets of the same study sharing a lead variant
         are duplicates rather than independent evidence.
 
+        Both the disease and the gene annotation are needed. With only one of them the credible
+        sets of the other study type could not be assessed at all, yet would be indistinguishable
+        from replicated ones once the flag is written, so the check is a no-op on a study index
+        missing either.
+
         Args:
             study_index (StudyIndex): Study index providing disease, gene and study annotation.
 
         Returns:
             StudyLocus: Updated study locus with quality control flags.
         """
-        # The columns bringing the disease/gene annotation are all optional in the study index,
-        # so the check is only as strict as the available annotation:
+        if not self.can_assess_replication(study_index):
+            return self
+
+        # Two GWAS studies reporting the same cohorts, the same publication and the same LD
+        # population structure are the same evidence twice over. All three columns are optional;
+        # with none of them available the studies themselves are the closest available proxy for
+        # independent evidence:
         gwas_independence_columns = [
             column
             for column in ["cohorts", "pubmedId", "ldPopulationStructure"]
             if column in study_index.df.columns
-        ]
-        annotation_columns = [
-            column
-            for column in ["diseaseIds", "geneId"]
-            if column in study_index.df.columns
-        ]
+        ] or ["studyId"]
 
         loci = self.df.select("studyLocusId", "studyId", "variantId").join(
             study_index.df.select(
-                "studyId", "studyType", *annotation_columns, *gwas_independence_columns
+                "studyId",
+                "studyType",
+                "diseaseIds",
+                "geneId",
+                *[
+                    column
+                    for column in gwas_independence_columns
+                    if column != "studyId"
+                ],
             ),
             on="studyId",
             how="left",
         )
 
-        replicated_loci = None
+        # Exploding the diseases drops GWAS credible sets without disease annotation:
+        gwas = loci.filter(f.col("studyType") == "gwas").withColumn(
+            "diseaseId", f.explode("diseaseIds")
+        )
+        replicated_gwas_pairs = (
+            gwas.select("variantId", "diseaseId", *gwas_independence_columns)
+            .distinct()
+            .groupBy("variantId", "diseaseId")
+            .agg(f.count("*").alias("studyCount"))
+            .filter(f.col("studyCount") >= 2)
+            .select("variantId", "diseaseId")
+        )
+        replicated_gwas_loci = gwas.join(
+            replicated_gwas_pairs, on=["variantId", "diseaseId"], how="inner"
+        ).select("studyLocusId")
 
-        if "diseaseIds" in annotation_columns:
-            # Exploding the diseases drops GWAS credible sets without disease annotation:
-            gwas = loci.filter(f.col("studyType") == "gwas").withColumn(
-                "diseaseId", f.explode("diseaseIds")
-            )
-            replicated_gwas_pairs = (
-                gwas.select("variantId", "diseaseId", *gwas_independence_columns)
-                .distinct()
-                .groupBy("variantId", "diseaseId")
-                .agg(f.count("*").alias("studyCount"))
-                .filter(f.col("studyCount") >= 2)
-                .select("variantId", "diseaseId")
-            )
-            replicated_loci = gwas.join(
-                replicated_gwas_pairs, on=["variantId", "diseaseId"], how="inner"
-            ).select("studyLocusId")
+        molqtl = loci.filter(
+            (f.col("studyType") != "gwas") & f.col("geneId").isNotNull()
+        )
+        replicated_molqtl_pairs = (
+            molqtl.select("studyId", "variantId", "geneId")
+            .distinct()
+            .groupBy("variantId", "geneId")
+            .agg(f.count("*").alias("studyCount"))
+            .filter(f.col("studyCount") >= 2)
+            .select("variantId", "geneId")
+        )
+        replicated_molqtl_loci = molqtl.join(
+            replicated_molqtl_pairs, on=["variantId", "geneId"], how="inner"
+        ).select("studyLocusId")
 
-        if "geneId" in annotation_columns:
-            molqtl = loci.filter(
-                (f.col("studyType") != "gwas") & f.col("geneId").isNotNull()
-            )
-            replicated_molqtl_pairs = (
-                molqtl.select("studyId", "variantId", "geneId")
-                .distinct()
-                .groupBy("variantId", "geneId")
-                .agg(f.count("*").alias("studyCount"))
-                .filter(f.col("studyCount") >= 2)
-                .select("variantId", "geneId")
-            )
-            replicated_molqtl_loci = molqtl.join(
-                replicated_molqtl_pairs, on=["variantId", "geneId"], how="inner"
-            ).select("studyLocusId")
-            replicated_loci = (
-                replicated_molqtl_loci
-                if replicated_loci is None
-                else replicated_loci.unionByName(replicated_molqtl_loci)
-            )
-
-        # Without any annotation to replicate on, no credible set can be assessed:
-        if replicated_loci is None:
-            return self
-
-        replicated_loci = replicated_loci.distinct().withColumn(
-            "isReplicated", f.lit(True)
+        replicated_loci = (
+            replicated_gwas_loci.unionByName(replicated_molqtl_loci)
+            .distinct()
+            .withColumn("isReplicated", f.lit(True))
         )
 
         return StudyLocus(
