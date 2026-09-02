@@ -86,6 +86,7 @@ class StudyLocusQualityCheck(Enum):
         OUT_OF_SAMPLE_LD (str): Study locus finemapped without in-sample LD reference
         INVALID_CHROMOSOME (str): Chromosome not in 1:22, X, Y, XY or MT
         TOP_HIT_AND_SUMMARY_STATS (str): Curated top hit is flagged because summary statistics are available for study
+        NOT_REPLICATED (str): Lead variant of the credible set is not replicated in an independent study of the same disease or gene
     """
 
     SUBSIGNIFICANT_FLAG = "Subsignificant p-value"
@@ -119,6 +120,7 @@ class StudyLocusQualityCheck(Enum):
     TOP_HIT_AND_SUMMARY_STATS = (
         "Curated top hit is flagged because summary statistics are available for study"
     )
+    NOT_REPLICATED = "Lead variant is not replicated in independent study"
 
 
 class CredibleInterval(Enum):
@@ -405,11 +407,121 @@ class StudyLocus(Dataset):
                 "qualityControls",
                 self.update_quality_flag(
                     f.col("qualityControls"),
-                    self.flag_duplicates(f.col("studyLocusId"), [f.size("locus").asc()]),
+                    self.flag_duplicates(
+                        f.col("studyLocusId"), [f.size("locus").asc()]
+                    ),
                     StudyLocusQualityCheck.DUPLICATED_STUDYLOCUS_ID,
                 ),
             ),
             _schema=StudyLocus.get_schema(),
+        )
+
+    @qc_test
+    def qc_replication(self: StudyLocus, study_index: StudyIndex) -> StudyLocus:
+        """Flagging credible sets whose lead variant is not replicated in an independent study.
+
+        A GWAS credible set is considered replicated if its lead variant is associated with the
+        same disease in at least two independent studies, a molQTL credible set if its lead
+        variant is associated with the same gene in at least two studies.
+
+        Two GWAS studies are not independent if they report the same cohorts, the same publication
+        and the same LD population structure, so studies agreeing on all three are collapsed
+        before counting. GWAS studies with no disease annotation and molQTL studies with no
+        measured gene can never be replicated and are therefore always flagged.
+
+        On the molQTL side the count is over distinct studies: `studyLocusId` is a hash of the
+        study and the lead variant, so two credible sets of the same study sharing a lead variant
+        are duplicates rather than independent evidence.
+
+        Args:
+            study_index (StudyIndex): Study index providing disease, gene and study annotation.
+
+        Returns:
+            StudyLocus: Updated study locus with quality control flags.
+        """
+        # The columns bringing the disease/gene annotation are all optional in the study index,
+        # so the check is only as strict as the available annotation:
+        gwas_independence_columns = [
+            column
+            for column in ["cohorts", "pubmedId", "ldPopulationStructure"]
+            if column in study_index.df.columns
+        ]
+        annotation_columns = [
+            column
+            for column in ["diseaseIds", "geneId"]
+            if column in study_index.df.columns
+        ]
+
+        loci = self.df.select("studyLocusId", "studyId", "variantId").join(
+            study_index.df.select(
+                "studyId", "studyType", *annotation_columns, *gwas_independence_columns
+            ),
+            on="studyId",
+            how="left",
+        )
+
+        replicated_loci = None
+
+        if "diseaseIds" in annotation_columns:
+            # Exploding the diseases drops GWAS credible sets without disease annotation:
+            gwas = loci.filter(f.col("studyType") == "gwas").withColumn(
+                "diseaseId", f.explode("diseaseIds")
+            )
+            replicated_gwas_pairs = (
+                gwas.select("variantId", "diseaseId", *gwas_independence_columns)
+                .distinct()
+                .groupBy("variantId", "diseaseId")
+                .agg(f.count("*").alias("studyCount"))
+                .filter(f.col("studyCount") >= 2)
+                .select("variantId", "diseaseId")
+            )
+            replicated_loci = gwas.join(
+                replicated_gwas_pairs, on=["variantId", "diseaseId"], how="inner"
+            ).select("studyLocusId")
+
+        if "geneId" in annotation_columns:
+            molqtl = loci.filter(
+                (f.col("studyType") != "gwas") & f.col("geneId").isNotNull()
+            )
+            replicated_molqtl_pairs = (
+                molqtl.select("studyId", "variantId", "geneId")
+                .distinct()
+                .groupBy("variantId", "geneId")
+                .agg(f.count("*").alias("studyCount"))
+                .filter(f.col("studyCount") >= 2)
+                .select("variantId", "geneId")
+            )
+            replicated_molqtl_loci = molqtl.join(
+                replicated_molqtl_pairs, on=["variantId", "geneId"], how="inner"
+            ).select("studyLocusId")
+            replicated_loci = (
+                replicated_molqtl_loci
+                if replicated_loci is None
+                else replicated_loci.unionByName(replicated_molqtl_loci)
+            )
+
+        # Without any annotation to replicate on, no credible set can be assessed:
+        if replicated_loci is None:
+            return self
+
+        replicated_loci = replicated_loci.distinct().withColumn(
+            "isReplicated", f.lit(True)
+        )
+
+        return StudyLocus(
+            _df=(
+                self.df.join(replicated_loci, on="studyLocusId", how="left")
+                .withColumn(
+                    "qualityControls",
+                    self.update_quality_flag(
+                        f.col("qualityControls"),
+                        f.col("isReplicated").isNull(),
+                        StudyLocusQualityCheck.NOT_REPLICATED,
+                    ),
+                )
+                .drop("isReplicated")
+            ),
+            _schema=self.get_schema(),
         )
 
     @staticmethod

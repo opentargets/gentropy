@@ -1272,6 +1272,136 @@ class TestStudyLocusDuplicationFlagging:
         assert retained[0]["locusSize"] == 1
 
 
+class TestStudyLocusReplicationFlagging:
+    """Collection of tests related to flagging credible sets without independent replication."""
+
+    STUDY_LOCUS_DATA = [
+        # Same lead variant and disease in two independent study records -> replicated:
+        ("1", "v1", "s1"),
+        ("2", "v1", "s2"),
+        # s3 reports the same cohorts, publication and LD structure as s1, so the two records
+        # are not independent evidence -> not replicated:
+        ("3", "v2", "s1"),
+        ("4", "v2", "s3"),
+        # GWAS study without disease annotation -> not replicated:
+        ("5", "v3", "s4"),
+        # Same lead variant and gene measured by two molQTL studies -> replicated:
+        ("6", "v4", "s5"),
+        ("7", "v4", "s6"),
+        # Only molQTL study measuring this gene at this variant -> not replicated:
+        ("8", "v4", "s7"),
+        # Two credible sets of the same molQTL study -> not replicated:
+        ("9", "v5", "s5"),
+        ("10", "v5", "s5"),
+        # molQTL study without measured gene -> not replicated:
+        ("11", "v6", "s8"),
+    ]
+
+    STUDY_LOCUS_SCHEMA = t.StructType(
+        [
+            t.StructField("studyLocusId", t.StringType(), False),
+            t.StructField("variantId", t.StringType(), False),
+            t.StructField("studyId", t.StringType(), False),
+        ]
+    )
+
+    STUDY_DATA = [
+        ("s1", "p1", "gwas", ["d1"], None, ["c1"], "pm1", [("nfe", 1.0)]),
+        ("s2", "p1", "gwas", ["d1"], None, ["c2"], "pm2", [("fin", 1.0)]),
+        ("s3", "p1", "gwas", ["d1"], None, ["c1"], "pm1", [("nfe", 1.0)]),
+        ("s4", "p1", "gwas", None, None, ["c3"], "pm3", [("nfe", 1.0)]),
+        ("s5", "p2", "eqtl", None, "g1", None, None, None),
+        ("s6", "p2", "eqtl", None, "g1", None, None, None),
+        ("s7", "p2", "eqtl", None, "g2", None, None, None),
+        ("s8", "p2", "eqtl", None, None, None, None, None),
+    ]
+
+    STUDY_SCHEMA = t.StructType(
+        [
+            t.StructField("studyId", t.StringType(), False),
+            t.StructField("projectId", t.StringType(), False),
+            t.StructField("studyType", t.StringType(), False),
+            t.StructField("diseaseIds", t.ArrayType(t.StringType()), True),
+            t.StructField("geneId", t.StringType(), True),
+            t.StructField("cohorts", t.ArrayType(t.StringType()), True),
+            t.StructField("pubmedId", t.StringType(), True),
+            t.StructField(
+                "ldPopulationStructure",
+                t.ArrayType(
+                    t.StructType(
+                        [
+                            t.StructField("ldPopulation", t.StringType(), True),
+                            t.StructField("relativeSampleSize", t.DoubleType(), True),
+                        ]
+                    )
+                ),
+                True,
+            ),
+        ]
+    )
+
+    @pytest.fixture(autouse=True)
+    def _setup(self: TestStudyLocusReplicationFlagging, spark: SparkSession) -> None:
+        """Setup study locus and study index for testing."""
+        self.study_locus = StudyLocus(
+            _df=spark.createDataFrame(
+                self.STUDY_LOCUS_DATA, schema=self.STUDY_LOCUS_SCHEMA
+            ).withColumn(
+                "qualityControls", f.array().cast(t.ArrayType(t.StringType()))
+            ),
+            _schema=StudyLocus.get_schema(),
+        )
+        self.study_index = StudyIndex(
+            _df=spark.createDataFrame(self.STUDY_DATA, schema=self.STUDY_SCHEMA),
+            _schema=StudyIndex.get_schema(),
+        )
+        self.validated = self.study_locus.qc_replication(self.study_index)
+
+    def test_replication_flag_type(
+        self: TestStudyLocusReplicationFlagging,
+    ) -> None:
+        """Test replication flagging return type."""
+        assert isinstance(self.validated, StudyLocus)
+
+    def test_replication_flag_no_data_loss(
+        self: TestStudyLocusReplicationFlagging,
+    ) -> None:
+        """Test replication flagging no data loss."""
+        assert self.validated.df.count() == self.study_locus.df.count()
+
+    def test_replication_flag_correctness(
+        self: TestStudyLocusReplicationFlagging,
+    ) -> None:
+        """Only the credible sets with independent replication are left unflagged."""
+        flagged = {
+            row["studyLocusId"]
+            for row in self.validated.df.filter(
+                f.array_contains(
+                    f.col("qualityControls"),
+                    StudyLocusQualityCheck.NOT_REPLICATED.value,
+                )
+            ).collect()
+        }
+
+        assert flagged == {"3", "4", "5", "8", "9", "10", "11"}
+
+    def test_replication_flag_without_annotation(
+        self: TestStudyLocusReplicationFlagging,
+    ) -> None:
+        """Without disease and gene annotation in the study index nothing can be assessed."""
+        unannotated = StudyIndex(
+            _df=self.study_index.df.drop("diseaseIds", "geneId"),
+            _schema=StudyIndex.get_schema(),
+        )
+
+        assert (
+            self.study_locus.qc_replication(unannotated)
+            .df.filter(f.size("qualityControls") > 0)
+            .count()
+            == 0
+        )
+
+
 class TestTransQtlFlagging:
     """Test flagging trans qtl credible sets."""
 

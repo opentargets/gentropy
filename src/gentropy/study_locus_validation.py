@@ -60,6 +60,10 @@ class StudyLocusValidationStep:
             # after the 95% filter so that the smallest-credible-set rule sees the credible sets
             # themselves rather than the full set of tagging variants.
             .validate_unique_study_locus_id()
+            # Flagging credible sets whose lead variant is not replicated in an independent
+            # record. Runs after the duplicate check so that colliding credible sets of the
+            # same study cannot count as independent evidence.
+            .qc_replication(study_index)
             # Flagging credible sets with PIP > 1 or PIP < 0.95
             .qc_abnormal_pips(
                 sum_pips_lower_threshold=0.95,
