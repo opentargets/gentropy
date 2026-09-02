@@ -60,20 +60,13 @@ class StudyLocusValidationStep:
             # after the 95% filter so that the smallest-credible-set rule sees the credible sets
             # themselves rather than the full set of tagging variants.
             .validate_unique_study_locus_id()
-            # Flagging credible sets whose lead variant is not replicated in an independent
-            # record. Runs after the duplicate check so that colliding credible sets of the
-            # same study cannot count as independent evidence.
-            .qc_replication(study_index)
             # Flagging credible sets with PIP > 1 or PIP < 0.95
             .qc_abnormal_pips(
                 sum_pips_lower_threshold=0.95,
                 sum_pips_upper_threshold=1.0001,
             )
-            # Annotate credible set confidence, taking the replication flag raised above into
-            # account whenever the study index allowed the check to run:
-            .assign_confidence(
-                use_replication=StudyLocus.can_assess_replication(study_index)
-            )
+            # Annotate credible set confidence:
+            .assign_confidence()
             # Flagging trans qtls:
             .flag_trans_qtls(study_index, target_index, trans_qtl_threshold)
             .persist()  # we will need this for 2 types of outputs
@@ -81,9 +74,16 @@ class StudyLocusValidationStep:
 
         result = study_locus_with_qc.valid_rows(invalid_qc_reasons)
 
+        # Replication is assessed once every other check is done, on the credible sets that
+        # passed them: a credible set dropped by an earlier flag is not evidence of replication.
+        # The confidence is then re-assigned, this time taking replication into account.
+        valid_study_locus = result.valid.qc_replication(study_index).assign_confidence(
+            use_replication=True
+        )
+
         (
             # Valid study locus partitioned to simplify the finding of overlaps
-            result.valid.df.repartitionByRange(
+            valid_study_locus.df.repartitionByRange(
                 session.output_partitions,
                 "chromosome",
                 "position",
