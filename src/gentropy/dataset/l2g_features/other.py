@@ -346,11 +346,6 @@ class CredibleSetConfidenceFeature(L2GFeature):
             )
             .when(
                 f.col("confidence")
-                == CredibleSetConfidenceClasses.REPLICATED_TOP_HIT.value,
-                f.lit(0.75),
-            )
-            .when(
-                f.col("confidence")
                 == CredibleSetConfidenceClasses.FINEMAPPED_OUT_OF_SAMPLE_LD.value,
                 f.lit(0.75),
             )

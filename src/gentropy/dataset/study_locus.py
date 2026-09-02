@@ -45,7 +45,6 @@ class CredibleSetConfidenceClasses(Enum):
     Attributes:
         REPLICATED (str): Credible set whose lead variant is replicated in an independent study
         FINEMAPPED_IN_SAMPLE_LD (str): SuSiE fine-mapped credible set with in-sample LD
-        REPLICATED_TOP_HIT (str): Replicated credible set that comes from a curated top hit
         FINEMAPPED_OUT_OF_SAMPLE_LD (str): SuSiE fine-mapped credible set with out-of-sample LD
         PICSED_SUMMARY_STATS (str): PICS fine-mapped credible set extracted from summary statistics
         PICSED_TOP_HIT (str): PICS fine-mapped credible set based on reported top hit
@@ -54,7 +53,6 @@ class CredibleSetConfidenceClasses(Enum):
 
     REPLICATED = "Replicated credible set"
     FINEMAPPED_IN_SAMPLE_LD = "SuSiE fine-mapped credible set with in-sample LD"
-    REPLICATED_TOP_HIT = "Replicated credible set from curated top hit"
     FINEMAPPED_OUT_OF_SAMPLE_LD = "SuSiE fine-mapped credible set with out-of-sample LD"
     PICSED_SUMMARY_STATS = (
         "PICS fine-mapped credible set extracted from summary statistics"
@@ -1581,9 +1579,8 @@ class StudyLocus(Dataset):
             return self
 
         # Credible sets replicated in an independent study are the most trustworthy ones,
-        # regardless of how they were fine-mapped, with the exception of curated top hits:
-        # replication does not make up for the locus never having been fine-mapped. Everything
-        # else falls through to the method-based classification below:
+        # regardless of how they were fine-mapped. Everything else falls through to the
+        # method-based classification below:
         replication_condition = (
             ~f.array_contains(
                 f.col("qualityControls"),
@@ -1597,13 +1594,6 @@ class StudyLocus(Dataset):
         df = self.df.withColumn(
             "confidence",
             f.when(
-                replication_condition
-                & f.array_contains(
-                    f.col("qualityControls"), StudyLocusQualityCheck.TOP_HIT.value
-                ),
-                CredibleSetConfidenceClasses.REPLICATED_TOP_HIT.value,
-            )
-            .when(
                 replication_condition,
                 CredibleSetConfidenceClasses.REPLICATED.value,
             )
