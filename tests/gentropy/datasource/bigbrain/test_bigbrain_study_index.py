@@ -61,6 +61,24 @@ class TestBigBrainStudyIndex:
         assert row.cohorts == ["BigBrain"]
         assert row.biosampleFromSourceId == "UBERON_0000955"
 
+    def test_from_source_maps_ancestry_to_ld_population(self, session: Session) -> None:
+        """discoverySamples.ancestry must be a key of gwas_population_2_LD_panel_map.json.
+
+        The short code "EUR" is not in that map and silently produced a null
+        ldPopulation, which made SusieFineMapperStep reject every BigBrain study
+        with "Major ancestry is not nfe, csa or afr". The studyId keeps the short
+        code; only the ancestry label is long-form.
+        """
+        features = session.spark.createDataFrame([Row(feature="ENSG00000177757.2")])
+        gene_map = BigBrainStudyIndex.gene_map_from_feature(features)
+        study_index = BigBrainStudyIndex.from_source(features, gene_map, "eqtl")
+
+        row = study_index.df.collect()[0]
+        assert row.studyId == "BigBrain_eqtl_EUR_ENSG00000177757.2"
+        assert row.discoverySamples[0].ancestry == "European"
+        assert row.ldPopulationStructure[0].ldPopulation == "nfe"
+        assert row.ldPopulationStructure[0].relativeSampleSize == 1.0
+
     def test_from_source_sqtl_missing_gene_mapping(self, session: Session) -> None:
         """SQTL features absent from top_assoc resolve to a null geneId, not an error."""
         features = session.spark.createDataFrame(

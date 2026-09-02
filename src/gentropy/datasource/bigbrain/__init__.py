@@ -63,7 +63,23 @@ class BigBrainPublicationMetadata(BaseModel):
     SAMPLE_SIZE: int = 10_725
     """Backfilled total sample size (10,725 samples from 4,656 donors), shared by eQTL and sQTL."""
     ANCESTRY: str = "EUR"
-    """Ancestry of the study population covered by this ingestion."""
+    """Short ancestry code used in identifiers (studyId, projectId) and display text.
+
+    !!! warning "Not a valid `discoverySamples.ancestry` value"
+        Use `ANCESTRY_LABEL` for `discoverySamples`. This short code is baked into
+        every studyId (`BigBrain_eqtl_EUR_{feature}`), so it must not change.
+    """
+    ANCESTRY_LABEL: str = "European"
+    """GWAS Catalog ancestry category, as used in `discoverySamples.ancestry`.
+
+    `StudyIndex.aggregate_and_map_ancestries` looks this up in
+    `gwas_population_2_LD_panel_map.json` to derive `ldPopulationStructure`, whose
+    keys are long-form labels ("European", "Finnish", ...). A short code such as
+    "EUR" is absent from that map and silently yields a null `ldPopulation`, which
+    later makes SusieFineMapperStep reject every study with "Major ancestry is not
+    nfe, csa or afr". Compare deCODE's `ANCESTRY = "Icelandic"` and UKB-PPP's
+    literal "European".
+    """
     COHORTS: str = "BigBrain"
     """Cohort label for the BigBrain meta-analysis (43 tissue-cohort pairs meta-analysed)."""
     BIOSAMPLE_ID: str = "UBERON_0000955"
