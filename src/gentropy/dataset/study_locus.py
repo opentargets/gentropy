@@ -43,6 +43,7 @@ class CredibleSetConfidenceClasses(Enum):
     List of confidence classes, from the highest to the lowest confidence level.
 
     Attributes:
+        REPLICATED (str): Credible set whose lead variant is replicated in an independent study
         FINEMAPPED_IN_SAMPLE_LD (str): SuSiE fine-mapped credible set with in-sample LD
         FINEMAPPED_OUT_OF_SAMPLE_LD (str): SuSiE fine-mapped credible set with out-of-sample LD
         PICSED_SUMMARY_STATS (str): PICS fine-mapped credible set extracted from summary statistics
@@ -50,6 +51,7 @@ class CredibleSetConfidenceClasses(Enum):
         UNKNOWN (str): Unknown confidence, for credible sets which did not fit any of the above categories
     """
 
+    REPLICATED = "Replicated credible set"
     FINEMAPPED_IN_SAMPLE_LD = "SuSiE fine-mapped credible set with in-sample LD"
     FINEMAPPED_OUT_OF_SAMPLE_LD = "SuSiE fine-mapped credible set with out-of-sample LD"
     PICSED_SUMMARY_STATS = (
@@ -1554,8 +1556,17 @@ class StudyLocus(Dataset):
 
         return WindowBasedClumping.clump(self, window_size)
 
-    def assign_confidence(self: StudyLocus) -> StudyLocus:
+    def assign_confidence(
+        self: StudyLocus, use_replication: bool = False
+    ) -> StudyLocus:
         """Assign confidence to study locus.
+
+        Args:
+            use_replication (bool): Whether replication is taken into account, in which case
+                credible sets replicated in an independent study get the highest confidence and
+                the rest are classified by fine-mapping method as usual. Only set this if
+                `qc_replication` has already been applied: replication is read from the absence
+                of the `NOT_REPLICATED` flag, which is also absent when the check never ran.
 
         Returns:
             StudyLocus: Study locus with confidence assigned.
@@ -1567,10 +1578,26 @@ class StudyLocus(Dataset):
         ):
             return self
 
+        # Credible sets replicated in an independent study are the most trustworthy ones,
+        # regardless of how they were fine-mapped. Everything else falls through to the
+        # method-based classification below:
+        replication_condition = (
+            ~f.array_contains(
+                f.col("qualityControls"),
+                StudyLocusQualityCheck.NOT_REPLICATED.value,
+            )
+            if use_replication
+            else f.lit(False)
+        )
+
         # Assign confidence based on the presence of quality controls
         df = self.df.withColumn(
             "confidence",
             f.when(
+                replication_condition,
+                CredibleSetConfidenceClasses.REPLICATED.value,
+            )
+            .when(
                 (
                     f.col("finemappingMethod").isin(
                         FinemappingMethod.SUSIE.value,

@@ -1402,6 +1402,92 @@ class TestStudyLocusReplicationFlagging:
         )
 
 
+class TestStudyLocusConfidenceWithReplication:
+    """Testing how replication feeds into the credible set confidence assignment."""
+
+    STUDY_LOCUS_DATA = [
+        ("1", "v1", "s1", "SuSie", []),
+        ("2", "v2", "s1", "SuSie", [StudyLocusQualityCheck.NOT_REPLICATED.value]),
+        ("3", "v3", "s1", "PICS", [StudyLocusQualityCheck.TOP_HIT.value]),
+        (
+            "4",
+            "v4",
+            "s1",
+            "PICS",
+            [
+                StudyLocusQualityCheck.TOP_HIT.value,
+                StudyLocusQualityCheck.NOT_REPLICATED.value,
+            ],
+        ),
+        (
+            "5",
+            "v5",
+            "s1",
+            "SuSie",
+            [
+                StudyLocusQualityCheck.OUT_OF_SAMPLE_LD.value,
+                StudyLocusQualityCheck.NOT_REPLICATED.value,
+            ],
+        ),
+        ("6", "v6", "s1", "unknown", [StudyLocusQualityCheck.NOT_REPLICATED.value]),
+    ]
+
+    STUDY_LOCUS_SCHEMA = t.StructType(
+        [
+            t.StructField("studyLocusId", t.StringType(), False),
+            t.StructField("variantId", t.StringType(), False),
+            t.StructField("studyId", t.StringType(), False),
+            t.StructField("finemappingMethod", t.StringType(), False),
+            t.StructField("qualityControls", t.ArrayType(t.StringType()), False),
+        ]
+    )
+
+    @pytest.fixture(autouse=True)
+    def _setup(
+        self: TestStudyLocusConfidenceWithReplication, spark: SparkSession
+    ) -> None:
+        """Setup study locus for testing."""
+        self.study_locus = StudyLocus(
+            _df=spark.createDataFrame(
+                self.STUDY_LOCUS_DATA, schema=self.STUDY_LOCUS_SCHEMA
+            ),
+            _schema=StudyLocus.get_schema(),
+        )
+
+    def test_replicated_credible_sets_get_highest_confidence(
+        self: TestStudyLocusConfidenceWithReplication,
+    ) -> None:
+        """Replicated credible sets are the most confident ones, whatever the fine-mapping method."""
+        confidence = {
+            row["studyLocusId"]: row["confidence"]
+            for row in self.study_locus.assign_confidence(use_replication=True)
+            .df.select("studyLocusId", "confidence")
+            .collect()
+        }
+
+        assert confidence == {
+            "1": CredibleSetConfidenceClasses.REPLICATED.value,
+            "2": CredibleSetConfidenceClasses.FINEMAPPED_IN_SAMPLE_LD.value,
+            "3": CredibleSetConfidenceClasses.REPLICATED.value,
+            "4": CredibleSetConfidenceClasses.PICSED_TOP_HIT.value,
+            "5": CredibleSetConfidenceClasses.FINEMAPPED_OUT_OF_SAMPLE_LD.value,
+            "6": CredibleSetConfidenceClasses.UNKNOWN.value,
+        }
+
+    def test_replication_is_ignored_by_default(
+        self: TestStudyLocusConfidenceWithReplication,
+    ) -> None:
+        """Without `use_replication` the assignment is driven by the fine-mapping method alone."""
+        assert (
+            self.study_locus.assign_confidence()
+            .df.filter(
+                f.col("confidence") == CredibleSetConfidenceClasses.REPLICATED.value
+            )
+            .count()
+            == 0
+        )
+
+
 class TestTransQtlFlagging:
     """Test flagging trans qtl credible sets."""
 

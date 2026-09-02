@@ -69,8 +69,9 @@ class StudyLocusValidationStep:
                 sum_pips_lower_threshold=0.95,
                 sum_pips_upper_threshold=1.0001,
             )
-            # Annotate credible set confidence:
-            .assign_confidence()
+            # Annotate credible set confidence, taking the replication flag raised above
+            # into account:
+            .assign_confidence(use_replication=True)
             # Flagging trans qtls:
             .flag_trans_qtls(study_index, target_index, trans_qtl_threshold)
             .persist()  # we will need this for 2 types of outputs
