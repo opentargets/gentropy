@@ -689,6 +689,46 @@ class TestStudyIndexAnnotation:
         )
         assert non_annotated[0][0] == [], "Should not be annotated with the flag"
 
+    def test_annotation_relaxed_thresholds_for_seq_studies(
+        self: TestStudyIndexAnnotation,
+    ) -> None:
+        """Exome/wgs-gwas studies get relaxed QC thresholds and skip the PZ check."""
+        # QC values that fail every default check but pass the relaxed ones:
+        qc_data = [
+            ("s1", 0.5, 0.5, 0.5, 0.5, 1, 1),  # case-case -> non-seq
+            ("s2", 0.5, 0.5, 0.5, 0.5, 1, 1),  # ExWAS -> seq
+            ("s3", 0.5, 0.5, 0.5, 0.5, 1, 1),  # case-case + ExWAS -> seq
+            ("s4", 0.5, 0.5, 0.5, 0.5, 1, 1),  # no flags -> non-seq
+        ]
+        qc_schema = SummaryStatisticsQC.get_schema()
+        qc = SummaryStatisticsQC(_df=self.spark.createDataFrame(qc_data, qc_schema))
+
+        si_df = self.spark.createDataFrame(
+            self.STUDY_WITH_ANALYSIS_FLAGS, self.STUDY_WITH_ANALYSIS_FLAGS_SCHEMA
+        )
+        study_index = StudyIndex(_df=si_df)
+
+        annotated = study_index.annotate_sumstats_qc(
+            qc,
+            **self.thresholds,
+            seq_threshold_mean_beta=1.0,
+            seq_threshold_min_gc_lambda=0.1,
+            seq_threshold_max_gc_lambda=2.5,
+            seq_threshold_min_n_variants=1,
+        )
+        flags = {
+            row["studyId"]: row["qualityControls"]
+            for row in annotated.df.select("studyId", "qualityControls").collect()
+        }
+        # Seq studies pass all relaxed checks:
+        assert flags["s2"] == [], "ExWAS study should not be flagged"
+        assert flags["s3"] == [], "case-case + ExWAS study should not be flagged"
+        # Non-seq studies still fail the strict checks:
+        assert StudyQualityCheck.FAILED_MEAN_BETA_CHECK.value in flags["s1"]
+        assert StudyQualityCheck.FAILED_PZ_CHECK.value in flags["s1"]
+        assert StudyQualityCheck.FAILED_GC_LAMBDA_CHECK.value in flags["s1"]
+        assert StudyQualityCheck.SMALL_NUMBER_OF_SNPS.value in flags["s4"]
+
     def test_validation_of_analysis_flags(
         self: TestStudyIndexAnnotation,
     ) -> None:
@@ -719,6 +759,88 @@ class TestStudyIndexAnnotation:
         )
         assert annotated[0][0] == "s1", "s1 Should be annotated with the flag"
         assert annotated[1][0] == "s3", "s3 Should be annotated with the flag"
+
+
+class TestCollectHeritability:
+    """Test the collect_heritability method of StudyIndex."""
+
+    HERITABILITY_COLUMNS = [
+        "studyId",
+        "runStatus",
+        "h2",
+        "h2_se",
+        "intercept",
+        "intercept_se",
+        "mean_chisq",
+        "lambda_gc",
+    ]
+    HERITABILITY_DATA = [
+        ("s1", "success", 0.5, 0.05, 1.01, 0.01, 1.2, 1.05),
+        ("s2", "failed", 0.3, 0.03, 1.00, 0.02, 1.1, 0.99),
+    ]
+    STUDY_SCHEMA = "studyId STRING, studyType STRING, projectId STRING, qualityControls ARRAY<STRING>, sumstatQCValues ARRAY<STRUCT<QCCheckName: STRING, QCCheckValue: FLOAT>>"
+    STUDY_DATA: list[tuple[str, str, str, list[str], None]] = [
+        ("s1", "gwas", "p", [], None),
+        ("s2", "gwas", "p", [], None),
+        ("s3", "gwas", "p", [], None),
+    ]
+
+    @pytest.fixture(autouse=True)
+    def _setup(self: TestCollectHeritability, spark: SparkSession) -> None:
+        """Setup fixture."""
+        self.result = (
+            StudyIndex(
+                _df=spark.createDataFrame(self.STUDY_DATA, self.STUDY_SCHEMA),
+                _schema=StudyIndex.get_schema(),
+            )
+            .collect_heritability(
+                spark.createDataFrame(self.HERITABILITY_DATA, self.HERITABILITY_COLUMNS)
+            )
+            .persist()
+        )
+
+    @pytest.mark.parametrize(
+        ["study_id", "expected_names"],
+        [
+            pytest.param(
+                "s1",
+                {
+                    "LDSC_SNP-h2",
+                    "LDSC_SNP-h2_se",
+                    "LDSC_intercept",
+                    "LDSC_intercept_se",
+                    "LDSC_mean_chisq",
+                    "LDSC_gc_lambda",
+                },
+                id="successful run gets prefixed label names",
+            ),
+            pytest.param(
+                "s2",
+                set(),
+                id="failed run excluded from annotations",
+            ),
+            pytest.param(
+                "s3",
+                set(),
+                id="study absent from heritability_df gets no annotations",
+            ),
+        ],
+    )
+    def test_qc_check_names(
+        self: TestCollectHeritability, study_id: str, expected_names: set[str]
+    ) -> None:
+        """QCCheckNames must use prefixed labels; failed/absent studies get nothing."""
+        qc_values = (
+            self.result.df.filter(f.col("studyId") == study_id)
+            .select("sumstatQCValues")
+            .collect()[0]["sumstatQCValues"]
+        )
+        actual = (
+            {row["QCCheckName"] for row in qc_values}
+            if qc_values is not None
+            else set()
+        )
+        assert actual == expected_names
 
 
 class TestProjectIdValidation:
@@ -765,3 +887,113 @@ class TestProjectIdValidation:
             .collect()
             == expected_data
         ), "Should have expected qualityControls"
+
+
+class TestValidateCaseControlSampleSize:
+    """Test StudyIndex.validate_ccs.
+
+    Every non-synthetic case below uses a real studyId and its real
+    nCases/nControls/nSamples values, pulled live from the Open Targets study
+    table (release 26.03)  to confirm validate_ccs
+    classifies actual production data as expected. Counts for the full table
+    (2,016,409 studies, exhaustive over the 5 categories, no residual):
+      CASE_CONTROL_STUDY_DESIGN:        27,413
+      MEASUREMENT_STUDY_DESIGN:      1,987,211
+      ONE_ONLY_CASE_OR_CONTROL:            781
+      INVALID_SAMPLE_SIZE:                  605
+      CASE_CONTROL_SUM_NEQ_SAMPLE_SIZE:     399 (mostly off-by-1 rounding;
+        a handful of very large mismatches up to ~2.8M, where nSamples
+        reflects a bigger meta-analysis cohort than the reported cases/controls)
+    No negative nCases/nControls/nSamples were found anywhere in the table.
+    """
+
+    STUDY_REQUIRED_SCHEMA = (
+        "studyId STRING, projectId STRING, studyType STRING, "
+        "nCases INT, nControls INT, nSamples INT, qualityControls ARRAY<STRING>"
+    )
+
+    @pytest.mark.parametrize(
+        ["study_id", "n_cases", "n_controls", "n_samples", "expected_flags"],
+        [
+            pytest.param(
+                "FINNGEN_R12_AUTOIMMUNE_HYPERTHYROIDISM",
+                2469,
+                370637,
+                373106,
+                [StudyQualityCheck.CASE_CONTROL_STUDY_DESIGN.value],
+                id="clean case-control study, sum matches nSamples",
+            ),
+            pytest.param(
+                "UKB_PPP_EUR_CEP20_Q96NB1_OID21209_v1",
+                None,
+                None,
+                32907,
+                [StudyQualityCheck.MEASUREMENT_STUDY_DESIGN.value],
+                id="pQTL study, no cases or controls",
+            ),
+            pytest.param(
+                "GCST90091650",
+                0,
+                0,
+                None,
+                [StudyQualityCheck.INVALID_SAMPLE_SIZE.value],
+                id="nSamples null, cases/controls explicitly zero",
+            ),
+            pytest.param(
+                "GCST002406",
+                9978,
+                0,
+                9978,
+                [StudyQualityCheck.ONE_ONLY_CASE_OR_CONTROL.value],
+                id="case-only study, nCases == nSamples and nControls == 0",
+            ),
+            pytest.param(
+                "GCST000062",
+                None,
+                2431,
+                3362,
+                [StudyQualityCheck.ONE_ONLY_CASE_OR_CONTROL.value],
+                id="control-only study, nSamples exceeds nControls with nCases null",
+            ),
+            pytest.param(
+                "GCST002914",
+                62,
+                84,
+                147,
+                [StudyQualityCheck.CASE_CONTROL_SUM_NEQ_SAMPLE_SIZE.value],
+                id="sum off by exactly 1 from nSamples (rounding artifact)",
+            ),
+            pytest.param(
+                "GCST90627776",
+                102130,
+                14013085,
+                16938258,
+                [StudyQualityCheck.CASE_CONTROL_SUM_NEQ_SAMPLE_SIZE.value],
+                id="sum ~2.8M below nSamples (subset of a larger meta-analysis cohort)",
+            ),
+        ],
+    )
+    def test_validate_ccs(
+        self: TestValidateCaseControlSampleSize,
+        spark: SparkSession,
+        study_id: str,
+        n_cases: int | None,
+        n_controls: int | None,
+        n_samples: int | None,
+        expected_flags: list[str],
+    ) -> None:
+        """Test that validate_ccs assigns exactly the expected QC flag(s) per study design."""
+        si = StudyIndex(
+            _df=spark.createDataFrame(
+                [(study_id, "GCST", "gwas", n_cases, n_controls, n_samples, [])],
+                self.STUDY_REQUIRED_SCHEMA,
+            )
+        )
+        validated_si = si.validate_ccs()
+        assert isinstance(validated_si, StudyIndex), "should be a StudyIndex"
+        observed_flags = (
+            validated_si.df.filter(f.col("studyId") == study_id)
+            .select("qualityControls")
+            .collect()[0]["qualityControls"]
+        )
+        assert sorted(observed_flags) == sorted(expected_flags)

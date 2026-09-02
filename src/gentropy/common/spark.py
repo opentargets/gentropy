@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import operator
 import re
 from collections.abc import Callable, Iterable
 from functools import reduce, wraps
@@ -752,15 +753,19 @@ def calculate_harmonic_sum(input_array: Column) -> Column:
             f.sequence(f.lit(1), f.size(input_array)).alias("pos"),
         ),
         f.lit(0.0),
-        lambda acc, x: acc
-        + x["score"]
-        / f.pow(x["pos"], 2)
-        / f.lit(sum(1 / ((i + 1) ** 2) for i in range(1000))),
+        lambda acc, x: (
+            acc
+            + x["score"]
+            / f.pow(x["pos"], 2)
+            / f.lit(sum(1 / ((i + 1) ** 2) for i in range(1000)))
+        ),
     )
 
 
 def clean_strings_from_symbols(source: Column) -> Column:
     """To make strings URL-safe and consistent by lower-casing and replace special characters with underscores.
+
+    This function will lowercase string and replace all special characters except [a-z], [0-9], [-] and [_] with underscores.
 
     Args:
         source (Column): Source string
@@ -772,16 +777,16 @@ def clean_strings_from_symbols(source: Column) -> Column:
         >>> d = [("AbCd-12.2",),("AaBb..123?",),("cDd!@#$%^&*()",),]
         >>> df = spark.createDataFrame(d).toDF("source")
         >>> df.withColumn("cleaned", clean_strings_from_symbols(f.col("source"))).show(truncate=False)
-        +-------------+---------+
-        |source       |cleaned  |
-        +-------------+---------+
-        |AbCd-12.2    |abcd-12_2|
-        |AaBb..123?   |aabb_123_|
-        |cDd!@#$%^&*()|cdd_     |
-        +-------------+---------+
+        +-------------+-------------+
+        |source       |cleaned      |
+        +-------------+-------------+
+        |AbCd-12.2    |abcd-12_2    |
+        |AaBb..123?   |aabb__123_   |
+        |cDd!@#$%^&*()|cdd__________|
+        +-------------+-------------+
         <BLANKLINE>
     """
-    characters_to_replace = r"[^a-z0-9-_]+"
+    characters_to_replace = r"[^a-z0-9_-]{1}"
     return f.regexp_replace(f.lower(source), characters_to_replace, "_")
 
 
@@ -976,3 +981,62 @@ def safe_split(c: Column, char: str) -> Column:
     char = re.escape(char)
     pat = rf"{char}?\s+{char}?"
     return f.split(f.regexp_replace(f.trim(c), pat, char), char)
+
+
+def reduce_add(*cols: Column) -> Column:
+    """Get the total number of samples from multiple columns.
+
+    Args:
+        *cols (Column): Columns to sum.
+
+    Returns:
+        Column: Column representing the total number of samples.
+
+
+    Examples:
+        >>> df = spark.createDataFrame([(1, 2, 3), (1, 2, None)], ["a", "b", "c"])
+        >>> df.select(reduce_add(f.col("a"), f.col("b"), f.col("c")).alias("total")).show()
+        +-----+
+        |total|
+        +-----+
+        |    6|
+        |    3|
+        +-----+
+        <BLANKLINE>
+    """
+    # Coalesce to 0 to handle nulls
+    ccols = [f.coalesce(col, f.lit(0)) for col in cols]
+    return reduce(operator.add, ccols).cast(t.IntegerType())
+
+
+def all_struct_fields_in_array(
+    array_col: Column, struct_field: str, value: Column
+) -> Column:
+    """Check if all structs in an array have a specific field equal to a given value.
+
+    Args:
+        array_col (Column): Column containing an array of structs.
+        struct_field (str): The field name in the struct to check.
+        value (Column): The value to compare against.
+
+    Returns:
+        Column: A boolean column indicating if all structs have the specified field equal to the given value.
+
+    Examples:
+        >>> data = [([(1,), (1,)],), ([(1,), (2,)],), ([(2,), (2,)],)]
+        >>> df = spark.createDataFrame(data, "array_col array<struct<a:int>>")
+        >>> df.withColumn("all_a_1", all_struct_fields_in_array(f.col("array_col"), "a", f.lit(1))).show()
+        +----------+-------+
+        | array_col|all_a_1|
+        +----------+-------+
+        |[{1}, {1}]|   true|
+        |[{1}, {2}]|  false|
+        |[{2}, {2}]|  false|
+        +----------+-------+
+        <BLANKLINE>
+    """
+    return f.aggregate(
+        array_col,
+        f.lit(True),
+        lambda acc, x: acc & (x[struct_field] == value),
+    )
