@@ -79,6 +79,20 @@ class TestBigBrainStudyIndex:
         assert row.ldPopulationStructure[0].ldPopulation == "nfe"
         assert row.ldPopulationStructure[0].relativeSampleSize == 1.0
 
+    def test_from_source_sets_has_sumstats(self, session: Session) -> None:
+        """HasSumstats must be explicitly True, not left to default to null.
+
+        The index is built from the harmonised summary statistics, so it is always
+        true. Omitting it drops the column in the schema select and it reads back as
+        null, which SusieFineMapperStep rejects with "No sumstats found for the
+        studyId" — a silent skip that still writes a log file.
+        """
+        features = session.spark.createDataFrame([Row(feature="ENSG00000177757.2")])
+        gene_map = BigBrainStudyIndex.gene_map_from_feature(features)
+        study_index = BigBrainStudyIndex.from_source(features, gene_map, "eqtl")
+
+        assert study_index.df.collect()[0].hasSumstats is True
+
     def test_from_source_sqtl_missing_gene_mapping(self, session: Session) -> None:
         """SQTL features absent from top_assoc resolve to a null geneId, not an error."""
         features = session.spark.createDataFrame(
