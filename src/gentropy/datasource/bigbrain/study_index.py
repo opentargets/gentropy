@@ -150,6 +150,12 @@ class BigBrainStudyIndex:
                 StudyIndex.aggregate_and_map_ancestries(f.col("discoverySamples")),
             )
             .withColumn("cohorts", f.array(f.lit(pub.COHORTS)))
+            # Every BigBrain study is derived from the harmonised summary statistics
+            # this index is built from, so this is always true. It must be set
+            # explicitly: the select below keeps only schema fields actually created
+            # here, and a missing hasSumstats reads back as null, which SusieFineMapper
+            # rejects with "No sumstats found for the studyId".
+            .withColumn("hasSumstats", f.lit(True))
         )
 
         study_index_columns = [
