@@ -49,6 +49,14 @@ function main() {
     install_pip
     pip install uv
 
+    # Temporary: a GitHub HTTP/2 defect makes unauthenticated fetches fail on the git
+    # this image ships (2.30.2). The advertisement returns 200, the pack negotiation
+    # returns 401, and git reports it as a missing username. uv shells out to
+    # /usr/bin/git, so this applies to the install below.
+    # https://github.com/orgs/community/discussions/206581
+    # Remove once GitHub resolves it.
+    git config --global http.version HTTP/1.1
+
     echo "Install package..."
     uv pip install --system --upgrade opencv-python pandas numpy pyarrow scipy
     run_with_retry uv pip install --no-break-system-packages --system "gentropy @ git+${REPO_URI}.git@${GENTROPY_REF}"

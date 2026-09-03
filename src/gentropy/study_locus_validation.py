@@ -55,6 +55,11 @@ class StudyLocusValidationStep:
             .qc_explained_by_SuSiE()  # Flagging credible sets in regions explained by SuSiE
             # Annotates credible intervals and filter to only keep 95% credible sets
             .filter_credible_set(credible_interval=CredibleInterval.IS95)
+            # Flagging credible sets with a non-unique identifier. The input is a union of several
+            # independently generated datasets, so uniqueness can only be established here. Runs
+            # after the 95% filter so that the smallest-credible-set rule sees the credible sets
+            # themselves rather than the full set of tagging variants.
+            .validate_unique_study_locus_id()
             # Flagging credible sets with PIP > 1 or PIP < 0.95
             .qc_abnormal_pips(
                 sum_pips_lower_threshold=0.95,
