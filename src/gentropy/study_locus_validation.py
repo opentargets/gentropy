@@ -69,9 +69,23 @@ class StudyLocusValidationStep:
 
         result = study_locus_with_qc.valid_rows(invalid_qc_reasons)
 
+        # `studyLocusId` is a hash of the study and the lead variant, and the input is a union of
+        # several independently generated datasets, so uniqueness can only be established here.
+        # It is checked on the credible sets that survived the other flags, never on the whole
+        # input: a curated top hit collides with the PICS credible set of the same study and lead
+        # variant, and the top hit holds the smaller `locus` of the two, so ordering the whole
+        # input by credible set size elects the top hit -- itself already dropped under
+        # TOP_HIT_AND_SUMMARY_STATS -- and flags the fine-mapped credible set, losing both.
+        deduplicated = (
+            result.valid.validate_unique_study_locus_id().persist()
+        )  # we will need this for 2 types of outputs
+        # None of the other reasons can match here, so this only separates the duplicates, and
+        # only when DUPLICATED_STUDYLOCUS_ID is one of the configured invalid reasons.
+        unique = deduplicated.valid_rows(invalid_qc_reasons)
+
         (
             # Valid study locus partitioned to simplify the finding of overlaps
-            result.valid.df.repartitionByRange(
+            unique.valid.df.repartitionByRange(
                 session.output_partitions,
                 "chromosome",
                 "position",
@@ -81,7 +95,12 @@ class StudyLocusValidationStep:
             .parquet(valid_study_locus_path)
         )
         (
-            result.invalid.df.coalesce(session.output_partitions)
+            result.invalid.df.unionByName(unique.invalid.df)
+            .coalesce(session.output_partitions)
             .write.mode(session.write_mode)
             .parquet(invalid_study_locus_path)
         )
+
+        # Both caches feed the invalid output, so they can only be released once it is written.
+        deduplicated.df.unpersist()
+        study_locus_with_qc.df.unpersist()
