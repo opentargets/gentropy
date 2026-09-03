@@ -858,6 +858,25 @@ class HeritabilityEstimateConfig(StepConfig):
 
 
 @dataclass
+class GeneticCorrelationConfig(StepConfig):
+    """Configuration for LDSC-based genetic correlation estimation."""
+
+    summary_statistics_input_path_1: str = MISSING
+    summary_statistics_input_path_2: str = MISSING
+    study_index_input_path: str = MISSING
+    ldscore_base_path: str = MISSING
+    rg_output_path: str = MISSING
+    ldscore_template: str = "gnomad_r2.1.1_{ancestry}_hg38.csv.gz"
+    twostep: float = 30.0
+    n_blocks: int = 200
+    intercept: float | None = None
+    max_rows_for_collection: int = 20_000_000
+    min_samples: int = 10_000
+    m_ldsc_override: float | None = None
+    _target_: str = "gentropy.ldsc_rg.GeneticCorrelationStep"
+
+
+@dataclass
 class pQTLStudyIndexTransformationConfig(StepConfig):
     """pQTL study index transformation step configuration."""
 
@@ -998,6 +1017,7 @@ def register_config() -> None:
     cs.store(
         group="step", name="heritability_estimate", node=HeritabilityEstimateConfig
     )
+    cs.store(group="step", name="genetic_correlation", node=GeneticCorrelationConfig)
     cs.store(
         group="step",
         name="pQTL_study_index_transformation",
