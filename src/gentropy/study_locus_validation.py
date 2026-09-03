@@ -100,3 +100,7 @@ class StudyLocusValidationStep:
             .write.mode(session.write_mode)
             .parquet(invalid_study_locus_path)
         )
+
+        # Both caches feed the invalid output, so they can only be released once it is written.
+        deduplicated.df.unpersist()
+        study_locus_with_qc.df.unpersist()
