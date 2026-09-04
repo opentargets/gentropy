@@ -25,8 +25,8 @@ class SessionConfig:
     log_level: str = "ERROR"
     add_s3_connector: bool = False
     add_gcs_connector: bool = False
-    s3_configuration: dict[str, str] | None = field(default_factory=dict[str, str])
-    gcs_configuration: dict[str, str] | None = field(default_factory=dict[str, str])
+    s3_configuration: dict[str, Any] | None = field(default_factory=dict[str, Any])
+    gcs_configuration: dict[str, Any] | None = field(default_factory=dict[str, Any])
     s3_configuration_path: str | None = None
     gcs_configuration_path: str | None = None
     _target_: str = "gentropy.common.session.Session"
@@ -590,9 +590,11 @@ class PanUKBBConfig(StepConfig):
             "start_hail": True,
         }
     )
+    variant_annotation_path: str = MISSING
     pan_ukbb_ht_path: str = "gs://panukbb-ld-matrixes/ukb-diverse-pops-public-build-38/UKBB.{POP}.ldadj.variant.b38"
-    pan_ukbb_bm_path: str = "gs://panukbb-ld-matrixes/UKBB.{POP}.ldadj"
     ukbb_annotation_path: str = "gs://panukbb-ld-matrixes/UKBB.{POP}.aligned.parquet"
+    variant_filter_paths: dict[str, str] = field(default_factory=dict)
+    filtered_ukbb_annotation_path: str | None = None
     pan_ukbb_pops: list[str] = field(
         default_factory=lambda: [
             "AFR",  # African
@@ -601,6 +603,21 @@ class PanUKBBConfig(StepConfig):
         ]
     )
     _target_: str = "gentropy.pan_ukb_ingestion.PanUKBBVariantIndexStep"
+
+
+@dataclass
+class FineMappingLocusSetLDAnnotationConfig(StepConfig):
+    """Fine-mapping locus-set LD annotation step configuration."""
+
+    fine_mapping_locus_set_input_path: str = MISSING
+    fine_mapping_study_metadata_jsonl_input_path: str = MISSING
+    multi_ancestry_pairwise_ld_output_path: str = MISSING
+    stats_output_path: str = MISSING
+    ld_registry: list[dict[str, str]] = MISSING
+    _target_: str = (
+        "gentropy.fine_mapping_locus_set_ld_annotation."
+        "FineMappingLocusSetLDAnnotationStep"
+    )
 
 
 @dataclass
@@ -953,6 +970,12 @@ def register_config() -> None:
 
     cs.store(group="step", name="pics", node=PICSConfig)
     cs.store(group="step", name="gnomad_variants", node=GnomadVariantConfig)
+    cs.store(group="step", name="pan_ukbb_variant_index", node=PanUKBBConfig)
+    cs.store(
+        group="step",
+        name="fine_mapping_locus_set_ld_annotation",
+        node=FineMappingLocusSetLDAnnotationConfig,
+    )
     cs.store(group="step", name="ukb_ppp_eur_sumstat_preprocess", node=UkbPppEurConfig)
     cs.store(group="step", name="lof_curation_ingestion", node=LOFIngestionConfig)
     cs.store(group="step", name="variant_index", node=VariantIndexConfig)
