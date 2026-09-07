@@ -43,7 +43,6 @@ class CredibleSetConfidenceClasses(Enum):
     List of confidence classes, from the highest to the lowest confidence level.
 
     Attributes:
-        REPLICATED (str): Credible set whose lead variant is replicated in an independent study
         FINEMAPPED_IN_SAMPLE_LD (str): SuSiE fine-mapped credible set with in-sample LD
         FINEMAPPED_OUT_OF_SAMPLE_LD (str): SuSiE fine-mapped credible set with out-of-sample LD
         PICSED_SUMMARY_STATS (str): PICS fine-mapped credible set extracted from summary statistics
@@ -51,7 +50,6 @@ class CredibleSetConfidenceClasses(Enum):
         UNKNOWN (str): Unknown confidence, for credible sets which did not fit any of the above categories
     """
 
-    REPLICATED = "Replicated credible set"
     FINEMAPPED_IN_SAMPLE_LD = "SuSiE fine-mapped credible set with in-sample LD"
     FINEMAPPED_OUT_OF_SAMPLE_LD = "SuSiE fine-mapped credible set with out-of-sample LD"
     PICSED_SUMMARY_STATS = (
@@ -63,6 +61,9 @@ class CredibleSetConfidenceClasses(Enum):
 
 class StudyLocusQualityCheck(Enum):
     """Study-Locus quality control options listing concerns on the quality of the association.
+
+    All flags but `REPLICATED` describe a concern; `REPLICATED` records a positive observation
+    on the credible set, so it is never a reason to consider a credible set invalid.
 
     Attributes:
         SUBSIGNIFICANT_FLAG (str): p-value below significance threshold
@@ -88,7 +89,7 @@ class StudyLocusQualityCheck(Enum):
         OUT_OF_SAMPLE_LD (str): Study locus finemapped without in-sample LD reference
         INVALID_CHROMOSOME (str): Chromosome not in 1:22, X, Y, XY or MT
         TOP_HIT_AND_SUMMARY_STATS (str): Curated top hit is flagged because summary statistics are available for study
-        NOT_REPLICATED (str): Lead variant of the credible set is not replicated in an independent study of the same disease or gene
+        REPLICATED (str): Lead variant of the credible set is replicated in an independent study of the same diseases or gene
     """
 
     SUBSIGNIFICANT_FLAG = "Subsignificant p-value"
@@ -122,7 +123,7 @@ class StudyLocusQualityCheck(Enum):
     TOP_HIT_AND_SUMMARY_STATS = (
         "Curated top hit is flagged because summary statistics are available for study"
     )
-    NOT_REPLICATED = "Lead variant is not replicated in independent study"
+    REPLICATED = "Lead variant is replicated in an independent study"
 
 
 class CredibleInterval(Enum):
@@ -423,16 +424,20 @@ class StudyLocus(Dataset):
 
     @qc_test
     def qc_replication(self: StudyLocus, study_index: StudyIndex) -> StudyLocus:
-        """Flagging credible sets whose lead variant is not replicated in an independent study.
+        """Flagging credible sets whose lead variant is replicated in an independent study.
 
         A GWAS credible set is considered replicated if its lead variant is associated with the
-        same disease in at least two independent studies, a molQTL credible set if its lead
+        same diseases in at least two independent studies, a molQTL credible set if its lead
         variant is associated with the same gene in at least two studies.
 
-        Two GWAS studies reporting the same cohorts, the same publication and the same LD
-        population structure are the same evidence twice over, so they are collapsed before
-        counting. GWAS studies with no disease annotation and molQTL studies with no measured
-        gene can never be replicated and are therefore always flagged.
+        GWAS studies have to agree on their full list of diseases: two studies sharing a single
+        disease out of several describe different phenotypes and are not a replication of one
+        another. Two GWAS studies reporting the same cohorts, the same publication and the same
+        LD population structure are the same evidence twice over, so they are collapsed before
+        counting.
+
+        Credible sets of GWAS studies with no disease annotation and of molQTL studies with no
+        measured gene have nothing to replicate on and are therefore never flagged.
 
         Run this at the very end of validation, against a validated study index and the credible
         sets that passed every other check: a credible set removed by an earlier flag is not
@@ -458,27 +463,32 @@ class StudyLocus(Dataset):
             how="left",
         )
 
-        # Exploding the diseases drops GWAS credible sets without disease annotation:
-        gwas = loci.filter(f.col("studyType") == "gwas").withColumn(
-            "diseaseId", f.explode("diseaseIds")
+        # Replication is counted on the full list of diseases, sorted so that the same set of
+        # diseases reported in a different order is still the same key:
+        gwas = (
+            loci.filter(f.col("studyType") == "gwas")
+            .filter(f.col("diseaseIds").isNotNull() & (f.size("diseaseIds") > 0))
+            .withColumn("diseaseIdSet", f.array_sort(f.array_distinct("diseaseIds")))
         )
         replicated_gwas_loci = gwas.join(
             gwas.select(
                 "variantId",
-                "diseaseId",
+                "diseaseIdSet",
                 "cohorts",
                 "pubmedId",
                 "ldPopulationStructure",
             )
             .distinct()
-            .groupBy("variantId", "diseaseId")
+            .groupBy("variantId", "diseaseIdSet")
             .count()
             .filter(f.col("count") >= 2),
-            on=["variantId", "diseaseId"],
+            on=["variantId", "diseaseIdSet"],
             how="inner",
         ).select("studyLocusId")
 
-        molqtl = loci.filter(f.col("studyType") != "gwas")
+        molqtl = loci.filter(f.col("studyType") != "gwas").filter(
+            f.col("geneId").isNotNull()
+        )
         replicated_molqtl_loci = molqtl.join(
             molqtl.groupBy("variantId", "geneId").count().filter(f.col("count") >= 2),
             on=["variantId", "geneId"],
@@ -498,8 +508,8 @@ class StudyLocus(Dataset):
                     "qualityControls",
                     self.update_quality_flag(
                         f.col("qualityControls"),
-                        f.col("isReplicated").isNull(),
-                        StudyLocusQualityCheck.NOT_REPLICATED,
+                        f.col("isReplicated").isNotNull(),
+                        StudyLocusQualityCheck.REPLICATED,
                     ),
                 )
                 .drop("isReplicated")
@@ -1537,17 +1547,8 @@ class StudyLocus(Dataset):
 
         return WindowBasedClumping.clump(self, window_size)
 
-    def assign_confidence(
-        self: StudyLocus, use_replication: bool = False
-    ) -> StudyLocus:
+    def assign_confidence(self: StudyLocus) -> StudyLocus:
         """Assign confidence to study locus.
-
-        Args:
-            use_replication (bool): Whether replication is taken into account, in which case
-                credible sets replicated in an independent study get the highest confidence and
-                the rest are classified by fine-mapping method as usual. Only set this if
-                `qc_replication` has already been applied: replication is read from the absence
-                of the `NOT_REPLICATED` flag, which is also absent when the check never ran.
 
         Returns:
             StudyLocus: Study locus with confidence assigned.
@@ -1559,26 +1560,10 @@ class StudyLocus(Dataset):
         ):
             return self
 
-        # Credible sets replicated in an independent study are the most trustworthy ones,
-        # regardless of how they were fine-mapped. Everything else falls through to the
-        # method-based classification below:
-        replication_condition = (
-            ~f.array_contains(
-                f.col("qualityControls"),
-                StudyLocusQualityCheck.NOT_REPLICATED.value,
-            )
-            if use_replication
-            else f.lit(False)
-        )
-
         # Assign confidence based on the presence of quality controls
         df = self.df.withColumn(
             "confidence",
             f.when(
-                replication_condition,
-                CredibleSetConfidenceClasses.REPLICATED.value,
-            )
-            .when(
                 (
                     f.col("finemappingMethod").isin(
                         FinemappingMethod.SUSIE.value,
