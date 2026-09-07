@@ -55,11 +55,6 @@ class StudyLocusValidationStep:
             .qc_explained_by_SuSiE()  # Flagging credible sets in regions explained by SuSiE
             # Annotates credible intervals and filter to only keep 95% credible sets
             .filter_credible_set(credible_interval=CredibleInterval.IS95)
-            # Flagging credible sets with a non-unique identifier. The input is a union of several
-            # independently generated datasets, so uniqueness can only be established here. Runs
-            # after the 95% filter so that the smallest-credible-set rule sees the credible sets
-            # themselves rather than the full set of tagging variants.
-            .validate_unique_study_locus_id()
             # Flagging credible sets with PIP > 1 or PIP < 0.95
             .qc_abnormal_pips(
                 sum_pips_lower_threshold=0.95,
@@ -74,16 +69,28 @@ class StudyLocusValidationStep:
 
         result = study_locus_with_qc.valid_rows(invalid_qc_reasons)
 
-        # Replication is assessed once every other check is done, on the credible sets that
-        # passed them: a credible set dropped by an earlier flag is not evidence of replication.
-        # The confidence is then re-assigned, this time taking replication into account.
-        valid_study_locus = result.valid.qc_replication(study_index).assign_confidence(
-            use_replication=True
-        )
+        # `studyLocusId` is a hash of the study and the lead variant, and the input is a union of
+        # several independently generated datasets, so uniqueness can only be established here.
+        # It is checked on the credible sets that survived the other flags, never on the whole
+        # input: a curated top hit collides with the PICS credible set of the same study and lead
+        # variant, and the top hit holds the smaller `locus` of the two, so ordering the whole
+        # input by credible set size elects the top hit -- itself already dropped under
+        # TOP_HIT_AND_SUMMARY_STATS -- and flags the fine-mapped credible set, losing both.
+        deduplicated = (
+            result.valid.validate_unique_study_locus_id().persist()
+        )  # we will need this for 2 types of outputs
+        # None of the other reasons can match here, so this only separates the duplicates, and
+        # only when DUPLICATED_STUDYLOCUS_ID is one of the configured invalid reasons.
+        unique = deduplicated.valid_rows(invalid_qc_reasons)
+
+        # Replication is assessed at the very end, once every invalid credible set has been
+        # removed: a credible set dropped by any earlier flag, a duplicate included, is not
+        # evidence of replication, and duplicated credible sets of one study would count as two.
+        replicated = unique.valid.qc_replication(study_index)
 
         (
             # Valid study locus partitioned to simplify the finding of overlaps
-            valid_study_locus.df.repartitionByRange(
+            replicated.df.repartitionByRange(
                 session.output_partitions,
                 "chromosome",
                 "position",
@@ -93,7 +100,12 @@ class StudyLocusValidationStep:
             .parquet(valid_study_locus_path)
         )
         (
-            result.invalid.df.coalesce(session.output_partitions)
+            result.invalid.df.unionByName(unique.invalid.df)
+            .coalesce(session.output_partitions)
             .write.mode(session.write_mode)
             .parquet(invalid_study_locus_path)
         )
+
+        # Both caches feed the invalid output, so they can only be released once it is written.
+        deduplicated.df.unpersist()
+        study_locus_with_qc.df.unpersist()
