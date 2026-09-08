@@ -24,14 +24,17 @@ def fitted_model_bytes() -> bytes:
     return sio.dumps(model)
 
 
+@pytest.mark.parametrize(
+    "given", ["gs://a-bucket/some/model/dir", "gs://a-bucket/some/model/dir/"]
+)
 def test_load_from_disk_reads_a_gcs_directory(
-    session: Session, fitted_model_bytes: bytes
+    session: Session, fitted_model_bytes: bytes, given: str
 ) -> None:
     """Test that a gs:// directory is resolved to the right bucket and blob.
 
     Building the path with pathlib collapses "gs://bucket/dir" to "gs:/bucket/dir", which sends
     the read down the local-filesystem branch and fails. This pins the bucket and blob names the
-    GCS branch asks for.
+    GCS branch asks for, with and without a trailing slash.
     """
     blob = MagicMock()
     blob.download_as_string.return_value = fitted_model_bytes
@@ -42,7 +45,7 @@ def test_load_from_disk_reads_a_gcs_directory(
         patch.dict("sys.modules", {"google.cloud": MagicMock(storage=storage)}),
         patch("google.cloud.storage", storage),
     ):
-        model = LocusToGeneModel.load_from_disk(session, "gs://a-bucket/some/model/dir")
+        model = LocusToGeneModel.load_from_disk(session, given)
 
     assert isinstance(model.model, XGBClassifier)
     assert storage.Bucket.call_args.kwargs["name"] == "a-bucket"
