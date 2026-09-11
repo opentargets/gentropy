@@ -38,6 +38,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 ENV CLOUDSDK_PYTHON=/usr/local/bin/python3
 
+# Google Batch injects CLOUDSDK_PYTHON=/usr/bin/python3 into container runnables,
+# overriding image-level ENV. This base image ships python at /usr/local/bin only,
+# so provide the conventional system path for gcloud (and anything else hardcoding it).
+RUN ln -sf /usr/local/bin/python3 /usr/bin/python3
+
 # Create app user and group
 RUN groupadd --gid 1000 app && \
     useradd --uid 1000 --gid app --shell /bin/bash --create-home app
