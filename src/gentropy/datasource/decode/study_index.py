@@ -280,7 +280,10 @@ class deCODEStudyIndex:
            metadata; this restricts the study index to aptamers present in the SomaScan
            study table (a subset of the full manifest).
         4. Left-join the protein-complex table on the sorted, comma-joined UniProt protein
-           ID string to annotate multi-target aptamers with a ``molecularComplexId``.
+           ID string to annotate multi-target aptamers with ``molecularComplexIds``. The
+           reference side is grouped by component set first, so a set described by
+           several complex entries annotates one study row with several identifiers
+           instead of duplicating the study.
         5. Populate bibliographic and cohort metadata from
            `deCODEPublicationMetadata`, including
            sample sizes, biosample ID, ancestry, and LD population structure.
@@ -341,17 +344,32 @@ class deCODEStudyIndex:
             .alias("_manifest_aptamer_annotated")
         )
 
-        _protein_complex = molecular_complex.df.select(
-            f.col("id").alias("molecularComplexId"),
-            f.concat_ws(
-                ",",
-                f.array_sort(
-                    f.array_distinct(
-                        f.transform(f.col("components"), lambda x: x.getField("id"))
-                    )
-                ),
-            ).alias("proteinIds"),
-        ).alias("_protein_complex")
+        # Complex Portal can describe one component set with more than one complex
+        # entry (CPX-37 and CPX-39 are both exactly {P05109, P06702}). Grouping by the
+        # component set keeps the reference side unique per join key, so the annotation
+        # join below cannot fan out and duplicate a study. The colliding identifiers
+        # are collected rather than discarded, because "these complexes share a
+        # component set" is a real fact about the reference data.
+        _protein_complex = (
+            molecular_complex.df.select(
+                f.col("id").alias("molecularComplexId"),
+                f.concat_ws(
+                    ",",
+                    f.array_sort(
+                        f.array_distinct(
+                            f.transform(f.col("components"), lambda x: x.getField("id"))
+                        )
+                    ),
+                ).alias("proteinIds"),
+            )
+            .groupBy("proteinIds")
+            .agg(
+                f.array_sort(f.collect_set("molecularComplexId")).alias(
+                    "molecularComplexIds"
+                )
+            )
+            .alias("_protein_complex")
+        )
 
         _manifest_complex_annotated = (
             _manifest_aptamer_annotated.join(
@@ -429,7 +447,7 @@ class deCODEStudyIndex:
                 # f.lit(None).cast("array<string>").alias("diseaseIds"),
                 # f.lit(None).cast("array<string>").alias("backgroundDiseaseIds"),
                 "targetsFromSource",
-                "molecularComplexId",
+                "molecularComplexIds",
             )
         )
 
@@ -458,6 +476,17 @@ class deCODEStudyIndex:
             study_id_parts.project_id,
             study_id_parts.datasource_type,
             study_id_parts.aptamer_id,
-            f.concat_ws(",", f.transform(targets, lambda x: f.coalesce(x.getField("geneSymbol"), f.lit("_NA")))),
-            f.concat_ws(",", f.transform(targets, lambda x: f.coalesce(x.getField("proteinId"), f.lit("_NA")))),
+            f.concat_ws(
+                ",",
+                f.transform(
+                    targets,
+                    lambda x: f.coalesce(x.getField("geneSymbol"), f.lit("_NA")),
+                ),
+            ),
+            f.concat_ws(
+                ",",
+                f.transform(
+                    targets, lambda x: f.coalesce(x.getField("proteinId"), f.lit("_NA"))
+                ),
+            ),
         ).alias("updatedStudyId")

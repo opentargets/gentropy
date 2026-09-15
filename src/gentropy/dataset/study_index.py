@@ -1060,7 +1060,13 @@ class ProteinQuantitativeTraitLocusStudyIndex(StudyIndex):
                 ),
                 nullable=True,
             ),
-        ).add(t.StructField("molecularComplexId", t.StringType(), nullable=True))
+        ).add(
+            t.StructField(
+                "molecularComplexIds",
+                t.ArrayType(t.StringType(), containsNull=True),
+                nullable=True,
+            )
+        )
 
     def to_study(
         self: ProteinQuantitativeTraitLocusStudyIndex, target: TargetIndex
@@ -1106,6 +1112,12 @@ class ProteinQuantitativeTraitLocusStudyIndex(StudyIndex):
         ambiguous_df = (
             _symbol_annot_si.filter(f.col("ambiguousGeneIdMapping"))
             .drop("ambiguousGeneIdMapping", "geneId")
+            # An ambiguous symbol already produced one row per candidate gene in the
+            # symbol join above. Those rows differ only in the geneId just dropped, so
+            # without collapsing them here the protein-id join below multiplies rather
+            # than resolves: a symbol matching 2 genes whose protein also matches the
+            # same 2 genes yielded 4 rows instead of 2.
+            .distinct()
             .join(protein_id_lut, on="proteinId", how="left")
             .select(StudyIndex.get_schema().fieldNames())
         )
