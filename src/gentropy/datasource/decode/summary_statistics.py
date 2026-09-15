@@ -288,12 +288,9 @@ class deCODESummaryStatistics:
             # NOTE: repartition("chromosome") produces very uneven partitions,
             # Spark attempts then to fall back to `dynamic partitioning` algorithm
             # which fails after N failures.
-            .persist()
             .alias("vd")
         )
 
-        # Estimate output partitions from the number of studies.
-        n_sumstats = decode_study_index.df.count()
         # Pre-filtering on alleles based on configuration.
         sumstats = raw_summary_statistics
         if config.remove_monomorphic_alleles:
@@ -378,14 +375,14 @@ class deCODESummaryStatistics:
                 f.col("effectAlleleFrequencyFromSource"),
                 f.col("standardError"),
             )
-            # Approximate number of partitions = 10 * number of studies.
-            # repartitionByRange establishes the partitioning order, so no
-            # separate .sort() is required (a pre-sort would add a wasted shuffle).
-            .repartitionByRange(n_sumstats * 10, "studyId", "chromosome", "position")
-            # Materialise the flipping join once. sanity_filter() runs
-            # drop_variant_duplicates() (a self-aggregation), which would
-            # otherwise recompute the entire sumstats x VariantDirection join.
-            .persist()
+            # Cluster by studyId, the key everything downstream works on. This is a
+            # plain hash shuffle: unlike repartitionByRange it needs no sampling pass
+            # over the input to pick range boundaries, and the resulting
+            # HashPartitioning(studyId) already satisfies the distribution that
+            # drop_variant_duplicates requires for (studyId, variantId), so that
+            # shuffle is planned away too. The write step re-establishes the final
+            # per-study layout and ordering, so no ordering is needed here.
+            .repartition("studyId")
         )
 
         si = decode_study_index.df.withColumn(
@@ -410,12 +407,12 @@ class deCODESummaryStatistics:
                 "studyId", f.coalesce(f.col("updatedStudyId"), f.col("studyId"))
             )
             .drop("updatedStudyId")
-            .persist()
         )
-        # vd_slice and flipped are no longer needed once harmonised is registered
-        # for caching.
-        vd_slice.unpersist()
-        flipped.unpersist()
+        # No caching here on purpose. Each stage is consumed exactly once now that the
+        # deduplication is single-pass, so caching this dataset only pinned several
+        # times the input volume in the block manager -- and cache blocks are not
+        # protected by Enhanced Flexibility Mode, so they were lost (and recomputed)
+        # every time an autoscaled worker was decommissioned.
 
         pqtl_si = ProteinQuantitativeTraitLocusStudyIndex(
             _df=si.drop("studyId")
