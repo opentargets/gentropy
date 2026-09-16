@@ -301,20 +301,18 @@ class deCODESummaryStatisticsHarmonisationStep:
         rss = session.spark.read.parquet(raw_summary_statistics_path)
         hss, pqtl_si = deCODESummaryStatistics.from_source(rss, gvd, _pqtl_si, config)
 
-        # Repartition by studyId immediately before the write so each Spark
-        # partition writes exactly one studyId directory. Without this, the
-        # sanity_filter shuffle upstream leaves rows for a given studyId spread
-        # across every task, and partitionBy("studyId") emits one small file
-        # per (task, studyId) pair — potentially millions of tiny files, and
-        # each task holds many open output buffers simultaneously (OOM risk on
-        # primary workers under EFM). See 2026-07-03 failure investigation.
-        # sortWithinPartitions (not a global sort) then orders each per-study
-        # file by genomic position so downstream readers can skip row groups
-        # on position range queries without paying for a full shuffle.
+        # Write straight out: from_source clusters by studyId and everything after
+        # it keeps that partitioning, so each task already holds whole studies and
+        # partitionBy("studyId") emits few files per study.
+        #
+        # This previously repartitioned by studyId and sorted within partitions.
+        # The repartition re-shuffled the full dataset onto the partitioning it
+        # already had, and both stages spilled onto the primaries' local dirs --
+        # 734 GiB and 26 GiB respectively in one 20 minute window on 2026-09-16 --
+        # taking them past YARN's 90% threshold, which marks the node unhealthy and
+        # releases its containers. Under EFM the shuffle lives on those same nodes.
         (
-            hss.df.repartition("studyId")
-            .sortWithinPartitions("chromosome", "position", "variantId")
-            .write.mode(session.write_mode)
+            hss.df.write.mode(session.write_mode)
             .partitionBy("studyId")
             .option("maxRecordsPerFile", 50_000_000)
             .parquet(harmonised_summary_statistics_path)
