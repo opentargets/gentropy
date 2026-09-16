@@ -1,4 +1,5 @@
 """CLI for gentropy."""
+
 from __future__ import annotations
 
 import hydra

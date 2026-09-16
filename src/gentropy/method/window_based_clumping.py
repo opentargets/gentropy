@@ -246,9 +246,7 @@ class WindowBasedClumping:
                 # Adding study-locus id:
                 .withColumn(
                     "studyLocusId",
-                    StudyLocus.assign_study_locus_id(
-                        ["studyId", "variantId"]
-                    ),
+                    StudyLocus.assign_study_locus_id(["studyId", "variantId"]),
                 )
                 # Initialize QC column as array of strings:
                 .withColumn("qualityControls", qc_expression)

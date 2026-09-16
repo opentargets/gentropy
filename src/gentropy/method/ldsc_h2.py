@@ -18,6 +18,7 @@ import numpy as np
 
 np.seterr(divide="raise", invalid="raise")
 
+
 def _check_shape(x: np.ndarray, y: np.ndarray) -> tuple[int, int]:
     """Check that arrays have compatible 2D shapes for regression jackknives.
 
@@ -311,6 +312,7 @@ class LstsqJackknifeFast(Jackknife):
             )
         return delete_values
 
+
 class IRWLS:
     """Iteratively re-weighted least squares with block jackknife.
 
@@ -477,6 +479,7 @@ class IRWLS:
         w_n = w / float(np.sum(w))
         return np.multiply(x, w_n)
 
+
 def append_intercept(x: np.ndarray) -> np.ndarray:
     """Append a column of ones as an intercept term to the design matrix.
 
@@ -515,8 +518,11 @@ def update_separators(s: np.ndarray, ii: np.ndarray) -> np.ndarray:
     t = np.hstack((0, t, len(ii)))
     return t
 
+
 def _as_float_or_none(x: Any) -> float | None:
     return None if x is None else float(x)
+
+
 class LD_Score_Regression:
     """Base class for LD Score regression (heritability and genetic covariance).
 
@@ -997,7 +1003,6 @@ class LD_Score_Regression:
         self.jknife = jknife
         self.M = M
 
-
     @classmethod
     def aggregate(
         cls,
@@ -1240,7 +1245,9 @@ class Hsq(LD_Score_Regression):
         self.mean_chisq, self.lambda_gc = self._summarise_chisq(y)
         if not self.constrain_intercept:
             self.ratio, self.ratio_se = self._ratio(
-                float(self.intercept), float(self.intercept_se), self.mean_chisq  # type: ignore[arg-type]
+                float(self.intercept),
+                float(self.intercept_se),
+                self.mean_chisq,  # type: ignore[arg-type]
             )
         else:
             self.ratio, self.ratio_se = None, None
@@ -1396,6 +1403,7 @@ class Hsq(LD_Score_Regression):
         oc_w = 1.0 / w_ld
         w = np.multiply(het_w, oc_w)
         return w
+
 
 def run_ldsc_h2_from_arrays(
     beta: np.ndarray,

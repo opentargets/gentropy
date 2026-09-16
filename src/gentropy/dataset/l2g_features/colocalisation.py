@@ -876,16 +876,21 @@ def common_trans_pqtl_colocalisation_feature_logic(
         else ["studyLocusId"]
     )
 
-    coloc_methods = {c.lower() for c in ColocalisationMethod.get_method_names_for_metric(colocalisation_metric)}
+    coloc_methods = {
+        c.lower()
+        for c in ColocalisationMethod.get_method_names_for_metric(colocalisation_metric)
+    }
 
     # Step 1: Trans-pQTL study loci and their measured genes (via study index)
     trans_pqtl_study_loci = (
-        study_locus.filter(
-            (f.col("isTransQtl").isNotNull()) & f.col("isTransQtl")
-        )
+        study_locus.filter((f.col("isTransQtl").isNotNull()) & f.col("isTransQtl"))
         .df.select("studyLocusId", "studyId")
         .join(
-            f.broadcast(study_index.df.filter(f.col("studyType") == "pqtl").select("studyId", "geneId")),
+            f.broadcast(
+                study_index.df.filter(f.col("studyType") == "pqtl").select(
+                    "studyId", "geneId"
+                )
+            ),
             on="studyId",
             how="inner",
         )
@@ -904,12 +909,17 @@ def common_trans_pqtl_colocalisation_feature_logic(
             (f.col("rightStudyType") == "pqtl")
             & f.lower("colocalisationMethod").isin(coloc_methods)
         )
-        .select("leftStudyLocusId", "rightStudyLocusId", colocalisation_metric, "colocalisationMethod")
+        .select(
+            "leftStudyLocusId",
+            "rightStudyLocusId",
+            colocalisation_metric,
+            "colocalisationMethod",
+        )
         .join(trans_pqtl_study_loci, on="rightStudyLocusId", how="inner")
         .join(
-            study_locus.df.select("studyLocusId", "chromosome", "position").withColumnRenamed(
-                "studyLocusId", "leftStudyLocusId"
-            ),
+            study_locus.df.select(
+                "studyLocusId", "chromosome", "position"
+            ).withColumnRenamed("studyLocusId", "leftStudyLocusId"),
             on="leftStudyLocusId",
             how="inner",
         )
@@ -926,8 +936,14 @@ def common_trans_pqtl_colocalisation_feature_logic(
 
     filtered_inter = (
         interactions.filter(
-            ((f.col("sourceDatabase") == "string") & (f.col("scoring") >= string_threshold))
-            | ((f.col("sourceDatabase") == "intact") & (f.col("scoring") >= intact_threshold))
+            (
+                (f.col("sourceDatabase") == "string")
+                & (f.col("scoring") >= string_threshold)
+            )
+            | (
+                (f.col("sourceDatabase") == "intact")
+                & (f.col("scoring") >= intact_threshold)
+            )
             | (~f.col("sourceDatabase").isin("string", "intact"))
         )
         .select("targetA", "targetB")
@@ -1071,7 +1087,13 @@ def common_neighbourhood_trans_pqtl_colocalisation_feature_logic(
 class TransPQtlColocH4MaximumFeature(L2GFeature):
     """Max H4 for each (study, locus, gene) aggregating over all trans-pQTLs."""
 
-    feature_dependency_type = [Colocalisation, StudyIndex, StudyLocus, SparkDataFrame, TargetIndex]
+    feature_dependency_type = [
+        Colocalisation,
+        StudyIndex,
+        StudyLocus,
+        SparkDataFrame,
+        TargetIndex,
+    ]
     feature_name = "transPQtlColocH4Maximum"
     string_threshold: float = 0.75
     intact_threshold: float = 0.42
@@ -1127,7 +1149,14 @@ class TransPQtlColocH4MaximumFeature(L2GFeature):
 class TransPQtlColocH4MaximumNeighbourhoodFeature(L2GFeature):
     """Max H4 for each (study, locus) aggregating over all trans-pQTLs, normalised by the regional maximum."""
 
-    feature_dependency_type = [Colocalisation, StudyIndex, StudyLocus, SparkDataFrame, TargetIndex, VariantIndex]
+    feature_dependency_type = [
+        Colocalisation,
+        StudyIndex,
+        StudyLocus,
+        SparkDataFrame,
+        TargetIndex,
+        VariantIndex,
+    ]
     feature_name = "transPQtlColocH4MaximumNeighbourhood"
     string_threshold: float = 0.75
     intact_threshold: float = 0.42

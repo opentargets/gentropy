@@ -35,7 +35,7 @@ class SchemaValidationError(Exception):
             str: The string representation of the exception.
         """
         stringified_errors = "\n  ".join(
-            [f'{k}: {",".join(v)}' for k, v in self.errors.items()]
+            [f"{k}: {','.join(v)}" for k, v in self.errors.items()]
         )
         return f"{self.message}\nErrors:\n  {stringified_errors}"
 

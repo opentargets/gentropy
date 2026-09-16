@@ -44,15 +44,18 @@ class LDMatrixInterface:
 
         """
         if ancestry in ("nfe", "csa", "afr"):
-            joined_index = PanUKBBLDMatrix(ukbb_annotation_path=ld_matrix_paths["ukbb_annotation_path"]).get_locus_index_boundaries(
+            joined_index = PanUKBBLDMatrix(
+                ukbb_annotation_path=ld_matrix_paths["ukbb_annotation_path"]
+            ).get_locus_index_boundaries(
                 session=session,
                 study_locus_row=study_locus_row,
                 ancestry=LDMatrixInterface.ancestry_map.get(ancestry, ancestry),
             )
         else:
             joined_index = (
-                GnomADLDMatrix(liftover_ht_path=ld_matrix_paths["liftover_ht_path"],
-                ld_index_raw_template=ld_matrix_paths["ld_index_raw_template"]
+                GnomADLDMatrix(
+                    liftover_ht_path=ld_matrix_paths["liftover_ht_path"],
+                    ld_index_raw_template=ld_matrix_paths["ld_index_raw_template"],
                 )
                 .get_locus_index_boundaries(
                     study_locus_row=study_locus_row,
@@ -95,13 +98,15 @@ class LDMatrixInterface:
             "csa",
             "nfe",
         ):
-            block_matrix = PanUKBBLDMatrix(pan_ukbb_bm_path=ld_matrix_paths["pan_ukbb_bm_path"]).get_numpy_matrix(
+            block_matrix = PanUKBBLDMatrix(
+                pan_ukbb_bm_path=ld_matrix_paths["pan_ukbb_bm_path"]
+            ).get_numpy_matrix(
                 locus_index=locus_index,
                 ancestry=LDMatrixInterface.ancestry_map.get(ancestry, ancestry),
             )
         else:
-            block_matrix = GnomADLDMatrix(ld_matrix_template=ld_matrix_paths["ld_matrix_template"]).get_numpy_matrix(
-                locus_index=locus_index, gnomad_ancestry=ancestry
-            )
+            block_matrix = GnomADLDMatrix(
+                ld_matrix_template=ld_matrix_paths["ld_matrix_template"]
+            ).get_numpy_matrix(locus_index=locus_index, gnomad_ancestry=ancestry)
 
         return block_matrix

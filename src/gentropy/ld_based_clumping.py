@@ -1,4 +1,5 @@
 """Step to apply linkageg based clumping on study-locus dataset."""
+
 from __future__ import annotations
 
 from gentropy.common.session import Session

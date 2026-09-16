@@ -1060,7 +1060,13 @@ class ProteinQuantitativeTraitLocusStudyIndex(StudyIndex):
                 ),
                 nullable=True,
             ),
-        ).add(t.StructField("molecularComplexId", t.StringType(), nullable=True))
+        ).add(
+            t.StructField(
+                "molecularComplexIds",
+                t.ArrayType(t.StringType(), containsNull=True),
+                nullable=True,
+            )
+        )
 
     def to_study(
         self: ProteinQuantitativeTraitLocusStudyIndex, target: TargetIndex
@@ -1103,9 +1109,18 @@ class ProteinQuantitativeTraitLocusStudyIndex(StudyIndex):
             .drop("ambiguousGeneIdMapping")
             .select(StudyIndex.get_schema().fieldNames())
         )
+        # The symbol join emitted one row per candidate gene, differing in the lookup
+        # columns geneId, chromosome and tss. Project to the output columns plus
+        # proteinId and collapse, so re-resolving on proteinId yields one row per
+        # target.
+        ambiguous_columns = [
+            *(c for c in StudyIndex.get_schema().fieldNames() if c != "geneId"),
+            "proteinId",
+        ]
         ambiguous_df = (
             _symbol_annot_si.filter(f.col("ambiguousGeneIdMapping"))
-            .drop("ambiguousGeneIdMapping", "geneId")
+            .select(ambiguous_columns)
+            .distinct()
             .join(protein_id_lut, on="proteinId", how="left")
             .select(StudyIndex.get_schema().fieldNames())
         )

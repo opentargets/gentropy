@@ -239,9 +239,9 @@ class VariantIndex(Dataset):
         """
         join_columns = ["variantId", "chromosome"]
 
-        assert all(
-            col in df.columns for col in join_columns
-        ), "The variant dataframe must contain the columns 'variantId' and 'chromosome'."
+        assert all(col in df.columns for col in join_columns), (
+            "The variant dataframe must contain the columns 'variantId' and 'chromosome'."
+        )
 
         return VariantIndex(
             _df=self._df.join(

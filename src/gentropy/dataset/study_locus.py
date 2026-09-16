@@ -410,7 +410,9 @@ class StudyLocus(Dataset):
                 "qualityControls",
                 self.update_quality_flag(
                     f.col("qualityControls"),
-                    self.flag_duplicates(f.col("studyLocusId"), [f.size("locus").asc()]),
+                    self.flag_duplicates(
+                        f.col("studyLocusId"), [f.size("locus").asc()]
+                    ),
                     StudyLocusQualityCheck.DUPLICATED_STUDYLOCUS_ID,
                 ),
             ),
