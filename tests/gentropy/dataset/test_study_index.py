@@ -1042,6 +1042,13 @@ class TestPQTLStudyIndexToStudy:
         SIGLEC5 resolves to two Ensembl gene IDs, and its protein O15389 resolves to
         the same two. The symbol join fans out to 2 rows; before the fix the protein
         join then multiplied that to 4.
+
+        The two genes carry **different tss**, which is what the real target index
+        has (51,645,545 and 51,630,401). symbols_lut() contributes `tss` alongside
+        `geneId`, so a fixture giving both genes the same tss makes the rows
+        duplicates once geneId is dropped, and passes against a fix that only drops
+        geneId -- which is how a broken fix shipped on 2026-09-16. Keep these values
+        distinct.
         """
         target = self._target_index(
             spark,
@@ -1052,21 +1059,24 @@ class TestPQTLStudyIndexToStudy:
                     "obsoleteSymbols": [],
                     "genomicLocation": {
                         "chromosome": "19",
-                        "start": 1,
-                        "end": 2,
+                        "start": tss,
+                        "end": tss + 100,
                         "strand": 1,
                     },
                     "canonicalTranscript": {
-                        "id": "t1",
+                        "id": f"t-{gene_id}",
                         "chromosome": "19",
-                        "start": 1,
-                        "end": 2,
+                        "start": tss,
+                        "end": tss + 100,
                         "strand": "+",
                     },
-                    "tss": 1,
+                    "tss": tss,
                     "proteinIds": [{"id": "O15389", "source": "uniprot_swissprot"}],
                 }
-                for gene_id in ("ENSG00000105501", "ENSG00000268500")
+                for gene_id, tss in (
+                    ("ENSG00000105501", 51_645_545),
+                    ("ENSG00000268500", 51_630_401),
+                )
             ],
         )
         pqtl = self._pqtl_study_index(

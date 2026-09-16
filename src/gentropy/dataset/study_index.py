@@ -1103,14 +1103,25 @@ class ProteinQuantitativeTraitLocusStudyIndex(StudyIndex):
             .drop("ambiguousGeneIdMapping")
             .select(StudyIndex.get_schema().fieldNames())
         )
+        # An ambiguous symbol already produced one row per candidate gene in the symbol
+        # join above, and this branch discards those geneIds to re-resolve them from
+        # proteinId instead. Those rows must be collapsed first, or the protein join
+        # multiplies rather than resolves: SIGLEC5 matches 2 genes and its protein
+        # O15389 matches the same 2, which yielded 4 rows for 2 targets.
+        #
+        # Collapsing needs an explicit projection, not just dropping geneId:
+        # symbols_lut() also contributes `chromosome` and `tss`, and the candidate
+        # genes differ in those (the two SIGLEC5 entries share chromosome 19 but have
+        # different tss), so the rows are not duplicates until those columns are gone.
+        # Projecting onto the output schema plus the join key drops them at the point
+        # where it matters, instead of at the end where it is too late.
+        ambiguous_columns = [
+            *(c for c in StudyIndex.get_schema().fieldNames() if c != "geneId"),
+            "proteinId",
+        ]
         ambiguous_df = (
             _symbol_annot_si.filter(f.col("ambiguousGeneIdMapping"))
-            .drop("ambiguousGeneIdMapping", "geneId")
-            # An ambiguous symbol already produced one row per candidate gene in the
-            # symbol join above. Those rows differ only in the geneId just dropped, so
-            # without collapsing them here the protein-id join below multiplies rather
-            # than resolves: a symbol matching 2 genes whose protein also matches the
-            # same 2 genes yielded 4 rows instead of 2.
+            .select(ambiguous_columns)
             .distinct()
             .join(protein_id_lut, on="proteinId", how="left")
             .select(StudyIndex.get_schema().fieldNames())
