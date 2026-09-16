@@ -515,6 +515,13 @@ class SUSIE_inf:
             .filter(f.col("rn") == 1)
             .drop("rn")
         )
+        # SusieFineMapperStep does not write studyType, so credible sets read back
+        # from fine-mapping output have it as null. Populate it from the study index
+        # whenever one is supplied — StudyLocus.find_overlaps (and therefore
+        # colocalisation) drops every locus with a null studyType, silently.
+        if study_index:
+            cred_sets = cred_sets.annotate_study_type(study_index)
+
         if clump:
             assert study_index, "Running in clump mode, which requires study_index."
             assert ld_index, "Running in clump mode, which requires ld_index."
