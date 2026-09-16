@@ -1151,3 +1151,50 @@ class TestPQTLStudyIndexToStudy:
             "ENSG00000143546",
             "ENSG00000163220",
         ]
+
+    def test_unresolved_targets_are_dropped(self, spark: SparkSession) -> None:
+        """A target the reference does not resolve carries no gene mapping.
+
+        The IG aptamers pair a resolvable heavy chain with IGK@ / IGL@, whose
+        symbols and placeholder protein ids both miss. Two such targets produced
+        identical rows, making the studyId non-unique and exposing the whole study
+        to validate_unique_study_id.
+        """
+        target = self._target_index(
+            spark,
+            [
+                {
+                    "id": "ENSG00000211898",
+                    "approvedSymbol": "IGHD",
+                    "obsoleteSymbols": [],
+                    "genomicLocation": {
+                        "chromosome": "14",
+                        "start": 1,
+                        "end": 2,
+                        "strand": 1,
+                    },
+                    "canonicalTranscript": {
+                        "id": "t1",
+                        "chromosome": "14",
+                        "start": 1,
+                        "end": 2,
+                        "strand": "+",
+                    },
+                    "tss": 1,
+                    "proteinIds": [{"id": "P01880", "source": "uniprot_swissprot"}],
+                }
+            ],
+        )
+        pqtl = self._pqtl_study_index(
+            spark,
+            [
+                {"geneSymbol": "IGHD", "proteinId": "P01880"},
+                {"geneSymbol": "IGK@", "proteinId": "_NA"},
+                {"geneSymbol": "IGL@", "proteinId": "_NA"},
+            ],
+        )
+
+        result = pqtl.to_study(target)
+
+        assert result.df.count() == 1
+        assert result.df.collect()[0]["geneId"] == "ENSG00000211898"

@@ -1075,6 +1075,7 @@ class ProteinQuantitativeTraitLocusStudyIndex(StudyIndex):
 
         This method maps the pQTL-specific fields to the corresponding fields in the StudyIndex dataset and returns a StudyIndex instance.
         Map proteinIds to geneIds and coalesce geneIds and then explode the list of targets to have one row per target.
+        Targets that the target index does not resolve are dropped.
 
         Args:
             target (TargetIndex): Target index containing the reference gene identifiers (Ensembl gene identifiers)
@@ -1125,8 +1126,13 @@ class ProteinQuantitativeTraitLocusStudyIndex(StudyIndex):
             .select(StudyIndex.get_schema().fieldNames())
         )
 
+        # A target the reference does not resolve carries no gene mapping, and several
+        # such targets in one study produce identical rows that validate_unique_study_id
+        # would flag, discarding the targets that did resolve. Keep the resolved rows.
         return StudyIndex(
-            _df=non_ambiguous_df.unionByName(ambiguous_df),
+            _df=non_ambiguous_df.unionByName(ambiguous_df).filter(
+                f.col("geneId").isNotNull()
+            ),
             _schema=StudyIndex.get_schema(),
         )
 
