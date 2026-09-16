@@ -13,8 +13,8 @@ Both files are parsed with the same schema, unioned, and filtered to human
 complexes only (NCBI taxonomy ID 9606).
 
 The resulting `MolecularComplex` dataset is used downstream in the deCODE
-proteomics pipeline to annotate multi-protein SomaScan aptamers with
-``molecularComplexIds``.
+proteomics pipeline to annotate multi-protein SomaScan aptamers with a
+``molecularComplexId``.
 """
 
 from __future__ import annotations

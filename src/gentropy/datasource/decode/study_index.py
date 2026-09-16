@@ -280,10 +280,10 @@ class deCODEStudyIndex:
            metadata; this restricts the study index to aptamers present in the SomaScan
            study table (a subset of the full manifest).
         4. Left-join the protein-complex table on the sorted, comma-joined UniProt protein
-           ID string to annotate multi-target aptamers with ``molecularComplexIds``. The
+           ID string to annotate multi-target aptamers with a ``molecularComplexId``. The
            reference side is grouped by component set first, so a set described by
-           several complex entries annotates one study row with several identifiers
-           instead of duplicating the study.
+           several complex entries annotates one study row instead of duplicating
+           the study.
         5. Populate bibliographic and cohort metadata from
            `deCODEPublicationMetadata`, including
            sample sizes, biosample ID, ancestry, and LD population structure.
@@ -345,11 +345,21 @@ class deCODEStudyIndex:
         )
 
         # Complex Portal can describe one component set with more than one complex
-        # entry (CPX-37 and CPX-39 are both exactly {P05109, P06702}). Grouping by the
-        # component set keeps the reference side unique per join key, so the annotation
-        # join below cannot fan out and duplicate a study. The colliding identifiers
-        # are collected rather than discarded, because "these complexes share a
-        # component set" is a real fact about the reference data.
+        # entry (CPX-37 and CPX-39 are both exactly {P05109, P06702}). A left join
+        # against that reference is one-to-many, which fanned the affected study out
+        # into two study-index rows and duplicated every one of its loci through to
+        # the credible sets.
+        #
+        # Grouping by the component set makes the reference side unique per join key,
+        # so the annotation join below is one-to-one-or-none by construction --
+        # independent of how many entries collide, or which sets they are.
+        #
+        # min() rather than first(): first() over an unordered shuffle has no defined
+        # result, so the annotation could change between runs on unchanged input. The
+        # choice among colliding identifiers is arbitrary but must be reproducible.
+        # Only the identifier is dropped, not the mapping: targetsFromSource already
+        # carries every protein from the aptamer table, and this field is not part of
+        # the canonical StudyIndex that pQTLStudyIndexTransformationStep emits.
         _protein_complex = (
             molecular_complex.df.select(
                 f.col("id").alias("molecularComplexId"),
@@ -363,11 +373,7 @@ class deCODEStudyIndex:
                 ).alias("proteinIds"),
             )
             .groupBy("proteinIds")
-            .agg(
-                f.array_sort(f.collect_set("molecularComplexId")).alias(
-                    "molecularComplexIds"
-                )
-            )
+            .agg(f.min("molecularComplexId").alias("molecularComplexId"))
             .alias("_protein_complex")
         )
 
@@ -447,7 +453,7 @@ class deCODEStudyIndex:
                 # f.lit(None).cast("array<string>").alias("diseaseIds"),
                 # f.lit(None).cast("array<string>").alias("backgroundDiseaseIds"),
                 "targetsFromSource",
-                "molecularComplexIds",
+                "molecularComplexId",
             )
         )
 

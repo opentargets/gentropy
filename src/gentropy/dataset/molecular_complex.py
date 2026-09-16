@@ -6,9 +6,10 @@ predicted macromolecular (protein) complexes ingested from the
 format.
 
 The dataset is used in the deCODE proteomics pipeline to annotate multi-protein
-SomaScan aptamers with ``molecularComplexIds`` when the set of UniProt IDs measured
-by an aptamer matches one or more known complexes. Several complex entries can share
-an identical component set, so the annotation is a list rather than a single value.
+SomaScan aptamers with a ``molecularComplexId`` when the set of UniProt IDs measured
+by an aptamer matches a known complex. Several complex entries can share an identical
+component set; the reference is grouped by that set before the join so a collision
+annotates one study row rather than duplicating the study.
 """
 
 from __future__ import annotations

@@ -370,7 +370,7 @@ class TestdeCODEStudyIndexFromManifest:
         self,
         session: Session,
     ) -> None:
-        """A matched molecular complex should populate molecularComplexIds."""
+        """A matched molecular complex should populate molecularComplexId."""
         from datetime import datetime
 
         from gentropy.datasource.decode import deCODEDataSource
@@ -422,8 +422,8 @@ class TestdeCODEStudyIndexFromManifest:
             aptamer_metadata=aptamer,
             molecular_complex=mc,
         )
-        row = result.df.select("molecularComplexIds").collect()[0]
-        assert row.molecularComplexIds == ["COMPLEX_001"]
+        row = result.df.select("molecularComplexId").collect()[0]
+        assert row.molecularComplexId == "COMPLEX_001"
 
     def test_from_manifest_does_not_duplicate_study_on_colliding_complexes(
         self,
@@ -501,8 +501,18 @@ class TestdeCODEStudyIndexFromManifest:
             molecular_complex=mc,
         )
 
+        # The invariant is one row per study, whatever the reference contains.
         assert result.df.count() == 1
         assert result.df.select("studyId").distinct().count() == 1
-        # both identifiers retained, deterministically ordered
-        row = result.df.select("molecularComplexIds").collect()[0]
-        assert row.molecularComplexIds == ["CPX-37", "CPX-39"]
+
+        # Which of the colliding identifiers wins is arbitrary, so that is not
+        # asserted -- only that it is one of them, and that it is reproducible.
+        row = result.df.select("molecularComplexId").collect()[0]
+        assert row.molecularComplexId in {"CPX-37", "CPX-39"}
+        repeated = deCODEStudyIndex.from_manifest(
+            manifest=manifest, aptamer_metadata=aptamer, molecular_complex=mc
+        )
+        assert (
+            repeated.df.select("molecularComplexId").collect()[0].molecularComplexId
+            == row.molecularComplexId
+        ), "annotation must not vary between runs; min() not first()"

@@ -1060,13 +1060,7 @@ class ProteinQuantitativeTraitLocusStudyIndex(StudyIndex):
                 ),
                 nullable=True,
             ),
-        ).add(
-            t.StructField(
-                "molecularComplexIds",
-                t.ArrayType(t.StringType(), containsNull=True),
-                nullable=True,
-            )
-        )
+        ).add(t.StructField("molecularComplexId", t.StringType(), nullable=True))
 
     def to_study(
         self: ProteinQuantitativeTraitLocusStudyIndex, target: TargetIndex
