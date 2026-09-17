@@ -1037,13 +1037,12 @@ class TestPQTLStudyIndexToStudy:
     def test_ambiguous_symbol_resolves_without_multiplying(
         self, spark: SparkSession
     ) -> None:
-        """An ambiguous symbol must yield one row per target, not the square of it.
+        """An ambiguous symbol must yield one row per target.
 
         SIGLEC5 resolves to two gene ids and its protein O15389 to the same two, so
-        the symbol join fans out to 2 rows and the protein join can square it to 4.
+        the symbol join explodes to 2 rows.
 
-        The two genes must keep distinct `tss`: symbols_lut() contributes it, so
-        equal values would make the rows collapse for the wrong reason.
+        The two genes must keep distinct `tss`: symbols_lut().
         """
         target = self._target_index(
             spark,
