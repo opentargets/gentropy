@@ -189,17 +189,13 @@ class FoldXVariantAnnotationConfig(StepConfig):
 class EqtlCatalogueConfig(StepConfig):
     """eQTL Catalogue step configuration."""
 
-    session: Any = field(
-        default_factory=lambda: {
-            "start_hail": True,
-        }
-    )
-    eqtl_catalogue_paths_imported: str = MISSING
-    eqtl_catalogue_study_index_out: str = MISSING
-    eqtl_catalogue_credible_sets_out: str = MISSING
-    eqtl_catalogue_metadata_path: str = MISSING
-    mqtl_quantification_methods_blacklist: list[str] = field(default_factory=lambda: [])
-    eqtl_lead_pvalue_threshold: float = 1e-3
+    eqtl_catalogue_dataset_metadata_path: str = MISSING
+    credible_set_input_glob: str = MISSING
+    lbf_variable_input_glob: str = MISSING
+    study_index_output_path: str = MISSING
+    credible_set_output_path: str = MISSING
+    lead_pvalue_threshold: float = 1e-3
+    mqtl_quantification_methods_blacklist: list[str] | None = None
     _target_: str = "gentropy.eqtl_catalogue.EqtlCatalogueStep"
 
 
@@ -888,7 +884,19 @@ class FineMappingPlanGeneratorConfig(StepConfig):
 
     input_path: str = MISSING
     output_path: str = MISSING
+    min_ess: int = 1000
     _target_: str = "gentropy.finemapping_planner.FineMappingPlanGeneratorStep"
+
+
+@dataclass
+class GWASCatalogFineMappingManifestConfig(StepConfig):
+    """GWAS Catalog fine-mapping manifest generation step configuration."""
+
+    study_index_path: str = MISSING
+    fine_mapping_planner_path: str = MISSING
+    output_path: str = MISSING
+    summary_statistics_glob: str | None = None
+    _target_: str = "gentropy.finemapping_manifest.GWASCatalogFineMappingManifestGenerator"
 
 
 @dataclass
@@ -1041,4 +1049,9 @@ def register_config() -> None:
         group="step",
         name="fine_mapping_plan_generator",
         node=FineMappingPlanGeneratorConfig,
+    )
+    cs.store(
+        group="step",
+        name="gwas_catalog_finemapping_manifest",
+        node=GWASCatalogFineMappingManifestConfig,
     )
