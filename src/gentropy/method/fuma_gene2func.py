@@ -37,38 +37,73 @@ class FumaGene2Func:
     can be passed in this format.
 
     Examples:
-        Enrichment of L2G predictions (`studyLocusId`, `geneId`, `score`) against
-        GTEx DEG sets (`setName`, `geneId`), producing one row per (study, gene set)
-
-        >>> results = FumaGene2Func.gene2func_enrichment(
-        ...     scored_df=l2g_predictions,
-        ...     gene_sets_df=gtex_deg,
-        ...     gene_col="geneId",
-        ...     score_col="score",
-        ...     credible_set_df=cs.select("studyLocusId", "studyId"),
-        ... ) # doctest: +SKIP
-
-        Adding a study index resolves `studyId` to `diseaseId`, producing one row
-        per (study, disease, gene set)
-
-        >>> results = FumaGene2Func.gene2func_enrichment(
-        ...     scored_df=l2g_predictions,
-        ...     gene_sets_df=gtex_deg,
-        ...     gene_col="geneId",
-        ...     score_col="score",
-        ...     credible_set_df=cs.select("studyLocusId", "studyId"),
-        ...     study_index_df=study_index.df,
-        ... ) # doctest: +SKIP
-
         Open Targets association scores need no identifier resolution, so the
-        output is grouped by `diseaseId` alone
+        output is grouped by `diseaseId` alone. Genes G1-G3 are prioritised and
+        make up the whole of SET1, so SET1 is enriched two-fold over the
+        six-gene background while SET2 has no prioritised members.
 
-        >>> results = FumaGene2Func.gene2func_enrichment(
-        ...     scored_df=ot_assoc.select("diseaseId", "targetId", "score"),
-        ...     gene_sets_df=gtex_deg,
+        >>> scored = spark.createDataFrame(
+        ...     [("D1", "G1", 0.9), ("D1", "G2", 0.9), ("D1", "G3", 0.9),
+        ...      ("D1", "G4", 0.1), ("D1", "G5", 0.1), ("D1", "G6", 0.1)],
+        ...     ["diseaseId", "targetId", "score"],
+        ... )
+        >>> gene_sets = spark.createDataFrame(
+        ...     [("SET1", "G1"), ("SET1", "G2"), ("SET1", "G3"),
+        ...      ("SET2", "G4"), ("SET2", "G5"), ("SET2", "G6")],
+        ...     ["setName", "targetId"],
+        ... )
+        >>> FumaGene2Func.gene2func_enrichment(
+        ...     scored_df=scored,
+        ...     gene_sets_df=gene_sets,
         ...     gene_col="targetId",
         ...     score_col="score",
-        ... ) # doctest: +SKIP
+        ...     score_threshold=0.5,
+        ...     min_genes=1,
+        ... ).selectExpr(
+        ...     "setName", "n_input", "k_overlap", "fold_enrichment",
+        ...     "round(p_value, 4) as p_value", "round(p_fdr_bh, 4) as p_fdr_bh",
+        ... ).show()
+        +-------+-------+---------+---------------+-------+--------+
+        |setName|n_input|k_overlap|fold_enrichment|p_value|p_fdr_bh|
+        +-------+-------+---------+---------------+-------+--------+
+        |   SET1|      3|        3|            2.0|   0.05|     0.1|
+        |   SET2|      3|        0|            0.0|    1.0|     1.0|
+        +-------+-------+---------+---------------+-------+--------+
+        <BLANKLINE>
+
+        L2G predictions are keyed by `studyLocusId`, so a credible set DataFrame
+        is required to resolve them. Both loci below belong to study S1, so they
+        collapse into a single study-level group.
+
+        >>> l2g = spark.createDataFrame(
+        ...     [("SL1", "G1", 0.9), ("SL1", "G2", 0.9), ("SL2", "G3", 0.9),
+        ...      ("SL2", "G4", 0.1), ("SL2", "G5", 0.1), ("SL2", "G6", 0.1)],
+        ...     ["studyLocusId", "geneId", "score"],
+        ... )
+        >>> credible_sets = spark.createDataFrame(
+        ...     [("SL1", "S1"), ("SL2", "S1")], ["studyLocusId", "studyId"],
+        ... )
+        >>> sets = spark.createDataFrame(
+        ...     [("SET1", "G1"), ("SET1", "G2"), ("SET1", "G3"),
+        ...      ("SET2", "G4"), ("SET2", "G5"), ("SET2", "G6")],
+        ...     ["setName", "geneId"],
+        ... )
+        >>> FumaGene2Func.gene2func_enrichment(
+        ...     scored_df=l2g,
+        ...     gene_sets_df=sets,
+        ...     gene_col="geneId",
+        ...     score_col="score",
+        ...     score_threshold=0.5,
+        ...     min_genes=1,
+        ...     credible_set_df=credible_sets,
+        ... ).selectExpr("studyId", "setName", "n_input", "k_overlap").show()
+        +-------+-------+-------+---------+
+        |studyId|setName|n_input|k_overlap|
+        +-------+-------+-------+---------+
+        |     S1|   SET1|      3|        3|
+        |     S1|   SET2|      3|        0|
+        +-------+-------+-------+---------+
+        <BLANKLINE>
     """
 
     @staticmethod
