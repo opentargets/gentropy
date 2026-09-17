@@ -51,6 +51,7 @@ class StudyLocusOverlap(Dataset):
         """
         return study_locus.find_overlaps()
 
+
     def calculate_beta_ratio(self: StudyLocusOverlap) -> DataFrame:
         """Calculate the beta ratio for the overlapping signals.
 
@@ -64,18 +65,21 @@ class StudyLocusOverlap(Dataset):
             .drop("statistics")
             # Drop any rows where the beta is null or zero
             .filter(
-                f.col("left_beta").isNotNull()
-                & f.col("right_beta").isNotNull()
-                & (f.col("left_beta") != 0)
-                & (f.col("right_beta") != 0)
+                f.col("left_beta").isNotNull() &
+                f.col("right_beta").isNotNull() &
+                (f.col("left_beta") != 0) &
+                (f.col("right_beta") != 0)
             )
             # Calculate the beta ratio and get the sign, then calculate the average sign across all variants in the locus
             .withColumn(
-                "betaRatioSign", f.signum(f.col("left_beta") / f.col("right_beta"))
+                "betaRatioSign",
+                f.signum(f.col("left_beta") / f.col("right_beta"))
             )
             # Aggregate beta signs:
-            .groupBy("leftStudyLocusId", "rightStudyLocusId", "chromosome")
-            .agg(f.avg("betaRatioSign").alias("betaRatioSignAverage"))
+            .groupBy("leftStudyLocusId","rightStudyLocusId","chromosome")
+            .agg(
+                f.avg("betaRatioSign").alias("betaRatioSignAverage")
+            )
         )
 
     def _convert_to_square_matrix(self: StudyLocusOverlap) -> StudyLocusOverlap:

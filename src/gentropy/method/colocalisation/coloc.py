@@ -112,7 +112,9 @@ class Coloc(ColocalisationMethodInterface):
                     "rightStudyType",
                 )
                 .agg(
-                    f.sum(f.when(f.col("tagVariantSource") == "both", 1).otherwise(0))
+                    f.sum(
+                        f.when(f.col("tagVariantSource") == "both", 1).otherwise(0)
+                    )
                     .cast(t.LongType())
                     .alias("numberColocalisingVariants"),
                     f.collect_list(f.col("left_logBF")).alias("left_logBF"),
@@ -158,14 +160,8 @@ class Coloc(ColocalisationMethodInterface):
                             # arrays_zip keys struct fields by input column name
                             lambda row: f.when(
                                 (row["tagVariantSourceList"] == "both")
-                                & (
-                                    row["left_posteriorProbability"]
-                                    > config.posterior_cutoff
-                                )
-                                & (
-                                    row["right_posteriorProbability"]
-                                    > config.posterior_cutoff
-                                ),
+                                & (row["left_posteriorProbability"] > config.posterior_cutoff)
+                                & (row["right_posteriorProbability"] > config.posterior_cutoff),
                                 1.0,
                             ).otherwise(0.0),
                         ),

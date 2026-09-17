@@ -22,13 +22,17 @@ class LOFIngestionStep:
         """
         # Read in data:
         lof_dataset = session.spark.read.csv(
-            lof_curation_dataset_path, sep=",", header=True, multiLine=True
+            lof_curation_dataset_path,
+            sep=",",
+            header=True,
+            multiLine=True
         )
         # Extract relevant information to a VariantIndex
         lof_variant_annotations = OpenTargetsLOF.as_variant_index(lof_dataset)
         # Write to file:
         (
-            lof_variant_annotations.df.coalesce(session.output_partitions)
+            lof_variant_annotations.df
+            .coalesce(session.output_partitions)
             .write.mode(session.write_mode)
             .parquet(lof_curation_variant_annotations_path)
         )

@@ -404,7 +404,9 @@ class LocusToGeneTrainer:
             holdout_only (bool): When True, skip CV folds and evaluate each config directly on the holdout set. Defaults to False.
         """
         if holdout_only and not cv_results_dir:
-            raise ValueError("holdout_only=True requires cv_results_dir to be set.")
+            raise ValueError(
+                "holdout_only=True requires cv_results_dir to be set."
+            )
 
         # If no grid is provided, use default ones set in the model
         parameter_grid = parameter_grid or {
@@ -549,9 +551,7 @@ class LocusToGeneTrainer:
                 "prob": y_pred_proba[:, 1],
             }
         )
-        genes_above = (
-            locus_proba[locus_proba["prob"] >= 0.5].groupby("studyLocusId").size()
-        )
+        genes_above = locus_proba[locus_proba["prob"] >= 0.5].groupby("studyLocusId").size()
         all_loci = locus_proba["studyLocusId"].unique()
         metrics["n_loci"] = int(len(all_loci))
         metrics["n_loci_one_gene_above"] = int((genes_above == 1).sum())
@@ -581,11 +581,7 @@ class LocusToGeneTrainer:
             summary (dict[str, Any]): Config summary dict to mutate.
             config (dict[str, Any] | None): Hyperparameter config used for this run.
         """
-        if (
-            self.x_test is not None
-            and self.y_test is not None
-            and self.test_df is not None
-        ):
+        if self.x_test is not None and self.y_test is not None and self.test_df is not None:
             summary["fold_metrics"].append(
                 {"fold": "holdout", **self._eval_on_test_set(config)}
             )
@@ -660,9 +656,7 @@ class LocusToGeneTrainer:
                 "prob": y_pred_proba[:, 1],
             }
         )
-        genes_above = (
-            locus_proba[locus_proba["prob"] >= 0.5].groupby("studyLocusId").size()
-        )
+        genes_above = locus_proba[locus_proba["prob"] >= 0.5].groupby("studyLocusId").size()
         all_loci = locus_proba["studyLocusId"].unique()
         metrics["n_loci"] = int(len(all_loci))
         metrics["n_loci_one_gene_above"] = int((genes_above == 1).sum())
@@ -806,10 +800,7 @@ class LocusToGeneTrainer:
             fold_auc = auc(fpr, tpr)
             fold_aucs.append(fold_auc)
             ax.plot(
-                fpr,
-                tpr,
-                alpha=0.5,
-                lw=1.2,
+                fpr, tpr, alpha=0.5, lw=1.2,
                 label=f"fold {fold['fold']} (AUC={fold_auc:.3f})",
             )
         ax.plot([0, 1], [0, 1], "k--", lw=0.8)
@@ -843,10 +834,7 @@ class LocusToGeneTrainer:
             ap = average_precision_score(fold["y_true"], fold["y_pred_proba"])
             fold_aps.append(ap)
             ax.plot(
-                recall,
-                precision,
-                alpha=0.5,
-                lw=1.2,
+                recall, precision, alpha=0.5, lw=1.2,
                 label=f"fold {fold['fold']} (AP={ap:.3f})",
             )
         ax.set_xlabel("Recall")
@@ -871,9 +859,9 @@ class LocusToGeneTrainer:
             output_path (Path): Where to save the PNG.
         """
         y_true_all = np.concatenate([f["y_true"] for f in folds])
-        y_pred_all = (np.concatenate([f["y_pred_proba"] for f in folds]) >= 0.5).astype(
-            int
-        )
+        y_pred_all = (
+            np.concatenate([f["y_pred_proba"] for f in folds]) >= 0.5
+        ).astype(int)
         labels = [0, 1]
         cm = confusion_matrix(y_true_all, y_pred_all, labels=labels)
         inv_label_encoder = {v: k for k, v in self.model.label_encoder.items()}
@@ -892,11 +880,8 @@ class LocusToGeneTrainer:
         for i in range(len(classes)):
             for j in range(len(classes)):
                 ax.text(
-                    j,
-                    i,
-                    str(cm[i, j]),
-                    ha="center",
-                    va="center",
+                    j, i, str(cm[i, j]),
+                    ha="center", va="center",
                     color="white" if cm[i, j] > thresh else "black",
                 )
         plt.tight_layout()

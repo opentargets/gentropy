@@ -34,8 +34,9 @@ class BiosampleIndex(Dataset):
         return parse_spark_schema("biosample_index.json")
 
     def merge_indices(
-        self: BiosampleIndex, biosample_indices: list[BiosampleIndex]
-    ) -> BiosampleIndex:
+        self: BiosampleIndex,
+        biosample_indices : list[BiosampleIndex]
+        ) -> BiosampleIndex:
         """Merge a list of biosample indices into a single biosample index.
 
         Where there are conflicts, in single values - the first value is taken. In list values, the union of all values is taken.
@@ -47,9 +48,7 @@ class BiosampleIndex(Dataset):
             BiosampleIndex: Merged biosample index.
         """
         # Extract the DataFrames from the BiosampleIndex objects
-        biosample_dfs = [
-            biosample_index.df for biosample_index in biosample_indices
-        ] + [self.df]
+        biosample_dfs = [biosample_index.df for biosample_index in biosample_indices] + [self.df]
 
         # Merge the DataFrames
         merged_df = reduce(DataFrame.unionAll, biosample_dfs)
@@ -60,24 +59,22 @@ class BiosampleIndex(Dataset):
         for field in merged_df.schema.fields:
             if field.name != "biosampleId":  # Skip the grouping column
                 if field.dataType == ArrayType(StringType()):
-                    agg_funcs.append(
-                        f.array_distinct(f.flatten(f.collect_list(field.name))).alias(
-                            field.name
-                        )
-                    )
+                    agg_funcs.append(f.array_distinct(f.flatten(f.collect_list(field.name))).alias(field.name))
                 else:
-                    agg_funcs.append(
-                        f.first(f.col(field.name), ignorenulls=True).alias(field.name)
-                    )
+                    agg_funcs.append(f.first(f.col(field.name), ignorenulls=True).alias(field.name))
 
         # Perform aggregation
         aggregated_df = merged_df.groupBy("biosampleId").agg(*agg_funcs)
 
-        return BiosampleIndex(_df=aggregated_df, _schema=BiosampleIndex.get_schema())
+        return BiosampleIndex(
+            _df=aggregated_df,
+            _schema=BiosampleIndex.get_schema()
+            )
 
     def retain_rows_with_ancestor_id(
-        self: BiosampleIndex, ancestor_ids: list[str]
-    ) -> BiosampleIndex:
+        self: BiosampleIndex,
+        ancestor_ids : list[str]
+        ) -> BiosampleIndex:
         """Filter the biosample index to retain only rows with the given ancestor IDs.
 
         Args:
@@ -93,5 +90,5 @@ class BiosampleIndex(Dataset):
             _df=self.df.filter(
                 f.size(f.array_intersect(f.col("ancestors"), ancestor_ids_array)) > 0
             ),
-            _schema=BiosampleIndex.get_schema(),
-        )
+            _schema=BiosampleIndex.get_schema()
+            )

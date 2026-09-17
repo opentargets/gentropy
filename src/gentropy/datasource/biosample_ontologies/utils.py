@@ -127,16 +127,12 @@ def extract_ontology_from_json(
     # Prepare relationship-specific DataFrames
     # predicates: is_a and part_of
     df_parents = (
-        df_edges.filter(
-            (f.col("predicate") == "is_a") | (f.col("predicate") == "BFO_0000050")
-        )
+        df_edges.filter((f.col("predicate") == "is_a") | (f.col("predicate") == "BFO_0000050"))
         .select("subject", "object")
         .withColumnRenamed("object", "parent")
     )
     df_children = (
-        df_edges.filter(
-            (f.col("predicate") == "is_a") | (f.col("predicate") == "BFO_0000050")
-        )
+        df_edges.filter((f.col("predicate") == "is_a") | (f.col("predicate") == "BFO_0000050"))
         .select("object", "subject")
         .withColumnRenamed("subject", "child")
     )

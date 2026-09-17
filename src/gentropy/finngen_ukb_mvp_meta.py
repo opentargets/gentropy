@@ -187,9 +187,9 @@ class FinngenUkbMvpMetaSummaryStatisticsIngestionStep:
         # this may not be accurate if the summary statistics source paths were not found in the
         # source manifest.
         source_summary_statistics_paths = study_index.get_summary_statistics_paths()
-        assert len(source_summary_statistics_paths) > 0, (
-            "No summary statistics paths found in study index."
-        )
+        assert (
+            len(source_summary_statistics_paths) > 0
+        ), "No summary statistics paths found in study index."
         session.logger.info(
             f"Found {len(source_summary_statistics_paths)} summary statistics files."
         )

@@ -322,9 +322,9 @@ class VariantEffectPredictorParser:
         Raises:
             AssertionError: When `transcript_column_name` is not a string.
         """
-        assert isinstance(transcript_column_name, str), (
-            "transcript_column_name must be a string and not a column."
-        )
+        assert isinstance(
+            transcript_column_name, str
+        ), "transcript_column_name must be a string and not a column."
         # Order transcripts by severity score:
         ordered_transcripts = order_array_of_structs_by_field(
             transcript_column_name, score_field_name

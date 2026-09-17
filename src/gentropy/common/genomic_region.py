@@ -16,6 +16,7 @@ if TYPE_CHECKING:
     from pyspark.sql import DataFrame
 
 
+
 class KnownGenomicRegions(Enum):
     """Known genomic regions in the human genome in string format."""
 
@@ -259,6 +260,7 @@ class LiftOverSpark:
         return mapped
 
 
+
 def liftover_loci(
     variant_index: Table, chain_path: str, dest_reference_genome: str
 ) -> Table:
@@ -276,7 +278,6 @@ def liftover_loci(
         This function assumes hail is initialized in Session.
     """
     import hail as hl
-
     if not hl.get_reference("GRCh37").has_liftover(
         "GRCh38"
     ):  # True when a chain file has already been registered

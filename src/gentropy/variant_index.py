@@ -110,9 +110,9 @@ class ConvertToVcfStep:
         Raises:
             AssertionError: When the length of `source_paths` does not match the lenght of `source_formats`.
         """
-        assert len(source_formats) == len(source_paths), (
-            "Must provide format for each source path."
-        )
+        assert len(source_formats) == len(
+            source_paths
+        ), "Must provide format for each source path."
 
         # Load
         raw_variants = [
