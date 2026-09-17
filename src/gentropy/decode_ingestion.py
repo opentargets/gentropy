@@ -300,17 +300,6 @@ class deCODESummaryStatisticsHarmonisationStep:
         gvd = VariantDirection.from_parquet(session, variant_direction_path)
         rss = session.spark.read.parquet(raw_summary_statistics_path)
         hss, pqtl_si = deCODESummaryStatistics.from_source(rss, gvd, _pqtl_si, config)
-
-        # Write straight out: from_source clusters by studyId and everything after
-        # it keeps that partitioning, so each task already holds whole studies and
-        # partitionBy("studyId") emits few files per study.
-        #
-        # This previously repartitioned by studyId and sorted within partitions.
-        # The repartition re-shuffled the full dataset onto the partitioning it
-        # already had, and both stages spilled onto the primaries' local dirs --
-        # 734 GiB and 26 GiB respectively in one 20 minute window on 2026-09-16 --
-        # taking them past YARN's 90% threshold, which marks the node unhealthy and
-        # releases its containers. Under EFM the shuffle lives on those same nodes.
         (
             hss.df.write.mode(session.write_mode)
             .partitionBy("studyId")
