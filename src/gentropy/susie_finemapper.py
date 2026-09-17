@@ -803,18 +803,15 @@ class SusieFineMapperStep:
         region = chromosome + ":" + str(int(locusStart)) + "-" + str(int(locusEnd))
 
         # Desision tree - studyType
-        if study_index_df.select("studyType").collect()[0]["studyType"] not in [
-            "gwas",
-            "pqtl",
-        ]:
+        if not study_index_df.select("studyType").collect()[0]["studyType"]:
             if log_output != "":
                 SusieFineMapperStep._empty_log_mg(
                     studyId=studyId,
                     region=region,
-                    error_mg="Study type is not GWAS or non gwas catalog pqtl",
+                    error_mg="Study type is not set",
                     path_out=log_output,
                 )
-            logging.warning("Study type is not GWAS or non gwas catalog pqtl")
+            logging.warning("Study type is not set")
             if not ignore_qc:
                 return None
 
