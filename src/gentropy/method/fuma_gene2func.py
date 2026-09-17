@@ -36,37 +36,39 @@ class FumaGene2Func:
     (set label, gene).  GTEx DEG sets, MSigDB gene sets, or any other collection
     can be passed in this format.
 
-    Example::
+    Examples:
+        Enrichment of L2G predictions (`studyLocusId`, `geneId`, `score`) against
+        GTEx DEG sets (`setName`, `geneId`), producing one row per (study, gene set)
 
-        # L2G predictions, study-level output
-        results = FumaGene2Func.gene2func_enrichment(
-            scored_df=l2g_predictions,      # studyLocusId, geneId, score
-            gene_sets_df=gtex_deg,          # setName, geneId
-            gene_col="geneId",
-            score_col="score",
-            credible_set_df=cs.select("studyLocusId", "studyId"),
-        )
-        # -> (studyId, setName, n_background, ..., p_fdr_bh)
+        >>> results = FumaGene2Func.gene2func_enrichment(
+        ...     scored_df=l2g_predictions,
+        ...     gene_sets_df=gtex_deg,
+        ...     gene_col="geneId",
+        ...     score_col="score",
+        ...     credible_set_df=cs.select("studyLocusId", "studyId"),
+        ... ) # doctest: +SKIP
 
-        # L2G predictions, study x disease output
-        results = FumaGene2Func.gene2func_enrichment(
-            scored_df=l2g_predictions,
-            gene_sets_df=gtex_deg,
-            gene_col="geneId",
-            score_col="score",
-            credible_set_df=cs.select("studyLocusId", "studyId"),
-            study_index_df=study_index.df,
-        )
-        # -> (studyId, diseaseId, setName, n_background, ..., p_fdr_bh)
+        Adding a study index resolves `studyId` to `diseaseId`, producing one row
+        per (study, disease, gene set)
 
-        # OT association scores, disease-level output
-        results = FumaGene2Func.gene2func_enrichment(
-            scored_df=ot_assoc.select("diseaseId", "targetId", "score"),
-            gene_sets_df=gtex_deg,
-            gene_col="targetId",
-            score_col="score",
-        )
-        # -> (diseaseId, setName, n_background, ..., p_fdr_bh)
+        >>> results = FumaGene2Func.gene2func_enrichment(
+        ...     scored_df=l2g_predictions,
+        ...     gene_sets_df=gtex_deg,
+        ...     gene_col="geneId",
+        ...     score_col="score",
+        ...     credible_set_df=cs.select("studyLocusId", "studyId"),
+        ...     study_index_df=study_index.df,
+        ... ) # doctest: +SKIP
+
+        Open Targets association scores need no identifier resolution, so the
+        output is grouped by `diseaseId` alone
+
+        >>> results = FumaGene2Func.gene2func_enrichment(
+        ...     scored_df=ot_assoc.select("diseaseId", "targetId", "score"),
+        ...     gene_sets_df=gtex_deg,
+        ...     gene_col="targetId",
+        ...     score_col="score",
+        ... ) # doctest: +SKIP
     """
 
     @staticmethod
