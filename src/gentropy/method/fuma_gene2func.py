@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 import pyspark.sql.functions as f
 from pyspark.sql import Window
-from pyspark.sql.types import DoubleType
+from pyspark.sql.types import ArrayType, DoubleType, MapType, StructType
 
 if TYPE_CHECKING:
     from pyspark.sql import DataFrame
@@ -136,12 +136,21 @@ class FumaGene2Func:
             DataFrame: One row per (group combination x gene set) containing
                 enrichment counts and statistics.
         """
-        # Reduce gene_sets_df to exactly (set_col, gene_col).
+        # Reduce gene_sets_df to exactly (set_col, gene_col), deduplicated.
         # If gene_col is already present, select it directly.
         # Otherwise look for a single non-set column and alias it as gene_col.
         # Any extra metadata columns are intentionally dropped here.
+        #
+        # The distinct() is load-bearing: gene_sets_df carries no uniqueness
+        # guarantee, and repeated (set_col, gene_col) pairs are common in
+        # practice (per-subregion GTEx rows, several transcripts per gene, a
+        # union of up- and down-regulated tables). Because the counting joins
+        # below aggregate with count("*"), duplicates would inflate K and k
+        # while N and n stay correct -- they come from the already-collapsed
+        # `scored` side -- yielding impossible configurations such as K > N
+        # and p-values driven towards zero.
         if gene_col in gene_sets_df.columns:
-            gene_sets_df = gene_sets_df.select(set_col, gene_col)
+            gene_sets_df = gene_sets_df.select(set_col, gene_col).distinct()
         else:
             candidate_cols = [c for c in gene_sets_df.columns if c != set_col]
             if len(candidate_cols) != 1:
@@ -154,7 +163,7 @@ class FumaGene2Func:
                 )
             gene_sets_df = gene_sets_df.select(
                 set_col, f.col(candidate_cols[0]).alias(gene_col)
-            )
+            ).distinct()
 
         # Gene set universe: restrict background to genes in any set
         universe = gene_sets_df.select(gene_col).distinct()
@@ -224,9 +233,21 @@ class FumaGene2Func:
             Returns:
                 float: P(X >= k) under the hypergeometric distribution,
                     or 1.0 if any count is zero.
+
+            Raises:
+                ValueError: If the counts are not a valid hypergeometric
+                    configuration, which would otherwise yield a silently
+                    wrong p-value rather than an error.
             """
             from scipy.stats import hypergeom  # noqa: PLC0415
 
+            if K > N or n > N or k > K or k > n:
+                raise ValueError(
+                    f"Invalid hypergeometric configuration: k={k}, K={K}, "
+                    f"n={n}, N={N}. Expected k <= min(K, n) and max(K, n) <= N. "
+                    "This usually means gene_sets_df contained duplicate "
+                    f"('{set_col}', '{gene_col}') pairs."
+                )
             if k == 0 or n == 0 or K == 0 or N == 0:
                 return 1.0
             return float(hypergeom.sf(int(k) - 1, int(N), int(K), int(n)))
@@ -297,13 +318,14 @@ class FumaGene2Func:
         credible_set_df: DataFrame | None = None,
         study_index_df: DataFrame | None = None,
         study_disease_col: str = "diseaseIds",
+        group_cols: list[str] | None = None,
     ) -> DataFrame:
         """Run tissue enrichment from any scored gene DataFrame.
 
-        Resolves identifiers in order, then infers group columns automatically
-        as all columns remaining after removing gene_col and score_col.
-        The output columns and grouping therefore reflect exactly what was
-        resolvable from the inputs.
+        Resolves identifiers in order, then groups by group_cols, falling back
+        to inferring them as all columns remaining after removing gene_col and
+        score_col. The output columns and grouping therefore reflect exactly
+        what was resolvable from the inputs.
 
         Args:
             scored_df (DataFrame): DataFrame containing at minimum gene_col and
@@ -336,6 +358,12 @@ class FumaGene2Func:
                 disease identifier(s). May be a scalar string column or an
                 array (which will be exploded automatically). Default
                 "diseaseIds".
+            group_cols (list[str] | None): Optional explicit list of columns to
+                group the enrichment by, applied after identifier resolution.
+                When omitted, the group columns are inferred as every column
+                left after removing gene_col and score_col. Pass this
+                explicitly when scored_df carries non-identifier columns, such
+                as the `features` vector on L2GPrediction.df.
 
         Returns:
             DataFrame: One row per (resolved group combination x gene set).
@@ -347,6 +375,10 @@ class FumaGene2Func:
         Raises:
             ValueError: If scored_df contains studyLocusId but no
                 credible_set_df is provided.
+            ValueError: If an explicit group_cols entry is not present after
+                identifier resolution.
+            ValueError: If an inferred group column has a non-primitive type,
+                which can never be a sensible enrichment grouping key.
             ValueError: If no group columns can be identified after resolution.
         """
         working = scored_df
@@ -378,9 +410,39 @@ class FumaGene2Func:
                 )
             working = working.join(disease_mapping, on="studyId", how="inner")
 
-        # 3. Infer group columns
-        non_group = {gene_col, score_col}
-        group_cols = [c for c in working.columns if c not in non_group]
+        # 3. Resolve group columns, either explicit or inferred
+        if group_cols is not None:
+            missing = [c for c in group_cols if c not in working.columns]
+            if missing:
+                raise ValueError(
+                    f"group_cols {missing} are not present after identifier "
+                    f"resolution. Columns available: {working.columns}."
+                )
+        else:
+            non_group = {gene_col, score_col}
+            group_cols = [c for c in working.columns if c not in non_group]
+
+            # Inference is a convenience, not a contract: a per-row column left
+            # in scored_df would silently become part of the enrichment key and
+            # split every gene into its own group, yielding N=K=n=k=1 and a
+            # p-value of exactly 1.0 for every row. That reads as "no
+            # enrichment" rather than as malformed input, so reject the
+            # non-primitive types that can never be a sensible grouping key
+            # and make the caller pass group_cols explicitly instead.
+            non_primitive = [
+                c
+                for c in group_cols
+                if isinstance(
+                    working.schema[c].dataType, (ArrayType, MapType, StructType)
+                )
+            ]
+            if non_primitive:
+                raise ValueError(
+                    f"Inferred group columns {non_primitive} have non-primitive "
+                    "types and cannot be used as enrichment grouping keys. Pass "
+                    "group_cols explicitly to select the identifier columns to "
+                    f"group by. Columns available: {working.columns}."
+                )
 
         if not group_cols:
             raise ValueError(

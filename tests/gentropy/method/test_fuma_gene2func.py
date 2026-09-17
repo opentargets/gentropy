@@ -145,6 +145,54 @@ class TestGene2FuncEnrichmentStatistics:
         rows, _ = tiny_enrichment_result
         assert rows["SET1"]["p_fdr_bh"] <= rows["SET2"]["p_fdr_bh"]
 
+    def test_duplicate_gene_set_rows_do_not_inflate_counts(
+        self, spark: SparkSession
+    ) -> None:
+        """Duplicated (setName, geneId) pairs must not change any count or p-value.
+
+        Duplicates inflate K and k via count("*") while N and n stay correct,
+        producing impossible configurations (K > N, k > n) that drive p-values
+        towards zero. The gene sets are deduplicated so both runs must agree.
+        """
+        scored_df = spark.createDataFrame(
+            [
+                Row(diseaseId="D1", geneId=f"G{i}", score=0.9 if i <= 5 else 0.1)
+                for i in range(1, 11)
+            ]
+        )
+        clean = spark.createDataFrame(
+            [Row(setName="SET1", geneId=f"G{i}") for i in range(1, 6)]
+            + [Row(setName="SET2", geneId=f"G{i}") for i in range(6, 11)]
+        )
+        duplicated = clean.union(clean)
+
+        def run(gene_sets: Any) -> dict[str, Any]:
+            result = FumaGene2Func.gene2func_enrichment(
+                scored_df=scored_df,
+                gene_sets_df=gene_sets,
+                gene_col="geneId",
+                score_col="score",
+                score_threshold=0.5,
+                min_genes=1,
+            )
+            return {r["setName"]: r for r in result.collect()}
+
+        clean_rows, dup_rows = run(clean), run(duplicated)
+        for set_name in ("SET1", "SET2"):
+            for col in (
+                "n_background",
+                "k_gene_set",
+                "n_input",
+                "k_overlap",
+                "p_value",
+            ):
+                assert dup_rows[set_name][col] == pytest.approx(
+                    clean_rows[set_name][col]
+                ), f"{set_name}.{col} changed when gene sets were duplicated"
+        # Guard the specific invariants that duplication used to violate.
+        assert clean_rows["SET1"]["k_gene_set"] <= clean_rows["SET1"]["n_background"]
+        assert clean_rows["SET1"]["k_overlap"] <= clean_rows["SET1"]["n_input"]
+
     def test_gene_col_auto_rename(self, spark: SparkSession) -> None:
         """gene_sets_df with a single non-set column is auto-renamed to gene_col."""
         scored_df = spark.createDataFrame(
@@ -164,3 +212,85 @@ class TestGene2FuncEnrichmentStatistics:
             min_genes=1,
         )
         assert result.count() >= 1
+
+
+class TestGene2FuncGroupColumns:
+    """Tests for explicit and inferred group column selection."""
+
+    @pytest.fixture()
+    def l2g_shaped(self, spark: SparkSession):  # type: ignore[no-untyped-def]
+        """An L2GPrediction-shaped frame carrying a per-row `features` vector."""
+        scored_df = spark.createDataFrame(
+            [
+                Row(
+                    studyLocusId="SL1",
+                    geneId=f"G{i}",
+                    score=0.9,
+                    features=[Row(name="f1", value=float(i))],
+                )
+                for i in range(1, 6)
+            ]
+        )
+        credible_set_df = spark.createDataFrame([Row(studyLocusId="SL1", studyId="S1")])
+        gene_sets_df = spark.createDataFrame(
+            [Row(setName="SET1", geneId=f"G{i}") for i in range(1, 6)]
+        )
+        return scored_df, credible_set_df, gene_sets_df
+
+    def test_raises_if_inferred_group_col_is_non_primitive(
+        self, l2g_shaped: tuple[Any, Any, Any]
+    ) -> None:
+        """An array/struct column left in scored_df must raise, not silently group per row.
+
+        Inferring `features` as a group column makes (studyId, features) a row
+        identifier, giving N=K=n=k=1 and p_value=1.0 for every gene, which reads
+        as "no enrichment" rather than as malformed input.
+        """
+        scored_df, credible_set_df, gene_sets_df = l2g_shaped
+        with pytest.raises(ValueError, match="non-primitive"):
+            FumaGene2Func.gene2func_enrichment(
+                scored_df=scored_df,
+                gene_sets_df=gene_sets_df,
+                gene_col="geneId",
+                score_col="score",
+                score_threshold=0.5,
+                min_genes=1,
+                credible_set_df=credible_set_df,
+            )
+
+    def test_explicit_group_cols_ignores_extra_columns(
+        self, l2g_shaped: tuple[Any, Any, Any]
+    ) -> None:
+        """Passing group_cols explicitly groups by studyId and drops `features`."""
+        scored_df, credible_set_df, gene_sets_df = l2g_shaped
+        result = FumaGene2Func.gene2func_enrichment(
+            scored_df=scored_df,
+            gene_sets_df=gene_sets_df,
+            gene_col="geneId",
+            score_col="score",
+            score_threshold=0.5,
+            min_genes=1,
+            credible_set_df=credible_set_df,
+            group_cols=["studyId"],
+        )
+        rows = result.collect()
+        assert "features" not in result.columns
+        assert len(rows) == 1, "all five genes should collapse into one study group"
+        assert rows[0]["studyId"] == "S1"
+        assert rows[0]["n_background"] == 5
+        assert rows[0]["k_overlap"] == 5
+
+    def test_raises_if_explicit_group_col_missing(
+        self, l2g_shaped: tuple[Any, Any, Any]
+    ) -> None:
+        """A group_cols entry absent after resolution raises a clear error."""
+        scored_df, credible_set_df, gene_sets_df = l2g_shaped
+        with pytest.raises(ValueError, match="not present after identifier"):
+            FumaGene2Func.gene2func_enrichment(
+                scored_df=scored_df,
+                gene_sets_df=gene_sets_df,
+                gene_col="geneId",
+                score_col="score",
+                credible_set_df=credible_set_df,
+                group_cols=["nonexistentColumn"],
+            )
