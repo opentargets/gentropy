@@ -1,23 +1,38 @@
 """Types and type aliases used in the package."""
 
+from enum import Enum
 from typing import Literal, NamedTuple
 
 from pyspark.sql.column import Column
 
-LD_Population = Literal["afr", "amr", "asj", "eas", "est", "fin", "nfe", "nwe", "seu"]
-
 VariantPopulation = Literal[
     "afr", "amr", "ami", "asj", "eas", "fin", "nfe", "mid", "sas", "remaining"
 ]
-DataSourceType = Literal[
-    "gnomad",
-    "finngen",
-    "gwas_catalog",
-    "eqtl_catalog",
-    "ukbiobank",
-    "open_targets",
-    "intervals",
-]
+
+
+class LDPopulation(Enum):
+    """Enum representing GnomAD LD populations."""
+
+    AFR = "afr"
+    """African population"""
+    AMR = "amr"
+    """American population"""
+    ASJ = "asj"
+    """Ashkenazi Jewish population"""
+    EAS = "eas"
+    """East Asian population"""
+    NFE = "nfe"
+    """Non-Finnish European population"""
+    EST = "est"
+    """Estonian population"""
+    FIN = "fin"
+    """Finnish population"""
+    NWE = "nwe"
+    """North-Western European population"""
+    SEU = "seu"
+    """Southern European population"""
+    CSA = "csa"
+    """Central/South Asian population"""
 
 
 class PValComponents(NamedTuple):

@@ -18,13 +18,30 @@ COPY uv.lock /app/uv.lock
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --no-dev
 
+
 # Stage 2: Runtime stage - Creates the final minimal image
 FROM python:3.12.11-slim-trixie AS production
 
-# Install ps (required for pyspark)
-RUN apt-get update && apt-get install -y \
+# Install ps (required for pyspark) and the Google Cloud CLI.
+# Installed via apt (rather than the google/cloud-sdk image, which only
+# publishes amd64) so this stage builds natively for both amd64 and arm64.
+RUN apt-get update && apt-get install -y --no-install-recommends \
     procps \
+    apt-transport-https \
+    ca-certificates \
+    gnupg \
+    curl \
+    && curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg | gpg --dearmor -o /usr/share/keyrings/cloud.google.gpg \
+    && echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" > /etc/apt/sources.list.d/google-cloud-sdk.list \
+    && apt-get update && apt-get install -y --no-install-recommends google-cloud-cli=581.0.0-0 \
     && rm -rf /var/lib/apt/lists/*
+
+ENV CLOUDSDK_PYTHON=/usr/local/bin/python3
+
+# Google Batch injects CLOUDSDK_PYTHON=/usr/bin/python3 into container runnables,
+# overriding image-level ENV. This base image ships python at /usr/local/bin only,
+# so provide the conventional system path for gcloud (and anything else hardcoding it).
+RUN ln -sf /usr/local/bin/python3 /usr/bin/python3
 
 # Create app user and group
 RUN groupadd --gid 1000 app && \
@@ -36,6 +53,8 @@ COPY --from=uv_builder --chown=app:app /app /app
 COPY --from=amazoncorretto:11.0.28-al2023-headless /usr/lib/jvm/java-11-amazon-corretto /usr/lib/jvm/java-11-amazon-corretto
 # Copy certificates from the Corretto image
 COPY --from=amazoncorretto:11.0.28-al2023-headless /etc/pki/ca-trust/extracted/java/cacerts /usr/lib/jvm/java-11-amazon-corretto/lib/security/cacerts
+# Copy harmonisation script
+COPY --chmod=0755 utils/harmonise_sumstats.sh harmonise-sumstats.sh
 
 # # Configure PATH to use the virtual environment's binaries
 ENV PATH="/app/.venv/bin:$PATH"

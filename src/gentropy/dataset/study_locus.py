@@ -388,6 +388,20 @@ class StudyLocus(Dataset):
     def validate_unique_study_locus_id(self: StudyLocus) -> StudyLocus:
         """Validating the uniqueness of study-locus identifiers and flagging duplicated studyloci.
 
+        `studyLocusId` is a hash of the study and the lead variant, so two credible sets resolving
+        the same signal collide even when their loci differ. The credible set with the fewest
+        variants is kept, on the grounds that it is the better resolved one. Call this after
+        `filter_credible_set`, otherwise `locus` still holds every tagging variant and the ordering
+        compares fine-mapping window sizes rather than credible set sizes.
+
+        Credible sets of equal size are left to the arbitrary default ordering, since neither is
+        better resolved than the other.
+
+        Call this on credible sets that already passed the other quality checks. The ordering only
+        looks at credible set size, so on unfiltered input it can elect a credible set that another
+        flag is about to drop, discarding the surviving copy along with it -- which is what happens
+        to a curated top hit paired with the PICS credible set of the same study and lead variant.
+
         Returns:
             StudyLocus: with flagged duplicated studies.
         """
@@ -396,7 +410,7 @@ class StudyLocus(Dataset):
                 "qualityControls",
                 self.update_quality_flag(
                     f.col("qualityControls"),
-                    self.flag_duplicates(f.col("studyLocusId")),
+                    self.flag_duplicates(f.col("studyLocusId"), [f.size("locus").asc()]),
                     StudyLocusQualityCheck.DUPLICATED_STUDYLOCUS_ID,
                 ),
             ),
