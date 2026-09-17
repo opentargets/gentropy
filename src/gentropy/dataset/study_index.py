@@ -1060,7 +1060,13 @@ class ProteinQuantitativeTraitLocusStudyIndex(StudyIndex):
                 ),
                 nullable=True,
             ),
-        ).add(t.StructField("molecularComplexId", t.StringType(), nullable=True))
+        ).add(
+            t.StructField(
+                "molecularComplexIds",
+                t.ArrayType(t.StringType(), containsNull=True),
+                nullable=True,
+            )
+        )
 
     def to_study(
         self: ProteinQuantitativeTraitLocusStudyIndex, target: TargetIndex
@@ -1069,6 +1075,7 @@ class ProteinQuantitativeTraitLocusStudyIndex(StudyIndex):
 
         This method maps the pQTL-specific fields to the corresponding fields in the StudyIndex dataset and returns a StudyIndex instance.
         Map proteinIds to geneIds and coalesce geneIds and then explode the list of targets to have one row per target.
+        Targets that the target index does not resolve are dropped.
 
         Args:
             target (TargetIndex): Target index containing the reference gene identifiers (Ensembl gene identifiers)
@@ -1103,15 +1110,29 @@ class ProteinQuantitativeTraitLocusStudyIndex(StudyIndex):
             .drop("ambiguousGeneIdMapping")
             .select(StudyIndex.get_schema().fieldNames())
         )
+        # The symbol join emitted one row per candidate gene, differing in the lookup
+        # columns geneId, chromosome and tss. Project to the output columns plus
+        # proteinId and collapse, so re-resolving on proteinId yields one row per
+        # target.
+        ambiguous_columns = [
+            *(c for c in StudyIndex.get_schema().fieldNames() if c != "geneId"),
+            "proteinId",
+        ]
         ambiguous_df = (
             _symbol_annot_si.filter(f.col("ambiguousGeneIdMapping"))
-            .drop("ambiguousGeneIdMapping", "geneId")
+            .select(ambiguous_columns)
+            .distinct()
             .join(protein_id_lut, on="proteinId", how="left")
             .select(StudyIndex.get_schema().fieldNames())
         )
 
+        # A target the reference does not resolve carries no gene mapping, and several
+        # such targets in one study produce identical rows that validate_unique_study_id
+        # would flag, discarding the targets that did resolve. Keep the resolved rows.
         return StudyIndex(
-            _df=non_ambiguous_df.unionByName(ambiguous_df),
+            _df=non_ambiguous_df.unionByName(ambiguous_df).filter(
+                f.col("geneId").isNotNull()
+            ),
             _schema=StudyIndex.get_schema(),
         )
 
