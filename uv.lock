@@ -4,17 +4,17 @@ requires-python = ">=3.11, <3.14"
 resolution-markers = [
     "(python_full_version >= '3.13' and platform_machine == 'aarch64' and sys_platform == 'linux') or (python_full_version >= '3.13' and platform_machine == 'arm64' and sys_platform == 'linux')",
     "(python_full_version >= '3.13' and platform_machine == 'aarch64' and sys_platform != 'linux') or (python_full_version >= '3.13' and platform_machine == 'arm64' and sys_platform != 'linux')",
-    "(python_full_version == '3.12.*' and platform_machine == 'aarch64' and sys_platform == 'linux') or (python_full_version == '3.12.*' and platform_machine == 'arm64' and sys_platform == 'linux')",
-    "(python_full_version == '3.12.*' and platform_machine == 'aarch64' and sys_platform != 'linux') or (python_full_version == '3.12.*' and platform_machine == 'arm64' and sys_platform != 'linux')",
-    "(python_full_version < '3.12' and platform_machine == 'aarch64' and sys_platform == 'linux') or (python_full_version < '3.12' and platform_machine == 'arm64' and sys_platform == 'linux')",
-    "(python_full_version < '3.12' and platform_machine == 'aarch64' and sys_platform != 'linux') or (python_full_version < '3.12' and platform_machine == 'arm64' and sys_platform != 'linux')",
     "python_full_version >= '3.13' and platform_machine == 'x86_64' and sys_platform == 'darwin'",
-    "python_full_version == '3.12.*' and platform_machine == 'x86_64' and sys_platform == 'darwin'",
-    "python_full_version < '3.12' and platform_machine == 'x86_64' and sys_platform == 'darwin'",
     "python_full_version >= '3.13' and platform_machine != 'aarch64' and platform_machine != 'arm64' and sys_platform == 'linux'",
     "(python_full_version >= '3.13' and platform_machine != 'aarch64' and platform_machine != 'arm64' and platform_machine != 'x86_64' and sys_platform == 'darwin') or (python_full_version >= '3.13' and platform_machine != 'aarch64' and platform_machine != 'arm64' and sys_platform != 'darwin' and sys_platform != 'linux')",
+    "(python_full_version == '3.12.*' and platform_machine == 'aarch64' and sys_platform == 'linux') or (python_full_version == '3.12.*' and platform_machine == 'arm64' and sys_platform == 'linux')",
+    "(python_full_version == '3.12.*' and platform_machine == 'aarch64' and sys_platform != 'linux') or (python_full_version == '3.12.*' and platform_machine == 'arm64' and sys_platform != 'linux')",
+    "python_full_version == '3.12.*' and platform_machine == 'x86_64' and sys_platform == 'darwin'",
     "python_full_version == '3.12.*' and platform_machine != 'aarch64' and platform_machine != 'arm64' and sys_platform == 'linux'",
     "(python_full_version == '3.12.*' and platform_machine != 'aarch64' and platform_machine != 'arm64' and platform_machine != 'x86_64' and sys_platform == 'darwin') or (python_full_version == '3.12.*' and platform_machine != 'aarch64' and platform_machine != 'arm64' and sys_platform != 'darwin' and sys_platform != 'linux')",
+    "(python_full_version < '3.12' and platform_machine == 'aarch64' and sys_platform == 'linux') or (python_full_version < '3.12' and platform_machine == 'arm64' and sys_platform == 'linux')",
+    "(python_full_version < '3.12' and platform_machine == 'aarch64' and sys_platform != 'linux') or (python_full_version < '3.12' and platform_machine == 'arm64' and sys_platform != 'linux')",
+    "python_full_version < '3.12' and platform_machine == 'x86_64' and sys_platform == 'darwin'",
     "python_full_version < '3.12' and platform_machine != 'aarch64' and platform_machine != 'arm64' and sys_platform == 'linux'",
     "(python_full_version < '3.12' and platform_machine != 'aarch64' and platform_machine != 'arm64' and platform_machine != 'x86_64' and sys_platform == 'darwin') or (python_full_version < '3.12' and platform_machine != 'aarch64' and platform_machine != 'arm64' and sys_platform != 'darwin' and sys_platform != 'linux')",
 ]
@@ -1003,6 +1003,7 @@ name = "gentropy"
 version = "0.0.0"
 source = { editable = "." }
 dependencies = [
+    { name = "fsspec" },
     { name = "google-cloud-storage" },
     { name = "hail" },
     { name = "huggingface-hub" },
@@ -1014,6 +1015,7 @@ dependencies = [
     { name = "pydantic" },
     { name = "pyliftover" },
     { name = "pyspark", extra = ["pandas-on-spark"] },
+    { name = "requests" },
     { name = "scikit-learn" },
     { name = "scipy" },
     { name = "shap" },
@@ -1064,6 +1066,7 @@ test = [
 
 [package.metadata]
 requires-dist = [
+    { name = "fsspec", specifier = ">=2024.0.0,<2027.0.0" },
     { name = "google-cloud-storage", specifier = ">=2.14.0,<3.4.0" },
     { name = "hail", specifier = ">=0.2.136" },
     { name = "huggingface-hub", specifier = ">=0.27.1" },
@@ -1076,6 +1079,7 @@ requires-dist = [
     { name = "pydantic", specifier = ">=2.12.4" },
     { name = "pyliftover", specifier = ">=0.4.1,<0.5.0" },
     { name = "pyspark", extras = ["pandas-on-spark"], specifier = ">=3.5.0,<3.6" },
+    { name = "requests", specifier = ">=2.31.0,<3.0.0" },
     { name = "scikit-learn", specifier = ">=1.6.1,<1.10.0" },
     { name = "scipy", specifier = ">=1.11.4,<1.18.0" },
     { name = "shap", specifier = ">=0.50.0" },
@@ -4250,9 +4254,9 @@ name = "xgboost"
 version = "3.1.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "numpy", marker = "platform_machine == 'aarch64' or platform_machine == 'arm64' or (platform_machine == 'x86_64' and sys_platform == 'darwin')" },
+    { name = "numpy" },
     { name = "nvidia-nccl-cu12", marker = "platform_machine == 'arm64' and sys_platform == 'linux'" },
-    { name = "scipy", marker = "platform_machine == 'aarch64' or platform_machine == 'arm64' or (platform_machine == 'x86_64' and sys_platform == 'darwin')" },
+    { name = "scipy" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/e3/e2/4de8c1b0d80c309f973110311b1d9759b15066ad186fbea656819cbeec6a/xgboost-3.1.1.tar.gz", hash = "sha256:47fbf190a3804d5a8c25188781f8f5412a5724ea3a0604d29d4af4b3120ffa6b", size = 1237217, upload-time = "2025-10-21T23:12:51.445Z" }
 wheels = [
@@ -4266,8 +4270,8 @@ name = "xgboost-cpu"
 version = "3.1.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "numpy", marker = "(platform_machine != 'aarch64' and platform_machine != 'arm64' and platform_machine != 'x86_64') or (platform_machine != 'aarch64' and platform_machine != 'arm64' and sys_platform != 'darwin')" },
-    { name = "scipy", marker = "(platform_machine != 'aarch64' and platform_machine != 'arm64' and platform_machine != 'x86_64') or (platform_machine != 'aarch64' and platform_machine != 'arm64' and sys_platform != 'darwin')" },
+    { name = "numpy" },
+    { name = "scipy" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/33/39/68b4bad51f8993ca4bef69af5fba962cdbff80b6acaab74671446db6845f/xgboost_cpu-3.1.1.tar.gz", hash = "sha256:d8615d2a83ff524fb15e9d36948dca0c56e73b255d9c874b568c9c985839ef40", size = 1237559, upload-time = "2025-10-21T21:11:44.191Z" }
 wheels = [
