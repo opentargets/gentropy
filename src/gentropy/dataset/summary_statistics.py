@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 import pyspark.sql.functions as f
+from pyspark.sql import Window
 
 from gentropy.common.genomic_region import GenomicRegion
 from gentropy.common.schemas import parse_spark_schema
@@ -216,17 +217,15 @@ class SummaryStatistics(Dataset):
         Returns:
             SummaryStatistics: Summary statistics dataset with rows duplicated by (variantId, studyId) dropped.
         """
+        # Counts occurrences in a single window pass, and reuses the input's
+        # partitioning when it is already clustered by studyId.
         return SummaryStatistics(
-            _df=self.df.persist()
-            .join(
-                self.df.groupBy("studyId", "variantId")
-                .count()
-                .filter(f.col("count") > 1)
-                .select("studyId", "variantId"),
-                on=["studyId", "variantId"],
-                how="left_anti",
+            _df=self.df.withColumn(
+                "occurrences",
+                f.count(f.lit(1)).over(Window.partitionBy("studyId", "variantId")),
             )
-            .unpersist()
+            .filter(f.col("occurrences") == 1)
+            .drop("occurrences")
         )
 
     def annotate_study_with_sumstat_location(self, si: StudyIndex) -> StudyIndex:
