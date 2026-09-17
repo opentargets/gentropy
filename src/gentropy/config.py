@@ -884,7 +884,19 @@ class FineMappingPlanGeneratorConfig(StepConfig):
 
     input_path: str = MISSING
     output_path: str = MISSING
+    min_ess: int = 1000
     _target_: str = "gentropy.finemapping_planner.FineMappingPlanGeneratorStep"
+
+
+@dataclass
+class GWASCatalogFineMappingManifestConfig(StepConfig):
+    """GWAS Catalog fine-mapping manifest generation step configuration."""
+
+    study_index_path: str = MISSING
+    fine_mapping_planner_path: str = MISSING
+    output_path: str = MISSING
+    summary_statistics_glob: str | None = None
+    _target_: str = "gentropy.finemapping_manifest.GWASCatalogFineMappingManifestGenerator"
 
 
 @dataclass
@@ -1037,4 +1049,9 @@ def register_config() -> None:
         group="step",
         name="fine_mapping_plan_generator",
         node=FineMappingPlanGeneratorConfig,
+    )
+    cs.store(
+        group="step",
+        name="gwas_catalog_finemapping_manifest",
+        node=GWASCatalogFineMappingManifestConfig,
     )
