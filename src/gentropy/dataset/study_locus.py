@@ -397,6 +397,11 @@ class StudyLocus(Dataset):
         Credible sets of equal size are left to the arbitrary default ordering, since neither is
         better resolved than the other.
 
+        Call this on credible sets that already passed the other quality checks. The ordering only
+        looks at credible set size, so on unfiltered input it can elect a credible set that another
+        flag is about to drop, discarding the surviving copy along with it -- which is what happens
+        to a curated top hit paired with the PICS credible set of the same study and lead variant.
+
         Returns:
             StudyLocus: with flagged duplicated studies.
         """
