@@ -80,13 +80,16 @@ class StudyValidationStep:
             .validate_disease(disease_index)  # Flagging invalid EFOs
             .validate_biosample(biosample_index)  # Flagging invalid biosample in QTLs
             .validate_analysis_flags()  # Flagging studies with case case design
+            .validate_ccs()  # Flagging case-control-sample mismatches
         )
 
         if heritability_input_path is not None:
             heritability_df = session.spark.read.parquet(heritability_input_path)
             validated = validated.collect_heritability(heritability_df)
 
-        study_index_with_qc = validated.persist()  # we will need this for 2 types of outputs
+        study_index_with_qc = (
+            validated.persist()
+        )  # we will need this for 2 types of outputs
 
         result = study_index_with_qc.valid_rows(invalid_qc_reasons)
         (
