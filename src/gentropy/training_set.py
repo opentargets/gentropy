@@ -8,8 +8,8 @@ disease; negatives are the remaining genes in those loci.
 A series of optional, parametrised filters clean the raw labelling to reduce noise and
 leakage before the set is used to train the L2G model:
 
-* replication filter — keep only credible sets whose variant-disease pair replicates
-  across at least ``min_replication_studies`` GWAS studies;
+* replication filter — keep only the credible sets carrying the ``REPLICATED`` quality
+  control flag raised by ``StudyLocus.qc_replication``;
 * maximum positives per locus — drop loci with more than ``max_gsp_per_locus`` positives;
 * protein-protein interaction filter — drop negatives that interact (STRING) with a
   positive gene in the same locus;
@@ -31,7 +31,7 @@ from pyspark.sql import DataFrame
 
 from gentropy.common.session import Session
 from gentropy.dataset.study_index import StudyIndex
-from gentropy.dataset.study_locus import StudyLocus
+from gentropy.dataset.study_locus import StudyLocus, StudyLocusQualityCheck
 
 logger = logging.getLogger(__name__)
 
@@ -68,9 +68,8 @@ class TrainingSetStep:
         training_set_path: str,
         interaction_path: str | None = None,
         apply_replication_filter: bool = True,
-        min_replication_studies: int = 2,
         max_gsp_per_locus: int = 2,
-        apply_interaction_filter: bool = True,
+        apply_interaction_filter: bool = False,
         interaction_source: str = "string",
         interaction_score_threshold: float = 0.75,
         apply_distance_filter: bool = True,
@@ -82,20 +81,21 @@ class TrainingSetStep:
         Args:
             session (Session): Session object that contains the Spark session.
             feature_matrix_path (str): Path to the L2G feature matrix parquet.
-            credible_set_path (str): Path to the credible set (StudyLocus) dataset.
+            credible_set_path (str): Path to the credible set (StudyLocus) dataset. It has to be
+                the validated output of ``StudyLocusValidationStep``, which is where the
+                ``REPLICATED`` quality control flag is raised.
             study_index_path (str): Path to the study index dataset.
             effector_gene_list_path (str): Path to the Effector Gene List parquet produced by
                 ``EffectorGeneListStep`` (columns ``diseaseId``, ``targetId``).
             training_set_path (str): Output path for the training set JSON.
             interaction_path (str | None): Path to the gene interaction dataset (e.g. the platform
                 ``interaction`` output). Required when ``apply_interaction_filter`` is True.
-            apply_replication_filter (bool): Keep only credible sets whose variant-disease pair is
-                seen in at least ``min_replication_studies`` GWAS studies. Defaults to True.
-            min_replication_studies (int): Replication threshold. Defaults to 2.
+            apply_replication_filter (bool): Keep only the credible sets flagged as ``REPLICATED``
+                by ``StudyLocus.qc_replication``. Defaults to True.
             max_gsp_per_locus (int): Maximum number of positives allowed per credible set; loci
                 exceeding it are dropped. Defaults to 2.
             apply_interaction_filter (bool): Drop negatives that interact with a positive gene in
-                the same locus. Defaults to True.
+                the same locus. Requires ``interaction_path``, so it defaults to False.
             interaction_source (str): ``sourceDatabase`` value to keep from the interaction dataset.
                 Defaults to "string".
             interaction_score_threshold (float): Minimum interaction ``scoring`` to keep. Defaults to 0.75.
@@ -130,10 +130,9 @@ class TrainingSetStep:
 
         # 2. Optional replication filter.
         if apply_replication_filter:
-            replicated_loci = self._replicated_loci(
-                credible_set, study_index, min_replication_studies
+            labelled = labelled.join(
+                self._replicated_loci(credible_set), on="studyLocusId", how="inner"
             )
-            labelled = labelled.join(replicated_loci, on="studyLocusId", how="inner")
 
         # 3. Cap the number of positives per locus.
         labelled = self._cap_positives_per_locus(labelled, max_gsp_per_locus)
@@ -155,9 +154,13 @@ class TrainingSetStep:
                 ~((f.col("GSP") == 1) & (f.col("distanceSentinelFootprint") == 0))
             )
 
-        # 6. Optional protein-coding restriction (re-caps positives per locus afterwards).
+        # 6. Optional protein-coding restriction.
         if protein_coding_only:
             labelled = labelled.filter(f.col("isProteinCoding") == 1)
+
+        # Both filters above can drop every positive of a locus and leave it all-negative:
+        # re-applying the cap drops the loci that no longer hold a positive.
+        if apply_distance_filter or protein_coding_only:
             labelled = self._cap_positives_per_locus(labelled, max_gsp_per_locus)
 
         # 7. Attach the sentinel variant id (needed for dedup and output).
@@ -237,62 +240,34 @@ class TrainingSetStep:
                 on=["studyLocusId", "geneId"],
                 how="left",
             )
-            .withColumn(
-                "GSP", f.when(f.col("GSP").isNotNull(), 1).otherwise(0)
-            )
+            .withColumn("GSP", f.when(f.col("GSP").isNotNull(), 1).otherwise(0))
         )
 
     @staticmethod
-    def _replicated_loci(
-        credible_set: StudyLocus,
-        study_index: StudyIndex,
-        min_replication_studies: int,
-    ) -> DataFrame:
-        """Find credible sets whose variant-disease pair replicates across GWAS studies.
+    def _replicated_loci(credible_set: StudyLocus) -> DataFrame:
+        """Select the credible sets whose lead variant is replicated in an independent study.
 
-        A variant-disease pair replicates when at least ``min_replication_studies`` distinct
-        study contexts (cohorts, publication and LD structure) report it.
+        Replication is not assessed here: the ``REPLICATED`` flag is raised by
+        ``StudyLocus.qc_replication`` in ``StudyLocusValidationStep``, which sees the whole
+        credible set collection and is the only place where independence can be established.
+        A credible set the check never assessed carries no flag and is dropped.
 
         Args:
-            credible_set (StudyLocus): Credible set dataset.
-            study_index (StudyIndex): Study index dataset.
-            min_replication_studies (int): Minimum number of distinct study contexts.
+            credible_set (StudyLocus): Validated credible set dataset.
 
         Returns:
-            DataFrame: Distinct ``studyLocusId`` values that pass the replication threshold.
+            DataFrame: The ``studyLocusId`` values carrying the ``REPLICATED`` flag.
         """
-        studies = study_index.df.select(
-            "studyId",
-            "diseaseIds",
-            "cohorts",
-            "pubmedId",
-            "ldPopulationStructure",
-        )
-        gwas = (
-            credible_set.df.select(
-                "studyId", "variantId", "studyType", "studyLocusId"
+        return credible_set.df.filter(
+            f.array_contains(
+                f.col("qualityControls"), StudyLocusQualityCheck.REPLICATED.value
             )
-            .join(studies, on="studyId", how="left")
-            .filter(f.col("studyType") == "gwas")
-            .withColumn("diseaseId", f.explode(f.col("diseaseIds")))
-        )
-        replicated_pairs = (
-            gwas.select(
-                "variantId", "diseaseId", "cohorts", "pubmedId", "ldPopulationStructure"
-            )
-            .dropDuplicates()
-            .groupBy("variantId", "diseaseId")
-            .agg(f.count("*").alias("count"))
-            .filter(f.col("count") >= min_replication_studies)
-        )
-        return (
-            gwas.join(replicated_pairs, on=["variantId", "diseaseId"], how="inner")
-            .select("studyLocusId")
-            .distinct()
-        )
+        ).select("studyLocusId")
 
     @staticmethod
-    def _cap_positives_per_locus(labelled: DataFrame, max_gsp_per_locus: int) -> DataFrame:
+    def _cap_positives_per_locus(
+        labelled: DataFrame, max_gsp_per_locus: int
+    ) -> DataFrame:
         """Keep only loci with between one and ``max_gsp_per_locus`` positives.
 
         Args:
@@ -319,7 +294,12 @@ class TrainingSetStep:
         interaction_source: str,
         interaction_score_threshold: float,
     ) -> DataFrame:
-        """Load directed gene-gene interaction pairs above the score threshold.
+        """Load gene-gene interaction pairs above the score threshold, in both directions.
+
+        The interaction dataset is not guaranteed to hold both directions of a pair, so it is
+        symmetrised here, as ``L2GGoldStandard.remove_false_negatives`` does: a negative gene
+        has to be dropped whether the positive it interacts with sits in ``targetA`` or in
+        ``targetB``.
 
         Args:
             session (Session): Active session.
@@ -328,12 +308,13 @@ class TrainingSetStep:
             interaction_score_threshold (float): Minimum interaction ``scoring``.
 
         Returns:
-            DataFrame: Distinct ``targetA``, ``targetB`` interaction pairs (self-interactions removed).
+            DataFrame: Distinct ``targetA``, ``targetB`` interaction pairs, each pair present in
+                both directions (self-interactions removed).
         """
         interactions = session.load_data(
             interaction_path, "parquet", recursiveFileLookup=True
         )
-        return (
+        pairs = (
             interactions.filter(
                 (f.col("sourceDatabase") == interaction_source)
                 & (f.col("scoring") >= interaction_score_threshold)
@@ -342,6 +323,11 @@ class TrainingSetStep:
             .select("targetA", "targetB")
             .distinct()
         )
+        return pairs.unionByName(
+            pairs.select(
+                f.col("targetB").alias("targetA"), f.col("targetA").alias("targetB")
+            )
+        ).distinct()
 
     @staticmethod
     def _filter_interacting_negatives(
@@ -355,7 +341,7 @@ class TrainingSetStep:
 
         Args:
             labelled (DataFrame): Labelled feature matrix with a ``GSP`` column.
-            interactions (DataFrame): Directed ``targetA``, ``targetB`` interaction pairs.
+            interactions (DataFrame): Symmetrised ``targetA``, ``targetB`` interaction pairs.
 
         Returns:
             DataFrame: Labelled rows with the interacting negatives removed.

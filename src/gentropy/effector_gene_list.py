@@ -88,25 +88,28 @@ class EffectorGeneListStep:
         sources: list[DataFrame] = []
 
         if rare_variant_evidence_paths:
-            rare = self._rare_variant_pairs(
-                session, rare_variant_evidence_paths, rare_variant_score_threshold
+            logger.info("Including the rare-variant source")
+            sources.append(
+                self._rare_variant_pairs(
+                    session, rare_variant_evidence_paths, rare_variant_score_threshold
+                )
             )
-            logger.info("Rare-variant source contributes %d pairs", rare.count())
-            sources.append(rare)
 
         if clinical_evidence_path:
-            clinical = self._clinical_pairs(
-                session, clinical_evidence_path, approved_clinical_phases
+            logger.info("Including the clinical precedence source")
+            sources.append(
+                self._clinical_pairs(
+                    session, clinical_evidence_path, approved_clinical_phases
+                )
             )
-            logger.info("Clinical source contributes %d pairs", clinical.count())
-            sources.append(clinical)
 
         if gold_standard_path:
-            gold = self._gold_standard_pairs(
-                session, gold_standard_path, gold_standard_confidence
+            logger.info("Including the legacy gold standard source")
+            sources.append(
+                self._gold_standard_pairs(
+                    session, gold_standard_path, gold_standard_confidence
+                )
             )
-            logger.info("Gold standard source contributes %d pairs", gold.count())
-            sources.append(gold)
 
         if not sources:
             raise ValueError(

@@ -917,9 +917,8 @@ class TrainingSetConfig(StepConfig):
     training_set_path: str = MISSING
     interaction_path: str | None = None
     apply_replication_filter: bool = True
-    min_replication_studies: int = 2
     max_gsp_per_locus: int = 2
-    apply_interaction_filter: bool = True
+    apply_interaction_filter: bool = False
     interaction_source: str = "string"
     interaction_score_threshold: float = 0.75
     apply_distance_filter: bool = True

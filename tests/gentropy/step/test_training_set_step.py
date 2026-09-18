@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
 from pyspark.sql import SparkSession
 
 from gentropy.common.session import Session
+from gentropy.dataset.study_locus import StudyLocusQualityCheck
 from gentropy.training_set import TrainingSetStep
 
 
@@ -72,12 +74,40 @@ class TestCapPositivesPerLocus:
         }
         assert result == {"sl1"}
 
+    def test_locus_without_positive_is_dropped(self, spark: SparkSession) -> None:
+        """A locus left all-negative by an earlier filter is dropped when the cap is re-applied."""
+        labelled = spark.createDataFrame(
+            [
+                ("sl1", "g1", 1),
+                ("sl1", "g2", 0),
+                ("sl2", "g3", 0),  # positives already removed -> dropped
+            ],
+            ["studyLocusId", "geneId", "GSP"],
+        )
+        result = {
+            r["studyLocusId"]
+            for r in TrainingSetStep._cap_positives_per_locus(labelled, 2).collect()
+        }
+        assert result == {"sl1"}
+
 
 class TestFilterInteractingNegatives:
     """Test removal of negatives interacting with positives in the same locus."""
 
-    def test_filter(self, spark: SparkSession) -> None:
-        """A negative that is a STRING partner of a positive in the same locus is removed."""
+    @pytest.mark.step_test
+    @pytest.mark.parametrize("positive_column", ["targetA", "targetB"])
+    def test_filter(
+        self,
+        session: Session,
+        spark: SparkSession,
+        tmp_path: Path,
+        positive_column: str,
+    ) -> None:
+        """A negative interacting with a positive is removed, whichever side of the pair it is on.
+
+        The interaction dataset is not guaranteed to hold both directions of a pair, so the
+        interaction is written in one direction only and the test runs it both ways round.
+        """
         labelled = spark.createDataFrame(
             [
                 ("sl1", "ENSG_POS", 1),
@@ -86,8 +116,19 @@ class TestFilterInteractingNegatives:
             ],
             ["studyLocusId", "geneId", "GSP"],
         )
-        interactions = spark.createDataFrame(
-            [("ENSG_POS", "ENSG_PARTNER")], ["targetA", "targetB"]
+        pair = (
+            ("ENSG_POS", "ENSG_PARTNER")
+            if positive_column == "targetA"
+            else ("ENSG_PARTNER", "ENSG_POS")
+        )
+        interaction_path = str(tmp_path / f"interactions_{positive_column}")
+        spark.createDataFrame(
+            [(*pair, "string", 0.9)],
+            ["targetA", "targetB", "sourceDatabase", "scoring"],
+        ).write.parquet(interaction_path)
+
+        interactions = TrainingSetStep._interaction_pairs(
+            session, interaction_path, "string", 0.75
         )
         result = {
             (r["studyLocusId"], r["geneId"])
@@ -99,47 +140,31 @@ class TestFilterInteractingNegatives:
 
 
 class TestReplicatedLoci:
-    """Test the replication filter over GWAS study contexts."""
+    """Test that the replication filter reads the credible set quality control flag."""
 
     def test_replication(self, spark: SparkSession) -> None:
-        """Only credible sets whose variant-disease pair appears in >=2 study contexts pass."""
+        """Only the credible sets carrying the REPLICATED flag pass."""
         credible_set = SimpleNamespace(
             df=spark.createDataFrame(
                 [
-                    ("st1", "1_1_A_G", "gwas", "sl1"),
+                    ("sl1", [StudyLocusQualityCheck.REPLICATED.value]),
                     (
-                        "st2",
-                        "1_1_A_G",
-                        "gwas",
                         "sl2",
-                    ),  # same variant/disease, 2nd study
-                    ("st3", "2_2_C_T", "gwas", "sl3"),  # only 1 study -> dropped
+                        [
+                            StudyLocusQualityCheck.TOP_HIT.value,
+                            StudyLocusQualityCheck.REPLICATED.value,
+                        ],
+                    ),
+                    ("sl3", [StudyLocusQualityCheck.TOP_HIT.value]),  # not replicated
+                    ("sl4", []),  # never assessed
                 ],
-                ["studyId", "variantId", "studyType", "studyLocusId"],
-            )
-        )
-        study_index = SimpleNamespace(
-            df=spark.createDataFrame(
-                [
-                    ("st1", ["EFO_1"], ["cohortA"], "pmid1", "nfe"),
-                    ("st2", ["EFO_1"], ["cohortB"], "pmid2", "nfe"),
-                    ("st3", ["EFO_2"], ["cohortC"], "pmid3", "nfe"),
-                ],
-                [
-                    "studyId",
-                    "diseaseIds",
-                    "cohorts",
-                    "pubmedId",
-                    "ldPopulationStructure",
-                ],
+                ["studyLocusId", "qualityControls"],
             )
         )
         result = {
             r["studyLocusId"]
             for r in TrainingSetStep._replicated_loci(
                 credible_set,  # type: ignore[arg-type]
-                study_index,  # type: ignore[arg-type]
-                2,
             ).collect()
         }
         assert result == {"sl1", "sl2"}
