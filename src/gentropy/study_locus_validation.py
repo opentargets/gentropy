@@ -40,7 +40,8 @@ class StudyLocusValidationStep:
         """
         invalid_qc_reasons = list(invalid_qc_reasons) if invalid_qc_reasons else []
         # Reading datasets:
-        study_index = StudyIndex.from_parquet(session, study_index_path)
+        # The study index is read once and consumed by four of the checks below, so it is cached:
+        study_index = StudyIndex.from_parquet(session, study_index_path).persist()
         target_index = TargetIndex.from_parquet(session, target_index_path)
 
         # Running validation then writing output:
@@ -83,9 +84,14 @@ class StudyLocusValidationStep:
         # only when DUPLICATED_STUDYLOCUS_ID is one of the configured invalid reasons.
         unique = deduplicated.valid_rows(invalid_qc_reasons)
 
+        # Replication is assessed at the very end, once every invalid credible set has been
+        # removed: a credible set dropped by any earlier flag, a duplicate included, is not
+        # evidence of replication, and duplicated credible sets of one study would count as two.
+        replicated = unique.valid.qc_replication(study_index)
+
         (
             # Valid study locus partitioned to simplify the finding of overlaps
-            unique.valid.df.repartitionByRange(
+            replicated.df.repartitionByRange(
                 session.output_partitions,
                 "chromosome",
                 "position",
@@ -104,3 +110,4 @@ class StudyLocusValidationStep:
         # Both caches feed the invalid output, so they can only be released once it is written.
         deduplicated.df.unpersist()
         study_locus_with_qc.df.unpersist()
+        study_index.df.unpersist()
