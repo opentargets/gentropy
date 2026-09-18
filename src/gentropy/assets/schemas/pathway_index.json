@@ -8,6 +8,12 @@
       "metadata": {}
     },
     {
+      "name": "pathwayId",
+      "type": "string",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
       "name": "source",
       "type": "string",
       "nullable": true,
@@ -21,6 +27,16 @@
         "containsNull": false
       },
       "nullable": false,
+      "metadata": {}
+    },
+    {
+      "name": "geneIds",
+      "type": {
+        "type": "array",
+        "elementType": "string",
+        "containsNull": false
+      },
+      "nullable": true,
       "metadata": {}
     }
   ]

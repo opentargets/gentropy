@@ -29,7 +29,7 @@ def common_pathway_enrichment_feature_logic(
     study_index: StudyIndex,
     study_locus: StudyLocus,
     target_index: TargetIndex,
-    fdr_threshold: float,
+    p_value_adjusted_threshold: float,
     genomic_window: int,
 ) -> DataFrame:
     """Score every gene at a locus by how much of its pathway membership is disease relevant.
@@ -51,25 +51,19 @@ def common_pathway_enrichment_feature_logic(
         pathway_enrichment (PathwayEnrichment): Pathways enriched for each disease
         study_index (StudyIndex): Study index, used to resolve a study to its diseases
         study_locus (StudyLocus): Credible sets, used for the position of the study locus
-        target_index (TargetIndex): Target index, used for gene positions and symbol mapping
-        fdr_threshold (float): Maximum FDR for a pathway to count as enriched
+        target_index (TargetIndex): Target index, used for gene positions
+        p_value_adjusted_threshold (float): Maximum adjusted p-value for a pathway to count as
+            enriched
         genomic_window (int): Distance up and downstream of the study locus to collect genes from
 
     Returns:
         DataFrame: Feature dataset with one row per study locus and gene in its window
     """
-    # Gene set membership, restricted to the pathways enrichment was actually tested for and
-    # translated from gene symbols into the gene identifiers the feature matrix is keyed on.
-    membership = (
-        pathway_index.gene_membership()
-        .join(pathway_enrichment.df.select("pathway").distinct(), "pathway", "inner")
-        .join(
-            target_index.symbols_lut().select("geneSymbol", "geneId"),
-            "geneSymbol",
-            "inner",
-        )
-        .select("pathway", "geneId")
-        .distinct()
+    # Gene set membership, restricted to the pathways enrichment was actually tested for. The
+    # gene identifiers come from the index itself, which resolved them against a release of the
+    # target index when it was built.
+    membership = pathway_index.gene_membership().join(
+        pathway_enrichment.tested_pathways(), "pathway", "semi"
     )
     pathways_per_gene = membership.groupBy("geneId").agg(
         f.count("pathway").alias("pathwaysPerGene")
@@ -78,18 +72,20 @@ def common_pathway_enrichment_feature_logic(
     # Studies are grouped by their set of diseases rather than handled one by one: there are
     # far fewer distinct disease sets than studies, and the great majority hold one disease.
     disease_sets = (
-        study_index.df.select(
-            "studyId", f.array_sort(f.col("diseaseIds")).alias("diseaseSet")
-        )
-        .filter(f.size("diseaseSet") > 0)
+        study_index.df.filter(f.col("studyType") == "gwas")
+        .filter(f.size(f.col("diseaseIds")) > 0)
+        .select("studyId", f.array_sort(f.col("diseaseIds")).alias("diseaseSet"))
         .distinct()
     )
     enriched_pathways_per_gene = (
         disease_sets.select("diseaseSet")
         .distinct()
         .select("diseaseSet", f.explode("diseaseSet").alias("diseaseId"))
+        .distinct()
         .join(
-            pathway_enrichment.enriched_pathways(fdr_threshold), "diseaseId", "inner"
+            pathway_enrichment.enriched_pathways(p_value_adjusted_threshold),
+            "diseaseId",
+            "inner",
         )
         .select("diseaseSet", "pathway")
         .distinct()
@@ -106,14 +102,11 @@ def common_pathway_enrichment_feature_logic(
     )
 
     genes_in_window = (
-        study_loci_to_annotate.df.select("studyLocusId")
-        .distinct()
+        study_locus.df.select("studyLocusId", "studyId", "chromosome", "position")
         .join(
-            study_locus.df.select(
-                "studyLocusId", "studyId", "chromosome", "position"
-            ),
+            study_loci_to_annotate.df.select("studyLocusId").distinct(),
             "studyLocusId",
-            "inner",
+            "semi",
         )
         .join(
             target_index.df.select(
@@ -189,7 +182,7 @@ class PathwayEnrichmentFeature(L2GFeature):
         TargetIndex,
     ]
     feature_name = "pathwayEnrichment500kb"
-    fdr_threshold: float = 0.05
+    p_value_adjusted_threshold: float = 0.05
     genomic_window: int = 500_000
 
     @classmethod
@@ -212,7 +205,7 @@ class PathwayEnrichmentFeature(L2GFeature):
                 common_pathway_enrichment_feature_logic(
                     study_loci_to_annotate,
                     cls.feature_name,
-                    fdr_threshold=cls.fdr_threshold,
+                    p_value_adjusted_threshold=cls.p_value_adjusted_threshold,
                     genomic_window=cls.genomic_window,
                     **feature_dependency,
                 ),
@@ -235,7 +228,7 @@ class PathwayEnrichmentNeighbourhoodFeature(L2GFeature):
         TargetIndex,
     ]
     feature_name = "pathwayEnrichment500kbNeighbourhood"
-    fdr_threshold: float = 0.05
+    p_value_adjusted_threshold: float = 0.05
     genomic_window: int = 500_000
 
     @classmethod
@@ -258,7 +251,7 @@ class PathwayEnrichmentNeighbourhoodFeature(L2GFeature):
                 common_neighbourhood_pathway_enrichment_feature_logic(
                     study_loci_to_annotate,
                     cls.feature_name,
-                    fdr_threshold=cls.fdr_threshold,
+                    p_value_adjusted_threshold=cls.p_value_adjusted_threshold,
                     genomic_window=cls.genomic_window,
                     **feature_dependency,
                 ),

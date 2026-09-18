@@ -80,8 +80,10 @@ class LocusToGeneFeatureMatrixStep:
             target_index_path (str | None): Path to the target index dataset
             intervals_path (str | None): Path to the interval dataset
             gene_interactions_path (str | None): Path to the protein-protein interaction (PPI) dataset
-            pathway_index_path (str | None): Path to the pathway library, as a GMT file
-            pathway_enrichment_path (str | None): Path to the disease-pathway enrichment dataset
+            pathway_index_path (str | None): Path to the harmonised `PathwayIndex` dataset, as
+                written by the pathway ingestion step
+            pathway_enrichment_path (str | None): Path to the harmonised `PathwayEnrichment`
+                dataset, as written by the pathway ingestion step
             feature_matrix_path (str): Path to the L2G feature matrix output dataset
             append_null_features (bool): Whether to append null features to the feature matrix. Defaults to False.
         """
@@ -129,13 +131,11 @@ class LocusToGeneFeatureMatrixStep:
         )
 
         pathway_index = (
-            PathwayIndex.from_gmt(session, pathway_index_path)
+            PathwayIndex.from_parquet(session, pathway_index_path)
             if pathway_index_path
             else None
         )
 
-        # No recursive file lookup here: the enrichment results are partitioned by diseaseId,
-        # and recursing would stop Spark from reading that partition column back.
         pathway_enrichment = (
             PathwayEnrichment.from_parquet(session, pathway_enrichment_path)
             if pathway_enrichment_path
@@ -168,7 +168,7 @@ class LocusToGeneFeatureMatrixStep:
             or studies is None
         ):
             raise ValueError(
-                "Pathway enrichment features need the pathway library, the enrichment "
+                "Pathway enrichment features need the pathway index, the enrichment "
                 "results, the target index and the study index. Provide "
                 "`pathway_index_path`, `pathway_enrichment_path`, `target_index_path` "
                 "and `study_index_path`."

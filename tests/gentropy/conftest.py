@@ -356,14 +356,33 @@ def mock_intervals(spark: SparkSession) -> Intervals:
 def mock_pathway_index(spark: SparkSession) -> PathwayIndex:
     """Mock pathway index dataset.
 
-    Three gene sets over three genes: GENE1 sits in two of them, GENE2 in two, GENE3 in one.
+    Three gene sets over three genes: gene1 sits in two of them, gene2 in two, gene3 in one.
+    The gene identifiers are already resolved, as they are in an ingested index.
     """
     return PathwayIndex(
         _df=spark.createDataFrame(
             [
-                ("pathway1 [Reactome]", "Reactome", ["GENE1", "GENE2"]),
-                ("pathway2 [GO BP]", "GO BP", ["GENE1", "GENE3"]),
-                ("pathway3 [GO BP]", "GO BP", ["GENE2"]),
+                (
+                    "pathway1 [Reactome]",
+                    "R-HSA-1",
+                    "Reactome",
+                    ["GENE1", "GENE2"],
+                    ["gene1", "gene2"],
+                ),
+                (
+                    "pathway2 [GO BP]",
+                    "GO:0000002",
+                    "GO BP",
+                    ["GENE1", "GENE3"],
+                    ["gene1", "gene3"],
+                ),
+                (
+                    "pathway3 [GO BP]",
+                    "GO:0000003",
+                    "GO BP",
+                    ["GENE2"],
+                    ["gene2"],
+                ),
             ],
             PathwayIndex.get_schema(),
         ),
@@ -375,8 +394,9 @@ def mock_pathway_index(spark: SparkSession) -> PathwayIndex:
 def mock_pathway_enrichment(spark: SparkSession) -> PathwayEnrichment:
     """Mock disease-pathway enrichment dataset.
 
-    `disease1` is enriched for pathway1 only, `disease2` for pathway2 only, and `disease3`
-    has no FDR at all, the way whole diseases can come out of a gene set enrichment run.
+    `disease1` is enriched for pathway1 only, `disease2` for pathway2 only, and `disease3` has
+    no adjusted p-value at all, the way whole diseases can come out of a gene set enrichment
+    run.
     """
     return PathwayEnrichment(
         _df=spark.createDataFrame(

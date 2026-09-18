@@ -20,19 +20,19 @@
       "metadata": {}
     },
     {
-      "name": "nes",
+      "name": "normalisedEnrichmentScore",
       "type": "double",
       "nullable": true,
       "metadata": {}
     },
     {
-      "name": "pval",
+      "name": "pValue",
       "type": "double",
       "nullable": true,
       "metadata": {}
     },
     {
-      "name": "fdr",
+      "name": "pValueAdjusted",
       "type": "double",
       "nullable": true,
       "metadata": {}
