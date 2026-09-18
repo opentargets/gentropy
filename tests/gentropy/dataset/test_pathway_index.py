@@ -31,7 +31,8 @@ def test_pathway_index_from_gmt(session: Session, tmp_path: Path) -> None:
     )
 
     observed = {
-        row["pathway"]: (
+        row["pathwayFromSourceName"]: (
+            row["pathwayFromSourceId"],
             row["pathwayId"],
             row["source"],
             row["geneSymbols"],
@@ -40,10 +41,10 @@ def test_pathway_index_from_gmt(session: Session, tmp_path: Path) -> None:
         for row in PathwayIndex.from_gmt(session, str(gmt)).df.collect()
     }
     assert observed == {
-        "pathway1 [Reactome]": ("R-HSA-1", "Reactome", ["GENE1", "GENE2"], None),
-        "pathway2 [GO BP]": ("GO:0000002", "GO BP", ["GENE3"], None),
+        "pathway1 [Reactome]": ("R-HSA-1", None, "Reactome", ["GENE1", "GENE2"], None),
+        "pathway2 [GO BP]": ("GO:0000002", None, "GO BP", ["GENE3"], None),
         # no identifier and no bracketed source tag, so both come back null
-        "pathway3": (None, None, ["GENE4"], None),
+        "pathway3": (None, None, None, ["GENE4"], None),
     }
 
 
@@ -83,7 +84,7 @@ def test_resolve_gene_ids(
     )
 
     observed = {
-        row["pathway"]: row["geneIds"]
+        row["pathwayFromSourceName"]: row["geneIds"]
         for row in PathwayIndex.from_gmt(session, str(gmt))
         .resolve_gene_ids(target_index)
         .df.collect()
@@ -95,10 +96,79 @@ def test_resolve_gene_ids(
     }
 
 
+def test_resolve_pathway_ids(
+    session: Session, tmp_path: Path, spark: SparkSession
+) -> None:
+    """Test that a source identifier the release annotates a gene with is the resolved one."""
+    gmt = tmp_path / "library.gmt"
+    gmt.write_text(
+        "pathway1 [Reactome]\tR-HSA-1\tGENE1\n"
+        "pathway2 [GO BP]\tGO:0000002\tGENE1\n"
+        "pathway3 [Reactome]\tR-HSA-3\tGENE1\n"
+        "pathway4 [MSigDB Hallmark]\t\tGENE1\n",
+        encoding="utf-8",
+    )
+    target_index = TargetIndex(
+        _df=spark.createDataFrame(
+            [("gene1", "GENE1", "protein_coding", "1", 1000)],
+            "id string, approvedSymbol string, biotype string, chromosome string, tss long",
+        ).select(
+            "id",
+            "approvedSymbol",
+            "biotype",
+            f.struct(f.col("chromosome")).alias("genomicLocation"),
+            "tss",
+            f.array()
+            .cast("array<struct<label:string,source:string>>")
+            .alias("obsoleteSymbols"),
+            f.array(
+                f.struct(
+                    f.lit("R-HSA-1").alias("pathwayId"),
+                    f.lit("first pathway").alias("pathway"),
+                    f.lit("top level").alias("topLevelTerm"),
+                )
+            ).alias("pathways"),
+            f.array(
+                f.struct(
+                    f.lit("GO:0000002").alias("id"),
+                    f.lit("source").alias("source"),
+                    f.lit("IEA").alias("evidence"),
+                    f.lit("P").alias("aspect"),
+                    f.lit("P1").alias("geneProduct"),
+                    f.lit("ECO:1").alias("ecoId"),
+                )
+            ).alias("go"),
+        ),
+        _schema=TargetIndex.get_schema(),
+    )
+
+    index = PathwayIndex.from_gmt(session, str(gmt))
+    observed = {
+        row["pathwayFromSourceName"]: row["pathwayId"]
+        for row in index.resolve_pathway_ids(target_index).df.collect()
+    }
+    # R-HSA-1 is annotated through `pathways` and GO:0000002 through `go`; R-HSA-3 is annotated
+    # to no gene of this release, and the Hallmark set has no identifier at all
+    assert observed == {
+        "pathway1 [Reactome]": "R-HSA-1",
+        "pathway2 [GO BP]": "GO:0000002",
+        "pathway3 [Reactome]": None,
+        "pathway4 [MSigDB Hallmark]": None,
+    }
+
+    kept = {
+        row["pathwayFromSourceName"]
+        for row in index.resolve_pathway_ids(
+            target_index, exclude_unmapped=True
+        ).df.collect()
+    }
+    assert kept == {"pathway1 [Reactome]", "pathway2 [GO BP]"}
+
+
 def test_gene_membership(mock_pathway_index: PathwayIndex) -> None:
     """Test that gene sets are exploded into one row per pathway and gene identifier."""
     observed = {
-        (row["pathway"], row["geneId"])
+        (row["pathwayFromSourceName"], row["geneId"])
         for row in mock_pathway_index.gene_membership().collect()
     }
     assert observed == {

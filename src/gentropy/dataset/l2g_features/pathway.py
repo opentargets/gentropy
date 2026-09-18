@@ -63,10 +63,10 @@ def common_pathway_enrichment_feature_logic(
     # gene identifiers come from the index itself, which resolved them against a release of the
     # target index when it was built.
     membership = pathway_index.gene_membership().join(
-        pathway_enrichment.tested_pathways(), "pathway", "semi"
+        pathway_enrichment.tested_pathways(), "pathwayFromSourceName", "semi"
     )
     pathways_per_gene = membership.groupBy("geneId").agg(
-        f.count("pathway").alias("pathwaysPerGene")
+        f.count("pathwayFromSourceName").alias("pathwaysPerGene")
     )
 
     # Studies are grouped by their set of diseases rather than handled one by one: there are
@@ -87,11 +87,11 @@ def common_pathway_enrichment_feature_logic(
             "diseaseId",
             "inner",
         )
-        .select("diseaseSet", "pathway")
+        .select("diseaseSet", "pathwayFromSourceName")
         .distinct()
-        .join(membership, "pathway", "inner")
+        .join(membership, "pathwayFromSourceName", "inner")
         .groupBy("diseaseSet", "geneId")
-        .agg(f.count("pathway").alias("enrichedPathwaysPerGene"))
+        .agg(f.count("pathwayFromSourceName").alias("enrichedPathwaysPerGene"))
     )
     scores = enriched_pathways_per_gene.join(
         pathways_per_gene, "geneId", "inner"

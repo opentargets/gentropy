@@ -889,6 +889,7 @@ class PathwayIngestionConfig(StepConfig):
     target_index_path: str = MISSING
     pathway_index_path: str = MISSING
     pathway_enrichment_path: str = MISSING
+    exclude_unmapped_pathways: bool = False
 
     _target_: str = "gentropy.pathway.PathwayIngestionStep"
 

@@ -13,9 +13,9 @@ class PathwayIngestionStep:
 
     The library arrives as a gene matrix transposed (GMT) file and the enrichment results with
     the column names of the tool that produced them. Both are harmonised here, once, so that
-    every step downstream reads a validated dataset: the gene symbols of the library are
-    resolved into the Ensembl gene identifiers of a given target index release, and the
-    identifier of each pathway in its source ontology is kept.
+    every step downstream reads a validated dataset: the names and identifiers the source gave
+    each pathway are kept as they are, and the pathway identifiers and gene symbols are
+    resolved against a target index release.
     """
 
     def __init__(
@@ -26,6 +26,7 @@ class PathwayIngestionStep:
         target_index_path: str,
         pathway_index_path: str,
         pathway_enrichment_path: str,
+        exclude_unmapped_pathways: bool = False,
     ) -> None:
         """Run the pathway ingestion step.
 
@@ -34,17 +35,23 @@ class PathwayIngestionStep:
             pathway_library_path (str): Path to the pathway library, as a GMT file.
             pathway_enrichment_source_path (str): Path to the enrichment results of the same
                 library, partitioned by `diseaseId`.
-            target_index_path (str): Path to the target index the gene symbols are resolved
+            target_index_path (str): Path to the target index the identifiers are resolved
                 against.
             pathway_index_path (str): Output path of the harmonised `PathwayIndex` dataset.
             pathway_enrichment_path (str): Output path of the harmonised `PathwayEnrichment`
                 dataset.
+            exclude_unmapped_pathways (bool): Whether to drop the pathways whose source
+                identifier does not resolve against the target index release. Off by default:
+                the pathway enrichment features divide by the number of pathways a gene belongs
+                to, so dropping pathways moves every score.
         """
         target_index = TargetIndex.from_parquet(session, target_index_path)
 
-        pathway_index = PathwayIndex.from_gmt(
-            session, pathway_library_path
-        ).resolve_gene_ids(target_index)
+        pathway_index = (
+            PathwayIndex.from_gmt(session, pathway_library_path)
+            .resolve_pathway_ids(target_index, exclude_unmapped_pathways)
+            .resolve_gene_ids(target_index)
+        )
         pathway_index.df.coalesce(session.output_partitions).write.mode(
             session.write_mode
         ).parquet(pathway_index_path)

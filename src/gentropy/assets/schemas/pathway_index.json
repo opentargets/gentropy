@@ -2,9 +2,15 @@
   "type": "struct",
   "fields": [
     {
-      "name": "pathway",
+      "name": "pathwayFromSourceName",
       "type": "string",
       "nullable": false,
+      "metadata": {}
+    },
+    {
+      "name": "pathwayFromSourceId",
+      "type": "string",
+      "nullable": true,
       "metadata": {}
     },
     {

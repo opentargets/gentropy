@@ -357,13 +357,15 @@ def mock_pathway_index(spark: SparkSession) -> PathwayIndex:
     """Mock pathway index dataset.
 
     Three gene sets over three genes: gene1 sits in two of them, gene2 in two, gene3 in one.
-    The gene identifiers are already resolved, as they are in an ingested index.
+    The gene identifiers are already resolved, as they are in an ingested index, and pathway3
+    is one whose source identifier did not resolve.
     """
     return PathwayIndex(
         _df=spark.createDataFrame(
             [
                 (
                     "pathway1 [Reactome]",
+                    "R-HSA-1",
                     "R-HSA-1",
                     "Reactome",
                     ["GENE1", "GENE2"],
@@ -372,6 +374,7 @@ def mock_pathway_index(spark: SparkSession) -> PathwayIndex:
                 (
                     "pathway2 [GO BP]",
                     "GO:0000002",
+                    "GO:0000002",
                     "GO BP",
                     ["GENE1", "GENE3"],
                     ["gene1", "gene3"],
@@ -379,6 +382,7 @@ def mock_pathway_index(spark: SparkSession) -> PathwayIndex:
                 (
                     "pathway3 [GO BP]",
                     "GO:0000003",
+                    None,
                     "GO BP",
                     ["GENE2"],
                     ["gene2"],

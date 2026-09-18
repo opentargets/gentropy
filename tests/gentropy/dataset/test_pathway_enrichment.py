@@ -21,7 +21,7 @@ def test_recomputed_adjusted_p_value_keeps_the_published_values(
 ) -> None:
     """Test that an adjusted p-value that is already there is left alone."""
     observed = {
-        row["pathway"]: row["pValueAdjusted"]
+        row["pathwayFromSourceName"]: row["pValueAdjusted"]
         for row in mock_pathway_enrichment.with_recomputed_adjusted_p_value()
         .df.filter("diseaseId = 'disease1'")
         .collect()
@@ -42,7 +42,7 @@ def test_recomputed_adjusted_p_value_fills_in_a_missing_one(
     values are 0.001*3/1, 0.02*3/2 and 0.5*3/3.
     """
     observed = {
-        row["pathway"]: row["pValueAdjusted"]
+        row["pathwayFromSourceName"]: row["pValueAdjusted"]
         for row in mock_pathway_enrichment.with_recomputed_adjusted_p_value()
         .df.filter("diseaseId = 'disease3'")
         .collect()
@@ -74,7 +74,7 @@ def test_recomputed_adjusted_p_value_matches_r_on_ties(spark: SparkSession) -> N
     observed = [
         row["pValueAdjusted"]
         for row in enrichment.with_recomputed_adjusted_p_value()
-        .df.orderBy("pathway")
+        .df.orderBy("pathwayFromSourceName")
         .collect()
     ]
     assert observed == [
@@ -101,7 +101,7 @@ def test_recomputed_adjusted_p_value_is_monotonic(spark: SparkSession) -> None:
     observed = [
         row["pValueAdjusted"]
         for row in enrichment.with_recomputed_adjusted_p_value()
-        .df.orderBy("pathway")
+        .df.orderBy("pathwayFromSourceName")
         .collect()
     ]
     # the raw values are 0.16, 0.08, 0.0667 and 0.06, and the step-up minimum pulls every one
@@ -134,7 +134,7 @@ def test_recomputed_adjusted_p_value_leaves_a_null_p_value_null(
         _schema=PathwayEnrichment.get_schema(),
     )
     observed = {
-        row["pathway"]: row["pValueAdjusted"]
+        row["pathwayFromSourceName"]: row["pValueAdjusted"]
         for row in enrichment.with_recomputed_adjusted_p_value().df.collect()
     }
     assert observed == {
@@ -165,7 +165,7 @@ def test_recomputed_adjusted_p_value_skips_infinite_enrichment(
         _schema=PathwayEnrichment.get_schema(),
     )
     observed = {
-        row["pathway"]: row["pValueAdjusted"]
+        row["pathwayFromSourceName"]: row["pValueAdjusted"]
         for row in enrichment.with_recomputed_adjusted_p_value().df.collect()
     }
     assert observed == {
@@ -174,7 +174,7 @@ def test_recomputed_adjusted_p_value_skips_infinite_enrichment(
         "pathway3": pytest.approx(0.04),
     }
     kept = {
-        row["pathway"]: row["pValueAdjusted"]
+        row["pathwayFromSourceName"]: row["pValueAdjusted"]
         for row in enrichment.with_recomputed_adjusted_p_value(
             skip_infinite_enrichment=False
         ).df.collect()
@@ -199,7 +199,9 @@ def test_tested_pathways(spark: SparkSession) -> None:
         ),
         _schema=PathwayEnrichment.get_schema(),
     )
-    observed = {row["pathway"] for row in enrichment.tested_pathways().collect()}
+    observed = {
+        row["pathwayFromSourceName"] for row in enrichment.tested_pathways().collect()
+    }
     assert observed == {"pathway1", "pathway2"}
 
 
@@ -208,7 +210,7 @@ def test_enriched_pathways_uses_the_recomputed_value(
 ) -> None:
     """Test that a disease with no published adjusted p-value still contributes pathways."""
     observed = {
-        (row["diseaseId"], row["pathway"])
+        (row["diseaseId"], row["pathwayFromSourceName"])
         for row in mock_pathway_enrichment.enriched_pathways(0.05).collect()
     }
     assert observed == {
@@ -224,7 +226,7 @@ def test_enriched_pathways_without_recomputation(
 ) -> None:
     """Test that the diseases with no published adjusted p-value drop out when asked to."""
     observed = {
-        (row["diseaseId"], row["pathway"])
+        (row["diseaseId"], row["pathwayFromSourceName"])
         for row in mock_pathway_enrichment.enriched_pathways(
             0.05, recompute_missing_adjusted_p_value=False
         ).collect()

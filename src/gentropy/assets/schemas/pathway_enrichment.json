@@ -8,7 +8,7 @@
       "metadata": {}
     },
     {
-      "name": "pathway",
+      "name": "pathwayFromSourceName",
       "type": "string",
       "nullable": false,
       "metadata": {}
