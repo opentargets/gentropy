@@ -40,7 +40,8 @@ class StudyLocusValidationStep:
         """
         invalid_qc_reasons = list(invalid_qc_reasons) if invalid_qc_reasons else []
         # Reading datasets:
-        study_index = StudyIndex.from_parquet(session, study_index_path)
+        # The study index is read once and consumed by four of the checks below, so it is cached:
+        study_index = StudyIndex.from_parquet(session, study_index_path).persist()
         target_index = TargetIndex.from_parquet(session, target_index_path)
 
         # Running validation then writing output:
@@ -109,3 +110,4 @@ class StudyLocusValidationStep:
         # Both caches feed the invalid output, so they can only be released once it is written.
         deduplicated.df.unpersist()
         study_locus_with_qc.df.unpersist()
+        study_index.df.unpersist()

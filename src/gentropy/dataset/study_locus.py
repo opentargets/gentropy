@@ -62,8 +62,9 @@ class CredibleSetConfidenceClasses(Enum):
 class StudyLocusQualityCheck(Enum):
     """Study-Locus quality control options listing concerns on the quality of the association.
 
-    All flags but `REPLICATED` describe a concern; `REPLICATED` records a positive observation
-    on the credible set, so it is never a reason to consider a credible set invalid.
+    Most flags describe a concern, but not all of them: `TOP_HIT` records where the credible set
+    came from and `REPLICATED` records a positive observation on it. Neither is in itself a reason
+    to consider a credible set invalid.
 
     Attributes:
         SUBSIGNIFICANT_FLAG (str): p-value below significance threshold
@@ -449,26 +450,33 @@ class StudyLocus(Dataset):
         Returns:
             StudyLocus: Updated study locus with quality control flags.
         """
-        loci = self.df.select("studyLocusId", "studyId", "variantId").join(
-            study_index.df.select(
-                "studyId",
-                "studyType",
-                "diseaseIds",
-                "geneId",
-                "cohorts",
-                "pubmedId",
-                "ldPopulationStructure",
-            ),
-            on="studyId",
-            how="left",
-        )
+        loci = self.df.select("studyLocusId", "studyId", "variantId")
+
+        # GWAS and molQTL replicate on different annotation, so the index is split in two and
+        # each branch is given only the columns it counts on. The index is small enough to
+        # broadcast, and an inner join is what drops the credible sets that have nothing to
+        # replicate on: GWAS studies with no disease annotation, molQTL studies with no gene.
 
         # Replication is counted on the full list of diseases, sorted so that the same set of
         # diseases reported in a different order is still the same key:
-        gwas = (
-            loci.filter(f.col("studyType") == "gwas")
-            .filter(f.col("diseaseIds").isNotNull() & (f.size("diseaseIds") > 0))
-            .withColumn("diseaseIdSet", f.array_sort(f.array_distinct("diseaseIds")))
+        gwas = loci.join(
+            f.broadcast(
+                study_index.df.filter(
+                    (f.col("studyType") == "gwas")
+                    & f.col("diseaseIds").isNotNull()
+                    & (f.size("diseaseIds") > 0)
+                ).select(
+                    "studyId",
+                    f.array_sort(f.array_distinct(f.col("diseaseIds"))).alias(
+                        "diseaseIdSet"
+                    ),
+                    "cohorts",
+                    "pubmedId",
+                    "ldPopulationStructure",
+                )
+            ),
+            on="studyId",
+            how="inner",
         )
         replicated_gwas_loci = gwas.join(
             gwas.select(
@@ -486,8 +494,14 @@ class StudyLocus(Dataset):
             how="inner",
         ).select("studyLocusId")
 
-        molqtl = loci.filter(f.col("studyType") != "gwas").filter(
-            f.col("geneId").isNotNull()
+        molqtl = loci.join(
+            f.broadcast(
+                study_index.df.filter(
+                    (f.col("studyType") != "gwas") & f.col("geneId").isNotNull()
+                ).select("studyId", "geneId")
+            ),
+            on="studyId",
+            how="inner",
         )
         replicated_molqtl_loci = molqtl.join(
             molqtl.groupBy("variantId", "geneId").count().filter(f.col("count") >= 2),
