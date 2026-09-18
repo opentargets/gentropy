@@ -1,4 +1,15 @@
-"""Sets of fine-mapping constraints composed into sets for methods."""
+"""Sets of fine-mapping constraints composed into sets for methods.
+
+This module contains the `ConstraintSet` protocol and it's implementation for the
+`MultiSuSiE` method.
+
+The `ConstraintSet` protocol defines the set of constraints that together determine the
+eligibility of a study to undergo a specific fine-mapping procedure.
+
+Each `ConstraintSet` implementation shall implement the `resolve` method that takes a `gentropy.dataset.study_index.StudyIndex`
+dataset as input and returns a `gentropy.dataset.fine_mapping.FineMappingPlanner` dataset as output by applying
+a fine-mapping method specific set of constraints to the input dataset.
+"""
 
 import logging
 from typing import Protocol
@@ -24,11 +35,13 @@ from gentropy.method.fine_mapping.constraint import (
     HasAllowedAnalysisFlags,
     HasAllowedMajorAncestry,
     HasMappedTrait,
+    HasSufficientESS,
     HasSumstats,
     IsAllowedStudyType,
     MethodConstraint,
     PassSumstatQC,
 )
+from gentropy.method.ld import LDAnnotator
 
 logger = logging.getLogger(__name__)
 
@@ -85,6 +98,7 @@ class MultiSuSiEConstraintSet(ConstraintSet):
         relative_sample_size_threshold: float,
         disallowed_reasons: list[StudyQualityCheck],
         disallowed_flags: list[StudyAnalysisFlag],
+        min_ess: int = 1000,
     ):
         """Initialize the constraint set for the MultiSuSiE method.
 
@@ -93,6 +107,7 @@ class MultiSuSiEConstraintSet(ConstraintSet):
             relative_sample_size_threshold (float): The threshold for relative sample size.
             disallowed_reasons (list[StudyQualityCheck]): The list of disallowed quality check reasons.
             disallowed_flags (list[StudyAnalysisFlag]): The list of disallowed analysis flags.
+            min_ess (int): The minimum effective sample size a study must have to be eligible.
         """
         self.constraints: list[MethodConstraint] = [
             IsAllowedStudyType(allowed_study_types=[StudyType.GWAS]),
@@ -104,6 +119,7 @@ class MultiSuSiEConstraintSet(ConstraintSet):
                 allowed_ancestries=allowed_ancestries,
                 relative_sample_size_threshold=relative_sample_size_threshold,
             ),
+            HasSufficientESS(min_ess=min_ess),
         ]
 
         self.route = FineMappingRoute.MULTI_SUSIE_ROUTE
@@ -151,13 +167,21 @@ class MultiSuSiEConstraintSet(ConstraintSet):
         Returns:
             DataFrame: Same dataframe with an added majorAncestry column.
         """
-        return df.withColumn(
-            "majorAncestry",
-            order_array_of_structs_by_field(
-                "ldPopulationStructure", "relativeSampleSize"
+        return (
+            df.withColumn(
+                "ldPopulationStructure",
+                order_array_of_structs_by_field(
+                    "ldPopulationStructure", "relativeSampleSize"
+                ).alias("ldPopulationStructure"),
             )
-            .getItem(0)
-            .getField("ldPopulation"),
+            .withColumn(
+                "majorAncestry",
+                f.when(
+                    f.col("ldPopulationStructure").isNotNull(),
+                    LDAnnotator._get_major_population(f.col("ldPopulationStructure")),
+                ),
+            )
+            .drop("ldPopulationStructure")
         )
 
     def _compute_representative_selection_inputs(self, si: StudyIndex) -> DataFrame:
@@ -170,8 +194,7 @@ class MultiSuSiEConstraintSet(ConstraintSet):
             DataFrame: Study-level dataframe with traitSet, n_eff, majorAncestry columns.
         """
         return (
-            si.validate_ccs()
-            .df.select(
+            si.df.select(
                 "studyId",
                 "traitFromSourceMappedIds",
                 "ldPopulationStructure",
@@ -180,7 +203,10 @@ class MultiSuSiEConstraintSet(ConstraintSet):
                 "nCases",
                 "nControls",
             )
-            .withColumn("traitSet", f.array_distinct(f.col("traitFromSourceMappedIds")))
+            .withColumn(
+                "traitSet",
+                f.array_sort(f.array_distinct(f.col("traitFromSourceMappedIds"))),
+            )
             .transform(self._compute_n_eff)
             .transform(self._compute_major_ancestry)
         )
@@ -345,7 +371,13 @@ class MultiSuSiEConstraintSet(ConstraintSet):
         return without_run_id.unionByName(with_run_id)
 
     def resolve(self, si: StudyIndex) -> FineMappingPlanner:
-        """Resolve all of the constrains on the dataframe and return a new dataframe.
+        """Resolve all of the constraints on the dataframe and return a new dataframe.
+
+        The study design (case-control vs. measurement) is not stored in the input study
+        index; it is derived from the sample-size columns by ``StudyIndex.validate_ccs``
+        and appended to ``qualityControls`` before the constraints are evaluated, so that
+        design-dependent constraints (e.g. ``HasSufficientESS``) and the effective-sample-
+        size computation both see it.
 
         Args:
             si (StudyIndex): The input StudyIndex.
@@ -356,7 +388,7 @@ class MultiSuSiEConstraintSet(ConstraintSet):
         Raises:
             ValueError: If the number of distinct studies in the output plan doesn't match the input.
         """
-        si.persist()
+        si = si.validate_ccs()
         # Materialize the study index cache now so both branches below reuse it
         # instead of each triggering its own independent parquet scan. This also
         # gives us the input study count for the sanity check below.
