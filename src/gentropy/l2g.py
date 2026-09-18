@@ -14,7 +14,7 @@ from xgboost import XGBClassifier
 
 from gentropy.common.schemas import compare_struct_schemas
 from gentropy.common.session import Session
-from gentropy.common.spark import calculate_harmonic_sum
+from gentropy.common.spark import calculate_harmonic_sum, persist_dataframe
 from gentropy.dataset.colocalisation import Colocalisation
 from gentropy.dataset.intervals import Intervals
 from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
@@ -237,16 +237,22 @@ class LocusToGeneTrainTestSplitStep:
         to_unpersist = []
 
         if predefined_test_parquet_path:
-            predefined_test_sdf = session.spark.read.parquet(predefined_test_parquet_path).persist()
+            predefined_test_sdf = persist_dataframe(
+                session.spark.read.parquet(predefined_test_parquet_path)
+            )
             to_unpersist.append(predefined_test_sdf)
 
             n_original_total: int = annotated_fm._df.count()
             n_original_test: int = predefined_test_sdf.count()
 
             # Positive gene IDs from the predefined test set.
-            test_positive_genes_sdf = predefined_test_sdf.filter(
-                f.col("goldStandardSet").isin([1, "positive"])
-            ).select("geneId").distinct()
+            test_positive_genes_sdf = (
+                predefined_test_sdf.filter(
+                    f.col("goldStandardSet").isin([1, "positive"])
+                )
+                .select("geneId")
+                .distinct()
+            )
 
             # studyLocusIds in annotated_fm that contain at least one test-positive gene.
             # The goldStandardSet label in annotated_fm is intentionally NOT checked here:
@@ -270,15 +276,27 @@ class LocusToGeneTrainTestSplitStep:
             )
 
             # Apply label encoding in Spark (handles both string and already-encoded int values).
-            label_map = f.create_map(f.lit("negative"), f.lit(0), f.lit("positive"), f.lit(1))
-            train_sdf = train_sdf.withColumn(
-                "goldStandardSet",
-                f.coalesce(label_map[f.col("goldStandardSet")], f.col("goldStandardSet").cast("int")),
-            ).persist()
-            test_sdf = test_sdf.withColumn(
-                "goldStandardSet",
-                f.coalesce(label_map[f.col("goldStandardSet")], f.col("goldStandardSet").cast("int")),
-            ).persist()
+            label_map = f.create_map(
+                f.lit("negative"), f.lit(0), f.lit("positive"), f.lit(1)
+            )
+            train_sdf = persist_dataframe(
+                train_sdf.withColumn(
+                    "goldStandardSet",
+                    f.coalesce(
+                        label_map[f.col("goldStandardSet")],
+                        f.col("goldStandardSet").cast("int"),
+                    ),
+                )
+            )
+            test_sdf = persist_dataframe(
+                test_sdf.withColumn(
+                    "goldStandardSet",
+                    f.coalesce(
+                        label_map[f.col("goldStandardSet")],
+                        f.col("goldStandardSet").cast("int"),
+                    ),
+                )
+            )
             to_unpersist.extend([train_sdf, test_sdf])
 
             n_train: int = train_sdf.count()
@@ -361,7 +379,9 @@ class LocusToGeneTrainTestSplitStep:
                     _df=gold_standard_raw,
                     _schema=L2GGoldStandard.get_schema(),
                 )
-            case {"unexpected_columns": extra_columns} if "missing_mandatory_columns" not in schema_issues:
+            case {"unexpected_columns": extra_columns} if (
+                "missing_mandatory_columns" not in schema_issues
+            ):
                 return L2GGoldStandard(
                     _df=gold_standard_raw.drop(*extra_columns),
                     _schema=L2GGoldStandard.get_schema(),
@@ -383,9 +403,13 @@ class LocusToGeneTrainTestSplitStep:
                 ],
             }:
                 if gene_interactions_path is None:
-                    raise ValueError("Interactions are required for parsing OTG curation.")
+                    raise ValueError(
+                        "Interactions are required for parsing OTG curation."
+                    )
                 if variant_index_path is None:
-                    raise ValueError("Variant Index is required for parsing OTG curation.")
+                    raise ValueError(
+                        "Variant Index is required for parsing OTG curation."
+                    )
                 interactions = session.load_data(
                     gene_interactions_path, "parquet", recursiveFileLookup=True
                 )
@@ -437,7 +461,9 @@ class LocusToGeneTrainTestSplitStep:
         }
         if "traitFromSourceMappedId" in df.columns:
             stats["n_unique_positive_gene_disease_pairs"] = int(
-                positive[["geneId", "traitFromSourceMappedId"]].drop_duplicates().shape[0]
+                positive[["geneId", "traitFromSourceMappedId"]]
+                .drop_duplicates()
+                .shape[0]
             )
         return stats
 
@@ -456,7 +482,9 @@ class LocusToGeneTrainTestSplitStep:
         """
         from pathlib import Path
 
-        stats_path = split_stats_path or train_parquet_path.rstrip("/") + "_split_stats.json"
+        stats_path = (
+            split_stats_path or train_parquet_path.rstrip("/") + "_split_stats.json"
+        )
         if not stats_path.startswith("gs://"):
             Path(stats_path).parent.mkdir(parents=True, exist_ok=True)
         with pd.io.common.get_handle(stats_path, mode="wt") as ioargs:
@@ -672,13 +700,19 @@ class LocusToGeneStep:
 
         # Load presplit data produced by LocusToGeneTrainTestSplitStep.
         # Persist so toPandas() (for XGBoost) and the union (for HF Hub metadata) share the cache.
-        train_sdf = self.session.spark.read.parquet(self.train_parquet_path).persist()
-        test_sdf = self.session.spark.read.parquet(self.test_parquet_path).persist()
+        train_sdf = persist_dataframe(
+            self.session.spark.read.parquet(self.train_parquet_path)
+        )
+        test_sdf = persist_dataframe(
+            self.session.spark.read.parquet(self.test_parquet_path)
+        )
 
         # Reconstruct L2GFeatureMatrix for model metadata (column order, HF Hub upload).
         # Labels are decoded back to strings because export_to_hugging_face_hub calls
         # generate_train_test_split, which expects string-encoded labels.
-        label_map = f.create_map(f.lit(0), f.lit("negative"), f.lit(1), f.lit("positive"))
+        label_map = f.create_map(
+            f.lit(0), f.lit("negative"), f.lit(1), f.lit("positive")
+        )
         feature_matrix = L2GFeatureMatrix(
             _df=train_sdf.union(test_sdf).withColumn(
                 "goldStandardSet",
@@ -908,9 +942,7 @@ class LocusToGeneModelTuningStep:
             train_pd[effective_features].apply(pd.to_numeric).to_numpy()
         )
         y_train: np.ndarray = train_pd[label_col].apply(pd.to_numeric).to_numpy()
-        x_test: np.ndarray = (
-            test_pd[effective_features].apply(pd.to_numeric).to_numpy()
-        )
+        x_test: np.ndarray = test_pd[effective_features].apply(pd.to_numeric).to_numpy()
         y_test: np.ndarray = test_pd[label_col].apply(pd.to_numeric).to_numpy()
 
         trainer.train_df = train_pd
