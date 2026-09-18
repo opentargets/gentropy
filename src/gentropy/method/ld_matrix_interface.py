@@ -9,7 +9,10 @@ import pyspark.sql.functions as f
 
 from gentropy.common.session import Session
 from gentropy.datasource.gnomad.ld import GnomADLDMatrix
-from gentropy.datasource.pan_ukbb_ld.ld import PanUKBBLDMatrix
+from gentropy.datasource.pan_ukbb_ld.ld import (
+    PanUKBBLDMatrix,
+    normalize_pan_ukbb_population,
+)
 
 if TYPE_CHECKING:
     from pyspark.sql import DataFrame, Row
@@ -17,12 +20,6 @@ if TYPE_CHECKING:
 
 class LDMatrixInterface:
     """Toolset to interact with LD matrices."""
-
-    ancestry_map = {
-        "nfe": "EUR",
-        "csa": "CSA",
-        "afr": "AFR",
-    }
 
     @staticmethod
     def get_locus_index_boundaries(
@@ -43,16 +40,24 @@ class LDMatrixInterface:
             DataFrame: Returns the index of the gnomad matrix for the locus
 
         """
-        if ancestry in ("nfe", "csa", "afr"):
-            joined_index = PanUKBBLDMatrix(ukbb_annotation_path=ld_matrix_paths["ukbb_annotation_path"]).get_locus_index_boundaries(
+        try:
+            pan_ukbb_population = normalize_pan_ukbb_population(ancestry)
+        except ValueError:
+            pan_ukbb_population = None
+
+        if pan_ukbb_population is not None:
+            joined_index = PanUKBBLDMatrix(
+                ukbb_annotation_path=ld_matrix_paths["ukbb_annotation_path"]
+            ).get_locus_index_boundaries(
                 session=session,
                 study_locus_row=study_locus_row,
-                ancestry=LDMatrixInterface.ancestry_map.get(ancestry, ancestry),
+                ancestry=pan_ukbb_population,
             )
         else:
             joined_index = (
-                GnomADLDMatrix(liftover_ht_path=ld_matrix_paths["liftover_ht_path"],
-                ld_index_raw_template=ld_matrix_paths["ld_index_raw_template"]
+                GnomADLDMatrix(
+                    liftover_ht_path=ld_matrix_paths["liftover_ht_path"],
+                    ld_index_raw_template=ld_matrix_paths["ld_index_raw_template"],
                 )
                 .get_locus_index_boundaries(
                     study_locus_row=study_locus_row,
@@ -90,18 +95,21 @@ class LDMatrixInterface:
         Returns:
             np.ndarray: LD block matrix for the locus
         """
-        if ancestry in (
-            "afr",
-            "csa",
-            "nfe",
-        ):
-            block_matrix = PanUKBBLDMatrix(pan_ukbb_bm_path=ld_matrix_paths["pan_ukbb_bm_path"]).get_numpy_matrix(
+        try:
+            pan_ukbb_population = normalize_pan_ukbb_population(ancestry)
+        except ValueError:
+            pan_ukbb_population = None
+
+        if pan_ukbb_population is not None:
+            block_matrix = PanUKBBLDMatrix(
+                pan_ukbb_bm_path=ld_matrix_paths["pan_ukbb_bm_path"]
+            ).get_numpy_matrix(
                 locus_index=locus_index,
-                ancestry=LDMatrixInterface.ancestry_map.get(ancestry, ancestry),
+                ancestry=pan_ukbb_population,
             )
         else:
-            block_matrix = GnomADLDMatrix(ld_matrix_template=ld_matrix_paths["ld_matrix_template"]).get_numpy_matrix(
-                locus_index=locus_index, gnomad_ancestry=ancestry
-            )
+            block_matrix = GnomADLDMatrix(
+                ld_matrix_template=ld_matrix_paths["ld_matrix_template"]
+            ).get_numpy_matrix(locus_index=locus_index, gnomad_ancestry=ancestry)
 
         return block_matrix

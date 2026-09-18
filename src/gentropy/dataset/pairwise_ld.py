@@ -25,6 +25,7 @@ class PairwiseLD(Dataset):
     """
 
     dimension: tuple[int, int] = field(init=False)
+    variant_ids: list[str] | None = None
 
     def __post_init__(self: PairwiseLD) -> None:
         """Validating the dataset upon creation.
@@ -34,13 +35,19 @@ class PairwiseLD(Dataset):
         Raises:
             AssertionError: When the number of rows in the provided dataframe to construct the LD matrix is not even after applying square root.
         """
-        row_count = self.df.count()
+        if self.variant_ids is None:
+            row_count = self.df.count()
+            assert int(sqrt(row_count)) == sqrt(row_count), (
+                "The number of rows in a pairwise LD table has to be square. "
+                f"Got: {row_count}"
+            )
+            dimension = int(sqrt(row_count))
+        else:
+            if len(self.variant_ids) != len(set(self.variant_ids)):
+                raise ValueError("Pairwise LD variant IDs must be unique")
+            dimension = len(self.variant_ids)
 
-        assert int(sqrt(row_count)) == sqrt(row_count), (
-            f"The number of rows in a pairwise LD table has to be square. Got: {row_count}"
-        )
-
-        self.dimension = (int(sqrt(row_count)), int(sqrt(row_count)))
+        self.dimension = (dimension, dimension)
         super().__post_init__()
 
     @classmethod
@@ -77,16 +84,33 @@ class PairwiseLD(Dataset):
         Returns:
             np.ndarray: 2D square matrix with r values.
         """
-        return np.array(
-            self.df.select(
-                f.split("variantIdI", "_")[1].cast(t.IntegerType()).alias("position_i"),
-                f.split("variantIdJ", "_")[1].cast(t.IntegerType()).alias("position_j"),
-                "r",
-            )
-            .orderBy(f.col("position_i").asc(), f.col("position_j").asc())
-            .select("r")
-            .collect()
-        ).reshape(self.dimension)
+        if self.variant_ids is None:
+            return np.array(
+                self.df.select(
+                    f.split("variantIdI", "_")[1]
+                    .cast(t.IntegerType())
+                    .alias("position_i"),
+                    f.split("variantIdJ", "_")[1]
+                    .cast(t.IntegerType())
+                    .alias("position_j"),
+                    "r",
+                )
+                .orderBy(f.col("position_i").asc(), f.col("position_j").asc())
+                .select("r")
+                .collect()
+            ).reshape(self.dimension)
+
+        variant_positions = {
+            variant_id: position for position, variant_id in enumerate(self.variant_ids)
+        }
+        matrix = np.zeros(self.dimension, dtype=float)
+        np.fill_diagonal(matrix, 1.0)
+        for row in self.df.select("variantIdI", "variantIdJ", "r").toLocalIterator():
+            i = variant_positions.get(row["variantIdI"])
+            j = variant_positions.get(row["variantIdJ"])
+            if i is not None and j is not None:
+                matrix[i, j] = row["r"]
+        return matrix
 
     def get_variant_list(self) -> list[str]:
         """Return a list of unique variants from the dataset.
