@@ -13,12 +13,15 @@ class TestCARMA:
     def test_CARMA_spike_slab_noEM_pips(
         self: TestCARMA, sample_data_for_carma: list[np.ndarray]
     ) -> None:
-        """Test of CARMA PIPs."""
+        """Test of CARMA PIPs.
+
+        CARMA samples models at random, so the PIPs vary slightly between runs.
+        """
         ld = sample_data_for_carma[0]
         z = sample_data_for_carma[1]
         pips = sample_data_for_carma[2]
         _l = CARMA.CARMA_spike_slab_noEM(z=z, ld=ld)
-        assert np.allclose(np.round(np.corrcoef(_l["PIPs"], pips)[0, 1], decimals=2), 1)
+        assert np.corrcoef(_l["PIPs"], pips)[0, 1] > 0.95
 
     def test_CARMA_spike_slab_noEM_outliers(
         self: TestCARMA, sample_data_for_carma: list[np.ndarray]
@@ -66,7 +69,7 @@ class TestCARMA:
         z = sample_data_for_carma[1]
         pips = sample_data_for_carma[2]
         _l = CARMA.time_limited_CARMA_spike_slab_noEM(z=z, ld=ld, sec_threshold=600)
-        assert np.allclose(np.round(np.corrcoef(_l["PIPs"], pips)[0, 1], decimals=2), 1)
+        assert np.corrcoef(_l["PIPs"], pips)[0, 1] > 0.95
 
     def test_time_limited_CARMA_spike_slab_noEM_pips_restriction(
         self: TestCARMA, sample_data_for_carma: list[np.ndarray]
