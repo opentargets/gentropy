@@ -9,6 +9,8 @@ import pytest
 from pyspark.sql import SparkSession
 
 from gentropy.common.session import Session
+from gentropy.dataset.effector_gene_list import EffectorGeneList
+from gentropy.dataset.interactions import Interactions
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
 from gentropy.dataset.study_locus import StudyLocusQualityCheck
 from gentropy.training_set import TrainingSetStep
@@ -28,9 +30,11 @@ class TestLabel:
             ],
             ["studyLocusId", "geneId", "diseaseIds"],
         )
-        egl = spark.createDataFrame(
-            [("ENSG_A", "EFO_1"), ("ENSG_C", "EFO_2"), ("ENSG_X", "EFO_9")],
-            ["targetId", "diseaseId"],
+        egl = EffectorGeneList(
+            _df=spark.createDataFrame(
+                [("EFO_1", "ENSG_A"), ("EFO_2", "ENSG_C"), ("EFO_9", "ENSG_X")],
+                EffectorGeneList.get_schema(),
+            )
         )
         result = {
             (r["studyLocusId"], r["geneId"], r["GSP"])
@@ -48,7 +52,11 @@ class TestLabel:
             [("sl1", "ENSG_A", ["EFO_2"])],
             ["studyLocusId", "geneId", "diseaseIds"],
         )
-        egl = spark.createDataFrame([("ENSG_A", "EFO_1")], ["targetId", "diseaseId"])
+        egl = EffectorGeneList(
+            _df=spark.createDataFrame(
+                [("EFO_1", "ENSG_A")], EffectorGeneList.get_schema()
+            )
+        )
         # No locus contains a positive, so nothing is retained.
         assert TrainingSetStep._label(feature_matrix, egl).count() == 0
 
@@ -123,9 +131,9 @@ class TestDropInteractingNegatives:
             ["targetA", "targetB", "sourceDatabase", "scoring"],
         ).write.parquet(interaction_path)
 
-        interactions = TrainingSetStep._interaction_pairs(
-            session, interaction_path, "string", 0.75
-        )
+        interactions = Interactions.from_parquet(
+            session, interaction_path
+        ).high_confidence("string", 0.75)
         result = {
             (r["studyLocusId"], r["geneId"])
             for r in TrainingSetStep._drop_interacting_negatives(

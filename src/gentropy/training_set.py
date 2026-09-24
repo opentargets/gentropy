@@ -27,6 +27,8 @@ import pyspark.sql.functions as f
 from pyspark.sql import DataFrame, Window
 
 from gentropy.common.session import Session
+from gentropy.dataset.effector_gene_list import EffectorGeneList
+from gentropy.dataset.interactions import Interactions
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
 from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import StudyLocus, StudyLocusQualityCheck
@@ -108,7 +110,9 @@ class TrainingSetStep:
         feature_matrix = session.load_data(feature_matrix_path, "parquet").join(
             loci, on="studyLocusId"
         )
-        effector_gene_list = session.load_data(effector_gene_list_path, "parquet")
+        effector_gene_list = EffectorGeneList.from_parquet(
+            session, effector_gene_list_path
+        )
 
         labelled = self._label(feature_matrix, effector_gene_list)
         # Counted on the raw labels, before the filters below remove any positive.
@@ -117,12 +121,9 @@ class TrainingSetStep:
         if interaction_path:
             labelled = self._drop_interacting_negatives(
                 labelled,
-                self._interaction_pairs(
-                    session,
-                    interaction_path,
-                    interaction_source,
-                    interaction_score_threshold,
-                ),
+                Interactions.from_parquet(
+                    session, interaction_path, recursiveFileLookup=True
+                ).high_confidence(interaction_source, interaction_score_threshold),
             )
         if apply_distance_filter:
             labelled = labelled.filter(
@@ -152,7 +153,9 @@ class TrainingSetStep:
         )
 
     @staticmethod
-    def _label(feature_matrix: DataFrame, effector_gene_list: DataFrame) -> DataFrame:
+    def _label(
+        feature_matrix: DataFrame, effector_gene_list: EffectorGeneList
+    ) -> DataFrame:
         """Keep the loci holding an EGL gene and flag the EGL genes with ``GSP``.
 
         A ``(studyLocusId, geneId)`` row is a positive when the gene is an EGL effector for any
@@ -160,7 +163,7 @@ class TrainingSetStep:
 
         Args:
             feature_matrix (DataFrame): Feature matrix annotated with ``diseaseIds``.
-            effector_gene_list (DataFrame): EGL with ``diseaseId`` and ``targetId`` columns.
+            effector_gene_list (EffectorGeneList): Effector Gene List.
 
         Returns:
             DataFrame: Rows of loci holding a positive, with ``GSP`` (1 positive, 0 negative).
@@ -170,7 +173,7 @@ class TrainingSetStep:
                 "studyLocusId", "geneId", f.explode("diseaseIds").alias("diseaseId")
             )
             .join(
-                effector_gene_list.select(
+                effector_gene_list.df.select(
                     "diseaseId", f.col("targetId").alias("geneId")
                 ),
                 on=["diseaseId", "geneId"],
@@ -207,51 +210,24 @@ class TrainingSetStep:
         )
 
     @staticmethod
-    def _interaction_pairs(
-        session: Session,
-        interaction_path: str,
-        interaction_source: str,
-        interaction_score_threshold: float,
+    def _drop_interacting_negatives(
+        labelled: DataFrame, interactions: Interactions
     ) -> DataFrame:
-        """Load gene-gene interaction pairs above the score threshold.
+        """Drop negative genes that interact with a positive gene in the same locus.
 
         Pairs are used as stored: a negative is dropped when a positive of its locus is
         ``targetA`` and the negative is ``targetB``.
 
         Args:
-            session (Session): Active session.
-            interaction_path (str): Path to the interaction dataset.
-            interaction_source (str): ``sourceDatabase`` to keep.
-            interaction_score_threshold (float): Minimum interaction ``scoring``.
-
-        Returns:
-            DataFrame: ``targetA``, ``targetB`` interaction pairs.
-        """
-        return (
-            session.load_data(interaction_path, "parquet", recursiveFileLookup=True)
-            .filter(
-                (f.col("sourceDatabase") == interaction_source)
-                & (f.col("scoring") >= interaction_score_threshold)
-            )
-            .select("targetA", "targetB")
-        )
-
-    @staticmethod
-    def _drop_interacting_negatives(
-        labelled: DataFrame, interactions: DataFrame
-    ) -> DataFrame:
-        """Drop negative genes that interact with a positive gene in the same locus.
-
-        Args:
             labelled (DataFrame): Labelled feature matrix with a ``GSP`` column.
-            interactions (DataFrame): ``targetA``, ``targetB`` interaction pairs.
+            interactions (Interactions): Interactions to filter on.
 
         Returns:
             DataFrame: Labelled rows with the interacting negatives removed.
         """
         negative_partners = (
             labelled.filter(f.col("GSP") == 1)
-            .join(interactions, f.col("geneId") == f.col("targetA"))
+            .join(interactions.df, f.col("geneId") == f.col("targetA"))
             .select(
                 "studyLocusId", f.col("targetB").alias("geneId"), f.lit(0).alias("GSP")
             )
@@ -265,8 +241,8 @@ class TrainingSetStep:
         """Keep one credible set per identical positive profile.
 
         A credible set's profile is its sorted disease set with the sorted list of its positives'
-        gene, sentinel variant and features, with colocalisation rounded to 2 dp. Of the credible sets sharing a profile, the
-        one with the smallest ``studyLocusId`` is kept.
+        gene, sentinel variant and features, with colocalisation rounded to 2 dp. Of the credible
+        sets sharing a profile, the one with the smallest ``studyLocusId`` is kept.
 
         Args:
             labelled (DataFrame): Labelled feature matrix including ``variantId``.

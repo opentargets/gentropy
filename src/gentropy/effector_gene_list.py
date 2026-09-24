@@ -22,6 +22,7 @@ import pyspark.sql.functions as f
 from pyspark.sql import DataFrame
 
 from gentropy.common.session import Session
+from gentropy.dataset.effector_gene_list import EffectorGeneList
 
 # Clinical stages considered "approved enough" to seed a gene-disease pair.
 APPROVED_CLINICAL_STAGES = ("PHASE_4", "APPROVAL", "PHASE_3", "PREAPPROVAL")
@@ -107,10 +108,9 @@ class EffectorGeneListStep:
                 "(rare_variant_evidence_paths, clinical_evidence_path or gold_standard_path)."
             )
 
-        (
-            reduce(DataFrame.unionByName, sources)
-            .distinct()
-            .coalesce(session.output_partitions)
-            .write.mode(session.write_mode)
-            .parquet(effector_gene_list_path)
+        EffectorGeneList(
+            _df=reduce(DataFrame.unionByName, sources).distinct(),
+            _schema=EffectorGeneList.get_schema(),
+        ).df.coalesce(session.output_partitions).write.mode(session.write_mode).parquet(
+            effector_gene_list_path
         )
