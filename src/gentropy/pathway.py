@@ -27,6 +27,7 @@ class PathwayIngestionStep:
         pathway_index_path: str,
         pathway_enrichment_path: str,
         exclude_unmapped_pathways: bool = False,
+        recompute_missing_adjusted_p_value: bool = True,
     ) -> None:
         """Run the pathway ingestion step.
 
@@ -44,6 +45,15 @@ class PathwayIngestionStep:
                 identifier does not resolve against the target index release. Off by default:
                 the pathway enrichment features divide by the number of pathways a gene belongs
                 to, so dropping pathways moves every score.
+            recompute_missing_adjusted_p_value (bool): Whether to fill in the adjusted p-values
+                the upstream tool left null with Benjamini-Hochberg values recomputed over the
+                rows of each disease. On by default, because otherwise the diseases whose
+                adjusted p-value failed throughout have no enriched pathway at all. The
+                recomputed values are adjusted over the stored rows only and are not comparable
+                with the published ones, see
+                [`with_recomputed_adjusted_p_value`][gentropy.dataset.pathway_enrichment.PathwayEnrichment.with_recomputed_adjusted_p_value].
+                Rows with a non-finite normalised enrichment score get a null adjusted p-value
+                either way.
         """
         target_index = TargetIndex.from_parquet(session, target_index_path)
 
@@ -58,7 +68,9 @@ class PathwayIngestionStep:
 
         pathway_enrichment = PathwayEnrichment.from_gsea_catalogue(
             session, pathway_enrichment_source_path
-        )
+        ).with_degenerate_enrichment_masked()
+        if recompute_missing_adjusted_p_value:
+            pathway_enrichment = pathway_enrichment.with_recomputed_adjusted_p_value()
         pathway_enrichment.df.write.mode(session.write_mode).parquet(
             pathway_enrichment_path
         )

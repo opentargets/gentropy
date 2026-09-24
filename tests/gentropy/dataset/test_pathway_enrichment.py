@@ -144,6 +144,42 @@ def test_recomputed_adjusted_p_value_leaves_a_null_p_value_null(
     }
 
 
+def test_degenerate_enrichment_is_masked(spark: SparkSession) -> None:
+    """Test that a non-finite enrichment score loses its adjusted p-value, published or not.
+
+    The p-value stays, so the pathway still counts as tested.
+    """
+    enrichment = PathwayEnrichment(
+        _df=spark.createDataFrame(
+            [
+                ("disease1", "pathway1", None, float("inf"), 0.0, 0.0),
+                ("disease1", "pathway2", None, float("nan"), 0.0, 0.0),
+                ("disease1", "pathway3", None, 2.0, 0.01, 0.02),
+                ("disease1", "pathway4", None, None, 0.2, 0.3),
+            ],
+            PathwayEnrichment.get_schema(),
+        ),
+        _schema=PathwayEnrichment.get_schema(),
+    ).with_degenerate_enrichment_masked()
+    observed = {
+        row["pathwayFromSourceName"]: (row["pValue"], row["pValueAdjusted"])
+        for row in enrichment.df.collect()
+    }
+    assert observed == {
+        "pathway1": (0.0, None),
+        "pathway2": (0.0, None),
+        "pathway3": (0.01, pytest.approx(0.02)),
+        "pathway4": (0.2, pytest.approx(0.3)),
+    }
+    assert {
+        row["pathwayFromSourceName"] for row in enrichment.tested_pathways().collect()
+    } == {"pathway1", "pathway2", "pathway3", "pathway4"}
+    assert {
+        row["pathwayFromSourceName"]
+        for row in enrichment.enriched_pathways(0.05).collect()
+    } == {"pathway3"}
+
+
 def test_recomputed_adjusted_p_value_skips_infinite_enrichment(
     spark: SparkSession,
 ) -> None:
@@ -173,13 +209,6 @@ def test_recomputed_adjusted_p_value_skips_infinite_enrichment(
         "pathway2": pytest.approx(0.02),
         "pathway3": pytest.approx(0.04),
     }
-    kept = {
-        row["pathwayFromSourceName"]: row["pValueAdjusted"]
-        for row in enrichment.with_recomputed_adjusted_p_value(
-            skip_infinite_enrichment=False
-        ).df.collect()
-    }
-    assert kept["pathway1"] == pytest.approx(0.0)
 
 
 def test_tested_pathways(spark: SparkSession) -> None:
@@ -205,10 +234,8 @@ def test_tested_pathways(spark: SparkSession) -> None:
     assert observed == {"pathway1", "pathway2"}
 
 
-def test_enriched_pathways_uses_the_recomputed_value(
-    mock_pathway_enrichment: PathwayEnrichment,
-) -> None:
-    """Test that a disease with no published adjusted p-value still contributes pathways."""
+def test_enriched_pathways(mock_pathway_enrichment: PathwayEnrichment) -> None:
+    """Test that only the published adjusted p-values are used when nothing was recomputed."""
     observed = {
         (row["diseaseId"], row["pathwayFromSourceName"])
         for row in mock_pathway_enrichment.enriched_pathways(0.05).collect()
@@ -216,22 +243,22 @@ def test_enriched_pathways_uses_the_recomputed_value(
     assert observed == {
         ("disease1", "pathway1 [Reactome]"),
         ("disease2", "pathway2 [GO BP]"),
-        ("disease3", "pathway1 [Reactome]"),
-        ("disease3", "pathway2 [GO BP]"),
     }
 
 
-def test_enriched_pathways_without_recomputation(
+def test_enriched_pathways_after_recomputation(
     mock_pathway_enrichment: PathwayEnrichment,
 ) -> None:
-    """Test that the diseases with no published adjusted p-value drop out when asked to."""
+    """Test that a disease with no published adjusted p-value contributes once recomputed."""
     observed = {
         (row["diseaseId"], row["pathwayFromSourceName"])
-        for row in mock_pathway_enrichment.enriched_pathways(
-            0.05, recompute_missing_adjusted_p_value=False
-        ).collect()
+        for row in mock_pathway_enrichment.with_recomputed_adjusted_p_value()
+        .enriched_pathways(0.05)
+        .collect()
     }
     assert observed == {
         ("disease1", "pathway1 [Reactome]"),
         ("disease2", "pathway2 [GO BP]"),
+        ("disease3", "pathway1 [Reactome]"),
+        ("disease3", "pathway2 [GO BP]"),
     }

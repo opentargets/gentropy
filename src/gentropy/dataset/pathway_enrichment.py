@@ -12,7 +12,7 @@ from gentropy.common.schemas import parse_spark_schema
 from gentropy.dataset.dataset import Dataset
 
 if TYPE_CHECKING:
-    from pyspark.sql import DataFrame
+    from pyspark.sql import Column, DataFrame
     from pyspark.sql.types import StructType
 
     from gentropy.common.session import Session
@@ -78,8 +78,43 @@ class PathwayEnrichment(Dataset):
             _schema=cls.get_schema(),
         )
 
+    @staticmethod
+    def _has_finite_enrichment() -> Column:
+        """Whether a row has a finite normalised enrichment score, or none at all.
+
+        Returns:
+            Column: False where the normalised enrichment score is infinite or NaN.
+        """
+        nes = f.col("normalisedEnrichmentScore")
+        return nes.isNull() | (~f.isnan(nes) & (f.abs(nes) != f.lit(float("inf"))))
+
+    def with_degenerate_enrichment_masked(
+        self: PathwayEnrichment,
+    ) -> PathwayEnrichment:
+        """Null the adjusted p-value of pathways whose enrichment test degenerated.
+
+        Enrichment results can come with a non-finite normalised enrichment score, which in the
+        catalogue this was developed against always goes with a p-value of exactly zero and,
+        where the adjusted p-value was estimated, with one of zero too. Such a row would count
+        as the most significant pathway of its disease on the strength of a failed fit, so its
+        adjusted p-value is set to null, published or not, and it never passes a significance
+        filter. The p-value is left as it is: the pathway was still tested, and stays in the
+        denominator of the pathway enrichment features.
+
+        Returns:
+            PathwayEnrichment: Dataset where no row with a non-finite normalised enrichment
+                score has an adjusted p-value.
+        """
+        return PathwayEnrichment(
+            _df=self.df.withColumn(
+                "pValueAdjusted",
+                f.when(self._has_finite_enrichment(), f.col("pValueAdjusted")),
+            ),
+            _schema=self.get_schema(),
+        )
+
     def with_recomputed_adjusted_p_value(
-        self: PathwayEnrichment, skip_infinite_enrichment: bool = True
+        self: PathwayEnrichment,
     ) -> PathwayEnrichment:
         """Fill in a missing adjusted p-value with one recomputed from the p-values.
 
@@ -89,43 +124,36 @@ class PathwayEnrichment(Dataset):
         replaces it with the Benjamini-Hochberg step-up value computed over the p-values of
         that disease, `q(i) = min over j >= i of p(j) * n / j`, with the pathways ordered by
         ascending p-value and `i` their position in that order. A published `pValueAdjusted` is
-        kept as it is, and a pathway with no p-value keeps a null adjusted p-value and is left
-        out of `n`.
+        kept as it is. A pathway with no p-value, or with a non-finite normalised enrichment
+        score, keeps a null adjusted p-value and is left out of `n`.
 
         The recomputed value is adjusted over the rows the dataset holds, which is not
         necessarily the set the upstream tool adjusted over. In the catalogue this was developed
         against only positively enriched pathways are kept, a median of 4,107 rows per disease
-        against 8,217 pathways actually tested, so the recomputed value is more conservative
-        than and not comparable with the published one - on diseases that have both, the count
-        of pathways below 0.05 ranges from 1% to 100% of the published count. It exists to
-        rescue the 249 of 3,766 diseases whose adjusted p-value is null throughout, and should
-        give way to a fixed upstream column.
-
-        Args:
-            skip_infinite_enrichment (bool): Whether to leave the adjusted p-value null for
-                pathways with a non-finite normalised enrichment score. Those come with a
-                p-value of exactly zero, which any recomputation would turn into the most
-                significant adjusted p-value of the disease, so they are skipped by default.
+        against 8,217 pathways actually tested, so the recomputed value reflects multiple
+        testing over the positively enriched subset only: it is more conservative than and not
+        comparable with the published one - on diseases that have both, the count of pathways
+        below 0.05 ranges from 1% to 100% of the published count. It exists to rescue the 249
+        of 3,766 diseases whose adjusted p-value is null throughout, and should give way to a
+        fixed upstream column.
 
         Returns:
             PathwayEnrichment: Dataset where `pValueAdjusted` is null only if it could not be
                 recomputed.
         """
-        correctable = f.col("pValue").isNotNull()
-        if skip_infinite_enrichment:
-            correctable = correctable & (
-                f.col("normalisedEnrichmentScore").isNull()
-                | ~f.isnan(f.col("normalisedEnrichmentScore"))
-                & (f.abs(f.col("normalisedEnrichmentScore")) != f.lit(float("inf")))
-            )
+        correctable = f.col("pValue").isNotNull() & self._has_finite_enrichment()
         # Rank the correctable rows of a disease by ascending p-value, keeping the rest out of
         # the ordering so that they neither take a position nor count towards `n`.
         by_disease = Window.partitionBy("diseaseId", "correctable")
-        by_p_value = by_disease.orderBy(f.col("pValue").asc(), f.col("pathwayFromSourceName").asc())
+        by_p_value = by_disease.orderBy(
+            f.col("pValue").asc(), f.col("pathwayFromSourceName").asc()
+        )
         # row_number() rather than rank(): Benjamini-Hochberg needs consecutive positions, and
         # the step-up minimum gives tied p-values the same value anyway.
-        raw = f.col("pValue") * f.count("pValue").over(by_disease) / f.row_number().over(
-            by_p_value
+        raw = (
+            f.col("pValue")
+            * f.count("pValue").over(by_disease)
+            / f.row_number().over(by_p_value)
         )
         step_up = f.min(raw).over(
             by_p_value.rowsBetween(Window.currentRow, Window.unboundedFollowing)
@@ -146,31 +174,24 @@ class PathwayEnrichment(Dataset):
         )
 
     def enriched_pathways(
-        self: PathwayEnrichment,
-        p_value_adjusted_threshold: float,
-        recompute_missing_adjusted_p_value: bool = True,
+        self: PathwayEnrichment, p_value_adjusted_threshold: float
     ) -> DataFrame:
         """Diseases and the pathways significantly enriched among their associated genes.
+
+        A null adjusted p-value never passes the threshold. The dataset is taken as it was
+        ingested: degenerate rows are masked and missing adjusted p-values recomputed, if at
+        all, by the
+        [`PathwayIngestionStep`][gentropy.pathway.PathwayIngestionStep].
 
         Args:
             p_value_adjusted_threshold (float): Maximum adjusted p-value for a pathway to count
                 as enriched.
-            recompute_missing_adjusted_p_value (bool): Whether to recompute an adjusted p-value
-                the upstream tool left null, with the caveats described in
-                [`with_recomputed_adjusted_p_value`][gentropy.dataset.pathway_enrichment.PathwayEnrichment.with_recomputed_adjusted_p_value].
 
         Returns:
             DataFrame: Dataframe with `diseaseId` and `pathwayFromSourceName` columns.
         """
-        enrichment = (
-            self.with_recomputed_adjusted_p_value()
-            if recompute_missing_adjusted_p_value
-            else self
-        )
         return (
-            enrichment.df.filter(
-                f.col("pValueAdjusted") < p_value_adjusted_threshold
-            )
+            self.df.filter(f.col("pValueAdjusted") < p_value_adjusted_threshold)
             .select("diseaseId", "pathwayFromSourceName")
             .distinct()
         )
