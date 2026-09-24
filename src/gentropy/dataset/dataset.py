@@ -16,6 +16,7 @@ from pyspark.sql.window import Window
 
 from gentropy.common.schemas import SchemaValidationError, compare_struct_schemas
 from gentropy.common.session import Session
+from gentropy.common.spark import persist_dataframe
 
 if TYPE_CHECKING:
     from pyspark.sql import Column
@@ -327,7 +328,7 @@ class Dataset(ABC):
         Returns:
             Self: Persisted Dataset
         """
-        self.df = self._df.persist()
+        self.df = persist_dataframe(self._df)
         return self
 
     def unpersist(self: Self) -> Self:
