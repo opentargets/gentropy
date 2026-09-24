@@ -19,7 +19,7 @@ from pyspark.sql.types import (
 )
 
 from gentropy.common.session import Session
-from gentropy.method.ldsc_h2 import run_ldsc_h2_from_arrays
+from gentropy.method.ldsc import run_ldsc_h2_from_arrays
 
 
 class HeritabilityEstimateStep:
@@ -36,7 +36,7 @@ class HeritabilityEstimateStep:
         twostep: float = 30.0,
         n_blocks: int = 200,
         intercept: float | None = None,
-        max_rows_for_collection: int = 15_000_000,
+        max_rows_for_collection: int = 20_000_000,
         min_samples: int = 10_000,
         m_ldsc_override: float | None = None,
     ) -> None:
@@ -137,12 +137,7 @@ class HeritabilityEstimateStep:
                 study_id=study_id,
                 heritability_output_path=self.heritability_output_path,
                 run_status="skipped",
-                skip_reasons=[
-                    (
-                        "Too many joined SNPs for collection: "
-                        f"{n_rows} > {self.max_rows_for_collection}"
-                    )
-                ],
+                skip_reasons=["Too many joined SNPs for collection"],
                 analysis_flags=validation["analysis_flags"],
                 ld_ancestry=ancestry,
                 result=None,
@@ -575,7 +570,7 @@ class HeritabilityEstimateStep:
         if n_samples is None:
             skip_reasons.append("Sample size missing")
         elif float(n_samples) < float(min_samples):
-            skip_reasons.append(f"Sample size too small: {n_samples} < {min_samples}")
+            skip_reasons.append("Sample size too small")
 
         ancestry: str | None
         try:
