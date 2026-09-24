@@ -56,6 +56,10 @@ from gentropy.dataset.l2g_features.distance import (
     common_neighbourhood_distance_feature_logic,
 )
 from gentropy.dataset.l2g_features.l2g_feature import L2GFeature
+from gentropy.dataset.l2g_features.pathway import (
+    PathwayEnrichmentFeature,
+    PathwayEnrichmentNeighbourhoodFeature,
+)
 from gentropy.dataset.l2g_features.vep import (
     VepMaximumFeature,
     VepMaximumNeighbourhoodFeature,
@@ -76,6 +80,8 @@ from gentropy.dataset.l2g_features.other import (
 from gentropy.dataset.l2g_features.intervals import (
     e2g_interval_feature_wide_logic,
 )
+from gentropy.dataset.pathway_enrichment import PathwayEnrichment
+from gentropy.dataset.pathway_index import PathwayIndex
 from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import StudyLocus
 from gentropy.dataset.variant_index import VariantIndex
@@ -137,6 +143,8 @@ def test_extract_maximum_coloc_probability_per_region_and_gene(
         ProteinGeneCountFeature,
         CredibleSetConfidenceFeature,
         ProteinCodingFeature,
+        PathwayEnrichmentFeature,
+        PathwayEnrichmentNeighbourhoodFeature,
     ],
 )
 def test_feature_factory_return_type(
@@ -146,6 +154,8 @@ def test_feature_factory_return_type(
     mock_study_index: StudyIndex,
     mock_variant_index: VariantIndex,
     mock_target_index: TargetIndex,
+    mock_pathway_index: PathwayIndex,
+    mock_pathway_enrichment: PathwayEnrichment,
     sample_otp_interactions: Any,
 ) -> None:
     """Test that every feature factory returns a L2GFeature dataset."""
@@ -156,6 +166,8 @@ def test_feature_factory_return_type(
         study_locus=mock_study_locus,
         target_index=mock_target_index,
         interactions=sample_otp_interactions,
+        pathway_index=mock_pathway_index,
+        pathway_enrichment=mock_pathway_enrichment,
     )
     feature_dataset = feature_class.compute(
         study_loci_to_annotate=mock_study_locus,
@@ -1986,3 +1998,169 @@ class TestTransPQtlColocH4MaximumNeighbourhoodFeature:
             ),
             _schema=VariantIndex.get_schema(),
         )
+
+
+class TestPathwayEnrichmentFeature:
+    """Test the pathway enrichment features.
+
+    The fixtures give three gene sets over three genes - GENE1 in pathway1 and pathway2,
+    GENE2 in pathway1 and pathway3, GENE3 in pathway2 - and one enriched pathway per disease.
+    All three genes sit within the window of the single study locus.
+    """
+
+    @pytest.fixture()
+    def pathway_target_index(self, spark: SparkSession) -> TargetIndex:
+        """Three genes at the same locus, with the symbols used by the pathway library."""
+        return TargetIndex(
+            _df=spark.createDataFrame(
+                [
+                    ("gene1", "GENE1", "protein_coding", "1", 1000),
+                    ("gene2", "GENE2", "protein_coding", "1", 2000),
+                    ("gene3", "GENE3", "protein_coding", "1", 3000),
+                ],
+                "id string, approvedSymbol string, biotype string, chromosome string, tss long",
+            ).select(
+                "id",
+                "approvedSymbol",
+                "biotype",
+                f.struct(f.col("chromosome")).alias("genomicLocation"),
+                "tss",
+                f.array()
+                .cast("array<struct<label:string,source:string>>")
+                .alias("obsoleteSymbols"),
+            ),
+            _schema=TargetIndex.get_schema(),
+        )
+
+    @pytest.fixture()
+    def pathway_study_index(self, spark: SparkSession) -> StudyIndex:
+        """One single-disease study and one study annotated with two diseases."""
+        return StudyIndex(
+            _df=spark.createDataFrame(
+                [
+                    {
+                        "studyId": "study1",
+                        "studyType": "gwas",
+                        "projectId": "project1",
+                        "diseaseIds": ["disease1"],
+                    },
+                    {
+                        "studyId": "study2",
+                        "studyType": "gwas",
+                        "projectId": "project1",
+                        "diseaseIds": ["disease1", "disease2"],
+                    },
+                ]
+            ),
+            _schema=StudyIndex.get_schema(),
+        )
+
+    @pytest.fixture()
+    def pathway_study_locus(self, spark: SparkSession) -> StudyLocus:
+        """One credible set per study, both at the same position."""
+        return StudyLocus(
+            _df=spark.createDataFrame(
+                [
+                    {
+                        "studyLocusId": "sl1",
+                        "variantId": "var1",
+                        "studyId": "study1",
+                        "chromosome": "1",
+                    },
+                    {
+                        "studyLocusId": "sl2",
+                        "variantId": "var1",
+                        "studyId": "study2",
+                        "chromosome": "1",
+                    },
+                ]
+            ).withColumn("position", f.lit(2000).cast("integer")),
+            _schema=StudyLocus.get_schema(),
+        )
+
+    @staticmethod
+    def _scores(feature: L2GFeature, study_locus_id: str) -> dict[str, float]:
+        return {
+            row["geneId"]: float(row["featureValue"])
+            for row in feature.df.filter(
+                f.col("studyLocusId") == study_locus_id
+            ).collect()
+        }
+
+    def test_single_disease_study(
+        self,
+        mock_pathway_index: PathwayIndex,
+        mock_pathway_enrichment: PathwayEnrichment,
+        pathway_study_index: StudyIndex,
+        pathway_study_locus: StudyLocus,
+        pathway_target_index: TargetIndex,
+    ) -> None:
+        """Only pathway1 is enriched for disease1, so its two genes score 1 of their 2 pathways."""
+        feature = PathwayEnrichmentFeature.compute(
+            study_loci_to_annotate=pathway_study_locus,
+            feature_dependency={
+                "pathway_index": mock_pathway_index,
+                "pathway_enrichment": mock_pathway_enrichment,
+                "study_index": pathway_study_index,
+                "study_locus": pathway_study_locus,
+                "target_index": pathway_target_index,
+            },
+        )
+        assert self._scores(feature, "sl1") == {
+            "gene1": pytest.approx(0.5),
+            "gene2": pytest.approx(0.5),
+            "gene3": pytest.approx(0.0),
+        }
+
+    def test_pathways_are_pooled_over_the_diseases_of_a_study(
+        self,
+        mock_pathway_index: PathwayIndex,
+        mock_pathway_enrichment: PathwayEnrichment,
+        pathway_study_index: StudyIndex,
+        pathway_study_locus: StudyLocus,
+        pathway_target_index: TargetIndex,
+    ) -> None:
+        """study2 carries both diseases, so pathway1 and pathway2 are both enriched for it."""
+        feature = PathwayEnrichmentFeature.compute(
+            study_loci_to_annotate=pathway_study_locus,
+            feature_dependency={
+                "pathway_index": mock_pathway_index,
+                "pathway_enrichment": mock_pathway_enrichment,
+                "study_index": pathway_study_index,
+                "study_locus": pathway_study_locus,
+                "target_index": pathway_target_index,
+            },
+        )
+        assert self._scores(feature, "sl2") == {
+            # GENE1 is in pathway1 and pathway2, both enriched
+            "gene1": pytest.approx(1.0),
+            # GENE2 is in pathway1 (enriched) and pathway3 (not)
+            "gene2": pytest.approx(0.5),
+            # GENE3 is only in pathway2, which is enriched
+            "gene3": pytest.approx(1.0),
+        }
+
+    def test_neighbourhood_is_relative_to_the_best_gene_at_the_locus(
+        self,
+        mock_pathway_index: PathwayIndex,
+        mock_pathway_enrichment: PathwayEnrichment,
+        pathway_study_index: StudyIndex,
+        pathway_study_locus: StudyLocus,
+        pathway_target_index: TargetIndex,
+    ) -> None:
+        """The two genes tied at the top of the locus reach 1, the third stays at 0."""
+        feature = PathwayEnrichmentNeighbourhoodFeature.compute(
+            study_loci_to_annotate=pathway_study_locus,
+            feature_dependency={
+                "pathway_index": mock_pathway_index,
+                "pathway_enrichment": mock_pathway_enrichment,
+                "study_index": pathway_study_index,
+                "study_locus": pathway_study_locus,
+                "target_index": pathway_target_index,
+            },
+        )
+        assert self._scores(feature, "sl1") == {
+            "gene1": pytest.approx(1.0),
+            "gene2": pytest.approx(1.0),
+            "gene3": pytest.approx(0.0),
+        }

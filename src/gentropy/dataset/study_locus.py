@@ -62,6 +62,10 @@ class CredibleSetConfidenceClasses(Enum):
 class StudyLocusQualityCheck(Enum):
     """Study-Locus quality control options listing concerns on the quality of the association.
 
+    Most flags describe a concern, but not all of them: `TOP_HIT` records where the credible set
+    came from and `REPLICATED` records a positive observation on it. Neither is in itself a reason
+    to consider a credible set invalid.
+
     Attributes:
         SUBSIGNIFICANT_FLAG (str): p-value below significance threshold
         NO_GENOMIC_LOCATION_FLAG (str): Incomplete genomic mapping
@@ -86,6 +90,7 @@ class StudyLocusQualityCheck(Enum):
         OUT_OF_SAMPLE_LD (str): Study locus finemapped without in-sample LD reference
         INVALID_CHROMOSOME (str): Chromosome not in 1:22, X, Y, XY or MT
         TOP_HIT_AND_SUMMARY_STATS (str): Curated top hit is flagged because summary statistics are available for study
+        REPLICATED (str): Lead variant of the credible set is replicated in an independent study of the same diseases or gene
     """
 
     SUBSIGNIFICANT_FLAG = "Subsignificant p-value"
@@ -119,6 +124,7 @@ class StudyLocusQualityCheck(Enum):
     TOP_HIT_AND_SUMMARY_STATS = (
         "Curated top hit is flagged because summary statistics are available for study"
     )
+    REPLICATED = "Lead variant is replicated in an independent study"
 
 
 class CredibleInterval(Enum):
@@ -388,6 +394,20 @@ class StudyLocus(Dataset):
     def validate_unique_study_locus_id(self: StudyLocus) -> StudyLocus:
         """Validating the uniqueness of study-locus identifiers and flagging duplicated studyloci.
 
+        `studyLocusId` is a hash of the study and the lead variant, so two credible sets resolving
+        the same signal collide even when their loci differ. The credible set with the fewest
+        variants is kept, on the grounds that it is the better resolved one. Call this after
+        `filter_credible_set`, otherwise `locus` still holds every tagging variant and the ordering
+        compares fine-mapping window sizes rather than credible set sizes.
+
+        Credible sets of equal size are left to the arbitrary default ordering, since neither is
+        better resolved than the other.
+
+        Call this on credible sets that already passed the other quality checks. The ordering only
+        looks at credible set size, so on unfiltered input it can elect a credible set that another
+        flag is about to drop, discarding the surviving copy along with it -- which is what happens
+        to a curated top hit paired with the PICS credible set of the same study and lead variant.
+
         Returns:
             StudyLocus: with flagged duplicated studies.
         """
@@ -396,11 +416,119 @@ class StudyLocus(Dataset):
                 "qualityControls",
                 self.update_quality_flag(
                     f.col("qualityControls"),
-                    self.flag_duplicates(f.col("studyLocusId")),
+                    self.flag_duplicates(f.col("studyLocusId"), [f.size("locus").asc()]),
                     StudyLocusQualityCheck.DUPLICATED_STUDYLOCUS_ID,
                 ),
             ),
             _schema=StudyLocus.get_schema(),
+        )
+
+    @qc_test
+    def qc_replication(self: StudyLocus, study_index: StudyIndex) -> StudyLocus:
+        """Flagging credible sets whose lead variant is replicated in an independent study.
+
+        A GWAS credible set is considered replicated if its lead variant is associated with the
+        same diseases in at least two independent studies, a molQTL credible set if its lead
+        variant is associated with the same gene in at least two studies.
+
+        GWAS studies have to agree on their full list of diseases: two studies sharing a single
+        disease out of several describe different phenotypes and are not a replication of one
+        another. Two GWAS studies reporting the same cohorts, the same publication and the same
+        LD population structure are the same evidence twice over, so they are collapsed before
+        counting.
+
+        Credible sets of GWAS studies with no disease annotation and of molQTL studies with no
+        measured gene have nothing to replicate on and are therefore never flagged.
+
+        Run this at the very end of validation, against a validated study index and the credible
+        sets that passed every other check: a credible set removed by an earlier flag is not
+        evidence of replication, and duplicated credible sets of one study would count as two.
+
+        Args:
+            study_index (StudyIndex): Study index providing disease, gene and study annotation.
+
+        Returns:
+            StudyLocus: Updated study locus with quality control flags.
+        """
+        loci = self.df.select("studyLocusId", "studyId", "variantId")
+
+        # GWAS and molQTL replicate on different annotation, so the index is split in two and
+        # each branch is given only the columns it counts on. The index is small enough to
+        # broadcast, and an inner join is what drops the credible sets that have nothing to
+        # replicate on: GWAS studies with no disease annotation, molQTL studies with no gene.
+
+        # Replication is counted on the full list of diseases, sorted so that the same set of
+        # diseases reported in a different order is still the same key:
+        gwas = loci.join(
+            f.broadcast(
+                study_index.df.filter(
+                    (f.col("studyType") == "gwas")
+                    & f.col("diseaseIds").isNotNull()
+                    & (f.size("diseaseIds") > 0)
+                ).select(
+                    "studyId",
+                    f.array_sort(f.array_distinct(f.col("diseaseIds"))).alias(
+                        "diseaseIdSet"
+                    ),
+                    "cohorts",
+                    "pubmedId",
+                    "ldPopulationStructure",
+                )
+            ),
+            on="studyId",
+            how="inner",
+        )
+        replicated_gwas_loci = gwas.join(
+            gwas.select(
+                "variantId",
+                "diseaseIdSet",
+                "cohorts",
+                "pubmedId",
+                "ldPopulationStructure",
+            )
+            .distinct()
+            .groupBy("variantId", "diseaseIdSet")
+            .count()
+            .filter(f.col("count") >= 2),
+            on=["variantId", "diseaseIdSet"],
+            how="inner",
+        ).select("studyLocusId")
+
+        molqtl = loci.join(
+            f.broadcast(
+                study_index.df.filter(
+                    (f.col("studyType") != "gwas") & f.col("geneId").isNotNull()
+                ).select("studyId", "geneId")
+            ),
+            on="studyId",
+            how="inner",
+        )
+        replicated_molqtl_loci = molqtl.join(
+            molqtl.groupBy("variantId", "geneId").count().filter(f.col("count") >= 2),
+            on=["variantId", "geneId"],
+            how="inner",
+        ).select("studyLocusId")
+
+        replicated_loci = (
+            replicated_gwas_loci.unionByName(replicated_molqtl_loci)
+            .distinct()
+            .withColumn("isReplicated", f.lit(True))
+        )
+
+        return StudyLocus(
+            _df=(
+                self.df.join(replicated_loci, on="studyLocusId", how="left")
+                .withColumn(
+                    "qualityControls",
+                    self.update_quality_flag(
+                        f.col("qualityControls"),
+                        f.col("isReplicated").isNotNull(),
+                        StudyLocusQualityCheck.REPLICATED,
+                    ),
+                )
+                .drop("isReplicated")
+            ),
+            _schema=self.get_schema(),
         )
 
     @staticmethod

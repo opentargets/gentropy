@@ -21,6 +21,8 @@ from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
 from gentropy.dataset.l2g_prediction import L2GPrediction
 from gentropy.dataset.ld_index import LDIndex
+from gentropy.dataset.pathway_enrichment import PathwayEnrichment
+from gentropy.dataset.pathway_index import PathwayIndex
 from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import StudyLocus
 from gentropy.dataset.study_locus_overlap import StudyLocusOverlap
@@ -351,6 +353,75 @@ def mock_intervals(spark: SparkSession) -> Intervals:
 
 
 @pytest.fixture()
+def mock_pathway_index(spark: SparkSession) -> PathwayIndex:
+    """Mock pathway index dataset.
+
+    Three gene sets over three genes: gene1 sits in two of them, gene2 in two, gene3 in one.
+    The gene identifiers are already resolved, as they are in an ingested index, and pathway3
+    is one whose source identifier did not resolve.
+    """
+    return PathwayIndex(
+        _df=spark.createDataFrame(
+            [
+                (
+                    "pathway1 [Reactome]",
+                    "R-HSA-1",
+                    "R-HSA-1",
+                    "Reactome",
+                    ["GENE1", "GENE2"],
+                    ["gene1", "gene2"],
+                ),
+                (
+                    "pathway2 [GO BP]",
+                    "GO:0000002",
+                    "GO:0000002",
+                    "GO BP",
+                    ["GENE1", "GENE3"],
+                    ["gene1", "gene3"],
+                ),
+                (
+                    "pathway3 [GO BP]",
+                    "GO:0000003",
+                    None,
+                    "GO BP",
+                    ["GENE2"],
+                    ["gene2"],
+                ),
+            ],
+            PathwayIndex.get_schema(),
+        ),
+        _schema=PathwayIndex.get_schema(),
+    )
+
+
+@pytest.fixture()
+def mock_pathway_enrichment(spark: SparkSession) -> PathwayEnrichment:
+    """Mock disease-pathway enrichment dataset.
+
+    `disease1` is enriched for pathway1 only, `disease2` for pathway2 only, and `disease3` has
+    no adjusted p-value at all, the way whole diseases can come out of a gene set enrichment
+    run.
+    """
+    return PathwayEnrichment(
+        _df=spark.createDataFrame(
+            [
+                ("disease1", "pathway1 [Reactome]", "Reactome", 2.1, 0.0001, 0.001),
+                ("disease1", "pathway2 [GO BP]", "GO BP", 1.1, 0.3, 0.6),
+                ("disease1", "pathway3 [GO BP]", "GO BP", 1.0, 0.7, 0.9),
+                ("disease2", "pathway1 [Reactome]", "Reactome", 1.0, 0.8, 0.9),
+                ("disease2", "pathway2 [GO BP]", "GO BP", 2.4, 0.0002, 0.002),
+                ("disease2", "pathway3 [GO BP]", "GO BP", 1.2, 0.4, 0.7),
+                ("disease3", "pathway1 [Reactome]", "Reactome", 2.0, 0.001, None),
+                ("disease3", "pathway2 [GO BP]", "GO BP", 1.3, 0.02, None),
+                ("disease3", "pathway3 [GO BP]", "GO BP", 1.0, 0.5, None),
+            ],
+            PathwayEnrichment.get_schema(),
+        ),
+        _schema=PathwayEnrichment.get_schema(),
+    )
+
+
+@pytest.fixture()
 def mock_variant_index(spark: SparkSession) -> VariantIndex:
     """Mock variant index."""
     vi_schema = VariantIndex.get_schema()
@@ -581,7 +652,9 @@ def sample_finngen_studies(spark: SparkSession) -> DataFrame:
 def sample_eqtl_catalogue_finemapping_credible_sets(session: Session) -> DataFrame:
     """Sample raw eQTL Catalogue credible sets outputted by SuSIE."""
     return EqtlCatalogueFinemapping.read_credible_set_from_source(
-        credible_set_path=["tests/gentropy/data_samples/QTD000584.credible_sets.tsv"],
+        credible_set_path=[
+            "tests/gentropy/data_samples/QTD000001/QTS00001/QTS000001.credible_set.parquet"
+        ],
         session=session,
     )
 
@@ -590,7 +663,9 @@ def sample_eqtl_catalogue_finemapping_credible_sets(session: Session) -> DataFra
 def sample_eqtl_catalogue_finemapping_lbf(session: Session) -> DataFrame:
     """Sample raw eQTL Catalogue table with logBayesFactors outputted by SuSIE."""
     return EqtlCatalogueFinemapping.read_lbf_from_source(
-        lbf_path=["tests/gentropy/data_samples/QTD000584.lbf_variable.txt"],
+        lbf_path=[
+            "tests/gentropy/data_samples/QTD000001/QTS00001/QTS000001.lbf_variable.parquet"
+        ],
         session=session,
     )
 

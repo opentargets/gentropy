@@ -10,6 +10,7 @@ from pyspark.sql import functions as f
 
 from gentropy.dataset.biosample_index import BiosampleIndex
 from gentropy.dataset.study_index import (
+    ProteinQuantitativeTraitLocusStudyIndex,
     StudyAnalysisFlag,
     StudyIndex,
     StudyQualityCheck,
@@ -689,6 +690,46 @@ class TestStudyIndexAnnotation:
         )
         assert non_annotated[0][0] == [], "Should not be annotated with the flag"
 
+    def test_annotation_relaxed_thresholds_for_seq_studies(
+        self: TestStudyIndexAnnotation,
+    ) -> None:
+        """Exome/wgs-gwas studies get relaxed QC thresholds and skip the PZ check."""
+        # QC values that fail every default check but pass the relaxed ones:
+        qc_data = [
+            ("s1", 0.5, 0.5, 0.5, 0.5, 1, 1),  # case-case -> non-seq
+            ("s2", 0.5, 0.5, 0.5, 0.5, 1, 1),  # ExWAS -> seq
+            ("s3", 0.5, 0.5, 0.5, 0.5, 1, 1),  # case-case + ExWAS -> seq
+            ("s4", 0.5, 0.5, 0.5, 0.5, 1, 1),  # no flags -> non-seq
+        ]
+        qc_schema = SummaryStatisticsQC.get_schema()
+        qc = SummaryStatisticsQC(_df=self.spark.createDataFrame(qc_data, qc_schema))
+
+        si_df = self.spark.createDataFrame(
+            self.STUDY_WITH_ANALYSIS_FLAGS, self.STUDY_WITH_ANALYSIS_FLAGS_SCHEMA
+        )
+        study_index = StudyIndex(_df=si_df)
+
+        annotated = study_index.annotate_sumstats_qc(
+            qc,
+            **self.thresholds,
+            seq_threshold_mean_beta=1.0,
+            seq_threshold_min_gc_lambda=0.1,
+            seq_threshold_max_gc_lambda=2.5,
+            seq_threshold_min_n_variants=1,
+        )
+        flags = {
+            row["studyId"]: row["qualityControls"]
+            for row in annotated.df.select("studyId", "qualityControls").collect()
+        }
+        # Seq studies pass all relaxed checks:
+        assert flags["s2"] == [], "ExWAS study should not be flagged"
+        assert flags["s3"] == [], "case-case + ExWAS study should not be flagged"
+        # Non-seq studies still fail the strict checks:
+        assert StudyQualityCheck.FAILED_MEAN_BETA_CHECK.value in flags["s1"]
+        assert StudyQualityCheck.FAILED_PZ_CHECK.value in flags["s1"]
+        assert StudyQualityCheck.FAILED_GC_LAMBDA_CHECK.value in flags["s1"]
+        assert StudyQualityCheck.SMALL_NUMBER_OF_SNPS.value in flags["s4"]
+
     def test_validation_of_analysis_flags(
         self: TestStudyIndexAnnotation,
     ) -> None:
@@ -847,3 +888,312 @@ class TestProjectIdValidation:
             .collect()
             == expected_data
         ), "Should have expected qualityControls"
+
+
+class TestValidateCaseControlSampleSize:
+    """Test StudyIndex.validate_ccs.
+
+    Every non-synthetic case below uses a real studyId and its real
+    nCases/nControls/nSamples values, pulled live from the Open Targets study
+    table (release 26.03)  to confirm validate_ccs
+    classifies actual production data as expected. Counts for the full table
+    (2,016,409 studies, exhaustive over the 5 categories, no residual):
+      CASE_CONTROL_STUDY_DESIGN:        27,413
+      MEASUREMENT_STUDY_DESIGN:      1,987,211
+      ONE_ONLY_CASE_OR_CONTROL:            781
+      INVALID_SAMPLE_SIZE:                  605
+      CASE_CONTROL_SUM_NEQ_SAMPLE_SIZE:     399 (mostly off-by-1 rounding;
+        a handful of very large mismatches up to ~2.8M, where nSamples
+        reflects a bigger meta-analysis cohort than the reported cases/controls)
+    No negative nCases/nControls/nSamples were found anywhere in the table.
+    """
+
+    STUDY_REQUIRED_SCHEMA = (
+        "studyId STRING, projectId STRING, studyType STRING, "
+        "nCases INT, nControls INT, nSamples INT, qualityControls ARRAY<STRING>"
+    )
+
+    @pytest.mark.parametrize(
+        ["study_id", "n_cases", "n_controls", "n_samples", "expected_flags"],
+        [
+            pytest.param(
+                "FINNGEN_R12_AUTOIMMUNE_HYPERTHYROIDISM",
+                2469,
+                370637,
+                373106,
+                [StudyQualityCheck.CASE_CONTROL_STUDY_DESIGN.value],
+                id="clean case-control study, sum matches nSamples",
+            ),
+            pytest.param(
+                "UKB_PPP_EUR_CEP20_Q96NB1_OID21209_v1",
+                None,
+                None,
+                32907,
+                [StudyQualityCheck.MEASUREMENT_STUDY_DESIGN.value],
+                id="pQTL study, no cases or controls",
+            ),
+            pytest.param(
+                "GCST90091650",
+                0,
+                0,
+                None,
+                [StudyQualityCheck.INVALID_SAMPLE_SIZE.value],
+                id="nSamples null, cases/controls explicitly zero",
+            ),
+            pytest.param(
+                "GCST002406",
+                9978,
+                0,
+                9978,
+                [StudyQualityCheck.ONE_ONLY_CASE_OR_CONTROL.value],
+                id="case-only study, nCases == nSamples and nControls == 0",
+            ),
+            pytest.param(
+                "GCST000062",
+                None,
+                2431,
+                3362,
+                [StudyQualityCheck.ONE_ONLY_CASE_OR_CONTROL.value],
+                id="control-only study, nSamples exceeds nControls with nCases null",
+            ),
+            pytest.param(
+                "GCST002914",
+                62,
+                84,
+                147,
+                [StudyQualityCheck.CASE_CONTROL_SUM_NEQ_SAMPLE_SIZE.value],
+                id="sum off by exactly 1 from nSamples (rounding artifact)",
+            ),
+            pytest.param(
+                "GCST90627776",
+                102130,
+                14013085,
+                16938258,
+                [StudyQualityCheck.CASE_CONTROL_SUM_NEQ_SAMPLE_SIZE.value],
+                id="sum ~2.8M below nSamples (subset of a larger meta-analysis cohort)",
+            ),
+        ],
+    )
+    def test_validate_ccs(
+        self: TestValidateCaseControlSampleSize,
+        spark: SparkSession,
+        study_id: str,
+        n_cases: int | None,
+        n_controls: int | None,
+        n_samples: int | None,
+        expected_flags: list[str],
+    ) -> None:
+        """Test that validate_ccs assigns exactly the expected QC flag(s) per study design."""
+        si = StudyIndex(
+            _df=spark.createDataFrame(
+                [(study_id, "GCST", "gwas", n_cases, n_controls, n_samples, [])],
+                self.STUDY_REQUIRED_SCHEMA,
+            )
+        )
+        validated_si = si.validate_ccs()
+        assert isinstance(validated_si, StudyIndex), "should be a StudyIndex"
+        observed_flags = (
+            validated_si.df.filter(f.col("studyId") == study_id)
+            .select("qualityControls")
+            .collect()[0]["qualityControls"]
+        )
+        assert sorted(observed_flags) == sorted(expected_flags)
+
+
+class TestPQTLStudyIndexToStudy:
+    """Test the pQTL study index to StudyIndex transformation."""
+
+    @staticmethod
+    def _target_index(spark: SparkSession, rows: list[dict[str, Any]]) -> TargetIndex:
+        """Build a TargetIndex from partial rows, nulling every unspecified field."""
+        schema = TargetIndex.get_schema()
+        full = [{fld.name: None for fld in schema.fields} | row for row in rows]
+        return TargetIndex(_df=spark.createDataFrame(full, schema=schema))
+
+    @staticmethod
+    def _pqtl_study_index(
+        spark: SparkSession, targets: list[dict[str, str]]
+    ) -> ProteinQuantitativeTraitLocusStudyIndex:
+        """Build a single-study pQTL study index measuring the given targets."""
+        schema = ProteinQuantitativeTraitLocusStudyIndex.get_schema()
+        row = {fld.name: None for fld in schema.fields} | {
+            "studyId": "deCODE-study-1",
+            "projectId": "deCODE-proteomics-smp",
+            "studyType": "pqtl",
+            "targetsFromSource": [
+                {
+                    "proteinId": t["proteinId"],
+                    "proteinName": None,
+                    "geneId": None,
+                    "geneSymbol": t["geneSymbol"],
+                }
+                for t in targets
+            ],
+        }
+        return ProteinQuantitativeTraitLocusStudyIndex(
+            _df=spark.createDataFrame([row], schema=schema)
+        )
+
+    def test_ambiguous_symbol_resolves_without_multiplying(
+        self, spark: SparkSession
+    ) -> None:
+        """An ambiguous symbol must yield one row per target.
+
+        SIGLEC5 resolves to two gene ids and its protein O15389 to the same two, so
+        the symbol join explodes to 2 rows.
+
+        The two genes must keep distinct `tss`: symbols_lut().
+        """
+        target = self._target_index(
+            spark,
+            [
+                {
+                    "id": gene_id,
+                    "approvedSymbol": "SIGLEC5",
+                    "obsoleteSymbols": [],
+                    "genomicLocation": {
+                        "chromosome": "19",
+                        "start": tss,
+                        "end": tss + 100,
+                        "strand": 1,
+                    },
+                    "canonicalTranscript": {
+                        "id": f"t-{gene_id}",
+                        "chromosome": "19",
+                        "start": tss,
+                        "end": tss + 100,
+                        "strand": "+",
+                    },
+                    "tss": tss,
+                    "proteinIds": [{"id": "O15389", "source": "uniprot_swissprot"}],
+                }
+                for gene_id, tss in (
+                    ("ENSG00000105501", 51_645_545),
+                    ("ENSG00000268500", 51_630_401),
+                )
+            ],
+        )
+        pqtl = self._pqtl_study_index(
+            spark, [{"geneSymbol": "SIGLEC5", "proteinId": "O15389"}]
+        )
+
+        result = pqtl.to_study(target)
+
+        assert isinstance(result, StudyIndex)
+        assert result.df.count() == 2
+        assert sorted(r["geneId"] for r in result.df.collect()) == [
+            "ENSG00000105501",
+            "ENSG00000268500",
+        ]
+
+    def test_unambiguous_symbol_yields_one_row_per_target(
+        self, spark: SparkSession
+    ) -> None:
+        """The intended explosion of a multi-target aptamer is preserved."""
+        target = self._target_index(
+            spark,
+            [
+                {
+                    "id": "ENSG00000143546",
+                    "approvedSymbol": "S100A8",
+                    "obsoleteSymbols": [],
+                    "genomicLocation": {
+                        "chromosome": "1",
+                        "start": 1,
+                        "end": 2,
+                        "strand": 1,
+                    },
+                    "canonicalTranscript": {
+                        "id": "t1",
+                        "chromosome": "1",
+                        "start": 1,
+                        "end": 2,
+                        "strand": "+",
+                    },
+                    "tss": 1,
+                    "proteinIds": [{"id": "P05109", "source": "uniprot_swissprot"}],
+                },
+                {
+                    "id": "ENSG00000163220",
+                    "approvedSymbol": "S100A9",
+                    "obsoleteSymbols": [],
+                    "genomicLocation": {
+                        "chromosome": "1",
+                        "start": 3,
+                        "end": 4,
+                        "strand": 1,
+                    },
+                    "canonicalTranscript": {
+                        "id": "t2",
+                        "chromosome": "1",
+                        "start": 3,
+                        "end": 4,
+                        "strand": "+",
+                    },
+                    "tss": 3,
+                    "proteinIds": [{"id": "P06702", "source": "uniprot_swissprot"}],
+                },
+            ],
+        )
+        pqtl = self._pqtl_study_index(
+            spark,
+            [
+                {"geneSymbol": "S100A8", "proteinId": "P05109"},
+                {"geneSymbol": "S100A9", "proteinId": "P06702"},
+            ],
+        )
+
+        result = pqtl.to_study(target)
+
+        assert result.df.count() == 2
+        assert sorted(r["geneId"] for r in result.df.collect()) == [
+            "ENSG00000143546",
+            "ENSG00000163220",
+        ]
+
+    def test_unresolved_targets_are_dropped(self, spark: SparkSession) -> None:
+        """A target the reference does not resolve carries no gene mapping.
+
+        The IG aptamers pair a resolvable heavy chain with IGK@ / IGL@, whose
+        symbols and placeholder protein ids both miss. Two such targets produced
+        identical rows, making the studyId non-unique and exposing the whole study
+        to validate_unique_study_id.
+        """
+        target = self._target_index(
+            spark,
+            [
+                {
+                    "id": "ENSG00000211898",
+                    "approvedSymbol": "IGHD",
+                    "obsoleteSymbols": [],
+                    "genomicLocation": {
+                        "chromosome": "14",
+                        "start": 1,
+                        "end": 2,
+                        "strand": 1,
+                    },
+                    "canonicalTranscript": {
+                        "id": "t1",
+                        "chromosome": "14",
+                        "start": 1,
+                        "end": 2,
+                        "strand": "+",
+                    },
+                    "tss": 1,
+                    "proteinIds": [{"id": "P01880", "source": "uniprot_swissprot"}],
+                }
+            ],
+        )
+        pqtl = self._pqtl_study_index(
+            spark,
+            [
+                {"geneSymbol": "IGHD", "proteinId": "P01880"},
+                {"geneSymbol": "IGK@", "proteinId": "_NA"},
+                {"geneSymbol": "IGL@", "proteinId": "_NA"},
+            ],
+        )
+
+        result = pqtl.to_study(target)
+
+        assert result.df.count() == 1
+        assert result.df.collect()[0]["geneId"] == "ENSG00000211898"

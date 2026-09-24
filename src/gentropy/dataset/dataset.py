@@ -422,19 +422,50 @@ class Dataset(ABC):
         ).otherwise(qc)
 
     @staticmethod
-    def flag_duplicates(test_column: Column) -> Column:
+    def flag_duplicates(
+        test_column: Column, order_by: list[Column] | None = None
+    ) -> Column:
         """Return True for rows, where the value was already seen in column.
 
         This implementation allows keeping the first occurrence of the value.
 
+        The ordering decides which occurrence is kept, so callers that care which row survives
+        should pass `order_by` with columns from the data itself, for example the size of the
+        credible set. The default, `monotonically_increasing_id()`, only replaces the unseeded
+        `rand()` that was used before: it is a stable function of the physical row layout rather
+        than a random draw, but that layout is not guaranteed across runs, so the default picks an
+        arbitrary row and should not be relied on for reproducibility.
+
         Args:
             test_column (Column): Column to check for duplicates
+            order_by (list[Column] | None): Ordering deciding which duplicate is kept, the first
+                row of each group being the one that is not flagged. Defaults to
+                `monotonically_increasing_id()`.
 
         Returns:
             Column: Column with a boolean flag for duplicates
+
+        Examples:
+            >>> df = spark.createDataFrame(
+            ...     [("sl1", ["v1", "v2", "v3"]), ("sl1", ["v1"]), ("sl2", ["v4", "v5"])],
+            ...     "studyLocusId string, locus array<string>",
+            ... )
+            >>> duplicate = Dataset.flag_duplicates(
+            ...     f.col("studyLocusId"), [f.size("locus").asc()]
+            ... )
+            >>> df.withColumn("isDuplicate", duplicate).orderBy("studyLocusId", f.size("locus")).show()
+            +------------+------------+-----------+
+            |studyLocusId|       locus|isDuplicate|
+            +------------+------------+-----------+
+            |         sl1|        [v1]|      false|
+            |         sl1|[v1, v2, v3]|       true|
+            |         sl2|    [v4, v5]|      false|
+            +------------+------------+-----------+
+            <BLANKLINE>
         """
+        ordering = order_by if order_by else [f.monotonically_increasing_id()]
         return (
-            f.row_number().over(Window.partitionBy(test_column).orderBy(f.rand())) > 1
+            f.row_number().over(Window.partitionBy(test_column).orderBy(*ordering)) > 1
         )
 
     @staticmethod

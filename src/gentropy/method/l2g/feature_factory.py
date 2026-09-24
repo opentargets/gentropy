@@ -49,6 +49,10 @@ from gentropy.dataset.l2g_features.intervals import (
     E2gMeanFeature,
     E2gMeanNeighbourhoodFeature,
 )
+from gentropy.dataset.l2g_features.pathway import (
+    PathwayEnrichmentFeature,
+    PathwayEnrichmentNeighbourhoodFeature,
+)
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
 from gentropy.dataset.study_locus import StudyLocus
 
@@ -140,6 +144,8 @@ class FeatureFactory:
         "vepMaximumNeighbourhood": VepMaximumNeighbourhoodFeature,
         "e2gMean": E2gMeanFeature,
         "e2gMeanNeighbourhood": E2gMeanNeighbourhoodFeature,
+        "pathwayEnrichment500kb": PathwayEnrichmentFeature,
+        "pathwayEnrichment500kbNeighbourhood": PathwayEnrichmentNeighbourhoodFeature,
         "geneCount500kb": GeneCountFeature,
         "proteinGeneCount500kb": ProteinGeneCountFeature,
         "isProteinCoding": ProteinCodingFeature,

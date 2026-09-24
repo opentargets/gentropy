@@ -33,6 +33,7 @@ class LocusToGeneModel:
     features_list: list[str] = field(default_factory=list)
     hyperparameters: dict[str, Any] = field(
         default_factory=lambda: {
+            "n_estimators": 300,
             "max_depth": 5,
             "reg_alpha": 1,  # L1 regularization
             "reg_lambda": 1.0,  # L2 regularization
@@ -41,6 +42,8 @@ class LocusToGeneModel:
             "eta": 0.05,
             "min_child_weight": 10,
             "scale_pos_weight": 0.8,
+            "gamma": 0,  # min loss reduction to make a split
+            "max_delta_step": 1,  # stabilises updates for imbalanced data
         }
     )
     training_data: L2GFeatureMatrix | None = None
@@ -77,11 +80,19 @@ class LocusToGeneModel:
         Raises:
             ValueError: If the model has not been fitted yet
         """
-        model_path = (Path(path) / model_name).as_posix()
+        # Path collapses the double slash in a URI, turning "gs://bucket/dir" into
+        # "gs:/bucket/dir", so the check below would never fire and a GCS directory would be
+        # read off the local filesystem. Join as a plain string for "gs://" inputs only, and
+        # keep using Path (with its normalization) for local paths.
+        if path.startswith("gs://"):
+            model_path = f"{path.rstrip('/')}/{model_name}"
+        else:
+            model_path = (Path(path) / model_name).as_posix()
+        # Only the local branch looks for the training data alongside the model, so this has to
+        # be bound up front or the GCS branch fails on the return below.
+        training_data = None
         if model_path.startswith("gs://"):
-            path = model_path.removeprefix("gs://")
-            bucket_name = path.split("/")[0]
-            blob_name = "/".join(path.split("/")[1:])
+            bucket_name, blob_name = model_path.removeprefix("gs://").split("/", 1)
             from google.cloud import storage
 
             client = storage.Client()
@@ -193,7 +204,12 @@ class LocusToGeneModel:
             raise ValueError("Hyperparameters have not been set.")
         elif isinstance(self.hyperparameters, dict):
             return self.hyperparameters
-        return self.hyperparameters.default_factory()
+        try:
+            # dataclasses.field with default_factory (legacy path)
+            return self.hyperparameters.default_factory()
+        except (AttributeError, TypeError):
+            # OmegaConf DictConfig passed directly from Hydra
+            return dict(self.hyperparameters)
 
     def predict(
         self: LocusToGeneModel,

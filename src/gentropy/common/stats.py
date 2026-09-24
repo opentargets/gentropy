@@ -649,3 +649,50 @@ def zscore_from_pvalue(pval_col: Column, beta: Column) -> Column:
         .when(beta.isNull(), f.lit(1))
     )
     return (sign * f.sqrt(chi2_from_pvalue(mantissa, exponent))).alias("zscore")
+
+
+def effective_sample_size(n_cases: Column, n_controls: Column) -> Column:
+    """Calculate the effective sample size for a case-control study.
+
+    This formula is only valid for case-control studies where both `nCases`
+    and `nControls` are positive, not null values.
+
+    Args:
+        n_cases (Column): Number of cases.
+        n_controls (Column): Number of controls.
+
+    Returns:
+        Column: Effective sample size.
+
+    Examples:
+        >>> data = [(100, 200), (50, 50), (0, 100), (100, 0), (0, 0)]
+        >>> schema = "nCases INT, nControls INT"
+        >>> df = spark.createDataFrame(data, schema)
+        >>> df.show()
+        +------+---------+
+        |nCases|nControls|
+        +------+---------+
+        |   100|      200|
+        |    50|       50|
+        |     0|      100|
+        |   100|        0|
+        |     0|        0|
+        +------+---------+
+        <BLANKLINE>
+        >>> n_cases = f.col("nCases")
+        >>> n_controls = f.col("nControls")
+        >>> df.withColumn("effectiveSampleSize", effective_sample_size(n_cases, n_controls)).show()
+        +------+---------+-------------------+
+        |nCases|nControls|effectiveSampleSize|
+        +------+---------+-------------------+
+        |   100|      200|                266|
+        |    50|       50|                100|
+        |     0|      100|                  0|
+        |   100|        0|                  0|
+        |     0|        0|               NULL|
+        +------+---------+-------------------+
+        <BLANKLINE>
+    """
+    n_cases = n_cases.cast("double")
+    n_controls = n_controls.cast("double")
+    return ((4 * n_cases * n_controls) / (n_cases + n_controls)).cast("integer")
