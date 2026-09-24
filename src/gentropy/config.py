@@ -925,7 +925,7 @@ class EffectorGeneListConfig(StepConfig):
 
 @dataclass
 class TrainingSetConfig(StepConfig):
-    """L2G training set (gold standard) generation step configuration."""
+    """L2G training set generation step configuration."""
 
     feature_matrix_path: str = MISSING
     credible_set_path: str = MISSING
@@ -935,7 +935,6 @@ class TrainingSetConfig(StepConfig):
     interaction_path: str | None = None
     apply_replication_filter: bool = True
     max_gsp_per_locus: int = 2
-    apply_interaction_filter: bool = False
     interaction_source: str = "string"
     interaction_score_threshold: float = 0.75
     apply_distance_filter: bool = True

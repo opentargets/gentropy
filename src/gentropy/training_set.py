@@ -1,12 +1,12 @@
-"""Step to build the L2G training set (gold standard) from the Effector Gene List.
+"""Step to build the L2G training set from the Effector Gene List.
 
-The training set labels every ``(studyLocusId, geneId)`` row of the L2G feature matrix
-as ``positive`` or ``negative`` (``goldStandardSet``). Positives are the gene-disease
-pairs of the Effector Gene List (EGL) that map onto a credible set for the matching
-disease; negatives are the remaining genes in those loci.
+The training set labels the ``(studyLocusId, geneId)`` rows of the L2G feature matrix for
+the credible sets holding at least one Effector Gene List (EGL) gene: a gene is a positive
+when it is an EGL effector for a disease of the credible set's study, and every other gene
+of those credible sets is a negative. Credible sets without an EGL gene are left out.
 
-A series of optional, parametrised filters clean the raw labelling to reduce noise and
-leakage before the set is used to train the L2G model:
+A series of optional, parametrised filters then clean the labels to reduce noise and
+leakage:
 
 * replication filter — keep only the credible sets carrying the ``REPLICATED`` quality
   control flag raised by ``StudyLocus.qc_replication``;
@@ -18,33 +18,23 @@ leakage before the set is used to train the L2G model:
 * protein-coding filter — restrict the set to protein-coding genes;
 * deduplication — collapse credible sets that share identical positive feature profiles.
 
-The output is written as JSON with the columns ``studyLocusId``, ``geneId``,
-``diseaseIds``, ``variantId``, ``studyId`` and ``goldStandardSet``.
+The output is an ``L2GGoldStandard`` parquet, the input of ``LocusToGeneTrainTestSplitStep``.
 """
 
 from __future__ import annotations
 
-import logging
-
 import pyspark.sql.functions as f
-from pyspark.sql import DataFrame
+from pyspark.sql import DataFrame, Window
 
 from gentropy.common.session import Session
+from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
 from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import StudyLocus, StudyLocusQualityCheck
 
-logger = logging.getLogger(__name__)
-
-# Feature-matrix columns used, together with the rounded colocalisation columns, as the
-# key for deduplicating credible sets with identical positive feature profiles.
-_DEDUP_KEY_COLUMNS: list[str] = [
-    "geneId",
-    "diseaseIds",
-    "variantId",
-    "vepMaximum",
-    "vepMean",
-]
-_DEDUP_ROUNDED_COLUMNS: list[str] = [
+# Positive features that, with the sentinel variant, gene and diseases, define a credible
+# set's profile for deduplication. The colocalisation features are rounded before comparison.
+_DEDUP_FEATURES: list[str] = ["vepMaximum", "vepMean"]
+_DEDUP_ROUNDED_FEATURES: list[str] = [
     "eQtlColocClppMaximum",
     "pQtlColocClppMaximum",
     "sQtlColocClppMaximum",
@@ -55,7 +45,7 @@ _DEDUP_ROUNDED_COLUMNS: list[str] = [
 
 
 class TrainingSetStep:
-    """Build the L2G gold standard training set from the Effector Gene List."""
+    """Build the L2G training set from the Effector Gene List."""
 
     def __init__(
         self,
@@ -69,7 +59,6 @@ class TrainingSetStep:
         interaction_path: str | None = None,
         apply_replication_filter: bool = True,
         max_gsp_per_locus: int = 2,
-        apply_interaction_filter: bool = False,
         interaction_source: str = "string",
         interaction_score_threshold: float = 0.75,
         apply_distance_filter: bool = True,
@@ -81,21 +70,19 @@ class TrainingSetStep:
         Args:
             session (Session): Session object that contains the Spark session.
             feature_matrix_path (str): Path to the L2G feature matrix parquet.
-            credible_set_path (str): Path to the credible set (StudyLocus) dataset. It has to be
-                the validated output of ``StudyLocusValidationStep``, which is where the
-                ``REPLICATED`` quality control flag is raised.
+            credible_set_path (str): Path to the validated credible set (StudyLocus) dataset,
+                the output of ``StudyLocusValidationStep``, which raises the ``REPLICATED`` flag.
             study_index_path (str): Path to the study index dataset.
             effector_gene_list_path (str): Path to the Effector Gene List parquet produced by
                 ``EffectorGeneListStep`` (columns ``diseaseId``, ``targetId``).
-            training_set_path (str): Output path for the training set JSON.
-            interaction_path (str | None): Path to the gene interaction dataset (e.g. the platform
-                ``interaction`` output). Required when ``apply_interaction_filter`` is True.
+            training_set_path (str): Output path for the training set parquet.
+            interaction_path (str | None): Path to the platform ``interaction`` dataset. When
+                given, negatives interacting with a positive gene in the same locus are dropped.
+                Defaults to None (filter skipped).
             apply_replication_filter (bool): Keep only the credible sets flagged as ``REPLICATED``
                 by ``StudyLocus.qc_replication``. Defaults to True.
             max_gsp_per_locus (int): Maximum number of positives allowed per credible set; loci
                 exceeding it are dropped. Defaults to 2.
-            apply_interaction_filter (bool): Drop negatives that interact with a positive gene in
-                the same locus. Requires ``interaction_path``, so it defaults to False.
             interaction_source (str): ``sourceDatabase`` value to keep from the interaction dataset.
                 Defaults to "string".
             interaction_score_threshold (float): Minimum interaction ``scoring`` to keep. Defaults to 0.75.
@@ -104,165 +91,99 @@ class TrainingSetStep:
             protein_coding_only (bool): Restrict the training set to protein-coding genes. Defaults to True.
             apply_deduplication (bool): Collapse credible sets sharing identical positive feature
                 profiles. Defaults to True.
-
-        Raises:
-            ValueError: If the interaction filter is requested without an ``interaction_path``.
         """
-        if apply_interaction_filter and not interaction_path:
-            raise ValueError(
-                "interaction_path is required when apply_interaction_filter is True."
+        credible_set = StudyLocus.from_parquet(session, credible_set_path).df
+        if apply_replication_filter:
+            credible_set = credible_set.filter(
+                f.array_contains(
+                    "qualityControls", StudyLocusQualityCheck.REPLICATED.value
+                )
             )
-
-        feature_matrix = session.load_data(feature_matrix_path, "parquet")
-        credible_set = StudyLocus.from_parquet(
-            session, credible_set_path, recursiveFileLookup=True
+        loci = credible_set.select("studyLocusId", "studyId", "variantId").join(
+            StudyIndex.from_parquet(session, study_index_path).df.select(
+                "studyId", "diseaseIds"
+            ),
+            on="studyId",
         )
-        study_index = StudyIndex.from_parquet(
-            session, study_index_path, recursiveFileLookup=True
+        feature_matrix = session.load_data(feature_matrix_path, "parquet").join(
+            loci, on="studyLocusId"
         )
         effector_gene_list = session.load_data(effector_gene_list_path, "parquet")
 
-        # 1. Attach study and disease context, then label positives against the EGL.
-        annotated_fm = self._annotate_feature_matrix(
-            feature_matrix, credible_set, study_index
-        )
-        labelled = self._label_gold_standard(annotated_fm, effector_gene_list)
-
-        # 2. Optional replication filter.
-        if apply_replication_filter:
-            labelled = labelled.join(
-                self._replicated_loci(credible_set), on="studyLocusId", how="inner"
-            )
-
-        # 3. Cap the number of positives per locus.
+        labelled = self._label(feature_matrix, effector_gene_list)
+        # Counted on the raw labels, before the filters below remove any positive.
         labelled = self._cap_positives_per_locus(labelled, max_gsp_per_locus)
 
-        # 4. Optional protein-protein interaction filter.
-        if apply_interaction_filter:
-            assert interaction_path is not None  # noqa: S101 - guaranteed by the guard above
-            interactions = self._interaction_pairs(
-                session,
-                interaction_path,
-                interaction_source,
-                interaction_score_threshold,
+        if interaction_path:
+            labelled = self._drop_interacting_negatives(
+                labelled,
+                self._interaction_pairs(
+                    session,
+                    interaction_path,
+                    interaction_source,
+                    interaction_score_threshold,
+                ),
             )
-            labelled = self._filter_interacting_negatives(labelled, interactions)
-
-        # 5. Optional distance-leakage filter.
         if apply_distance_filter:
             labelled = labelled.filter(
                 ~((f.col("GSP") == 1) & (f.col("distanceSentinelFootprint") == 0))
             )
-
-        # 6. Optional protein-coding restriction.
         if protein_coding_only:
             labelled = labelled.filter(f.col("isProteinCoding") == 1)
+        # The filters above can leave a locus without a positive.
+        labelled = self._cap_positives_per_locus(labelled, max_gsp_per_locus)
 
-        # Both filters above can drop every positive of a locus and leave it all-negative:
-        # re-applying the cap drops the loci that no longer hold a positive.
-        if apply_distance_filter or protein_coding_only:
-            labelled = self._cap_positives_per_locus(labelled, max_gsp_per_locus)
-
-        # 7. Attach the sentinel variant id (needed for dedup and output).
-        labelled = labelled.join(
-            credible_set.df.select("studyLocusId", "variantId"),
-            on="studyLocusId",
-            how="left",
-        )
-
-        # 8. Optional deduplication of credible sets with identical positive profiles.
         if apply_deduplication:
             labelled = self._deduplicate(labelled)
 
-        self._write_training_set(session, labelled, training_set_path)
-
-    @staticmethod
-    def _annotate_feature_matrix(
-        feature_matrix: DataFrame,
-        credible_set: StudyLocus,
-        study_index: StudyIndex,
-    ) -> DataFrame:
-        """Attach ``studyId`` and ``diseaseIds`` to every feature-matrix row.
-
-        Args:
-            feature_matrix (DataFrame): Raw L2G feature matrix.
-            credible_set (StudyLocus): Credible set dataset providing ``studyId``.
-            study_index (StudyIndex): Study index providing ``diseaseIds``.
-
-        Returns:
-            DataFrame: Feature matrix annotated with ``studyId`` and ``diseaseIds``.
-        """
-        cs = credible_set.df.select("studyLocusId", "studyId")
-        studies = study_index.df.select("studyId", "diseaseIds").dropDuplicates(
-            ["studyId"]
-        )
-        return feature_matrix.join(cs, on="studyLocusId", how="left").join(
-            studies, on="studyId", how="left"
+        L2GGoldStandard(
+            _df=labelled.select(
+                "studyLocusId",
+                "variantId",
+                "studyId",
+                "geneId",
+                f.when(f.col("GSP") == 1, L2GGoldStandard.GS_POSITIVE_LABEL)
+                .otherwise(L2GGoldStandard.GS_NEGATIVE_LABEL)
+                .alias("goldStandardSet"),
+            ),
+            _schema=L2GGoldStandard.get_schema(),
+        ).df.coalesce(session.output_partitions).write.mode(session.write_mode).parquet(
+            training_set_path
         )
 
     @staticmethod
-    def _label_gold_standard(
-        annotated_fm: DataFrame,
-        effector_gene_list: DataFrame,
-    ) -> DataFrame:
-        """Label the loci that contain an EGL positive, flagging positive rows with ``GSP``.
+    def _label(feature_matrix: DataFrame, effector_gene_list: DataFrame) -> DataFrame:
+        """Keep the loci holding an EGL gene and flag the EGL genes with ``GSP``.
 
-        A ``(studyLocusId, geneId)`` row is a positive when the gene is an EGL effector for a
-        disease assigned to the credible set. Only loci that contain at least one positive are
-        retained; every other gene in those loci becomes a negative.
+        A ``(studyLocusId, geneId)`` row is a positive when the gene is an EGL effector for any
+        disease of the credible set's study.
 
         Args:
-            annotated_fm (DataFrame): Feature matrix annotated with ``studyId`` and ``diseaseIds``.
+            feature_matrix (DataFrame): Feature matrix annotated with ``diseaseIds``.
             effector_gene_list (DataFrame): EGL with ``diseaseId`` and ``targetId`` columns.
 
         Returns:
-            DataFrame: Rows of loci containing a positive, with a ``GSP`` column (1 positive, 0 negative).
+            DataFrame: Rows of loci holding a positive, with ``GSP`` (1 positive, 0 negative).
         """
-        egl = effector_gene_list.select("targetId", "diseaseId").withColumnRenamed(
-            "targetId", "geneId_egl"
-        )
         positives = (
-            annotated_fm.join(
-                egl,
-                (f.array_contains(annotated_fm["diseaseIds"], egl["diseaseId"]))
-                & (annotated_fm["geneId"] == egl["geneId_egl"]),
-                how="inner",
+            feature_matrix.select(
+                "studyLocusId", "geneId", f.explode("diseaseIds").alias("diseaseId")
             )
-            .select("studyLocusId", "geneId")
+            .join(
+                effector_gene_list.select(
+                    "diseaseId", f.col("targetId").alias("geneId")
+                ),
+                on=["diseaseId", "geneId"],
+                how="semi",
+            )
+            .select("studyLocusId", "geneId", f.lit(1).alias("GSP"))
             .distinct()
         )
-
-        loci_with_positive = positives.select("studyLocusId").distinct()
         return (
-            annotated_fm.join(loci_with_positive, on="studyLocusId", how="inner")
-            .join(
-                positives.withColumn("GSP", f.lit(1)),
-                on=["studyLocusId", "geneId"],
-                how="left",
-            )
-            .withColumn("GSP", f.when(f.col("GSP").isNotNull(), 1).otherwise(0))
+            feature_matrix.join(positives, on="studyLocusId", how="semi")
+            .join(positives, on=["studyLocusId", "geneId"], how="left")
+            .fillna(0, subset=["GSP"])
         )
-
-    @staticmethod
-    def _replicated_loci(credible_set: StudyLocus) -> DataFrame:
-        """Select the credible sets whose lead variant is replicated in an independent study.
-
-        Replication is not assessed here: the ``REPLICATED`` flag is raised by
-        ``StudyLocus.qc_replication`` in ``StudyLocusValidationStep``, which sees the whole
-        credible set collection and is the only place where independence can be established.
-        A credible set the check never assessed carries no flag and is dropped.
-
-        Args:
-            credible_set (StudyLocus): Validated credible set dataset.
-
-        Returns:
-            DataFrame: The ``studyLocusId`` values carrying the ``REPLICATED`` flag.
-        """
-        return credible_set.df.filter(
-            f.array_contains(
-                f.col("qualityControls"), StudyLocusQualityCheck.REPLICATED.value
-            )
-        ).select("studyLocusId")
 
     @staticmethod
     def _cap_positives_per_locus(
@@ -277,15 +198,13 @@ class TrainingSetStep:
         Returns:
             DataFrame: Labelled rows restricted to the retained loci.
         """
-        counts = (
-            labelled.filter(f.col("GSP") == 1)
-            .groupBy("studyLocusId")
-            .agg(f.count("*").alias("count"))
+        return (
+            labelled.withColumn(
+                "nPositives", f.sum("GSP").over(Window.partitionBy("studyLocusId"))
+            )
+            .filter(f.col("nPositives").between(1, max_gsp_per_locus))
+            .drop("nPositives")
         )
-        keep = counts.filter(
-            (f.col("count") > 0) & (f.col("count") <= max_gsp_per_locus)
-        ).select("studyLocusId")
-        return labelled.join(keep, on="studyLocusId", how="inner")
 
     @staticmethod
     def _interaction_pairs(
@@ -294,12 +213,10 @@ class TrainingSetStep:
         interaction_source: str,
         interaction_score_threshold: float,
     ) -> DataFrame:
-        """Load gene-gene interaction pairs above the score threshold, in both directions.
+        """Load gene-gene interaction pairs above the score threshold.
 
-        The interaction dataset is not guaranteed to hold both directions of a pair, so it is
-        symmetrised here, as ``L2GGoldStandard.remove_false_negatives`` does: a negative gene
-        has to be dropped whether the positive it interacts with sits in ``targetA`` or in
-        ``targetB``.
+        Pairs are used as stored: a negative is dropped when a positive of its locus is
+        ``targetA`` and the negative is ``targetB``.
 
         Args:
             session (Session): Active session.
@@ -308,106 +225,72 @@ class TrainingSetStep:
             interaction_score_threshold (float): Minimum interaction ``scoring``.
 
         Returns:
-            DataFrame: Distinct ``targetA``, ``targetB`` interaction pairs, each pair present in
-                both directions (self-interactions removed).
+            DataFrame: ``targetA``, ``targetB`` interaction pairs.
         """
-        interactions = session.load_data(
-            interaction_path, "parquet", recursiveFileLookup=True
-        )
-        pairs = (
-            interactions.filter(
+        return (
+            session.load_data(interaction_path, "parquet", recursiveFileLookup=True)
+            .filter(
                 (f.col("sourceDatabase") == interaction_source)
                 & (f.col("scoring") >= interaction_score_threshold)
-                & (f.col("targetA") != f.col("targetB"))
             )
             .select("targetA", "targetB")
-            .distinct()
         )
-        return pairs.unionByName(
-            pairs.select(
-                f.col("targetB").alias("targetA"), f.col("targetA").alias("targetB")
-            )
-        ).distinct()
 
     @staticmethod
-    def _filter_interacting_negatives(
+    def _drop_interacting_negatives(
         labelled: DataFrame, interactions: DataFrame
     ) -> DataFrame:
         """Drop negative genes that interact with a positive gene in the same locus.
 
-        For every locus, the interaction partners of its positive genes are compared with its
-        negatives. A negative that coincides with a partner in the same locus is removed, so a
-        gene physically coupled to the true effector is not learned as a negative example.
-
         Args:
             labelled (DataFrame): Labelled feature matrix with a ``GSP`` column.
-            interactions (DataFrame): Symmetrised ``targetA``, ``targetB`` interaction pairs.
+            interactions (DataFrame): ``targetA``, ``targetB`` interaction pairs.
 
         Returns:
             DataFrame: Labelled rows with the interacting negatives removed.
         """
-        positive_partners = (
+        negative_partners = (
             labelled.filter(f.col("GSP") == 1)
-            .select("geneId", "studyLocusId")
-            .join(interactions, f.col("geneId") == interactions["targetA"], how="inner")
-            .select(f.col("targetB").alias("geneId"), "studyLocusId")
+            .join(interactions, f.col("geneId") == f.col("targetA"))
+            .select(
+                "studyLocusId", f.col("targetB").alias("geneId"), f.lit(0).alias("GSP")
+            )
         )
-        negatives = labelled.filter(f.col("GSP") == 0).select("geneId", "studyLocusId")
-        # A negative gene that also appears as a positive's interaction partner in the same
-        # locus shows up (at least) twice in the union: flag those for removal.
-        to_remove = (
-            negatives.union(positive_partners)
-            .groupBy("geneId", "studyLocusId")
-            .agg(f.count("*").alias("count"))
-            .filter(f.col("count") >= 2)
-            .select("geneId", "studyLocusId")
+        return labelled.join(
+            negative_partners, on=["studyLocusId", "geneId", "GSP"], how="anti"
         )
-        return labelled.join(to_remove, on=["geneId", "studyLocusId"], how="anti")
 
     @staticmethod
     def _deduplicate(labelled: DataFrame) -> DataFrame:
-        """Collapse credible sets whose positives share an identical feature profile.
+        """Keep one credible set per identical positive profile.
 
-        Colocalisation feature values are rounded before comparison so numerically-equivalent
-        loci are treated as duplicates. Only the credible sets whose positives survive the
-        deduplication are kept.
+        A credible set's profile is its sorted disease set with the sorted list of its positives'
+        gene, sentinel variant and features, with colocalisation rounded to 2 dp. Of the credible sets sharing a profile, the
+        one with the smallest ``studyLocusId`` is kept.
 
         Args:
             labelled (DataFrame): Labelled feature matrix including ``variantId``.
 
         Returns:
-            DataFrame: Labelled rows restricted to the deduplicated credible sets.
+            DataFrame: Labelled rows restricted to one credible set per profile.
         """
-        positives = labelled.filter(f.col("GSP") == 1)
-        for col in _DEDUP_ROUNDED_COLUMNS:
-            positives = positives.withColumn(col, f.round(f.col(col), 2))
-        deduped = positives.dropDuplicates(_DEDUP_KEY_COLUMNS + _DEDUP_ROUNDED_COLUMNS)
-        loci_to_keep = deduped.select("studyLocusId").distinct()
-        return labelled.join(loci_to_keep, on="studyLocusId", how="inner")
-
-    @staticmethod
-    def _write_training_set(
-        session: Session, labelled: DataFrame, training_set_path: str
-    ) -> None:
-        """Map ``GSP`` to ``goldStandardSet`` and write the training set as JSON.
-
-        Args:
-            session (Session): Active session.
-            labelled (DataFrame): Cleaned, labelled feature matrix with a ``GSP`` column.
-            training_set_path (str): Output JSON path.
-        """
-        training_set = labelled.select(
-            "studyLocusId",
+        positive_profile = f.struct(
             "geneId",
-            "diseaseIds",
             "variantId",
-            "studyId",
-            f.when(f.col("GSP") == 1, f.lit("positive"))
-            .otherwise(f.lit("negative"))
-            .alias("goldStandardSet"),
+            *_DEDUP_FEATURES,
+            *[
+                f.round(feature, 2).alias(feature)
+                for feature in _DEDUP_ROUNDED_FEATURES
+            ],
         )
-        (
-            training_set.coalesce(session.output_partitions)
-            .write.mode(session.write_mode)
-            .json(training_set_path)
+        kept = (
+            labelled.filter(f.col("GSP") == 1)
+            .groupBy("studyLocusId")
+            .agg(
+                f.array_sort(f.first("diseaseIds")).alias("diseaseIds"),
+                f.array_sort(f.collect_list(positive_profile)).alias("profile"),
+            )
+            .groupBy("diseaseIds", "profile")
+            .agg(f.min("studyLocusId").alias("studyLocusId"))
         )
+        return labelled.join(kept, on="studyLocusId", how="semi")
