@@ -430,6 +430,8 @@ class LocusToGeneFeatureMatrixConfig(StepConfig):
     target_index_path: str | None = None
     intervals_path: str | None = None
     gene_interactions_path: str | None = None
+    pathway_index_path: str | None = None
+    pathway_enrichment_path: str | None = None
     feature_matrix_path: str = MISSING
     features_list: list[str] = field(
         default_factory=lambda: [
@@ -879,6 +881,21 @@ class MolecularComplexIngestionConfig(StepConfig):
 
 
 @dataclass
+class PathwayIngestionConfig(StepConfig):
+    """Pathway library and enrichment ingestion step configuration."""
+
+    pathway_library_path: str = MISSING
+    pathway_enrichment_source_path: str = MISSING
+    target_index_path: str = MISSING
+    pathway_index_path: str = MISSING
+    pathway_enrichment_path: str = MISSING
+    exclude_unmapped_pathways: bool = False
+    recompute_missing_adjusted_p_value: bool = True
+
+    _target_: str = "gentropy.pathway.PathwayIngestionStep"
+
+
+@dataclass
 class FineMappingPlanGeneratorConfig(StepConfig):
     """Fine-mapping plan generator step configuration."""
 
@@ -1019,6 +1036,11 @@ def register_config() -> None:
         group="step",
         name="molecular_complex_ingestion",
         node=MolecularComplexIngestionConfig,
+    )
+    cs.store(
+        group="step",
+        name="pathway_ingestion",
+        node=PathwayIngestionConfig,
     )
     cs.store(
         group="step",
