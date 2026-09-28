@@ -1192,6 +1192,27 @@
   
   
     <li class="md-nav__item">
+      <a href="../../datasets/fine_mapping/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Fine-Mapping Plan
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../datasets/intervals/" class="md-nav__link">
         
   
@@ -1496,7 +1517,7 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_3_17" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_3_18" >
         
           
           
@@ -1512,14 +1533,14 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_5_3_17" id="__nav_5_3_17_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_5_3_18" id="__nav_5_3_18_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_5_3_17_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_5_3_17">
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_5_3_18_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_3_18">
             <span class="md-nav__icon md-icon"></span>
             L2g features
           </label>
@@ -2986,6 +3007,27 @@
   
   
     <li class="md-nav__item">
+      <a href="../../methods/fine_mapping_constraints/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Fine-Mapping Constraints
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../methods/joint_colocalisation/" class="md-nav__link">
         
   
@@ -3122,7 +3164,7 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_5_12" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_5_13" >
         
           
           
@@ -3138,14 +3180,14 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_5_5_12" id="__nav_5_5_12_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_5_5_13" id="__nav_5_5_13_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_5_5_12_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_5_5_12">
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_5_5_13_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_5_13">
             <span class="md-nav__icon md-icon"></span>
             L2g
           </label>
@@ -3374,6 +3416,27 @@
   
   <span class="md-ellipsis">
     eQTL Catalogue ingestion
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../fine_mapping_plan_generator/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Fine-Mapping Plan Generator
   </span>
   
 
@@ -4051,7 +4114,10 @@ when target of disease validation fails.</p>
 <span class="normal"> 98</span>
 <span class="normal"> 99</span>
 <span class="normal">100</span>
-<span class="normal">101</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">StudyValidationStep</span><span class="p">:</span>
+<span class="normal">101</span>
+<span class="normal">102</span>
+<span class="normal">103</span>
+<span class="normal">104</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">StudyValidationStep</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Study index validation step.</span>
 
 <span class="sd">    This step reads and outputs a study index dataset with flagged studies</span>
@@ -4121,13 +4187,16 @@ when target of disease validation fails.</p>
             <span class="o">.</span><span class="n">validate_disease</span><span class="p">(</span><span class="n">disease_index</span><span class="p">)</span>  <span class="c1"># Flagging invalid EFOs</span>
             <span class="o">.</span><span class="n">validate_biosample</span><span class="p">(</span><span class="n">biosample_index</span><span class="p">)</span>  <span class="c1"># Flagging invalid biosample in QTLs</span>
             <span class="o">.</span><span class="n">validate_analysis_flags</span><span class="p">()</span>  <span class="c1"># Flagging studies with case case design</span>
+            <span class="o">.</span><span class="n">validate_ccs</span><span class="p">()</span>  <span class="c1"># Flagging case-control-sample mismatches</span>
         <span class="p">)</span>
 
         <span class="k">if</span> <span class="n">heritability_input_path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">heritability_df</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">spark</span><span class="o">.</span><span class="n">read</span><span class="o">.</span><span class="n">parquet</span><span class="p">(</span><span class="n">heritability_input_path</span><span class="p">)</span>
             <span class="n">validated</span> <span class="o">=</span> <span class="n">validated</span><span class="o">.</span><span class="n">collect_heritability</span><span class="p">(</span><span class="n">heritability_df</span><span class="p">)</span>
 
-        <span class="n">study_index_with_qc</span> <span class="o">=</span> <span class="n">validated</span><span class="o">.</span><span class="n">persist</span><span class="p">()</span>  <span class="c1"># we will need this for 2 types of outputs</span>
+        <span class="n">study_index_with_qc</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">validated</span><span class="o">.</span><span class="n">persist</span><span class="p">()</span>
+        <span class="p">)</span>  <span class="c1"># we will need this for 2 types of outputs</span>
 
         <span class="n">result</span> <span class="o">=</span> <span class="n">study_index_with_qc</span><span class="o">.</span><span class="n">valid_rows</span><span class="p">(</span><span class="n">invalid_qc_reasons</span><span class="p">)</span>
         <span class="p">(</span>

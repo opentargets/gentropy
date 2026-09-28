@@ -1500,6 +1500,27 @@
   
   
     <li class="md-nav__item">
+      <a href="../../datasets/fine_mapping/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Fine-Mapping Plan
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../datasets/intervals/" class="md-nav__link">
         
   
@@ -1804,7 +1825,7 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_3_17" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_3_18" >
         
           
           
@@ -1820,14 +1841,14 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_5_3_17" id="__nav_5_3_17_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_5_3_18" id="__nav_5_3_18_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_5_3_17_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_5_3_17">
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_5_3_18_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_3_18">
             <span class="md-nav__icon md-icon"></span>
             L2g features
           </label>
@@ -3294,6 +3315,27 @@
   
   
     <li class="md-nav__item">
+      <a href="../../methods/fine_mapping_constraints/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Fine-Mapping Constraints
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../methods/joint_colocalisation/" class="md-nav__link">
         
   
@@ -3430,7 +3472,7 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_5_12" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_5_13" >
         
           
           
@@ -3446,14 +3488,14 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_5_5_12" id="__nav_5_5_12_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_5_5_13" id="__nav_5_5_13_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_5_5_12_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_5_5_12">
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_5_5_13_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_5_13">
             <span class="md-nav__icon md-icon"></span>
             L2g
           </label>
@@ -3680,6 +3722,27 @@
   
   <span class="md-ellipsis">
     eQTL Catalogue ingestion
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../steps/fine_mapping_plan_generator/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Fine-Mapping Plan Generator
   </span>
   
 
@@ -7102,6 +7165,7 @@ it compares the ascending_column. When values in both columns are equal, the row
     <div class="doc doc-contents first">
 
         <p>To make strings URL-safe and consistent by lower-casing and replace special characters with underscores.</p>
+<p>This function will lowercase string and replace all special characters except [a-z], [0-9], [-] and [_] with underscores.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -7162,13 +7226,13 @@ it compares the ascending_column. When values in both columns are equal, the row
     <div class="language-pycon highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">d</span> <span class="o">=</span> <span class="p">[(</span><span class="s2">&quot;AbCd-12.2&quot;</span><span class="p">,),(</span><span class="s2">&quot;AaBb..123?&quot;</span><span class="p">,),(</span><span class="s2">&quot;cDd!@#$%^&amp;*()&quot;</span><span class="p">,),]</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">df</span> <span class="o">=</span> <span class="n">spark</span><span class="o">.</span><span class="n">createDataFrame</span><span class="p">(</span><span class="n">d</span><span class="p">)</span><span class="o">.</span><span class="n">toDF</span><span class="p">(</span><span class="s2">&quot;source&quot;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">df</span><span class="o">.</span><span class="n">withColumn</span><span class="p">(</span><span class="s2">&quot;cleaned&quot;</span><span class="p">,</span> <span class="n">clean_strings_from_symbols</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">&quot;source&quot;</span><span class="p">)))</span><span class="o">.</span><span class="n">show</span><span class="p">(</span><span class="n">truncate</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-<span class="go">+-------------+---------+</span>
-<span class="go">|source       |cleaned  |</span>
-<span class="go">+-------------+---------+</span>
-<span class="go">|AbCd-12.2    |abcd-12_2|</span>
-<span class="go">|AaBb..123?   |aabb_123_|</span>
-<span class="go">|cDd!@#$%^&amp;*()|cdd_     |</span>
-<span class="go">+-------------+---------+</span>
+<span class="go">+-------------+-------------+</span>
+<span class="go">|source       |cleaned      |</span>
+<span class="go">+-------------+-------------+</span>
+<span class="go">|AbCd-12.2    |abcd-12_2    |</span>
+<span class="go">|AaBb..123?   |aabb__123_   |</span>
+<span class="go">|cDd!@#$%^&amp;*()|cdd__________|</span>
+<span class="go">+-------------+-------------+</span>
 </code></pre></div>
 
 
@@ -7197,8 +7261,12 @@ it compares the ascending_column. When values in both columns are equal, the row
 <span class="normal">785</span>
 <span class="normal">786</span>
 <span class="normal">787</span>
-<span class="normal">788</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">clean_strings_from_symbols</span><span class="p">(</span><span class="n">source</span><span class="p">:</span> <span class="n">Column</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
+<span class="normal">788</span>
+<span class="normal">789</span>
+<span class="normal">790</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">clean_strings_from_symbols</span><span class="p">(</span><span class="n">source</span><span class="p">:</span> <span class="n">Column</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;To make strings URL-safe and consistent by lower-casing and replace special characters with underscores.</span>
+
+<span class="sd">    This function will lowercase string and replace all special characters except [a-z], [0-9], [-] and [_] with underscores.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        source (Column): Source string</span>
@@ -7210,16 +7278,16 @@ it compares the ascending_column. When values in both columns are equal, the row
 <span class="sd">        &gt;&gt;&gt; d = [(&quot;AbCd-12.2&quot;,),(&quot;AaBb..123?&quot;,),(&quot;cDd!@#$%^&amp;*()&quot;,),]</span>
 <span class="sd">        &gt;&gt;&gt; df = spark.createDataFrame(d).toDF(&quot;source&quot;)</span>
 <span class="sd">        &gt;&gt;&gt; df.withColumn(&quot;cleaned&quot;, clean_strings_from_symbols(f.col(&quot;source&quot;))).show(truncate=False)</span>
-<span class="sd">        +-------------+---------+</span>
-<span class="sd">        |source       |cleaned  |</span>
-<span class="sd">        +-------------+---------+</span>
-<span class="sd">        |AbCd-12.2    |abcd-12_2|</span>
-<span class="sd">        |AaBb..123?   |aabb_123_|</span>
-<span class="sd">        |cDd!@#$%^&amp;*()|cdd_     |</span>
-<span class="sd">        +-------------+---------+</span>
+<span class="sd">        +-------------+-------------+</span>
+<span class="sd">        |source       |cleaned      |</span>
+<span class="sd">        +-------------+-------------+</span>
+<span class="sd">        |AbCd-12.2    |abcd-12_2    |</span>
+<span class="sd">        |AaBb..123?   |aabb__123_   |</span>
+<span class="sd">        |cDd!@#$%^&amp;*()|cdd__________|</span>
+<span class="sd">        +-------------+-------------+</span>
 <span class="sd">        &lt;BLANKLINE&gt;</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">characters_to_replace</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">&quot;[^a-z0-9-_]+&quot;</span>
+    <span class="n">characters_to_replace</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">&quot;[^a-z0-9_-]</span><span class="si">{1}</span><span class="s2">&quot;</span>
     <span class="k">return</span> <span class="n">f</span><span class="o">.</span><span class="n">regexp_replace</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">lower</span><span class="p">(</span><span class="n">source</span><span class="p">),</span> <span class="n">characters_to_replace</span><span class="p">,</span> <span class="s2">&quot;_&quot;</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
@@ -7460,9 +7528,7 @@ sort the array first.</p>
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/common/spark.py</code></summary>
-              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">791</span>
-<span class="normal">792</span>
-<span class="normal">793</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">793</span>
 <span class="normal">794</span>
 <span class="normal">795</span>
 <span class="normal">796</span>
@@ -7620,7 +7686,9 @@ sort the array first.</p>
 <span class="normal">948</span>
 <span class="normal">949</span>
 <span class="normal">950</span>
-<span class="normal">951</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">filter_array_struct</span><span class="p">(</span>
+<span class="normal">951</span>
+<span class="normal">952</span>
+<span class="normal">953</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">filter_array_struct</span><span class="p">(</span>
     <span class="n">array_struct</span><span class="p">:</span> <span class="n">Column</span> <span class="o">|</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">key_column</span><span class="p">:</span> <span class="n">Column</span> <span class="o">|</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">key</span><span class="p">:</span> <span class="n">Column</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">bool</span> <span class="o">|</span> <span class="nb">float</span><span class="p">,</span>

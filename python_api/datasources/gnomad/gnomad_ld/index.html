@@ -1192,6 +1192,27 @@
   
   
     <li class="md-nav__item">
+      <a href="../../../datasets/fine_mapping/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Fine-Mapping Plan
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../../datasets/intervals/" class="md-nav__link">
         
   
@@ -1496,7 +1517,7 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_3_17" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_3_18" >
         
           
           
@@ -1512,14 +1533,14 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_5_3_17" id="__nav_5_3_17_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_5_3_18" id="__nav_5_3_18_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_5_3_17_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_5_3_17">
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_5_3_18_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_3_18">
             <span class="md-nav__icon md-icon"></span>
             L2g features
           </label>
@@ -3095,6 +3116,27 @@
   
   
     <li class="md-nav__item">
+      <a href="../../../methods/fine_mapping_constraints/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Fine-Mapping Constraints
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../../methods/joint_colocalisation/" class="md-nav__link">
         
   
@@ -3231,7 +3273,7 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_5_12" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_5_13" >
         
           
           
@@ -3247,14 +3289,14 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_5_5_12" id="__nav_5_5_12_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_5_5_13" id="__nav_5_5_13_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_5_5_12_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_5_5_12">
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_5_5_13_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_5_13">
             <span class="md-nav__icon md-icon"></span>
             L2g
           </label>
@@ -3481,6 +3523,27 @@
   
   <span class="md-ellipsis">
     eQTL Catalogue ingestion
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../steps/fine_mapping_plan_generator/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Fine-Mapping Plan Generator
   </span>
   
 
@@ -4083,8 +4146,7 @@
 
               <details class="quote">
                 <summary>Source code in <code>src/gentropy/datasource/gnomad/ld.py</code></summary>
-                <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 24</span>
-<span class="normal"> 25</span>
+                <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 25</span>
 <span class="normal"> 26</span>
 <span class="normal"> 27</span>
 <span class="normal"> 28</span>
@@ -4634,7 +4696,9 @@
 <span class="normal">572</span>
 <span class="normal">573</span>
 <span class="normal">574</span>
-<span class="normal">575</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">GnomADLDMatrix</span><span class="p">:</span>
+<span class="normal">575</span>
+<span class="normal">576</span>
+<span class="normal">577</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">GnomADLDMatrix</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Toolset ot interact with GnomAD LD dataset (version: r2.1.1).&quot;&quot;&quot;</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
@@ -4642,7 +4706,7 @@
         <span class="n">ld_matrix_template</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">LDIndexConfig</span><span class="p">()</span><span class="o">.</span><span class="n">ld_matrix_template</span><span class="p">,</span>
         <span class="n">ld_index_raw_template</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">LDIndexConfig</span><span class="p">()</span><span class="o">.</span><span class="n">ld_index_raw_template</span><span class="p">,</span>
         <span class="n">grch37_to_grch38_chain_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">LDIndexConfig</span><span class="p">()</span><span class="o">.</span><span class="n">grch37_to_grch38_chain_path</span><span class="p">,</span>
-        <span class="n">ld_populations</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">LD_Population</span> <span class="o">|</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">LDIndexConfig</span><span class="p">()</span><span class="o">.</span><span class="n">ld_populations</span><span class="p">,</span>
+        <span class="n">ld_populations</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">LDPopulation</span> <span class="o">|</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">LDIndexConfig</span><span class="p">()</span><span class="o">.</span><span class="n">ld_populations</span><span class="p">,</span>
         <span class="n">liftover_ht_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">LDIndexConfig</span><span class="p">()</span><span class="o">.</span><span class="n">liftover_ht_path</span><span class="p">,</span>
     <span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize.</span>
@@ -4653,7 +4717,7 @@
 <span class="sd">            ld_matrix_template (str): Template for the LD matrix path.</span>
 <span class="sd">            ld_index_raw_template (str): Template for the LD index path.</span>
 <span class="sd">            grch37_to_grch38_chain_path (str): Path to the chain file used to lift over the coordinates.</span>
-<span class="sd">            ld_populations (list[LD_Population | str]): List of populations to use to build the LDIndex.</span>
+<span class="sd">            ld_populations (Sequence[LDPopulation | str]): List of populations to use to build the LDIndex.</span>
 <span class="sd">            liftover_ht_path (str): Path to the liftover ht file.</span>
 
 <span class="sd">        Default values are set in LDIndexConfig.</span>
@@ -4892,7 +4956,8 @@
 <span class="sd">            LDIndex: LDIndex dataset</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">ld_indices_unaggregated</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="k">for</span> <span class="n">pop</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ld_populations</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">raw_pop</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ld_populations</span><span class="p">:</span>
+            <span class="n">pop</span> <span class="o">=</span> <span class="n">raw_pop</span><span class="o">.</span><span class="n">value</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">raw_pop</span><span class="p">,</span> <span class="n">LDPopulation</span><span class="p">)</span> <span class="k">else</span> <span class="n">raw_pop</span>
             <span class="k">try</span><span class="p">:</span>
                 <span class="n">ld_matrix_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ld_matrix_template</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">POP</span><span class="o">=</span><span class="n">pop</span><span class="p">)</span>
                 <span class="n">ld_index_raw_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ld_index_raw_template</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">POP</span><span class="o">=</span><span class="n">pop</span><span class="p">)</span>
@@ -5277,8 +5342,7 @@
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/datasource/gnomad/ld.py</code></summary>
-              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">263</span>
-<span class="normal">264</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">264</span>
 <span class="normal">265</span>
 <span class="normal">266</span>
 <span class="normal">267</span>
@@ -5322,7 +5386,9 @@
 <span class="normal">305</span>
 <span class="normal">306</span>
 <span class="normal">307</span>
-<span class="normal">308</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">as_ld_index</span><span class="p">(</span>
+<span class="normal">308</span>
+<span class="normal">309</span>
+<span class="normal">310</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">as_ld_index</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">:</span> <span class="n">GnomADLDMatrix</span><span class="p">,</span>
     <span class="n">min_r2</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">LDIndex</span><span class="p">:</span>
@@ -5341,7 +5407,8 @@
 <span class="sd">        LDIndex: LDIndex dataset</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">ld_indices_unaggregated</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">for</span> <span class="n">pop</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ld_populations</span><span class="p">:</span>
+    <span class="k">for</span> <span class="n">raw_pop</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ld_populations</span><span class="p">:</span>
+        <span class="n">pop</span> <span class="o">=</span> <span class="n">raw_pop</span><span class="o">.</span><span class="n">value</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">raw_pop</span><span class="p">,</span> <span class="n">LDPopulation</span><span class="p">)</span> <span class="k">else</span> <span class="n">raw_pop</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="n">ld_matrix_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ld_matrix_template</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">POP</span><span class="o">=</span><span class="n">pop</span><span class="p">)</span>
             <span class="n">ld_index_raw_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ld_index_raw_template</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">POP</span><span class="o">=</span><span class="n">pop</span><span class="p">)</span>
@@ -5480,9 +5547,7 @@
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/datasource/gnomad/ld.py</code></summary>
-              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">405</span>
-<span class="normal">406</span>
-<span class="normal">407</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">407</span>
 <span class="normal">408</span>
 <span class="normal">409</span>
 <span class="normal">410</span>
@@ -5516,7 +5581,9 @@
 <span class="normal">438</span>
 <span class="normal">439</span>
 <span class="normal">440</span>
-<span class="normal">441</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_ld_matrix_slice</span><span class="p">(</span>
+<span class="normal">441</span>
+<span class="normal">442</span>
+<span class="normal">443</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_ld_matrix_slice</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">:</span> <span class="n">GnomADLDMatrix</span><span class="p">,</span>
     <span class="n">gnomad_ancestry</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">start_index</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -5677,9 +5744,7 @@
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/datasource/gnomad/ld.py</code></summary>
-              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">310</span>
-<span class="normal">311</span>
-<span class="normal">312</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">312</span>
 <span class="normal">313</span>
 <span class="normal">314</span>
 <span class="normal">315</span>
@@ -5729,7 +5794,9 @@
 <span class="normal">359</span>
 <span class="normal">360</span>
 <span class="normal">361</span>
-<span class="normal">362</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_ld_variants</span><span class="p">(</span>
+<span class="normal">362</span>
+<span class="normal">363</span>
+<span class="normal">364</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_ld_variants</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">:</span> <span class="n">GnomADLDMatrix</span><span class="p">,</span>
     <span class="n">gnomad_ancestry</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">chromosome</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
@@ -5890,9 +5957,7 @@
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/datasource/gnomad/ld.py</code></summary>
-              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">443</span>
-<span class="normal">444</span>
-<span class="normal">445</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">445</span>
 <span class="normal">446</span>
 <span class="normal">447</span>
 <span class="normal">448</span>
@@ -5932,7 +5997,9 @@
 <span class="normal">482</span>
 <span class="normal">483</span>
 <span class="normal">484</span>
-<span class="normal">485</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_locus_index</span><span class="p">(</span>
+<span class="normal">485</span>
+<span class="normal">486</span>
+<span class="normal">487</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_locus_index</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">:</span> <span class="n">GnomADLDMatrix</span><span class="p">,</span>
     <span class="n">study_locus_row</span><span class="p">:</span> <span class="n">Row</span><span class="p">,</span>
     <span class="n">radius</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">500_000</span><span class="p">,</span>
@@ -6067,9 +6134,7 @@
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/datasource/gnomad/ld.py</code></summary>
-              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">511</span>
-<span class="normal">512</span>
-<span class="normal">513</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">513</span>
 <span class="normal">514</span>
 <span class="normal">515</span>
 <span class="normal">516</span>
@@ -6099,7 +6164,9 @@
 <span class="normal">540</span>
 <span class="normal">541</span>
 <span class="normal">542</span>
-<span class="normal">543</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_locus_index_boundaries</span><span class="p">(</span>
+<span class="normal">543</span>
+<span class="normal">544</span>
+<span class="normal">545</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_locus_index_boundaries</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">:</span> <span class="n">GnomADLDMatrix</span><span class="p">,</span>
     <span class="n">study_locus_row</span><span class="p">:</span> <span class="n">Row</span><span class="p">,</span>
     <span class="n">major_population</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;nfe&quot;</span><span class="p">,</span>
@@ -6224,9 +6291,7 @@
 
             <details class="quote">
               <summary>Source code in <code>src/gentropy/datasource/gnomad/ld.py</code></summary>
-              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">487</span>
-<span class="normal">488</span>
-<span class="normal">489</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">489</span>
 <span class="normal">490</span>
 <span class="normal">491</span>
 <span class="normal">492</span>
@@ -6246,7 +6311,9 @@
 <span class="normal">506</span>
 <span class="normal">507</span>
 <span class="normal">508</span>
-<span class="normal">509</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_numpy_matrix</span><span class="p">(</span>
+<span class="normal">509</span>
+<span class="normal">510</span>
+<span class="normal">511</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_numpy_matrix</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">:</span> <span class="n">GnomADLDMatrix</span><span class="p">,</span>
     <span class="n">locus_index</span><span class="p">:</span> <span class="n">DataFrame</span><span class="p">,</span>
     <span class="n">gnomad_ancestry</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;nfe&quot;</span><span class="p">,</span>

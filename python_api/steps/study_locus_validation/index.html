@@ -1192,6 +1192,27 @@
   
   
     <li class="md-nav__item">
+      <a href="../../datasets/fine_mapping/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Fine-Mapping Plan
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../datasets/intervals/" class="md-nav__link">
         
   
@@ -1496,7 +1517,7 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_3_17" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_3_18" >
         
           
           
@@ -1512,14 +1533,14 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_5_3_17" id="__nav_5_3_17_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_5_3_18" id="__nav_5_3_18_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_5_3_17_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_5_3_17">
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_5_3_18_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_3_18">
             <span class="md-nav__icon md-icon"></span>
             L2g features
           </label>
@@ -2986,6 +3007,27 @@
   
   
     <li class="md-nav__item">
+      <a href="../../methods/fine_mapping_constraints/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Fine-Mapping Constraints
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../methods/joint_colocalisation/" class="md-nav__link">
         
   
@@ -3122,7 +3164,7 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_5_12" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_5_13" >
         
           
           
@@ -3138,14 +3180,14 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_5_5_12" id="__nav_5_5_12_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_5_5_13" id="__nav_5_5_13_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_5_5_12_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_5_5_12">
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_5_5_13_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_5_13">
             <span class="md-nav__icon md-icon"></span>
             L2g
           </label>
@@ -3374,6 +3416,27 @@
   
   <span class="md-ellipsis">
     eQTL Catalogue ingestion
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../fine_mapping_plan_generator/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Fine-Mapping Plan Generator
   </span>
   
 
@@ -3963,83 +4026,102 @@ when target of disease validation fails.</p>
 
               <details class="quote">
                 <summary>Source code in <code>src/gentropy/study_locus_validation.py</code></summary>
-                <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">11</span>
-<span class="normal">12</span>
-<span class="normal">13</span>
-<span class="normal">14</span>
-<span class="normal">15</span>
-<span class="normal">16</span>
-<span class="normal">17</span>
-<span class="normal">18</span>
-<span class="normal">19</span>
-<span class="normal">20</span>
-<span class="normal">21</span>
-<span class="normal">22</span>
-<span class="normal">23</span>
-<span class="normal">24</span>
-<span class="normal">25</span>
-<span class="normal">26</span>
-<span class="normal">27</span>
-<span class="normal">28</span>
-<span class="normal">29</span>
-<span class="normal">30</span>
-<span class="normal">31</span>
-<span class="normal">32</span>
-<span class="normal">33</span>
-<span class="normal">34</span>
-<span class="normal">35</span>
-<span class="normal">36</span>
-<span class="normal">37</span>
-<span class="normal">38</span>
-<span class="normal">39</span>
-<span class="normal">40</span>
-<span class="normal">41</span>
-<span class="normal">42</span>
-<span class="normal">43</span>
-<span class="normal">44</span>
-<span class="normal">45</span>
-<span class="normal">46</span>
-<span class="normal">47</span>
-<span class="normal">48</span>
-<span class="normal">49</span>
-<span class="normal">50</span>
-<span class="normal">51</span>
-<span class="normal">52</span>
-<span class="normal">53</span>
-<span class="normal">54</span>
-<span class="normal">55</span>
-<span class="normal">56</span>
-<span class="normal">57</span>
-<span class="normal">58</span>
-<span class="normal">59</span>
-<span class="normal">60</span>
-<span class="normal">61</span>
-<span class="normal">62</span>
-<span class="normal">63</span>
-<span class="normal">64</span>
-<span class="normal">65</span>
-<span class="normal">66</span>
-<span class="normal">67</span>
-<span class="normal">68</span>
-<span class="normal">69</span>
-<span class="normal">70</span>
-<span class="normal">71</span>
-<span class="normal">72</span>
-<span class="normal">73</span>
-<span class="normal">74</span>
-<span class="normal">75</span>
-<span class="normal">76</span>
-<span class="normal">77</span>
-<span class="normal">78</span>
-<span class="normal">79</span>
-<span class="normal">80</span>
-<span class="normal">81</span>
-<span class="normal">82</span>
-<span class="normal">83</span>
-<span class="normal">84</span>
-<span class="normal">85</span>
-<span class="normal">86</span>
-<span class="normal">87</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">StudyLocusValidationStep</span><span class="p">:</span>
+                <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 11</span>
+<span class="normal"> 12</span>
+<span class="normal"> 13</span>
+<span class="normal"> 14</span>
+<span class="normal"> 15</span>
+<span class="normal"> 16</span>
+<span class="normal"> 17</span>
+<span class="normal"> 18</span>
+<span class="normal"> 19</span>
+<span class="normal"> 20</span>
+<span class="normal"> 21</span>
+<span class="normal"> 22</span>
+<span class="normal"> 23</span>
+<span class="normal"> 24</span>
+<span class="normal"> 25</span>
+<span class="normal"> 26</span>
+<span class="normal"> 27</span>
+<span class="normal"> 28</span>
+<span class="normal"> 29</span>
+<span class="normal"> 30</span>
+<span class="normal"> 31</span>
+<span class="normal"> 32</span>
+<span class="normal"> 33</span>
+<span class="normal"> 34</span>
+<span class="normal"> 35</span>
+<span class="normal"> 36</span>
+<span class="normal"> 37</span>
+<span class="normal"> 38</span>
+<span class="normal"> 39</span>
+<span class="normal"> 40</span>
+<span class="normal"> 41</span>
+<span class="normal"> 42</span>
+<span class="normal"> 43</span>
+<span class="normal"> 44</span>
+<span class="normal"> 45</span>
+<span class="normal"> 46</span>
+<span class="normal"> 47</span>
+<span class="normal"> 48</span>
+<span class="normal"> 49</span>
+<span class="normal"> 50</span>
+<span class="normal"> 51</span>
+<span class="normal"> 52</span>
+<span class="normal"> 53</span>
+<span class="normal"> 54</span>
+<span class="normal"> 55</span>
+<span class="normal"> 56</span>
+<span class="normal"> 57</span>
+<span class="normal"> 58</span>
+<span class="normal"> 59</span>
+<span class="normal"> 60</span>
+<span class="normal"> 61</span>
+<span class="normal"> 62</span>
+<span class="normal"> 63</span>
+<span class="normal"> 64</span>
+<span class="normal"> 65</span>
+<span class="normal"> 66</span>
+<span class="normal"> 67</span>
+<span class="normal"> 68</span>
+<span class="normal"> 69</span>
+<span class="normal"> 70</span>
+<span class="normal"> 71</span>
+<span class="normal"> 72</span>
+<span class="normal"> 73</span>
+<span class="normal"> 74</span>
+<span class="normal"> 75</span>
+<span class="normal"> 76</span>
+<span class="normal"> 77</span>
+<span class="normal"> 78</span>
+<span class="normal"> 79</span>
+<span class="normal"> 80</span>
+<span class="normal"> 81</span>
+<span class="normal"> 82</span>
+<span class="normal"> 83</span>
+<span class="normal"> 84</span>
+<span class="normal"> 85</span>
+<span class="normal"> 86</span>
+<span class="normal"> 87</span>
+<span class="normal"> 88</span>
+<span class="normal"> 89</span>
+<span class="normal"> 90</span>
+<span class="normal"> 91</span>
+<span class="normal"> 92</span>
+<span class="normal"> 93</span>
+<span class="normal"> 94</span>
+<span class="normal"> 95</span>
+<span class="normal"> 96</span>
+<span class="normal"> 97</span>
+<span class="normal"> 98</span>
+<span class="normal"> 99</span>
+<span class="normal">100</span>
+<span class="normal">101</span>
+<span class="normal">102</span>
+<span class="normal">103</span>
+<span class="normal">104</span>
+<span class="normal">105</span>
+<span class="normal">106</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">StudyLocusValidationStep</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Study index validation step.</span>
 
 <span class="sd">    This step reads and outputs a study index dataset with flagged studies</span>
@@ -4100,9 +4182,23 @@ when target of disease validation fails.</p>
 
         <span class="n">result</span> <span class="o">=</span> <span class="n">study_locus_with_qc</span><span class="o">.</span><span class="n">valid_rows</span><span class="p">(</span><span class="n">invalid_qc_reasons</span><span class="p">)</span>
 
+        <span class="c1"># `studyLocusId` is a hash of the study and the lead variant, and the input is a union of</span>
+        <span class="c1"># several independently generated datasets, so uniqueness can only be established here.</span>
+        <span class="c1"># It is checked on the credible sets that survived the other flags, never on the whole</span>
+        <span class="c1"># input: a curated top hit collides with the PICS credible set of the same study and lead</span>
+        <span class="c1"># variant, and the top hit holds the smaller `locus` of the two, so ordering the whole</span>
+        <span class="c1"># input by credible set size elects the top hit -- itself already dropped under</span>
+        <span class="c1"># TOP_HIT_AND_SUMMARY_STATS -- and flags the fine-mapped credible set, losing both.</span>
+        <span class="n">deduplicated</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">result</span><span class="o">.</span><span class="n">valid</span><span class="o">.</span><span class="n">validate_unique_study_locus_id</span><span class="p">()</span><span class="o">.</span><span class="n">persist</span><span class="p">()</span>
+        <span class="p">)</span>  <span class="c1"># we will need this for 2 types of outputs</span>
+        <span class="c1"># None of the other reasons can match here, so this only separates the duplicates, and</span>
+        <span class="c1"># only when DUPLICATED_STUDYLOCUS_ID is one of the configured invalid reasons.</span>
+        <span class="n">unique</span> <span class="o">=</span> <span class="n">deduplicated</span><span class="o">.</span><span class="n">valid_rows</span><span class="p">(</span><span class="n">invalid_qc_reasons</span><span class="p">)</span>
+
         <span class="p">(</span>
             <span class="c1"># Valid study locus partitioned to simplify the finding of overlaps</span>
-            <span class="n">result</span><span class="o">.</span><span class="n">valid</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">repartitionByRange</span><span class="p">(</span>
+            <span class="n">unique</span><span class="o">.</span><span class="n">valid</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">repartitionByRange</span><span class="p">(</span>
                 <span class="n">session</span><span class="o">.</span><span class="n">output_partitions</span><span class="p">,</span>
                 <span class="s2">&quot;chromosome&quot;</span><span class="p">,</span>
                 <span class="s2">&quot;position&quot;</span><span class="p">,</span>
@@ -4112,10 +4208,15 @@ when target of disease validation fails.</p>
             <span class="o">.</span><span class="n">parquet</span><span class="p">(</span><span class="n">valid_study_locus_path</span><span class="p">)</span>
         <span class="p">)</span>
         <span class="p">(</span>
-            <span class="n">result</span><span class="o">.</span><span class="n">invalid</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">coalesce</span><span class="p">(</span><span class="n">session</span><span class="o">.</span><span class="n">output_partitions</span><span class="p">)</span>
+            <span class="n">result</span><span class="o">.</span><span class="n">invalid</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">unionByName</span><span class="p">(</span><span class="n">unique</span><span class="o">.</span><span class="n">invalid</span><span class="o">.</span><span class="n">df</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">coalesce</span><span class="p">(</span><span class="n">session</span><span class="o">.</span><span class="n">output_partitions</span><span class="p">)</span>
             <span class="o">.</span><span class="n">write</span><span class="o">.</span><span class="n">mode</span><span class="p">(</span><span class="n">session</span><span class="o">.</span><span class="n">write_mode</span><span class="p">)</span>
             <span class="o">.</span><span class="n">parquet</span><span class="p">(</span><span class="n">invalid_study_locus_path</span><span class="p">)</span>
         <span class="p">)</span>
+
+        <span class="c1"># Both caches feed the invalid output, so they can only be released once it is written.</span>
+        <span class="n">deduplicated</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">unpersist</span><span class="p">()</span>
+        <span class="n">study_locus_with_qc</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">unpersist</span><span class="p">()</span>
 </code></pre></div></td></tr></table></div>
               </details>
 

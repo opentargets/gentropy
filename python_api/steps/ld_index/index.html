@@ -1192,6 +1192,27 @@
   
   
     <li class="md-nav__item">
+      <a href="../../datasets/fine_mapping/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Fine-Mapping Plan
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../datasets/intervals/" class="md-nav__link">
         
   
@@ -1496,7 +1517,7 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_3_17" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_3_18" >
         
           
           
@@ -1512,14 +1533,14 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_5_3_17" id="__nav_5_3_17_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_5_3_18" id="__nav_5_3_18_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_5_3_17_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_5_3_17">
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_5_3_18_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_3_18">
             <span class="md-nav__icon md-icon"></span>
             L2g features
           </label>
@@ -2986,6 +3007,27 @@
   
   
     <li class="md-nav__item">
+      <a href="../../methods/fine_mapping_constraints/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Fine-Mapping Constraints
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../methods/joint_colocalisation/" class="md-nav__link">
         
   
@@ -3122,7 +3164,7 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_5_12" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_5_13" >
         
           
           
@@ -3138,14 +3180,14 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_5_5_12" id="__nav_5_5_12_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_5_5_13" id="__nav_5_5_13_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_5_5_12_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_5_5_12">
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_5_5_13_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_5_13">
             <span class="md-nav__icon md-icon"></span>
             L2g
           </label>
@@ -3374,6 +3416,27 @@
   
   <span class="md-ellipsis">
     eQTL Catalogue ingestion
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../fine_mapping_plan_generator/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Fine-Mapping Plan Generator
   </span>
   
 
@@ -3965,9 +4028,7 @@
 
               <details class="quote">
                 <summary>Source code in <code>src/gentropy/gnomad_ingestion.py</code></summary>
-                <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">17</span>
-<span class="normal">18</span>
-<span class="normal">19</span>
+                <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">19</span>
 <span class="normal">20</span>
 <span class="normal">21</span>
 <span class="normal">22</span>
@@ -4012,7 +4073,9 @@
 <span class="normal">61</span>
 <span class="normal">62</span>
 <span class="normal">63</span>
-<span class="normal">64</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">LDIndexStep</span><span class="p">:</span>
+<span class="normal">64</span>
+<span class="normal">65</span>
+<span class="normal">66</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">LDIndexStep</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;LD index step.</span>
 
 <span class="sd">    !!! warning &quot;This step is resource intensive&quot;</span>
@@ -4028,7 +4091,7 @@
         <span class="n">min_r2</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">LDIndexConfig</span><span class="p">()</span><span class="o">.</span><span class="n">min_r2</span><span class="p">,</span>
         <span class="n">ld_matrix_template</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">LDIndexConfig</span><span class="p">()</span><span class="o">.</span><span class="n">ld_matrix_template</span><span class="p">,</span>
         <span class="n">ld_index_raw_template</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">LDIndexConfig</span><span class="p">()</span><span class="o">.</span><span class="n">ld_index_raw_template</span><span class="p">,</span>
-        <span class="n">ld_populations</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">LD_Population</span> <span class="o">|</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">LDIndexConfig</span><span class="p">()</span><span class="o">.</span><span class="n">ld_populations</span><span class="p">,</span>
+        <span class="n">ld_populations</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">LDPopulation</span> <span class="o">|</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">LDIndexConfig</span><span class="p">()</span><span class="o">.</span><span class="n">ld_populations</span><span class="p">,</span>
         <span class="n">liftover_ht_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">LDIndexConfig</span><span class="p">()</span><span class="o">.</span><span class="n">liftover_ht_path</span><span class="p">,</span>
         <span class="n">grch37_to_grch38_chain_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">LDIndexConfig</span><span class="p">()</span><span class="o">.</span><span class="n">grch37_to_grch38_chain_path</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
@@ -4040,7 +4103,7 @@
 <span class="sd">            min_r2 (float): Minimum r2 to consider when considering variants within a window.</span>
 <span class="sd">            ld_matrix_template (str): Input path to the gnomAD ld file with placeholder for population</span>
 <span class="sd">            ld_index_raw_template (str): Input path to the raw gnomAD LD indices file with placeholder for population string</span>
-<span class="sd">            ld_populations (list[LD_Population | str]): Population names derived from the ld file paths</span>
+<span class="sd">            ld_populations (Sequence[LDPopulation | str]): Population names derived from the ld file paths</span>
 <span class="sd">            liftover_ht_path (str): Path to the liftover ht file</span>
 <span class="sd">            grch37_to_grch38_chain_path (str): Path to the chain file used to lift over the coordinates.</span>
 

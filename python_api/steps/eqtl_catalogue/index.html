@@ -12,7 +12,7 @@
         <link rel="prev" href="../decode_ingestion/">
       
       
-        <link rel="next" href="../finngen_studies/">
+        <link rel="next" href="../fine_mapping_plan_generator/">
       
       
       <link rel="icon" href="../../../assets/imgs/favicon.png">
@@ -1192,6 +1192,27 @@
   
   
     <li class="md-nav__item">
+      <a href="../../datasets/fine_mapping/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Fine-Mapping Plan
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../datasets/intervals/" class="md-nav__link">
         
   
@@ -1496,7 +1517,7 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_3_17" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_3_18" >
         
           
           
@@ -1512,14 +1533,14 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_5_3_17" id="__nav_5_3_17_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_5_3_18" id="__nav_5_3_18_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_5_3_17_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_5_3_17">
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_5_3_18_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_3_18">
             <span class="md-nav__icon md-icon"></span>
             L2g features
           </label>
@@ -2986,6 +3007,27 @@
   
   
     <li class="md-nav__item">
+      <a href="../../methods/fine_mapping_constraints/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Fine-Mapping Constraints
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../methods/joint_colocalisation/" class="md-nav__link">
         
   
@@ -3122,7 +3164,7 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_5_12" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_5_13" >
         
           
           
@@ -3138,14 +3180,14 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_5_5_12" id="__nav_5_5_12_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_5_5_13" id="__nav_5_5_13_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_5_5_12_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_5_5_12">
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_5_5_13_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_5_13">
             <span class="md-nav__icon md-icon"></span>
             L2g
           </label>
@@ -3417,12 +3459,57 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="EqtlCatalogueStep">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#gentropy.eqtl_catalogue.EqtlCatalogueStep--process-overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      Process overview
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gentropy.eqtl_catalogue.EqtlCatalogueStep--data-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      Data flow
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
     </ul>
   
 </nav>
       
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../fine_mapping_plan_generator/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Fine-Mapping Plan Generator
+  </span>
+  
+
+      </a>
     </li>
   
 
@@ -3915,6 +4002,30 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="EqtlCatalogueStep">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#gentropy.eqtl_catalogue.EqtlCatalogueStep--process-overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      Process overview
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gentropy.eqtl_catalogue.EqtlCatalogueStep--data-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      Data flow
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
     </ul>
@@ -3952,7 +4063,94 @@
 
 
         <p>eQTL Catalogue ingestion step.</p>
-<p>From SuSIE fine mapping results (available at <a href="https://ftp.ebi.ac.uk/pub/databases/spot/eQTL/susie/">their FTP</a> ), we extract credible sets and study index datasets from gene expression QTL studies.</p>
+<h5 id="gentropy.eqtl_catalogue.EqtlCatalogueStep--process-overview">Process overview<a class="headerlink" href="#gentropy.eqtl_catalogue.EqtlCatalogueStep--process-overview" title="Permanent link">&para;</a></h5>
+<p>From SuSIE fine mapping results (available at <a href="https://ftp.ebi.ac.uk/pub/databases/spot/eQTL/susie/">their FTP</a> ),
+this step extracts credible sets and a study index for gene-expression and molecular-trait
+QTL studies.</p>
+<ol>
+<li><strong>Read study metadata</strong> from the eQTL Catalogue TSV manifest using
+   <code>EqtlCatalogueStudyIndex.read_studies_from_source</code>, optionally excluding quantification
+   methods listed in <code>mqtl_quantification_methods_blacklist</code>.</li>
+<li><strong>Read raw credible sets</strong> using <code>EqtlCatalogueFinemapping.read_credible_set_from_source</code>.</li>
+<li><strong>Read raw log Bayes factors</strong> using <code>EqtlCatalogueFinemapping.read_lbf_from_source</code>.</li>
+<li><strong>Parse and correct the SuSIE results</strong> using <code>EqtlCatalogueFinemapping.parse_susie_results</code>,
+   joining credible sets, log Bayes factors and study metadata.</li>
+<li><strong>Build the study index</strong> using <code>EqtlCatalogueStudyIndex.from_susie_results</code>.</li>
+<li><strong>Build the credible sets</strong> using <code>EqtlCatalogueFinemapping.from_susie_results</code>, flagging
+   loci whose lead p-value is above <code>lead_pvalue_threshold</code> as sub-significant.</li>
+</ol>
+<div class="admonition note">
+<p class="admonition-title">eQTL Catalogue data</p>
+<p>The data needs to be downloaded to hadoop compatible filesystem before
+running the step.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Non-ATGC variant removal</p>
+<p>Some source studies (e.g. AFR_LCL/QTS000044, MAGE/QTS000055) report large indels and
+structural variants with imprecise coordinates, using CNV notation (<code>&lt;DEL&gt;</code>, <code>&lt;DUP&gt;</code>) for
+<code>alt</code>, which produced duplicate credible-set entries. These variants are removed in
+<code>read_credible_set_from_source</code> by requiring <code>ref</code>/<code>alt</code> to contain only A/T/G/C bases.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">PIP to alpha correction</p>
+<p>Some source studies (e.g. CommonMind/QTS000008, Kim-Hellmuth/QTS000042) report the
+per-variant <code>pip</code> computed by SuSiE instead of the per-(credible-set x variant) alpha
+value, which makes the posterior probabilities within a credible set sum to more than
+1.0. <code>parse_susie_results</code> detects and corrects this via
+<a class="autorefs autorefs-internal" href="../../datasources/eqtl_catalogue/finemapping/#gentropy.datasource.eqtl_catalogue.finemapping.EqtlCatalogueFinemapping.scale_pip"><code>scale_pip</code></a>,
+which recomputes alpha from the log Bayes factors using a log-sum-exp normalisation.</p>
+</div>
+<h5 id="gentropy.eqtl_catalogue.EqtlCatalogueStep--data-flow">Data flow<a class="headerlink" href="#gentropy.eqtl_catalogue.EqtlCatalogueStep--data-flow" title="Permanent link">&para;</a></h5>
+<pre class="mermaid"><code>flowchart TD
+  subgraph INPUTS
+    A1[eqtl_catalogue_dataset_metadata]
+    A2[raw credible_set.parquet]
+    A3[raw lbf_variable.parquet]
+  end
+
+  subgraph OUTPUTS
+    O1[study_index]
+    O2[credible_set]
+  end
+
+    A1 --&gt; META[read_studies_from_source]
+    META --&gt; P1[studies_metadata]
+
+    A2 --&gt; CS["read_credible_set_from_source"]
+    CS --&gt; P2[credible_sets]
+
+    A3 --&gt; LBF[read_lbf_from_source]
+    LBF --&gt; P3[lbf]
+
+    P1 --&gt; PARSE["parse_susie_results"]
+    P2 --&gt; PARSE
+    P3 --&gt; PARSE
+    PARSE --&gt; P4[processed_susie_results]
+
+    P4 --&gt; SI[EqtlCatalogueStudyIndex.from_susie_results]
+    SI --&gt; O1
+
+    P4 --&gt; CSB[EqtlCatalogueFinemapping.from_susie_results]
+    CSB --&gt; O2
+
+    classDef parquet fill:#bd757c,stroke:#73343A,color:#333
+    class A1,A2,A3,P1,P2,P3,P4,O1,O2 parquet</code></pre>
+<details class="tip">
+<summary>Inputs</summary>
+<ul class="task-list">
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> <strong>eqtl_catalogue_dataset_metadata</strong> — TSV manifest of eQTL Catalogue studies/datasets.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> <strong>credible_set.parquet</strong> — raw SuSIE credible-set files, one per dataset (<code>QTS*/QTD*/QTD*.credible_set.parquet</code>).</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> <strong>lbf_variable.parquet</strong> — raw SuSIE log-Bayes-factor files, one per dataset (<code>QTS*/QTD*/QTD*.lbf_variable.parquet</code>).</li>
+</ul>
+</details>
+<details class="tip">
+<summary>Outputs</summary>
+<p>This pipeline produces 2 artefacts:</p>
+<ul class="task-list">
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> <strong>study_index</strong> — study index in Parquet format.</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> <strong>credible_set</strong> — credible sets in Parquet format, flagged for sub-significant lead loci.</li>
+</ul>
+</details>
 
 
 
@@ -3962,153 +4160,345 @@
 
               <details class="quote">
                 <summary>Source code in <code>src/gentropy/eqtl_catalogue.py</code></summary>
-                <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">11</span>
-<span class="normal">12</span>
-<span class="normal">13</span>
-<span class="normal">14</span>
-<span class="normal">15</span>
-<span class="normal">16</span>
-<span class="normal">17</span>
-<span class="normal">18</span>
-<span class="normal">19</span>
-<span class="normal">20</span>
-<span class="normal">21</span>
-<span class="normal">22</span>
-<span class="normal">23</span>
-<span class="normal">24</span>
-<span class="normal">25</span>
-<span class="normal">26</span>
-<span class="normal">27</span>
-<span class="normal">28</span>
-<span class="normal">29</span>
-<span class="normal">30</span>
-<span class="normal">31</span>
-<span class="normal">32</span>
-<span class="normal">33</span>
-<span class="normal">34</span>
-<span class="normal">35</span>
-<span class="normal">36</span>
-<span class="normal">37</span>
-<span class="normal">38</span>
-<span class="normal">39</span>
-<span class="normal">40</span>
-<span class="normal">41</span>
-<span class="normal">42</span>
-<span class="normal">43</span>
-<span class="normal">44</span>
-<span class="normal">45</span>
-<span class="normal">46</span>
-<span class="normal">47</span>
-<span class="normal">48</span>
-<span class="normal">49</span>
-<span class="normal">50</span>
-<span class="normal">51</span>
-<span class="normal">52</span>
-<span class="normal">53</span>
-<span class="normal">54</span>
-<span class="normal">55</span>
-<span class="normal">56</span>
-<span class="normal">57</span>
-<span class="normal">58</span>
-<span class="normal">59</span>
-<span class="normal">60</span>
-<span class="normal">61</span>
-<span class="normal">62</span>
-<span class="normal">63</span>
-<span class="normal">64</span>
-<span class="normal">65</span>
-<span class="normal">66</span>
-<span class="normal">67</span>
-<span class="normal">68</span>
-<span class="normal">69</span>
-<span class="normal">70</span>
-<span class="normal">71</span>
-<span class="normal">72</span>
-<span class="normal">73</span>
-<span class="normal">74</span>
-<span class="normal">75</span>
-<span class="normal">76</span>
-<span class="normal">77</span>
-<span class="normal">78</span>
-<span class="normal">79</span>
-<span class="normal">80</span>
-<span class="normal">81</span>
-<span class="normal">82</span>
-<span class="normal">83</span>
-<span class="normal">84</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">EqtlCatalogueStep</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;eQTL Catalogue ingestion step.</span>
+                <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 10</span>
+<span class="normal"> 11</span>
+<span class="normal"> 12</span>
+<span class="normal"> 13</span>
+<span class="normal"> 14</span>
+<span class="normal"> 15</span>
+<span class="normal"> 16</span>
+<span class="normal"> 17</span>
+<span class="normal"> 18</span>
+<span class="normal"> 19</span>
+<span class="normal"> 20</span>
+<span class="normal"> 21</span>
+<span class="normal"> 22</span>
+<span class="normal"> 23</span>
+<span class="normal"> 24</span>
+<span class="normal"> 25</span>
+<span class="normal"> 26</span>
+<span class="normal"> 27</span>
+<span class="normal"> 28</span>
+<span class="normal"> 29</span>
+<span class="normal"> 30</span>
+<span class="normal"> 31</span>
+<span class="normal"> 32</span>
+<span class="normal"> 33</span>
+<span class="normal"> 34</span>
+<span class="normal"> 35</span>
+<span class="normal"> 36</span>
+<span class="normal"> 37</span>
+<span class="normal"> 38</span>
+<span class="normal"> 39</span>
+<span class="normal"> 40</span>
+<span class="normal"> 41</span>
+<span class="normal"> 42</span>
+<span class="normal"> 43</span>
+<span class="normal"> 44</span>
+<span class="normal"> 45</span>
+<span class="normal"> 46</span>
+<span class="normal"> 47</span>
+<span class="normal"> 48</span>
+<span class="normal"> 49</span>
+<span class="normal"> 50</span>
+<span class="normal"> 51</span>
+<span class="normal"> 52</span>
+<span class="normal"> 53</span>
+<span class="normal"> 54</span>
+<span class="normal"> 55</span>
+<span class="normal"> 56</span>
+<span class="normal"> 57</span>
+<span class="normal"> 58</span>
+<span class="normal"> 59</span>
+<span class="normal"> 60</span>
+<span class="normal"> 61</span>
+<span class="normal"> 62</span>
+<span class="normal"> 63</span>
+<span class="normal"> 64</span>
+<span class="normal"> 65</span>
+<span class="normal"> 66</span>
+<span class="normal"> 67</span>
+<span class="normal"> 68</span>
+<span class="normal"> 69</span>
+<span class="normal"> 70</span>
+<span class="normal"> 71</span>
+<span class="normal"> 72</span>
+<span class="normal"> 73</span>
+<span class="normal"> 74</span>
+<span class="normal"> 75</span>
+<span class="normal"> 76</span>
+<span class="normal"> 77</span>
+<span class="normal"> 78</span>
+<span class="normal"> 79</span>
+<span class="normal"> 80</span>
+<span class="normal"> 81</span>
+<span class="normal"> 82</span>
+<span class="normal"> 83</span>
+<span class="normal"> 84</span>
+<span class="normal"> 85</span>
+<span class="normal"> 86</span>
+<span class="normal"> 87</span>
+<span class="normal"> 88</span>
+<span class="normal"> 89</span>
+<span class="normal"> 90</span>
+<span class="normal"> 91</span>
+<span class="normal"> 92</span>
+<span class="normal"> 93</span>
+<span class="normal"> 94</span>
+<span class="normal"> 95</span>
+<span class="normal"> 96</span>
+<span class="normal"> 97</span>
+<span class="normal"> 98</span>
+<span class="normal"> 99</span>
+<span class="normal">100</span>
+<span class="normal">101</span>
+<span class="normal">102</span>
+<span class="normal">103</span>
+<span class="normal">104</span>
+<span class="normal">105</span>
+<span class="normal">106</span>
+<span class="normal">107</span>
+<span class="normal">108</span>
+<span class="normal">109</span>
+<span class="normal">110</span>
+<span class="normal">111</span>
+<span class="normal">112</span>
+<span class="normal">113</span>
+<span class="normal">114</span>
+<span class="normal">115</span>
+<span class="normal">116</span>
+<span class="normal">117</span>
+<span class="normal">118</span>
+<span class="normal">119</span>
+<span class="normal">120</span>
+<span class="normal">121</span>
+<span class="normal">122</span>
+<span class="normal">123</span>
+<span class="normal">124</span>
+<span class="normal">125</span>
+<span class="normal">126</span>
+<span class="normal">127</span>
+<span class="normal">128</span>
+<span class="normal">129</span>
+<span class="normal">130</span>
+<span class="normal">131</span>
+<span class="normal">132</span>
+<span class="normal">133</span>
+<span class="normal">134</span>
+<span class="normal">135</span>
+<span class="normal">136</span>
+<span class="normal">137</span>
+<span class="normal">138</span>
+<span class="normal">139</span>
+<span class="normal">140</span>
+<span class="normal">141</span>
+<span class="normal">142</span>
+<span class="normal">143</span>
+<span class="normal">144</span>
+<span class="normal">145</span>
+<span class="normal">146</span>
+<span class="normal">147</span>
+<span class="normal">148</span>
+<span class="normal">149</span>
+<span class="normal">150</span>
+<span class="normal">151</span>
+<span class="normal">152</span>
+<span class="normal">153</span>
+<span class="normal">154</span>
+<span class="normal">155</span>
+<span class="normal">156</span>
+<span class="normal">157</span>
+<span class="normal">158</span>
+<span class="normal">159</span>
+<span class="normal">160</span>
+<span class="normal">161</span>
+<span class="normal">162</span>
+<span class="normal">163</span>
+<span class="normal">164</span>
+<span class="normal">165</span>
+<span class="normal">166</span>
+<span class="normal">167</span>
+<span class="normal">168</span>
+<span class="normal">169</span>
+<span class="normal">170</span>
+<span class="normal">171</span>
+<span class="normal">172</span>
+<span class="normal">173</span>
+<span class="normal">174</span>
+<span class="normal">175</span>
+<span class="normal">176</span>
+<span class="normal">177</span>
+<span class="normal">178</span>
+<span class="normal">179</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">EqtlCatalogueStep</span><span class="p">:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;eQTL Catalogue ingestion step.</span>
 
-<span class="sd">    From SuSIE fine mapping results (available at [their FTP](https://ftp.ebi.ac.uk/pub/databases/spot/eQTL/susie/) ), we extract credible sets and study index datasets from gene expression QTL studies.</span>
+<span class="sd">    ## Process overview</span>
+
+<span class="sd">    From SuSIE fine mapping results (available at [their FTP](https://ftp.ebi.ac.uk/pub/databases/spot/eQTL/susie/) ),</span>
+<span class="sd">    this step extracts credible sets and a study index for gene-expression and molecular-trait</span>
+<span class="sd">    QTL studies.</span>
+
+<span class="sd">    1. **Read study metadata** from the eQTL Catalogue TSV manifest using</span>
+<span class="sd">       `EqtlCatalogueStudyIndex.read_studies_from_source`, optionally excluding quantification</span>
+<span class="sd">       methods listed in `mqtl_quantification_methods_blacklist`.</span>
+<span class="sd">    2. **Read raw credible sets** using `EqtlCatalogueFinemapping.read_credible_set_from_source`.</span>
+<span class="sd">    3. **Read raw log Bayes factors** using `EqtlCatalogueFinemapping.read_lbf_from_source`.</span>
+<span class="sd">    4. **Parse and correct the SuSIE results** using `EqtlCatalogueFinemapping.parse_susie_results`,</span>
+<span class="sd">       joining credible sets, log Bayes factors and study metadata.</span>
+<span class="sd">    5. **Build the study index** using `EqtlCatalogueStudyIndex.from_susie_results`.</span>
+<span class="sd">    6. **Build the credible sets** using `EqtlCatalogueFinemapping.from_susie_results`, flagging</span>
+<span class="sd">       loci whose lead p-value is above `lead_pvalue_threshold` as sub-significant.</span>
+
+<span class="sd">    !!! note &quot;eQTL Catalogue data&quot;</span>
+<span class="sd">        The data needs to be downloaded to hadoop compatible filesystem before</span>
+<span class="sd">        running the step.</span>
+
+<span class="sd">    !!! note &quot;Non-ATGC variant removal&quot;</span>
+<span class="sd">        Some source studies (e.g. AFR_LCL/QTS000044, MAGE/QTS000055) report large indels and</span>
+<span class="sd">        structural variants with imprecise coordinates, using CNV notation (`&lt;DEL&gt;`, `&lt;DUP&gt;`) for</span>
+<span class="sd">        `alt`, which produced duplicate credible-set entries. These variants are removed in</span>
+<span class="sd">        `read_credible_set_from_source` by requiring `ref`/`alt` to contain only A/T/G/C bases.</span>
+
+<span class="sd">    !!! note &quot;PIP to alpha correction&quot;</span>
+<span class="sd">        Some source studies (e.g. CommonMind/QTS000008, Kim-Hellmuth/QTS000042) report the</span>
+<span class="sd">        per-variant `pip` computed by SuSiE instead of the per-(credible-set x variant) alpha</span>
+<span class="sd">        value, which makes the posterior probabilities within a credible set sum to more than</span>
+<span class="sd">        1.0. `parse_susie_results` detects and corrects this via</span>
+<span class="sd">        [`scale_pip`][gentropy.datasource.eqtl_catalogue.finemapping.EqtlCatalogueFinemapping.scale_pip],</span>
+<span class="sd">        which recomputes alpha from the log Bayes factors using a log-sum-exp normalisation.</span>
+
+<span class="sd">    ## Data flow</span>
+
+<span class="sd">    ```mermaid</span>
+<span class="sd">    flowchart TD</span>
+<span class="sd">      subgraph INPUTS</span>
+<span class="sd">        A1[eqtl_catalogue_dataset_metadata]</span>
+<span class="sd">        A2[raw credible_set.parquet]</span>
+<span class="sd">        A3[raw lbf_variable.parquet]</span>
+<span class="sd">      end</span>
+
+<span class="sd">      subgraph OUTPUTS</span>
+<span class="sd">        O1[study_index]</span>
+<span class="sd">        O2[credible_set]</span>
+<span class="sd">      end</span>
+
+<span class="sd">        A1 --&gt; META[read_studies_from_source]</span>
+<span class="sd">        META --&gt; P1[studies_metadata]</span>
+
+<span class="sd">        A2 --&gt; CS[&quot;read_credible_set_from_source&quot;]</span>
+<span class="sd">        CS --&gt; P2[credible_sets]</span>
+
+<span class="sd">        A3 --&gt; LBF[read_lbf_from_source]</span>
+<span class="sd">        LBF --&gt; P3[lbf]</span>
+
+<span class="sd">        P1 --&gt; PARSE[&quot;parse_susie_results&quot;]</span>
+<span class="sd">        P2 --&gt; PARSE</span>
+<span class="sd">        P3 --&gt; PARSE</span>
+<span class="sd">        PARSE --&gt; P4[processed_susie_results]</span>
+
+<span class="sd">        P4 --&gt; SI[EqtlCatalogueStudyIndex.from_susie_results]</span>
+<span class="sd">        SI --&gt; O1</span>
+
+<span class="sd">        P4 --&gt; CSB[EqtlCatalogueFinemapping.from_susie_results]</span>
+<span class="sd">        CSB --&gt; O2</span>
+
+<span class="sd">        classDef parquet fill:#bd757c,stroke:#73343A,color:#333</span>
+<span class="sd">        class A1,A2,A3,P1,P2,P3,P4,O1,O2 parquet</span>
+<span class="sd">    ```</span>
+
+<span class="sd">    ??? tip &quot;Inputs&quot;</span>
+<span class="sd">        - [x] **eqtl_catalogue_dataset_metadata** — TSV manifest of eQTL Catalogue studies/datasets.</span>
+<span class="sd">        - [x] **credible_set.parquet** — raw SuSIE credible-set files, one per dataset (`QTS*/QTD*/QTD*.credible_set.parquet`).</span>
+<span class="sd">        - [x] **lbf_variable.parquet** — raw SuSIE log-Bayes-factor files, one per dataset (`QTS*/QTD*/QTD*.lbf_variable.parquet`).</span>
+
+<span class="sd">    ??? tip &quot;Outputs&quot;</span>
+<span class="sd">        This pipeline produces 2 artefacts:</span>
+
+<span class="sd">        - [x] **study_index** — study index in Parquet format.</span>
+<span class="sd">        - [x] **credible_set** — credible sets in Parquet format, flagged for sub-significant lead loci.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">session</span><span class="p">:</span> <span class="n">Session</span><span class="p">,</span>
-        <span class="n">mqtl_quantification_methods_blacklist</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
-        <span class="n">eqtl_catalogue_paths_imported</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-        <span class="n">eqtl_catalogue_study_index_out</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-        <span class="n">eqtl_catalogue_credible_sets_out</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-        <span class="n">eqtl_catalogue_metadata_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">EqtlCatalogueConfig</span><span class="p">()</span><span class="o">.</span><span class="n">eqtl_catalogue_metadata_path</span><span class="p">,</span>
-        <span class="n">eqtl_lead_pvalue_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">EqtlCatalogueConfig</span><span class="p">()</span><span class="o">.</span><span class="n">eqtl_lead_pvalue_threshold</span><span class="p">,</span>
+        <span class="n">eqtl_catalogue_dataset_metadata_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">credible_set_input_glob</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">lbf_variable_input_glob</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">study_index_output_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">credible_set_output_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">lead_pvalue_threshold</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">mqtl_quantification_methods_blacklist</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Run eQTL Catalogue ingestion step.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            session (Session): Session object.</span>
-<span class="sd">            mqtl_quantification_methods_blacklist (list[str]): Molecular trait quantification methods that we don&#39;t want to ingest. Available options in https://github.com/eQTL-Catalogue/eQTL-Catalogue-resources/blob/master/data_tables/dataset_metadata.tsv</span>
-<span class="sd">            eqtl_catalogue_paths_imported (str): Input eQTL Catalogue fine mapping results path.</span>
-<span class="sd">            eqtl_catalogue_study_index_out (str): Output eQTL Catalogue study index path.</span>
-<span class="sd">            eqtl_catalogue_credible_sets_out (str): Output eQTL Catalogue credible sets path.</span>
-<span class="sd">            eqtl_catalogue_metadata_path (str): Path to the data_table hosted on the eQTL Catalogue github. Defaults to EqtlCatalogueConfig().eqtl_catalogue_metadata_path</span>
-<span class="sd">            eqtl_lead_pvalue_threshold (float, optional): Lead p-value threshold. Defaults to EqtlCatalogueConfig().eqtl_lead_pvalue_threshold.</span>
+<span class="sd">            eqtl_catalogue_dataset_metadata_path (str): Path to the eQTL Catalogue dataset metadata file.</span>
+<span class="sd">            credible_set_input_glob (str): Glob pattern to read SuSIE credible set parquet files.</span>
+<span class="sd">                example of files in `gs://bucket/susie/QTS*/QTD*/QTD*.credible_set.parquet`</span>
+<span class="sd">            lbf_variable_input_glob (str): Glob pattern to read SuSIE LBF parquet files.</span>
+<span class="sd">                example of files in `gs://bucket/susie/QTS*/QTD*/QTD*.lbf_variable.parquet`</span>
+<span class="sd">            study_index_output_path (str): Path to write the study index parquet file.</span>
+<span class="sd">                Written as a coalesce(1) parquet dataset.</span>
+<span class="sd">            credible_set_output_path (str): Path to write the credible set parquet file.</span>
+<span class="sd">                Written as a partitioned by studyId parquet dataset.</span>
+<span class="sd">            lead_pvalue_threshold (float): P-value threshold to flag sub-significant loci.</span>
+<span class="sd">            mqtl_quantification_methods_blacklist (list[str] | None): List of quantification methods to exclude from the study index.</span>
+<span class="sd">                Can be used to exclude mQTL studies from the study index. Allowed values are</span>
+<span class="sd">                in gentropy.datasource.eqtl_catalogue.QuantificationMethod.</span>
+
+
+<span class="sd">        !!! note &quot;glob patterns&quot;</span>
+<span class="sd">            The glob patterns need to point to a compatible hadoop filesystem (ex. S3, gcs, etc.), using the</span>
+<span class="sd">            ebi ftp server directly will not work with spark.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1"># Extract</span>
         <span class="n">studies_metadata</span> <span class="o">=</span> <span class="n">EqtlCatalogueStudyIndex</span><span class="o">.</span><span class="n">read_studies_from_source</span><span class="p">(</span>
-            <span class="n">eqtl_catalogue_metadata_path</span><span class="p">,</span>
-            <span class="nb">list</span><span class="p">(</span><span class="n">mqtl_quantification_methods_blacklist</span><span class="p">),</span>
+            <span class="n">eqtl_catalogue_dataset_metadata_path</span><span class="p">,</span>
+            <span class="n">mqtl_quantification_methods_blacklist</span> <span class="ow">or</span> <span class="p">[],</span>
             <span class="n">session</span><span class="o">=</span><span class="n">session</span><span class="p">,</span>
-        <span class="p">)</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">persist</span><span class="p">()</span>
 
-        <span class="c1"># Load raw data only for the studies we are interested in ingestion. This makes the proces much lighter.</span>
-        <span class="n">studies_to_ingest</span> <span class="o">=</span> <span class="n">EqtlCatalogueStudyIndex</span><span class="o">.</span><span class="n">get_studies_of_interest</span><span class="p">(</span>
-            <span class="n">studies_metadata</span>
-        <span class="p">)</span>
+        <span class="c1"># Read all parquet files from the nested QTS*/QTD*/ structure via glob.</span>
+        <span class="c1"># The metadata join in parse_susie_results drops any QTDs absent from the metadata.</span>
         <span class="n">credible_sets_df</span> <span class="o">=</span> <span class="n">EqtlCatalogueFinemapping</span><span class="o">.</span><span class="n">read_credible_set_from_source</span><span class="p">(</span>
-            <span class="n">credible_set_path</span><span class="o">=</span><span class="p">[</span>
-                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">eqtl_catalogue_paths_imported</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">qtd_id</span><span class="si">}</span><span class="s2">.credible_sets.tsv&quot;</span>
-                <span class="k">for</span> <span class="n">qtd_id</span> <span class="ow">in</span> <span class="n">studies_to_ingest</span>
-            <span class="p">],</span>
+            <span class="n">credible_set_input_glob</span><span class="p">,</span>
             <span class="n">session</span><span class="o">=</span><span class="n">session</span><span class="p">,</span>
-        <span class="p">)</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">persist</span><span class="p">()</span>
+
         <span class="n">lbf_df</span> <span class="o">=</span> <span class="n">EqtlCatalogueFinemapping</span><span class="o">.</span><span class="n">read_lbf_from_source</span><span class="p">(</span>
-            <span class="n">lbf_path</span><span class="o">=</span><span class="p">[</span>
-                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">eqtl_catalogue_paths_imported</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">qtd_id</span><span class="si">}</span><span class="s2">.lbf_variable.txt&quot;</span>
-                <span class="k">for</span> <span class="n">qtd_id</span> <span class="ow">in</span> <span class="n">studies_to_ingest</span>
-            <span class="p">],</span>
+            <span class="n">lbf_variable_input_glob</span><span class="p">,</span>
             <span class="n">session</span><span class="o">=</span><span class="n">session</span><span class="p">,</span>
-        <span class="p">)</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">persist</span><span class="p">()</span>
 
         <span class="c1"># Transform</span>
         <span class="n">processed_susie_df</span> <span class="o">=</span> <span class="n">EqtlCatalogueFinemapping</span><span class="o">.</span><span class="n">parse_susie_results</span><span class="p">(</span>
             <span class="n">credible_sets_df</span><span class="p">,</span> <span class="n">lbf_df</span><span class="p">,</span> <span class="n">studies_metadata</span>
-        <span class="p">)</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">persist</span><span class="p">()</span>
+        <span class="n">processed_susie_df</span><span class="o">.</span><span class="n">count</span><span class="p">()</span>
+
+        <span class="n">studies_metadata</span><span class="o">.</span><span class="n">unpersist</span><span class="p">()</span>
+        <span class="n">credible_sets_df</span><span class="o">.</span><span class="n">unpersist</span><span class="p">()</span>
+        <span class="n">lbf_df</span><span class="o">.</span><span class="n">unpersist</span><span class="p">()</span>
 
         <span class="p">(</span>
             <span class="n">EqtlCatalogueStudyIndex</span><span class="o">.</span><span class="n">from_susie_results</span><span class="p">(</span><span class="n">processed_susie_df</span><span class="p">)</span>
-            <span class="c1"># Writing the output:</span>
             <span class="o">.</span><span class="n">coalesce</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
             <span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">write</span><span class="o">.</span><span class="n">mode</span><span class="p">(</span><span class="n">session</span><span class="o">.</span><span class="n">write_mode</span><span class="p">)</span>
-            <span class="o">.</span><span class="n">parquet</span><span class="p">(</span><span class="n">eqtl_catalogue_study_index_out</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">parquet</span><span class="p">(</span><span class="n">study_index_output_path</span><span class="p">)</span>
         <span class="p">)</span>
 
         <span class="p">(</span>
             <span class="n">EqtlCatalogueFinemapping</span><span class="o">.</span><span class="n">from_susie_results</span><span class="p">(</span><span class="n">processed_susie_df</span><span class="p">)</span>
-            <span class="c1"># Flagging sub-significnat loci:</span>
-            <span class="o">.</span><span class="n">validate_lead_pvalue</span><span class="p">(</span><span class="n">pvalue_cutoff</span><span class="o">=</span><span class="n">eqtl_lead_pvalue_threshold</span><span class="p">)</span>
-            <span class="c1"># Writing the output:</span>
-            <span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">write</span><span class="o">.</span><span class="n">mode</span><span class="p">(</span><span class="n">session</span><span class="o">.</span><span class="n">write_mode</span><span class="p">)</span>
-            <span class="o">.</span><span class="n">parquet</span><span class="p">(</span><span class="n">eqtl_catalogue_credible_sets_out</span><span class="p">)</span>
+            <span class="c1"># Flagging sub-significant loci:</span>
+            <span class="o">.</span><span class="n">validate_lead_pvalue</span><span class="p">(</span><span class="n">pvalue_cutoff</span><span class="o">=</span><span class="n">lead_pvalue_threshold</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">repartition</span><span class="p">(</span><span class="n">session</span><span class="o">.</span><span class="n">output_partitions</span><span class="p">,</span> <span class="s2">&quot;studyId&quot;</span><span class="p">,</span> <span class="s2">&quot;chromosome&quot;</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">sortWithinPartitions</span><span class="p">(</span><span class="s2">&quot;chromosome&quot;</span><span class="p">,</span> <span class="s2">&quot;variantId&quot;</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">write</span><span class="o">.</span><span class="n">mode</span><span class="p">(</span><span class="n">session</span><span class="o">.</span><span class="n">write_mode</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">option</span><span class="p">(</span><span class="s2">&quot;maxRecordsPerFile&quot;</span><span class="p">,</span> <span class="mi">50_000_000</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">parquet</span><span class="p">(</span><span class="n">credible_set_output_path</span><span class="p">)</span>
         <span class="p">)</span>
+        <span class="n">processed_susie_df</span><span class="o">.</span><span class="n">unpersist</span><span class="p">()</span>
 </code></pre></div></td></tr></table></div>
               </details>
 
