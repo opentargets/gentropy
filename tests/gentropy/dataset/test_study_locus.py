@@ -1200,11 +1200,11 @@ class TestStudyLocusDuplicationFlagging:
 
     STUDY_LOCUS_DATA = [
         # Non-duplicated:
-        ("1", "v1", "s1", "PICS"),
-        # Triplicate:
-        ("3", "v3", "s1", "PICS"),
-        ("3", "v3", "s1", "PICS"),
-        ("3", "v3", "s1", "PICS"),
+        ("1", "v1", "s1", "PICS", [("v1",), ("v2",)]),
+        # Triplicate, the smallest credible set is the one that should be retained:
+        ("3", "v3", "s1", "PICS", [("v3",), ("v4",), ("v5",)]),
+        ("3", "v3", "s1", "PICS", [("v3",)]),
+        ("3", "v3", "s1", "PICS", [("v3",), ("v4",)]),
     ]
 
     STUDY_LOCUS_SCHEMA = t.StructType(
@@ -1213,6 +1213,13 @@ class TestStudyLocusDuplicationFlagging:
             t.StructField("variantId", t.StringType(), False),
             t.StructField("studyId", t.StringType(), False),
             t.StructField("finemappingMethod", t.StringType(), False),
+            t.StructField(
+                "locus",
+                t.ArrayType(
+                    t.StructType([t.StructField("variantId", t.StringType(), False)])
+                ),
+                False,
+            ),
         ]
     )
 
@@ -1248,6 +1255,21 @@ class TestStudyLocusDuplicationFlagging:
         assert self.validated.df.filter(f.size("qualityControls") == 0).count() == 2
 
         assert self.validated.df.filter(f.size("qualityControls") > 0).count() == 2
+
+    def test_duplication_flag_retains_smallest_credible_set(
+        self: TestStudyLocusDuplicationFlagging,
+    ) -> None:
+        """Of the colliding credible sets, the one with the fewest variants is the one kept."""
+        retained = (
+            self.validated.df.filter(
+                (f.col("studyLocusId") == "3") & (f.size("qualityControls") == 0)
+            )
+            .select(f.size("locus").alias("locusSize"))
+            .collect()
+        )
+
+        assert len(retained) == 1
+        assert retained[0]["locusSize"] == 1
 
 
 class TestTransQtlFlagging:

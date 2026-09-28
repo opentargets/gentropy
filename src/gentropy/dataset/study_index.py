@@ -58,6 +58,12 @@ class StudyQualityCheck(Enum):
         SMALL_NUMBER_OF_SNPS (str): Flagging if the number of SNPs in the study is below the expected threshold.
         CASE_CASE_STUDY_DESIGN (str): Flagging if the study design is case-case.
         DEPRECATED_PROJECT (str): Flagging if the projectId is deprecated.
+        INVALID_SAMPLE_SIZE (str): Flagging if the sample size is null or equal to zero.
+        CASE_CONTROL_STUDY_DESIGN (str): Flagging if the study has non empty or zero nCases, nControls & nSamples with matching sum.
+        CASE_CONTROL_SUM_NEQ_SAMPLE_SIZE (str): Flagging if the study has non empty or zero nCases, nControls & nSamples with non matching sum.
+        ONE_ONLY_CASE_OR_CONTROL (str): Flagging if the study has only cases or only controls.
+        MEASUREMENT_STUDY_DESIGN (str): Flagging if the study has non empty or zero nSamples with empty nCases and nControls.
+
     """
 
     UNRESOLVED_TARGET = "Target/gene identifier could not match to reference"
@@ -77,6 +83,31 @@ class StudyQualityCheck(Enum):
     )
     CASE_CASE_STUDY_DESIGN = "Case-case study design"
     DEPRECATED_PROJECT = "Deprecated project"
+    INVALID_SAMPLE_SIZE = "Sample size is null or equal to zero"
+    CASE_CONTROL_STUDY_DESIGN = (
+        "Study has non empty or zero nCases, nControls & nSamples with matching sum"
+    )
+    CASE_CONTROL_SUM_NEQ_SAMPLE_SIZE = (
+        "Study has non empty or zero nCases, nControls & nSamples with non matching sum"
+    )
+    ONE_ONLY_CASE_OR_CONTROL = "Study has only cases or only controls"
+    MEASUREMENT_STUDY_DESIGN = (
+        "Study has non empty or zero nSamples with empty nCases and nControls"
+    )
+
+
+class StudyType(Enum):
+    """Enum type hosting the expected study types."""
+
+    GWAS = "gwas"
+    EQTL = "eqtl"
+    PQTL = "pqtl"
+    SQTL = "sqtl"
+    TUQTL = "tuqtl"
+    SCEQTL = "sceqtl"
+    SCPQTL = "scpqtl"
+    SCSQTL = "scsqtl"
+    SCTUQTL = "sctuqtl"
 
 
 @dataclass
@@ -86,17 +117,7 @@ class StudyIndex(Dataset):
     A study index dataset captures all the metadata for all studies including GWAS and Molecular QTL.
     """
 
-    VALID_TYPES = [
-        "gwas",
-        "eqtl",
-        "pqtl",
-        "sqtl",
-        "tuqtl",
-        "sceqtl",
-        "scpqtl",
-        "scsqtl",
-        "sctuqtl",
-    ]
+    VALID_TYPES = [s.value for s in StudyType]
 
     @staticmethod
     def _aggregate_samples_by_ancestry(merged: Column, ancestry: Column) -> Column:
@@ -599,6 +620,73 @@ class StudyIndex(Dataset):
         return StudyIndex(_df=validated_df, _schema=StudyIndex.get_schema())
 
     @qc_test
+    def validate_ccs(self: StudyIndex) -> StudyIndex:
+        """Validate nCases, nControls & nSamples.
+
+        Returns:
+            StudyIndex: where studies are flagged if nCases, nControls & nSamples are not consistent with each other.
+        """
+        cases_above_zero = (f.col("nCases") > 0) & (f.col("nCases").isNotNull())
+        cases_null_or_zero = (f.col("nCases").isNull()) | (f.col("nCases") == 0)
+        ctrls_above_zero = (f.col("nControls") > 0) & (f.col("nControls").isNotNull())
+        ctrls_null_or_zero = (f.col("nControls").isNull()) | (f.col("nControls") == 0)
+        samples_above_zero = (f.col("nSamples") > 0) & (f.col("nSamples").isNotNull())
+        samples_null_or_zero = (f.col("nSamples").isNull()) | (f.col("nSamples") == 0)
+        sum_match = f.col("nCases") + f.col("nControls") == f.col("nSamples")
+
+        # Complex conditions
+        cc_eq_n = cases_above_zero & ctrls_above_zero & samples_above_zero & sum_match
+        cc_neq_n = cases_above_zero & ctrls_above_zero & samples_above_zero & ~sum_match
+        empty_cc_and_n = cases_null_or_zero & ctrls_null_or_zero & samples_above_zero
+        non_empty_cases = cases_above_zero & ctrls_null_or_zero & samples_above_zero
+        non_empty_ctrls = cases_null_or_zero & ctrls_above_zero & samples_above_zero
+
+        validated_df = (
+            self.df.withColumn(
+                "qualityControls",
+                StudyIndex.update_quality_flag(
+                    f.col("qualityControls"),
+                    cc_eq_n,
+                    StudyQualityCheck.CASE_CONTROL_STUDY_DESIGN,
+                ),
+            )
+            .withColumn(
+                "qualityControls",
+                StudyIndex.update_quality_flag(
+                    f.col("qualityControls"),
+                    empty_cc_and_n,
+                    StudyQualityCheck.MEASUREMENT_STUDY_DESIGN,
+                ),
+            )
+            .withColumn(
+                "qualityControls",
+                StudyIndex.update_quality_flag(
+                    f.col("qualityControls"),
+                    samples_null_or_zero,
+                    StudyQualityCheck.INVALID_SAMPLE_SIZE,
+                ),
+            )
+            .withColumn(
+                "qualityControls",
+                StudyIndex.update_quality_flag(
+                    f.col("qualityControls"),
+                    cc_neq_n,
+                    StudyQualityCheck.CASE_CONTROL_SUM_NEQ_SAMPLE_SIZE,
+                ),
+            )
+            .withColumn(
+                "qualityControls",
+                StudyIndex.update_quality_flag(
+                    f.col("qualityControls"),
+                    non_empty_cases | non_empty_ctrls,
+                    StudyQualityCheck.ONE_ONLY_CASE_OR_CONTROL,
+                ),
+            )
+        )
+
+        return StudyIndex(_df=validated_df, _schema=StudyIndex.get_schema())
+
+    @qc_test
     def annotate_sumstats_qc(
         self: StudyIndex,
         sumstats_qc: SummaryStatisticsQC,
@@ -608,8 +696,16 @@ class StudyIndex(Dataset):
         threshold_min_gc_lambda: float = 0.7,
         threshold_max_gc_lambda: float = 2.5,
         threshold_min_n_variants: int = 2_000_000,
+        seq_threshold_mean_beta: float = 1.0,
+        seq_threshold_min_gc_lambda: float = 0.1,
+        seq_threshold_max_gc_lambda: float = 2.5,
+        seq_threshold_min_n_variants: int = 1_000_000,
     ) -> StudyIndex:
         """Annotate summary stats QC information.
+
+        For studies whose ``analysisFlags`` contain ``ExWAS`` or ``wgsGWAS``, relaxed
+        thresholds are applied because the genetic data source is exome or whole genome
+        sequencing. The PZ check (mean/se diff PZ) is skipped for these studies.
 
         Args:
             sumstats_qc (SummaryStatisticsQC): Dataset containing summary statistics-based quality controls.
@@ -619,6 +715,10 @@ class StudyIndex(Dataset):
             threshold_min_gc_lambda (float): Minimum threshold for GC lambda check. Defaults to 0.7.
             threshold_max_gc_lambda (float): Maximum threshold for GC lambda check. Defaults to 2.5.
             threshold_min_n_variants (int): Minimum number of variants for SuSiE check. Defaults to 2_000_000.
+            seq_threshold_mean_beta (float): Mean beta threshold for exome/wgs-gwas studies. Defaults to 1.0.
+            seq_threshold_min_gc_lambda (float): Minimum GC lambda threshold for exome/wgs-gwas studies. Defaults to 0.1.
+            seq_threshold_max_gc_lambda (float): Maximum GC lambda threshold for exome/wgs-gwas studies. Defaults to 2.5.
+            seq_threshold_min_n_variants (int): Minimum number of variants for exome/wgs-gwas studies. Defaults to 1_000_000.
 
         Returns:
             StudyIndex: Updated study index with QC information
@@ -647,6 +747,19 @@ class StudyIndex(Dataset):
             "sumstatQCValues", "QCCheckName", x, "QCCheckValue"
         )
 
+        # Studies sourced from exome or whole genome sequencing get relaxed thresholds:
+        if "analysisFlags" in studies.columns:
+            is_seq = f.coalesce(
+                f.array_contains("analysisFlags", StudyAnalysisFlag.EXWAS.value)
+                | f.array_contains("analysisFlags", StudyAnalysisFlag.WGS_WAS.value),
+                f.lit(False),
+            )
+        else:
+            is_seq = f.lit(False)
+        seq_or: Callable[[float, float], Column] = lambda seq_val, default_val: f.when(
+            is_seq, f.lit(seq_val)
+        ).otherwise(f.lit(default_val))
+
         df = (
             studies.drop("sumstatQCValues", "hasSumstats")
             .join(qc_df, how="left", on="studyId")
@@ -663,7 +776,10 @@ class StudyIndex(Dataset):
                 "qualityControls",
                 StudyIndex.update_quality_flag(
                     f.col("qualityControls"),
-                    ~(f.abs(extract_qc_value("mean_beta")) <= threshold_mean_beta),
+                    ~(
+                        f.abs(extract_qc_value("mean_beta"))
+                        <= seq_or(seq_threshold_mean_beta, threshold_mean_beta)
+                    ),
                     StudyQualityCheck.FAILED_MEAN_BETA_CHECK,
                 ),
             )
@@ -671,7 +787,9 @@ class StudyIndex(Dataset):
                 "qualityControls",
                 StudyIndex.update_quality_flag(
                     f.col("qualityControls"),
-                    ~(
+                    # PZ check is skipped for exome/wgs-gwas studies:
+                    ~is_seq
+                    & ~(
                         (
                             f.abs(extract_qc_value("mean_diff_pz"))
                             <= threshold_mean_diff_pz
@@ -686,8 +804,18 @@ class StudyIndex(Dataset):
                 StudyIndex.update_quality_flag(
                     f.col("qualityControls"),
                     ~(
-                        (extract_qc_value("gc_lambda") <= threshold_max_gc_lambda)
-                        & (extract_qc_value("gc_lambda") >= threshold_min_gc_lambda)
+                        (
+                            extract_qc_value("gc_lambda")
+                            <= seq_or(
+                                seq_threshold_max_gc_lambda, threshold_max_gc_lambda
+                            )
+                        )
+                        & (
+                            extract_qc_value("gc_lambda")
+                            >= seq_or(
+                                seq_threshold_min_gc_lambda, threshold_min_gc_lambda
+                            )
+                        )
                     ),
                     StudyQualityCheck.FAILED_GC_LAMBDA_CHECK,
                 ),
@@ -696,7 +824,8 @@ class StudyIndex(Dataset):
                 "qualityControls",
                 StudyIndex.update_quality_flag(
                     f.col("qualityControls"),
-                    extract_qc_value("n_variants") < threshold_min_n_variants,
+                    extract_qc_value("n_variants")
+                    < seq_or(seq_threshold_min_n_variants, threshold_min_n_variants),
                     StudyQualityCheck.SMALL_NUMBER_OF_SNPS,
                 ),
             )

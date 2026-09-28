@@ -59,6 +59,7 @@ class TestStudyQcStep:
         study_index.validate_disease = MagicMock(return_value=study_index)
         study_index.validate_biosample = MagicMock(return_value=study_index)
         study_index.validate_analysis_flags = MagicMock(return_value=study_index)
+        study_index.validate_ccs = MagicMock(return_value=study_index)
         study_index.persist = MagicMock(return_value=study_index)
         study_index.valid_rows = MagicMock(return_value=study_index)
 
@@ -96,6 +97,7 @@ class TestStudyQcStep:
         study_index.validate_disease.assert_called_once()
         study_index.validate_biosample.assert_called_once()
         study_index.validate_analysis_flags.assert_called_once()
+        study_index.validate_ccs.assert_called_once()
 
         # Assert valid_rows
         study_index.valid_rows.assert_any_call(invalid_qc_reasons)

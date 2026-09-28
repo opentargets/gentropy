@@ -581,7 +581,9 @@ def sample_finngen_studies(spark: SparkSession) -> DataFrame:
 def sample_eqtl_catalogue_finemapping_credible_sets(session: Session) -> DataFrame:
     """Sample raw eQTL Catalogue credible sets outputted by SuSIE."""
     return EqtlCatalogueFinemapping.read_credible_set_from_source(
-        credible_set_path=["tests/gentropy/data_samples/QTD000584.credible_sets.tsv"],
+        credible_set_path=[
+            "tests/gentropy/data_samples/QTD000001/QTS00001/QTS000001.credible_set.parquet"
+        ],
         session=session,
     )
 
@@ -590,7 +592,9 @@ def sample_eqtl_catalogue_finemapping_credible_sets(session: Session) -> DataFra
 def sample_eqtl_catalogue_finemapping_lbf(session: Session) -> DataFrame:
     """Sample raw eQTL Catalogue table with logBayesFactors outputted by SuSIE."""
     return EqtlCatalogueFinemapping.read_lbf_from_source(
-        lbf_path=["tests/gentropy/data_samples/QTD000584.lbf_variable.txt"],
+        lbf_path=[
+            "tests/gentropy/data_samples/QTD000001/QTS00001/QTS000001.lbf_variable.parquet"
+        ],
         session=session,
     )
 

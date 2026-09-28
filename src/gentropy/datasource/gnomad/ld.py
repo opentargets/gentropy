@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import sys
+from collections.abc import Sequence
 from functools import reduce
 from typing import TYPE_CHECKING
 
@@ -13,7 +14,7 @@ from hail.linalg import BlockMatrix
 from pyspark.sql import Window
 
 from gentropy.common.spark import get_top_ranked_in_window, get_value_from_row
-from gentropy.common.types import LD_Population
+from gentropy.common.types import LDPopulation
 from gentropy.config import LDIndexConfig
 from gentropy.dataset.ld_index import LDIndex
 
@@ -29,7 +30,7 @@ class GnomADLDMatrix:
         ld_matrix_template: str = LDIndexConfig().ld_matrix_template,
         ld_index_raw_template: str = LDIndexConfig().ld_index_raw_template,
         grch37_to_grch38_chain_path: str = LDIndexConfig().grch37_to_grch38_chain_path,
-        ld_populations: list[LD_Population | str] = LDIndexConfig().ld_populations,
+        ld_populations: Sequence[LDPopulation | str] = LDIndexConfig().ld_populations,
         liftover_ht_path: str = LDIndexConfig().liftover_ht_path,
     ):
         """Initialize.
@@ -40,7 +41,7 @@ class GnomADLDMatrix:
             ld_matrix_template (str): Template for the LD matrix path.
             ld_index_raw_template (str): Template for the LD index path.
             grch37_to_grch38_chain_path (str): Path to the chain file used to lift over the coordinates.
-            ld_populations (list[LD_Population | str]): List of populations to use to build the LDIndex.
+            ld_populations (Sequence[LDPopulation | str]): List of populations to use to build the LDIndex.
             liftover_ht_path (str): Path to the liftover ht file.
 
         Default values are set in LDIndexConfig.
@@ -279,7 +280,8 @@ class GnomADLDMatrix:
             LDIndex: LDIndex dataset
         """
         ld_indices_unaggregated = []
-        for pop in self.ld_populations:
+        for raw_pop in self.ld_populations:
+            pop = raw_pop.value if isinstance(raw_pop, LDPopulation) else raw_pop
             try:
                 ld_matrix_path = self.ld_matrix_template.format(POP=pop)
                 ld_index_raw_path = self.ld_index_raw_template.format(POP=pop)

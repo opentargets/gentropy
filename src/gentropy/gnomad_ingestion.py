@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
+
 from gentropy.common.session import Session
-from gentropy.common.types import LD_Population, VariantPopulation
+from gentropy.common.types import LDPopulation, VariantPopulation
 from gentropy.config import GnomadVariantConfig, LDIndexConfig
 from gentropy.dataset.variant_direction import DEFAULT_WINDOW_SIZE, VariantDirection
 from gentropy.dataset.variant_index import VariantIndex
@@ -30,7 +32,7 @@ class LDIndexStep:
         min_r2: float = LDIndexConfig().min_r2,
         ld_matrix_template: str = LDIndexConfig().ld_matrix_template,
         ld_index_raw_template: str = LDIndexConfig().ld_index_raw_template,
-        ld_populations: list[LD_Population | str] = LDIndexConfig().ld_populations,
+        ld_populations: Sequence[LDPopulation | str] = LDIndexConfig().ld_populations,
         liftover_ht_path: str = LDIndexConfig().liftover_ht_path,
         grch37_to_grch38_chain_path: str = LDIndexConfig().grch37_to_grch38_chain_path,
     ) -> None:
@@ -42,7 +44,7 @@ class LDIndexStep:
             min_r2 (float): Minimum r2 to consider when considering variants within a window.
             ld_matrix_template (str): Input path to the gnomAD ld file with placeholder for population
             ld_index_raw_template (str): Input path to the raw gnomAD LD indices file with placeholder for population string
-            ld_populations (list[LD_Population | str]): Population names derived from the ld file paths
+            ld_populations (Sequence[LDPopulation | str]): Population names derived from the ld file paths
             liftover_ht_path (str): Path to the liftover ht file
             grch37_to_grch38_chain_path (str): Path to the chain file used to lift over the coordinates.
 
