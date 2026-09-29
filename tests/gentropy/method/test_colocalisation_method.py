@@ -988,7 +988,7 @@ def test_clpp2coloc_recovers_coloc_pip_h4(
     priorc2: float,
     priorc12: float,
 ) -> None:
-    """Test that converting CLPP with the credible set sizes recovers the coloc-pip H4."""
+    """Test that converting CLPP with the credible set sizes recovers the coloc-pip H3 and H4."""
     priors = {"priorc1": priorc1, "priorc2": priorc2, "priorc12": priorc12}
     stats = mock_study_locus_overlap.df.select(
         "leftStudyLocusId",
@@ -1006,17 +1006,16 @@ def test_clpp2coloc_recovers_coloc_pip_h4(
         f.sum("pip2").alias("s2"),
         f.sum(f.col("pip1") * f.col("pip2")).alias("clpp"),
     )
-    h4 = ColocPIP.colocalise(mock_study_locus_overlap, **priors).df.select(
-        "leftStudyLocusId", "rightStudyLocusId", "h4"
+    coloc = ColocPIP.colocalise(mock_study_locus_overlap, **priors).df.select(
+        "leftStudyLocusId", "rightStudyLocusId", "h3", "h4"
     )
+    h3, h4 = ColocPIP.clpp2coloc(f.col("clpp"), f.col("s1"), f.col("s2"), **priors)
     rows = (
-        sums.join(h4, ["leftStudyLocusId", "rightStudyLocusId"])
-        .withColumn(
-            "h4_from_clpp",
-            ColocPIP.clpp2coloc(f.col("clpp"), f.col("s1"), f.col("s2"), **priors),
-        )
+        sums.join(coloc, ["leftStudyLocusId", "rightStudyLocusId"])
+        .select("h3", "h4", h3.alias("h3_from_clpp"), h4.alias("h4_from_clpp"))
         .collect()
     )
     assert rows, "Expected at least one overlapping pair"
     for row in rows:
-        assert row["h4_from_clpp"] == pytest.approx(row["h4"], rel=1e-9)
+        assert row["h3_from_clpp"] == pytest.approx(row["h3"], rel=1e-9, abs=1e-12)
+        assert row["h4_from_clpp"] == pytest.approx(row["h4"], rel=1e-9, abs=1e-12)
