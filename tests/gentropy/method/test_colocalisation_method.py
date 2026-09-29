@@ -1019,3 +1019,21 @@ def test_clpp2coloc_recovers_coloc_pip_h4(
     for row in rows:
         assert row["h3_from_clpp"] == pytest.approx(row["h3"], rel=1e-9, abs=1e-12)
         assert row["h4_from_clpp"] == pytest.approx(row["h4"], rel=1e-9, abs=1e-12)
+
+
+def test_coloc2clpp_inverts_clpp2coloc(spark: SparkSession) -> None:
+    """Test that coloc2clpp returns the CLPP that clpp2coloc was given."""
+    df = spark.createDataFrame(
+        [(1e-6, 0.95, 0.95), (0.001, 0.95, 0.99), (0.01, 0.9, 0.95), (0.5, 1.0, 1.0)],
+        ["clpp", "s1", "s2"],
+    )
+    _, h4 = ColocPIP.clpp2coloc(f.col("clpp"), f.col("s1"), f.col("s2"))
+    rows = (
+        df.withColumn("h4", h4)
+        .withColumn(
+            "clpp_back", ColocPIP.coloc2clpp(f.col("h4"), f.col("s1"), f.col("s2"))
+        )
+        .collect()
+    )
+    for row in rows:
+        assert row["clpp_back"] == pytest.approx(row["clpp"], rel=1e-9)

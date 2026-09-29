@@ -158,6 +158,53 @@ class ColocPIP(ColocalisationMethodInterface):
         return cls._pip_posteriors(sum_pip1, sum_pip2, clpp, priorc1, priorc2, priorc12)
 
     @staticmethod
+    def coloc2clpp(
+        h4: Column,
+        sum_pip1: Column,
+        sum_pip2: Column,
+        priorc1: float = 1e-4,
+        priorc2: float = 1e-4,
+        priorc12: float = 1e-5,
+    ) -> Column:
+        """Convert the coloc-pip posterior probability of H4 to the equivalent eCAVIAR CLPP.
+
+        Inverse of `clpp2coloc`: CLPP = h4 * p1*p2 * S1*S2 / (p12 * (1 - h4) + h4 * p1*p2),
+        where S1 and S2 are the sizes (sums of PIPs) of the two credible sets.
+
+        Args:
+            h4 (Column): coloc-pip posterior probability of H4.
+            sum_pip1 (Column): Sum of PIPs of the left credible set.
+            sum_pip2 (Column): Sum of PIPs of the right credible set.
+            priorc1 (float): Prior on variant being causal for trait 1. Defaults to 1e-4.
+            priorc2 (float): Prior on variant being causal for trait 2. Defaults to 1e-4.
+            priorc12 (float): Prior on variant being causal for both traits. Defaults to 1e-5.
+
+        Returns:
+            Column: CLPP equivalent to the Pr(H4) value.
+
+        Examples:
+            >>> df = spark.createDataFrame([(0.8, 0.95, 0.95), (0.9, 0.95, 0.95)], ["h4", "s1", "s2"])
+            >>> df.select(f.round(ColocPIP.coloc2clpp(f.col("h4"), f.col("s1"), f.col("s2")), 5).alias("clpp")).show()
+            +-------+
+            |   clpp|
+            +-------+
+            | 0.0036|
+            |0.00805|
+            +-------+
+            <BLANKLINE>
+        """
+        pseudocount = 1e-16
+        p1p2 = max(priorc1, pseudocount) * max(priorc2, pseudocount)
+        p12 = max(priorc12, pseudocount)
+        return (
+            h4
+            * f.lit(p1p2)
+            * sum_pip1
+            * sum_pip2
+            / (f.lit(p12) * (f.lit(1.0) - h4) + h4 * f.lit(p1p2))
+        )
+
+    @staticmethod
     def _floored_pip(pip: Column) -> Column:
         """Floor a PIP column at a pseudocount (null -> 0 -> pseudocount).
 
