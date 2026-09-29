@@ -115,6 +115,48 @@ class ColocPIP(ColocalisationMethodInterface):
             _schema=Colocalisation.get_schema(),
         )
 
+    @classmethod
+    def clpp2coloc(
+        cls: type[ColocPIP],
+        clpp: Column,
+        sum_pip1: Column,
+        sum_pip2: Column,
+        priorc1: float = 1e-4,
+        priorc2: float = 1e-4,
+        priorc12: float = 1e-5,
+    ) -> Column:
+        """Convert eCAVIAR CLPP to the coloc-pip posterior probability of H4.
+
+        CLPP is the sum over shared variants of the product of the two PIPs, which is the
+        same quantity coloc-pip uses for H4. Given the sizes of the two credible sets
+        (sums of their PIPs), Pr(H4) = p12 * CLPP / ((p12 - p1*p2) * CLPP + p1*p2 * S1*S2).
+
+        Args:
+            clpp (Column): CLPP value of the credible set pair.
+            sum_pip1 (Column): Sum of PIPs of the left credible set.
+            sum_pip2 (Column): Sum of PIPs of the right credible set.
+            priorc1 (float): Prior on variant being causal for trait 1. Defaults to 1e-4.
+            priorc2 (float): Prior on variant being causal for trait 2. Defaults to 1e-4.
+            priorc12 (float): Prior on variant being causal for both traits. Defaults to 1e-5.
+
+        Returns:
+            Column: Pr(H4) equivalent to the CLPP value.
+
+        Examples:
+            >>> df = spark.createDataFrame([(0.01, 0.95, 0.95), (0.001, 0.95, 0.95)], ["clpp", "s1", "s2"])
+            >>> df.select(f.round(ColocPIP.clpp2coloc(f.col("clpp"), f.col("s1"), f.col("s2")), 3).alias("h4")).show()
+            +-----+
+            |   h4|
+            +-----+
+            |0.918|
+            |0.526|
+            +-----+
+            <BLANKLINE>
+        """
+        return cls._pip_posteriors(
+            sum_pip1, sum_pip2, clpp, priorc1, priorc2, priorc12
+        )[1]
+
     @staticmethod
     def _floored_pip(pip: Column) -> Column:
         """Floor a PIP column at a pseudocount (null -> 0 -> pseudocount).

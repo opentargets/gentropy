@@ -13,6 +13,7 @@ import pytest
 from pandas.testing import assert_frame_equal
 from pydantic import ValidationError
 from pyspark.sql import SparkSession
+from pyspark.sql import functions as f
 from pyspark.sql.types import DoubleType, StringType, StructField, StructType
 
 from gentropy.dataset.colocalisation import Colocalisation
@@ -975,3 +976,47 @@ def test_coloc_pip_ecaviar_characterization(spark: SparkSession) -> None:
     assert abs((row["h3"] + row["h4"]) - 1.0) <= 1e-9
     # betaRatioSign: snp1 sign(0.5/0.3)=+1, snp2 sign(0.2/-0.1)=-1 -> avg 0.0.
     assert abs(row["betaRatioSignAverage"] - 0.0) <= 1e-9
+
+
+@pytest.mark.parametrize(
+    ("priorc1", "priorc2", "priorc12"),
+    [(1e-4, 1e-4, 1e-5), (1e-4, 1e-4, 5e-6)],
+)
+def test_clpp2coloc_recovers_coloc_pip_h4(
+    mock_study_locus_overlap: StudyLocusOverlap,
+    priorc1: float,
+    priorc2: float,
+    priorc12: float,
+) -> None:
+    """Test that converting CLPP with the credible set sizes recovers the coloc-pip H4."""
+    priors = {"priorc1": priorc1, "priorc2": priorc2, "priorc12": priorc12}
+    stats = mock_study_locus_overlap.df.select(
+        "leftStudyLocusId",
+        "rightStudyLocusId",
+        f.greatest(
+            f.coalesce("statistics.left_posteriorProbability", f.lit(0.0)), f.lit(1e-16)
+        ).alias("pip1"),
+        f.greatest(
+            f.coalesce("statistics.right_posteriorProbability", f.lit(0.0)),
+            f.lit(1e-16),
+        ).alias("pip2"),
+    )
+    sums = stats.groupBy("leftStudyLocusId", "rightStudyLocusId").agg(
+        f.sum("pip1").alias("s1"),
+        f.sum("pip2").alias("s2"),
+        f.sum(f.col("pip1") * f.col("pip2")).alias("clpp"),
+    )
+    h4 = ColocPIP.colocalise(mock_study_locus_overlap, **priors).df.select(
+        "leftStudyLocusId", "rightStudyLocusId", "h4"
+    )
+    rows = (
+        sums.join(h4, ["leftStudyLocusId", "rightStudyLocusId"])
+        .withColumn(
+            "h4_from_clpp",
+            ColocPIP.clpp2coloc(f.col("clpp"), f.col("s1"), f.col("s2"), **priors),
+        )
+        .collect()
+    )
+    assert rows, "Expected at least one overlapping pair"
+    for row in rows:
+        assert row["h4_from_clpp"] == pytest.approx(row["h4"], rel=1e-9)
