@@ -13,6 +13,7 @@ import pytest
 from pandas.testing import assert_frame_equal
 from pydantic import ValidationError
 from pyspark.sql import SparkSession
+from pyspark.sql import functions as f
 from pyspark.sql.types import DoubleType, StringType, StructField, StructType
 
 from gentropy.dataset.colocalisation import Colocalisation
@@ -975,3 +976,64 @@ def test_coloc_pip_ecaviar_characterization(spark: SparkSession) -> None:
     assert abs((row["h3"] + row["h4"]) - 1.0) <= 1e-9
     # betaRatioSign: snp1 sign(0.5/0.3)=+1, snp2 sign(0.2/-0.1)=-1 -> avg 0.0.
     assert abs(row["betaRatioSignAverage"] - 0.0) <= 1e-9
+
+
+@pytest.mark.parametrize(
+    ("priorc1", "priorc2", "priorc12"),
+    [(1e-4, 1e-4, 1e-5), (1e-4, 1e-4, 5e-6)],
+)
+def test_clpp2coloc_recovers_coloc_pip_h4(
+    mock_study_locus_overlap: StudyLocusOverlap,
+    priorc1: float,
+    priorc2: float,
+    priorc12: float,
+) -> None:
+    """Test that converting CLPP with the credible set sizes recovers the coloc-pip H3 and H4."""
+    priors = {"priorc1": priorc1, "priorc2": priorc2, "priorc12": priorc12}
+    stats = mock_study_locus_overlap.df.select(
+        "leftStudyLocusId",
+        "rightStudyLocusId",
+        f.greatest(
+            f.coalesce("statistics.left_posteriorProbability", f.lit(0.0)), f.lit(1e-16)
+        ).alias("pip1"),
+        f.greatest(
+            f.coalesce("statistics.right_posteriorProbability", f.lit(0.0)),
+            f.lit(1e-16),
+        ).alias("pip2"),
+    )
+    sums = stats.groupBy("leftStudyLocusId", "rightStudyLocusId").agg(
+        f.sum("pip1").alias("s1"),
+        f.sum("pip2").alias("s2"),
+        f.sum(f.col("pip1") * f.col("pip2")).alias("clpp"),
+    )
+    coloc = ColocPIP.colocalise(mock_study_locus_overlap, **priors).df.select(
+        "leftStudyLocusId", "rightStudyLocusId", "h3", "h4"
+    )
+    h3, h4 = ColocPIP.clpp2coloc(f.col("clpp"), f.col("s1"), f.col("s2"), **priors)
+    rows = (
+        sums.join(coloc, ["leftStudyLocusId", "rightStudyLocusId"])
+        .select("h3", "h4", h3.alias("h3_from_clpp"), h4.alias("h4_from_clpp"))
+        .collect()
+    )
+    assert rows, "Expected at least one overlapping pair"
+    for row in rows:
+        assert row["h3_from_clpp"] == pytest.approx(row["h3"], rel=1e-9, abs=1e-12)
+        assert row["h4_from_clpp"] == pytest.approx(row["h4"], rel=1e-9, abs=1e-12)
+
+
+def test_coloc2clpp_inverts_clpp2coloc(spark: SparkSession) -> None:
+    """Test that coloc2clpp returns the CLPP that clpp2coloc was given."""
+    df = spark.createDataFrame(
+        [(1e-6, 0.95, 0.95), (0.001, 0.95, 0.99), (0.01, 0.9, 0.95), (0.5, 1.0, 1.0)],
+        ["clpp", "s1", "s2"],
+    )
+    _, h4 = ColocPIP.clpp2coloc(f.col("clpp"), f.col("s1"), f.col("s2"))
+    rows = (
+        df.withColumn("h4", h4)
+        .withColumn(
+            "clpp_back", ColocPIP.coloc2clpp(f.col("h4"), f.col("s1"), f.col("s2"))
+        )
+        .collect()
+    )
+    for row in rows:
+        assert row["clpp_back"] == pytest.approx(row["clpp"], rel=1e-9)
