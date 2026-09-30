@@ -9,6 +9,7 @@ from typing import Any, NotRequired, TypedDict
 import numpy as np
 import pandas as pd
 import pyspark.sql.functions as f
+from pyspark.sql import DataFrame
 from wandb.sdk.wandb_login import login as wandb_login
 from xgboost import XGBClassifier
 
@@ -244,10 +245,10 @@ class LocusToGeneTrainTestSplitStep:
             variant_index_path (str | None): Path to the variant index (required for OTG gold standard)
             gene_interactions_path (str | None): Path to the PPI dataset (required for OTG gold standard)
             predefined_test_parquet_path (str | None): Path to an existing test-split parquet
-                produced by a previous run of this step. When provided, the test set is loaded
-                as-is and the training set is derived by removing all studyLocusIds from the
-                annotated feature matrix whose positive genes overlap with the test set's positive
-                genes. ``test_size`` is ignored. Defaults to None (fresh hierarchical split).
+                produced by a previous run of this step. Only its positive genes are used: the
+                current credible sets are split on them with ``_split_by_test_genes``, so the test
+                genes stay fixed across releases while credible sets and features are rebuilt.
+                ``test_size`` is ignored. Defaults to None (fresh hierarchical split).
             split_stats_path (str | None): Explicit path for the split statistics JSON file. Defaults to ``<train_parquet_path>_split_stats.json``.
         """
         credible_set = StudyLocus.from_parquet(
@@ -276,36 +277,19 @@ class LocusToGeneTrainTestSplitStep:
         to_unpersist = []
 
         if predefined_test_parquet_path:
-            predefined_test_sdf = session.spark.read.parquet(predefined_test_parquet_path).persist()
-            to_unpersist.append(predefined_test_sdf)
-
-            n_original_total: int = annotated_fm._df.count()
-            n_original_test: int = predefined_test_sdf.count()
-
-            # Positive gene IDs from the predefined test set.
-            test_positive_genes_sdf = predefined_test_sdf.filter(
-                f.col("goldStandardSet").isin([1, "positive"])
-            ).select("geneId").distinct()
-
-            # studyLocusIds in annotated_fm that contain at least one test-positive gene.
-            # The goldStandardSet label in annotated_fm is intentionally NOT checked here:
-            # a study locus whose gene label changed between runs (positive→negative) is
-            # still in test_sdf via the test_pairs join and must be kept out of training.
-            contaminating_sdf = (
-                annotated_fm._df.join(test_positive_genes_sdf, on="geneId", how="inner")
-                .select("studyLocusId")
+            # Only the positive genes of the predefined test set are used: the test credible
+            # sets, their negatives and their features are rebuilt from the current data.
+            test_genes_sdf = (
+                session.spark.read.parquet(predefined_test_parquet_path)
+                .filter(f.col("goldStandardSet").cast("string").isin(["1", "positive"]))
+                .select("geneId")
                 .distinct()
+                .persist()
             )
+            to_unpersist.append(test_genes_sdf)
 
-            # Train set: remove contaminating studyLocusIds entirely.
-            train_sdf = annotated_fm._df.join(
-                contaminating_sdf, on="studyLocusId", how="left_anti"
-            )
-
-            # Test set: re-derive features from current annotated_fm using the predefined pairs.
-            test_pairs_sdf = predefined_test_sdf.select("studyLocusId", "geneId")
-            test_sdf = annotated_fm._df.join(
-                test_pairs_sdf, on=["studyLocusId", "geneId"], how="inner"
+            train_sdf, test_sdf = self._split_by_test_genes(
+                annotated_fm._df, test_genes_sdf
             )
 
             # Apply label encoding in Spark (handles both string and already-encoded int values).
@@ -320,16 +304,16 @@ class LocusToGeneTrainTestSplitStep:
             ).persist()
             to_unpersist.extend([train_sdf, test_sdf])
 
+            n_original_total: int = annotated_fm._df.count()
             n_train: int = train_sdf.count()
-            n_test_new: int = test_sdf.count()
-            n_written_train, n_written_test = n_train, n_test_new
+            n_test: int = test_sdf.count()
+            n_written_train, n_written_test = n_train, n_test
             split_stats: dict[str, Any] = {
                 "n_original_total": n_original_total,
-                "n_original_test": n_original_test,
-                "n_test_new": n_test_new,
-                "n_lost_test": n_original_test - n_test_new,
+                "n_predefined_test_genes": test_genes_sdf.count(),
                 "n_train": n_train,
-                "n_lost_total": n_original_total - n_test_new - n_train,
+                "n_test": n_test,
+                "n_lost_total": n_original_total - n_train - n_test,
                 "train": self._compute_set_stats(train_sdf.toPandas()),
                 "test": self._compute_set_stats(test_sdf.toPandas()),
             }
@@ -362,6 +346,65 @@ class LocusToGeneTrainTestSplitStep:
             "Train/test split written: %d train rows, %d test rows.",
             n_written_train,
             n_written_test,
+        )
+
+    @staticmethod
+    def _split_by_test_genes(
+        annotated_df: DataFrame, test_genes: DataFrame
+    ) -> tuple[DataFrame, DataFrame]:
+        """Split credible sets into train and test on a fixed list of test genes.
+
+        A credible set goes to the test set when all its positives are test genes, and to the
+        training set when it contains no test gene at all, positive or negative. Credible sets
+        with positives on both sides are dropped, so no positive gene is shared between the sets.
+
+        Args:
+            annotated_df (DataFrame): Annotated feature matrix with ``studyLocusId``, ``geneId``
+                and ``goldStandardSet``.
+            test_genes (DataFrame): Test genes in a ``geneId`` column.
+
+        Returns:
+            tuple[DataFrame, DataFrame]: Training and test rows.
+
+        Examples:
+            >>> df = spark.createDataFrame(
+            ...     [
+            ...         ("cs1", "g1", "positive"), ("cs1", "g2", "negative"),
+            ...         ("cs2", "g2", "positive"), ("cs2", "g3", "negative"),
+            ...         ("cs3", "g3", "positive"), ("cs3", "g1", "negative"),
+            ...         ("cs4", "g1", "positive"), ("cs4", "g2", "positive"),
+            ...     ],
+            ...     "studyLocusId string, geneId string, goldStandardSet string",
+            ... )
+            >>> genes = spark.createDataFrame([("g1",)], "geneId string")
+            >>> train, test = LocusToGeneTrainTestSplitStep._split_by_test_genes(df, genes)
+            >>> sorted(r.studyLocusId for r in train.select("studyLocusId").distinct().collect())
+            ['cs2']
+            >>> sorted(r.studyLocusId for r in test.select("studyLocusId").distinct().collect())
+            ['cs1']
+        """
+        genes = test_genes.select("geneId").distinct().withColumn("isTestGene", f.lit(True))
+        loci = (
+            annotated_df.join(f.broadcast(genes), on="geneId", how="left")
+            .withColumn("isTestGene", f.coalesce(f.col("isTestGene"), f.lit(False)))
+            .withColumn(
+                "isPositive",
+                f.col("goldStandardSet").cast("string").isin(["1", "positive"]),
+            )
+            .groupBy("studyLocusId")
+            .agg(
+                f.max("isTestGene").alias("hasTestGene"),
+                f.max(f.col("isPositive") & f.col("isTestGene")).alias("hasTestPositive"),
+                f.max(f.col("isPositive") & ~f.col("isTestGene")).alias("hasTrainPositive"),
+            )
+        )
+        train_loci = loci.filter(~f.col("hasTestGene")).select("studyLocusId")
+        test_loci = loci.filter(
+            f.col("hasTestPositive") & ~f.col("hasTrainPositive")
+        ).select("studyLocusId")
+        return (
+            annotated_df.join(train_loci, on="studyLocusId", how="semi"),
+            annotated_df.join(test_loci, on="studyLocusId", how="semi"),
         )
 
     @staticmethod
