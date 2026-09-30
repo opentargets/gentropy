@@ -53,6 +53,7 @@ class SUSIE_inf:
         method: str = "moments",
         maxiter: int = 100,
         PIP_tol: float = 0.001,
+        sigmasq_min_fraction: float = 0.01,
     ) -> dict[str, Any]:
         """Susie with random effects.
 
@@ -79,6 +80,24 @@ class SUSIE_inf:
             method (str): one of {'moments','MLE'}
             maxiter (int): maximum number of SuSiE iterations
             PIP_tol (float): convergence threshold for PIP difference between iterations
+            sigmasq_min_fraction (float): floor for the estimated residual variance sigma^2,
+                as a fraction of the trait variance `meansq`. `lbf_variable` is approximately
+                `z^2 / (2 * sigmasq)`, so a sigma^2 driven to zero inflates every log-Bayes-factor
+                without bound. See the note below on when that happens.
+
+        !!! warning "sigma^2 is only identifiable while z^2 is small relative to n"
+            The method-of-moments estimator derives sigma^2 from the residual sum of squares,
+            which is a first-order approximation valid when the locus explains a small fraction
+            of trait variance (`r^2 ~ z^2/n`). The exact relation is `r^2 = z^2/(n + z^2)`, so as
+            `z^2` approaches `n` the estimate collapses towards zero and then turns negative,
+            yielding NaN for the whole locus.
+
+            At GWAS sample sizes `z^2/n` stays small and sigma^2 stays near `meansq`. At molecular
+            QTL sample sizes it does not: with n = 10,725 any variant with `|z| > 104` has
+            `z^2 > n`, which is routine for a strong cis-eQTL. `sigmasq_min_fraction` bounds the
+            damage, but it is a guard against NaN rather than a cure for the inflation — for QTL
+            fine-mapping prefer `est_sigmasq=False`, which holds sigma^2 at `meansq` and recovers
+            the well-calibrated `logBF ~ z^2/2`.
 
         Returns:
             dict[str, Any]: Dictionary with keys:
@@ -91,6 +110,9 @@ class SUSIE_inf:
                 tausq -- final value of tau^2
                 alpha -- length-p array of posterior means of infinitesimal effects
                 lbf -- length-p array of log-Bayes-factors for each CS
+                sigmasq_floored -- True if sigma^2 hit the bound at any iteration, meaning it
+                    was not identifiable for this locus and the logBFs are inflated by up to
+                    1/sigmasq_min_fraction
 
         Raises:
             RuntimeError: if missing LD or if unsupported variance estimation method
@@ -127,6 +149,8 @@ class SUSIE_inf:
             logpi0 = -np.ones(p) * np.inf
             inds = np.nonzero(pi0 > 0)[0]
             logpi0[inds] = np.log(pi0[inds])
+
+        sigmasq_floored = False
 
         ####### Main SuSiE iteration loop ######
         def f(x: float) -> float:
@@ -167,6 +191,7 @@ class SUSIE_inf:
                 PIP[:, _l] = np.exp(logPIP - scipy.special.logsumexp(logPIP))
             # Update variance components
             if est_sigmasq or est_tausq:
+                sigmasq_prev = sigmasq
                 if method == "moments":
                     (sigmasq, tausq) = SUSIE_inf._MoM(
                         PIP,
@@ -203,6 +228,26 @@ class SUSIE_inf:
                     )
                 else:
                     raise RuntimeError("Unsupported variance estimation method")
+                # Bound the residual variance away from zero. Neither estimator constrains
+                # sigma^2 to be positive when only sigma^2 is estimated, and a value at or
+                # below zero makes `var` non-positive, which propagates NaN through omega,
+                # mu and lbf_variable for every variant in the locus. Values merely close to
+                # zero are just as damaging: lbf_variable ~ z^2/(2*sigmasq) then inflates by
+                # orders of magnitude. sigma^2 is a residual variance, so it also cannot
+                # exceed the total trait variance meansq = yty/n.
+                #
+                # Either way the bound binding means sigma^2 was not identifiable for this
+                # locus, so the logBFs are inflated by up to 1/sigmasq_min_fraction even
+                # though they are now finite. Record it rather than let it pass silently.
+                if not np.isfinite(sigmasq):
+                    # Already non-finite on arrival: keep the last usable value.
+                    sigmasq = sigmasq_prev
+                    sigmasq_floored = True
+                else:
+                    sigmasq_floored |= bool(sigmasq < sigmasq_min_fraction * meansq)
+                    sigmasq = float(
+                        np.clip(sigmasq, sigmasq_min_fraction * meansq, meansq)
+                    )
                 # Update X' Omega X, X' Omega y
                 var = tausq * Dsq + sigmasq
                 diagXtOmegaX = np.sum(V**2 * (Dsq / var), axis=1)
@@ -231,6 +276,7 @@ class SUSIE_inf:
             "tausq": tausq,
             "alpha": alpha,
             "lbf": lbf_cs,
+            "sigmasq_floored": sigmasq_floored,
         }
 
     @staticmethod

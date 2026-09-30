@@ -10,6 +10,7 @@ from pyspark.sql import functions as f
 
 from gentropy.dataset.biosample_index import BiosampleIndex
 from gentropy.dataset.study_index import (
+    ProteinQuantitativeTraitLocusStudyIndex,
     StudyAnalysisFlag,
     StudyIndex,
     StudyQualityCheck,
@@ -997,3 +998,202 @@ class TestValidateCaseControlSampleSize:
             .collect()[0]["qualityControls"]
         )
         assert sorted(observed_flags) == sorted(expected_flags)
+
+
+class TestPQTLStudyIndexToStudy:
+    """Test the pQTL study index to StudyIndex transformation."""
+
+    @staticmethod
+    def _target_index(spark: SparkSession, rows: list[dict[str, Any]]) -> TargetIndex:
+        """Build a TargetIndex from partial rows, nulling every unspecified field."""
+        schema = TargetIndex.get_schema()
+        full = [{fld.name: None for fld in schema.fields} | row for row in rows]
+        return TargetIndex(_df=spark.createDataFrame(full, schema=schema))
+
+    @staticmethod
+    def _pqtl_study_index(
+        spark: SparkSession, targets: list[dict[str, str]]
+    ) -> ProteinQuantitativeTraitLocusStudyIndex:
+        """Build a single-study pQTL study index measuring the given targets."""
+        schema = ProteinQuantitativeTraitLocusStudyIndex.get_schema()
+        row = {fld.name: None for fld in schema.fields} | {
+            "studyId": "deCODE-study-1",
+            "projectId": "deCODE-proteomics-smp",
+            "studyType": "pqtl",
+            "targetsFromSource": [
+                {
+                    "proteinId": t["proteinId"],
+                    "proteinName": None,
+                    "geneId": None,
+                    "geneSymbol": t["geneSymbol"],
+                }
+                for t in targets
+            ],
+        }
+        return ProteinQuantitativeTraitLocusStudyIndex(
+            _df=spark.createDataFrame([row], schema=schema)
+        )
+
+    def test_ambiguous_symbol_resolves_without_multiplying(
+        self, spark: SparkSession
+    ) -> None:
+        """An ambiguous symbol must yield one row per target.
+
+        SIGLEC5 resolves to two gene ids and its protein O15389 to the same two, so
+        the symbol join explodes to 2 rows.
+
+        The two genes must keep distinct `tss`: symbols_lut().
+        """
+        target = self._target_index(
+            spark,
+            [
+                {
+                    "id": gene_id,
+                    "approvedSymbol": "SIGLEC5",
+                    "obsoleteSymbols": [],
+                    "genomicLocation": {
+                        "chromosome": "19",
+                        "start": tss,
+                        "end": tss + 100,
+                        "strand": 1,
+                    },
+                    "canonicalTranscript": {
+                        "id": f"t-{gene_id}",
+                        "chromosome": "19",
+                        "start": tss,
+                        "end": tss + 100,
+                        "strand": "+",
+                    },
+                    "tss": tss,
+                    "proteinIds": [{"id": "O15389", "source": "uniprot_swissprot"}],
+                }
+                for gene_id, tss in (
+                    ("ENSG00000105501", 51_645_545),
+                    ("ENSG00000268500", 51_630_401),
+                )
+            ],
+        )
+        pqtl = self._pqtl_study_index(
+            spark, [{"geneSymbol": "SIGLEC5", "proteinId": "O15389"}]
+        )
+
+        result = pqtl.to_study(target)
+
+        assert isinstance(result, StudyIndex)
+        assert result.df.count() == 2
+        assert sorted(r["geneId"] for r in result.df.collect()) == [
+            "ENSG00000105501",
+            "ENSG00000268500",
+        ]
+
+    def test_unambiguous_symbol_yields_one_row_per_target(
+        self, spark: SparkSession
+    ) -> None:
+        """The intended explosion of a multi-target aptamer is preserved."""
+        target = self._target_index(
+            spark,
+            [
+                {
+                    "id": "ENSG00000143546",
+                    "approvedSymbol": "S100A8",
+                    "obsoleteSymbols": [],
+                    "genomicLocation": {
+                        "chromosome": "1",
+                        "start": 1,
+                        "end": 2,
+                        "strand": 1,
+                    },
+                    "canonicalTranscript": {
+                        "id": "t1",
+                        "chromosome": "1",
+                        "start": 1,
+                        "end": 2,
+                        "strand": "+",
+                    },
+                    "tss": 1,
+                    "proteinIds": [{"id": "P05109", "source": "uniprot_swissprot"}],
+                },
+                {
+                    "id": "ENSG00000163220",
+                    "approvedSymbol": "S100A9",
+                    "obsoleteSymbols": [],
+                    "genomicLocation": {
+                        "chromosome": "1",
+                        "start": 3,
+                        "end": 4,
+                        "strand": 1,
+                    },
+                    "canonicalTranscript": {
+                        "id": "t2",
+                        "chromosome": "1",
+                        "start": 3,
+                        "end": 4,
+                        "strand": "+",
+                    },
+                    "tss": 3,
+                    "proteinIds": [{"id": "P06702", "source": "uniprot_swissprot"}],
+                },
+            ],
+        )
+        pqtl = self._pqtl_study_index(
+            spark,
+            [
+                {"geneSymbol": "S100A8", "proteinId": "P05109"},
+                {"geneSymbol": "S100A9", "proteinId": "P06702"},
+            ],
+        )
+
+        result = pqtl.to_study(target)
+
+        assert result.df.count() == 2
+        assert sorted(r["geneId"] for r in result.df.collect()) == [
+            "ENSG00000143546",
+            "ENSG00000163220",
+        ]
+
+    def test_unresolved_targets_are_dropped(self, spark: SparkSession) -> None:
+        """A target the reference does not resolve carries no gene mapping.
+
+        The IG aptamers pair a resolvable heavy chain with IGK@ / IGL@, whose
+        symbols and placeholder protein ids both miss. Two such targets produced
+        identical rows, making the studyId non-unique and exposing the whole study
+        to validate_unique_study_id.
+        """
+        target = self._target_index(
+            spark,
+            [
+                {
+                    "id": "ENSG00000211898",
+                    "approvedSymbol": "IGHD",
+                    "obsoleteSymbols": [],
+                    "genomicLocation": {
+                        "chromosome": "14",
+                        "start": 1,
+                        "end": 2,
+                        "strand": 1,
+                    },
+                    "canonicalTranscript": {
+                        "id": "t1",
+                        "chromosome": "14",
+                        "start": 1,
+                        "end": 2,
+                        "strand": "+",
+                    },
+                    "tss": 1,
+                    "proteinIds": [{"id": "P01880", "source": "uniprot_swissprot"}],
+                }
+            ],
+        )
+        pqtl = self._pqtl_study_index(
+            spark,
+            [
+                {"geneSymbol": "IGHD", "proteinId": "P01880"},
+                {"geneSymbol": "IGK@", "proteinId": "_NA"},
+                {"geneSymbol": "IGL@", "proteinId": "_NA"},
+            ],
+        )
+
+        result = pqtl.to_study(target)
+
+        assert result.df.count() == 1
+        assert result.df.collect()[0]["geneId"] == "ENSG00000211898"

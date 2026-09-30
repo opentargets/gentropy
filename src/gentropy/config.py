@@ -122,9 +122,7 @@ class BigBrainSummaryStatisticsIngestionConfig(StepConfig):
     top_assoc_url: str = MISSING
     raw_full_assoc_path: str = MISSING
     raw_top_assoc_path: str = MISSING
-    _target_: str = (
-        "gentropy.bigbrain_ingestion.BigBrainSummaryStatisticsIngestionStep"
-    )
+    _target_: str = "gentropy.bigbrain_ingestion.BigBrainSummaryStatisticsIngestionStep"
 
 
 @dataclass
@@ -775,6 +773,11 @@ class FinemapperConfig(StepConfig):
     cs_lbf_thr: float = MISSING
     sum_pips: float = MISSING
     susie_est_tausq: bool = MISSING
+    # Estimating sigma^2 is only safe while z^2 is small relative to nSamples. Molecular
+    # QTLs routinely violate that (|z| > sqrt(n) for a strong cis-eQTL), which collapses
+    # sigma^2 towards zero and inflates logBF without bound — see SUSIE_inf.susie_inf.
+    susie_est_sigmasq: bool = True
+    sigmasq_min_fraction: float = 0.01
     run_carma: bool = MISSING
     carma_tau: float = MISSING
     run_sumstat_imputation: bool = MISSING
@@ -918,7 +921,21 @@ class FineMappingPlanGeneratorConfig(StepConfig):
 
     input_path: str = MISSING
     output_path: str = MISSING
+    min_ess: int = 1000
     _target_: str = "gentropy.finemapping_planner.FineMappingPlanGeneratorStep"
+
+
+@dataclass
+class GWASCatalogFineMappingManifestConfig(StepConfig):
+    """GWAS Catalog fine-mapping manifest generation step configuration."""
+
+    study_index_path: str = MISSING
+    fine_mapping_planner_path: str = MISSING
+    output_path: str = MISSING
+    summary_statistics_glob: str | None = None
+    _target_: str = (
+        "gentropy.finemapping_manifest.GWASCatalogFineMappingManifestGenerator"
+    )
 
 
 @dataclass
@@ -1071,6 +1088,11 @@ def register_config() -> None:
         group="step",
         name="fine_mapping_plan_generator",
         node=FineMappingPlanGeneratorConfig,
+    )
+    cs.store(
+        group="step",
+        name="gwas_catalog_finemapping_manifest",
+        node=GWASCatalogFineMappingManifestConfig,
     )
     cs.store(
         group="step",

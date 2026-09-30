@@ -370,7 +370,7 @@ class TestdeCODEStudyIndexFromManifest:
         self,
         session: Session,
     ) -> None:
-        """A matched molecular complex should populate molecularComplexId."""
+        """A matched molecular complex should populate molecularComplexIds."""
         from datetime import datetime
 
         from gentropy.datasource.decode import deCODEDataSource
@@ -422,5 +422,87 @@ class TestdeCODEStudyIndexFromManifest:
             aptamer_metadata=aptamer,
             molecular_complex=mc,
         )
-        row = result.df.select("molecularComplexId").collect()[0]
-        assert row.molecularComplexId == "COMPLEX_001"
+        row = result.df.select("molecularComplexIds").collect()[0]
+        assert row.molecularComplexIds == ["COMPLEX_001"]
+
+    def test_from_manifest_does_not_duplicate_study_on_colliding_complexes(
+        self,
+        session: Session,
+    ) -> None:
+        """Two complexes sharing a component set must annotate one study row, not two.
+
+        Regression test for the duplicated deCODE credible sets: Complex Portal
+        describes {P05109, P06702} with both CPX-37 and CPX-39, which fanned the
+        affected study out into two study-index rows and so duplicated every one of
+        its loci all the way through to the credible sets.
+        """
+        from datetime import datetime
+
+        from gentropy.datasource.decode import deCODEDataSource
+
+        manifest = deCODEManifest(
+            _df=session.spark.createDataFrame(
+                [
+                    Row(
+                        projectId=deCODEDataSource.DECODE_PROTEOMICS_SMP.value,
+                        studyId="deCODE-proteomics-smp_Proteomics_SMP_PC0_17145_1_GENE1_PROTEIN1_00000001",
+                        hasSumstats=True,
+                        summarystatsLocation="s3a://bucket/f.txt.gz",
+                        size="1 MiB",
+                        accessionTimestamp=datetime(2022, 1, 1),
+                    )
+                ],
+                schema=deCODEManifest.get_schema(),
+            )
+        )
+        aptamer = AptamerMetadata(
+            _df=session.spark.createDataFrame(
+                [
+                    Row(
+                        aptamerId="17145-1",
+                        targetName="GENE1",
+                        targetFullName="Full",
+                        isProteinComplex=True,
+                        targetMetadata=[
+                            Row(geneSymbol="S100A8", proteinId="P05109"),
+                            Row(geneSymbol="S100A9", proteinId="P06702"),
+                        ],
+                    )
+                ],
+                schema=AptamerMetadata.get_schema(),
+            )
+        )
+        components = [
+            Row(id="P05109", stoichiometry="1", source="intact"),
+            Row(id="P06702", stoichiometry="1", source="intact"),
+        ]
+        mc = MolecularComplex(
+            _df=session.spark.createDataFrame(
+                [
+                    Row(
+                        id=complex_id,
+                        description="desc",
+                        properties=None,
+                        assembly=None,
+                        components=components,
+                        evidenceCodes=None,
+                        crossReferences=None,
+                        source=Row(id="intact", source="intact"),
+                    )
+                    for complex_id in ("CPX-39", "CPX-37")
+                ],
+                schema=MolecularComplex.get_schema(),
+            )
+        )
+
+        result = deCODEStudyIndex.from_manifest(
+            manifest=manifest,
+            aptamer_metadata=aptamer,
+            molecular_complex=mc,
+        )
+
+        assert result.df.count() == 1
+        assert result.df.select("studyId").distinct().count() == 1
+        # both identifiers retained, deterministically ordered
+        row = result.df.select("molecularComplexIds").collect()[0]
+        assert row.molecularComplexIds == ["CPX-37", "CPX-39"]
