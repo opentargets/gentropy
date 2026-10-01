@@ -245,7 +245,7 @@ class LocusToGeneTrainTestSplitStep:
             variant_index_path (str | None): Path to the variant index (required for OTG gold standard)
             gene_interactions_path (str | None): Path to the PPI dataset (required for OTG gold standard)
             predefined_test_parquet_path (str | None): Path to an existing test-split parquet
-                produced by a previous run of this step. Only its positive genes are used: the
+                produced before. Only its positive genes are used: the
                 current credible sets are split on them with ``_split_by_test_genes``, so the test
                 genes stay fixed across releases while credible sets and features are rebuilt.
                 ``test_size`` is ignored. Defaults to None (fresh hierarchical split).
