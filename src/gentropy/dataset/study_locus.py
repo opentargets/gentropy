@@ -496,11 +496,17 @@ class StudyLocus(Dataset):
             )
             .select(
                 "studyId",
+                # Both branches build an array of keys, each key an array of IDs, so that a
+                # single explode gives one row per key:
                 f.explode(
+                    # Measurements only: one key per measurement, [M1, M2] -> [[M1], [M2]].
                     f.when(
                         f.size("diseaseOnlyIds") == 0,
                         f.transform("allIds", lambda x: f.array(x)),
-                    ).otherwise(f.array(f.array_sort("diseaseOnlyIds")))
+                    )
+                    # Otherwise: the diseases, measurements dropped, as a single key,
+                    # [M1, D1, D2] -> [[D1, D2]].
+                    .otherwise(f.array(f.array_sort("diseaseOnlyIds")))
                 ).alias("diseaseIdSet"),
             )
         )

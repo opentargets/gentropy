@@ -91,8 +91,10 @@ class StudyLocusValidationStep:
         # evidence of replication, and duplicated credible sets of one study would count as two.
         replicated = unique.valid.qc_replication(
             study_index,
-            session.load_data(disease_index_path, "parquet").select(
-                "id", "therapeuticAreas"
+            session.load_data(
+                disease_index_path,
+                "parquet",
+                schema="id STRING, therapeuticAreas ARRAY<STRING>",
             ),
         )
 
