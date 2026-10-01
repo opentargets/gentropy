@@ -6,10 +6,9 @@ from dataclasses import dataclass
 
 import pyspark.sql.functions as f
 import pyspark.sql.types as t
-from pyspark.sql import Column, DataFrame, Window
+from pyspark.sql import Column, DataFrame
 
 from gentropy.common.session import Session
-from gentropy.common.spark import get_top_ranked_in_window
 from gentropy.common.stats import split_pvalue_column
 from gentropy.dataset.study_index import StudyType
 from gentropy.dataset.study_locus import FinemappingMethod, StudyLocus
@@ -341,39 +340,62 @@ class FinnGenMultiomeFinemapping:
             )
         )
 
-        lead_variants = get_top_ranked_in_window(
-            cs_variants,
-            Window.partitionBy("studyId", "credibleSetIndex").orderBy(
-                f.desc("posteriorProbability")
-            ),
-        ).drop("posteriorProbability", "logBF")
-
-        locus = cs_variants.groupBy("studyId", "credibleSetIndex").agg(
-            f.collect_list(
-                f.struct(
-                    f.col("variantId"),
-                    f.col("posteriorProbability"),
-                    f.col("logBF"),
-                    f.col("pValueMantissa"),
-                    f.col("pValueExponent"),
-                    f.col("beta"),
-                    f.col("standardError"),
-                )
-            ).alias("locus")
+        # Lead variant and locus in one aggregation, so the inputs are scanned once.
+        # Ties on posterior probability are broken by variant identifier to keep the lead deterministic.
+        lead_columns = [
+            "variantId",
+            "chromosome",
+            "position",
+            "beta",
+            "standardError",
+            "pValueMantissa",
+            "pValueExponent",
+            "effectAlleleFrequencyFromSource",
+        ]
+        credible_set_columns = [
+            "credibleSetlog10BF",
+            "purityMeanR2",
+            "purityMinR2",
+            "locusStart",
+            "locusEnd",
+        ]
+        credible_sets = (
+            cs_variants.groupBy("studyId", "credibleSetIndex")
+            .agg(
+                f.max_by(
+                    f.struct(*lead_columns),
+                    f.struct("posteriorProbability", "variantId"),
+                ).alias("lead"),
+                *[f.first(c).alias(c) for c in credible_set_columns],
+                f.collect_list(
+                    f.struct(
+                        f.col("variantId"),
+                        f.col("posteriorProbability"),
+                        f.col("logBF"),
+                        f.col("pValueMantissa"),
+                        f.col("pValueExponent"),
+                        f.col("beta"),
+                        f.col("standardError"),
+                    )
+                ).alias("locus"),
+            )
+            .select(
+                "studyId",
+                "credibleSetIndex",
+                "lead.*",
+                *credible_set_columns,
+                "locus",
+            )
         )
 
         return StudyLocus(
-            _df=lead_variants.join(
-                locus, on=["studyId", "credibleSetIndex"], how="inner"
-            )
-            .withColumns(
+            _df=credible_sets.withColumns(
                 {
                     "studyType": f.lit(StudyType.SCEQTL.value),
                     "finemappingMethod": f.lit(FinemappingMethod.SUSIE.value),
                     "isTransQtl": f.lit(False),
                 }
-            )
-            .withColumn(
+            ).withColumn(
                 "studyLocusId",
                 StudyLocus.assign_study_locus_id(
                     ["studyId", "variantId", "finemappingMethod"]
