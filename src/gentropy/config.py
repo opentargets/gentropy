@@ -430,6 +430,8 @@ class LocusToGeneFeatureMatrixConfig(StepConfig):
     target_index_path: str | None = None
     intervals_path: str | None = None
     gene_interactions_path: str | None = None
+    pathway_index_path: str | None = None
+    pathway_enrichment_path: str | None = None
     feature_matrix_path: str = MISSING
     features_list: list[str] = field(
         default_factory=lambda: [
@@ -829,6 +831,7 @@ class StudyLocusValidationStepConfig(StepConfig):
     study_index_path: str = MISSING
     study_locus_path: list[str] = MISSING
     target_index_path: str = MISSING
+    disease_index_path: str = MISSING
     valid_study_locus_path: str = MISSING
     invalid_study_locus_path: str = MISSING
     invalid_qc_reasons: list[str] = MISSING
@@ -879,12 +882,77 @@ class MolecularComplexIngestionConfig(StepConfig):
 
 
 @dataclass
+class PathwayIngestionConfig(StepConfig):
+    """Pathway library and enrichment ingestion step configuration."""
+
+    pathway_library_path: str = MISSING
+    pathway_enrichment_source_path: str = MISSING
+    target_index_path: str = MISSING
+    pathway_index_path: str = MISSING
+    pathway_enrichment_path: str = MISSING
+    exclude_unmapped_pathways: bool = False
+    recompute_missing_adjusted_p_value: bool = True
+
+    _target_: str = "gentropy.pathway.PathwayIngestionStep"
+
+
+@dataclass
 class FineMappingPlanGeneratorConfig(StepConfig):
     """Fine-mapping plan generator step configuration."""
 
     input_path: str = MISSING
     output_path: str = MISSING
+    min_ess: int = 1000
     _target_: str = "gentropy.finemapping_planner.FineMappingPlanGeneratorStep"
+
+
+@dataclass
+class EffectorGeneListConfig(StepConfig):
+    """Effector Gene List (EGL) generation step configuration."""
+
+    effector_gene_list_path: str = MISSING
+    rare_variant_evidence_paths: list[str] | None = None
+    rare_variant_score_threshold: float = 0.75
+    clinical_evidence_path: str | None = None
+    approved_clinical_phases: list[str] = field(
+        default_factory=lambda: ["PHASE_4", "APPROVAL", "PHASE_3", "PREAPPROVAL"]
+    )
+    gold_standard_path: str | None = None
+    gold_standard_confidence: list[str] = field(
+        default_factory=lambda: ["High", "Medium"]
+    )
+    _target_: str = "gentropy.effector_gene_list.EffectorGeneListStep"
+
+
+@dataclass
+class TrainingSetConfig(StepConfig):
+    """L2G training set generation step configuration."""
+
+    feature_matrix_path: str = MISSING
+    credible_set_path: str = MISSING
+    study_index_path: str = MISSING
+    effector_gene_list_path: str = MISSING
+    training_set_path: str = MISSING
+    interaction_path: str | None = None
+    apply_replication_filter: bool = True
+    max_gsp_per_locus: int = 2
+    interaction_source: str = "string"
+    interaction_score_threshold: float = 0.75
+    apply_distance_filter: bool = True
+    protein_coding_only: bool = True
+    apply_deduplication: bool = True
+    _target_: str = "gentropy.training_set.TrainingSetStep"
+
+
+@dataclass
+class GWASCatalogFineMappingManifestConfig(StepConfig):
+    """GWAS Catalog fine-mapping manifest generation step configuration."""
+
+    study_index_path: str = MISSING
+    fine_mapping_planner_path: str = MISSING
+    output_path: str = MISSING
+    summary_statistics_glob: str | None = None
+    _target_: str = "gentropy.finemapping_manifest.GWASCatalogFineMappingManifestGenerator"
 
 
 @dataclass
@@ -1010,6 +1078,11 @@ def register_config() -> None:
     )
     cs.store(
         group="step",
+        name="pathway_ingestion",
+        node=PathwayIngestionConfig,
+    )
+    cs.store(
+        group="step",
         name="decode_manifest_generation",
         node=deCODEManifestGenerationConfig,
     )
@@ -1037,4 +1110,19 @@ def register_config() -> None:
         group="step",
         name="fine_mapping_plan_generator",
         node=FineMappingPlanGeneratorConfig,
+    )
+    cs.store(
+        group="step",
+        name="effector_gene_list",
+        node=EffectorGeneListConfig,
+    )
+    cs.store(
+        group="step",
+        name="training_set",
+        node=TrainingSetConfig,
+    )
+    cs.store(
+        group="step",
+        name="gwas_catalog_finemapping_manifest",
+        node=GWASCatalogFineMappingManifestConfig,
     )

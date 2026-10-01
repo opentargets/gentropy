@@ -5,7 +5,7 @@ from __future__ import annotations
 import numpy as np
 import pyspark.sql.functions as f
 import pytest
-from pyspark.sql import SparkSession
+from pyspark.sql import Column, SparkSession
 from pyspark.sql.types import DoubleType, IntegerType, StructField, StructType
 
 from gentropy.dataset.dataset import Dataset
@@ -99,3 +99,48 @@ def test_process_class_params(spark: SparkSession) -> None:
     assert "recursiveFileLookup" in spark_params, (
         "Spark params should contain recursiveFileLookup"
     )
+
+
+def test_flag_duplicates_retains_one_row_per_key(spark: SparkSession) -> None:
+    """Without a caller-supplied ordering, exactly one row per key is left unflagged.
+
+    Which row that is depends on the physical layout of the data and is not guaranteed across
+    runs, so only the count is asserted here. Callers that need a defined survivor pass
+    `order_by`, covered by `test_flag_duplicates_honours_order_by`.
+    """
+    df = spark.createDataFrame(
+        [("id1", "a"), ("id1", "b"), ("id1", "c"), ("id2", "d")],
+        ["key", "payload"],
+    )
+
+    retained = (
+        df.withColumn("isDuplicate", Dataset.flag_duplicates(f.col("key")))
+        .filter(~f.col("isDuplicate"))
+        .collect()
+    )
+
+    assert {row["key"] for row in retained} == {"id1", "id2"}
+    assert len(retained) == 2, "one row per key should be retained"
+
+
+def test_flag_duplicates_honours_order_by(spark: SparkSession) -> None:
+    """The caller-supplied ordering decides which duplicate is retained."""
+    df = spark.createDataFrame(
+        [("id1", 1), ("id1", 3), ("id1", 2)],
+        ["key", "rank"],
+    )
+
+    def retained(order_by: list[Column]) -> int:
+        """The `rank` of the row that is not flagged as a duplicate."""
+        rows = (
+            df.withColumn(
+                "isDuplicate", Dataset.flag_duplicates(f.col("key"), order_by=order_by)
+            )
+            .filter(~f.col("isDuplicate"))
+            .collect()
+        )
+        assert len(rows) == 1
+        return rows[0]["rank"]
+
+    assert retained([f.col("rank").asc()]) == 1
+    assert retained([f.col("rank").desc()]) == 3

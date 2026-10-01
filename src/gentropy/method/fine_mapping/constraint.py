@@ -19,6 +19,7 @@ from pyspark.sql import Column
 from pyspark.sql import functions as f
 
 from gentropy.common.spark import order_array_of_structs_by_field
+from gentropy.common.stats import effective_sample_size
 from gentropy.common.types import LDPopulation
 from gentropy.dataset.dataset import Dataset
 from gentropy.dataset.study_index import (
@@ -26,10 +27,34 @@ from gentropy.dataset.study_index import (
     StudyQualityCheck,
     StudyType,
 )
+from gentropy.method.ld import LDAnnotator
 
 
 class ConstraintResult(Dataset):
-    """Class representing the result of applying a constraint to a StudyIndex dataset."""
+    """Class representing the result of applying a constraint to a StudyIndex dataset.
+
+    Examples:
+    ---
+    >>> data = [("s1", [("constraint1", True), ("constraint2", False)]), ("s2", [("constraint1", False)])]
+    >>> schema = "studyId STRING, constraints ARRAY<STRUCT<name:STRING,value:BOOLEAN>>"
+    >>> result = ConstraintResult(_df=spark.createDataFrame(data, schema))
+    >>> assert isinstance(result, ConstraintResult)
+    >>> result.df.show(truncate=False)
+    +-------+-------------------------------------------+
+    |studyId|constraints                                |
+    +-------+-------------------------------------------+
+    |s1     |[{constraint1, true}, {constraint2, false}]|
+    |s2     |[{constraint1, false}]                     |
+    +-------+-------------------------------------------+
+    <BLANKLINE>
+
+    Schema definition:
+    - studyId: Unique identifier for the study.
+    - constraints: A list of constraints that determine the eligibility of the study for fine-mapping
+      under the specified route. Each constraint is represented as a struct with two fields:
+        - name: The name of the constraint.
+        - value: A boolean indicating whether the constraint is satisfied (True) or not (False).
+    """
 
     @classmethod
     def get_schema(cls) -> t.StructType:
@@ -58,7 +83,7 @@ class ConstraintResult(Dataset):
 
 
 class MethodConstraint(Protocol):
-    """Class representing the unique constraint on applying fine-mapping methods to a study."""
+    """Class representing the unique constraint that determines the eligibility of a study for a fine-mapping method."""
 
     name: ClassVar[str]
     """Class variable representing the name of the constraint."""
@@ -283,15 +308,88 @@ class HasAllowedMajorAncestry(MethodConstraint):
             relative_sample_size_threshold (float): The threshold for relative sample size.
 
         """
-        major_anc = order_array_of_structs_by_field(
+        ld_exists = f.col("ldPopulationStructure").isNotNull() & (
+            f.size(f.col("ldPopulationStructure")) > 0
+        )
+        ld_pops_sorted = order_array_of_structs_by_field(
             "ldPopulationStructure", "relativeSampleSize"
-        ).getItem(0)
-
+        )
+        major_anc = f.when(
+            ld_pops_sorted.isNotNull(),
+            LDAnnotator._get_major_population(ld_pops_sorted),
+        )
         major_above_threshold = (
-            major_anc.getField("relativeSampleSize") >= relative_sample_size_threshold
+            # In case of tie, we can just pick the first one.
+            ld_pops_sorted.getItem(0).getField("relativeSampleSize")
+            >= relative_sample_size_threshold
         )
-        major_allowed = major_anc.getField("ldPopulation").isin(
-            [a.value for a in allowed_ancestries]
-        )
+        major_allowed = major_anc.isin([a.value for a in allowed_ancestries])
 
-        self.expression = major_above_threshold & major_allowed
+        self.expression = ld_exists & major_above_threshold & major_allowed
+
+
+class HasSufficientESS(MethodConstraint):
+    """Class representing the constraint for a minimum effective sample size.
+
+    A study must have a computable effective sample size (ESS) that meets the configured
+    minimum. ESS is derived from the study design: case-control studies use the effective
+    sample size formula 4*nCases*nControls/(nCases+nControls); measurement studies use
+    nSamples. A study design that is neither case-control nor a plain measurement study
+    has no well-defined sample-size basis and therefore fails the constraint.
+
+    The design flags are expected to be present in the ``qualityControls`` array. Study
+    indexes produced by the ingestion pipeline do not store them; when resolving such an
+    index, ``MultiSuSiEConstraintSet.resolve`` derives the design from the sample-size
+    columns via ``StudyIndex.validate_ccs`` before evaluating the constraints.
+
+        >>> from gentropy.dataset.study_index import StudyIndex, StudyQualityCheck
+        >>> cc = StudyQualityCheck.CASE_CONTROL_STUDY_DESIGN.value
+        >>> meas = StudyQualityCheck.MEASUREMENT_STUDY_DESIGN.value
+        >>> data = [
+        ...     ("s1", "p", "gwas", [meas], 500, None, None),
+        ...     ("s2", "p", "gwas", [meas], 1000, None, None),
+        ...     ("s3", "p", "gwas", [meas], 1001, None, None),
+        ...     ("s4", "p", "gwas", [cc], 2000, 1000, 1000),
+        ...     ("s5", "p", "gwas", [], 10000, None, None),
+        ... ]
+        >>> schema = (
+        ...     "studyId STRING, projectId STRING, studyType STRING, "
+        ...     "qualityControls ARRAY<STRING>, nSamples INT, nCases INT, nControls INT"
+        ... )
+        >>> si = StudyIndex(_df=spark.createDataFrame(data, schema))
+        >>> constraint = HasSufficientESS(min_ess=1000)
+        >>> si.df.select("studyId", constraint.expression.alias("hasSufficientESS")).orderBy("studyId").show(truncate=False)
+        +-------+----------------+
+        |studyId|hasSufficientESS|
+        +-------+----------------+
+        |s1     |false           |
+        |s2     |true            |
+        |s3     |true            |
+        |s4     |true            |
+        |s5     |false           |
+        +-------+----------------+
+        <BLANKLINE>
+    """
+
+    name = "hasSufficientESS"
+
+    def __init__(self, min_ess: int) -> None:
+        """Initialize the minimum effective sample size constraint.
+
+        Args:
+            min_ess (int): The minimum effective sample size a study must have to pass.
+        """
+        ess = f.when(
+            f.array_contains(
+                f.col("qualityControls"),
+                StudyQualityCheck.CASE_CONTROL_STUDY_DESIGN.value,
+            ),
+            effective_sample_size(f.col("nCases"), f.col("nControls")),
+        ).when(
+            f.array_contains(
+                f.col("qualityControls"),
+                StudyQualityCheck.MEASUREMENT_STUDY_DESIGN.value,
+            ),
+            f.col("nSamples"),
+        )
+        self.expression = ess.isNotNull() & (ess >= min_ess)

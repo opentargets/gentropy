@@ -80,11 +80,19 @@ class LocusToGeneModel:
         Raises:
             ValueError: If the model has not been fitted yet
         """
-        model_path = (Path(path) / model_name).as_posix()
+        # Path collapses the double slash in a URI, turning "gs://bucket/dir" into
+        # "gs:/bucket/dir", so the check below would never fire and a GCS directory would be
+        # read off the local filesystem. Join as a plain string for "gs://" inputs only, and
+        # keep using Path (with its normalization) for local paths.
+        if path.startswith("gs://"):
+            model_path = f"{path.rstrip('/')}/{model_name}"
+        else:
+            model_path = (Path(path) / model_name).as_posix()
+        # Only the local branch looks for the training data alongside the model, so this has to
+        # be bound up front or the GCS branch fails on the return below.
+        training_data = None
         if model_path.startswith("gs://"):
-            path = model_path.removeprefix("gs://")
-            bucket_name = path.split("/")[0]
-            blob_name = "/".join(path.split("/")[1:])
+            bucket_name, blob_name = model_path.removeprefix("gs://").split("/", 1)
             from google.cloud import storage
 
             client = storage.Client()

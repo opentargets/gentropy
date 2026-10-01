@@ -21,6 +21,7 @@ class StudyLocusValidationStep:
         study_locus_path: list[str],
         study_index_path: str,
         target_index_path: str,
+        disease_index_path: str,
         valid_study_locus_path: str,
         invalid_study_locus_path: str,
         trans_qtl_threshold: int,
@@ -33,6 +34,7 @@ class StudyLocusValidationStep:
             study_locus_path (list[str]): Path to study locus dataset.
             study_index_path (str): Path to study index file.
             target_index_path (str): path to the target index.
+            disease_index_path (str): Path to the platform disease index, used to tell measurements from diseases in the replication check.
             valid_study_locus_path (str): Path to write the valid records.
             invalid_study_locus_path (str): Path to write the output file.
             trans_qtl_threshold (int): genomic distance above which a QTL is considered trans.
@@ -40,7 +42,8 @@ class StudyLocusValidationStep:
         """
         invalid_qc_reasons = list(invalid_qc_reasons) if invalid_qc_reasons else []
         # Reading datasets:
-        study_index = StudyIndex.from_parquet(session, study_index_path)
+        # The study index is read once and consumed by four of the checks below, so it is cached:
+        study_index = StudyIndex.from_parquet(session, study_index_path).persist()
         target_index = TargetIndex.from_parquet(session, target_index_path)
 
         # Running validation then writing output:
@@ -69,9 +72,35 @@ class StudyLocusValidationStep:
 
         result = study_locus_with_qc.valid_rows(invalid_qc_reasons)
 
+        # `studyLocusId` is a hash of the study and the lead variant, and the input is a union of
+        # several independently generated datasets, so uniqueness can only be established here.
+        # It is checked on the credible sets that survived the other flags, never on the whole
+        # input: a curated top hit collides with the PICS credible set of the same study and lead
+        # variant, and the top hit holds the smaller `locus` of the two, so ordering the whole
+        # input by credible set size elects the top hit -- itself already dropped under
+        # TOP_HIT_AND_SUMMARY_STATS -- and flags the fine-mapped credible set, losing both.
+        deduplicated = (
+            result.valid.validate_unique_study_locus_id().persist()
+        )  # we will need this for 2 types of outputs
+        # None of the other reasons can match here, so this only separates the duplicates, and
+        # only when DUPLICATED_STUDYLOCUS_ID is one of the configured invalid reasons.
+        unique = deduplicated.valid_rows(invalid_qc_reasons)
+
+        # Replication is assessed at the very end, once every invalid credible set has been
+        # removed: a credible set dropped by any earlier flag, a duplicate included, is not
+        # evidence of replication, and duplicated credible sets of one study would count as two.
+        replicated = unique.valid.qc_replication(
+            study_index,
+            session.load_data(
+                disease_index_path,
+                "parquet",
+                schema="id STRING, therapeuticAreas ARRAY<STRING>",
+            ),
+        )
+
         (
             # Valid study locus partitioned to simplify the finding of overlaps
-            result.valid.df.repartitionByRange(
+            replicated.df.repartitionByRange(
                 session.output_partitions,
                 "chromosome",
                 "position",
@@ -81,7 +110,13 @@ class StudyLocusValidationStep:
             .parquet(valid_study_locus_path)
         )
         (
-            result.invalid.df.coalesce(session.output_partitions)
+            result.invalid.df.unionByName(unique.invalid.df)
+            .coalesce(session.output_partitions)
             .write.mode(session.write_mode)
             .parquet(invalid_study_locus_path)
         )
+
+        # Both caches feed the invalid output, so they can only be released once it is written.
+        deduplicated.df.unpersist()
+        study_locus_with_qc.df.unpersist()
+        study_index.df.unpersist()
