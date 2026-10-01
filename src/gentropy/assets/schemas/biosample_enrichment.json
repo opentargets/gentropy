@@ -1,0 +1,65 @@
+{
+  "type": "struct",
+  "fields": [
+    {
+      "name": "biosampleId",
+      "type": "string",
+      "nullable": false,
+      "metadata": {}
+    },
+    {
+      "name": "biosampleFromSource",
+      "type": "string",
+      "nullable": false,
+      "metadata": {}
+    },
+    {
+      "name": "biosampleDataset",
+      "type": "string",
+      "nullable": false,
+      "metadata": {}
+    },
+    {
+      "name": "studyId",
+      "type": "string",
+      "nullable": false,
+      "metadata": {}
+    },
+    {
+      "name": "diseaseId",
+      "type": "string",
+      "nullable": false,
+      "metadata": {}
+    },
+    {
+      "name": "enrichmentApproach",
+      "type": "string",
+      "nullable": false,
+      "metadata": {}
+    },
+    {
+      "name": "pValue",
+      "type": "float",
+      "nullable": false,
+      "metadata": {}
+    },
+    {
+      "name": "ldAncestry",
+      "type": "string",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "beta",
+      "type": "float",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "betaError",
+      "type": "float",
+      "nullable": true,
+      "metadata": {}
+    }
+  ]
+}
