@@ -48,6 +48,36 @@ def test_evaluate_perfect_predictions() -> None:
     assert metrics == expected
 
 
+def test_average_precision_uses_probabilities_not_labels() -> None:
+    """Test that average precision reads the scores rather than the thresholded predictions.
+
+    The model ranks every positive above every negative, so average precision is 1.0. It only
+    gets that right if it reads the probabilities: computed from the 0/1 predictions instead, the
+    two false positives at the 0.5 threshold drag it down to 0.5.
+    """
+    y_true = np.array([1, 1, 0, 0])
+    y_pred_proba = np.array(
+        [
+            [0.1, 0.9],
+            [0.2, 0.8],
+            [
+                0.3,
+                0.7,
+            ],  # ranked below both positives, but still above the 0.5 threshold
+            [0.4, 0.6],
+        ]
+    )
+    y_pred = (y_pred_proba[:, 1] >= 0.5).astype(int)
+
+    metrics = LocusToGeneTrainer.evaluate(y_true, y_pred, y_pred_proba)
+
+    assert metrics["averagePrecision"] == pytest.approx(1.0)
+    # The ranking is perfect, so the two threshold-free metrics have to agree.
+    assert metrics["averagePrecision"] == pytest.approx(metrics["areaUnderROC"])
+    # ...while the threshold-dependent metrics do see the two false positives.
+    assert (metrics["TP"], metrics["FP"], metrics["TN"], metrics["FN"]) == (2, 2, 0, 0)
+
+
 def test_train(mock_l2g_feature_matrix: L2GFeatureMatrix) -> None:
     """Test LocusToGeneTrainer.train produces a fitted model."""
     features_list = ["distanceTssMean", "distanceSentinelTssMinimum"]
