@@ -21,13 +21,21 @@ class LDSet(Dataset):
     reference that produced it.
 
     Examples:
-        >>> data = [("sl1", "1_154460000_G_A", 0.85, "nfe", [])]
+        >>> data = [
+        ...     ("sl1", "1_154460000_G_A", 0.85, "nfe", []),
+        ...     ("sl1", "1_154470000_T_G", 0.62, "nfe", []),
+        ...     ("sl2", "2_60500000_T_C", 0.91, "afr", []),
+        ...     ("sl2", "2_60510000_C_A", 0.74, "afr", []),
+        ... ]
         >>> ld_set = LDSet(_df=spark.createDataFrame(data, LDSet.get_schema()))
         >>> ld_set.df.show(truncate=False)
         +------------+---------------+---------+------------+---------------+
         |studyLocusId|tagVariantId   |r2Overall|ldPopulation|qualityControls|
         +------------+---------------+---------+------------+---------------+
         |sl1         |1_154460000_G_A|0.85     |nfe         |[]             |
+        |sl1         |1_154470000_T_G|0.62     |nfe         |[]             |
+        |sl2         |2_60500000_T_C |0.91     |afr         |[]             |
+        |sl2         |2_60510000_C_A |0.74     |afr         |[]             |
         +------------+---------------+---------+------------+---------------+
         <BLANKLINE>
     """

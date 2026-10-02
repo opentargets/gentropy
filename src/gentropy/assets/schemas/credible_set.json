@@ -22,7 +22,7 @@
       "metadata": {},
       "name": "fineMappingMethod",
       "nullable": false,
-      "type": "byte"
+      "type": "string"
     },
     {
       "metadata": {},
