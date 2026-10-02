@@ -7,6 +7,7 @@ from unittest.mock import MagicMock, patch
 
 import pandas as pd
 import pytest
+from pyspark.sql import DataFrame, SparkSession
 
 from gentropy.common.session import Session
 from gentropy.susie_finemapper import SusieFineMapperStep
@@ -60,6 +61,8 @@ class TestSusieFineMapperStep:
             "N_outliers",
             "N_imputed",
             "N_final_to_fm",
+            "sigmasq",
+            "sigmasq_floored",
             "elapsed_time",
             "number_of_CS",
             "error",
@@ -288,3 +291,86 @@ class TestSusieFineMapperStep:
         df = pd.read_csv(output_path, sep="\t")
         assert df.loc[0, "studyId"] == study_id
         assert df.loc[0, "region"] == region
+
+
+class TestSusieInfToStudyLocusStandardError:
+    """`standardError` must reach the emitted credible sets.
+
+    It is present in the harmonised summary statistics and used to build the
+    z-scores that drive fine-mapping, but it used to be dropped on the way out:
+    the locus struct was assembled without it and the top-level column was never
+    set. That left every consumer needing an effect-size uncertainty to re-join
+    the summary statistics, and removed the obvious clue that `beta` here is
+    SuSiE's posterior mean rather than the marginal effect.
+    """
+
+    P_VARIANTS = 4
+    STANDARD_ERRORS = [0.11, 0.22, 0.33, 0.44]
+
+    @pytest.fixture()
+    def susie_output(self) -> dict[str, object]:
+        """A single-effect SuSiE-inf output over four variants."""
+        import numpy as np
+
+        return {
+            "PIP": np.array([[0.90], [0.06], [0.03], [0.01]]),
+            "lbf_variable": np.array([[10.0], [5.0], [3.0], [1.0]]),
+            "mu": np.array([[0.5], [-0.3], [0.2], [0.1]]),
+            "lbf": np.array([12.0]),
+        }
+
+    @pytest.fixture()
+    def variant_index(self, spark: SparkSession) -> DataFrame:
+        """Variant index carrying z and standardError, in SuSiE array order."""
+        rows = [
+            (f"1_{1000 + i}_A_G", float(8 - i), se, "1", 1000 + i)
+            for i, se in enumerate(self.STANDARD_ERRORS)
+        ]
+        return spark.createDataFrame(
+            rows,
+            "variantId string, z double, standardError double, "
+            "chromosome string, position int",
+        ).repartition(1)
+
+    def test_standard_error_reaches_locus_and_top_level(
+        self,
+        session: Session,
+        susie_output: dict[str, object],
+        variant_index: DataFrame,
+    ) -> None:
+        """Both `locus.standardError` and the top-level column are populated."""
+        import numpy as np
+
+        ld_matrix = np.full((self.P_VARIANTS, self.P_VARIANTS), 0.9)
+        np.fill_diagonal(ld_matrix, 1.0)
+
+        study_locus = SusieFineMapperStep.susie_inf_to_studylocus(
+            susie_output=susie_output,
+            session=session,
+            studyId="BigBrain_eqtl_EUR_ENSG00000000001",
+            region="1:1-2000",
+            variant_index=variant_index,
+            ld_matrix=ld_matrix,
+            locusStart=1,
+            locusEnd=2000,
+        )
+        assert study_locus is not None
+
+        row = study_locus.df.collect()[0]
+        locus_errors = {tag["variantId"]: tag["standardError"] for tag in row["locus"]}
+        assert locus_errors, "credible set carried no locus entries"
+        assert all(value is not None for value in locus_errors.values()), (
+            f"null standardError in locus: {locus_errors}"
+        )
+
+        expected = dict(
+            zip(
+                [f"1_{1000 + i}_A_G" for i in range(self.P_VARIANTS)],
+                self.STANDARD_ERRORS,
+            )
+        )
+        for variant_id, value in locus_errors.items():
+            assert value == pytest.approx(expected[variant_id])
+
+        # The top-level value is the lead variant's, matching how `beta` is set.
+        assert row["standardError"] == pytest.approx(expected[row["variantId"]])

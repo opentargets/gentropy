@@ -115,6 +115,38 @@ class deCODESummaryStatisticsQCConfig(StepConfig):
 
 
 @dataclass
+class BigBrainSummaryStatisticsIngestionConfig(StepConfig):
+    """BigBrain summary statistics ingestion step configuration."""
+
+    full_assoc_url: str = MISSING
+    top_assoc_url: str = MISSING
+    raw_full_assoc_path: str = MISSING
+    raw_top_assoc_path: str = MISSING
+    _target_: str = "gentropy.bigbrain_ingestion.BigBrainSummaryStatisticsIngestionStep"
+
+
+@dataclass
+class BigBrainSummaryStatisticsHarmonisationConfig(StepConfig):
+    """BigBrain summary statistics harmonisation step configuration."""
+
+    qtl_type: str = MISSING
+    # inputs
+    raw_full_assoc_path: str = MISSING
+    raw_top_assoc_path: str = MISSING
+    variant_direction_path: str = MISSING
+    # outputs
+    harmonised_summary_statistics_path: str = MISSING
+    study_index_path: str = MISSING
+    # config
+    flipping_window_size: int = (
+        10_000_000  # must match variant_direction.DEFAULT_WINDOW_SIZE
+    )
+    _target_: str = (
+        "gentropy.bigbrain_ingestion.BigBrainSummaryStatisticsHarmonisationStep"
+    )
+
+
+@dataclass
 class BiosampleIndexConfig(StepConfig):
     """Biosample index step configuration."""
 
@@ -743,6 +775,11 @@ class FinemapperConfig(StepConfig):
     cs_lbf_thr: float = MISSING
     sum_pips: float = MISSING
     susie_est_tausq: bool = MISSING
+    # Estimating sigma^2 is only safe while z^2 is small relative to nSamples. Molecular
+    # QTLs routinely violate that (|z| > sqrt(n) for a strong cis-eQTL), which collapses
+    # sigma^2 towards zero and inflates logBF without bound — see SUSIE_inf.susie_inf.
+    susie_est_sigmasq: bool = True
+    sigmasq_min_fraction: float = 0.01
     run_carma: bool = MISSING
     carma_tau: float = MISSING
     run_sumstat_imputation: bool = MISSING
@@ -952,7 +989,9 @@ class GWASCatalogFineMappingManifestConfig(StepConfig):
     fine_mapping_planner_path: str = MISSING
     output_path: str = MISSING
     summary_statistics_glob: str | None = None
-    _target_: str = "gentropy.finemapping_manifest.GWASCatalogFineMappingManifestGenerator"
+    _target_: str = (
+        "gentropy.finemapping_manifest.GWASCatalogFineMappingManifestGenerator"
+    )
 
 
 @dataclass
@@ -1125,4 +1164,14 @@ def register_config() -> None:
         group="step",
         name="gwas_catalog_finemapping_manifest",
         node=GWASCatalogFineMappingManifestConfig,
+    )
+    cs.store(
+        group="step",
+        name="bigbrain_summary_statistics_ingestion",
+        node=BigBrainSummaryStatisticsIngestionConfig,
+    )
+    cs.store(
+        group="step",
+        name="bigbrain_summary_statistics_harmonisation",
+        node=BigBrainSummaryStatisticsHarmonisationConfig,
     )

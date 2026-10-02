@@ -149,3 +149,41 @@ class TestCredibleSetQCStep:
         assert sorted(data.keys()) == ["A", "D"]
         # ensure the Locus A with highest credibleSetlog10BF was chosen
         assert data["A"] == 3.0
+
+    def test_step_annotates_study_type(self, session: Session, tmp_path: Path) -> None:
+        """A supplied study index populates studyType, even outside clump mode.
+
+        Fine-mapping output carries no studyType, so without this the column reads
+        back null and StudyLocus.find_overlaps — and therefore colocalisation —
+        silently discards every locus.
+        """
+        study_index_path = str(tmp_path / "study_index")
+        session.spark.createDataFrame(
+            [("GCST1", "eqtl"), ("GCST2", "eqtl"), ("GCST3", "eqtl")],
+            schema=t.StructType(
+                [
+                    t.StructField("studyId", t.StringType(), True),
+                    t.StructField("studyType", t.StringType(), True),
+                ]
+            ),
+        ).write.parquet(study_index_path)
+
+        output_path = str(tmp_path / "clean_credible_sets_typed")
+        CredibleSetQCStep(
+            session=session,
+            credible_sets_path=self.cs_path,
+            output_path=output_path,
+            p_value_threshold=self.p_value_threshold,
+            purity_min_r2=self.purity_min_r2,
+            clump=False,
+            ld_index_path=None,
+            study_index_path=study_index_path,
+            ld_min_r2=None,
+            n_partitions=self.n_partitions,
+        )
+
+        cs = StudyLocus.from_parquet(session, output_path, recursiveFileLookup=True)
+        study_types = [row["studyType"] for row in cs.df.collect()]
+        assert study_types == ["eqtl", "eqtl"], (
+            f"studyType should be populated from the study index, got {study_types}"
+        )

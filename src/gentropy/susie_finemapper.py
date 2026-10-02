@@ -56,6 +56,8 @@ class SusieFineMapperStep:
         cs_lbf_thr: float = 2,
         sum_pips: float = 0.99,
         susie_est_tausq: bool = False,
+        susie_est_sigmasq: bool = True,
+        sigmasq_min_fraction: float = 0.01,
         run_carma: bool = False,
         run_sumstat_imputation: bool = False,
         carma_time_limit: int = 600,
@@ -86,6 +88,10 @@ class SusieFineMapperStep:
             cs_lbf_thr (float): credible set logBF threshold for filtering credible sets, default is 2
             sum_pips (float): the expected sum of posterior probabilities in the locus, default is 0.99 (99% credible set)
             susie_est_tausq (bool): estimate tau squared, default is False
+            susie_est_sigmasq (bool): estimate the residual variance sigma squared, default is True.
+                Set to False for molecular QTLs — see `susie_finemapper_from_prepared_dataframes`.
+            sigmasq_min_fraction (float): floor for the estimated sigma squared as a fraction of
+                trait variance, default is 0.01. Ignored when `susie_est_sigmasq` is False.
             run_carma (bool): run CARMA, default is False
             run_sumstat_imputation (bool): run summary statistics imputation, default is False
             carma_time_limit (int): CARMA time limit, default is 600 seconds
@@ -130,6 +136,8 @@ class SusieFineMapperStep:
             sum_pips=sum_pips,
             lead_pval_threshold=lead_pval_threshold,
             susie_est_tausq=susie_est_tausq,
+            susie_est_sigmasq=susie_est_sigmasq,
+            sigmasq_min_fraction=sigmasq_min_fraction,
             run_carma=run_carma,
             run_sumstat_imputation=run_sumstat_imputation,
             carma_tau=carma_tau,
@@ -182,6 +190,8 @@ class SusieFineMapperStep:
                 "N_outliers": 0,
                 "N_imputed": 0,
                 "N_final_to_fm": 0,
+                "sigmasq": float("nan"),
+                "sigmasq_floored": False,
                 "elapsed_time": 0,
                 "number_of_CS": 0,
                 "error": error_mg,
@@ -205,6 +215,7 @@ class SusieFineMapperStep:
         purity_mean_r2_threshold: float = 0,
         purity_min_r2_threshold: float = 0,
         ld_min_r2: float = 0.9,
+        studyType: str | None = None,
     ) -> StudyLocus | None:
         """Convert SuSiE-inf output to StudyLocus DataFrame.
 
@@ -223,6 +234,10 @@ class SusieFineMapperStep:
             purity_mean_r2_threshold (float): thrshold for purity mean r2 qc metrics for filtering credible sets
             purity_min_r2_threshold (float): thrshold for purity min r2 qc metrics for filtering credible sets
             ld_min_r2 (float): Threshold to fillter CS by leads in high LD, default is 0.9
+            studyType (str | None): study type from the study index, stamped onto every emitted
+                credible set. Leaving this null is not cosmetic: `StudyLocus.find_overlaps` opens
+                with `filter(col("studyType").isNotNull())`, so colocalisation silently drops every
+                locus with a null study type and returns an empty result rather than an error.
 
         Returns:
             StudyLocus | None: StudyLocus object with fine-mapped credible sets
@@ -280,6 +295,7 @@ class SusieFineMapperStep:
                         "chromosome",
                         "position",
                         "neglogpval",
+                        "standardError",
                     ),
                     "variantId",
                 )
@@ -300,6 +316,15 @@ class SusieFineMapperStep:
                             pvalue_from_neglogpval(f.col("neglogpval"))[1].alias(
                                 "pValueExponent"
                             ),
+                            # The marginal standard error from the input summary
+                            # statistics, matching what every other credible-set
+                            # source puts here. Note it does NOT pair with `beta`
+                            # above, which is SuSiE's posterior mean `mu`, not the
+                            # marginal effect -- `beta / standardError` is not the
+                            # z-score. Null for imputed variants.
+                            f.col("standardError")
+                            .cast("double")
+                            .alias("standardError"),
                         )
                     ).over(win),
                 )
@@ -307,6 +332,7 @@ class SusieFineMapperStep:
                 .withColumns(
                     {
                         "studyId": f.lit(studyId),
+                        "studyType": f.lit(studyType).cast("string"),
                         "region": f.lit(region),
                         "credibleSetIndex": f.lit(counter),
                         "credibleSetlog10BF": f.lit(cs_lbf_value * 0.4342944819),
@@ -322,6 +348,7 @@ class SusieFineMapperStep:
                 .select(
                     "studyLocusId",
                     "studyId",
+                    "studyType",
                     "region",
                     "credibleSetIndex",
                     "locus",
@@ -350,6 +377,17 @@ class SusieFineMapperStep:
         vlist_series = pd.Series(lead_variantId_list)
         ind = vlist_series.map(variant_index_df.set_index("variantId").index.get_loc)
 
+        # zScore is the lead variant's MARGINAL z (beta/standardError from the input
+        # sumstats), whereas the beta written alongside it is SuSiE's posterior mean `mu`,
+        # which is CONDITIONAL on the other L-1 effects. They are different estimands, so
+        # sign(beta) != sign(zScore) is not by itself a bug and recomputing zScore as
+        # beta/standardError would not be a fix — the finemapper carries no standardError
+        # for the conditional effect.
+        #
+        # In practice the two agree whenever sigma^2 is identifiable: simulation gives 0%
+        # sign disagreement at n=500,000 against ~10-20% at n=10,725, where sigma^2 collapses
+        # (see SUSIE_inf.susie_inf). Treat sign disagreement as a symptom of that collapse
+        # and check `sigmasq_floored` in the fine-mapping log before suspecting this line.
         z_values = variant_index_df.iloc[ind]["z"].tolist()
         neglogpval = variant_index_df.iloc[ind]["neglogpval"].tolist()
 
@@ -461,6 +499,14 @@ class SusieFineMapperStep:
                 filter(locus, x -> x.variantId = variantId)[0].beta
             """),
         )
+        # Same lookup for the lead's standard error, so the top-level row carries
+        # an effect-size uncertainty instead of a null.
+        cred_sets = cred_sets.withColumn(
+            "standardError",
+            f.expr("""
+                filter(locus, x -> x.variantId = variantId)[0].standardError
+            """),
+        )
 
         return StudyLocus(
             _df=cred_sets,
@@ -479,6 +525,8 @@ class SusieFineMapperStep:
         locusStart: int,
         locusEnd: int,
         susie_est_tausq: bool = False,
+        susie_est_sigmasq: bool = True,
+        sigmasq_min_fraction: float = 0.01,
         run_carma: bool = False,
         run_sumstat_imputation: bool = False,
         carma_time_limit: int = 600,
@@ -492,6 +540,7 @@ class SusieFineMapperStep:
         cs_lbf_thr: float = 2,
         ld_min_r2: float = 0.9,
         N_total: int = 100_000,
+        studyType: str | None = None,
     ) -> dict[str, Any] | None:
         """Susie fine-mapper function that uses LD, z-scores, variant info and other options for Fine-Mapping.
 
@@ -506,6 +555,11 @@ class SusieFineMapperStep:
             locusStart (int): locus start
             locusEnd (int): locus end
             susie_est_tausq (bool): estimate tau squared, default is False
+            susie_est_sigmasq (bool): estimate the residual variance sigma squared, default is True.
+                Set to False for molecular QTLs, where `z^2` is not small relative to `N_total` and
+                the estimator collapses towards zero, inflating every logBF. See `SUSIE_inf.susie_inf`.
+            sigmasq_min_fraction (float): floor for the estimated sigma squared as a fraction of
+                trait variance, default is 0.01. Ignored when `susie_est_sigmasq` is False.
             run_carma (bool): run CARMA, default is False
             run_sumstat_imputation (bool): run summary statistics imputation, default is False
             carma_time_limit (int): CARMA time limit, default is 600 seconds
@@ -519,6 +573,7 @@ class SusieFineMapperStep:
             cs_lbf_thr (float): credible set logBF threshold for filtering credible sets, default is 2
             ld_min_r2 (float): Threshold to fillter CS by leads in high LD, default is 0.9
             N_total (int): total number of samples, default is 100_000
+            studyType (str | None): study type to stamp onto the emitted credible sets, default is None
 
         Returns:
             dict[str, Any] | None: dictionary with study locus, number of GWAS variants, number of LD variants, number of variants after merge, number of outliers, number of imputed variants, number of variants to fine-map
@@ -539,10 +594,22 @@ class SusieFineMapperStep:
         N_gwas = len(GWAS_df)
         N_ld = len(ld_index)
 
-        # Filtering out the variants that are not in the LD matrix, we don't need them
+        # Filtering out the variants that are not in the LD matrix, we don't need them.
+        # `standardError` is carried alongside `z` so the emitted credible sets can
+        # report the marginal effect-size uncertainty; without it every consumer that
+        # needs an effect size with its error has to re-join the summary statistics.
+        # It is optional because not every caller supplies it (the simulation harness
+        # does not), and imputed variants never have one.
+        standard_error_column = next(
+            (c for c in GWAS_df.columns if c.lower() == "standarderror"), None
+        )
         df_columns = ["variantId", "z"]
+        if standard_error_column is not None:
+            df_columns.append(standard_error_column)
         GWAS_df = GWAS_df.merge(ld_index, on="variantId", how="inner")
         GWAS_df = GWAS_df[df_columns].reset_index()
+        if standard_error_column is not None:
+            GWAS_df = GWAS_df.rename(columns={standard_error_column: "standardError"})
         N_after_merge = len(GWAS_df)
 
         merged_df = GWAS_df.merge(
@@ -617,18 +684,31 @@ class SusieFineMapperStep:
             N_imputed = 0
 
         susie_output = SUSIE_inf.susie_inf(
-            z=z_to_fm, LD=ld_to_fm, L=L, est_tausq=susie_est_tausq, n=N_total
+            z=z_to_fm,
+            LD=ld_to_fm,
+            L=L,
+            est_tausq=susie_est_tausq,
+            est_sigmasq=susie_est_sigmasq,
+            sigmasq_min_fraction=sigmasq_min_fraction,
+            n=N_total,
         )
 
+        # Imputed variants are appended with `variantId`/`z` only, so reindex to fill
+        # their standardError with NaN -> null rather than dropping the column.
+        if "standardError" not in GWAS_df.columns:
+            GWAS_df["standardError"] = np.nan
         schema = StructType(
             [
                 StructField("variantId", StringType(), True),
                 StructField("z", DoubleType(), True),
+                StructField("standardError", DoubleType(), True),
             ]
         )
         variant_index = (
             session.spark.createDataFrame(
-                GWAS_df[["variantId", "z"]],
+                GWAS_df[["variantId", "z", "standardError"]].astype(
+                    {"standardError": "float64"}
+                ),
                 schema=schema,
             )
             .withColumn(
@@ -636,6 +716,20 @@ class SusieFineMapperStep:
             )
             .withColumn("position", f.split(f.col("variantId"), "_")[1].cast("int"))
         )
+
+        if susie_output["sigmasq_floored"]:
+            logging.warning(
+                "%s %s: residual variance sigma^2 was not identifiable and hit its bound "
+                "(%.4g). logBF values for this locus are inflated by up to %.0fx and are "
+                "not usable for colocalisation. This happens when z^2 is not small relative "
+                "to nSamples (%d), which is routine for molecular QTLs — pass "
+                "susie_est_sigmasq=False for those.",
+                studyId,
+                region,
+                float(susie_output["sigmasq"]),
+                1 / sigmasq_min_fraction,
+                N_total,
+            )
 
         study_locus = SusieFineMapperStep.susie_inf_to_studylocus(
             susie_output=susie_output,
@@ -652,6 +746,7 @@ class SusieFineMapperStep:
             ld_min_r2=ld_min_r2,
             locusStart=locusStart,
             locusEnd=locusEnd,
+            studyType=studyType,
         )
 
         end_time = time.time()
@@ -668,6 +763,8 @@ class SusieFineMapperStep:
                     "N_outliers": N_outliers,
                     "N_imputed": N_imputed,
                     "N_final_to_fm": len(ld_to_fm),
+                    "sigmasq": float(susie_output["sigmasq"]),
+                    "sigmasq_floored": bool(susie_output["sigmasq_floored"]),
                     "elapsed_time": end_time - start_time,
                     "number_of_CS": study_locus.df.count(),
                     "error": "",
@@ -686,6 +783,8 @@ class SusieFineMapperStep:
                     "N_outliers": N_outliers,
                     "N_imputed": N_imputed,
                     "N_final_to_fm": len(ld_to_fm),
+                    "sigmasq": float(susie_output["sigmasq"]),
+                    "sigmasq_floored": bool(susie_output["sigmasq_floored"]),
                     "elapsed_time": end_time - start_time,
                     "number_of_CS": 0,
                     "error": "",
@@ -708,6 +807,8 @@ class SusieFineMapperStep:
         ld_matrix_paths: dict[str, str],
         max_causal_snps: int = 10,
         susie_est_tausq: bool = False,
+        susie_est_sigmasq: bool = True,
+        sigmasq_min_fraction: float = 0.01,
         run_carma: bool = False,
         run_sumstat_imputation: bool = False,
         carma_time_limit: int = 600,
@@ -732,6 +833,10 @@ class SusieFineMapperStep:
             ld_matrix_paths (dict[str, str]): Dictionary with paths to LD matrices
             max_causal_snps (int): maximum number of causal variants
             susie_est_tausq (bool): estimate tau squared, default is False
+            susie_est_sigmasq (bool): estimate the residual variance sigma squared, default is True.
+                Set to False for molecular QTLs — see `susie_finemapper_from_prepared_dataframes`.
+            sigmasq_min_fraction (float): floor for the estimated sigma squared as a fraction of
+                trait variance, default is 0.01. Ignored when `susie_est_sigmasq` is False.
             run_carma (bool): run CARMA, default is False
             run_sumstat_imputation (bool): run summary statistics imputation, default is False
             carma_time_limit (int): CARMA time limit, default is 600 seconds
@@ -803,18 +908,16 @@ class SusieFineMapperStep:
         region = chromosome + ":" + str(int(locusStart)) + "-" + str(int(locusEnd))
 
         # Desision tree - studyType
-        if study_index_df.select("studyType").collect()[0]["studyType"] not in [
-            "gwas",
-            "pqtl",
-        ]:
+        studyType = study_index_df.select("studyType").collect()[0]["studyType"]
+        if not studyType:
             if log_output != "":
                 SusieFineMapperStep._empty_log_mg(
                     studyId=studyId,
                     region=region,
-                    error_mg="Study type is not GWAS or non gwas catalog pqtl",
+                    error_mg="Study type is not set",
                     path_out=log_output,
                 )
-            logging.warning("Study type is not GWAS or non gwas catalog pqtl")
+            logging.warning("Study type is not set")
             if not ignore_qc:
                 return None
 
@@ -1163,7 +1266,10 @@ class SusieFineMapperStep:
             region=region,
             locusStart=int(locusStart),
             locusEnd=int(locusEnd),
+            studyType=studyType,
             susie_est_tausq=susie_est_tausq,
+            susie_est_sigmasq=susie_est_sigmasq,
+            sigmasq_min_fraction=sigmasq_min_fraction,
             run_carma=run_carma,
             run_sumstat_imputation=run_sumstat_imputation,
             carma_time_limit=carma_time_limit,
