@@ -1,0 +1,51 @@
+{
+  "fields": [
+    {
+      "metadata": {},
+      "name": "studyLocusId",
+      "nullable": false,
+      "type": "string"
+    },
+    {
+      "metadata": {},
+      "name": "studyId",
+      "nullable": false,
+      "type": "string"
+    },
+    {
+      "metadata": {},
+      "name": "sentinelVariantId",
+      "nullable": false,
+      "type": "string"
+    },
+    {
+      "metadata": {},
+      "name": "chromosome",
+      "nullable": false,
+      "type": "string"
+    },
+    {
+      "metadata": {},
+      "name": "locusStart",
+      "nullable": false,
+      "type": "integer"
+    },
+    {
+      "metadata": {},
+      "name": "locusEnd",
+      "nullable": false,
+      "type": "integer"
+    },
+    {
+      "metadata": {},
+      "name": "qualityControls",
+      "nullable": true,
+      "type": {
+        "containsNull": false,
+        "elementType": "string",
+        "type": "array"
+      }
+    }
+  ],
+  "type": "struct"
+}
