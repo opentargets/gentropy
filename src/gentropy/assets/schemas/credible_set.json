@@ -1,0 +1,75 @@
+{
+  "fields": [
+    {
+      "metadata": {},
+      "name": "credibleSetId",
+      "nullable": false,
+      "type": "string"
+    },
+    {
+      "metadata": {},
+      "name": "studyLocusId",
+      "nullable": false,
+      "type": "string"
+    },
+    {
+      "metadata": {},
+      "name": "leadVariantId",
+      "nullable": false,
+      "type": "string"
+    },
+    {
+      "metadata": {},
+      "name": "fineMappingMethod",
+      "nullable": false,
+      "type": "byte"
+    },
+    {
+      "metadata": {},
+      "name": "singleEffectIndex",
+      "nullable": true,
+      "type": "byte"
+    },
+    {
+      "metadata": {},
+      "name": "log10BayesFactor",
+      "nullable": true,
+      "type": "double"
+    },
+    {
+      "metadata": {},
+      "name": "confidence",
+      "nullable": true,
+      "type": "byte"
+    },
+    {
+      "metadata": {},
+      "name": "purityMeanR2",
+      "nullable": true,
+      "type": "double"
+    },
+    {
+      "metadata": {},
+      "name": "purityMinR2",
+      "nullable": true,
+      "type": "double"
+    },
+    {
+      "metadata": {},
+      "name": "isTransQtl",
+      "nullable": true,
+      "type": "boolean"
+    },
+    {
+      "metadata": {},
+      "name": "qualityControls",
+      "nullable": true,
+      "type": {
+        "containsNull": false,
+        "elementType": "string",
+        "type": "array"
+      }
+    }
+  ],
+  "type": "struct"
+}
