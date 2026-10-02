@@ -13,8 +13,8 @@ from gentropy.common.spark import convert_from_wide_to_long
 from gentropy.dataset.colocalisation import Colocalisation
 from gentropy.dataset.l2g_features.l2g_feature import L2GFeature
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
+from gentropy.dataset.legacy_study_locus import LegacyStudyLocus
 from gentropy.dataset.study_index import StudyIndex
-from gentropy.dataset.study_locus import StudyLocus
 from gentropy.dataset.target_index import TargetIndex
 from gentropy.dataset.variant_index import VariantIndex
 from gentropy.method.colocalisation import ColocalisationMethod
@@ -25,7 +25,7 @@ if TYPE_CHECKING:
 
 def extract_maximum_coloc_probability_per_region_and_gene(
     coloc: Colocalisation,
-    study_locus: StudyLocus,
+    study_locus: LegacyStudyLocus,
     study_index: StudyIndex,
     *,
     filter_by_colocalisation_method: str,
@@ -35,7 +35,7 @@ def extract_maximum_coloc_probability_per_region_and_gene(
 
     Args:
         coloc (Colocalisation): Colocalisation dataset to extract the information from
-        study_locus (StudyLocus): Dataset containing study loci to filter the colocalisation dataset on and the geneId linked to the region
+        study_locus (LegacyStudyLocus): Dataset containing study loci to filter the colocalisation dataset on and the geneId linked to the region
         study_index (StudyIndex): Study index to use to get study metadata
         filter_by_colocalisation_method (str): optional filter to apply on the colocalisation dataset
         filter_by_qtls (list[str] | None): optional filter to apply on the colocalisation dataset
@@ -104,7 +104,7 @@ def extract_maximum_coloc_probability_per_region_and_gene(
 
 
 def common_colocalisation_feature_logic(
-    study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+    study_loci_to_annotate: LegacyStudyLocus | L2GGoldStandard,
     colocalisation_method: str,
     colocalisation_metric: str,
     feature_name: str,
@@ -112,19 +112,19 @@ def common_colocalisation_feature_logic(
     *,
     colocalisation: Colocalisation,
     study_index: StudyIndex,
-    study_locus: StudyLocus,
+    study_locus: LegacyStudyLocus,
 ) -> DataFrame:
     """Wrapper to call the logic that creates a type of colocalisation features.
 
     Args:
-        study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
+        study_loci_to_annotate (LegacyStudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
         colocalisation_method (str): The colocalisation method to filter the data by
         colocalisation_metric (str): The colocalisation metric to use
         feature_name (str): The name of the feature to create
         qtl_types (list[str]): The types of QTL to filter the data by
         colocalisation (Colocalisation): Dataset with the colocalisation results
         study_index (StudyIndex): Study index to fetch study type and gene
-        study_locus (StudyLocus): Study locus to traverse between colocalisation and study index
+        study_locus (LegacyStudyLocus): Study locus to traverse between colocalisation and study index
 
     Returns:
         DataFrame: Feature annotation in long format with the columns: studyLocusId, geneId, featureName, featureValue
@@ -161,7 +161,7 @@ def extend_missing_colocalisation_to_neighbourhood_genes(
     local_features: DataFrame,
     variant_index: VariantIndex,
     target_index: TargetIndex,
-    study_locus: StudyLocus,
+    study_locus: LegacyStudyLocus,
 ) -> DataFrame:
     """This function creates an artificial dataset of features that represents the missing colocalisation to the neighbourhood genes.
 
@@ -170,7 +170,7 @@ def extend_missing_colocalisation_to_neighbourhood_genes(
         local_features (DataFrame): The dataframe of features to extend
         variant_index (VariantIndex): Variant index containing all variant/gene relationships
         target_index (TargetIndex): Target index to fetch the gene information
-        study_locus (StudyLocus): Study locus to traverse between colocalisation and variant index
+        study_locus (LegacyStudyLocus): Study locus to traverse between colocalisation and variant index
 
     Returns:
         DataFrame: Dataframe of features that include genes in the neighbourhood not present in the colocalisation results. For these genes, the feature value is set to 0.
@@ -209,7 +209,7 @@ def extend_missing_colocalisation_to_neighbourhood_genes(
 
 
 def common_neighbourhood_colocalisation_feature_logic(
-    study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+    study_loci_to_annotate: LegacyStudyLocus | L2GGoldStandard,
     colocalisation_method: str,
     colocalisation_metric: str,
     feature_name: str,
@@ -218,13 +218,13 @@ def common_neighbourhood_colocalisation_feature_logic(
     colocalisation: Colocalisation,
     study_index: StudyIndex,
     target_index: TargetIndex,
-    study_locus: StudyLocus,
+    study_locus: LegacyStudyLocus,
     variant_index: VariantIndex,
 ) -> DataFrame:
     """Wrapper to call the logic that creates a type of colocalisation features.
 
     Args:
-        study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
+        study_loci_to_annotate (LegacyStudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
         colocalisation_method (str): The colocalisation method to filter the data by
         colocalisation_metric (str): The colocalisation metric to use
         feature_name (str): The name of the feature to create
@@ -232,7 +232,7 @@ def common_neighbourhood_colocalisation_feature_logic(
         colocalisation (Colocalisation): Dataset with the colocalisation results
         study_index (StudyIndex): Study index to fetch study type and gene
         target_index (TargetIndex): Target index to add gene type
-        study_locus (StudyLocus): Study locus to traverse between colocalisation and study index
+        study_locus (LegacyStudyLocus): Study locus to traverse between colocalisation and study index
         variant_index (VariantIndex): Variant index to annotate all overlapping genes
 
     Returns:
@@ -288,19 +288,19 @@ def common_neighbourhood_colocalisation_feature_logic(
 class EQtlColocClppMaximumFeature(L2GFeature):
     """Max CLPP for each (study, locus, gene) aggregating over all eQTLs."""
 
-    feature_dependency_type = [Colocalisation, StudyIndex, StudyLocus]
+    feature_dependency_type = [Colocalisation, StudyIndex, LegacyStudyLocus]
     feature_name = "eQtlColocClppMaximum"
 
     @classmethod
     def compute(
         cls: type[EQtlColocClppMaximumFeature],
-        study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+        study_loci_to_annotate: LegacyStudyLocus | L2GGoldStandard,
         feature_dependency: dict[str, Any],
     ) -> EQtlColocClppMaximumFeature:
         """Computes the feature.
 
         Args:
-            study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
+            study_loci_to_annotate (LegacyStudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
             feature_dependency (dict[str, Any]): Dictionary with the dependencies required. They are passed as keyword arguments.
 
         Returns:
@@ -335,7 +335,7 @@ class EQtlColocClppMaximumNeighbourhoodFeature(L2GFeature):
         Colocalisation,
         StudyIndex,
         TargetIndex,
-        StudyLocus,
+        LegacyStudyLocus,
         VariantIndex,
     ]
     feature_name = "eQtlColocClppMaximumNeighbourhood"
@@ -343,13 +343,13 @@ class EQtlColocClppMaximumNeighbourhoodFeature(L2GFeature):
     @classmethod
     def compute(
         cls: type[EQtlColocClppMaximumNeighbourhoodFeature],
-        study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+        study_loci_to_annotate: LegacyStudyLocus | L2GGoldStandard,
         feature_dependency: dict[str, Any],
     ) -> EQtlColocClppMaximumNeighbourhoodFeature:
         """Computes the feature.
 
         Args:
-            study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
+            study_loci_to_annotate (LegacyStudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
             feature_dependency (dict[str, Any]): Dictionary with the dependencies required. They are passed as keyword arguments.
 
         Returns:
@@ -380,19 +380,19 @@ class EQtlColocClppMaximumNeighbourhoodFeature(L2GFeature):
 class PQtlColocClppMaximumFeature(L2GFeature):
     """Max CLPP for each (study, locus, gene) aggregating over all pQTLs."""
 
-    feature_dependency_type = [Colocalisation, StudyIndex, StudyLocus]
+    feature_dependency_type = [Colocalisation, StudyIndex, LegacyStudyLocus]
     feature_name = "pQtlColocClppMaximum"
 
     @classmethod
     def compute(
         cls: type[PQtlColocClppMaximumFeature],
-        study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+        study_loci_to_annotate: LegacyStudyLocus | L2GGoldStandard,
         feature_dependency: dict[str, Any],
     ) -> PQtlColocClppMaximumFeature:
         """Computes the feature.
 
         Args:
-            study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
+            study_loci_to_annotate (LegacyStudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
             feature_dependency (dict[str, Any]): Dataset with the colocalisation results
 
         Returns:
@@ -426,7 +426,7 @@ class PQtlColocClppMaximumNeighbourhoodFeature(L2GFeature):
         Colocalisation,
         StudyIndex,
         TargetIndex,
-        StudyLocus,
+        LegacyStudyLocus,
         VariantIndex,
     ]
     feature_name = "pQtlColocClppMaximumNeighbourhood"
@@ -434,13 +434,13 @@ class PQtlColocClppMaximumNeighbourhoodFeature(L2GFeature):
     @classmethod
     def compute(
         cls: type[PQtlColocClppMaximumNeighbourhoodFeature],
-        study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+        study_loci_to_annotate: LegacyStudyLocus | L2GGoldStandard,
         feature_dependency: dict[str, Any],
     ) -> PQtlColocClppMaximumNeighbourhoodFeature:
         """Computes the feature.
 
         Args:
-            study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
+            study_loci_to_annotate (LegacyStudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
             feature_dependency (dict[str, Any]): Dataset with the colocalisation results
 
         Returns:
@@ -470,19 +470,19 @@ class PQtlColocClppMaximumNeighbourhoodFeature(L2GFeature):
 class SQtlColocClppMaximumFeature(L2GFeature):
     """Max CLPP for each (study, locus, gene) aggregating over all sQTLs."""
 
-    feature_dependency_type = [Colocalisation, StudyIndex, StudyLocus]
+    feature_dependency_type = [Colocalisation, StudyIndex, LegacyStudyLocus]
     feature_name = "sQtlColocClppMaximum"
 
     @classmethod
     def compute(
         cls: type[SQtlColocClppMaximumFeature],
-        study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+        study_loci_to_annotate: LegacyStudyLocus | L2GGoldStandard,
         feature_dependency: dict[str, Any],
     ) -> SQtlColocClppMaximumFeature:
         """Computes the feature.
 
         Args:
-            study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
+            study_loci_to_annotate (LegacyStudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
             feature_dependency (dict[str, Any]): Dataset with the colocalisation results
 
         Returns:
@@ -516,7 +516,7 @@ class SQtlColocClppMaximumNeighbourhoodFeature(L2GFeature):
         Colocalisation,
         StudyIndex,
         TargetIndex,
-        StudyLocus,
+        LegacyStudyLocus,
         VariantIndex,
     ]
     feature_name = "sQtlColocClppMaximumNeighbourhood"
@@ -524,13 +524,13 @@ class SQtlColocClppMaximumNeighbourhoodFeature(L2GFeature):
     @classmethod
     def compute(
         cls: type[SQtlColocClppMaximumNeighbourhoodFeature],
-        study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+        study_loci_to_annotate: LegacyStudyLocus | L2GGoldStandard,
         feature_dependency: dict[str, Any],
     ) -> SQtlColocClppMaximumNeighbourhoodFeature:
         """Computes the feature.
 
         Args:
-            study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
+            study_loci_to_annotate (LegacyStudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
             feature_dependency (dict[str, Any]): Dataset with the colocalisation results
 
         Returns:
@@ -560,19 +560,19 @@ class SQtlColocClppMaximumNeighbourhoodFeature(L2GFeature):
 class EQtlColocH4MaximumFeature(L2GFeature):
     """Max H4 for each (study, locus, gene) aggregating over all eQTLs."""
 
-    feature_dependency_type = [Colocalisation, StudyIndex, StudyLocus]
+    feature_dependency_type = [Colocalisation, StudyIndex, LegacyStudyLocus]
     feature_name = "eQtlColocH4Maximum"
 
     @classmethod
     def compute(
         cls: type[EQtlColocH4MaximumFeature],
-        study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+        study_loci_to_annotate: LegacyStudyLocus | L2GGoldStandard,
         feature_dependency: dict[str, Any],
     ) -> EQtlColocH4MaximumFeature:
         """Computes the feature.
 
         Args:
-            study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
+            study_loci_to_annotate (LegacyStudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
             feature_dependency (dict[str, Any]): Dataset with the colocalisation results
 
         Returns:
@@ -606,7 +606,7 @@ class EQtlColocH4MaximumNeighbourhoodFeature(L2GFeature):
         Colocalisation,
         StudyIndex,
         TargetIndex,
-        StudyLocus,
+        LegacyStudyLocus,
         VariantIndex,
     ]
     feature_name = "eQtlColocH4MaximumNeighbourhood"
@@ -614,13 +614,13 @@ class EQtlColocH4MaximumNeighbourhoodFeature(L2GFeature):
     @classmethod
     def compute(
         cls: type[EQtlColocH4MaximumNeighbourhoodFeature],
-        study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+        study_loci_to_annotate: LegacyStudyLocus | L2GGoldStandard,
         feature_dependency: dict[str, Any],
     ) -> EQtlColocH4MaximumNeighbourhoodFeature:
         """Computes the feature.
 
         Args:
-            study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
+            study_loci_to_annotate (LegacyStudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
             feature_dependency (dict[str, Any]): Dataset with the colocalisation results
 
         Returns:
@@ -650,19 +650,19 @@ class EQtlColocH4MaximumNeighbourhoodFeature(L2GFeature):
 class PQtlColocH4MaximumFeature(L2GFeature):
     """Max H4 for each (study, locus, gene) aggregating over all pQTLs."""
 
-    feature_dependency_type = [Colocalisation, StudyIndex, StudyLocus]
+    feature_dependency_type = [Colocalisation, StudyIndex, LegacyStudyLocus]
     feature_name = "pQtlColocH4Maximum"
 
     @classmethod
     def compute(
         cls: type[PQtlColocH4MaximumFeature],
-        study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+        study_loci_to_annotate: LegacyStudyLocus | L2GGoldStandard,
         feature_dependency: dict[str, Any],
     ) -> PQtlColocH4MaximumFeature:
         """Computes the feature.
 
         Args:
-            study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
+            study_loci_to_annotate (LegacyStudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
             feature_dependency (dict[str, Any]): Dataset with the colocalisation results
 
         Returns:
@@ -696,7 +696,7 @@ class PQtlColocH4MaximumNeighbourhoodFeature(L2GFeature):
         Colocalisation,
         StudyIndex,
         TargetIndex,
-        StudyLocus,
+        LegacyStudyLocus,
         VariantIndex,
     ]
     feature_name = "pQtlColocH4MaximumNeighbourhood"
@@ -704,13 +704,13 @@ class PQtlColocH4MaximumNeighbourhoodFeature(L2GFeature):
     @classmethod
     def compute(
         cls: type[PQtlColocH4MaximumNeighbourhoodFeature],
-        study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+        study_loci_to_annotate: LegacyStudyLocus | L2GGoldStandard,
         feature_dependency: dict[str, Any],
     ) -> PQtlColocH4MaximumNeighbourhoodFeature:
         """Computes the feature.
 
         Args:
-            study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
+            study_loci_to_annotate (LegacyStudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
             feature_dependency (dict[str, Any]): Dataset with the colocalisation results
 
         Returns:
@@ -740,19 +740,19 @@ class PQtlColocH4MaximumNeighbourhoodFeature(L2GFeature):
 class SQtlColocH4MaximumFeature(L2GFeature):
     """Max H4 for each (study, locus, gene) aggregating over all sQTLs."""
 
-    feature_dependency_type = [Colocalisation, StudyIndex, StudyLocus]
+    feature_dependency_type = [Colocalisation, StudyIndex, LegacyStudyLocus]
     feature_name = "sQtlColocH4Maximum"
 
     @classmethod
     def compute(
         cls: type[SQtlColocH4MaximumFeature],
-        study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+        study_loci_to_annotate: LegacyStudyLocus | L2GGoldStandard,
         feature_dependency: dict[str, Any],
     ) -> SQtlColocH4MaximumFeature:
         """Computes the feature.
 
         Args:
-            study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
+            study_loci_to_annotate (LegacyStudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
             feature_dependency (dict[str, Any]): Dataset with the colocalisation results
 
         Returns:
@@ -786,7 +786,7 @@ class SQtlColocH4MaximumNeighbourhoodFeature(L2GFeature):
         Colocalisation,
         StudyIndex,
         TargetIndex,
-        StudyLocus,
+        LegacyStudyLocus,
         VariantIndex,
     ]
     feature_name = "sQtlColocH4MaximumNeighbourhood"
@@ -794,13 +794,13 @@ class SQtlColocH4MaximumNeighbourhoodFeature(L2GFeature):
     @classmethod
     def compute(
         cls: type[SQtlColocH4MaximumNeighbourhoodFeature],
-        study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+        study_loci_to_annotate: LegacyStudyLocus | L2GGoldStandard,
         feature_dependency: dict[str, Any],
     ) -> SQtlColocH4MaximumNeighbourhoodFeature:
         """Computes the feature.
 
         Args:
-            study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
+            study_loci_to_annotate (LegacyStudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
             feature_dependency (dict[str, Any]): Dataset with the colocalisation results
 
         Returns:
@@ -828,14 +828,14 @@ class SQtlColocH4MaximumNeighbourhoodFeature(L2GFeature):
 
 
 def common_trans_pqtl_colocalisation_feature_logic(
-    study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+    study_loci_to_annotate: LegacyStudyLocus | L2GGoldStandard,
     colocalisation_method: str,
     colocalisation_metric: str,
     feature_name: str,
     *,
     colocalisation: Colocalisation,
     study_index: StudyIndex,
-    study_locus: StudyLocus,
+    study_locus: LegacyStudyLocus,
     interactions: DataFrame,
     target_index: TargetIndex,
     string_threshold: float = 0.75,
@@ -854,13 +854,13 @@ def common_trans_pqtl_colocalisation_feature_logic(
     Feature value = max colocalisation score across all qualifying trans-pQTL colocalisations.
 
     Args:
-        study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
+        study_loci_to_annotate (LegacyStudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
         colocalisation_method (str): The colocalisation method to filter the data by
         colocalisation_metric (str): The colocalisation metric to use
         feature_name (str): The name of the feature to create
         colocalisation (Colocalisation): Dataset with the colocalisation results
         study_index (StudyIndex): Study index to fetch study type and gene
-        study_locus (StudyLocus): Study locus to traverse between colocalisation and study index
+        study_locus (LegacyStudyLocus): Study locus to traverse between colocalisation and study index
         interactions (DataFrame): Gene-gene interaction dataset with targetA, targetB, sourceDatabase, scoring columns
         target_index (TargetIndex): Target index with gene genomic locations
         string_threshold (float): Minimum STRING score to keep an interaction. Defaults to 0.75.
@@ -982,14 +982,14 @@ def common_trans_pqtl_colocalisation_feature_logic(
 
 
 def common_neighbourhood_trans_pqtl_colocalisation_feature_logic(
-    study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+    study_loci_to_annotate: LegacyStudyLocus | L2GGoldStandard,
     colocalisation_method: str,
     colocalisation_metric: str,
     feature_name: str,
     *,
     colocalisation: Colocalisation,
     study_index: StudyIndex,
-    study_locus: StudyLocus,
+    study_locus: LegacyStudyLocus,
     interactions: DataFrame,
     target_index: TargetIndex,
     variant_index: VariantIndex,
@@ -1004,13 +1004,13 @@ def common_neighbourhood_trans_pqtl_colocalisation_feature_logic(
     all protein-coding genes at the locus.
 
     Args:
-        study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
+        study_loci_to_annotate (LegacyStudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
         colocalisation_method (str): The colocalisation method to filter the data by
         colocalisation_metric (str): The colocalisation metric to use
         feature_name (str): The name of the neighbourhood feature (must end with "Neighbourhood")
         colocalisation (Colocalisation): Dataset with the colocalisation results
         study_index (StudyIndex): Study index to fetch study type and gene
-        study_locus (StudyLocus): Study locus to traverse between colocalisation and study index
+        study_locus (LegacyStudyLocus): Study locus to traverse between colocalisation and study index
         interactions (DataFrame): Gene-gene interaction dataset with targetA, targetB, sourceDatabase, scoring columns
         target_index (TargetIndex): Target index with gene genomic locations
         variant_index (VariantIndex): Variant index to annotate all overlapping neighbourhood genes
@@ -1071,7 +1071,7 @@ def common_neighbourhood_trans_pqtl_colocalisation_feature_logic(
 class TransPQtlColocH4MaximumFeature(L2GFeature):
     """Max H4 for each (study, locus, gene) aggregating over all trans-pQTLs."""
 
-    feature_dependency_type = [Colocalisation, StudyIndex, StudyLocus, SparkDataFrame, TargetIndex]
+    feature_dependency_type = [Colocalisation, StudyIndex, LegacyStudyLocus, SparkDataFrame, TargetIndex]
     feature_name = "transPQtlColocH4Maximum"
     string_threshold: float = 0.75
     intact_threshold: float = 0.42
@@ -1080,13 +1080,13 @@ class TransPQtlColocH4MaximumFeature(L2GFeature):
     @classmethod
     def compute(
         cls: type[TransPQtlColocH4MaximumFeature],
-        study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+        study_loci_to_annotate: LegacyStudyLocus | L2GGoldStandard,
         feature_dependency: dict[str, Any],
     ) -> TransPQtlColocH4MaximumFeature:
         """Computes the feature.
 
         Args:
-            study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
+            study_loci_to_annotate (LegacyStudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
             feature_dependency (dict[str, Any]): Dataset with the colocalisation results
 
         Returns:
@@ -1127,7 +1127,7 @@ class TransPQtlColocH4MaximumFeature(L2GFeature):
 class TransPQtlColocH4MaximumNeighbourhoodFeature(L2GFeature):
     """Max H4 for each (study, locus) aggregating over all trans-pQTLs, normalised by the regional maximum."""
 
-    feature_dependency_type = [Colocalisation, StudyIndex, StudyLocus, SparkDataFrame, TargetIndex, VariantIndex]
+    feature_dependency_type = [Colocalisation, StudyIndex, LegacyStudyLocus, SparkDataFrame, TargetIndex, VariantIndex]
     feature_name = "transPQtlColocH4MaximumNeighbourhood"
     string_threshold: float = 0.75
     intact_threshold: float = 0.42
@@ -1136,13 +1136,13 @@ class TransPQtlColocH4MaximumNeighbourhoodFeature(L2GFeature):
     @classmethod
     def compute(
         cls: type[TransPQtlColocH4MaximumNeighbourhoodFeature],
-        study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+        study_loci_to_annotate: LegacyStudyLocus | L2GGoldStandard,
         feature_dependency: dict[str, Any],
     ) -> TransPQtlColocH4MaximumNeighbourhoodFeature:
         """Computes the feature.
 
         Args:
-            study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
+            study_loci_to_annotate (LegacyStudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
             feature_dependency (dict[str, Any]): Dataset with the colocalisation results
 
         Returns:

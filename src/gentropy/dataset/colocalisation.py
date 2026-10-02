@@ -9,14 +9,14 @@ import pyspark.sql.functions as f
 
 from gentropy.common.schemas import parse_spark_schema
 from gentropy.dataset.dataset import Dataset
-from gentropy.dataset.study_locus import StudyLocus
+from gentropy.dataset.legacy_study_locus import LegacyStudyLocus
 
 if TYPE_CHECKING:
     from pyspark.sql import DataFrame
     from pyspark.sql.types import StructType
 
+    from gentropy.dataset.legacy_study_locus import LegacyStudyLocus
     from gentropy.dataset.study_index import StudyIndex
-    from gentropy.dataset.study_locus import StudyLocus
 
 
 @dataclass
@@ -34,7 +34,7 @@ class Colocalisation(Dataset):
 
     def append_study_metadata(
         self: Colocalisation,
-        study_locus: StudyLocus,
+        study_locus: LegacyStudyLocus,
         study_index: StudyIndex,
         *,
         metadata_cols: list[str],
@@ -43,7 +43,7 @@ class Colocalisation(Dataset):
         """Appends metadata from the study to the requested side of the colocalisation dataset.
 
         Args:
-            study_locus (StudyLocus): Dataset containing study loci that links the colocalisation dataset and the study index via the studyId
+            study_locus (LegacyStudyLocus): Dataset containing study loci that links the colocalisation dataset and the study index via the studyId
             study_index (StudyIndex): Dataset containing study index that contains the metadata
             metadata_cols (list[str]): List of study columns to append
             colocalisation_side (str): Which side of the colocalisation dataset to append metadata to. Must be either 'right' or 'left'
@@ -86,12 +86,12 @@ class Colocalisation(Dataset):
         )
 
     def drop_trans_effects(
-        self: Colocalisation, study_locus: StudyLocus
+        self: Colocalisation, study_locus: LegacyStudyLocus
     ) -> Colocalisation:
         """Filters the colocalisation dataset to only include cis effects from QTLs (right study locus).
 
         Args:
-            study_locus (StudyLocus): Dataset containing study loci that has metadata about the type of credible set
+            study_locus (LegacyStudyLocus): Dataset containing study loci that has metadata about the type of credible set
 
         Returns:
             Colocalisation: Colocalisation dataset filtered to only include cis effects from QTLs (right study locus)

@@ -83,7 +83,7 @@ from gentropy.dataset.l2g_features.intervals import (
 from gentropy.dataset.pathway_enrichment import PathwayEnrichment
 from gentropy.dataset.pathway_index import PathwayIndex
 from gentropy.dataset.study_index import StudyIndex
-from gentropy.dataset.study_locus import StudyLocus
+from gentropy.dataset.legacy_study_locus import LegacyStudyLocus
 from gentropy.dataset.variant_index import VariantIndex
 from gentropy.method.l2g.feature_factory import L2GFeatureInputLoader
 
@@ -93,7 +93,7 @@ if TYPE_CHECKING:
 
 def test_extract_maximum_coloc_probability_per_region_and_gene(
     mock_colocalisation: Colocalisation,
-    mock_study_locus: StudyLocus,
+    mock_study_locus: LegacyStudyLocus,
     mock_study_index: StudyIndex,
     filter_by_colocalisation_method: str | None = None,
 ) -> None:
@@ -149,7 +149,7 @@ def test_extract_maximum_coloc_probability_per_region_and_gene(
 )
 def test_feature_factory_return_type(
     feature_class: Any,
-    mock_study_locus: StudyLocus,
+    mock_study_locus: LegacyStudyLocus,
     mock_colocalisation: Colocalisation,
     mock_study_index: StudyIndex,
     mock_variant_index: VariantIndex,
@@ -423,7 +423,7 @@ class TestCommonColocalisationFeatureLogic:
         self.colocalisation_metric = "h4"
         self.qtl_type = ["eqtl"]
 
-        self.sample_study_loci_to_annotate = StudyLocus(
+        self.sample_study_loci_to_annotate = LegacyStudyLocus(
             _df=spark.createDataFrame(
                 [
                     {
@@ -434,7 +434,7 @@ class TestCommonColocalisationFeatureLogic:
                     },
                 ]
             ),
-            _schema=StudyLocus.get_schema(),
+            _schema=LegacyStudyLocus.get_schema(),
         )
 
         self.sample_colocalisation = Colocalisation(
@@ -472,7 +472,7 @@ class TestCommonColocalisationFeatureLogic:
             ),
             _schema=Colocalisation.get_schema(),
         )
-        self.sample_study_locus = StudyLocus(
+        self.sample_study_locus = LegacyStudyLocus(
             _df=spark.createDataFrame(
                 [
                     {
@@ -505,7 +505,7 @@ class TestCommonColocalisationFeatureLogic:
                     },
                 ]
             ),
-            _schema=StudyLocus.get_schema(),
+            _schema=LegacyStudyLocus.get_schema(),
         )
         self.sample_studies = StudyIndex(
             _df=spark.createDataFrame(
@@ -643,7 +643,7 @@ class TestCommonDistanceFeatureLogic:
     ) -> None:
         """Set up testing fixtures."""
         self.distance_type = "distanceFromTss"
-        self.sample_study_locus = StudyLocus(
+        self.sample_study_locus = LegacyStudyLocus(
             _df=spark.createDataFrame(
                 [
                     {
@@ -663,9 +663,9 @@ class TestCommonDistanceFeatureLogic:
                         "chromosome": "1",
                     },
                 ],
-                StudyLocus.get_schema(),
+                LegacyStudyLocus.get_schema(),
             ),
-            _schema=StudyLocus.get_schema(),
+            _schema=LegacyStudyLocus.get_schema(),
         )
         self.sample_variant_index = VariantIndex(
             _df=spark.createDataFrame(
@@ -754,7 +754,7 @@ class TestE2GIntervalFeatures:
     @pytest.fixture(autouse=True)
     def _setup(self, spark: SparkSession) -> None:
         """Set up test fixtures."""
-        self.sample_study_locus = StudyLocus(
+        self.sample_study_locus = LegacyStudyLocus(
             _df=spark.createDataFrame(
                 [
                     {
@@ -771,9 +771,9 @@ class TestE2GIntervalFeatures:
                         "chromosome": "1",
                     },
                 ],
-                StudyLocus.get_schema(),
+                LegacyStudyLocus.get_schema(),
             ),
-            _schema=StudyLocus.get_schema(),
+            _schema=LegacyStudyLocus.get_schema(),
         )
 
         # --- Intervals fixture built to your schema (score: double; resourceScore: array[struct] or None) ---
@@ -1037,7 +1037,7 @@ class TestCommonVepFeatureLogic:
     @pytest.fixture(autouse=True)
     def _setup(self: TestCommonVepFeatureLogic, spark: SparkSession) -> None:
         """Set up testing fixtures."""
-        self.sample_study_locus = StudyLocus(
+        self.sample_study_locus = LegacyStudyLocus(
             _df=spark.createDataFrame(
                 [
                     {
@@ -1053,9 +1053,9 @@ class TestCommonVepFeatureLogic:
                         "chromosome": "1",
                     },
                 ],
-                StudyLocus.get_schema(),
+                LegacyStudyLocus.get_schema(),
             ),
-            _schema=StudyLocus.get_schema(),
+            _schema=LegacyStudyLocus.get_schema(),
         )
 
 
@@ -1120,7 +1120,7 @@ class TestCommonGeneCountFeatureLogic:
     @pytest.fixture(autouse=True)
     def _setup(self: TestCommonGeneCountFeatureLogic, spark: SparkSession) -> None:
         """Set up testing fixtures."""
-        self.sample_study_locus = StudyLocus(
+        self.sample_study_locus = LegacyStudyLocus(
             _df=spark.createDataFrame(
                 [
                     {
@@ -1131,9 +1131,9 @@ class TestCommonGeneCountFeatureLogic:
                         "position": 1000000,
                     },
                 ],
-                StudyLocus.get_schema(),
+                LegacyStudyLocus.get_schema(),
             ),
-            _schema=StudyLocus.get_schema(),
+            _schema=LegacyStudyLocus.get_schema(),
         )
         self.sample_target_index = TargetIndex(
             _df=spark.createDataFrame(
@@ -1216,7 +1216,7 @@ class TestCommonProteinCodingFeatureLogic:
     ) -> None:
         """Set up sample data for the test."""
         # Sample study locus data
-        self.sample_study_locus = StudyLocus(
+        self.sample_study_locus = LegacyStudyLocus(
             _df=spark.createDataFrame(
                 [
                     {
@@ -1232,9 +1232,9 @@ class TestCommonProteinCodingFeatureLogic:
                         ],
                     },
                 ],
-                StudyLocus.get_schema(),
+                LegacyStudyLocus.get_schema(),
             ),
-            _schema=StudyLocus.get_schema(),
+            _schema=LegacyStudyLocus.get_schema(),
         )
         self.sample_variant_index = VariantIndex(
             _df=spark.createDataFrame(
@@ -1294,7 +1294,7 @@ class TestCredibleSetConfidenceFeatureLogic:
         sample_variant_index_schema: StructType,
     ) -> None:
         """Set up testing fixtures."""
-        self.sample_study_locus = StudyLocus(
+        self.sample_study_locus = LegacyStudyLocus(
             _df=spark.createDataFrame(
                 [
                     {
@@ -1310,9 +1310,9 @@ class TestCredibleSetConfidenceFeatureLogic:
                         ],
                     },
                 ],
-                StudyLocus.get_schema(),
+                LegacyStudyLocus.get_schema(),
             ),
-            _schema=StudyLocus.get_schema(),
+            _schema=LegacyStudyLocus.get_schema(),
         )
         self.sample_variant_index = VariantIndex(
             _df=spark.createDataFrame(
@@ -1387,7 +1387,7 @@ class TestTransPQtlColocH4Feature:
             TransPQtlColocH4MaximumFeature,
         )
 
-        study_locus_cis_only = StudyLocus(
+        study_locus_cis_only = LegacyStudyLocus(
             _df=spark.createDataFrame(
                 [
                     {
@@ -1406,7 +1406,7 @@ class TestTransPQtlColocH4Feature:
                     },
                 ]
             ).withColumn("position", f.lit(None).cast("integer")),
-            _schema=StudyLocus.get_schema(),
+            _schema=LegacyStudyLocus.get_schema(),
         )
 
         feature = TransPQtlColocH4MaximumFeature.compute(
@@ -1492,7 +1492,7 @@ class TestTransPQtlColocH4Feature:
     @pytest.fixture(autouse=True)
     def _setup(self: TestTransPQtlColocH4Feature, spark: SparkSession) -> None:
         """Set up test fixtures."""
-        self.sample_study_loci_to_annotate = StudyLocus(
+        self.sample_study_loci_to_annotate = LegacyStudyLocus(
             _df=spark.createDataFrame(
                 [
                     {
@@ -1503,7 +1503,7 @@ class TestTransPQtlColocH4Feature:
                     },
                 ]
             ),
-            _schema=StudyLocus.get_schema(),
+            _schema=LegacyStudyLocus.get_schema(),
         )
 
         self.sample_colocalisation = Colocalisation(
@@ -1545,7 +1545,7 @@ class TestTransPQtlColocH4Feature:
             _schema=Colocalisation.get_schema(),
         )
 
-        self.sample_study_locus = StudyLocus(
+        self.sample_study_locus = LegacyStudyLocus(
             _df=spark.createDataFrame(
                 [
                     {
@@ -1581,7 +1581,7 @@ class TestTransPQtlColocH4Feature:
                 "position",
                 f.when(f.col("studyLocusId") == "1", f.lit(1_000_000).cast("integer")),
             ),
-            _schema=StudyLocus.get_schema(),
+            _schema=LegacyStudyLocus.get_schema(),
         )
 
         self.sample_studies = StudyIndex(
@@ -1768,7 +1768,7 @@ class TestTransPQtlColocH4MaximumNeighbourhoodFeature:
         self: TestTransPQtlColocH4MaximumNeighbourhoodFeature, spark: SparkSession
     ) -> None:
         """Set up test fixtures."""
-        self.sample_study_loci_to_annotate = StudyLocus(
+        self.sample_study_loci_to_annotate = LegacyStudyLocus(
             _df=spark.createDataFrame(
                 [
                     {
@@ -1779,7 +1779,7 @@ class TestTransPQtlColocH4MaximumNeighbourhoodFeature:
                     },
                 ]
             ),
-            _schema=StudyLocus.get_schema(),
+            _schema=LegacyStudyLocus.get_schema(),
         )
 
         self.sample_colocalisation = Colocalisation(
@@ -1821,7 +1821,7 @@ class TestTransPQtlColocH4MaximumNeighbourhoodFeature:
             _schema=Colocalisation.get_schema(),
         )
 
-        self.sample_study_locus = StudyLocus(
+        self.sample_study_locus = LegacyStudyLocus(
             _df=spark.createDataFrame(
                 [
                     {
@@ -1857,7 +1857,7 @@ class TestTransPQtlColocH4MaximumNeighbourhoodFeature:
                 "position",
                 f.when(f.col("studyLocusId") == "1", f.lit(1_000_000).cast("integer")),
             ),
-            _schema=StudyLocus.get_schema(),
+            _schema=LegacyStudyLocus.get_schema(),
         )
 
         self.sample_studies = StudyIndex(
@@ -2056,9 +2056,9 @@ class TestPathwayEnrichmentFeature:
         )
 
     @pytest.fixture()
-    def pathway_study_locus(self, spark: SparkSession) -> StudyLocus:
+    def pathway_study_locus(self, spark: SparkSession) -> LegacyStudyLocus:
         """One credible set per study, both at the same position."""
-        return StudyLocus(
+        return LegacyStudyLocus(
             _df=spark.createDataFrame(
                 [
                     {
@@ -2075,7 +2075,7 @@ class TestPathwayEnrichmentFeature:
                     },
                 ]
             ).withColumn("position", f.lit(2000).cast("integer")),
-            _schema=StudyLocus.get_schema(),
+            _schema=LegacyStudyLocus.get_schema(),
         )
 
     @staticmethod
@@ -2092,7 +2092,7 @@ class TestPathwayEnrichmentFeature:
         mock_pathway_index: PathwayIndex,
         mock_pathway_enrichment: PathwayEnrichment,
         pathway_study_index: StudyIndex,
-        pathway_study_locus: StudyLocus,
+        pathway_study_locus: LegacyStudyLocus,
         pathway_target_index: TargetIndex,
     ) -> None:
         """Only pathway1 is enriched for disease1, so its two genes score 1 of their 2 pathways."""
@@ -2117,7 +2117,7 @@ class TestPathwayEnrichmentFeature:
         mock_pathway_index: PathwayIndex,
         mock_pathway_enrichment: PathwayEnrichment,
         pathway_study_index: StudyIndex,
-        pathway_study_locus: StudyLocus,
+        pathway_study_locus: LegacyStudyLocus,
         pathway_target_index: TargetIndex,
     ) -> None:
         """study2 carries both diseases, so pathway1 and pathway2 are both enriched for it."""
@@ -2145,7 +2145,7 @@ class TestPathwayEnrichmentFeature:
         mock_pathway_index: PathwayIndex,
         mock_pathway_enrichment: PathwayEnrichment,
         pathway_study_index: StudyIndex,
-        pathway_study_locus: StudyLocus,
+        pathway_study_locus: LegacyStudyLocus,
         pathway_target_index: TargetIndex,
     ) -> None:
         """The two genes tied at the top of the locus reach 1, the third stays at 0."""

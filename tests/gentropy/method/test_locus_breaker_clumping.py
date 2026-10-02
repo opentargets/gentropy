@@ -8,7 +8,7 @@ import pytest
 from pyspark.sql import functions as f
 from pyspark.sql import types as t
 
-from gentropy.dataset.study_locus import StudyLocus
+from gentropy.dataset.legacy_study_locus import LegacyStudyLocus
 from gentropy.dataset.summary_statistics import SummaryStatistics
 
 if TYPE_CHECKING:
@@ -21,7 +21,7 @@ def test_locus_breaker_return_type(
     """Test locus clumping."""
     assert isinstance(
         mock_summary_statistics.locus_breaker_clumping(),
-        StudyLocus,
+        LegacyStudyLocus,
     )
 
 
@@ -79,7 +79,7 @@ class TestLocusBreakerClumping:
     @pytest.fixture(scope="class")
     def clumped_data(
         self: TestLocusBreakerClumping, mock_input: SummaryStatistics
-    ) -> StudyLocus:
+    ) -> LegacyStudyLocus:
         """Apply method and store for clumped data."""
         return mock_input.locus_breaker_clumping(
             self.pvalue_baseline_cutoff,
@@ -89,22 +89,24 @@ class TestLocusBreakerClumping:
         ).persist()
 
     def test_return_type(
-        self: TestLocusBreakerClumping, clumped_data: StudyLocus
+        self: TestLocusBreakerClumping, clumped_data: LegacyStudyLocus
     ) -> None:
         """Testing return type."""
-        assert isinstance(clumped_data, StudyLocus), (
+        assert isinstance(clumped_data, LegacyStudyLocus), (
             f"Unexpected return type: {type(clumped_data)}"
         )
 
     def test_number_of_loci(
-        self: TestLocusBreakerClumping, clumped_data: StudyLocus
+        self: TestLocusBreakerClumping, clumped_data: LegacyStudyLocus
     ) -> None:
         """Testing return type."""
         assert clumped_data.df.count() == 5, (
             f"Unexpected number of loci: {clumped_data.df.count()}"
         )
 
-    def test_top_loci(self: TestLocusBreakerClumping, clumped_data: StudyLocus) -> None:
+    def test_top_loci(
+        self: TestLocusBreakerClumping, clumped_data: LegacyStudyLocus
+    ) -> None:
         """Testing selected top-loci."""
         top_loci_variants = clumped_data.df.select("variantId").distinct().collect()
 
@@ -117,7 +119,7 @@ class TestLocusBreakerClumping:
         )
 
     def test_locus_boundaries(
-        self: TestLocusBreakerClumping, clumped_data: StudyLocus
+        self: TestLocusBreakerClumping, clumped_data: LegacyStudyLocus
     ) -> None:
         """Testing locus boundaries."""
         locus_start = [

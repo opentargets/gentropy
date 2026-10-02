@@ -6,7 +6,7 @@ import numpy as np
 import pyspark.sql.functions as f
 
 from gentropy.common.session import Session
-from gentropy.dataset.study_locus import StudyLocus
+from gentropy.dataset.legacy_study_locus import LegacyStudyLocus
 from gentropy.dataset.summary_statistics import SummaryStatistics
 from gentropy.method.susie_inf import SUSIE_inf
 from gentropy.susie_finemapper import SusieFineMapperStep
@@ -90,4 +90,6 @@ class TestSUSIE_inf:
             locusStart=1,
             locusEnd=2,
         )
-        assert isinstance(L1, StudyLocus), "L1 is not an instance of StudyLocus"
+        assert isinstance(L1, LegacyStudyLocus), (
+            "L1 is not an instance of LegacyStudyLocus"
+        )

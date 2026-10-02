@@ -8,7 +8,7 @@ import pyspark.sql.functions as f
 import pyspark.sql.types as t
 import pytest
 
-from gentropy.dataset.study_locus import StudyLocus
+from gentropy.dataset.legacy_study_locus import LegacyStudyLocus
 from gentropy.dataset.study_locus_overlap import StudyLocusOverlap
 
 if TYPE_CHECKING:
@@ -22,7 +22,9 @@ def test_study_locus_overlap_creation(
     assert isinstance(mock_study_locus_overlap, StudyLocusOverlap)
 
 
-def test_study_locus_overlap_from_associations(mock_study_locus: StudyLocus) -> None:
+def test_study_locus_overlap_from_associations(
+    mock_study_locus: LegacyStudyLocus,
+) -> None:
     """Test colocalisation creation from mock associations."""
     overlaps = StudyLocusOverlap.from_associations(mock_study_locus)
     assert isinstance(overlaps, StudyLocusOverlap)
@@ -262,7 +264,7 @@ def test_overlapping_peaks_join_conditions(
     )
     df = spark.createDataFrame(scenario["rows"], schema=schema)
 
-    result = StudyLocus._overlapping_peaks(
+    result = LegacyStudyLocus._overlapping_peaks(
         df,
         restrict_right_studies=scenario["restrict_right_studies"],
         gwas_v_qtl_overlap_only=scenario["gwas_v_qtl_overlap_only"],
@@ -314,11 +316,12 @@ def test_overlapping_peaks_join_conditions(
 
 
 class TestStudyLocusOverlap:
-    """Test the overlapping of StudyLocus dataset."""
+    """Test the overlapping of LegacyStudyLocus dataset."""
 
     @pytest.fixture(autouse=True)
     def setup(
-        self: TestStudyLocusOverlap, study_locus_sample_for_colocalisation: StudyLocus
+        self: TestStudyLocusOverlap,
+        study_locus_sample_for_colocalisation: LegacyStudyLocus,
     ) -> None:
         """Get sample dataset."""
         # Store imput dataset:

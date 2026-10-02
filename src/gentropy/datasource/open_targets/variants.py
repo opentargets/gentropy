@@ -10,7 +10,7 @@ from gentropy.common.spark import (
     create_empty_column_if_not_exists,
     safe_array_union,
 )
-from gentropy.dataset.study_locus import StudyLocus
+from gentropy.dataset.legacy_study_locus import LegacyStudyLocus
 from gentropy.datasource.ensembl.api import fetch_coordinates_from_rsids
 
 if TYPE_CHECKING:
@@ -88,7 +88,7 @@ class OpenTargetsVariant:
                     col,
                     create_empty_column_if_not_exists(
                         col,
-                        StudyLocus.get_schema()["locus"].dataType,
+                        LegacyStudyLocus.get_schema()["locus"].dataType,
                     ),
                 )
             else:

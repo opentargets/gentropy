@@ -22,7 +22,7 @@ class TestEqtlCatalogueStep:
 
     @pytest.fixture
     def credible_set_df(self, session: Session) -> DataFrame:
-        """Minimal DataFrame standing in for the StudyLocus payload, shaped for repartition/sort."""
+        """Minimal DataFrame standing in for the LegacyStudyLocus payload, shaped for repartition/sort."""
         return session.spark.createDataFrame(
             [
                 Row(studyId="s1", chromosome="1", variantId="1_1_A_T"),
@@ -75,7 +75,7 @@ class TestEqtlCatalogueStep:
         finemapping_mock.read_lbf_from_source.return_value = lbf_mock
         finemapping_mock.parse_susie_results.return_value = processed_susie_mock
 
-        # Dataset-like return values (StudyIndex/StudyLocus). Each chained method
+        # Dataset-like return values (StudyIndex/LegacyStudyLocus). Each chained method
         # returns the same mock, ending in a real `.df` so the write actually runs.
         study_index_dataset = MagicMock(name="study_index_dataset")
         study_index_dataset.coalesce.return_value = study_index_dataset

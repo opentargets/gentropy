@@ -9,7 +9,7 @@ import pyspark.sql.types as t
 import pytest
 from pyspark.sql import Row
 
-from gentropy.dataset.study_locus import StudyLocus
+from gentropy.dataset.legacy_study_locus import LegacyStudyLocus
 from gentropy.method.ld import LDAnnotator
 
 if TYPE_CHECKING:
@@ -307,12 +307,12 @@ class TestLDAnnotator:
 
     def test_ldannotate(
         self: TestLDAnnotator,
-        mock_study_locus: StudyLocus,
+        mock_study_locus: LegacyStudyLocus,
         mock_study_index: StudyIndex,
         mock_ld_index: LDIndex,
     ) -> None:
         """Test LD annotator."""
         assert isinstance(
             LDAnnotator.ld_annotate(mock_study_locus, mock_study_index, mock_ld_index),
-            StudyLocus,
+            LegacyStudyLocus,
         )

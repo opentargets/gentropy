@@ -8,7 +8,7 @@ import hail as hl
 import pytest
 
 from gentropy.common.session import Session
-from gentropy.dataset.study_locus import StudyLocus
+from gentropy.dataset.legacy_study_locus import LegacyStudyLocus
 from gentropy.datasource.finngen.finemapping import FinnGenFinemapping
 from gentropy.finngen_finemapping_ingestion import FinnGenFinemappingIngestionStep
 
@@ -45,7 +45,7 @@ def test_finngen_finemapping_from_finngen_susie_finemapping(
             finngen_susie_finemapping_cs_summary_files=finngen_susie_finemapping_cs_summary_files,
             finngen_release_prefix="FINNGEN_R11",
         ),
-        StudyLocus,
+        LegacyStudyLocus,
     )
 
 
@@ -82,7 +82,7 @@ def test_finngen_finemapping_ingestion_step(
     assert output_path.is_dir()
     assert (output_path / "_SUCCESS").exists()
 
-    cs = StudyLocus.from_parquet(session=session, path=str(output_path))
+    cs = LegacyStudyLocus.from_parquet(session=session, path=str(output_path))
     assert cs.df.count() == 1
     study_id: str = cs.df.select("studyId").collect()[0]["studyId"]
     assert study_id.startswith("FINNGEN_R11_")

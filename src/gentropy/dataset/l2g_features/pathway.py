@@ -10,10 +10,10 @@ from pyspark.sql import Window
 from gentropy.common.spark import convert_from_wide_to_long
 from gentropy.dataset.l2g_features.l2g_feature import L2GFeature
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
+from gentropy.dataset.legacy_study_locus import LegacyStudyLocus
 from gentropy.dataset.pathway_enrichment import PathwayEnrichment
 from gentropy.dataset.pathway_index import PathwayIndex
 from gentropy.dataset.study_index import StudyIndex
-from gentropy.dataset.study_locus import StudyLocus
 from gentropy.dataset.target_index import TargetIndex
 
 if TYPE_CHECKING:
@@ -21,13 +21,13 @@ if TYPE_CHECKING:
 
 
 def common_pathway_enrichment_feature_logic(
-    study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+    study_loci_to_annotate: LegacyStudyLocus | L2GGoldStandard,
     feature_name: str,
     *,
     pathway_index: PathwayIndex,
     pathway_enrichment: PathwayEnrichment,
     study_index: StudyIndex,
-    study_locus: StudyLocus,
+    study_locus: LegacyStudyLocus,
     target_index: TargetIndex,
     p_value_adjusted_threshold: float,
     genomic_window: int,
@@ -44,13 +44,13 @@ def common_pathway_enrichment_feature_logic(
     the score always falls between 0 and 1.
 
     Args:
-        study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci
+        study_loci_to_annotate (LegacyStudyLocus | L2GGoldStandard): The dataset containing study loci
             that will be used for annotation
         feature_name (str): The name of the feature
         pathway_index (PathwayIndex): Gene set membership of the pathway library
         pathway_enrichment (PathwayEnrichment): Pathways enriched for each disease
         study_index (StudyIndex): Study index, used to resolve a study to its diseases
-        study_locus (StudyLocus): Credible sets, used for the position of the study locus
+        study_locus (LegacyStudyLocus): Credible sets, used for the position of the study locus
         target_index (TargetIndex): Target index, used for gene positions
         p_value_adjusted_threshold (float): Maximum adjusted p-value for a pathway to count as
             enriched
@@ -134,7 +134,7 @@ def common_pathway_enrichment_feature_logic(
 
 
 def common_neighbourhood_pathway_enrichment_feature_logic(
-    study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+    study_loci_to_annotate: LegacyStudyLocus | L2GGoldStandard,
     feature_name: str,
     **kwargs: Any,
 ) -> DataFrame:
@@ -145,7 +145,7 @@ def common_neighbourhood_pathway_enrichment_feature_logic(
     divides each gene's score by the largest score at the locus.
 
     Args:
-        study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci
+        study_loci_to_annotate (LegacyStudyLocus | L2GGoldStandard): The dataset containing study loci
             that will be used for annotation
         feature_name (str): The name of the neighbourhood feature, ending in "Neighbourhood"
         **kwargs (Any): Arguments of `common_pathway_enrichment_feature_logic`
@@ -178,7 +178,7 @@ class PathwayEnrichmentFeature(L2GFeature):
         PathwayIndex,
         PathwayEnrichment,
         StudyIndex,
-        StudyLocus,
+        LegacyStudyLocus,
         TargetIndex,
     ]
     feature_name = "pathwayEnrichment500kb"
@@ -188,13 +188,13 @@ class PathwayEnrichmentFeature(L2GFeature):
     @classmethod
     def compute(
         cls: type[PathwayEnrichmentFeature],
-        study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+        study_loci_to_annotate: LegacyStudyLocus | L2GGoldStandard,
         feature_dependency: dict[str, Any],
     ) -> PathwayEnrichmentFeature:
         """Computes the feature.
 
         Args:
-            study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
+            study_loci_to_annotate (LegacyStudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
             feature_dependency (dict[str, Any]): Datasets with the pathway library, the enrichment results, the studies, the credible sets and the genes
 
         Returns:
@@ -224,7 +224,7 @@ class PathwayEnrichmentNeighbourhoodFeature(L2GFeature):
         PathwayIndex,
         PathwayEnrichment,
         StudyIndex,
-        StudyLocus,
+        LegacyStudyLocus,
         TargetIndex,
     ]
     feature_name = "pathwayEnrichment500kbNeighbourhood"
@@ -234,13 +234,13 @@ class PathwayEnrichmentNeighbourhoodFeature(L2GFeature):
     @classmethod
     def compute(
         cls: type[PathwayEnrichmentNeighbourhoodFeature],
-        study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+        study_loci_to_annotate: LegacyStudyLocus | L2GGoldStandard,
         feature_dependency: dict[str, Any],
     ) -> PathwayEnrichmentNeighbourhoodFeature:
         """Computes the feature.
 
         Args:
-            study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
+            study_loci_to_annotate (LegacyStudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
             feature_dependency (dict[str, Any]): Datasets with the pathway library, the enrichment results, the studies, the credible sets and the genes
 
         Returns:

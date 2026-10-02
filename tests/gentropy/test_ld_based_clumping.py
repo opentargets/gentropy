@@ -26,7 +26,7 @@ class TestLDBasedClumpingStep:
 
         with (
             patch(
-                "gentropy.ld_based_clumping.StudyLocus.from_parquet"
+                "gentropy.ld_based_clumping.LegacyStudyLocus.from_parquet"
             ) as mock_study_locus,
             patch("gentropy.ld_based_clumping.LDIndex.from_parquet") as mock_ld_index,
             patch(
@@ -82,7 +82,7 @@ class TestLDBasedClumpingStep:
 
         with (
             patch(
-                "gentropy.ld_based_clumping.StudyLocus.from_parquet"
+                "gentropy.ld_based_clumping.LegacyStudyLocus.from_parquet"
             ) as mock_study_locus,
             patch("gentropy.ld_based_clumping.LDIndex.from_parquet") as mock_ld_index,
             patch(

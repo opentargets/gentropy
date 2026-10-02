@@ -4,12 +4,12 @@ from __future__ import annotations
 
 from gentropy.common.session import Session
 from gentropy.config import WindowBasedClumpingStepConfig
-from gentropy.dataset.study_locus import CredibleInterval, StudyLocus
+from gentropy.dataset.legacy_study_locus import CredibleInterval, LegacyStudyLocus
 from gentropy.method.pics import PICS
 
 
 class PICSStep:
-    """PICS finemapping of LD-annotated StudyLocus."""
+    """PICS finemapping of LD-annotated LegacyStudyLocus."""
 
     def __init__(
         self,
@@ -25,7 +25,7 @@ class PICSStep:
             picsed_study_locus_out (str): Output PICSed study-locus path.
         """
         # Extract
-        study_locus_ld_annotated = StudyLocus.from_parquet(
+        study_locus_ld_annotated = LegacyStudyLocus.from_parquet(
             session, study_locus_ld_annotated_in
         )
         # PICS

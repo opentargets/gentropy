@@ -8,7 +8,7 @@ import pytest
 from pyspark.sql import DataFrame
 from pyspark.sql import functions as f
 
-from gentropy import StudyIndex, StudyLocus
+from gentropy import LegacyStudyLocus, StudyIndex
 from gentropy.common.session import Session
 from gentropy.datasource.eqtl_catalogue.finemapping import EqtlCatalogueFinemapping
 from gentropy.datasource.eqtl_catalogue.study_index import EqtlCatalogueStudyIndex
@@ -317,7 +317,7 @@ class TestEqtlCatalogueFinemapping:
     def test__from_susie_results(self, processed_finemapping_df: DataFrame) -> None:
         """Test creating a study index from SuSIE results and uniqueness."""
         data = EqtlCatalogueFinemapping.from_susie_results(processed_finemapping_df)
-        assert isinstance(data, StudyLocus)
+        assert isinstance(data, LegacyStudyLocus)
 
         find_discrepancies = data.df.select(
             f.size("locus").alias("locus_size"),

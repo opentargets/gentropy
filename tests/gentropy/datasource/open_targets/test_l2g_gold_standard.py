@@ -29,7 +29,7 @@ if TYPE_CHECKING:
     from pyspark.sql.session import SparkSession
 
     from gentropy.dataset.colocalisation import Colocalisation
-    from gentropy.dataset.study_locus import StudyLocus
+    from gentropy.dataset.legacy_study_locus import LegacyStudyLocus
 
 
 def test_open_targets_as_l2g_gold_standard(
@@ -158,7 +158,7 @@ class TestExpandGoldStandardWithNegatives:
 
 def test_build_feature_matrix(
     mock_l2g_gold_standard: L2GGoldStandard,
-    mock_study_locus: StudyLocus,
+    mock_study_locus: LegacyStudyLocus,
     mock_colocalisation: Colocalisation,
     mock_study_index: StudyIndex,
     mock_variant_index: VariantIndex,

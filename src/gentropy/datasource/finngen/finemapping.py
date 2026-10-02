@@ -13,14 +13,14 @@ from pyspark.sql.types import DoubleType, StringType, StructField, StructType
 
 from gentropy.common.spark import get_top_ranked_in_window
 from gentropy.common.stats import split_pvalue_column
-from gentropy.dataset.study_locus import FinemappingMethod, StudyLocus
+from gentropy.dataset.legacy_study_locus import FinemappingMethod, LegacyStudyLocus
 
 
 @dataclass
 class FinnGenFinemapping:
     """SuSIE finemapping dataset for FinnGen.
 
-    Credible sets from SuSIE are extracted and transformed into StudyLocus objects:
+    Credible sets from SuSIE are extracted and transformed into LegacyStudyLocus objects:
 
     - Study ID in the special format (e.g. FINNGEN_R11*)
     - Credible set specific finemapping statistics (e.g. LogBayesFactors, Alphas/Posterior)
@@ -212,7 +212,7 @@ class FinnGenFinemapping:
         finngen_susie_finemapping_cs_summary_files: (str | list[str]),
         finngen_release_prefix: str,
         credset_lbf_threshold: float = 0.8685889638065036,
-    ) -> StudyLocus:
+    ) -> LegacyStudyLocus:
         """Process the SuSIE finemapping output for FinnGen studies.
 
         The finngen_susie_finemapping_snp_files are files that contain variant summaries with credible set information with following shema:
@@ -270,7 +270,7 @@ class FinnGenFinemapping:
             credset_lbf_threshold (float, optional): Filter out credible sets below, Default 0.8685889638065036 == np.log10(np.exp(2)), this is threshold from publication.
 
         Returns:
-            StudyLocus: Processed SuSIE finemapping output in StudyLocus format.
+            LegacyStudyLocus: Processed SuSIE finemapping output in LegacyStudyLocus format.
         """
         # NOTE: hail allows for importing block gzipped files, spark does not without external libraries.
         # check https://github.com/projectglow/glow/blob/36bf6121fbc4ccc33a13b028deb87b63faeba7a9/core/src/main/scala/io/projectglow/vcf/VCFFileFormat.scala#L274
@@ -521,12 +521,12 @@ class FinnGenFinemapping:
             )
         ).withColumn(
             "studyLocusId",
-            StudyLocus.assign_study_locus_id(
+            LegacyStudyLocus.assign_study_locus_id(
                 ["studyId", "variantId", "finemappingMethod"]
             ),
         )
 
-        return StudyLocus(
+        return LegacyStudyLocus(
             _df=processed_finngen_finemapping_df,
-            _schema=StudyLocus.get_schema(),
+            _schema=LegacyStudyLocus.get_schema(),
         ).annotate_credible_sets()

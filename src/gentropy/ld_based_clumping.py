@@ -3,8 +3,8 @@ from __future__ import annotations
 
 from gentropy.common.session import Session
 from gentropy.dataset.ld_index import LDIndex
+from gentropy.dataset.legacy_study_locus import LegacyStudyLocus
 from gentropy.dataset.study_index import StudyIndex
-from gentropy.dataset.study_locus import StudyLocus
 
 
 class LDBasedClumpingStep:
@@ -33,7 +33,7 @@ class LDBasedClumpingStep:
             ld_index_path (str): Path to the LD index.
             clumped_study_locus_output_path (str): path of the resulting, clumped study-locus dataset.
         """
-        study_locus = StudyLocus.from_parquet(session, study_locus_input_path)
+        study_locus = LegacyStudyLocus.from_parquet(session, study_locus_input_path)
         ld_index = LDIndex.from_parquet(session, ld_index_path)
         study_index = StudyIndex.from_parquet(session, study_index_path)
 

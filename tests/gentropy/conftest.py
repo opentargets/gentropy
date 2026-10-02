@@ -21,10 +21,10 @@ from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
 from gentropy.dataset.l2g_prediction import L2GPrediction
 from gentropy.dataset.ld_index import LDIndex
+from gentropy.dataset.legacy_study_locus import LegacyStudyLocus
 from gentropy.dataset.pathway_enrichment import PathwayEnrichment
 from gentropy.dataset.pathway_index import PathwayIndex
 from gentropy.dataset.study_index import StudyIndex
-from gentropy.dataset.study_locus import StudyLocus
 from gentropy.dataset.study_locus_overlap import StudyLocusOverlap
 from gentropy.dataset.summary_statistics import SummaryStatistics
 from gentropy.dataset.target_index import TargetIndex
@@ -276,7 +276,7 @@ def mock_study_locus_overlap(spark: SparkSession) -> StudyLocusOverlap:
 
 def mock_study_locus_data(spark: SparkSession) -> DataFrame:
     """Mock study_locus dataset."""
-    sl_schema = StudyLocus.get_schema()
+    sl_schema = LegacyStudyLocus.get_schema()
 
     data_spec = (
         dg.DataGenerator(
@@ -314,11 +314,11 @@ def mock_study_locus_data(spark: SparkSession) -> DataFrame:
 
 
 @pytest.fixture()
-def mock_study_locus(spark: SparkSession) -> StudyLocus:
+def mock_study_locus(spark: SparkSession) -> LegacyStudyLocus:
     """Mock study_locus dataset."""
-    return StudyLocus(
+    return LegacyStudyLocus(
         _df=mock_study_locus_data(spark),
-        _schema=StudyLocus.get_schema(),
+        _schema=LegacyStudyLocus.get_schema(),
     )
 
 
@@ -693,11 +693,11 @@ def sample_ukbiobank_studies(spark: SparkSession) -> DataFrame:
 
 
 @pytest.fixture()
-def study_locus_sample_for_colocalisation(spark: SparkSession) -> StudyLocus:
+def study_locus_sample_for_colocalisation(spark: SparkSession) -> LegacyStudyLocus:
     """Sample study locus data for colocalisation."""
-    return StudyLocus(
+    return LegacyStudyLocus(
         _df=spark.read.parquet("tests/gentropy/data_samples/coloc_test.parquet"),
-        _schema=StudyLocus.get_schema(),
+        _schema=LegacyStudyLocus.get_schema(),
     )
 
 

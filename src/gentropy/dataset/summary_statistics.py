@@ -17,7 +17,7 @@ from gentropy.dataset.dataset import Dataset
 if TYPE_CHECKING:
     from pyspark.sql.types import StructType
 
-    from gentropy import Session, StudyIndex, StudyLocus
+    from gentropy import LegacyStudyLocus, Session, StudyIndex
 
 
 @dataclass
@@ -62,7 +62,7 @@ class SummaryStatistics(Dataset):
         self: SummaryStatistics,
         distance: int = WindowBasedClumpingStepConfig().distance,
         gwas_significance: float = WindowBasedClumpingStepConfig().gwas_significance,
-    ) -> StudyLocus:
+    ) -> LegacyStudyLocus:
         """Generate study-locus from summary statistics using window-based clumping.
 
         For more info, see [`WindowBasedClumping`][gentropy.method.window_based_clumping.WindowBasedClumping]
@@ -72,7 +72,7 @@ class SummaryStatistics(Dataset):
             gwas_significance (float, optional): GWAS significance threshold. Defaults to 5e-8.
 
         Returns:
-            StudyLocus: Clumped study-locus optionally containing variants based on window.
+            LegacyStudyLocus: Clumped study-locus optionally containing variants based on window.
             Check WindowBasedClumpingStepConfig object for default values.
         """
         from gentropy.method.window_based_clumping import WindowBasedClumping
@@ -94,7 +94,7 @@ class SummaryStatistics(Dataset):
         distance_cutoff: int = LocusBreakerClumpingConfig.lbc_distance_cutoff,
         pvalue_cutoff: float = LocusBreakerClumpingConfig.lbc_pvalue_threshold,
         flanking_distance: int = LocusBreakerClumpingConfig.lbc_flanking_distance,
-    ) -> StudyLocus:
+    ) -> LegacyStudyLocus:
         """Generate study-locus from summary statistics using locus-breaker clumping method with locus boundaries.
 
         For more info, see [`locus_breaker`][gentropy.method.locus_breaker_clumping.LocusBreakerClumping]
@@ -106,7 +106,7 @@ class SummaryStatistics(Dataset):
             flanking_distance (int, optional): Flank distance in base pairs to be used for clumping.
 
         Returns:
-            StudyLocus: Clumped study-locus optionally containing variants based on window.
+            LegacyStudyLocus: Clumped study-locus optionally containing variants based on window.
             Check LocusBreakerClumpingConfig object for default values.
         """
         from gentropy.method.locus_breaker_clumping import LocusBreakerClumping

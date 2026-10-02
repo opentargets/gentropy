@@ -19,7 +19,7 @@ from gentropy.common.processing import flag_non_atgc_alleles, normalize_chromoso
 from gentropy.common.session import NativeFileFormat, Session
 from gentropy.common.spark import clean_strings_from_symbols
 from gentropy.common.stats import split_pvalue_column
-from gentropy.dataset.study_locus import FinemappingMethod, StudyLocus
+from gentropy.dataset.legacy_study_locus import FinemappingMethod, LegacyStudyLocus
 from gentropy.datasource.eqtl_catalogue.study_index import EqtlCatalogueStudyIndex
 
 if TYPE_CHECKING:
@@ -30,7 +30,7 @@ if TYPE_CHECKING:
 class EqtlCatalogueFinemapping:
     """SuSIE finemapping dataset for eQTL Catalogue.
 
-    Credible sets from SuSIE are extracted and transformed into StudyLocus objects:
+    Credible sets from SuSIE are extracted and transformed into LegacyStudyLocus objects:
     - A study ID is defined as a triad between: the publication, the tissue, and the measured trait (e.g. Braineac2_substantia_nigra_ENSG00000248275)
     - Each row in the `*.credible_set.parquet` files is represented by molecular_trait_id/variant/rsid trios relevant for a given tissue. Each have their own finemapping statistics
     - log Bayes Factors are available for all variants in the `*.lbf_variable.parquet` files
@@ -363,24 +363,24 @@ class EqtlCatalogueFinemapping:
     @classmethod
     def from_susie_results(
         cls: type[EqtlCatalogueFinemapping], processed_finemapping_df: DataFrame
-    ) -> StudyLocus:
-        """Create a StudyLocus object from the processed SuSIE results.
+    ) -> LegacyStudyLocus:
+        """Create a LegacyStudyLocus object from the processed SuSIE results.
 
         Args:
             processed_finemapping_df (DataFrame): DataFrame containing the processed SuSIE results.
 
         Returns:
-            StudyLocus: eQTL Catalogue credible sets.
+            LegacyStudyLocus: eQTL Catalogue credible sets.
         """
         lead_w = Window.partitionBy(
             "dataset_id", "molecular_trait_id", "region", "credibleSetIndex"
         )
         study_locus_cols = [
             field.name
-            for field in StudyLocus.get_schema().fields
+            for field in LegacyStudyLocus.get_schema().fields
             if field.name in processed_finemapping_df.columns
         ] + ["locus"]
-        return StudyLocus(
+        return LegacyStudyLocus(
             _df=(
                 processed_finemapping_df.withColumn(
                     "isLead",
@@ -409,15 +409,15 @@ class EqtlCatalogueFinemapping:
                 .drop("isLead")
                 .select(
                     *study_locus_cols,
-                    StudyLocus.assign_study_locus_id(
+                    LegacyStudyLocus.assign_study_locus_id(
                         ["studyId", "variantId", "finemappingMethod"]
                     ),
-                    StudyLocus.calculate_credible_set_log10bf(
+                    LegacyStudyLocus.calculate_credible_set_log10bf(
                         f.col("locus.logBF")
                     ).alias("credibleSetlog10BF"),
                 )
             ),
-            _schema=StudyLocus.get_schema(),
+            _schema=LegacyStudyLocus.get_schema(),
         ).annotate_credible_sets()
 
     @classmethod

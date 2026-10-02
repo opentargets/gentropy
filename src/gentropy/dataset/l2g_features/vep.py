@@ -10,7 +10,7 @@ from pyspark.sql import Window
 from gentropy.common.spark import convert_from_wide_to_long
 from gentropy.dataset.l2g_features.l2g_feature import L2GFeature
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
-from gentropy.dataset.study_locus import StudyLocus
+from gentropy.dataset.legacy_study_locus import LegacyStudyLocus
 from gentropy.dataset.target_index import TargetIndex
 from gentropy.dataset.variant_index import VariantIndex
 
@@ -19,7 +19,7 @@ if TYPE_CHECKING:
 
 
 def common_vep_feature_logic(
-    study_loci_to_annotate: L2GGoldStandard | StudyLocus,
+    study_loci_to_annotate: L2GGoldStandard | LegacyStudyLocus,
     *,
     variant_index: VariantIndex,
     feature_name: str,
@@ -27,7 +27,7 @@ def common_vep_feature_logic(
     """Extracts variant severity score computed from VEP.
 
     Args:
-        study_loci_to_annotate (L2GGoldStandard | StudyLocus): The dataset containing study loci that will be used for annotation
+        study_loci_to_annotate (L2GGoldStandard | LegacyStudyLocus): The dataset containing study loci that will be used for annotation
         variant_index (VariantIndex): The dataset containing functional consequence information
         feature_name (str): The name of the feature
 
@@ -42,7 +42,7 @@ def common_vep_feature_logic(
         f.col("transcriptConsequence.targetId").alias("geneId"),
         f.col("transcriptConsequence.consequenceScore").alias("severityScore"),
     )
-    if isinstance(study_loci_to_annotate, StudyLocus):
+    if isinstance(study_loci_to_annotate, LegacyStudyLocus):
         variants_df = (
             study_loci_to_annotate.df.withColumn(
                 "variantInLocus", f.explode_outer("locus")
@@ -74,7 +74,7 @@ def common_vep_feature_logic(
 
 
 def common_neighbourhood_vep_feature_logic(
-    study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+    study_loci_to_annotate: LegacyStudyLocus | L2GGoldStandard,
     *,
     variant_index: VariantIndex,
     target_index: TargetIndex,
@@ -83,7 +83,7 @@ def common_neighbourhood_vep_feature_logic(
     """Extracts variant severity score computed from VEP for any gene, based on what is the max score for protein coding genes that are nearby the locus.
 
     Args:
-        study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
+        study_loci_to_annotate (LegacyStudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
         variant_index (VariantIndex): The dataset containing functional consequence information
         target_index (TargetIndex): The dataset containing the gene biotype
         feature_name (str): The name of the feature
@@ -133,13 +133,13 @@ class VepMaximumFeature(L2GFeature):
     @classmethod
     def compute(
         cls: type[VepMaximumFeature],
-        study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+        study_loci_to_annotate: LegacyStudyLocus | L2GGoldStandard,
         feature_dependency: dict[str, Any],
     ) -> VepMaximumFeature:
         """Computes the feature.
 
         Args:
-            study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
+            study_loci_to_annotate (LegacyStudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
             feature_dependency (dict[str, Any]): Dataset that contains the functional consequence information
 
         Returns:
@@ -169,13 +169,13 @@ class VepMaximumNeighbourhoodFeature(L2GFeature):
     @classmethod
     def compute(
         cls: type[VepMaximumNeighbourhoodFeature],
-        study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+        study_loci_to_annotate: LegacyStudyLocus | L2GGoldStandard,
         feature_dependency: dict[str, Any],
     ) -> VepMaximumNeighbourhoodFeature:
         """Computes the feature.
 
         Args:
-            study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
+            study_loci_to_annotate (LegacyStudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
             feature_dependency (dict[str, Any]): Dataset that contains the functional consequence information
 
         Returns:
@@ -208,13 +208,13 @@ class VepMeanFeature(L2GFeature):
     @classmethod
     def compute(
         cls: type[VepMeanFeature],
-        study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+        study_loci_to_annotate: LegacyStudyLocus | L2GGoldStandard,
         feature_dependency: dict[str, Any],
     ) -> VepMeanFeature:
         """Computes the feature.
 
         Args:
-            study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
+            study_loci_to_annotate (LegacyStudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
             feature_dependency (dict[str, Any]): Dataset that contains the functional consequence information
 
         Returns:
@@ -247,13 +247,13 @@ class VepMeanNeighbourhoodFeature(L2GFeature):
     @classmethod
     def compute(
         cls: type[VepMeanNeighbourhoodFeature],
-        study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+        study_loci_to_annotate: LegacyStudyLocus | L2GGoldStandard,
         feature_dependency: dict[str, Any],
     ) -> VepMeanNeighbourhoodFeature:
         """Computes the feature.
 
         Args:
-            study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
+            study_loci_to_annotate (LegacyStudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
             feature_dependency (dict[str, Any]): Dataset that contains the functional consequence information
 
         Returns:

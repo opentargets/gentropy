@@ -20,8 +20,8 @@ warnings.filterwarnings(
 from gentropy.common.session import Session
 from gentropy.dataset.biosample_index import BiosampleIndex
 from gentropy.dataset.colocalisation import Colocalisation
+from gentropy.dataset.legacy_study_locus import LegacyStudyLocus
 from gentropy.dataset.study_index import StudyIndex
-from gentropy.dataset.study_locus import StudyLocus
 from gentropy.dataset.summary_statistics import SummaryStatistics
 from gentropy.dataset.summary_statistics_qc import SummaryStatisticsQC
 from gentropy.dataset.target_index import TargetIndex
@@ -30,7 +30,7 @@ from gentropy.dataset.variant_index import VariantIndex
 __all__ = [
     "Session",
     "StudyIndex",
-    "StudyLocus",
+    "LegacyStudyLocus",
     "Colocalisation",
     "BiosampleIndex",
     "SummaryStatistics",

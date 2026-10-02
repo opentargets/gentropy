@@ -12,7 +12,7 @@ from gentropy.common.spark import convert_from_wide_to_long
 from gentropy.dataset.intervals import Intervals
 from gentropy.dataset.l2g_features.l2g_feature import L2GFeature
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
-from gentropy.dataset.study_locus import StudyLocus
+from gentropy.dataset.legacy_study_locus import LegacyStudyLocus
 
 
 def _explode_interval_bins(
@@ -51,7 +51,7 @@ def _explode_interval_bins(
 
 
 def e2g_interval_feature_wide_logic_binned(
-    study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+    study_loci_to_annotate: LegacyStudyLocus | L2GGoldStandard,
     *,
     intervals: Intervals,
     base_name: str = "e2gMean",
@@ -70,7 +70,7 @@ def e2g_interval_feature_wide_logic_binned(
       5) Add neighbourhood ratio within locus
 
     Args:
-        study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci
+        study_loci_to_annotate (LegacyStudyLocus | L2GGoldStandard): The dataset containing study loci
             that will be used for annotation
         intervals (Intervals): The dataset containing interval information
         base_name (str): The base name of the feature
@@ -208,7 +208,7 @@ def e2g_interval_feature_wide_logic_binned(
 
 
 def e2g_interval_feature_wide_logic(
-    study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+    study_loci_to_annotate: LegacyStudyLocus | L2GGoldStandard,
     *,
     intervals: Intervals,
     base_name: str = "e2gMean",
@@ -224,7 +224,7 @@ def e2g_interval_feature_wide_logic(
     Set use_binned=False to fall back to a plain overlap if ever needed.
 
     Args:
-        study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci
+        study_loci_to_annotate (LegacyStudyLocus | L2GGoldStandard): The dataset containing study loci
             that will be used for annotation
         intervals (Intervals): The dataset containing interval information
         base_name (str): The base name of the feature
@@ -331,7 +331,7 @@ def e2g_interval_feature_wide_logic(
 
 
 def get_or_make_e2g_wide(
-    study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+    study_loci_to_annotate: LegacyStudyLocus | L2GGoldStandard,
     *,
     feature_dependency: dict[str, Any],
     base_name: str = "e2gMean",
@@ -354,7 +354,7 @@ def get_or_make_e2g_wide(
     The cache key incorporates parameters that affect output.
 
     Args:
-        study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci
+        study_loci_to_annotate (LegacyStudyLocus | L2GGoldStandard): The dataset containing study loci
             that will be used for annotation
         feature_dependency (dict[str, Any]): Dataset that contains the e2g information
         base_name (str): The base name of the feature
@@ -394,13 +394,13 @@ class E2gMeanFeature(L2GFeature):
     @classmethod
     def compute(
         cls: type[E2gMeanFeature],
-        study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+        study_loci_to_annotate: LegacyStudyLocus | L2GGoldStandard,
         feature_dependency: dict[str, Any],
     ) -> E2gMeanFeature:
         """Compute e2gMean feature.
 
         Args:
-            study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci
+            study_loci_to_annotate (LegacyStudyLocus | L2GGoldStandard): The dataset containing study loci
                 that will be used for annotation
             feature_dependency (dict[str, Any]): Dataset that contains the e2g information, expecting intervals
 
@@ -432,13 +432,13 @@ class E2gMeanNeighbourhoodFeature(L2GFeature):
     @classmethod
     def compute(
         cls: type[E2gMeanNeighbourhoodFeature],
-        study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+        study_loci_to_annotate: LegacyStudyLocus | L2GGoldStandard,
         feature_dependency: dict[str, Any],
     ) -> E2gMeanNeighbourhoodFeature:
         """Compute e2gMeanNeighbourhood feature.
 
         Args:
-            study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci
+            study_loci_to_annotate (LegacyStudyLocus | L2GGoldStandard): The dataset containing study loci
                 that will be used for annotation
             feature_dependency (dict[str, Any]): Dataset that contains the e2g information, expecting intervals
 

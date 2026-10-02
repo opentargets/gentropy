@@ -8,7 +8,7 @@ from pyspark.sql import types as t
 
 from gentropy.common.session import Session
 from gentropy.credible_set_qc import CredibleSetQCStep
-from gentropy.dataset.study_locus import StudyLocus
+from gentropy.dataset.legacy_study_locus import LegacyStudyLocus
 
 
 @pytest.mark.step_test
@@ -17,7 +17,7 @@ class TestCredibleSetQCStep:
 
     @pytest.fixture(autouse=True)
     def _setup(self, session: Session, tmp_path: Path) -> None:
-        """Setup StudyLocus for testing."""
+        """Setup LegacyStudyLocus for testing."""
         # NOTE: About the input dataset for tests
         # Entry dataset contains 6 loci (3 of them contains duplicated studyLocusId, 2 contains the same studyId)
         # The step is expected to remove the duplicates of the studyLocus (1 row)
@@ -138,7 +138,7 @@ class TestCredibleSetQCStep:
         assert len(partitions) == self.n_partitions, (
             "Incorrect number of partitions in the output."
         )
-        cs = StudyLocus.from_parquet(
+        cs = LegacyStudyLocus.from_parquet(
             session, self.output_path, recursiveFileLookup=True
         )
         assert cs.df.count() == 2  # Row A where LogBF == 3.0 and row D

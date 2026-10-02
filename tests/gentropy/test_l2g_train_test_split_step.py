@@ -10,7 +10,7 @@ import pyspark.sql.functions as f
 import pytest
 
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
-from gentropy.dataset.study_locus import StudyLocus
+from gentropy.dataset.legacy_study_locus import LegacyStudyLocus
 from gentropy.l2g import LocusToGeneTrainTestSplitStep
 
 if TYPE_CHECKING:
@@ -44,11 +44,11 @@ class TestParseGoldStandard:
     """Tests for LocusToGeneTrainTestSplitStep._parse_gold_standard."""
 
     @pytest.fixture()
-    def empty_credible_set(self, spark: SparkSession) -> StudyLocus:
-        """Minimal StudyLocus (not used by non-OTG paths)."""
-        return StudyLocus(
-            _df=spark.createDataFrame([], StudyLocus.get_schema()),
-            _schema=StudyLocus.get_schema(),
+    def empty_credible_set(self, spark: SparkSession) -> LegacyStudyLocus:
+        """Minimal LegacyStudyLocus (not used by non-OTG paths)."""
+        return LegacyStudyLocus(
+            _df=spark.createDataFrame([], LegacyStudyLocus.get_schema()),
+            _schema=LegacyStudyLocus.get_schema(),
         )
 
     def test_exact_schema_returns_l2g_gold_standard(
@@ -57,7 +57,7 @@ class TestParseGoldStandard:
         spark: SparkSession,
         tmp_path: Path,
         mock_l2g_gold_standard: L2GGoldStandard,
-        empty_credible_set: StudyLocus,
+        empty_credible_set: LegacyStudyLocus,
     ) -> None:
         """A parquet whose schema matches L2GGoldStandard is loaded directly."""
         gs_path = str(tmp_path / "gs.parquet")
@@ -78,7 +78,7 @@ class TestParseGoldStandard:
         spark: SparkSession,
         tmp_path: Path,
         mock_l2g_gold_standard: L2GGoldStandard,
-        empty_credible_set: StudyLocus,
+        empty_credible_set: LegacyStudyLocus,
     ) -> None:
         """Extra columns are silently dropped; result is still L2GGoldStandard."""
         gs_path = str(tmp_path / "gs_extra.parquet")
@@ -101,7 +101,7 @@ class TestParseGoldStandard:
         session: Session,
         spark: SparkSession,
         tmp_path: Path,
-        empty_credible_set: StudyLocus,
+        empty_credible_set: LegacyStudyLocus,
     ) -> None:
         """A DataFrame with an unrecognized schema raises TypeError.
 
