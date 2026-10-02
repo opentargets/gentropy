@@ -1272,6 +1272,153 @@ class TestStudyLocusDuplicationFlagging:
         assert retained[0]["locusSize"] == 1
 
 
+class TestStudyLocusReplicationFlagging:
+    """Collection of tests related to flagging credible sets with independent replication."""
+
+    STUDY_LOCUS_DATA = [
+        # Same lead variant and disease in two independent study records -> replicated:
+        ("1", "v1", "s1"),
+        ("2", "v1", "s2"),
+        # s3 reports the same cohorts, publication and LD structure as s1, so the two records
+        # are not independent evidence -> not replicated:
+        ("3", "v2", "s1"),
+        ("4", "v2", "s3"),
+        # GWAS study without disease annotation -> not replicated:
+        ("5", "v3", "s4"),
+        # Same lead variant and gene measured by two molQTL studies -> replicated:
+        ("6", "v4", "s5"),
+        ("7", "v4", "s6"),
+        # Only molQTL study measuring this gene at this variant -> not replicated:
+        ("8", "v4", "s7"),
+        # molQTL study without measured gene -> not replicated:
+        ("9", "v5", "s8"),
+        # Two studies reporting the same two diseases, in a different order -> replicated:
+        ("10", "v6", "s9"),
+        ("11", "v6", "s10"),
+        # s11 and s1 share one disease out of a longer list -> not replicated:
+        ("12", "v7", "s11"),
+        ("13", "v7", "s1"),
+        # Measurements only: sharing one measurement is enough -> replicated:
+        ("14", "v8", "s12"),
+        ("15", "v8", "s13"),
+        # Measurement and disease: the measurement is set aside, the disease matches -> replicated:
+        ("16", "v9", "s14"),
+        ("17", "v9", "s15"),
+        # Measurement and disease: same measurement, different disease -> not replicated:
+        ("18", "v10", "s14"),
+        ("19", "v10", "s16"),
+    ]
+
+    STUDY_LOCUS_SCHEMA = t.StructType(
+        [
+            t.StructField("studyLocusId", t.StringType(), False),
+            t.StructField("variantId", t.StringType(), False),
+            t.StructField("studyId", t.StringType(), False),
+        ]
+    )
+
+    STUDY_DATA = [
+        ("s1", "p1", "gwas", ["d1"], None, ["c1"], "pm1", [("nfe", 1.0)]),
+        ("s2", "p1", "gwas", ["d1"], None, ["c2"], "pm2", [("fin", 1.0)]),
+        ("s3", "p1", "gwas", ["d1"], None, ["c1"], "pm1", [("nfe", 1.0)]),
+        ("s4", "p1", "gwas", None, None, ["c3"], "pm3", [("nfe", 1.0)]),
+        ("s5", "p2", "eqtl", None, "g1", None, None, None),
+        ("s6", "p2", "eqtl", None, "g1", None, None, None),
+        ("s7", "p2", "eqtl", None, "g2", None, None, None),
+        ("s8", "p2", "eqtl", None, None, None, None, None),
+        ("s9", "p1", "gwas", ["d1", "d2"], None, ["c4"], "pm4", [("nfe", 1.0)]),
+        ("s10", "p1", "gwas", ["d2", "d1"], None, ["c5"], "pm5", [("nfe", 1.0)]),
+        ("s11", "p1", "gwas", ["d1", "d3"], None, ["c6"], "pm6", [("nfe", 1.0)]),
+        ("s12", "p1", "gwas", ["m1", "m2"], None, ["c7"], "pm7", [("nfe", 1.0)]),
+        ("s13", "p1", "gwas", ["m1", "m3"], None, ["c8"], "pm8", [("nfe", 1.0)]),
+        ("s14", "p1", "gwas", ["m1", "d1"], None, ["c9"], "pm9", [("nfe", 1.0)]),
+        ("s15", "p1", "gwas", ["m2", "d1"], None, ["c10"], "pm10", [("nfe", 1.0)]),
+        ("s16", "p1", "gwas", ["m1", "d2"], None, ["c11"], "pm11", [("nfe", 1.0)]),
+    ]
+
+    DISEASE_DATA = [
+        ("m1", ["EFO_0001444"]),
+        ("m2", ["EFO_0001444"]),
+        ("m3", ["EFO_0001444"]),
+        ("d1", ["MONDO_0045024"]),
+        ("d2", ["MONDO_0045024"]),
+    ]
+
+    STUDY_SCHEMA = t.StructType(
+        [
+            t.StructField("studyId", t.StringType(), False),
+            t.StructField("projectId", t.StringType(), False),
+            t.StructField("studyType", t.StringType(), False),
+            t.StructField("diseaseIds", t.ArrayType(t.StringType()), True),
+            t.StructField("geneId", t.StringType(), True),
+            t.StructField("cohorts", t.ArrayType(t.StringType()), True),
+            t.StructField("pubmedId", t.StringType(), True),
+            t.StructField(
+                "ldPopulationStructure",
+                t.ArrayType(
+                    t.StructType(
+                        [
+                            t.StructField("ldPopulation", t.StringType(), True),
+                            t.StructField("relativeSampleSize", t.DoubleType(), True),
+                        ]
+                    )
+                ),
+                True,
+            ),
+        ]
+    )
+
+    @pytest.fixture(autouse=True)
+    def _setup(self: TestStudyLocusReplicationFlagging, spark: SparkSession) -> None:
+        """Setup study locus and study index for testing."""
+        self.study_locus = StudyLocus(
+            _df=spark.createDataFrame(
+                self.STUDY_LOCUS_DATA, schema=self.STUDY_LOCUS_SCHEMA
+            ).withColumn(
+                "qualityControls", f.array().cast(t.ArrayType(t.StringType()))
+            ),
+            _schema=StudyLocus.get_schema(),
+        )
+        self.study_index = StudyIndex(
+            _df=spark.createDataFrame(self.STUDY_DATA, schema=self.STUDY_SCHEMA),
+            _schema=StudyIndex.get_schema(),
+        )
+        disease_index = spark.createDataFrame(
+            self.DISEASE_DATA, "id string, therapeuticAreas array<string>"
+        )
+        self.validated = self.study_locus.qc_replication(
+            self.study_index, disease_index
+        )
+
+    def test_replication_flag_type(
+        self: TestStudyLocusReplicationFlagging,
+    ) -> None:
+        """Test replication flagging return type."""
+        assert isinstance(self.validated, StudyLocus)
+
+    def test_replication_flag_no_data_loss(
+        self: TestStudyLocusReplicationFlagging,
+    ) -> None:
+        """Test replication flagging no data loss."""
+        assert self.validated.df.count() == self.study_locus.df.count()
+
+    def test_replication_flag_correctness(
+        self: TestStudyLocusReplicationFlagging,
+    ) -> None:
+        """Only the credible sets with independent replication are flagged."""
+        flagged = {
+            row["studyLocusId"]
+            for row in self.validated.df.filter(
+                f.array_contains(
+                    f.col("qualityControls"),
+                    StudyLocusQualityCheck.REPLICATED.value,
+                )
+            ).collect()
+        }
+
+        assert flagged == {"1", "2", "6", "7", "10", "11", "14", "15", "16", "17"}
+
+
 class TestTransQtlFlagging:
     """Test flagging trans qtl credible sets."""
 
