@@ -9,7 +9,10 @@ import pyspark.sql.functions as f
 from gentropy.common.spark import convert_from_wide_to_long
 from gentropy.dataset.l2g_features.l2g_feature import L2GFeature
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
-from gentropy.dataset.study_locus import CredibleSetConfidenceClasses, StudyLocus
+from gentropy.dataset.study_locus_view import (
+    CredibleSetConfidenceClasses,
+    StudyLocusView,
+)
 from gentropy.dataset.target_index import TargetIndex
 from gentropy.dataset.variant_index import VariantIndex
 
@@ -18,7 +21,7 @@ if TYPE_CHECKING:
 
 
 def common_genecount_feature_logic(
-    study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+    study_loci_to_annotate: StudyLocusView | L2GGoldStandard,
     *,
     target_index: TargetIndex,
     feature_name: str,
@@ -28,7 +31,7 @@ def common_genecount_feature_logic(
     """Computes the feature.
 
     Args:
-        study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci
+        study_loci_to_annotate (StudyLocusView | L2GGoldStandard): The dataset containing study loci
             that will be used for annotation
         target_index (TargetIndex): Dataset containing information related to all genes in release.
         feature_name (str): The name of the feature
@@ -83,7 +86,7 @@ def common_genecount_feature_logic(
 
 
 def is_protein_coding_feature_logic(
-    study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+    study_loci_to_annotate: StudyLocusView | L2GGoldStandard,
     *,
     variant_index: VariantIndex,
     feature_name: str,
@@ -92,7 +95,7 @@ def is_protein_coding_feature_logic(
     """Computes the feature to indicate if a gene is protein-coding or not.
 
     Args:
-        study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci
+        study_loci_to_annotate (StudyLocusView | L2GGoldStandard): The dataset containing study loci
             that will be used for annotation
         variant_index (VariantIndex): Dataset containing information related to all overlapping genes within a genomic window.
         feature_name (str): The name of the feature
@@ -119,7 +122,7 @@ def is_protein_coding_feature_logic(
         )
         .filter(f.col("distanceFromFootprint") <= genomic_window)
     )
-    if isinstance(study_loci_to_annotate, StudyLocus):
+    if isinstance(study_loci_to_annotate, StudyLocusView):
         variants_df = study_loci_to_annotate.df.select(
             f.explode_outer("locus.variantId").alias("variantId"),
             "studyLocusId",
@@ -153,13 +156,13 @@ class GeneCountFeature(L2GFeature):
     @classmethod
     def compute(
         cls: type[GeneCountFeature],
-        study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+        study_loci_to_annotate: StudyLocusView | L2GGoldStandard,
         feature_dependency: dict[str, Any],
     ) -> GeneCountFeature:
         """Computes the gene count feature.
 
         Args:
-            study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
+            study_loci_to_annotate (StudyLocusView | L2GGoldStandard): The dataset containing study loci that will be used for annotation
             feature_dependency (dict[str, Any]): Dictionary containing dependencies, with target index and window size
 
         Returns:
@@ -193,13 +196,13 @@ class ProteinGeneCountFeature(L2GFeature):
     @classmethod
     def compute(
         cls: type[ProteinGeneCountFeature],
-        study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+        study_loci_to_annotate: StudyLocusView | L2GGoldStandard,
         feature_dependency: dict[str, Any],
     ) -> ProteinGeneCountFeature:
         """Computes the gene count feature.
 
         Args:
-            study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
+            study_loci_to_annotate (StudyLocusView | L2GGoldStandard): The dataset containing study loci that will be used for annotation
             feature_dependency (dict[str, Any]): Dictionary containing dependencies, with target index and window size
 
         Returns:
@@ -234,13 +237,13 @@ class ProteinCodingFeature(L2GFeature):
     @classmethod
     def compute(
         cls: type[ProteinCodingFeature],
-        study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+        study_loci_to_annotate: StudyLocusView | L2GGoldStandard,
         feature_dependency: dict[str, Any],
     ) -> ProteinCodingFeature:
         """Computes the protein coding feature.
 
         Args:
-            study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
+            study_loci_to_annotate (StudyLocusView | L2GGoldStandard): The dataset containing study loci that will be used for annotation
             feature_dependency (dict[str, Any]): Dictionary containing dependencies, including variant index
 
         Returns:
@@ -268,19 +271,19 @@ class ProteinCodingFeature(L2GFeature):
 class CredibleSetConfidenceFeature(L2GFeature):
     """Distance of the sentinel variant to gene TSS. This is not weighted by the causal probability."""
 
-    feature_dependency_type = [StudyLocus, VariantIndex]
+    feature_dependency_type = [StudyLocusView, VariantIndex]
     feature_name = "credibleSetConfidence"
 
     @classmethod
     def compute(
         cls: type[CredibleSetConfidenceFeature],
-        study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+        study_loci_to_annotate: StudyLocusView | L2GGoldStandard,
         feature_dependency: dict[str, Any],
     ) -> CredibleSetConfidenceFeature:
         """Computes the feature.
 
         Args:
-            study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
+            study_loci_to_annotate (StudyLocusView | L2GGoldStandard): The dataset containing study loci that will be used for annotation
             feature_dependency (dict[str, Any]): Dataset that contains the distance information
 
         Returns:
@@ -329,7 +332,7 @@ class CredibleSetConfidenceFeature(L2GFeature):
         """Expression that assigns a score to the credible set confidence.
 
         Args:
-            confidence_column (Column): Confidence column in the StudyLocus object
+            confidence_column (Column): Confidence column in the StudyLocusView object
 
         Returns:
             Column: A confidence score between 0 and 1

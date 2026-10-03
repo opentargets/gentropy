@@ -12,7 +12,7 @@ from gentropy.common.session import Session
 from gentropy.dataset.effector_gene_list import EffectorGeneList
 from gentropy.dataset.interactions import Interactions
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
-from gentropy.dataset.study_locus import StudyLocusQualityCheck
+from gentropy.dataset.study_locus_view import StudyLocusQualityCheck
 from gentropy.training_set import TrainingSetStep
 
 

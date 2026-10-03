@@ -18,7 +18,7 @@ from gentropy.common.spark import get_record_with_maximum_value
 from gentropy.common.stats import normalise_gwas_statistics, pvalue_from_neglogpval
 from gentropy.common.types import PValComponents
 from gentropy.config import WindowBasedClumpingStepConfig
-from gentropy.dataset.study_locus import StudyLocus, StudyLocusQualityCheck
+from gentropy.dataset.study_locus_view import StudyLocusQualityCheck, StudyLocusView
 
 if TYPE_CHECKING:
     from pyspark.sql import Column, DataFrame
@@ -749,7 +749,7 @@ class GWASCatalogCuratedAssociationsParser:
         qc = GWASCatalogCuratedAssociationsParser._qc_variant_interactions(
             qc, strongest_snp_risk_allele
         )
-        qc = StudyLocus._qc_subsignificant_associations(
+        qc = StudyLocusView._qc_subsignificant_associations(
             qc, p_value_mantissa, p_value_exponent, p_value_cutoff
         )
         qc = GWASCatalogCuratedAssociationsParser._qc_genomic_location(
@@ -779,7 +779,7 @@ class GWASCatalogCuratedAssociationsParser:
         Returns:
             Column: Updated QC column with flag.
         """
-        return StudyLocus.update_quality_flag(
+        return StudyLocusView.update_quality_flag(
             qc,
             strongest_snp_risk_allele.contains(";"),
             StudyLocusQualityCheck.COMPOSITE_FLAG,
@@ -815,7 +815,7 @@ class GWASCatalogCuratedAssociationsParser:
             <BLANKLINE>
 
         """
-        return StudyLocus.update_quality_flag(
+        return StudyLocusView.update_quality_flag(
             qc,
             position.isNull() | chromosome.isNull(),
             StudyLocusQualityCheck.NO_GENOMIC_LOCATION_FLAG,
@@ -839,7 +839,7 @@ class GWASCatalogCuratedAssociationsParser:
         Returns:
             Column: Updated QC column with flag.
         """
-        return StudyLocus.update_quality_flag(
+        return StudyLocusView.update_quality_flag(
             qc,
             # Number of chromosomes does not correspond to the number of positions:
             (f.size(f.split(chromosome, ";")) != f.size(f.split(position, ";")))
@@ -877,7 +877,7 @@ class GWASCatalogCuratedAssociationsParser:
             <BLANKLINE>
 
         """
-        return StudyLocus.update_quality_flag(
+        return StudyLocusView.update_quality_flag(
             qc,
             alternate_allele.isNull(),
             StudyLocusQualityCheck.NON_MAPPED_VARIANT_FLAG,
@@ -913,7 +913,7 @@ class GWASCatalogCuratedAssociationsParser:
             <BLANKLINE>
 
         """
-        return StudyLocus.update_quality_flag(
+        return StudyLocusView.update_quality_flag(
             qc,
             GWASCatalogCuratedAssociationsParser._are_alleles_palindromic(
                 reference_allele, alternate_allele
@@ -1156,7 +1156,7 @@ class GWASCatalogCuratedAssociationsParser:
             # Adding study-locus id:
             .withColumn(
                 "studyLocusId",
-                StudyLocus.assign_study_locus_id(["studyId", "variantId"]),
+                StudyLocusView.assign_study_locus_id(["studyId", "variantId"]),
             )
             .select(
                 # INSIDE STUDY-LOCUS SCHEMA:
@@ -1185,7 +1185,7 @@ class GWASCatalogCuratedAssociationsParser:
 
 
 @dataclass
-class StudyLocusGWASCatalog(StudyLocus):
+class StudyLocusGWASCatalog(StudyLocusView):
     """Study locus Dataset for GWAS Catalog curated associations.
 
     A study index dataset captures all the metadata for all studies including GWAS and Molecular QTL.
@@ -1210,7 +1210,7 @@ class StudyLocusGWASCatalog(StudyLocus):
             .drop("subStudyDescription", "updatedStudyId")
         ).withColumn(
             "studyLocusId",
-            StudyLocus.assign_study_locus_id(["studyId", "variantId"]),
+            StudyLocusView.assign_study_locus_id(["studyId", "variantId"]),
         )
         return self
 
@@ -1226,7 +1226,7 @@ class StudyLocusGWASCatalog(StudyLocus):
 
         self._df.withColumn(
             "qualityControls",
-            StudyLocus.update_quality_flag(
+            StudyLocusView.update_quality_flag(
                 f.col("qualityControls"),
                 f.count(f.col("variantId")).over(assoc_ambiguity_window) > 1,
                 StudyLocusQualityCheck.AMBIGUOUS_STUDY,
@@ -1243,7 +1243,7 @@ class StudyLocusGWASCatalog(StudyLocus):
         return StudyLocusGWASCatalog(
             _df=self._df.withColumn(
                 "qualityControls",
-                StudyLocus.update_quality_flag(
+                StudyLocusView.update_quality_flag(
                     f.col("qualityControls"),
                     f.lit(True),
                     StudyLocusQualityCheck.TOP_HIT,

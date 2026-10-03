@@ -6,7 +6,7 @@ import pyspark.sql.functions as f
 from pyspark.sql import DataFrame
 
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
-from gentropy.dataset.study_locus import StudyLocus
+from gentropy.dataset.study_locus_view import StudyLocusView
 from gentropy.dataset.variant_index import VariantIndex
 
 
@@ -50,7 +50,7 @@ class OpenTargetsL2GGoldStandard:
             )
             .withColumn(
                 "studyLocusId",
-                StudyLocus.assign_study_locus_id(["studyId", "variantId"]),
+                StudyLocusView.assign_study_locus_id(["studyId", "variantId"]),
             )
             .groupBy("studyLocusId", "studyId", "variantId", "geneId")
             .agg(f.collect_set("source").alias("sources"))

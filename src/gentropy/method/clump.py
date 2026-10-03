@@ -10,7 +10,7 @@ from pyspark.sql import Window
 if TYPE_CHECKING:
     from pyspark.sql import Column
 
-    from gentropy.dataset.study_locus import StudyLocus
+    from gentropy.dataset.study_locus_view import StudyLocusView
 
 
 class LDclumping:
@@ -64,13 +64,13 @@ class LDclumping:
         ).otherwise(f.lit(False))
 
     @classmethod
-    def clump(cls: type[LDclumping], associations: StudyLocus) -> StudyLocus:
+    def clump(cls: type[LDclumping], associations: StudyLocusView) -> StudyLocusView:
         """Perform clumping on studyLocus dataset.
 
         Args:
-            associations (StudyLocus): StudyLocus dataset
+            associations (StudyLocusView): StudyLocusView dataset
 
         Returns:
-            StudyLocus: including flag and removing locus information for LD clumped loci.
+            StudyLocusView: including flag and removing locus information for LD clumped loci.
         """
         return associations.clump()

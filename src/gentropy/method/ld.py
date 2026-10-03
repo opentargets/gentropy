@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 from pyspark.sql import functions as f
 
 from gentropy.common.spark import order_array_of_structs_by_field
-from gentropy.dataset.study_locus import StudyLocus, StudyLocusQualityCheck
+from gentropy.dataset.study_locus_view import StudyLocusQualityCheck, StudyLocusView
 
 if TYPE_CHECKING:
     from pyspark.sql import Column
@@ -84,7 +84,7 @@ class LDAnnotator:
         Returns:
             Column: Quality controls with added 'UNRESOLVED_LD' field
         """
-        return StudyLocus.update_quality_flag(
+        return StudyLocusView.update_quality_flag(
             quality_controls,
             ld_set.isNull(),
             StudyLocusQualityCheck.UNRESOLVED_LD,
@@ -116,16 +116,16 @@ class LDAnnotator:
     @classmethod
     def ld_annotate(
         cls: type[LDAnnotator],
-        associations: StudyLocus,
+        associations: StudyLocusView,
         studies: StudyIndex,
         ld_index: LDIndex,
         r2_threshold: float = 0.5,
-    ) -> StudyLocus:
+    ) -> StudyLocusView:
         """Annotate linkage disequilibrium (LD) information to a set of studyLocus.
 
         This function:
             1. Annotates study locus with population structure information ordered by relativeSampleSize from the study index
-            2. Joins the LD index to the StudyLocus
+            2. Joins the LD index to the StudyLocusView
             3. Gets the major population from the population structure
             4. Calculates R2 by using the R of the major ancestry
             5. Flags associations with variants that are not found in the LD reference
@@ -135,15 +135,15 @@ class LDAnnotator:
             Because the LD index has a pre-set threshold of R2 = 0.5, this is the minimum threshold for the LD information to be included in the ldSet.
 
         Args:
-            associations (StudyLocus): Dataset to be LD annotated
+            associations (StudyLocusView): Dataset to be LD annotated
             studies (StudyIndex): Dataset with study information
             ld_index (LDIndex): Dataset with LD information for every variant present in LD matrix
             r2_threshold (float): R2 threshold to filter the LD set on. Default is 0.5.
 
         Returns:
-            StudyLocus: including additional column with LD information.
+            StudyLocusView: including additional column with LD information.
         """
-        return StudyLocus(
+        return StudyLocusView(
             _df=(
                 associations.df
                 # Drop ldSet column if already available
@@ -187,7 +187,7 @@ class LDAnnotator:
                 # Filter the LD set by the R2 threshold and set to null if no LD information passes the threshold
                 .withColumn(
                     "ldSet",
-                    StudyLocus.filter_ld_set(f.col("ldSet"), r2_threshold),
+                    StudyLocusView.filter_ld_set(f.col("ldSet"), r2_threshold),
                 )
                 .withColumn("ldSet", f.when(f.size("ldSet") > 0, f.col("ldSet")))
                 # QC: Flag associations with variants that are not found in the LD reference
@@ -215,5 +215,5 @@ class LDAnnotator:
                     ),
                 )
             ),
-            _schema=StudyLocus.get_schema(),
+            _schema=StudyLocusView.get_schema(),
         )._qc_no_population()

@@ -10,7 +10,7 @@ from pyspark.sql import Window
 from gentropy.common.spark import convert_from_wide_to_long
 from gentropy.dataset.l2g_features.l2g_feature import L2GFeature
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
-from gentropy.dataset.study_locus import StudyLocus
+from gentropy.dataset.study_locus_view import StudyLocusView
 from gentropy.dataset.target_index import TargetIndex
 from gentropy.dataset.variant_index import VariantIndex
 
@@ -19,7 +19,7 @@ if TYPE_CHECKING:
 
 
 def common_distance_feature_logic(
-    study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+    study_loci_to_annotate: StudyLocusView | L2GGoldStandard,
     *,
     variant_index: VariantIndex,
     feature_name: str,
@@ -31,7 +31,7 @@ def common_distance_feature_logic(
     The distance is weighted by the posterior probability of the variant to factor in its contribution to the trait when we look at the average distance score for all variants in the credible set.
 
     Args:
-        study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
+        study_loci_to_annotate (StudyLocusView | L2GGoldStandard): The dataset containing study loci that will be used for annotation
         variant_index (VariantIndex): The dataset containing distance to gene information
         feature_name (str): The name of the feature
         distance_type (str): The type of distance to gene
@@ -80,7 +80,7 @@ def common_distance_feature_logic(
 
 
 def common_neighbourhood_distance_feature_logic(
-    study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+    study_loci_to_annotate: StudyLocusView | L2GGoldStandard,
     *,
     variant_index: VariantIndex,
     feature_name: str,
@@ -91,7 +91,7 @@ def common_neighbourhood_distance_feature_logic(
     """Calculate the distance feature that correlates any variant in a credible set with any protein coding gene nearby the locus. The distance is weighted by the posterior probability of the variant to factor in its contribution to the trait.
 
     Args:
-        study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
+        study_loci_to_annotate (StudyLocusView | L2GGoldStandard): The dataset containing study loci that will be used for annotation
         variant_index (VariantIndex): The dataset containing distance to gene information
         feature_name (str): The name of the feature
         distance_type (str): The type of distance to gene
@@ -150,13 +150,13 @@ class DistanceTssMeanFeature(L2GFeature):
     @classmethod
     def compute(
         cls: type[DistanceTssMeanFeature],
-        study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+        study_loci_to_annotate: StudyLocusView | L2GGoldStandard,
         feature_dependency: dict[str, Any],
     ) -> DistanceTssMeanFeature:
         """Computes the feature.
 
         Args:
-            study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
+            study_loci_to_annotate (StudyLocusView | L2GGoldStandard): The dataset containing study loci that will be used for annotation
             feature_dependency (dict[str, Any]): Dataset that contains the distance information
 
         Returns:
@@ -193,13 +193,13 @@ class DistanceTssMeanNeighbourhoodFeature(L2GFeature):
     @classmethod
     def compute(
         cls: type[DistanceTssMeanNeighbourhoodFeature],
-        study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+        study_loci_to_annotate: StudyLocusView | L2GGoldStandard,
         feature_dependency: dict[str, Any],
     ) -> DistanceTssMeanNeighbourhoodFeature:
         """Computes the feature.
 
         Args:
-            study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
+            study_loci_to_annotate (StudyLocusView | L2GGoldStandard): The dataset containing study loci that will be used for annotation
             feature_dependency (dict[str, Any]): Dataset that contains the distance information
 
         Returns:
@@ -231,13 +231,13 @@ class DistanceSentinelTssFeature(L2GFeature):
     @classmethod
     def compute(
         cls: type[DistanceSentinelTssFeature],
-        study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+        study_loci_to_annotate: StudyLocusView | L2GGoldStandard,
         feature_dependency: dict[str, Any],
     ) -> DistanceSentinelTssFeature:
         """Computes the feature.
 
         Args:
-            study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
+            study_loci_to_annotate (StudyLocusView | L2GGoldStandard): The dataset containing study loci that will be used for annotation
             feature_dependency (dict[str, Any]): Dataset that contains the distance information
 
         Returns:
@@ -269,13 +269,13 @@ class DistanceSentinelTssNeighbourhoodFeature(L2GFeature):
     @classmethod
     def compute(
         cls: type[DistanceSentinelTssNeighbourhoodFeature],
-        study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+        study_loci_to_annotate: StudyLocusView | L2GGoldStandard,
         feature_dependency: dict[str, Any],
     ) -> DistanceSentinelTssNeighbourhoodFeature:
         """Computes the feature.
 
         Args:
-            study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
+            study_loci_to_annotate (StudyLocusView | L2GGoldStandard): The dataset containing study loci that will be used for annotation
             feature_dependency (dict[str, Any]): Dataset that contains the distance information
 
         Returns:
@@ -307,13 +307,13 @@ class DistanceFootprintMeanFeature(L2GFeature):
     @classmethod
     def compute(
         cls: type[DistanceFootprintMeanFeature],
-        study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+        study_loci_to_annotate: StudyLocusView | L2GGoldStandard,
         feature_dependency: dict[str, Any],
     ) -> DistanceFootprintMeanFeature:
         """Computes the feature.
 
         Args:
-            study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
+            study_loci_to_annotate (StudyLocusView | L2GGoldStandard): The dataset containing study loci that will be used for annotation
             feature_dependency (dict[str, Any]): Dataset that contains the distance information
 
         Returns:
@@ -350,13 +350,13 @@ class DistanceFootprintMeanNeighbourhoodFeature(L2GFeature):
     @classmethod
     def compute(
         cls: type[DistanceFootprintMeanNeighbourhoodFeature],
-        study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+        study_loci_to_annotate: StudyLocusView | L2GGoldStandard,
         feature_dependency: dict[str, Any],
     ) -> DistanceFootprintMeanNeighbourhoodFeature:
         """Computes the feature.
 
         Args:
-            study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
+            study_loci_to_annotate (StudyLocusView | L2GGoldStandard): The dataset containing study loci that will be used for annotation
             feature_dependency (dict[str, Any]): Dataset that contains the distance information
 
         Returns:
@@ -388,13 +388,13 @@ class DistanceSentinelFootprintFeature(L2GFeature):
     @classmethod
     def compute(
         cls: type[DistanceSentinelFootprintFeature],
-        study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+        study_loci_to_annotate: StudyLocusView | L2GGoldStandard,
         feature_dependency: dict[str, Any],
     ) -> DistanceSentinelFootprintFeature:
         """Computes the feature.
 
         Args:
-            study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
+            study_loci_to_annotate (StudyLocusView | L2GGoldStandard): The dataset containing study loci that will be used for annotation
             feature_dependency (dict[str, Any]): Dataset that contains the distance information
 
         Returns:
@@ -426,13 +426,13 @@ class DistanceSentinelFootprintNeighbourhoodFeature(L2GFeature):
     @classmethod
     def compute(
         cls: type[DistanceSentinelFootprintNeighbourhoodFeature],
-        study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+        study_loci_to_annotate: StudyLocusView | L2GGoldStandard,
         feature_dependency: dict[str, Any],
     ) -> DistanceSentinelFootprintNeighbourhoodFeature:
         """Computes the feature.
 
         Args:
-            study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
+            study_loci_to_annotate (StudyLocusView | L2GGoldStandard): The dataset containing study loci that will be used for annotation
             feature_dependency (dict[str, Any]): Dataset that contains the distance information
 
         Returns:

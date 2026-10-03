@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from gentropy.dataset.study_locus import StudyLocus
+from gentropy.dataset.study_locus_view import StudyLocusView
 from gentropy.datasource.open_targets.variants import OpenTargetsVariant
 
 if TYPE_CHECKING:
@@ -35,7 +35,7 @@ class TestOpenTargetsVariant:
                     ],
                 },
             ],
-            StudyLocus.get_schema(),
+            StudyLocusView.get_schema(),
         )
         observed_df = OpenTargetsVariant.as_vcf_df(session, df_credible_set_df).orderBy(
             *["#CHROM", "POS", "REF", "ALT"]

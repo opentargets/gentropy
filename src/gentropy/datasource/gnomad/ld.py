@@ -448,7 +448,7 @@ class GnomADLDMatrix:
         radius: int = 500_000,
         major_population: str = "nfe",
     ) -> DataFrame:
-        """Extract hail matrix index from StudyLocus rows.
+        """Extract hail matrix index from StudyLocusView rows.
 
         Args:
             study_locus_row (Row): Study-locus row
@@ -515,7 +515,7 @@ class GnomADLDMatrix:
         study_locus_row: Row,
         major_population: str = "nfe",
     ) -> DataFrame:
-        """Extract hail matrix index from StudyLocus rows.
+        """Extract hail matrix index from StudyLocusView rows.
 
         Args:
             study_locus_row (Row): Study-locus row

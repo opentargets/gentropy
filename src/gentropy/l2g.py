@@ -24,7 +24,7 @@ from gentropy.dataset.l2g_prediction import L2GPrediction
 from gentropy.dataset.pathway_enrichment import PathwayEnrichment
 from gentropy.dataset.pathway_index import PathwayIndex
 from gentropy.dataset.study_index import StudyIndex
-from gentropy.dataset.study_locus import StudyLocus
+from gentropy.dataset.study_locus_view import StudyLocusView
 from gentropy.dataset.target_index import TargetIndex
 from gentropy.dataset.variant_index import VariantIndex
 from gentropy.external.hf_hub import (
@@ -88,7 +88,7 @@ class LocusToGeneFeatureMatrixStep:
             feature_matrix_path (str): Path to the L2G feature matrix output dataset
             append_null_features (bool): Whether to append null features to the feature matrix. Defaults to False.
         """
-        credible_set = StudyLocus.from_parquet(
+        credible_set = StudyLocusView.from_parquet(
             session, credible_set_path, recursiveFileLookup=True
         )
         studies = (
@@ -251,7 +251,7 @@ class LocusToGeneTrainTestSplitStep:
                 ``test_size`` is ignored. Defaults to None (fresh hierarchical split).
             split_stats_path (str | None): Explicit path for the split statistics JSON file. Defaults to ``<train_parquet_path>_split_stats.json``.
         """
-        credible_set = StudyLocus.from_parquet(
+        credible_set = StudyLocusView.from_parquet(
             session, credible_set_path, recursiveFileLookup=True
         )
         feature_matrix = L2GFeatureMatrix(
@@ -411,7 +411,7 @@ class LocusToGeneTrainTestSplitStep:
     def _parse_gold_standard(
         session: Session,
         gold_standard_curation_path: str,
-        credible_set: StudyLocus,
+        credible_set: StudyLocusView,
         variant_index_path: str | None,
         gene_interactions_path: str | None,
     ) -> L2GGoldStandard:
@@ -420,7 +420,7 @@ class LocusToGeneTrainTestSplitStep:
         Args:
             session (Session): Active Spark session.
             gold_standard_curation_path (str): Path to the gold standard curation file (parquet or JSON).
-            credible_set (StudyLocus): Credible set used for OTG curation parsing.
+            credible_set (StudyLocusView): Credible set used for OTG curation parsing.
             variant_index_path (str | None): Path to variant index (required for OTG format).
             gene_interactions_path (str | None): Path to PPI dataset (required for OTG format).
 
@@ -472,7 +472,7 @@ class LocusToGeneTrainTestSplitStep:
                     gene_interactions_path, "parquet", recursiveFileLookup=True
                 )
                 variant_index = VariantIndex.from_parquet(session, variant_index_path)
-                study_locus_overlap = StudyLocus(
+                study_locus_overlap = StudyLocusView(
                     _df=credible_set.df.join(
                         gold_standard_raw.select(
                             f.concat_ws(
@@ -487,7 +487,7 @@ class LocusToGeneTrainTestSplitStep:
                         on=["studyId", "variantId"],
                         how="inner",
                     ),
-                    _schema=StudyLocus.get_schema(),
+                    _schema=StudyLocusView.get_schema(),
                 ).find_overlaps()
                 return L2GGoldStandard.from_otg_curation(
                     gold_standard_curation=gold_standard_raw,
@@ -662,7 +662,7 @@ class LocusToGeneStep:
                 raise ValueError("credible_set_path is required for predict mode.")
             if not feature_matrix_path:
                 raise ValueError("feature_matrix_path is required for predict mode.")
-            self.credible_set = StudyLocus.from_parquet(
+            self.credible_set = StudyLocusView.from_parquet(
                 session, credible_set_path, recursiveFileLookup=True
             )
             self.feature_matrix = L2GFeatureMatrix(
@@ -827,7 +827,7 @@ class LocusToGeneEvidenceStep:
             session, locus_to_gene_predictions_path
         )
         # Reading the credible set
-        credible_sets = StudyLocus.from_parquet(session, credible_set_path)
+        credible_sets = StudyLocusView.from_parquet(session, credible_set_path)
 
         # Reading the study index
         study_index = StudyIndex.from_parquet(session, study_index_path)

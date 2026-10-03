@@ -29,7 +29,7 @@ class LocusBreakerClumpingStep:
         """Run locus-breaker clumping step.
 
         This step will perform locus-breaker clumping on the full set of summary statistics.
-        StudyLocus larger than the large_loci_size, by distance, will be further clumped with window-based
+        StudyLocusView larger than the large_loci_size, by distance, will be further clumped with window-based
         clumping.
 
         Args:

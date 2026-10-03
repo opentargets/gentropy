@@ -9,7 +9,7 @@ A series of optional, parametrised filters then clean the labels to reduce noise
 leakage:
 
 * replication filter — keep only the credible sets carrying the ``REPLICATED`` quality
-  control flag raised by ``StudyLocus.qc_replication``;
+  control flag raised by ``StudyLocusView.qc_replication``;
 * maximum positives per locus — drop loci with more than ``max_gsp_per_locus`` positives;
 * protein-protein interaction filter — drop negatives that interact (STRING) with a
   positive gene in the same locus;
@@ -31,7 +31,7 @@ from gentropy.dataset.effector_gene_list import EffectorGeneList
 from gentropy.dataset.interactions import Interactions
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
 from gentropy.dataset.study_index import StudyIndex
-from gentropy.dataset.study_locus import StudyLocus, StudyLocusQualityCheck
+from gentropy.dataset.study_locus_view import StudyLocusQualityCheck, StudyLocusView
 
 # Positive features that, with the sentinel variant, gene and diseases, define a credible
 # set's profile for deduplication. The colocalisation features are rounded before comparison.
@@ -72,7 +72,7 @@ class TrainingSetStep:
         Args:
             session (Session): Session object that contains the Spark session.
             feature_matrix_path (str): Path to the L2G feature matrix parquet.
-            credible_set_path (str): Path to the validated credible set (StudyLocus) dataset,
+            credible_set_path (str): Path to the validated credible set (StudyLocusView) dataset,
                 the output of ``StudyLocusValidationStep``, which raises the ``REPLICATED`` flag.
             study_index_path (str): Path to the study index dataset.
             effector_gene_list_path (str): Path to the Effector Gene List parquet produced by
@@ -82,7 +82,7 @@ class TrainingSetStep:
                 given, negatives interacting with a positive gene in the same locus are dropped.
                 Defaults to None (filter skipped).
             apply_replication_filter (bool): Keep only the credible sets flagged as ``REPLICATED``
-                by ``StudyLocus.qc_replication``. Defaults to True.
+                by ``StudyLocusView.qc_replication``. Defaults to True.
             max_gsp_per_locus (int): Maximum number of positives allowed per credible set; loci
                 exceeding it are dropped. Defaults to 2.
             interaction_source (str): ``sourceDatabase`` value to keep from the interaction dataset.
@@ -94,7 +94,7 @@ class TrainingSetStep:
             apply_deduplication (bool): Collapse credible sets sharing identical positive feature
                 profiles. Defaults to True.
         """
-        credible_set = StudyLocus.from_parquet(session, credible_set_path).df
+        credible_set = StudyLocusView.from_parquet(session, credible_set_path).df
         if apply_replication_filter:
             credible_set = credible_set.filter(
                 f.array_contains(

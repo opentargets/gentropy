@@ -8,16 +8,16 @@ import pyspark.sql.functions as f
 import pyspark.sql.types as t
 import pytest
 
-from gentropy.dataset.study_locus import StudyLocus
+from gentropy.dataset.study_locus_view import StudyLocusView
 from gentropy.method.clump import LDclumping
 
 if TYPE_CHECKING:
     from pyspark.sql import SparkSession
 
 
-def test_clump(mock_study_locus: StudyLocus) -> None:
+def test_clump(mock_study_locus: StudyLocusView) -> None:
     """Test PICS."""
-    assert isinstance(LDclumping.clump(mock_study_locus), StudyLocus)
+    assert isinstance(LDclumping.clump(mock_study_locus), StudyLocusView)
 
 
 class TestIsLeadLinked:
@@ -134,15 +134,15 @@ class TestIsLeadLinked:
     def test_flagging(self: TestIsLeadLinked) -> None:
         """Test flagging of lead variants."""
         # Create the study locus and clump:
-        sl_flagged = StudyLocus(
+        sl_flagged = StudyLocusView(
             _df=self.df.drop("expected_flag").withColumn(
                 "qualityControls", f.array().cast("array<string>")
             ),
-            _schema=StudyLocus.get_schema(),
+            _schema=StudyLocusView.get_schema(),
         ).clump()
 
-        # Assert that the clumped locus is a StudyLocus:
-        assert isinstance(sl_flagged, StudyLocus)
+        # Assert that the clumped locus is a StudyLocusView:
+        assert isinstance(sl_flagged, StudyLocusView)
 
         # Assert that the clumped locus has the correct columns:
         for row in sl_flagged.df.join(self.df, on="studylocusId").collect():

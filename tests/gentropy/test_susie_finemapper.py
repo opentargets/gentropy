@@ -157,7 +157,7 @@ class TestSusieFineMapperStep:
 
         with (
             patch(
-                "gentropy.susie_finemapper.StudyLocus.from_parquet"
+                "gentropy.susie_finemapper.StudyLocusView.from_parquet"
             ) as mock_study_locus,
             patch(
                 "gentropy.susie_finemapper.StudyIndex.from_parquet"

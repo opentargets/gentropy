@@ -10,7 +10,7 @@ from pyspark.sql import SparkSession
 from pyspark.sql import functions as f
 from pyspark.sql.window import Window
 
-from gentropy.dataset.study_locus import StudyLocus
+from gentropy.dataset.study_locus_view import StudyLocusView
 from gentropy.method.window_based_clumping import WindowBasedClumping
 
 if TYPE_CHECKING:
@@ -23,14 +23,14 @@ def test_window_based_clump__return_type(
     """Test window-based clumping."""
     assert isinstance(
         WindowBasedClumping.clump(mock_summary_statistics, distance=250_000),
-        StudyLocus,
+        StudyLocusView,
     )
     assert isinstance(
         WindowBasedClumping.clump(
             mock_summary_statistics,
             distance=250_000,
         ),
-        StudyLocus,
+        StudyLocusView,
     )
 
 

@@ -16,7 +16,7 @@ from gentropy.method.l2g.feature_factory import FeatureFactory, L2GFeatureInputL
 if TYPE_CHECKING:
     from pyspark.sql import DataFrame
 
-    from gentropy.dataset.study_locus import StudyLocus
+    from gentropy.dataset.study_locus_view import StudyLocusView
 
 
 class L2GFeatureMatrix:
@@ -60,14 +60,14 @@ class L2GFeatureMatrix:
     @classmethod
     def from_features_list(
         cls: type[L2GFeatureMatrix],
-        study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+        study_loci_to_annotate: StudyLocusView | L2GGoldStandard,
         features_list: list[str],
         features_input_loader: L2GFeatureInputLoader,
     ) -> L2GFeatureMatrix:
         """Generate features from the gentropy datasets by calling the feature factory that will instantiate the corresponding features.
 
         Args:
-            study_loci_to_annotate (StudyLocus | L2GGoldStandard): Study locus pairs to annotate
+            study_loci_to_annotate (StudyLocusView | L2GGoldStandard): Study locus pairs to annotate
             features_list (list[str]): List of feature names to be computed.
             features_input_loader (L2GFeatureInputLoader): Object that contais features input.
 

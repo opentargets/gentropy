@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from gentropy.common.session import Session
 from gentropy.dataset.study_index import StudyIndex
-from gentropy.dataset.study_locus import CredibleInterval, StudyLocus
+from gentropy.dataset.study_locus_view import CredibleInterval, StudyLocusView
 from gentropy.dataset.target_index import TargetIndex
 
 
@@ -48,7 +48,7 @@ class StudyLocusValidationStep:
 
         # Running validation then writing output:
         study_locus_with_qc = (
-            StudyLocus.from_parquet(session, list(study_locus_path))
+            StudyLocusView.from_parquet(session, list(study_locus_path))
             # Add flag for MHC region
             .qc_MHC_region()
             .validate_chromosome_label()  # Flagging credible sets with unsupported chromosomes

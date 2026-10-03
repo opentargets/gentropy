@@ -28,7 +28,7 @@ class FinnGenFinemappingIngestionStep(FinnGenFinemapping):
 
         Args:
             session (Session): Session object.
-            finngen_finemapping_out (str): Output path for the finemapping results in StudyLocus format.
+            finngen_finemapping_out (str): Output path for the finemapping results in StudyLocusView format.
             finngen_susie_finemapping_snp_files(str): Path to the FinnGen SuSIE finemapping results.
             finngen_susie_finemapping_cs_summary_files (str): FinnGen SuSIE summaries for CS filters(LBF>2).
             finngen_finemapping_lead_pvalue_threshold (float): Lead p-value threshold.

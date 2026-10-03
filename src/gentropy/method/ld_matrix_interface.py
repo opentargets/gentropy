@@ -31,7 +31,7 @@ class LDMatrixInterface:
         study_locus_row: Row,
         ancestry: str = "nfe",
     ) -> DataFrame:
-        """Extract hail matrix index from StudyLocus rows.
+        """Extract hail matrix index from StudyLocusView rows.
 
         Args:
             ld_matrix_paths (dict[str, str]): Dictionary with paths to LD matrices

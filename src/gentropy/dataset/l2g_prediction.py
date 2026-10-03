@@ -18,7 +18,7 @@ from gentropy.common.spark import pivot_df
 from gentropy.dataset.dataset import Dataset
 from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
 from gentropy.dataset.study_index import StudyIndex
-from gentropy.dataset.study_locus import StudyLocus
+from gentropy.dataset.study_locus_view import StudyLocusView
 from gentropy.method.l2g.model import LocusToGeneModel
 
 if TYPE_CHECKING:
@@ -49,7 +49,7 @@ class L2GPrediction(Dataset):
     def from_credible_set(
         cls: type[L2GPrediction],
         session: Session,
-        credible_set: StudyLocus,
+        credible_set: StudyLocusView,
         feature_matrix: L2GFeatureMatrix,
         model_path: str | None,
         features_list: list[str] | None = None,
@@ -61,7 +61,7 @@ class L2GPrediction(Dataset):
 
         Args:
             session (Session): Session object that contains the Spark session
-            credible_set (StudyLocus): Dataset containing credible sets from GWAS only
+            credible_set (StudyLocusView): Dataset containing credible sets from GWAS only
             feature_matrix (L2GFeatureMatrix): Dataset containing all credible sets and their annotations
             model_path (str | None): Path to the model file. It can be either in the filesystem or the name on the Hugging Face Hub (in the form of username/repo_name).
             features_list (list[str] | None): Default list of features the model uses. Only used if the model is not downloaded from the Hub. CAUTION: This default list can differ from the actual list the model was trained on.
@@ -112,14 +112,14 @@ class L2GPrediction(Dataset):
 
     def to_disease_target_evidence(
         self: L2GPrediction,
-        study_locus: StudyLocus,
+        study_locus: StudyLocusView,
         study_index: StudyIndex,
         l2g_threshold: float = 0.05,
     ) -> DataFrame:
         """Convert locus to gene predictions to disease target evidence.
 
         Args:
-            study_locus (StudyLocus): Study locus dataset
+            study_locus (StudyLocusView): Study locus dataset
             study_index (StudyIndex): Study index dataset
             l2g_threshold (float): Threshold to consider a gene as a target. Defaults to 0.05.
 

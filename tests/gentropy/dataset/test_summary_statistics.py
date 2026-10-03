@@ -10,7 +10,7 @@ from pyspark.sql import types as t
 
 from gentropy.common.genomic_region import GenomicRegion
 from gentropy.common.session import Session
-from gentropy.dataset.study_locus import StudyLocus
+from gentropy.dataset.study_locus_view import StudyLocusView
 from gentropy.dataset.summary_statistics import SummaryStatistics
 
 if TYPE_CHECKING:
@@ -39,7 +39,7 @@ def test_summary_statistics__window_based_clumping__return_type(
 ) -> None:
     """Test if the window-based clumping indeed returns study locus object."""
     assert isinstance(
-        mock_summary_statistics.window_based_clumping(250_000), StudyLocus
+        mock_summary_statistics.window_based_clumping(250_000), StudyLocusView
     )
 
 

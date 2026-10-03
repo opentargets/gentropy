@@ -8,10 +8,10 @@ import pyspark.sql.functions as f
 import pyspark.sql.types as t
 from scipy.stats import norm
 
-from gentropy.dataset.study_locus import (
+from gentropy.dataset.study_locus_view import (
     FinemappingMethod,
-    StudyLocus,
     StudyLocusQualityCheck,
+    StudyLocusView,
 )
 
 if TYPE_CHECKING:
@@ -115,7 +115,7 @@ class PICS:
     ) -> list[dict[str, Any]] | None:
         """Calculates the probability of a variant being causal in a study-locus context by applying the PICS method.
 
-        It is intended to be applied as an UDF in `PICS.finemap`, where each row is a StudyLocus association.
+        It is intended to be applied as an UDF in `PICS.finemap`, where each row is a StudyLocusView association.
         The function iterates over every SNP in the `ldSet` array, and it returns an updated locus with
         its association signal and causality probability as of PICS.
 
@@ -209,8 +209,8 @@ class PICS:
 
     @classmethod
     def finemap(
-        cls: type[PICS], associations: StudyLocus, k: float = 6.4
-    ) -> StudyLocus:
+        cls: type[PICS], associations: StudyLocusView, k: float = 6.4
+    ) -> StudyLocusView:
         """Run PICS on a study locus.
 
         !!! info "Study locus needs to be LD annotated"
@@ -218,11 +218,11 @@ class PICS:
             The study locus needs to be LD annotated before PICS can be calculated.
 
         Args:
-            associations (StudyLocus): Study locus to finemap using PICS
+            associations (StudyLocusView): Study locus to finemap using PICS
             k (float): Empiric constant that can be adjusted to fit the curve, 6.4 recommended.
 
         Returns:
-            StudyLocus: Study locus with PICS results
+            StudyLocusView: Study locus with PICS results
         """
         # Finemapping method is an optional column:
         finemapping_method_expression = (
@@ -239,7 +239,7 @@ class PICS:
             cls.PICSED_LOCUS_SCHEMA,
         )
 
-        return StudyLocus(
+        return StudyLocusView(
             _df=(
                 associations.df
                 # Old locus column will be dropped if available
@@ -278,7 +278,7 @@ class PICS:
                 # Flagging all PICS loci with OUT_OF_SAMPLE_LD flag:
                 .withColumn(
                     "qualityControls",
-                    StudyLocus.update_quality_flag(
+                    StudyLocusView.update_quality_flag(
                         f.col("qualityControls"),
                         f.lit(True),
                         StudyLocusQualityCheck.OUT_OF_SAMPLE_LD,
@@ -290,11 +290,11 @@ class PICS:
                 )
                 .withColumn(
                     "studyLocusId",
-                    StudyLocus.assign_study_locus_id(
+                    StudyLocusView.assign_study_locus_id(
                         ["studyId", "variantId", "finemappingMethod"]
                     ),
                 )
                 .drop("neglog_pvalue")
             ),
-            _schema=StudyLocus.get_schema(),
+            _schema=StudyLocusView.get_schema(),
         )

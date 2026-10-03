@@ -8,7 +8,7 @@ import pytest
 from gentropy.colocalisation import ColocalisationStep
 from gentropy.common.session import Session
 from gentropy.dataset.colocalisation import Colocalisation
-from gentropy.dataset.study_locus import StudyLocus
+from gentropy.dataset.study_locus_view import StudyLocusView
 from gentropy.method.colocalisation import (
     ColocalisationMethod,
     InvalidColocalisationMethodError,
@@ -24,7 +24,7 @@ class TestColocalisationStep:
 
     @pytest.fixture(autouse=True)
     def _setup(self, session: Session, tmp_path: Path) -> None:
-        """Setup StudyLocus for testing."""
+        """Setup StudyLocusView for testing."""
         credible_set_data = [
             (
                 "-1299941111165481046",
@@ -205,7 +205,7 @@ class TestColocalisationStep:
         ]
         self.credible_set_path = str(tmp_path / "credible_set_datasets")
         session.spark.createDataFrame(
-            credible_set_data, schema=StudyLocus.get_schema()
+            credible_set_data, schema=StudyLocusView.get_schema()
         ).write.parquet(self.credible_set_path)
         self.coloc_path = str(tmp_path / "colocalisation")
 
