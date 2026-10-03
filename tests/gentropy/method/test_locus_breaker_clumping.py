@@ -8,7 +8,7 @@ import pytest
 from pyspark.sql import functions as f
 from pyspark.sql import types as t
 
-from gentropy.dataset.legacy_study_locus import LegacyStudyLocus
+from gentropy.dataset.study_locus_view import StudyLocusView
 from gentropy.dataset.summary_statistics import SummaryStatistics
 
 if TYPE_CHECKING:
@@ -21,7 +21,7 @@ def test_locus_breaker_return_type(
     """Test locus clumping."""
     assert isinstance(
         mock_summary_statistics.locus_breaker_clumping(),
-        LegacyStudyLocus,
+        StudyLocusView,
     )
 
 
@@ -79,7 +79,7 @@ class TestLocusBreakerClumping:
     @pytest.fixture(scope="class")
     def clumped_data(
         self: TestLocusBreakerClumping, mock_input: SummaryStatistics
-    ) -> LegacyStudyLocus:
+    ) -> StudyLocusView:
         """Apply method and store for clumped data."""
         return mock_input.locus_breaker_clumping(
             self.pvalue_baseline_cutoff,
@@ -89,15 +89,15 @@ class TestLocusBreakerClumping:
         ).persist()
 
     def test_return_type(
-        self: TestLocusBreakerClumping, clumped_data: LegacyStudyLocus
+        self: TestLocusBreakerClumping, clumped_data: StudyLocusView
     ) -> None:
         """Testing return type."""
-        assert isinstance(clumped_data, LegacyStudyLocus), (
+        assert isinstance(clumped_data, StudyLocusView), (
             f"Unexpected return type: {type(clumped_data)}"
         )
 
     def test_number_of_loci(
-        self: TestLocusBreakerClumping, clumped_data: LegacyStudyLocus
+        self: TestLocusBreakerClumping, clumped_data: StudyLocusView
     ) -> None:
         """Testing return type."""
         assert clumped_data.df.count() == 5, (
@@ -105,7 +105,7 @@ class TestLocusBreakerClumping:
         )
 
     def test_top_loci(
-        self: TestLocusBreakerClumping, clumped_data: LegacyStudyLocus
+        self: TestLocusBreakerClumping, clumped_data: StudyLocusView
     ) -> None:
         """Testing selected top-loci."""
         top_loci_variants = clumped_data.df.select("variantId").distinct().collect()
@@ -119,7 +119,7 @@ class TestLocusBreakerClumping:
         )
 
     def test_locus_boundaries(
-        self: TestLocusBreakerClumping, clumped_data: LegacyStudyLocus
+        self: TestLocusBreakerClumping, clumped_data: StudyLocusView
     ) -> None:
         """Testing locus boundaries."""
         locus_start = [

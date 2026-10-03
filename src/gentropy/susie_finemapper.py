@@ -22,12 +22,12 @@ from pyspark.sql.types import (
 from gentropy.common.session import Session
 from gentropy.common.spark import order_array_of_structs_by_field
 from gentropy.common.stats import neglogpval_from_z2, pvalue_from_neglogpval
-from gentropy.dataset.legacy_study_locus import (
-    FinemappingMethod,
-    LegacyStudyLocus,
-    StudyLocusQualityCheck,
-)
 from gentropy.dataset.study_index import StudyIndex
+from gentropy.dataset.study_locus_view import (
+    FinemappingMethod,
+    StudyLocusQualityCheck,
+    StudyLocusView,
+)
 from gentropy.method.carma import CARMA
 from gentropy.method.ld import LDAnnotator
 from gentropy.method.ld_matrix_interface import LDMatrixInterface
@@ -106,10 +106,10 @@ class SusieFineMapperStep:
 
         # Read studyLocus
         study_locus = (
-            LegacyStudyLocus.from_parquet(session, study_locus_input)
+            StudyLocusView.from_parquet(session, study_locus_input)
             .df.withColumn(
                 "studyLocusId",
-                LegacyStudyLocus.assign_study_locus_id(
+                StudyLocusView.assign_study_locus_id(
                     ["studyId", "variantId", "finemappingMethod"]
                 ),
             )
@@ -148,7 +148,7 @@ class SusieFineMapperStep:
                 df = df.withColumn("qualityControls", f.lit(None))
                 df = df.withColumn(
                     "qualityControls",
-                    LegacyStudyLocus.update_quality_flag(
+                    StudyLocusView.update_quality_flag(
                         f.col("qualityControls"),
                         f.lit(True),
                         StudyLocusQualityCheck.OUT_OF_SAMPLE_LD,
@@ -205,8 +205,8 @@ class SusieFineMapperStep:
         purity_mean_r2_threshold: float = 0,
         purity_min_r2_threshold: float = 0,
         ld_min_r2: float = 0.9,
-    ) -> LegacyStudyLocus | None:
-        """Convert SuSiE-inf output to LegacyStudyLocus DataFrame.
+    ) -> StudyLocusView | None:
+        """Convert SuSiE-inf output to StudyLocusView DataFrame.
 
         Args:
             susie_output (dict[str, Any]): SuSiE-inf output dictionary
@@ -225,7 +225,7 @@ class SusieFineMapperStep:
             ld_min_r2 (float): Threshold to fillter CS by leads in high LD, default is 0.9
 
         Returns:
-            LegacyStudyLocus | None: LegacyStudyLocus object with fine-mapped credible sets
+            StudyLocusView | None: StudyLocusView object with fine-mapped credible sets
         """
         # PLEASE DO NOT REMOVE THIS LINE
         pd.DataFrame.iteritems = pd.DataFrame.items
@@ -315,7 +315,7 @@ class SusieFineMapperStep:
                 )
                 .withColumn(
                     "studyLocusId",
-                    LegacyStudyLocus.assign_study_locus_id(
+                    StudyLocusView.assign_study_locus_id(
                         ["studyId", "variantId", "finemappingMethod"]
                     ),
                 )
@@ -462,9 +462,9 @@ class SusieFineMapperStep:
             """),
         )
 
-        return LegacyStudyLocus(
+        return StudyLocusView(
             _df=cred_sets,
-            _schema=LegacyStudyLocus.get_schema(),
+            _schema=StudyLocusView.get_schema(),
         )
 
     @staticmethod
@@ -727,7 +727,7 @@ class SusieFineMapperStep:
 
         Args:
             session (Session): Spark session
-            study_locus_row (Row): LegacyStudyLocus row with collected locus
+            study_locus_row (Row): StudyLocusView row with collected locus
             study_index (StudyIndex): StudyIndex object
             ld_matrix_paths (dict[str, str]): Dictionary with paths to LD matrices
             max_causal_snps (int): maximum number of causal variants
@@ -939,7 +939,7 @@ class SusieFineMapperStep:
                 return None
 
         gwas_df = session.spark.createDataFrame(
-            [study_locus_row], LegacyStudyLocus.get_schema()
+            [study_locus_row], StudyLocusView.get_schema()
         )
         exploded_df = gwas_df.select(f.explode("locus").alias("locus"))
 

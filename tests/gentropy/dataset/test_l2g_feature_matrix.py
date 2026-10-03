@@ -19,8 +19,8 @@ from pyspark.sql.types import (
 from gentropy.dataset.colocalisation import Colocalisation
 from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
-from gentropy.dataset.legacy_study_locus import LegacyStudyLocus
 from gentropy.dataset.study_index import StudyIndex
+from gentropy.dataset.study_locus_view import StudyLocusView
 from gentropy.dataset.target_index import TargetIndex
 from gentropy.method.l2g.feature_factory import L2GFeatureInputLoader
 
@@ -149,7 +149,7 @@ class TestFromFeaturesList:
             ),
             _schema=L2GGoldStandard.get_schema(),
         )
-        self.sample_study_locus = LegacyStudyLocus(
+        self.sample_study_locus = StudyLocusView(
             _df=spark.createDataFrame(
                 [
                     (
@@ -201,7 +201,7 @@ class TestFromFeaturesList:
                     ]
                 ),
             ),
-            _schema=LegacyStudyLocus.get_schema(),
+            _schema=StudyLocusView.get_schema(),
         )
         self.sample_study_index = StudyIndex(
             _df=spark.createDataFrame(

@@ -54,7 +54,7 @@ from gentropy.dataset.l2g_features.pathway import (
     PathwayEnrichmentNeighbourhoodFeature,
 )
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
-from gentropy.dataset.legacy_study_locus import LegacyStudyLocus
+from gentropy.dataset.study_locus_view import StudyLocusView
 
 
 class L2GFeatureInputLoader:
@@ -154,13 +154,13 @@ class FeatureFactory:
 
     def __init__(
         self: FeatureFactory,
-        study_loci_to_annotate: LegacyStudyLocus | L2GGoldStandard,
+        study_loci_to_annotate: StudyLocusView | L2GGoldStandard,
         features_list: list[str],
     ) -> None:
         """Initializes the factory.
 
         Args:
-            study_loci_to_annotate (LegacyStudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
+            study_loci_to_annotate (StudyLocusView | L2GGoldStandard): The dataset containing study loci that will be used for annotation
             features_list (list[str]): list of features to compute.
         """
         self.study_loci_to_annotate = study_loci_to_annotate

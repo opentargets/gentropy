@@ -12,9 +12,9 @@ from pyspark.sql.types import FloatType
 from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
 from gentropy.dataset.l2g_prediction import L2GPrediction
-from gentropy.dataset.legacy_study_locus import LegacyStudyLocus
 from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus_overlap import StudyLocusOverlap
+from gentropy.dataset.study_locus_view import StudyLocusView
 
 if TYPE_CHECKING:
     from pyspark.sql import SparkSession
@@ -223,7 +223,7 @@ class TestEvidenceGeneration:
         ("4", "gene2", 0.9),
     ]
 
-    # LegacyStudyLocus data:
+    # StudyLocusView data:
     STUDYLOCUS_DATA = [
         ("1", "v1", "s1"),
         ("2", "v2", "s1"),
@@ -267,7 +267,7 @@ class TestEvidenceGeneration:
             .drop("pubmedId")
         )
 
-        self.study_locus = LegacyStudyLocus(
+        self.study_locus = StudyLocusView(
             spark.createDataFrame(
                 self.STUDYLOCUS_DATA,
                 "studyLocusId STRING, variantId STRING, studyId STRING",

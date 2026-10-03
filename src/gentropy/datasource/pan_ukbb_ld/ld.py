@@ -203,7 +203,7 @@ class PanUKBBLDMatrix:
         study_locus_row: Row,
         ancestry: str = "EUR",
     ) -> DataFrame:
-        """Extract hail matrix index from LegacyStudyLocus rows.
+        """Extract hail matrix index from StudyLocusView rows.
 
         Args:
             session (Session): Session object

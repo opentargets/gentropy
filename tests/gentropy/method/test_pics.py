@@ -7,7 +7,7 @@ import pyspark.sql.types as t
 import pytest
 from pyspark.sql import Row, SparkSession
 
-from gentropy.dataset.legacy_study_locus import LegacyStudyLocus
+from gentropy.dataset.study_locus_view import StudyLocusView
 from gentropy.method.pics import PICS
 
 
@@ -15,13 +15,13 @@ class TestFinemap:
     """Test PICS finemap function under different scenarios."""
 
     def test_finemap_pipeline(
-        self: TestFinemap, mock_study_locus: LegacyStudyLocus
+        self: TestFinemap, mock_study_locus: StudyLocusView
     ) -> None:
         """Test finemap works with a mock study locus."""
-        assert isinstance(PICS.finemap(mock_study_locus), LegacyStudyLocus)
+        assert isinstance(PICS.finemap(mock_study_locus), StudyLocusView)
 
     def test_finemap_empty_array(
-        self: TestFinemap, mock_study_locus: LegacyStudyLocus
+        self: TestFinemap, mock_study_locus: StudyLocusView
     ) -> None:
         """Test finemap works when `locus` is an empty array by returning an empty array."""
         mock_study_locus.df = mock_study_locus.df.withColumn(
@@ -33,7 +33,7 @@ class TestFinemap:
         assert observed_df.collect()[0]["locus"] == []
 
     def test_finemap_null_ld_set(
-        self: TestFinemap, mock_study_locus: LegacyStudyLocus
+        self: TestFinemap, mock_study_locus: StudyLocusView
     ) -> None:
         """Test how we apply `finemap` when `ldSet` is null by returning a null field."""
         mock_study_locus.df = mock_study_locus.df.filter(f.col("ldSet").isNull())
@@ -69,9 +69,9 @@ def test__finemap_udf() -> None:
         )
 
 
-def test_finemap(mock_study_locus: LegacyStudyLocus) -> None:
+def test_finemap(mock_study_locus: StudyLocusView) -> None:
     """Test finemap function returns study-locus."""
-    assert isinstance(PICS.finemap(mock_study_locus), LegacyStudyLocus)
+    assert isinstance(PICS.finemap(mock_study_locus), StudyLocusView)
 
 
 class TestLeadPropagation:
@@ -117,9 +117,7 @@ class TestLeadPropagation:
             )
         )
 
-        self.study_locus = LegacyStudyLocus(
-            _df=df, _schema=LegacyStudyLocus.get_schema()
-        )
+        self.study_locus = StudyLocusView(_df=df, _schema=StudyLocusView.get_schema())
 
     def test_lead_propagation(self: TestLeadPropagation) -> None:
         """Testing if all the lead variant statistics are propagated to the tag variants."""

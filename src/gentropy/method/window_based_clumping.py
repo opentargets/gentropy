@@ -12,7 +12,7 @@ from pyspark.ml.linalg import DenseVector, VectorUDT
 from pyspark.sql.window import Window
 
 from gentropy.config import WindowBasedClumpingStepConfig
-from gentropy.dataset.legacy_study_locus import LegacyStudyLocus, StudyLocusQualityCheck
+from gentropy.dataset.study_locus_view import StudyLocusQualityCheck, StudyLocusView
 
 if TYPE_CHECKING:
     from numpy.typing import NDArray
@@ -154,17 +154,17 @@ class WindowBasedClumping:
 
     @staticmethod
     def clump(
-        unclumped_associations: SummaryStatistics | LegacyStudyLocus,
+        unclumped_associations: SummaryStatistics | StudyLocusView,
         distance: int = WindowBasedClumpingStepConfig().distance,
-    ) -> LegacyStudyLocus:
+    ) -> StudyLocusView:
         """Clump single point associations from summary statistics or study locus dataset based on window.
 
         Args:
-            unclumped_associations (SummaryStatistics | LegacyStudyLocus): Input dataset to be used for clumping. Assumes that the input dataset is already filtered for significant variants.
+            unclumped_associations (SummaryStatistics | StudyLocusView): Input dataset to be used for clumping. Assumes that the input dataset is already filtered for significant variants.
             distance (int): Distance in base pairs to be used for clumping. Defaults to 500_000.
 
         Returns:
-            LegacyStudyLocus: clumped associations, where the clumped variants are flagged.
+            StudyLocusView: clumped associations, where the clumped variants are flagged.
         """
         # Quality check expression that flags variants that are not considered lead variant:
         qc_check = f.col("semiIndices")[f.col("pvRank") - 1] <= 0
@@ -193,7 +193,7 @@ class WindowBasedClumping:
             "studyId", "chromosome", "cluster_id"
         ).orderBy(f.col("pValueExponent").asc(), f.col("pValueMantissa").asc())
 
-        return LegacyStudyLocus(
+        return StudyLocusView(
             _df=(
                 unclumped_associations.df
                 # Clustering variants for efficient windowing (complexity reduction):
@@ -246,7 +246,7 @@ class WindowBasedClumping:
                 # Adding study-locus id:
                 .withColumn(
                     "studyLocusId",
-                    LegacyStudyLocus.assign_study_locus_id(
+                    StudyLocusView.assign_study_locus_id(
                         ["studyId", "variantId"]
                     ),
                 )
@@ -254,5 +254,5 @@ class WindowBasedClumping:
                 .withColumn("qualityControls", qc_expression)
                 .drop("pvRank", "collectedPositions", "semiIndices", "cluster_id")
             ),
-            _schema=LegacyStudyLocus.get_schema(),
+            _schema=StudyLocusView.get_schema(),
         )

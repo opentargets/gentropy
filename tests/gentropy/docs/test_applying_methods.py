@@ -9,7 +9,7 @@ from docs.src_snippets.howto.python_api.c_applying_methods import (
     apply_class_method_pics,
     apply_instance_method,
 )
-from gentropy.dataset.legacy_study_locus import LegacyStudyLocus
+from gentropy.dataset.study_locus_view import StudyLocusView
 from gentropy.dataset.summary_statistics import SummaryStatistics
 
 
@@ -23,11 +23,11 @@ from gentropy.dataset.summary_statistics import SummaryStatistics
 )
 def test_apply_methods(
     func: Any,
-    mock_study_locus: LegacyStudyLocus,
+    mock_study_locus: StudyLocusView,
     mock_summary_statistics: SummaryStatistics,
 ) -> None:
-    """Test any method in applying_methods returns an instance of LegacyStudyLocus."""
+    """Test any method in applying_methods returns an instance of StudyLocusView."""
     if func in [apply_class_method_clumping, apply_instance_method]:
-        assert isinstance(func(mock_summary_statistics), LegacyStudyLocus)
+        assert isinstance(func(mock_summary_statistics), StudyLocusView)
     elif func == apply_class_method_pics:
-        assert isinstance(func(mock_study_locus), LegacyStudyLocus)
+        assert isinstance(func(mock_study_locus), StudyLocusView)

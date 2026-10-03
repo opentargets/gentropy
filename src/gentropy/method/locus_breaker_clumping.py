@@ -10,7 +10,7 @@ import pyspark.sql.types as t
 from pyspark.sql.window import Window
 
 from gentropy.common.stats import neglogpval_from_pvalue
-from gentropy.dataset.legacy_study_locus import LegacyStudyLocus
+from gentropy.dataset.study_locus_view import StudyLocusView
 from gentropy.dataset.summary_statistics import SummaryStatistics
 
 
@@ -24,12 +24,12 @@ class LocusBreakerClumping:
         distance_cutoff: int,
         pvalue_cutoff: float,
         flanking_distance: int,
-    ) -> LegacyStudyLocus:
+    ) -> StudyLocusView:
         """Identify GWAS associated loci based on the provided p-value and distance cutoff.
 
         - The GWAS associated loci identified by this method have a varying width, and are separated by a distance greater than the provided distance cutoff.
         - The distance is only calculted between single point associations that reach the baseline p-value cutoff.
-        - As the width of the selected genomic region dynamically depends on the loci, the resulting LegacyStudyLocus object will contain the locus start and end position.
+        - As the width of the selected genomic region dynamically depends on the loci, the resulting StudyLocusView object will contain the locus start and end position.
         - To ensure completeness, the locus is extended by a flanking distance in both ends.
 
         Args:
@@ -40,7 +40,7 @@ class LocusBreakerClumping:
             flanking_distance (int): the distance to extend the locus in both directions.
 
         Returns:
-            LegacyStudyLocus: clumped study loci with locus start and end positions + lead variant from the locus.
+            StudyLocusView: clumped study loci with locus start and end positions + lead variant from the locus.
         """
         # Extract columns from the summary statistics:
         columns_sumstats_columns = summary_statistics.df.columns
@@ -62,7 +62,7 @@ class LocusBreakerClumping:
             "studyId", "chromosome", "locusStart", "locusEnd"
         ).orderBy(f.col("negLogPValue").desc())
 
-        return LegacyStudyLocus(
+        return StudyLocusView(
             _df=(
                 # Applying the baseline p-value cutoff:
                 summary_statistics.pvalue_filter(baseline_pvalue_cutoff)
@@ -105,33 +105,33 @@ class LocusBreakerClumping:
                 )
                 .select(
                     *columns_sumstats_columns,
-                    # To make sure that the type of locusStart and locusEnd follows schema of LegacyStudyLocus:
+                    # To make sure that the type of locusStart and locusEnd follows schema of StudyLocusView:
                     f.col("locusStart").cast(t.IntegerType()).alias("locusStart"),
                     f.col("locusEnd").cast(t.IntegerType()).alias("locusEnd"),
                     f.lit(None)
                     .cast(t.ArrayType(t.StringType()))
                     .alias("qualityControls"),
-                    LegacyStudyLocus.assign_study_locus_id(["studyId", "variantId"]),
+                    StudyLocusView.assign_study_locus_id(["studyId", "variantId"]),
                 )
             ),
-            _schema=LegacyStudyLocus.get_schema(),
+            _schema=StudyLocusView.get_schema(),
         )
 
     @staticmethod
     def process_locus_breaker_output(
-        lbc: LegacyStudyLocus,
-        wbc: LegacyStudyLocus,
+        lbc: StudyLocusView,
+        wbc: StudyLocusView,
         large_loci_size: int,
-    ) -> LegacyStudyLocus:
+    ) -> StudyLocusView:
         """Process the locus breaker method result, and run window-based clumping on large loci.
 
         Args:
-            lbc (LegacyStudyLocus): LegacyStudyLocus object from locus-breaker clumping.
-            wbc (LegacyStudyLocus): LegacyStudyLocus object from window-based clumping.
+            lbc (StudyLocusView): StudyLocusView object from locus-breaker clumping.
+            wbc (StudyLocusView): StudyLocusView object from window-based clumping.
             large_loci_size (int): the size to define large loci which should be broken with wbc.
 
         Returns:
-            LegacyStudyLocus: clumped study loci with large loci broken by window-based clumping.
+            StudyLocusView: clumped study loci with large loci broken by window-based clumping.
         """
         large_loci_size = int(large_loci_size)
         small_loci = lbc.filter(
@@ -140,7 +140,7 @@ class LocusBreakerClumping:
         large_loci = lbc.filter(
             (f.col("locusEnd") - f.col("locusStart")) > large_loci_size
         )
-        large_loci_wbc = LegacyStudyLocus(
+        large_loci_wbc = StudyLocusView(
             wbc.df.alias("wbc")
             .join(
                 large_loci.df.alias("ll"),
@@ -159,9 +159,9 @@ class LocusBreakerClumping:
                     "locusEnd": f.col("position") + large_loci_size // 2,
                 }
             ),
-            LegacyStudyLocus.get_schema(),
+            StudyLocusView.get_schema(),
         )
-        return LegacyStudyLocus(
+        return StudyLocusView(
             large_loci_wbc.df.unionByName(small_loci.df),
-            LegacyStudyLocus.get_schema(),
+            StudyLocusView.get_schema(),
         )

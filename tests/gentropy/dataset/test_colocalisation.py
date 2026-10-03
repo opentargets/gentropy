@@ -7,8 +7,8 @@ from typing import TYPE_CHECKING
 import pytest
 
 from gentropy.dataset.colocalisation import Colocalisation
-from gentropy.dataset.legacy_study_locus import LegacyStudyLocus
 from gentropy.dataset.study_index import StudyIndex
+from gentropy.dataset.study_locus_view import StudyLocusView
 
 if TYPE_CHECKING:
     from pyspark.sql import SparkSession
@@ -21,7 +21,7 @@ def test_colocalisation_creation(mock_colocalisation: Colocalisation) -> None:
 
 def test_append_study_metadata_study_locus(
     mock_colocalisation: Colocalisation,
-    mock_study_locus: LegacyStudyLocus,
+    mock_study_locus: StudyLocusView,
     mock_study_index: StudyIndex,
     metadata_cols: list[str] | None = None,
 ) -> None:
@@ -70,7 +70,7 @@ class TestAppendStudyMetadata:
     @pytest.fixture(autouse=True)
     def _setup(self: TestAppendStudyMetadata, spark: SparkSession) -> None:
         """Setup fixture."""
-        self.sample_study_locus = LegacyStudyLocus(
+        self.sample_study_locus = StudyLocusView(
             _df=spark.createDataFrame(
                 [
                     (
@@ -86,7 +86,7 @@ class TestAppendStudyMetadata:
                 ],
                 ["studyLocusId", "variantId", "studyId"],
             ),
-            _schema=LegacyStudyLocus.get_schema(),
+            _schema=StudyLocusView.get_schema(),
         )
         self.sample_study_index = StudyIndex(
             _df=spark.createDataFrame(
@@ -119,7 +119,7 @@ class TestAppendStudyMetadata:
 
 def test_drop_trans_effects(spark: SparkSession) -> None:
     """Test filtering out trans effects from QTLs."""
-    sample_study_locus = LegacyStudyLocus(
+    sample_study_locus = StudyLocusView(
         _df=spark.createDataFrame(
             [
                 (
@@ -143,7 +143,7 @@ def test_drop_trans_effects(spark: SparkSession) -> None:
             ],
             ["studyLocusId", "variantId", "studyId", "isTransQtl"],
         ),
-        _schema=LegacyStudyLocus.get_schema(),
+        _schema=StudyLocusView.get_schema(),
     )
 
     sample_colocalisation = Colocalisation(

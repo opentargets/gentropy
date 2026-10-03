@@ -14,8 +14,8 @@ from scipy.optimize import minimize, minimize_scalar
 from scipy.special import logsumexp
 
 from gentropy.dataset.ld_index import LDIndex
-from gentropy.dataset.legacy_study_locus import LegacyStudyLocus, StudyLocusQualityCheck
 from gentropy.dataset.study_index import StudyIndex
+from gentropy.dataset.study_locus_view import StudyLocusQualityCheck, StudyLocusView
 
 
 @dataclass
@@ -469,21 +469,21 @@ class SUSIE_inf:
 
     @staticmethod
     def credible_set_qc(
-        cred_sets: LegacyStudyLocus,
+        cred_sets: StudyLocusView,
         p_value_threshold: float = 1e-5,
         purity_min_r2: float = 0.01,
         clump: bool = False,
         ld_index: LDIndex | None = None,
         study_index: StudyIndex | None = None,
         ld_min_r2: float | None = 0.8,
-    ) -> LegacyStudyLocus:
+    ) -> StudyLocusView:
         """Filter credible sets by lead P-value and min-R2 purity, and performs LD clumping.
 
         In case of duplicated loci, the filtering retains the loci wth the highest credibleSetlog10BF.
 
 
         Args:
-            cred_sets (LegacyStudyLocus): LegacyStudyLocus object with credible sets to filter/clump
+            cred_sets (StudyLocusView): StudyLocusView object with credible sets to filter/clump
             p_value_threshold (float): p-value threshold for filtering credible sets, default is 1e-5
             purity_min_r2 (float): min-R2 purity threshold for filtering credible sets, default is 0.01
             clump (bool): Whether to clump the credible sets by LD, default is False
@@ -492,7 +492,7 @@ class SUSIE_inf:
             ld_min_r2 (float | None): LD R2 threshold for clumping, default is 0.8
 
         Returns:
-            LegacyStudyLocus: Credible sets which pass filters and LD clumping.
+            StudyLocusView: Credible sets which pass filters and LD clumping.
 
         Raises:
             AssertionError: When running in clump mode, but no study study_index or ld_index or ld_min_r2 were provided.

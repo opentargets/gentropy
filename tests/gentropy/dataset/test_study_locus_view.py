@@ -24,14 +24,14 @@ from gentropy.common.session import Session
 from gentropy.dataset.colocalisation import Colocalisation
 from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
 from gentropy.dataset.ld_index import LDIndex
-from gentropy.dataset.legacy_study_locus import (
-    CredibleInterval,
-    CredibleSetConfidenceClasses,
-    LegacyStudyLocus,
-    StudyLocusQualityCheck,
-)
 from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus_overlap import StudyLocusOverlap
+from gentropy.dataset.study_locus_view import (
+    CredibleInterval,
+    CredibleSetConfidenceClasses,
+    StudyLocusQualityCheck,
+    StudyLocusView,
+)
 from gentropy.dataset.summary_statistics import SummaryStatistics
 from gentropy.dataset.target_index import TargetIndex
 from gentropy.dataset.variant_index import VariantIndex
@@ -78,7 +78,7 @@ def test_find_overlaps_semantic(
 ) -> None:
     """Test study locus overlaps with and without actual overlap."""
     if has_overlap:
-        credset = LegacyStudyLocus(
+        credset = StudyLocusView(
             _df=spark.createDataFrame(
                 # 2 associations with a common variant in the locus
                 [
@@ -104,12 +104,12 @@ def test_find_overlaps_semantic(
                         "chromosome": "1",
                     },
                 ],
-                LegacyStudyLocus.get_schema(),
+                StudyLocusView.get_schema(),
             ),
-            _schema=LegacyStudyLocus.get_schema(),
+            _schema=StudyLocusView.get_schema(),
         )
     else:
-        credset = LegacyStudyLocus(
+        credset = StudyLocusView(
             _df=spark.createDataFrame(
                 # 2 associations with no common variants in the locus
                 [
@@ -132,9 +132,9 @@ def test_find_overlaps_semantic(
                         "chromosome": "1",
                     },
                 ],
-                LegacyStudyLocus.get_schema(),
+                StudyLocusView.get_schema(),
             ),
-            _schema=LegacyStudyLocus.get_schema(),
+            _schema=StudyLocusView.get_schema(),
         )
 
     expected_overlaps_df = spark.createDataFrame(
@@ -151,31 +151,31 @@ def test_find_overlaps_semantic(
     ), "Overlaps differ from expected."
 
 
-def test_find_overlaps(mock_study_locus: LegacyStudyLocus) -> None:
+def test_find_overlaps(mock_study_locus: StudyLocusView) -> None:
     """Test study locus overlaps."""
     assert isinstance(mock_study_locus.find_overlaps(), StudyLocusOverlap)
 
 
 def test_annotate_locus_statistics(
-    mock_study_locus: LegacyStudyLocus, mock_summary_statistics: SummaryStatistics
+    mock_study_locus: StudyLocusView, mock_summary_statistics: SummaryStatistics
 ) -> None:
-    """Test annotate locus statistics returns a LegacyStudyLocus."""
+    """Test annotate locus statistics returns a StudyLocusView."""
     assert isinstance(
         mock_study_locus.annotate_locus_statistics(mock_summary_statistics, 100),
-        LegacyStudyLocus,
+        StudyLocusView,
     )
 
 
-def test_filter_credible_set(mock_study_locus: LegacyStudyLocus) -> None:
+def test_filter_credible_set(mock_study_locus: StudyLocusView) -> None:
     """Test credible interval filter."""
     assert isinstance(
-        mock_study_locus.filter_credible_set(CredibleInterval.IS95), LegacyStudyLocus
+        mock_study_locus.filter_credible_set(CredibleInterval.IS95), StudyLocusView
     )
 
 
-def test_qc_abnormal_pips(mock_study_locus: LegacyStudyLocus) -> None:
-    """Test that the qc_abnormal_pips method returns a LegacyStudyLocus object."""
-    assert isinstance(mock_study_locus.qc_abnormal_pips(0.99, 1), LegacyStudyLocus)
+def test_qc_abnormal_pips(mock_study_locus: StudyLocusView) -> None:
+    """Test that the qc_abnormal_pips method returns a StudyLocusView object."""
+    assert isinstance(mock_study_locus.qc_abnormal_pips(0.99, 1), StudyLocusView)
 
 
 # Used primarily for test_unique_variants_in_locus but also for other tests
@@ -248,9 +248,9 @@ def test_unique_variants_in_locus(
 ) -> None:
     """Test unique variants in locus."""
     # assert isinstance(mock_study_locus.test_unique_variants_in_locus(), DataFrame)
-    data_sl = LegacyStudyLocus(
+    data_sl = StudyLocusView(
         _df=spark.createDataFrame(observed, test_unique_variants_in_locus_test_schema),
-        _schema=LegacyStudyLocus.get_schema(),
+        _schema=StudyLocusView.get_schema(),
     )
     expected_df = spark.createDataFrame(
         expected, schema="variantId: string, chromosome: string"
@@ -258,14 +258,14 @@ def test_unique_variants_in_locus(
     assert data_sl.unique_variants_in_locus().collect() == expected_df.collect()
 
 
-def test_neglog_pvalue(mock_study_locus: LegacyStudyLocus) -> None:
+def test_neglog_pvalue(mock_study_locus: StudyLocusView) -> None:
     """Test neglog pvalue."""
     assert isinstance(mock_study_locus.neglog_pvalue(), Column)
 
 
-def test_clump(mock_study_locus: LegacyStudyLocus) -> None:
+def test_clump(mock_study_locus: StudyLocusView) -> None:
     """Test clump."""
-    assert isinstance(mock_study_locus.clump(), LegacyStudyLocus)
+    assert isinstance(mock_study_locus.clump(), StudyLocusView)
 
 
 # Used primarily for test_annotate_credible_sets but also for other tests
@@ -444,13 +444,13 @@ def test_annotate_credible_sets(
     spark: SparkSession, observed: list[Any], expected: list[Any]
 ) -> None:
     """Test annotate_credible_sets."""
-    data_sl = LegacyStudyLocus(
+    data_sl = StudyLocusView(
         _df=spark.createDataFrame(observed, test_annotate_credible_sets_test_schema),
-        _schema=LegacyStudyLocus.get_schema(),
+        _schema=StudyLocusView.get_schema(),
     )
-    expected_sl = LegacyStudyLocus(
+    expected_sl = StudyLocusView(
         _df=spark.createDataFrame(expected, test_annotate_credible_sets_test_schema),
-        _schema=LegacyStudyLocus.get_schema(),
+        _schema=StudyLocusView.get_schema(),
     )
     assert data_sl.annotate_credible_sets().df.collect() == expected_sl.df.collect()
 
@@ -458,12 +458,12 @@ def test_annotate_credible_sets(
 def test_qc_abnormal_pips_good_locus(spark: SparkSession) -> None:
     """Test qc_abnormal_pips with a well-behaving locus."""
     # Input data
-    sl = LegacyStudyLocus(
+    sl = StudyLocusView(
         _df=spark.createDataFrame(
             test_annotate_credible_sets_test_data[1][0],
             test_annotate_credible_sets_test_schema,
         ),
-        _schema=LegacyStudyLocus.get_schema(),
+        _schema=StudyLocusView.get_schema(),
     )
     assert (
         sl.qc_abnormal_pips().df.filter(f.size("qualityControls") > 0).count() == 0
@@ -473,12 +473,12 @@ def test_qc_abnormal_pips_good_locus(spark: SparkSession) -> None:
 def test_qc_abnormal_pips_bad_locus(spark: SparkSession) -> None:
     """Test qc_abnormal_pips with an abnormal locus."""
     # Input data
-    sl = LegacyStudyLocus(
+    sl = StudyLocusView(
         _df=spark.createDataFrame(
             test_unique_variants_in_locus_test_data[0][0],
             test_unique_variants_in_locus_test_schema,
         ),
-        _schema=LegacyStudyLocus.get_schema(),
+        _schema=StudyLocusView.get_schema(),
     )
     assert (
         sl.qc_abnormal_pips().df.filter(f.size("qualityControls") > 0).count() == 1
@@ -486,34 +486,34 @@ def test_qc_abnormal_pips_bad_locus(spark: SparkSession) -> None:
 
 
 def test_annotate_ld(
-    mock_study_locus: LegacyStudyLocus,
+    mock_study_locus: StudyLocusView,
     mock_study_index: StudyIndex,
     mock_ld_index: LDIndex,
 ) -> None:
     """Test annotate_ld."""
     assert isinstance(
-        mock_study_locus.annotate_ld(mock_study_index, mock_ld_index), LegacyStudyLocus
+        mock_study_locus.annotate_ld(mock_study_index, mock_ld_index), StudyLocusView
     )
 
 
-def test__qc_no_population(mock_study_locus: LegacyStudyLocus) -> None:
+def test__qc_no_population(mock_study_locus: StudyLocusView) -> None:
     """Test _qc_no_population."""
-    assert isinstance(mock_study_locus._qc_no_population(), LegacyStudyLocus)
+    assert isinstance(mock_study_locus._qc_no_population(), StudyLocusView)
 
 
-def test_qc_MHC_region(mock_study_locus: LegacyStudyLocus) -> None:
+def test_qc_MHC_region(mock_study_locus: StudyLocusView) -> None:
     """Test qc_MHC_region."""
-    assert isinstance(mock_study_locus.qc_MHC_region(), LegacyStudyLocus)
+    assert isinstance(mock_study_locus.qc_MHC_region(), StudyLocusView)
 
 
 def test_ldannotate(
-    mock_study_locus: LegacyStudyLocus,
+    mock_study_locus: StudyLocusView,
     mock_study_index: StudyIndex,
     mock_ld_index: LDIndex,
 ) -> None:
     """Test ldannotate."""
     assert isinstance(
-        mock_study_locus.annotate_ld(mock_study_index, mock_ld_index), LegacyStudyLocus
+        mock_study_locus.annotate_ld(mock_study_index, mock_ld_index), StudyLocusView
     )
 
 
@@ -524,7 +524,7 @@ def test_filter_ld_set(spark: SparkSession) -> None:
     ]
     observed_df = spark.createDataFrame(
         observed_data, ["studyLocusId", "ldSet"]
-    ).withColumn("ldSet", LegacyStudyLocus.filter_ld_set(f.col("ldSet"), 0.5))
+    ).withColumn("ldSet", StudyLocusView.filter_ld_set(f.col("ldSet"), 0.5))
     expected_tags_in_ld = 0
     assert observed_df.filter(f.size("ldSet") > 1).count() == expected_tags_in_ld, (
         "Expected tags in ld set differ from observed."
@@ -532,21 +532,21 @@ def test_filter_ld_set(spark: SparkSession) -> None:
 
 
 def test_annotate_locus_statistics_boundaries(
-    mock_study_locus: LegacyStudyLocus, mock_summary_statistics: SummaryStatistics
+    mock_study_locus: StudyLocusView, mock_summary_statistics: SummaryStatistics
 ) -> None:
-    """Test annotate locus statistics returns a LegacyStudyLocus."""
+    """Test annotate locus statistics returns a StudyLocusView."""
     df = mock_study_locus.df
     df = df.withColumn("locusStart", f.col("position") - 10)
     df = df.withColumn("locusEnd", f.col("position") + 10)
-    slt = LegacyStudyLocus(df, LegacyStudyLocus.get_schema())
+    slt = StudyLocusView(df, StudyLocusView.get_schema())
     assert isinstance(
         slt.annotate_locus_statistics_boundaries(mock_summary_statistics),
-        LegacyStudyLocus,
+        StudyLocusView,
     )
 
 
 class TestStudyLocusVariantValidation:
-    """Collection of tests for LegacyStudyLocus variant validation."""
+    """Collection of tests for StudyLocusView variant validation."""
 
     VARIANT_DATA = [
         ("v1", "c1", 1, "r", "a"),
@@ -583,7 +583,7 @@ class TestStudyLocusVariantValidation:
             _schema=VariantIndex.get_schema(),
         )
 
-        self.credible_set = LegacyStudyLocus(
+        self.credible_set = StudyLocusView(
             _df=(
                 spark.createDataFrame(self.STUDYLOCUS_DATA, self.STUDYLOCUS_HEADER)
                 .withColumn("studyLocusId", f.col("studyLocusId").cast(t.StringType()))
@@ -595,14 +595,14 @@ class TestStudyLocusVariantValidation:
                     ).alias("locus")
                 )
             ),
-            _schema=LegacyStudyLocus.get_schema(),
+            _schema=StudyLocusView.get_schema(),
         )
 
     def test_validation_return_type(self: TestStudyLocusVariantValidation) -> None:
         """Testing if the validation returns the right type."""
         assert isinstance(
             self.credible_set.validate_variant_identifiers(self.variant_index),
-            LegacyStudyLocus,
+            StudyLocusView,
         )
 
     def test_validation_no_data_loss(self: TestStudyLocusVariantValidation) -> None:
@@ -634,7 +634,7 @@ class TestStudyLocusVariantValidation:
 
 
 class TestStudyLocusValidation:
-    """Collection of tests for LegacyStudyLocus validation."""
+    """Collection of tests for StudyLocusView validation."""
 
     STUDY_LOCUS_DATA = [
         # Won't be flagged:
@@ -686,11 +686,11 @@ class TestStudyLocusValidation:
     @pytest.fixture(autouse=True)
     def _setup(self: TestStudyLocusValidation, spark: SparkSession) -> None:
         """Setup study locus for testing."""
-        self.study_locus = LegacyStudyLocus(
+        self.study_locus = StudyLocusView(
             _df=spark.createDataFrame(
                 self.STUDY_LOCUS_DATA, schema=self.STUDY_LOCUS_SCHEMA
             ),
-            _schema=LegacyStudyLocus.get_schema(),
+            _schema=StudyLocusView.get_schema(),
         )
 
         self.study_index = StudyIndex(
@@ -707,12 +707,12 @@ class TestStudyLocusValidation:
     ) -> None:
         """Testing if the p-value validation returns the right type."""
         assert isinstance(
-            self.study_locus.validate_lead_pvalue(test_pvalues), LegacyStudyLocus
+            self.study_locus.validate_lead_pvalue(test_pvalues), StudyLocusView
         )
 
     def test_confidence_flag_return_type(self: TestStudyLocusValidation) -> None:
         """Testing if the confidence flagging returns the right type."""
-        assert isinstance(self.study_locus.assign_confidence(), LegacyStudyLocus)
+        assert isinstance(self.study_locus.assign_confidence(), StudyLocusView)
 
     def test_confidence_flag_new_column(self: TestStudyLocusValidation) -> None:
         """Testing if the confidence flagging adds a new column."""
@@ -758,7 +758,7 @@ class TestStudyLocusValidation:
     def test_study_validation_return_type(self: TestStudyLocusValidation) -> None:
         """Testing if the study validation returns the right type."""
         assert isinstance(
-            self.study_locus.validate_study(self.study_index), LegacyStudyLocus
+            self.study_locus.validate_study(self.study_index), StudyLocusView
         )
 
     def test_study_validation_no_data_loss(self: TestStudyLocusValidation) -> None:
@@ -813,7 +813,7 @@ class TestStudyLocusWindowClumping:
     @pytest.fixture(autouse=True)
     def _setup(self: TestStudyLocusWindowClumping, spark: SparkSession) -> None:
         """Setup study locus for testing."""
-        self.study_locus = LegacyStudyLocus(
+        self.study_locus = StudyLocusView(
             _df=(
                 spark.createDataFrame(
                     self.TEST_DATASET, schema=self.TEST_SCHEMA
@@ -830,12 +830,12 @@ class TestStudyLocusWindowClumping:
                     }
                 )
             ),
-            _schema=LegacyStudyLocus.get_schema(),
+            _schema=StudyLocusView.get_schema(),
         )
 
     def test_clump_return_type(self: TestStudyLocusWindowClumping) -> None:
         """Testing if the clumping returns the right type."""
-        assert isinstance(self.study_locus.window_based_clumping(3), LegacyStudyLocus)
+        assert isinstance(self.study_locus.window_based_clumping(3), StudyLocusView)
 
     def test_clump_no_data_loss(self: TestStudyLocusWindowClumping) -> None:
         """Testing if the clumping returns same number of rows."""
@@ -863,7 +863,7 @@ class TestStudyLocusBuildFeatureMatrix:
 
     def test_build_feature_matrix(
         self: TestStudyLocusBuildFeatureMatrix,
-        mock_study_locus: LegacyStudyLocus,
+        mock_study_locus: StudyLocusView,
         mock_colocalisation: Colocalisation,
         mock_study_index: StudyIndex,
     ) -> None:
@@ -881,7 +881,7 @@ class TestStudyLocusBuildFeatureMatrix:
 
     def test_build_feature_matrix_append_null_false(
         self: TestStudyLocusBuildFeatureMatrix,
-        mock_study_locus: LegacyStudyLocus,
+        mock_study_locus: StudyLocusView,
         mock_colocalisation: Colocalisation,
         mock_study_index_no_pqtl: StudyIndex,
     ) -> None:
@@ -907,7 +907,7 @@ class TestStudyLocusBuildFeatureMatrix:
 
     def test_build_feature_matrix_append_null_true(
         self: TestStudyLocusBuildFeatureMatrix,
-        mock_study_locus: LegacyStudyLocus,
+        mock_study_locus: StudyLocusView,
         mock_colocalisation: Colocalisation,
         mock_study_index_no_pqtl: StudyIndex,
     ) -> None:
@@ -961,11 +961,11 @@ class TestStudyLocusRedundancyFlagging:
     @pytest.fixture(autouse=True)
     def _setup(self: TestStudyLocusRedundancyFlagging, spark: SparkSession) -> None:
         """Setup study locus for testing."""
-        self.study_locus = LegacyStudyLocus(
+        self.study_locus = StudyLocusView(
             _df=spark.createDataFrame(
                 self.STUDY_LOCUS_DATA, schema=self.STUDY_LOCUS_SCHEMA
             ),
-            _schema=LegacyStudyLocus.get_schema(),
+            _schema=StudyLocusView.get_schema(),
         )
 
     def test_qc_redundant_top_hits_from_PICS_returntype(
@@ -973,7 +973,7 @@ class TestStudyLocusRedundancyFlagging:
     ) -> None:
         """Test qc_redundant_top_hits_from_PICS."""
         assert isinstance(
-            self.study_locus.qc_redundant_top_hits_from_PICS(), LegacyStudyLocus
+            self.study_locus.qc_redundant_top_hits_from_PICS(), StudyLocusView
         )
 
     def test_qc_redundant_top_hits_from_PICS_no_data_loss(
@@ -1123,18 +1123,18 @@ class TestStudyLocusSuSiERedundancyFlagging:
         self: TestStudyLocusSuSiERedundancyFlagging, spark: SparkSession
     ) -> None:
         """Setup study locus for testing."""
-        self.study_locus = LegacyStudyLocus(
+        self.study_locus = StudyLocusView(
             _df=spark.createDataFrame(
                 self.STUDY_LOCUS_DATA, schema=self.STUDY_LOCUS_SCHEMA
             ),
-            _schema=LegacyStudyLocus.get_schema(),
+            _schema=StudyLocusView.get_schema(),
         )
 
     def test_qc_qc_explained_by_SuSiE_returntype(
         self: TestStudyLocusSuSiERedundancyFlagging,
     ) -> None:
         """Test qc_explained_by_SuSiE."""
-        assert isinstance(self.study_locus.qc_explained_by_SuSiE(), LegacyStudyLocus)
+        assert isinstance(self.study_locus.qc_explained_by_SuSiE(), StudyLocusView)
 
     def test_qc_explained_by_SuSiE_no_data_loss(
         self: TestStudyLocusSuSiERedundancyFlagging,
@@ -1185,12 +1185,12 @@ def test_qc_valid_chromosomes(
         ),
     )
 
-    sl = LegacyStudyLocus(
-        _df=df, _schema=LegacyStudyLocus.get_schema()
+    sl = StudyLocusView(
+        _df=df, _schema=StudyLocusView.get_schema()
     ).validate_chromosome_label()
 
     # Assert return type:
-    assert isinstance(sl, LegacyStudyLocus)
+    assert isinstance(sl, StudyLocusView)
 
     # Assert flagging correctness:
     for row in sl.df.collect():
@@ -1234,13 +1234,13 @@ class TestStudyLocusDuplicationFlagging:
     @pytest.fixture(autouse=True)
     def _setup(self: TestStudyLocusDuplicationFlagging, spark: SparkSession) -> None:
         """Setup study locus for testing."""
-        self.study_locus = LegacyStudyLocus(
+        self.study_locus = StudyLocusView(
             _df=spark.createDataFrame(
                 self.STUDY_LOCUS_DATA, schema=self.STUDY_LOCUS_SCHEMA
             ).withColumn(
                 "qualityControls", f.array().cast(t.ArrayType(t.StringType()))
             ),
-            _schema=LegacyStudyLocus.get_schema(),
+            _schema=StudyLocusView.get_schema(),
         )
 
         # Run validation:
@@ -1248,7 +1248,7 @@ class TestStudyLocusDuplicationFlagging:
 
     def test_duplication_flag_type(self: TestStudyLocusDuplicationFlagging) -> None:
         """Test duplication flagging return type."""
-        assert isinstance(self.validated, LegacyStudyLocus)
+        assert isinstance(self.validated, StudyLocusView)
 
     def test_duplication_flag_no_data_loss(
         self: TestStudyLocusDuplicationFlagging,
@@ -1379,13 +1379,13 @@ class TestStudyLocusReplicationFlagging:
     @pytest.fixture(autouse=True)
     def _setup(self: TestStudyLocusReplicationFlagging, spark: SparkSession) -> None:
         """Setup study locus and study index for testing."""
-        self.study_locus = LegacyStudyLocus(
+        self.study_locus = StudyLocusView(
             _df=spark.createDataFrame(
                 self.STUDY_LOCUS_DATA, schema=self.STUDY_LOCUS_SCHEMA
             ).withColumn(
                 "qualityControls", f.array().cast(t.ArrayType(t.StringType()))
             ),
-            _schema=LegacyStudyLocus.get_schema(),
+            _schema=StudyLocusView.get_schema(),
         )
         self.study_index = StudyIndex(
             _df=spark.createDataFrame(self.STUDY_DATA, schema=self.STUDY_SCHEMA),
@@ -1402,7 +1402,7 @@ class TestStudyLocusReplicationFlagging:
         self: TestStudyLocusReplicationFlagging,
     ) -> None:
         """Test replication flagging return type."""
-        assert isinstance(self.validated, LegacyStudyLocus)
+        assert isinstance(self.validated, StudyLocusView)
 
     def test_replication_flag_no_data_loss(
         self: TestStudyLocusReplicationFlagging,
@@ -1456,7 +1456,7 @@ class TestTransQtlFlagging:
     @pytest.fixture(autouse=True)
     def _setup(self: TestTransQtlFlagging, session: Session) -> None:
         """Setup study locus for testing."""
-        self.study_locus = LegacyStudyLocus(
+        self.study_locus = StudyLocusView(
             _df=(
                 session.spark.createDataFrame(
                     self.STUDY_LOCUS_DATA, self.STUDY_LOCUS_COLUMNS
@@ -1487,7 +1487,7 @@ class TestTransQtlFlagging:
 
     def test_return_type(self: TestTransQtlFlagging) -> None:
         """Test duplication flagging return type."""
-        assert isinstance(self.qtl_flagged, LegacyStudyLocus)
+        assert isinstance(self.qtl_flagged, StudyLocusView)
 
     def test_number_of_rows(self: TestTransQtlFlagging) -> None:
         """Test duplication flagging no data loss."""
@@ -1529,7 +1529,7 @@ class TestTransQtlFlagging:
         """
         dataset_path = str(tmp_path / "study_locus")
         self.study_locus.df.write.parquet(dataset_path)
-        schema_validated_study_locus = LegacyStudyLocus.from_parquet(
+        schema_validated_study_locus = StudyLocusView.from_parquet(
             session, dataset_path
         )
         assert "isTransQtl" in schema_validated_study_locus.df.columns, (

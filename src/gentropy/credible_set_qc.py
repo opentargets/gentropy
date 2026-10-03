@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from gentropy.common.session import Session
 from gentropy.dataset.ld_index import LDIndex
-from gentropy.dataset.legacy_study_locus import LegacyStudyLocus
 from gentropy.dataset.study_index import StudyIndex
+from gentropy.dataset.study_locus_view import StudyLocusView
 from gentropy.method.susie_inf import SUSIE_inf
 
 
@@ -58,7 +58,7 @@ class CredibleSetQCStep:
             else None
         )
 
-        cred_sets = LegacyStudyLocus.from_parquet(
+        cred_sets = StudyLocusView.from_parquet(
             session, credible_sets_path, recursiveFileLookup=True
         ).coalesce(n_partitions)
 
@@ -71,7 +71,7 @@ class CredibleSetQCStep:
             study_index,
             ld_min_r2,
         )
-        # ensure the saved object is still a valid LegacyStudyLocus
-        LegacyStudyLocus(
-            _df=cred_sets_clean.df, _schema=LegacyStudyLocus.get_schema()
+        # ensure the saved object is still a valid StudyLocusView
+        StudyLocusView(
+            _df=cred_sets_clean.df, _schema=StudyLocusView.get_schema()
         ).df.write.mode(session.write_mode).parquet(output_path)

@@ -14,14 +14,14 @@ if TYPE_CHECKING:
     from pyspark.sql import DataFrame
     from pyspark.sql.types import StructType
 
-    from gentropy.dataset.legacy_study_locus import LegacyStudyLocus
+    from gentropy.dataset.study_locus_view import StudyLocusView
 
 
 @dataclass
 class StudyLocusOverlap(Dataset):
     """Study-Locus overlap.
 
-    This dataset captures pairs of overlapping `LegacyStudyLocus`: that is associations whose credible sets share at least one tagging variant.
+    This dataset captures pairs of overlapping `StudyLocusView`: that is associations whose credible sets share at least one tagging variant.
 
     !!! note
 
@@ -39,12 +39,12 @@ class StudyLocusOverlap(Dataset):
 
     @classmethod
     def from_associations(
-        cls: type[StudyLocusOverlap], study_locus: LegacyStudyLocus
+        cls: type[StudyLocusOverlap], study_locus: StudyLocusView
     ) -> StudyLocusOverlap:
-        """Find the overlapping signals in a particular set of associations (LegacyStudyLocus dataset).
+        """Find the overlapping signals in a particular set of associations (StudyLocusView dataset).
 
         Args:
-            study_locus (LegacyStudyLocus): Study-locus associations to find the overlapping signals
+            study_locus (StudyLocusView): Study-locus associations to find the overlapping signals
 
         Returns:
             StudyLocusOverlap: Study-locus overlap dataset

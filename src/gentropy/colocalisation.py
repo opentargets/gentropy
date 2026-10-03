@@ -7,7 +7,7 @@ from typing import Literal, NotRequired, TypedDict
 import pyspark.sql.functions as f
 
 from gentropy.common.session import Session
-from gentropy.dataset.legacy_study_locus import FinemappingMethod, LegacyStudyLocus
+from gentropy.dataset.study_locus_view import FinemappingMethod, StudyLocusView
 from gentropy.method.colocalisation import ColocalisationMethod
 
 
@@ -68,7 +68,7 @@ class ColocalisationStep:
             pseudocutoff (float): Pseudocount to avoid log(0). Defaults to 1e-10. For coloc method only.
         """
         cm = ColocalisationMethod.get_method_class(colocalisation_method)
-        cs = LegacyStudyLocus.from_parquet(session, credible_set_path)
+        cs = StudyLocusView.from_parquet(session, credible_set_path)
 
         if colocalisation_method.upper() == ColocalisationMethod.COLOC.name:
             cs = cs.filter(

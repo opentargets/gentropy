@@ -9,8 +9,8 @@ from pyspark.sql import DataFrame
 from scipy.stats import chi2, fisher_exact
 
 from gentropy.common.spark import calculate_harmonic_sum
-from gentropy.dataset.legacy_study_locus import LegacyStudyLocus
 from gentropy.dataset.study_index import StudyIndex
+from gentropy.dataset.study_locus_view import StudyLocusView
 
 
 class chemblDrugEnrichment:
@@ -24,7 +24,7 @@ class chemblDrugEnrichment:
         table_with_score: DataFrame,
         score_column: str,
         datasource_id: str,
-        study_locus: LegacyStudyLocus,
+        study_locus: StudyLocusView,
         study_index: StudyIndex,
         min_score: float = 0.0,
         datatype_id: str = "GWAS",
@@ -37,7 +37,7 @@ class chemblDrugEnrichment:
             table_with_score (DataFrame): Table with score
             score_column (str): Column name with score
             datasource_id (str): Data source ID
-            study_locus (LegacyStudyLocus): Study locus dataset
+            study_locus (StudyLocusView): Study locus dataset
             study_index (StudyIndex): Study index dataset
             min_score (float): Minimum score to keep
             datatype_id (str): Data type ID

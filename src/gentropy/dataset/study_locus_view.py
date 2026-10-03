@@ -165,21 +165,16 @@ class FinemappingMethod(Enum):
 
 
 @dataclass
-class LegacyStudyLocus(Dataset):
-    """Legacy Study-Locus dataset.
+class StudyLocusView(Dataset):
+    """Study-Locus view dataset.
 
     This dataset captures associations between study/traits and a genetic loci as provided by finemapping methods.
-
-    !!! warning "Soon to be deprecated"
-
-        `LegacyStudyLocus` will be replaced by the `LegacyStudyLocus`, `StudyLocusVariant`,
-        `LDSet`, `CredibleSet` and `CredibleSetVariant` datasets.
     """
 
     MEASUREMENT_THERAPEUTIC_AREA = "EFO_0001444"
 
     @qc_test
-    def validate_study(self: LegacyStudyLocus, study_index: StudyIndex) -> LegacyStudyLocus:
+    def validate_study(self: StudyLocusView, study_index: StudyIndex) -> StudyLocusView:
         """Flagging study loci if the corresponding study has issues.
 
         There are two different potential flags:
@@ -191,7 +186,7 @@ class LegacyStudyLocus(Dataset):
             study_index (StudyIndex): Study index to resolve study types.
 
         Returns:
-            LegacyStudyLocus: Updated study locus with quality control flags.
+            StudyLocusView: Updated study locus with quality control flags.
         """
         # Quality controls is not a mandatory field in the study index schema, so we have to be ready to handle it:
         qc_select_expression = (
@@ -206,7 +201,7 @@ class LegacyStudyLocus(Dataset):
             qc_select_expression.alias("study_qualityControls"),
         )
 
-        return LegacyStudyLocus(
+        return StudyLocusView(
             _df=(
                 self.df.join(
                     study_flags, f.col("studyId") == f.col("study_studyId"), "left"
@@ -214,7 +209,7 @@ class LegacyStudyLocus(Dataset):
                 # Flagging loci with flagged studies - without propagating the actual flags:
                 .withColumn(
                     "qualityControls",
-                    LegacyStudyLocus.update_quality_flag(
+                    StudyLocusView.update_quality_flag(
                         f.col("qualityControls"),
                         f.size(f.col("study_qualityControls")) > 0,
                         StudyLocusQualityCheck.FLAGGED_STUDY,
@@ -223,7 +218,7 @@ class LegacyStudyLocus(Dataset):
                 # Flagging top-hits, where the study has available summary statistics:
                 .withColumn(
                     "qualityControls",
-                    LegacyStudyLocus.update_quality_flag(
+                    StudyLocusView.update_quality_flag(
                         f.col("qualityControls"),
                         # Condition is true, if the study has summary statistics available and the locus is a top hit:
                         f.array_contains(
@@ -240,7 +235,7 @@ class LegacyStudyLocus(Dataset):
                 # Flagging loci where no studies were found:
                 .withColumn(
                     "qualityControls",
-                    LegacyStudyLocus.update_quality_flag(
+                    StudyLocusView.update_quality_flag(
                         f.col("qualityControls"),
                         f.col("study_studyId").isNull(),
                         StudyLocusQualityCheck.MISSING_STUDY,
@@ -252,16 +247,16 @@ class LegacyStudyLocus(Dataset):
         )
 
     @qc_test
-    def annotate_study_type(self: LegacyStudyLocus, study_index: StudyIndex) -> LegacyStudyLocus:
+    def annotate_study_type(self: StudyLocusView, study_index: StudyIndex) -> StudyLocusView:
         """Gets study type from study index and adds it to study locus.
 
         Args:
             study_index (StudyIndex): Study index to get study type.
 
         Returns:
-            LegacyStudyLocus: Updated study locus with study type.
+            StudyLocusView: Updated study locus with study type.
         """
-        return LegacyStudyLocus(
+        return StudyLocusView(
             _df=(
                 self.df.drop("studyType").join(
                     study_index.study_type_lut(), on="studyId", how="left"
@@ -271,11 +266,11 @@ class LegacyStudyLocus(Dataset):
         )
 
     @qc_test
-    def validate_chromosome_label(self: LegacyStudyLocus) -> LegacyStudyLocus:
+    def validate_chromosome_label(self: StudyLocusView) -> StudyLocusView:
         """Flagging study loci, where chromosome is coded not as 1:22, X, Y, Xy and MT.
 
         Returns:
-            LegacyStudyLocus: Updated study locus with quality control flags.
+            StudyLocusView: Updated study locus with quality control flags.
         """
         # QC column might not be present in the variant index schema, so we have to be ready to handle it:
         qc_select_expression = (
@@ -285,7 +280,7 @@ class LegacyStudyLocus(Dataset):
         )
         valid_chromosomes = [str(i) for i in range(1, 23)] + ["X", "Y", "XY", "MT"]
 
-        return LegacyStudyLocus(
+        return StudyLocusView(
             _df=(
                 self.df.withColumn(
                     "qualityControls",
@@ -301,15 +296,15 @@ class LegacyStudyLocus(Dataset):
 
     @qc_test
     def validate_variant_identifiers(
-        self: LegacyStudyLocus, variant_index: VariantIndex
-    ) -> LegacyStudyLocus:
+        self: StudyLocusView, variant_index: VariantIndex
+    ) -> StudyLocusView:
         """Flagging study loci, where tagging variant identifiers are not found in variant index.
 
         Args:
             variant_index (VariantIndex): Variant index to resolve variant identifiers.
 
         Returns:
-            LegacyStudyLocus: Updated study locus with quality control flags.
+            StudyLocusView: Updated study locus with quality control flags.
         """
         # QC column might not be present in the variant index schema, so we have to be ready to handle it:
         qc_select_expression = (
@@ -343,7 +338,7 @@ class LegacyStudyLocus(Dataset):
             )
         )
 
-        return LegacyStudyLocus(
+        return StudyLocusView(
             _df=(
                 self.df.join(flag, on="studyLocusId", how="left")
                 .withColumn(
@@ -360,26 +355,26 @@ class LegacyStudyLocus(Dataset):
         )
 
     @qc_test
-    def validate_lead_pvalue(self: LegacyStudyLocus, pvalue_cutoff: float) -> LegacyStudyLocus:
+    def validate_lead_pvalue(self: StudyLocusView, pvalue_cutoff: float) -> StudyLocusView:
         """Flag associations below significant threshold.
 
         Args:
             pvalue_cutoff (float): association p-value cut-off
 
         Returns:
-            LegacyStudyLocus: Updated study locus with quality control flags.
+            StudyLocusView: Updated study locus with quality control flags.
         """
         df = self.df
-        qc_colname = LegacyStudyLocus.get_QC_column_name()
+        qc_colname = StudyLocusView.get_QC_column_name()
         if qc_colname not in self.df.columns:
             df = self.df.withColumn(
                 qc_colname,
                 create_empty_column_if_not_exists(
                     qc_colname,
-                    get_struct_field_schema(LegacyStudyLocus.get_schema(), qc_colname),
+                    get_struct_field_schema(StudyLocusView.get_schema(), qc_colname),
                 ),
             )
-        return LegacyStudyLocus(
+        return StudyLocusView(
             _df=(
                 df.withColumn(
                     qc_colname,
@@ -398,7 +393,7 @@ class LegacyStudyLocus(Dataset):
         )
 
     @qc_test
-    def validate_unique_study_locus_id(self: LegacyStudyLocus) -> LegacyStudyLocus:
+    def validate_unique_study_locus_id(self: StudyLocusView) -> StudyLocusView:
         """Validating the uniqueness of study-locus identifiers and flagging duplicated studyloci.
 
         `studyLocusId` is a hash of the study and the lead variant, so two credible sets resolving
@@ -416,9 +411,9 @@ class LegacyStudyLocus(Dataset):
         to a curated top hit paired with the PICS credible set of the same study and lead variant.
 
         Returns:
-            LegacyStudyLocus: with flagged duplicated studies.
+            StudyLocusView: with flagged duplicated studies.
         """
-        return LegacyStudyLocus(
+        return StudyLocusView(
             _df=self.df.withColumn(
                 "qualityControls",
                 self.update_quality_flag(
@@ -427,13 +422,13 @@ class LegacyStudyLocus(Dataset):
                     StudyLocusQualityCheck.DUPLICATED_STUDYLOCUS_ID,
                 ),
             ),
-            _schema=LegacyStudyLocus.get_schema(),
+            _schema=StudyLocusView.get_schema(),
         )
 
     @qc_test
     def qc_replication(
-        self: LegacyStudyLocus, study_index: StudyIndex, disease_index: DataFrame
-    ) -> LegacyStudyLocus:
+        self: StudyLocusView, study_index: StudyIndex, disease_index: DataFrame
+    ) -> StudyLocusView:
         """Flagging credible sets whose lead variant is replicated in an independent study.
 
         A GWAS credible set is considered replicated if its lead variant is associated with the
@@ -467,7 +462,7 @@ class LegacyStudyLocus(Dataset):
             disease_index (DataFrame): Platform disease index, with ``id`` and ``therapeuticAreas``.
 
         Returns:
-            LegacyStudyLocus: Updated study locus with quality control flags.
+            StudyLocusView: Updated study locus with quality control flags.
         """
         loci = self.df.select("studyLocusId", "studyId", "variantId")
         measurements = disease_index.filter(
@@ -561,7 +556,7 @@ class LegacyStudyLocus(Dataset):
             .withColumn("isReplicated", f.lit(True))
         )
 
-        return LegacyStudyLocus(
+        return StudyLocusView(
             _df=(
                 self.df.join(replicated_loci, on="studyLocusId", how="left")
                 .withColumn(
@@ -599,7 +594,7 @@ class LegacyStudyLocus(Dataset):
             >>> import pyspark.sql.types as t
             >>> d = [{'qc': None, 'p_value_mantissa': 1, 'p_value_exponent': -7}, {'qc': None, 'p_value_mantissa': 1, 'p_value_exponent': -8}, {'qc': None, 'p_value_mantissa': 5, 'p_value_exponent': -8}, {'qc': None, 'p_value_mantissa': 1, 'p_value_exponent': -9}]
             >>> df = spark.createDataFrame(d, t.StructType([t.StructField('qc', t.ArrayType(t.StringType()), True), t.StructField('p_value_mantissa', t.IntegerType()), t.StructField('p_value_exponent', t.IntegerType())]))
-            >>> df.withColumn('qc', LegacyStudyLocus._qc_subsignificant_associations(f.col("qc"), f.col("p_value_mantissa"), f.col("p_value_exponent"), 5e-8)).show(truncate = False)
+            >>> df.withColumn('qc', StudyLocusView._qc_subsignificant_associations(f.col("qc"), f.col("p_value_mantissa"), f.col("p_value_exponent"), 5e-8)).show(truncate = False)
             +------------------------+----------------+----------------+
             |qc                      |p_value_mantissa|p_value_exponent|
             +------------------------+----------------+----------------+
@@ -611,7 +606,7 @@ class LegacyStudyLocus(Dataset):
             <BLANKLINE>
 
         """
-        return LegacyStudyLocus.update_quality_flag(
+        return StudyLocusView.update_quality_flag(
             quality_controls_column,
             neglogpval_from_pvalue(p_value_mantissa, p_value_exponent)
             < f.lit(-np.log10(pvalue_cutoff)),
@@ -620,11 +615,11 @@ class LegacyStudyLocus(Dataset):
 
     @qc_test
     def qc_abnormal_pips(
-        self: LegacyStudyLocus,
+        self: StudyLocusView,
         sum_pips_lower_threshold: float = 0.99,
         # Set slightly above 1 to account for floating point errors
         sum_pips_upper_threshold: float = 1.0001,
-    ) -> LegacyStudyLocus:
+    ) -> StudyLocusView:
         """Filter study-locus by sum of posterior inclusion probabilities to ensure that the sum of PIPs is within a given range.
 
         Args:
@@ -632,7 +627,7 @@ class LegacyStudyLocus(Dataset):
             sum_pips_upper_threshold (float): Upper threshold for the sum of PIPs.
 
         Returns:
-            LegacyStudyLocus: Filtered study-locus dataset.
+            StudyLocusView: Filtered study-locus dataset.
         """
         # QC column might not be present so we have to be ready to handle it:
         qc_select_expression = (
@@ -657,7 +652,7 @@ class LegacyStudyLocus(Dataset):
             ).otherwise(False),
         )
 
-        return LegacyStudyLocus(
+        return StudyLocusView(
             _df=(
                 flag
                 # Flagging loci with failed studies:
@@ -823,7 +818,7 @@ class LegacyStudyLocus(Dataset):
 
         Examples:
             >>> df = spark.createDataFrame([("GCST000001", "1_1000_A_C", "SuSiE-inf"), ("GCST000002", "1_1000_A_C", "pics")]).toDF("studyId", "variantId", "finemappingMethod")
-            >>> df.withColumn("study_locus_id", LegacyStudyLocus.assign_study_locus_id(["studyId", "variantId", "finemappingMethod"])).show(truncate=False)
+            >>> df.withColumn("study_locus_id", StudyLocusView.assign_study_locus_id(["studyId", "variantId", "finemappingMethod"])).show(truncate=False)
             +----------+----------+-----------------+--------------------------------+
             |studyId   |variantId |finemappingMethod|study_locus_id                  |
             +----------+----------+-----------------+--------------------------------+
@@ -838,7 +833,7 @@ class LegacyStudyLocus(Dataset):
 
     @classmethod
     def calculate_credible_set_log10bf(
-        cls: type[LegacyStudyLocus], logbfs: Column, num_variants_region: int = 500
+        cls: type[StudyLocusView], logbfs: Column, num_variants_region: int = 500
     ) -> Column:
         """Calculate Bayes factor for the entire credible set. The Bayes factor is calculated as the logsumexp of the logBF values of the variants in the locus.
 
@@ -850,7 +845,7 @@ class LegacyStudyLocus(Dataset):
             Column: log10 Bayes factor for the entire credible set.
 
         Examples:
-            >>> spark.createDataFrame([([1.0, 0.5, 0.25, 0.0],)]).toDF("logBF").select(f.round(LegacyStudyLocus.calculate_credible_set_log10bf(f.col("logBF"), 4), 7).alias("credibleSetlog10BF")).show()
+            >>> spark.createDataFrame([([1.0, 0.5, 0.25, 0.0],)]).toDF("logBF").select(f.round(StudyLocusView.calculate_credible_set_log10bf(f.col("logBF"), 4), 7).alias("credibleSetlog10BF")).show()
             +------------------+
             |credibleSetlog10BF|
             +------------------+
@@ -868,16 +863,16 @@ class LegacyStudyLocus(Dataset):
         return logsumexp_udf(logbfs).cast("double").alias("credibleSetlog10BF")
 
     @classmethod
-    def get_schema(cls: type[LegacyStudyLocus]) -> StructType:
-        """Provides the schema for the LegacyStudyLocus dataset.
+    def get_schema(cls: type[StudyLocusView]) -> StructType:
+        """Provides the schema for the StudyLocusView dataset.
 
         Returns:
-            StructType: schema for the LegacyStudyLocus dataset.
+            StructType: schema for the StudyLocusView dataset.
         """
-        return parse_spark_schema("legacy_study_locus.json")
+        return parse_spark_schema("study_locus_view.json")
 
     @classmethod
-    def get_QC_column_name(cls: type[LegacyStudyLocus]) -> str:
+    def get_QC_column_name(cls: type[StudyLocusView]) -> str:
         """Quality control column.
 
         Returns:
@@ -886,7 +881,7 @@ class LegacyStudyLocus(Dataset):
         return "qualityControls"
 
     @classmethod
-    def get_QC_mappings(cls: type[LegacyStudyLocus]) -> dict[str, str]:
+    def get_QC_mappings(cls: type[StudyLocusView]) -> dict[str, str]:
         """Quality control flag to QC column category mappings.
 
         Returns:
@@ -895,11 +890,11 @@ class LegacyStudyLocus(Dataset):
         return {member.name: member.value for member in StudyLocusQualityCheck}
 
     def flag_trans_qtls(
-        self: LegacyStudyLocus,
+        self: StudyLocusView,
         study_index: StudyIndex,
         target_index: TargetIndex,
         trans_threshold: int = 5_000_000,
-    ) -> LegacyStudyLocus:
+    ) -> StudyLocusView:
         """Flagging transQTL credible sets based on genomic location of the measured gene.
 
         Process:
@@ -916,14 +911,14 @@ class LegacyStudyLocus(Dataset):
             trans_threshold (int): Distance above which the QTL is considered trans. Default: 5_000_000bp
 
         Returns:
-            LegacyStudyLocus: new column added indicating if the QTL credibles sets are trans.
+            StudyLocusView: new column added indicating if the QTL credibles sets are trans.
         """
         # As the `geneId` column in the study index is optional, we have to test for that:
         if "geneId" not in study_index.df.columns:
             return self
 
         # We have to remove the column `isTransQtl` to ensure the column is not duplicated
-        # The duplication can happen when one reads the LegacyStudyLocus from parquet with
+        # The duplication can happen when one reads the StudyLocusView from parquet with
         # predefined schema that already contains the `isTransQtl` column.
         if "isTransQtl" in self.df.columns:
             self.df = self.df.drop("isTransQtl")
@@ -985,21 +980,21 @@ class LegacyStudyLocus(Dataset):
             )
         )
         # Adding new column, where the value is null for gwas loci:
-        return LegacyStudyLocus(self.df.join(joined_data, on="studyLocusId", how="left"))
+        return StudyLocusView(self.df.join(joined_data, on="studyLocusId", how="left"))
 
     def filter_credible_set(
-        self: LegacyStudyLocus,
+        self: StudyLocusView,
         credible_interval: CredibleInterval,
-    ) -> LegacyStudyLocus:
+    ) -> StudyLocusView:
         """Annotate and filter study-locus tag variants based on given credible interval.
 
         Args:
             credible_interval (CredibleInterval): Credible interval to filter for.
 
         Returns:
-            LegacyStudyLocus: Filtered study-locus dataset.
+            StudyLocusView: Filtered study-locus dataset.
         """
-        return LegacyStudyLocus(
+        return StudyLocusView(
             _df=self.annotate_credible_sets().df.withColumn(
                 "locus",
                 f.filter(
@@ -1030,7 +1025,7 @@ class LegacyStudyLocus(Dataset):
         )
 
     def find_overlaps(
-        self: LegacyStudyLocus,
+        self: StudyLocusView,
         restrict_right_studies: list[str] | None = None,
         gwas_v_qtl_overlap_only: bool = False,
     ) -> StudyLocusOverlap:
@@ -1076,8 +1071,8 @@ class LegacyStudyLocus(Dataset):
         # study-locus overlap by aligning overlapping variants
         return self._align_overlapping_tags(loci_to_overlap, peak_overlaps)
 
-    def unique_variants_in_locus(self: LegacyStudyLocus) -> DataFrame:
-        """All unique variants collected in a `LegacyStudyLocus` dataframe.
+    def unique_variants_in_locus(self: StudyLocusView) -> DataFrame:
+        """All unique variants collected in a `StudyLocusView` dataframe.
 
         Returns:
             DataFrame: A dataframe containing `variantId` and `chromosome` columns.
@@ -1099,7 +1094,7 @@ class LegacyStudyLocus(Dataset):
             .distinct()
         )
 
-    def neglog_pvalue(self: LegacyStudyLocus) -> Column:
+    def neglog_pvalue(self: StudyLocusView) -> Column:
         """Returns the negative log p-value.
 
         Returns:
@@ -1111,12 +1106,12 @@ class LegacyStudyLocus(Dataset):
         )
 
     def build_feature_matrix(
-        self: LegacyStudyLocus,
+        self: StudyLocusView,
         features_list: list[str],
         features_input_loader: L2GFeatureInputLoader,
         append_null_features: bool = False,
     ) -> L2GFeatureMatrix:
-        """Returns the feature matrix for a LegacyStudyLocus.
+        """Returns the feature matrix for a StudyLocusView.
 
         Args:
             features_list (list[str]): List of features to include in the feature matrix.
@@ -1147,7 +1142,7 @@ class LegacyStudyLocus(Dataset):
 
         return feature_matrix
 
-    def annotate_credible_sets(self: LegacyStudyLocus) -> LegacyStudyLocus:
+    def annotate_credible_sets(self: StudyLocusView) -> StudyLocusView:
         """Annotate study-locus dataset with credible set flags.
 
         Sorts the array in the `locus` column elements by their `posteriorProbability` values in descending order and adds
@@ -1155,7 +1150,7 @@ class LegacyStudyLocus(Dataset):
         of their `posteriorProbability` values is below 0.95 and 0.99, respectively.
 
         Returns:
-            LegacyStudyLocus: including annotation on `is95CredibleSet` and `is99CredibleSet`.
+            StudyLocusView: including annotation on `is95CredibleSet` and `is99CredibleSet`.
 
         Raises:
             ValueError: If `locus` column is not available.
@@ -1203,10 +1198,10 @@ class LegacyStudyLocus(Dataset):
         return self
 
     def annotate_locus_statistics(
-        self: LegacyStudyLocus,
+        self: StudyLocusView,
         summary_statistics: SummaryStatistics,
         collect_locus_distance: int,
-    ) -> LegacyStudyLocus:
+    ) -> StudyLocusView:
         """Annotates study locus with summary statistics in the specified distance around the position.
 
         Args:
@@ -1214,7 +1209,7 @@ class LegacyStudyLocus(Dataset):
             collect_locus_distance (int): distance from variant defining window for inclusion of variants in locus.
 
         Returns:
-            LegacyStudyLocus: Study locus annotated with summary statistics in `locus` column. If no statistics are found, the `locus` column will be empty.
+            StudyLocusView: Study locus annotated with summary statistics in `locus` column. If no statistics are found, the `locus` column will be empty.
         """
         # The clumps will be used several times (persisting)
         self.df.persist()
@@ -1271,11 +1266,11 @@ class LegacyStudyLocus(Dataset):
         return self
 
     def annotate_ld(
-        self: LegacyStudyLocus,
+        self: StudyLocusView,
         study_index: StudyIndex,
         ld_index: LDIndex,
         r2_threshold: float = 0.0,
-    ) -> LegacyStudyLocus:
+    ) -> StudyLocusView:
         """Annotate LD information to study-locus.
 
         Args:
@@ -1284,19 +1279,19 @@ class LegacyStudyLocus(Dataset):
             r2_threshold (float): R2 threshold to filter the LD index. Default is 0.0.
 
         Returns:
-            LegacyStudyLocus: Study locus annotated with ld information from LD index.
+            StudyLocusView: Study locus annotated with ld information from LD index.
         """
         from gentropy.method.ld import LDAnnotator
 
         return LDAnnotator.ld_annotate(self, study_index, ld_index, r2_threshold)
 
-    def clump(self: LegacyStudyLocus) -> LegacyStudyLocus:
+    def clump(self: StudyLocusView) -> StudyLocusView:
         """Perform LD clumping of the studyLocus.
 
         Evaluates whether a lead variant is linked to a tag (with lowest p-value) in the same studyLocus dataset.
 
         Returns:
-            LegacyStudyLocus: with empty credible sets for linked variants and QC flag.
+            StudyLocusView: with empty credible sets for linked variants and QC flag.
         """
         clumped_df = (
             self.df.withColumn(
@@ -1316,7 +1311,7 @@ class LegacyStudyLocus(Dataset):
             )
             .withColumn(
                 "qualityControls",
-                LegacyStudyLocus.update_quality_flag(
+                StudyLocusView.update_quality_flag(
                     f.col("qualityControls"),
                     f.col("is_lead_linked"),
                     StudyLocusQualityCheck.LD_CLUMPED,
@@ -1324,22 +1319,22 @@ class LegacyStudyLocus(Dataset):
             )
             .drop("is_lead_linked")
         )
-        return LegacyStudyLocus(
+        return StudyLocusView(
             _df=clumped_df,
             _schema=self.get_schema(),
         )
 
     def exclude_region(
-        self: LegacyStudyLocus, region: GenomicRegion, exclude_overlap: bool = False
-    ) -> LegacyStudyLocus:
-        """Exclude a region from the LegacyStudyLocus dataset.
+        self: StudyLocusView, region: GenomicRegion, exclude_overlap: bool = False
+    ) -> StudyLocusView:
+        """Exclude a region from the StudyLocusView dataset.
 
         Args:
             region (GenomicRegion): genomic region object.
-            exclude_overlap (bool): If True, excludes LegacyStudyLocus windows with any overlap with the region.
+            exclude_overlap (bool): If True, excludes StudyLocusView windows with any overlap with the region.
 
         Returns:
-            LegacyStudyLocus: filtered LegacyStudyLocus object.
+            StudyLocusView: filtered StudyLocusView object.
         """
         if exclude_overlap:
             filter_condition = ~(
@@ -1358,17 +1353,17 @@ class LegacyStudyLocus(Dataset):
                 )
             )
 
-        return LegacyStudyLocus(
+        return StudyLocusView(
             _df=self.df.filter(filter_condition),
-            _schema=LegacyStudyLocus.get_schema(),
+            _schema=StudyLocusView.get_schema(),
         )
 
     @qc_test
-    def qc_MHC_region(self: LegacyStudyLocus) -> LegacyStudyLocus:
+    def qc_MHC_region(self: StudyLocusView) -> StudyLocusView:
         """Adds qualityControl flag when lead overlaps with MHC region.
 
         Returns:
-            LegacyStudyLocus: including qualityControl flag if in MHC region.
+            StudyLocusView: including qualityControl flag if in MHC region.
         """
         region = GenomicRegion.from_known_genomic_region(KnownGenomicRegions.MHC)
         self.df = self.df.withColumn(
@@ -1388,13 +1383,13 @@ class LegacyStudyLocus(Dataset):
         return self
 
     @qc_test
-    def qc_redundant_top_hits_from_PICS(self: LegacyStudyLocus) -> LegacyStudyLocus:
+    def qc_redundant_top_hits_from_PICS(self: StudyLocusView) -> StudyLocusView:
         """Flag associations from top hits when the study contains other PICS associations from summary statistics.
 
         This flag can be useful to identify top hits that should be explained by other associations in the study derived from the summary statistics.
 
         Returns:
-            LegacyStudyLocus: Updated study locus with redundant top hits flagged.
+            StudyLocusView: Updated study locus with redundant top hits flagged.
         """
         studies_with_pics_sumstats = (
             self.df.filter(f.col("finemappingMethod") == FinemappingMethod.PICS.value)
@@ -1409,7 +1404,7 @@ class LegacyStudyLocus(Dataset):
             .agg(f.max(f.col("hasPicsSumstats")).alias("studiesWithPicsSumstats"))
         )
 
-        return LegacyStudyLocus(
+        return StudyLocusView(
             _df=self.df.join(studies_with_pics_sumstats, on="studyId", how="left")
             .withColumn(
                 "qualityControls",
@@ -1423,17 +1418,17 @@ class LegacyStudyLocus(Dataset):
                 ),
             )
             .drop("studiesWithPicsSumstats"),
-            _schema=LegacyStudyLocus.get_schema(),
+            _schema=StudyLocusView.get_schema(),
         )
 
     @qc_test
-    def qc_explained_by_SuSiE(self: LegacyStudyLocus) -> LegacyStudyLocus:
+    def qc_explained_by_SuSiE(self: StudyLocusView) -> StudyLocusView:
         """Flag associations that are explained by SuSiE associations.
 
         Credible sets overlapping in the same region as a SuSiE credible set are flagged as explained by SuSiE.
 
         Returns:
-            LegacyStudyLocus: Updated study locus with SuSiE explained flags.
+            StudyLocusView: Updated study locus with SuSiE explained flags.
         """
         # unique study-regions covered by SuSie credible sets
         susie_study_regions = (
@@ -1481,7 +1476,7 @@ class LegacyStudyLocus(Dataset):
             .distinct()
         )
 
-        return LegacyStudyLocus(
+        return StudyLocusView(
             _df=(
                 self.df.join(redundant_study_locus, on="studyLocusId", how="left")
                 .withColumn(
@@ -1502,15 +1497,15 @@ class LegacyStudyLocus(Dataset):
                 )
                 .drop("inSuSiE")
             ),
-            _schema=LegacyStudyLocus.get_schema(),
+            _schema=StudyLocusView.get_schema(),
         )
 
     @qc_test
-    def _qc_no_population(self: LegacyStudyLocus) -> LegacyStudyLocus:
+    def _qc_no_population(self: StudyLocusView) -> StudyLocusView:
         """Flag associations where the study doesn't have population information to resolve LD.
 
         Returns:
-            LegacyStudyLocus: Updated study locus.
+            StudyLocusView: Updated study locus.
         """
         # If the tested column is not present, return self unchanged:
         if "ldPopulationStructure" not in self.df.columns:
@@ -1527,16 +1522,16 @@ class LegacyStudyLocus(Dataset):
         return self
 
     def annotate_locus_statistics_boundaries(
-        self: LegacyStudyLocus,
+        self: StudyLocusView,
         summary_statistics: SummaryStatistics,
-    ) -> LegacyStudyLocus:
+    ) -> StudyLocusView:
         """Annotates study locus with summary statistics in the specified boundaries - locusStart and locusEnd.
 
         Args:
             summary_statistics (SummaryStatistics): Summary statistics to be used for annotation.
 
         Returns:
-            LegacyStudyLocus: Study locus annotated with summary statistics in `locus` column. If no statistics are found, the `locus` column will be empty.
+            StudyLocusView: Study locus annotated with summary statistics in `locus` column. If no statistics are found, the `locus` column will be empty.
         """
         # The clumps will be used several times (persisting)
         self.df.persist()
@@ -1592,26 +1587,26 @@ class LegacyStudyLocus(Dataset):
         return self
 
     def window_based_clumping(
-        self: LegacyStudyLocus,
+        self: StudyLocusView,
         window_size: int = WindowBasedClumpingStepConfig().distance,
-    ) -> LegacyStudyLocus:
+    ) -> StudyLocusView:
         """Clump study locus by window size.
 
         Args:
             window_size (int): Window size for clumping.
 
         Returns:
-            LegacyStudyLocus: Clumped study locus, where clumped associations are flagged.
+            StudyLocusView: Clumped study locus, where clumped associations are flagged.
         """
         from gentropy.method.window_based_clumping import WindowBasedClumping
 
         return WindowBasedClumping.clump(self, window_size)
 
-    def assign_confidence(self: LegacyStudyLocus) -> LegacyStudyLocus:
+    def assign_confidence(self: StudyLocusView) -> StudyLocusView:
         """Assign confidence to study locus.
 
         Returns:
-            LegacyStudyLocus: Study locus with confidence assigned.
+            StudyLocusView: Study locus with confidence assigned.
         """
         # Return self if the required columns are not in the dataframe:
         if (
@@ -1674,7 +1669,7 @@ class LegacyStudyLocus(Dataset):
             .otherwise(CredibleSetConfidenceClasses.UNKNOWN.value),
         )
 
-        return LegacyStudyLocus(
+        return StudyLocusView(
             _df=df,
             _schema=self.get_schema(),
         )

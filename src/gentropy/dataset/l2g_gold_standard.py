@@ -11,7 +11,7 @@ from pyspark.sql import Window
 from gentropy.common.schemas import parse_spark_schema
 from gentropy.common.spark import get_record_with_maximum_value
 from gentropy.dataset.dataset import Dataset
-from gentropy.dataset.legacy_study_locus import LegacyStudyLocus
+from gentropy.dataset.study_locus_view import StudyLocusView
 
 if TYPE_CHECKING:
     from pyspark.sql import DataFrame
@@ -108,13 +108,13 @@ class L2GGoldStandard(Dataset):
     def build_feature_matrix(
         self: L2GGoldStandard,
         full_feature_matrix: L2GFeatureMatrix,
-        credible_set: LegacyStudyLocus,
+        credible_set: StudyLocusView,
     ) -> L2GFeatureMatrix:
         """Return a feature matrix for study loci in the gold standard.
 
         Args:
             full_feature_matrix (L2GFeatureMatrix): Feature matrix for all study loci to join on
-            credible_set (LegacyStudyLocus): Full credible sets to annotate the feature matrix with variant and study IDs and perform the join
+            credible_set (StudyLocusView): Full credible sets to annotate the feature matrix with variant and study IDs and perform the join
 
         Returns:
             L2GFeatureMatrix: Feature matrix for study loci in the gold standard
@@ -150,7 +150,7 @@ class L2GGoldStandard(Dataset):
         - If two loci point to different genes, and have overlapping variants, we keep both.
 
         Args:
-            study_locus_overlap (StudyLocusOverlap): A dataset detailing variants that overlap between LegacyStudyLocus.
+            study_locus_overlap (StudyLocusOverlap): A dataset detailing variants that overlap between StudyLocusView.
 
         Returns:
             L2GGoldStandard: L2GGoldStandard updated to exclude false negatives and redundant positives.

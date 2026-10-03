@@ -1,10 +1,10 @@
 """Docs to apply a method on a dataset."""
 from __future__ import annotations
 
-from gentropy import LegacyStudyLocus, SummaryStatistics
+from gentropy import StudyLocusView, SummaryStatistics
 
 
-def apply_class_method_pics(study_locus_ld_annotated: LegacyStudyLocus) -> LegacyStudyLocus:
+def apply_class_method_pics(study_locus_ld_annotated: StudyLocusView) -> StudyLocusView:
     """Docs to apply the PICS class method to mock study loci."""
     # --8<-- [start:apply_class_method_pics]
     from gentropy.method.pics import PICS
@@ -16,7 +16,7 @@ def apply_class_method_pics(study_locus_ld_annotated: LegacyStudyLocus) -> Legac
     return finemapped_study_locus
 
 
-def apply_class_method_clumping(summary_stats: SummaryStatistics) -> LegacyStudyLocus:
+def apply_class_method_clumping(summary_stats: SummaryStatistics) -> StudyLocusView:
     """Docs to apply the clumping class method to mock summary statistics."""
     # --8<-- [start:apply_class_method_clumping]
     from gentropy.method.window_based_clumping import WindowBasedClumping
@@ -28,7 +28,7 @@ def apply_class_method_clumping(summary_stats: SummaryStatistics) -> LegacyStudy
     return clumped_summary_statistics
 
 
-def apply_instance_method(summary_stats: SummaryStatistics) -> LegacyStudyLocus:
+def apply_instance_method(summary_stats: SummaryStatistics) -> StudyLocusView:
     """Docs to apply the clumping instance method to mock summary statistics."""
     # --8<-- [start:apply_instance_method]
     # Perform window-based clumping on summary statistics
