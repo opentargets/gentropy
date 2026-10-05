@@ -592,14 +592,25 @@ class Session:
                 conf = S3Config.from_json(s3_configuration)
             case _:
                 conf = S3Config.from_env()
-        data = {
+        data: dict[str, str] = {
             "spark.hadoop.fs.s3a.impl": "org.apache.hadoop.fs.s3a.S3AFileSystem",
             "spark.hadoop.fs.s3a.endpoint": f"https://{conf.s3_host_url}:{conf.s3_host_port}",
             "spark.hadoop.fs.s3a.path.style.access": "true",
             "spark.hadoop.fs.s3a.connection.ssl.enabled": "true",
-            "spark.hadoop.fs.s3a.access.key": conf.access_key_id.get_secret_value(),
-            "spark.hadoop.fs.s3a.secret.key": conf.secret_access_key.get_secret_value(),
         }
+        if conf.anonymous:
+            data[
+                "spark.hadoop.fs.s3a.aws.credentials.provider"
+            ] = "org.apache.hadoop.fs.s3a.AnonymousAWSCredentialsProvider"
+        else:
+            assert conf.access_key_id is not None
+            assert conf.secret_access_key is not None
+            data["spark.hadoop.fs.s3a.access.key"] = (
+                conf.access_key_id.get_secret_value()
+            )
+            data["spark.hadoop.fs.s3a.secret.key"] = (
+                conf.secret_access_key.get_secret_value()
+            )
 
         for key, value in data.items():
             c = c.set(key, value)
@@ -971,6 +982,13 @@ class Session:
 class JavaLogger(Protocol):
     """Protocol for Java Log4j Logger accessed through PySpark JVM bridge."""
 
+    def setLevel(self, level: Any) -> None:  # noqa: N802
+        """Set the logger threshold for Gentropy messages.
+
+        Args:
+            level (Any): Log4j level to apply.
+        """
+
     def error(self, message: str) -> None:
         """Log an error message.
 
@@ -1008,6 +1026,11 @@ class Log4j:
             spark.sparkContext.setLogLevel(level)
         # Cast to our protocol type for type safety
         self.logger: JavaLogger = log4j.LogManager.getLogger(__name__)
+        if level:
+            # The bundled properties intentionally keep the root logger at ERROR
+            # during Spark startup. Set the Gentropy logger explicitly so a
+            # requested INFO/WARN level is visible in process logs as well.
+            self.logger.setLevel(log4j.Level.toLevel(level))
 
     def error(self, message: str) -> None:
         """Log an error.

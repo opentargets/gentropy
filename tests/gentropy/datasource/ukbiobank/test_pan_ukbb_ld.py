@@ -1,14 +1,19 @@
 """Test suite for the PanUKBBLDMatrix class in the gentropy package."""
 
+from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock, patch
 
 import numpy as np
+import pyspark.sql.functions as f
 import pytest
 from numpy._typing._array_like import NDArray
-from pyspark.sql import DataFrame
+from pyspark.sql import DataFrame, SparkSession
 
-from gentropy.datasource.pan_ukbb_ld.ld import PanUKBBLDMatrix
+from gentropy.datasource.pan_ukbb_ld.ld import (
+    PanUKBBLDMatrix,
+    normalize_pan_ukbb_population,
+)
 
 
 @pytest.fixture
@@ -71,6 +76,25 @@ class TestGetNumpyMatrix:
             # Verify to_numpy was called and result returned
             mock_filtered.to_numpy.assert_called_once()
             assert result is mock_numpy
+
+    def test_load_hail_block_matrix_uses_concrete_path_without_population_formatting(
+        self,
+    ) -> None:
+        """Concrete registry paths are passed to Hail unchanged."""
+        mock_block_matrix: MagicMock = MagicMock()
+        mock_filtered: MagicMock = MagicMock()
+        mock_filtered.to_numpy.return_value = np.eye(2)
+        mock_block_matrix.filter.return_value = mock_filtered
+
+        with patch(
+            "gentropy.datasource.pan_ukbb_ld.ld.BlockMatrix.read",
+            return_value=mock_block_matrix,
+        ) as mock_read:
+            PanUKBBLDMatrix(
+                pan_ukbb_bm_path="s3://bucket/UKBB.CSA.ldadj.bm"
+            )._load_hail_block_matrix([1, 2], "eas")
+
+        mock_read.assert_called_once_with("s3://bucket/UKBB.CSA.ldadj.bm")
 
     def test_get_outer_allele_order(self, mock_locus_index: MagicMock) -> None:
         """Test _get_outer_allele_order correctly computes outer product of allele orders."""
@@ -178,3 +202,352 @@ class TestGetNumpyMatrix:
 
             # Verify result is what was returned from _construct_ld_matrix
             assert result is mock_final_matrix
+
+
+class TestNormalizePanUKBBPopulation:
+    """Test PanUKBB population label normalisation."""
+
+    @pytest.mark.parametrize(
+        ("population", "expected"),
+        [
+            ("nfe", "EUR"),
+            ("eur", "EUR"),
+            ("EUR", "EUR"),
+            ("csa", "CSA"),
+            ("CSA", "CSA"),
+            ("afr", "AFR"),
+            ("AFR", "AFR"),
+        ],
+    )
+    def test_normalize_pan_ukbb_population_accepts_supported_labels(
+        self, population: str, expected: str
+    ) -> None:
+        """Pipeline aliases and PanUKBB labels normalize to PanUKBB labels."""
+        assert normalize_pan_ukbb_population(population) == expected
+
+    def test_normalize_pan_ukbb_population_rejects_unsupported_labels(self) -> None:
+        """Unsupported labels fail instead of producing invalid PanUKBB paths."""
+        with pytest.raises(ValueError, match="Unsupported PanUKBB population"):
+            normalize_pan_ukbb_population("eas")
+
+
+class TestPreparePanUKBBReference:
+    """Test PanUKBB LD reference preparation helpers."""
+
+    def test_prepare_aligned_ld_index_adds_population_and_allele_orientation(
+        self, spark: SparkSession
+    ) -> None:
+        """Prepared PanUKBB index contains signed allele orientation and population."""
+        raw_index = spark.createDataFrame(
+            [
+                ("chr1", 100, ["A", "C"], 2),
+                ("chr1", 200, ["G", "T"], 1),
+                ("chr2", 300, ["C", "A"], 3),
+            ],
+            ["contig", "position", "alleles", "idx"],
+        ).select(
+            f.col("contig").alias("locus.contig"),
+            f.col("position").alias("locus.position"),
+            "alleles",
+            "idx",
+        )
+        variant_annotation = spark.createDataFrame(
+            [
+                ("1", 100, "A", "C"),
+                ("1", 200, "T", "G"),
+            ],
+            ["chromosome", "position", "referenceAllele", "alternateAllele"],
+        )
+
+        observed = PanUKBBLDMatrix.prepare_aligned_ld_index(
+            raw_index=raw_index,
+            variant_annotation=variant_annotation,
+            population="EUR",
+        )
+
+        assert observed.columns == [
+            "variantId",
+            "chromosome",
+            "position",
+            "referenceAllele",
+            "alternateAllele",
+            "idx",
+            "population",
+            "alleleOrder",
+        ]
+        assert observed.orderBy("idx").collect() == [
+            ("1_200_T_G", "1", 200, "T", "G", 1, "EUR", -1),
+            ("1_100_A_C", "1", 100, "A", "C", 2, "EUR", 1),
+            ("2_300_C_A", "2", 300, "C", "A", 3, "EUR", 1),
+        ]
+
+    def test_prepare_aligned_ld_index_avoids_positional_join_expansion(
+        self, spark: SparkSession
+    ) -> None:
+        """Allele alignment joins by oriented allele keys, not position alone."""
+        raw_index = spark.createDataFrame(
+            [
+                ("chr1", 100, ["A", "C"], 1),
+                ("chr1", 100, ["C", "A"], 2),
+                ("chr1", 100, ["A", "G"], 3),
+                ("chr1", 101, ["G", "A"], 4),
+            ],
+            ["contig", "position", "alleles", "idx"],
+        ).select(
+            f.col("contig").alias("locus.contig"),
+            f.col("position").alias("locus.position"),
+            "alleles",
+            "idx",
+        )
+        variant_annotation = spark.createDataFrame(
+            [
+                ("1", 100, "A", "C"),
+                ("1", 100, "T", "G"),
+            ],
+            ["chromosome", "position", "referenceAllele", "alternateAllele"],
+        )
+
+        observed = PanUKBBLDMatrix.prepare_aligned_ld_index(
+            raw_index=raw_index,
+            variant_annotation=variant_annotation,
+            population="AFR",
+        )
+
+        assert observed.orderBy("idx").collect() == [
+            ("1_100_A_C", "1", 100, "A", "C", 1, "AFR", 1),
+            ("1_100_A_C", "1", 100, "A", "C", 2, "AFR", -1),
+            ("1_101_G_A", "1", 101, "G", "A", 4, "AFR", 1),
+        ]
+
+    def test_filter_ld_index_to_variants_uses_variant_id_and_chromosome(
+        self, spark: SparkSession
+    ) -> None:
+        """Filtered indexes keep only variants from the requested test variant set."""
+        ld_index = spark.createDataFrame(
+            [
+                ("1_100_A_C", "1", 100, "A", "C", 2, "EUR", 1),
+                ("1_200_T_G", "1", 200, "T", "G", 1, "EUR", -1),
+                ("2_300_C_A", "2", 300, "C", "A", 3, "EUR", 1),
+            ],
+            [
+                "variantId",
+                "chromosome",
+                "position",
+                "referenceAllele",
+                "alternateAllele",
+                "idx",
+                "population",
+                "alleleOrder",
+            ],
+        )
+        requested_variants = spark.createDataFrame(
+            [
+                ("1_100_A_C", "1"),
+                ("2_300_C_A", "1"),
+            ],
+            ["variantId", "chromosome"],
+        )
+
+        observed = PanUKBBLDMatrix.filter_ld_index_to_variants(
+            ld_index, requested_variants
+        )
+
+        assert observed.select("variantId", "chromosome", "idx").collect() == [
+            ("1_100_A_C", "1", 2)
+        ]
+
+    def test_write_filtered_block_matrix_filters_indices_before_write(
+        self, spark: SparkSession, tmp_path: Path
+    ) -> None:
+        """Bounded test BlockMatrices are written from filtered indices only."""
+        locus_index = spark.createDataFrame(
+            [
+                ("1_200_T_G", 7),
+                ("1_100_A_C", 3),
+            ],
+            ["variantId", "idx"],
+        )
+        mock_block_matrix: MagicMock = MagicMock()
+        mock_filtered_matrix: MagicMock = MagicMock()
+        mock_block_matrix.filter.return_value = mock_filtered_matrix
+        output_path = str(tmp_path / "UKBB.EUR.test.ldadj")
+
+        with patch(
+            "gentropy.datasource.pan_ukbb_ld.ld.BlockMatrix.read",
+            return_value=mock_block_matrix,
+        ) as mock_read:
+            PanUKBBLDMatrix(
+                pan_ukbb_bm_path="gs://panukbb/UKBB.{POP}.ldadj"
+            ).write_filtered_block_matrix(
+                locus_index=locus_index,
+                ancestry="EUR",
+                output_path=output_path,
+            )
+
+        mock_read.assert_called_once_with("gs://panukbb/UKBB.EUR.ldadj")
+        mock_block_matrix.filter.assert_called_once_with([3, 7], [3, 7])
+        mock_filtered_matrix.write.assert_called_once_with(output_path, overwrite=True)
+
+    @pytest.mark.parametrize(
+        ("ancestry", "expected_ancestry"),
+        [
+            ("nfe", "EUR"),
+            ("AFR", "AFR"),
+        ],
+    )
+    def test_get_long_format_ld_matrix_returns_signed_symmetric_pairs(
+        self, spark: SparkSession, ancestry: str, expected_ancestry: str
+    ) -> None:
+        """Long-format PanUKBB pair rows reuse signed-r construction and idx ordering."""
+        ld_index = spark.createDataFrame(
+            [
+                ("1_200_T_G", "1", 200, "T", "G", 7, "EUR", -1),
+                ("1_100_A_C", "1", 100, "A", "C", 3, "EUR", 1),
+            ],
+            [
+                "variantId",
+                "chromosome",
+                "position",
+                "referenceAllele",
+                "alternateAllele",
+                "idx",
+                "population",
+                "alleleOrder",
+            ],
+        )
+
+        mock_block_matrix = MagicMock()
+        mock_entries = mock_block_matrix.entries.return_value
+        mock_entries.i = f.col("i")
+        mock_entries.j = f.col("j")
+        mock_entries.entry = f.col("entry")
+        mock_entries.filter.return_value.to_spark.return_value = spark.createDataFrame(
+            [(0, 1, 0.4)],
+            ["i", "j", "entry"],
+        )
+
+        with patch.object(
+            PanUKBBLDMatrix,
+            "_filter_hail_block_matrix",
+            return_value=mock_block_matrix,
+        ) as mock_filter_hail_block_matrix:
+            observed = PanUKBBLDMatrix().get_long_format_ld_matrix(ld_index, ancestry)
+
+        mock_filter_hail_block_matrix.assert_called_once_with([3, 7], expected_ancestry)
+        assert observed.columns == ["ancestry", "variantIdI", "variantIdJ", "r"]
+        assert observed.orderBy("variantIdI", "variantIdJ").collect() == [
+            (expected_ancestry, "1_100_A_C", "1_100_A_C", 1.0),
+            (expected_ancestry, "1_100_A_C", "1_200_T_G", -0.4),
+            (expected_ancestry, "1_200_T_G", "1_100_A_C", -0.4),
+            (expected_ancestry, "1_200_T_G", "1_200_T_G", 1.0),
+        ]
+        assert (
+            observed.filter(
+                (f.col("variantIdI") == "1_300_G_A")
+                | (f.col("variantIdJ") == "1_300_G_A")
+            ).count()
+            == 0
+        )
+        plan = observed._jdf.queryExecution().executedPlan().toString()
+        assert plan.count("BroadcastHashJoin") == 2
+
+    def test_get_long_format_ld_matrix_omits_zero_pairs(
+        self, spark: SparkSession
+    ) -> None:
+        """Sparse output keeps diagonals and non-zero correlations only."""
+        ld_index = spark.createDataFrame(
+            [
+                ("1_100_A_C", 3, 1),
+                ("1_200_T_G", 7, 1),
+                ("1_300_C_T", 11, 1),
+            ],
+            "variantId string, idx int, alleleOrder int",
+        )
+        mock_block_matrix = MagicMock()
+        mock_entries = mock_block_matrix.entries.return_value
+        mock_entries.i = f.col("i")
+        mock_entries.j = f.col("j")
+        mock_entries.entry = f.col("entry")
+        mock_entries.filter.return_value.to_spark.return_value = spark.createDataFrame(
+            [(0, 1, 0.4)],
+            ["i", "j", "entry"],
+        )
+
+        with patch.object(
+            PanUKBBLDMatrix,
+            "_filter_hail_block_matrix",
+            return_value=mock_block_matrix,
+        ):
+            observed = PanUKBBLDMatrix().get_long_format_ld_matrix(ld_index, "EUR")
+
+        assert observed.count() == 5
+        assert observed.filter(f.col("r") == 0).count() == 0
+
+    def test_get_long_format_ld_matrix_returns_empty_schema_for_empty_index(
+        self, spark: SparkSession
+    ) -> None:
+        """Empty prepared indexes produce no LD pairs with the expected schema."""
+        empty_ld_index = spark.createDataFrame(
+            [],
+            "variantId string, chromosome string, position int, referenceAllele string, alternateAllele string, idx int, population string, alleleOrder int",
+        )
+
+        observed = PanUKBBLDMatrix().get_long_format_ld_matrix(empty_ld_index, "EUR")
+
+        assert observed.columns == ["ancestry", "variantIdI", "variantIdJ", "r"]
+        assert observed.count() == 0
+
+    def test_write_long_format_ld_matrix_writes_parquet(
+        self, spark: SparkSession, tmp_path: Path
+    ) -> None:
+        """Long-format LD pairs are written as a parquet dataset."""
+        locus_index = spark.createDataFrame(
+            [("1_100_A_C", 3)],
+            ["variantId", "idx"],
+        )
+        ld_pairs = spark.createDataFrame(
+            [("EUR", "1_100_A_C", "1_100_A_C", 1.0)],
+            "ancestry string, variantIdI string, variantIdJ string, r double",
+        )
+        output_path = str(tmp_path / "ld_pairs.parquet")
+        matrix = PanUKBBLDMatrix()
+
+        with patch.object(
+            matrix, "get_long_format_ld_matrix", return_value=ld_pairs
+        ) as mock_get_long_format_ld_matrix:
+            matrix.write_long_format_ld_matrix(
+                locus_index=locus_index,
+                ancestry="nfe",
+                output_path=output_path,
+                write_mode="overwrite",
+            )
+
+        mock_get_long_format_ld_matrix.assert_called_once_with(locus_index, "nfe")
+        assert spark.read.parquet(output_path).collect() == [
+            ("EUR", "1_100_A_C", "1_100_A_C", 1.0)
+        ]
+
+    def test_get_multi_ancestry_long_format_ld_matrix_combines_ancestries(
+        self, spark: SparkSession
+    ) -> None:
+        """Multiple ancestry extractions are returned as one typed dataset."""
+        matrix = PanUKBBLDMatrix()
+        eur_pairs = spark.createDataFrame(
+            [("EUR", "1_100_A_C", "1_100_A_C", 1.0)],
+            ["ancestry", "variantIdI", "variantIdJ", "r"],
+        )
+        afr_pairs = spark.createDataFrame(
+            [("AFR", "1_100_A_C", "1_100_A_C", 1.0)],
+            ["ancestry", "variantIdI", "variantIdJ", "r"],
+        )
+        with patch.object(
+            matrix,
+            "get_long_format_ld_matrix",
+            side_effect=[eur_pairs, afr_pairs],
+        ):
+            observed = matrix.get_multi_ancestry_long_format_ld_matrix(
+                {"EUR": MagicMock(), "AFR": MagicMock()}
+            )
+
+        assert observed.ancestries() == ["AFR", "EUR"]
+        assert observed.df.count() == 2

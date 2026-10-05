@@ -1,0 +1,23 @@
+{
+  "fields": [
+    {
+      "metadata": {},
+      "name": "studyId",
+      "nullable": false,
+      "type": "string"
+    },
+    {
+      "metadata": {},
+      "name": "ancestry",
+      "nullable": false,
+      "type": "string"
+    },
+    {
+      "metadata": {},
+      "name": "sampleSize",
+      "nullable": false,
+      "type": "integer"
+    }
+  ],
+  "type": "struct"
+}

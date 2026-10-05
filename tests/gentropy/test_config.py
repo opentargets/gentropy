@@ -10,6 +10,7 @@ from gentropy.config import (
     BiosampleIndexConfig,
     ColocalisationConfig,
     Config,
+    PanUKBBConfig,
     SessionConfig,
     StepConfig,
     register_config,
@@ -136,6 +137,36 @@ class TestBiosampleIndexConfig:
 
         for expected in expected_fields:
             assert expected in config_fields, f"Missing field: {expected}"
+
+
+class TestPanUKBBConfig:
+    """Test PanUKBBConfig."""
+
+    def test_pan_ukbb_config_has_reference_preparation_fields(self) -> None:
+        """Test that PanUKBBConfig exposes local reference-preparation paths."""
+        config_fields = {f.name for f in fields(PanUKBBConfig)}
+
+        expected_fields = {
+            "variant_annotation_path",
+            "pan_ukbb_ht_path",
+            "ukbb_annotation_path",
+            "variant_filter_paths",
+            "filtered_ukbb_annotation_path",
+            "pan_ukbb_pops",
+        }
+
+        for expected in expected_fields:
+            assert expected in config_fields, f"Missing field: {expected}"
+
+    def test_pan_ukbb_config_target_exists(self) -> None:
+        """Test that the configured PanUKBB step target is importable."""
+        from gentropy.pan_ukb_ingestion import PanUKBBVariantIndexStep
+
+        assert (
+            PanUKBBConfig()._target_
+            == "gentropy.pan_ukb_ingestion.PanUKBBVariantIndexStep"
+        )
+        assert PanUKBBVariantIndexStep.__name__ == "PanUKBBVariantIndexStep"
 
 
 def test_register_config() -> None:
