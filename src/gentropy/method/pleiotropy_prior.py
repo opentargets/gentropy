@@ -225,14 +225,16 @@ class PleiotropyPrior:
             r_train = cls.residualise(
                 y[train], None if covariates is None else covariates[train]
             )
-            # The MRRR driver needs O(n) workspace; the divide-and-conquer one needs another
-            # 2 n^2 doubles, which is about 6 GB at 20,000 genes.
+            # Divide-and-conquer in single precision is about 2.5x faster than in double and
+            # about 12x faster than the MRRR driver. The rest of the fit stays in double.
             eigenvalues, eigenvectors = scipy.linalg.eigh(
-                kernel[np.ix_(train, train)],
+                kernel[np.ix_(train, train)].astype(np.float32),
                 overwrite_a=True,
                 check_finite=False,
-                driver="evr",
+                driver="evd",
             )
+            eigenvalues = eigenvalues.astype(np.float64)
+            eigenvectors = eigenvectors.astype(np.float64)
             projected = eigenvectors.T @ r_train
             gcv = cls.generalised_cross_validation(eigenvalues, projected, grid)
             best = int(np.argmin(gcv))

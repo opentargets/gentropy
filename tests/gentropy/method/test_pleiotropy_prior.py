@@ -50,7 +50,8 @@ class TestPleiotropyPrior:
         np.testing.assert_allclose(
             fit.scores[held_out],
             primal.predict(toy_genes["features"][held_out]),
-            atol=1e-8,
+            rtol=1e-4,
+            atol=1e-5,
         )
         assert fit.lambdas == {"1": penalty, "2": penalty, "3": penalty}
 
