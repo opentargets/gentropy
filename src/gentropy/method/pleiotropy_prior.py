@@ -1,14 +1,14 @@
-"""Gene-level prior from the PoPS gene features, trained on fine-mapped GWAS results.
+"""Gene-level prior of pleiotropy, predicted from gene features with a ridge regression.
 
 The model follows the polygenic priority score (PoPS; Weeks et al. 2023, Nat Genet
 55:1267-1276): a ridge regression of a gene-level target on gene features, fitted without the
 chromosome of the gene being scored. PoPS regresses MAGMA gene z-scores, which need full
-summary statistics. Here the target is computed from credible sets alone, so the prior can be
-built for every study in a release.
+summary statistics. Here the target is the number of diseases a gene is the nearest gene for,
+computed from credible sets alone, so the prior can be built for every release.
 
 This module is written from the formulas in the documentation of
-[`FmPops`][gentropy.method.fm_pops.FmPops]; it does not reuse the PoPS code, which is released
-under GPL-3.0.
+[`PleiotropyPrior`][gentropy.method.pleiotropy_prior.PleiotropyPrior]; it does not reuse the PoPS
+code, which is released under GPL-3.0.
 """
 
 from __future__ import annotations
@@ -16,16 +16,16 @@ from __future__ import annotations
 import logging
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass
-from pathlib import Path
 
 import numpy as np
 import scipy.linalg
+import scipy.sparse
 
 logger = logging.getLogger(__name__)
 
 
 @dataclass
-class FmPopsFit:
+class PleiotropyPriorFit:
     """Result of the leave-one-chromosome-out kernel ridge regression.
 
     Attributes:
@@ -39,7 +39,7 @@ class FmPopsFit:
     lambdas: dict[str, float]
 
 
-class FmPops:
+class PleiotropyPrior:
     """Leave-one-chromosome-out kernel ridge regression of a gene-level target on gene features.
 
     Notation: `X` is the `n x p` matrix of gene features with every column standardised across
@@ -63,9 +63,9 @@ class FmPops:
         GCV_k(lambda) = n_T * sum_i (lambda / (s_i + lambda))^2 u_i^2
                         / (n_T - sum_i s_i / (s_i + lambda))^2
 
-    The kernel form never holds the `n x p` feature matrix in memory: `K` is accumulated over
-    column chunks, so the cost is set by the number of genes (about 18,000), not by the number
-    of features (about 57,000).
+    The kernel form never holds the dense `n x p` feature matrix in memory: `K` is accumulated
+    over column chunks, so the cost is set by the number of genes (about 20,000), not by the
+    number of features.
     """
 
     DEFAULT_LAMBDA_GRID: tuple[float, ...] = tuple(
@@ -73,78 +73,22 @@ class FmPops:
     )
     """Ridge penalties searched by default, `10^-2` to `10^10` in steps of `10^0.5`."""
 
-    MATRIX_DIR = "munged_features"
-    MATRIX_PREFIX = "pops_features"
-
-    @classmethod
-    def read_feature_genes(cls: type[FmPops], feature_dir: str | Path) -> list[str]:
-        """Read the genes the PoPS feature matrices hold rows for, in row order.
-
-        Args:
-            feature_dir (str | Path): Directory of the extracted PoPS features
-
-        Returns:
-            list[str]: Ensembl gene identifiers
-        """
-        rows = Path(feature_dir) / cls.MATRIX_DIR / f"{cls.MATRIX_PREFIX}.rows.txt"
-        return [line.strip() for line in rows.read_text().splitlines() if line.strip()]
-
     @staticmethod
-    def read_control_feature_names(feature_dir: str | Path) -> set[str]:
-        """Read the names of the PoPS control features.
+    def column_chunks(
+        matrix: scipy.sparse.spmatrix | scipy.sparse.sparray, chunk_size: int = 500
+    ) -> Iterator[np.ndarray]:
+        """Split a sparse `genes x features` matrix into dense column chunks.
 
         Args:
-            feature_dir (str | Path): Directory of the extracted PoPS features
-
-        Returns:
-            set[str]: Names of the control columns
-        """
-        path = Path(feature_dir) / "control.features"
-        return {line.strip() for line in path.read_text().splitlines() if line.strip()}
-
-    @classmethod
-    def read_feature_chunks(
-        cls: type[FmPops], feature_dir: str | Path, gene_ids: list[str]
-    ) -> Iterator[tuple[list[str], np.ndarray]]:
-        """Read the PoPS feature matrices chunk by chunk, restricted to a list of genes.
-
-        The PoPS features ship as `munged_features/pops_features.mat.{i}.npy`, each a
-        `genes x <=500` float64 matrix whose column names are in the matching `.cols.{i}.txt`
-        file and whose rows are listed once in `pops_features.rows.txt`.
-
-        Args:
-            feature_dir (str | Path): Directory of the extracted PoPS features
-            gene_ids (list[str]): Genes to keep, in the row order wanted in the output. Every
-                one must be present in the feature rows.
+            matrix (scipy.sparse.spmatrix | scipy.sparse.sparray): Feature matrix
+            chunk_size (int): Number of columns per chunk
 
         Yields:
-            tuple[list[str], np.ndarray]: Column names and the `len(gene_ids) x columns` chunk
-
-        Raises:
-            FileNotFoundError: If the directory holds no feature matrix
-            ValueError: If a requested gene has no row in the feature matrices
+            np.ndarray: Dense `genes x <=chunk_size` chunk
         """
-        matrix_dir = Path(feature_dir) / cls.MATRIX_DIR
-        row_of = {gene: i for i, gene in enumerate(cls.read_feature_genes(feature_dir))}
-        missing = [gene for gene in gene_ids if gene not in row_of]
-        if missing:
-            raise ValueError(
-                f"{len(missing)} genes have no row in the PoPS features, e.g. {missing[:3]}."
-            )
-        rows = np.array([row_of[gene] for gene in gene_ids], dtype=np.int64)
-
-        chunk_ids = sorted(
-            int(path.name.split(".")[-2])
-            for path in matrix_dir.glob(f"{cls.MATRIX_PREFIX}.mat.*.npy")
-        )
-        if not chunk_ids:
-            raise FileNotFoundError(f"No PoPS feature matrix found in {matrix_dir}.")
-        for i in chunk_ids:
-            columns = (
-                (matrix_dir / f"{cls.MATRIX_PREFIX}.cols.{i}.txt").read_text().split()
-            )
-            matrix = np.load(matrix_dir / f"{cls.MATRIX_PREFIX}.mat.{i}.npy")
-            yield columns, np.ascontiguousarray(matrix[rows], dtype=np.float64)
+        columns = scipy.sparse.csc_array(matrix)
+        for start in range(0, columns.shape[1], chunk_size):
+            yield columns[:, start : start + chunk_size].toarray()
 
     @staticmethod
     def standardise(matrix: np.ndarray) -> np.ndarray:
@@ -162,7 +106,7 @@ class FmPops:
 
     @classmethod
     def accumulate_kernel(
-        cls: type[FmPops], chunks: Iterable[np.ndarray]
+        cls: type[PleiotropyPrior], chunks: Iterable[np.ndarray]
     ) -> tuple[np.ndarray, int]:
         """Accumulate the linear kernel `K = X X'` over column chunks of `X`.
 
@@ -236,7 +180,7 @@ class FmPops:
 
     @classmethod
     def loco_kernel_ridge(
-        cls: type[FmPops],
+        cls: type[PleiotropyPrior],
         kernel: np.ndarray,
         y: np.ndarray,
         chromosomes: np.ndarray,
@@ -244,7 +188,7 @@ class FmPops:
         covariates: np.ndarray | None = None,
         fit_mask: np.ndarray | None = None,
         lambdas: Iterable[float] = DEFAULT_LAMBDA_GRID,
-    ) -> FmPopsFit:
+    ) -> PleiotropyPriorFit:
         """Score every gene with a ridge regression fitted without its chromosome.
 
         Args:
@@ -258,7 +202,7 @@ class FmPops:
             lambdas (Iterable[float]): Ridge penalties searched by generalised cross-validation
 
         Returns:
-            FmPopsFit: Scores and the penalty chosen for every chromosome
+            PleiotropyPriorFit: Scores and the penalty chosen for every chromosome
 
         Raises:
             ValueError: If the inputs disagree on the number of genes
@@ -282,7 +226,7 @@ class FmPops:
                 y[train], None if covariates is None else covariates[train]
             )
             # The MRRR driver needs O(n) workspace; the divide-and-conquer one needs another
-            # 2 n^2 doubles, which is about 5 GB at 18,000 genes.
+            # 2 n^2 doubles, which is about 6 GB at 20,000 genes.
             eigenvalues, eigenvectors = scipy.linalg.eigh(
                 kernel[np.ix_(train, train)],
                 overwrite_a=True,
@@ -305,4 +249,4 @@ class FmPops:
             del eigenvectors
             scores[held_out] = kernel[np.ix_(held_out, train)] @ weights
             chosen[str(chromosome)] = float(grid[best])
-        return FmPopsFit(scores=scores, lambdas=chosen)
+        return PleiotropyPriorFit(scores=scores, lambdas=chosen)

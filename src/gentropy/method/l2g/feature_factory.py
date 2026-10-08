@@ -32,9 +32,9 @@ from gentropy.dataset.l2g_features.distance import (
     DistanceTssMeanFeature,
     DistanceTssMeanNeighbourhoodFeature,
 )
-from gentropy.dataset.l2g_features.fm_pops import (
-    FmPopsFeature,
-    FmPopsNeighbourhoodFeature,
+from gentropy.dataset.l2g_features.pleiotropy_prior import (
+    PredictedPleiotropyPriorFeature,
+    PredictedPleiotropyPriorNeighbourhoodFeature,
 )
 from gentropy.dataset.l2g_features.l2g_feature import FeatureDependencyType, L2GFeature
 from gentropy.dataset.l2g_features.other import (
@@ -150,8 +150,8 @@ class FeatureFactory:
         "e2gMeanNeighbourhood": E2gMeanNeighbourhoodFeature,
         "pathwayEnrichment500kb": PathwayEnrichmentFeature,
         "pathwayEnrichment500kbNeighbourhood": PathwayEnrichmentNeighbourhoodFeature,
-        "fmPops": FmPopsFeature,
-        "fmPopsNeighbourhood": FmPopsNeighbourhoodFeature,
+        "predictedPleiotropyPrior": PredictedPleiotropyPriorFeature,
+        "predictedPleiotropyPriorNeighbourhood": PredictedPleiotropyPriorNeighbourhoodFeature,
         "geneCount500kb": GeneCountFeature,
         "proteinGeneCount500kb": ProteinGeneCountFeature,
         "isProteinCoding": ProteinCodingFeature,
