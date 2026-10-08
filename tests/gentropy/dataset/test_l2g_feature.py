@@ -59,6 +59,9 @@ from gentropy.dataset.l2g_features.l2g_feature import L2GFeature
 from gentropy.dataset.l2g_features.pathway import (
     PathwayEnrichmentFeature,
     PathwayEnrichmentNeighbourhoodFeature,
+    common_neighbourhood_pathway_enrichment_feature_logic,
+    common_pathway_enrichment_feature_logic,
+    prioritised_disease_genes,
 )
 from gentropy.dataset.l2g_features.vep import (
     VepMaximumFeature,
@@ -80,12 +83,11 @@ from gentropy.dataset.l2g_features.other import (
 from gentropy.dataset.l2g_features.intervals import (
     e2g_interval_feature_wide_logic,
 )
-from gentropy.dataset.pathway_enrichment import PathwayEnrichment
-from gentropy.dataset.pathway_index import PathwayIndex
 from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import StudyLocus
 from gentropy.dataset.variant_index import VariantIndex
 from gentropy.method.l2g.feature_factory import L2GFeatureInputLoader
+from gentropy.method.pathway_enrichment import PathwayLibrary
 
 if TYPE_CHECKING:
     from pyspark.sql import SparkSession
@@ -154,8 +156,7 @@ def test_feature_factory_return_type(
     mock_study_index: StudyIndex,
     mock_variant_index: VariantIndex,
     mock_target_index: TargetIndex,
-    mock_pathway_index: PathwayIndex,
-    mock_pathway_enrichment: PathwayEnrichment,
+    mock_pathway_library: PathwayLibrary,
     sample_otp_interactions: Any,
 ) -> None:
     """Test that every feature factory returns a L2GFeature dataset."""
@@ -166,8 +167,7 @@ def test_feature_factory_return_type(
         study_locus=mock_study_locus,
         target_index=mock_target_index,
         interactions=sample_otp_interactions,
-        pathway_index=mock_pathway_index,
-        pathway_enrichment=mock_pathway_enrichment,
+        pathway_library=mock_pathway_library,
     )
     feature_dataset = feature_class.compute(
         study_loci_to_annotate=mock_study_locus,
@@ -2000,167 +2000,261 @@ class TestTransPQtlColocH4MaximumNeighbourhoodFeature:
         )
 
 
-class TestPathwayEnrichmentFeature:
-    """Test the pathway enrichment features.
+def _variant(
+    variant_id: str, consequences: list[tuple[str, int, float]]
+) -> dict[str, Any]:
+    """Variant index row with (targetId, distanceFromTss, consequenceScore) consequences."""
+    return {
+        "variantId": variant_id,
+        "chromosome": "1",
+        "position": 1,
+        "referenceAllele": "A",
+        "alternateAllele": "T",
+        "transcriptConsequences": [
+            {
+                "targetId": gene_id,
+                "distanceFromTss": distance,
+                "consequenceScore": score,
+                "isEnsemblCanonical": True,
+            }
+            for gene_id, distance, score in consequences
+        ],
+    }
 
-    The fixtures give three gene sets over three genes - GENE1 in pathway1 and pathway2,
-    GENE2 in pathway1 and pathway3, GENE3 in pathway2 - and one enriched pathway per disease.
-    All three genes sit within the window of the single study locus.
+
+def _credible_set(
+    study_locus_id: str,
+    study_id: str,
+    variant_id: str,
+    position: int,
+    study_type: str = "gwas",
+) -> dict[str, Any]:
+    """Single-variant credible set on chromosome 1."""
+    return {
+        "studyLocusId": study_locus_id,
+        "studyId": study_id,
+        "studyType": study_type,
+        "variantId": variant_id,
+        "chromosome": "1",
+        "position": position,
+        "locus": [{"variantId": variant_id, "posteriorProbability": 1.0}],
+    }
+
+
+def _datasets(
+    spark: SparkSession,
+    genes: list[dict[str, Any]],
+    variants: list[dict[str, Any]],
+    credible_sets: list[dict[str, Any]],
+    studies: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """Target index, variant index, credible sets and study index built from rows."""
+    return {
+        "target_index": TargetIndex(
+            _df=spark.createDataFrame(genes, TargetIndex.get_schema()),
+            _schema=TargetIndex.get_schema(),
+        ),
+        "variant_index": VariantIndex(
+            _df=spark.createDataFrame(variants, VariantIndex.get_schema()),
+            _schema=VariantIndex.get_schema(),
+        ),
+        "study_locus": StudyLocus(
+            _df=spark.createDataFrame(credible_sets, StudyLocus.get_schema()),
+            _schema=StudyLocus.get_schema(),
+        ),
+        "study_index": StudyIndex(
+            _df=spark.createDataFrame(studies, StudyIndex.get_schema()),
+            _schema=StudyIndex.get_schema(),
+        ),
+    }
+
+
+def _gene(
+    gene_id: str,
+    tss: int,
+    pathways: list[str] | None = None,
+    biotype: str = "protein_coding",
+) -> dict[str, Any]:
+    """Target index row on chromosome 1 with Reactome annotations."""
+    return {
+        "id": gene_id,
+        "biotype": biotype,
+        "genomicLocation": {"chromosome": "1", "start": tss, "end": tss + 999},
+        "tss": tss,
+        "pathways": [{"pathwayId": pathway} for pathway in pathways or []],
+    }
+
+
+def _study(
+    study_id: str, disease_ids: list[str], study_type: str = "gwas"
+) -> dict[str, Any]:
+    """Study index row."""
+    return {
+        "studyId": study_id,
+        "studyType": study_type,
+        "projectId": "project1",
+        "diseaseIds": disease_ids,
+    }
+
+
+def test_prioritised_disease_genes(spark: SparkSession) -> None:
+    """The nearest protein-coding gene and the coding-variant genes of GWAS credible sets.
+
+    At var1 the lncRNA geneD is closest, so geneB is the nearest protein-coding gene; geneC is
+    further away but carries a missense consequence. The eQTL credible set does not count.
+    """
+    datasets = _datasets(
+        spark,
+        genes=[
+            _gene("geneA", 1_000),
+            _gene("geneB", 2_000),
+            _gene("geneC", 3_000),
+            _gene("geneD", 4_000, biotype="lncRNA"),
+        ],
+        variants=[
+            _variant(
+                "var1",
+                [
+                    ("geneA", 1_000, 0.1),
+                    ("geneB", 50, 0.1),
+                    ("geneC", 20_000, 0.66),
+                    ("geneD", 10, 0.1),
+                ],
+            ),
+            _variant("var2", [("geneA", 0, 0.1)]),
+        ],
+        credible_sets=[
+            _credible_set("sl1", "study1", "var1", 2_000),
+            _credible_set("sl2", "study2", "var2", 1_000, study_type="eqtl"),
+        ],
+        studies=[
+            _study("study1", ["d1", "d2"]),
+            _study("study2", ["d3"], study_type="eqtl"),
+        ],
+    )
+    genes = {
+        (row["diseaseId"], row["geneId"])
+        for row in prioritised_disease_genes(**datasets).collect()
+    }
+    assert genes == {("d1", "geneB"), ("d1", "geneC"), ("d2", "geneB"), ("d2", "geneC")}
+
+
+class TestPathwayEnrichmentFeature:
+    """Test the pathway enrichment features end to end.
+
+    Twenty protein-coding genes, all in Reactome pathway R-HSA-1 through its child R-HSA-2 or
+    directly. gene0-gene3 are in R-HSA-2 and are each the nearest gene of one credible set of
+    study1 (disease1), so R-HSA-2 is enriched for disease1: k = n = K = 4 of N = 20, p = 1/4,845.
+    R-HSA-1 holds every gene and is not. gene4 sits 100 kb from gene0, inside the window of sl0.
     """
 
     @pytest.fixture()
-    def pathway_target_index(self, spark: SparkSession) -> TargetIndex:
-        """Three genes at the same locus, with the symbols used by the pathway library."""
-        return TargetIndex(
-            _df=spark.createDataFrame(
-                [
-                    ("gene1", "GENE1", "protein_coding", "1", 1000),
-                    ("gene2", "GENE2", "protein_coding", "1", 2000),
-                    ("gene3", "GENE3", "protein_coding", "1", 3000),
-                ],
-                "id string, approvedSymbol string, biotype string, chromosome string, tss long",
-            ).select(
-                "id",
-                "approvedSymbol",
-                "biotype",
-                f.struct(f.col("chromosome")).alias("genomicLocation"),
-                "tss",
-                f.array()
-                .cast("array<struct<label:string,source:string>>")
-                .alias("obsoleteSymbols"),
-            ),
-            _schema=TargetIndex.get_schema(),
-        )
-
-    @pytest.fixture()
-    def pathway_study_index(self, spark: SparkSession) -> StudyIndex:
-        """One single-disease study and one study annotated with two diseases."""
-        return StudyIndex(
-            _df=spark.createDataFrame(
-                [
-                    {
-                        "studyId": "study1",
-                        "studyType": "gwas",
-                        "projectId": "project1",
-                        "diseaseIds": ["disease1"],
-                    },
-                    {
-                        "studyId": "study2",
-                        "studyType": "gwas",
-                        "projectId": "project1",
-                        "diseaseIds": ["disease1", "disease2"],
-                    },
-                ]
-            ),
-            _schema=StudyIndex.get_schema(),
-        )
-
-    @pytest.fixture()
-    def pathway_study_locus(self, spark: SparkSession) -> StudyLocus:
-        """One credible set per study, both at the same position."""
-        return StudyLocus(
-            _df=spark.createDataFrame(
-                [
-                    {
-                        "studyLocusId": "sl1",
-                        "variantId": "var1",
-                        "studyId": "study1",
-                        "chromosome": "1",
-                    },
-                    {
-                        "studyLocusId": "sl2",
-                        "variantId": "var1",
-                        "studyId": "study2",
-                        "chromosome": "1",
-                    },
-                ]
-            ).withColumn("position", f.lit(2000).cast("integer")),
-            _schema=StudyLocus.get_schema(),
+    def datasets(self, spark: SparkSession) -> dict[str, Any]:
+        """Datasets of the toy release."""
+        tss = {f"gene{i}": 10_000_000 * (i + 1) for i in range(20)}
+        tss["gene4"] = tss["gene0"] + 100_000
+        genes = [
+            _gene(gene_id, position, ["R-HSA-2"] if i < 4 else ["R-HSA-1"])
+            for i, (gene_id, position) in enumerate(tss.items())
+        ]
+        variants = [
+            _variant(
+                f"var{i}",
+                [(f"gene{i}", 0, 0.1)] + ([("gene4", 100_000, 0.1)] if i == 0 else []),
+            )
+            for i in range(4)
+        ]
+        credible_sets = [
+            _credible_set(f"sl{i}", "study1", f"var{i}", tss[f"gene{i}"])
+            for i in range(4)
+        ]
+        return _datasets(
+            spark, genes, variants, credible_sets, [_study("study1", ["disease1"])]
         )
 
     @staticmethod
-    def _scores(feature: L2GFeature, study_locus_id: str) -> dict[str, float]:
+    def _scores(df: Any, feature_name: str, study_locus_id: str) -> dict[str, float]:
         return {
-            row["geneId"]: float(row["featureValue"])
-            for row in feature.df.filter(
-                f.col("studyLocusId") == study_locus_id
-            ).collect()
+            row["geneId"]: float(row[feature_name])
+            for row in df.filter(f.col("studyLocusId") == study_locus_id).collect()
         }
 
-    def test_single_disease_study(
-        self,
-        mock_pathway_index: PathwayIndex,
-        mock_pathway_enrichment: PathwayEnrichment,
-        pathway_study_index: StudyIndex,
-        pathway_study_locus: StudyLocus,
-        pathway_target_index: TargetIndex,
+    @staticmethod
+    def _parameters(**overrides: Any) -> dict[str, Any]:
+        """Thresholds small enough for the toy release."""
+        return {
+            "p_value_adjusted_threshold": 0.05,
+            "genomic_window": 500_000,
+            "min_pathway_size": 1,
+            "min_disease_genes": 4,
+        } | overrides
+
+    def test_score_is_the_fraction_of_enriched_pathways(
+        self, datasets: dict[str, Any], mock_pathway_library: PathwayLibrary
     ) -> None:
-        """Only pathway1 is enriched for disease1, so its two genes score 1 of their 2 pathways."""
-        feature = PathwayEnrichmentFeature.compute(
-            study_loci_to_annotate=pathway_study_locus,
-            feature_dependency={
-                "pathway_index": mock_pathway_index,
-                "pathway_enrichment": mock_pathway_enrichment,
-                "study_index": pathway_study_index,
-                "study_locus": pathway_study_locus,
-                "target_index": pathway_target_index,
-            },
+        """gene0 is in R-HSA-1 and R-HSA-2, one of them enriched; gene4 is in R-HSA-1 only."""
+        df = common_pathway_enrichment_feature_logic(
+            datasets["study_locus"],
+            "pathwayEnrichment500kb",
+            pathway_library=mock_pathway_library,
+            **datasets,
+            **self._parameters(),
         )
-        assert self._scores(feature, "sl1") == {
-            "gene1": pytest.approx(0.5),
-            "gene2": pytest.approx(0.5),
-            "gene3": pytest.approx(0.0),
+        assert self._scores(df, "pathwayEnrichment500kb", "sl0") == {
+            "gene0": pytest.approx(0.5),
+            "gene4": pytest.approx(0.0),
         }
 
-    def test_pathways_are_pooled_over_the_diseases_of_a_study(
-        self,
-        mock_pathway_index: PathwayIndex,
-        mock_pathway_enrichment: PathwayEnrichment,
-        pathway_study_index: StudyIndex,
-        pathway_study_locus: StudyLocus,
-        pathway_target_index: TargetIndex,
+    def test_diseases_with_too_few_genes_are_not_tested(
+        self, datasets: dict[str, Any], mock_pathway_library: PathwayLibrary
     ) -> None:
-        """study2 carries both diseases, so pathway1 and pathway2 are both enriched for it."""
-        feature = PathwayEnrichmentFeature.compute(
-            study_loci_to_annotate=pathway_study_locus,
-            feature_dependency={
-                "pathway_index": mock_pathway_index,
-                "pathway_enrichment": mock_pathway_enrichment,
-                "study_index": pathway_study_index,
-                "study_locus": pathway_study_locus,
-                "target_index": pathway_target_index,
-            },
+        """disease1 has four genes, so a minimum of five leaves every gene at 0."""
+        df = common_pathway_enrichment_feature_logic(
+            datasets["study_locus"],
+            "pathwayEnrichment500kb",
+            pathway_library=mock_pathway_library,
+            **datasets,
+            **self._parameters(min_disease_genes=5),
         )
-        assert self._scores(feature, "sl2") == {
-            # GENE1 is in pathway1 and pathway2, both enriched
-            "gene1": pytest.approx(1.0),
-            # GENE2 is in pathway1 (enriched) and pathway3 (not)
-            "gene2": pytest.approx(0.5),
-            # GENE3 is only in pathway2, which is enriched
-            "gene3": pytest.approx(1.0),
+        assert self._scores(df, "pathwayEnrichment500kb", "sl0") == {
+            "gene0": pytest.approx(0.0),
+            "gene4": pytest.approx(0.0),
         }
 
     def test_neighbourhood_is_relative_to_the_best_gene_at_the_locus(
-        self,
-        mock_pathway_index: PathwayIndex,
-        mock_pathway_enrichment: PathwayEnrichment,
-        pathway_study_index: StudyIndex,
-        pathway_study_locus: StudyLocus,
-        pathway_target_index: TargetIndex,
+        self, datasets: dict[str, Any], mock_pathway_library: PathwayLibrary
     ) -> None:
-        """The two genes tied at the top of the locus reach 1, the third stays at 0."""
-        feature = PathwayEnrichmentNeighbourhoodFeature.compute(
-            study_loci_to_annotate=pathway_study_locus,
-            feature_dependency={
-                "pathway_index": mock_pathway_index,
-                "pathway_enrichment": mock_pathway_enrichment,
-                "study_index": pathway_study_index,
-                "study_locus": pathway_study_locus,
-                "target_index": pathway_target_index,
-            },
+        """gene0 has the best score at sl0 and reaches 1."""
+        df = common_neighbourhood_pathway_enrichment_feature_logic(
+            datasets["study_locus"],
+            "pathwayEnrichment500kbNeighbourhood",
+            pathway_library=mock_pathway_library,
+            **datasets,
+            **self._parameters(),
         )
-        assert self._scores(feature, "sl1") == {
-            "gene1": pytest.approx(1.0),
-            "gene2": pytest.approx(1.0),
-            "gene3": pytest.approx(0.0),
+        assert self._scores(df, "pathwayEnrichment500kbNeighbourhood", "sl0") == {
+            "gene0": pytest.approx(1.0),
+            "gene4": pytest.approx(0.0),
         }
+
+    def test_feature_classes_use_the_release_tables(
+        self, datasets: dict[str, Any], mock_pathway_library: PathwayLibrary
+    ) -> None:
+        """With the default minimum of 25 disease genes nothing is tested, so every score is 0."""
+        loader = L2GFeatureInputLoader(pathway_library=mock_pathway_library, **datasets)
+        for feature_class in (
+            PathwayEnrichmentFeature,
+            PathwayEnrichmentNeighbourhoodFeature,
+        ):
+            feature = feature_class.compute(
+                study_loci_to_annotate=datasets["study_locus"],
+                feature_dependency=loader.get_dependency_by_type(
+                    feature_class.feature_dependency_type
+                ),
+            )
+            values = {
+                (row["studyLocusId"], row["geneId"]): row["featureValue"]
+                for row in feature.df.collect()
+            }
+            assert values[("sl0", "gene0")] == 0.0
+            assert len(values) == 5
