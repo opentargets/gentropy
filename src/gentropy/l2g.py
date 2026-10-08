@@ -17,6 +17,7 @@ from gentropy.common.schemas import compare_struct_schemas
 from gentropy.common.session import Session
 from gentropy.common.spark import calculate_harmonic_sum
 from gentropy.dataset.colocalisation import Colocalisation
+from gentropy.dataset.fm_pops_score import FmPopsScore
 from gentropy.dataset.intervals import Intervals
 from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
@@ -66,6 +67,7 @@ class LocusToGeneFeatureMatrixStep:
         gene_interactions_path: str | None = None,
         pathway_index_path: str | None = None,
         pathway_enrichment_path: str | None = None,
+        fm_pops_path: str | None = None,
         feature_matrix_path: str,
         append_null_features: bool = False,
     ) -> None:
@@ -85,6 +87,8 @@ class LocusToGeneFeatureMatrixStep:
                 written by the pathway ingestion step
             pathway_enrichment_path (str | None): Path to the harmonised `PathwayEnrichment`
                 dataset, as written by the pathway ingestion step
+            fm_pops_path (str | None): Path to the `FmPopsScore` dataset, as written by the
+                fmPops step
             feature_matrix_path (str): Path to the L2G feature matrix output dataset
             append_null_features (bool): Whether to append null features to the feature matrix. Defaults to False.
         """
@@ -143,6 +147,10 @@ class LocusToGeneFeatureMatrixStep:
             else None
         )
 
+        fm_pops = (
+            FmPopsScore.from_parquet(session, fm_pops_path) if fm_pops_path else None
+        )
+
         trans_pqtl_features = {
             "transPQtlColocH4Maximum",
             "transPQtlColocH4MaximumNeighbourhood",
@@ -175,6 +183,15 @@ class LocusToGeneFeatureMatrixStep:
                 "and `study_index_path`."
             )
 
+        fm_pops_features = {"fmPops", "fmPopsNeighbourhood"}
+        if fm_pops_features.intersection(features_list) and (
+            fm_pops is None or target_index is None
+        ):
+            raise ValueError(
+                "fmPops features need the fmPops scores and the target index. Provide "
+                "`fm_pops_path` and `target_index_path`."
+            )
+
         features_input_loader = L2GFeatureInputLoader(
             variant_index=variant_index,
             colocalisation=coloc,
@@ -185,6 +202,7 @@ class LocusToGeneFeatureMatrixStep:
             interactions=interactions,
             pathway_index=pathway_index,
             pathway_enrichment=pathway_enrichment,
+            fm_pops_score=fm_pops,
         )
 
         fm = credible_set.filter(f.col("studyType") == "gwas").build_feature_matrix(

@@ -215,3 +215,36 @@ def copy_to_gcs(source_path: str, destination_blob: str) -> None:
     bucket = client.bucket(bucket_name=urlparse(destination_blob).hostname)
     blob = bucket.blob(blob_name=urlparse(destination_blob).path.lstrip("/"))
     blob.upload_from_filename(source_path)
+
+
+def copy_from_gcs(source_prefix: str, destination_dir: str) -> None:
+    """Copy every blob under a Google Cloud Storage prefix to a local directory.
+
+    The directory structure below the prefix is kept, so `gs://bucket/a/` holding `b/c.txt`
+    ends up as `destination_dir/b/c.txt`.
+
+    Args:
+        source_prefix (str): GS path of the directory to copy
+        destination_dir (str): Local directory to copy into
+
+    Raises:
+        FileNotFoundError: If no blob sits under the prefix
+    """
+    from pathlib import Path
+    from urllib.parse import urlparse
+
+    from google.cloud import storage
+
+    parsed = urlparse(source_prefix)
+    prefix = parsed.path.lstrip("/").rstrip("/") + "/"
+    client = storage.Client()
+    copied = 0
+    for blob in client.list_blobs(parsed.hostname, prefix=prefix):
+        if blob.name.endswith("/"):
+            continue
+        destination = Path(destination_dir) / blob.name[len(prefix) :]
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        blob.download_to_filename(str(destination))
+        copied += 1
+    if copied == 0:
+        raise FileNotFoundError(f"No file found under {source_prefix}.")

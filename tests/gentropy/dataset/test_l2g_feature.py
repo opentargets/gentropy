@@ -55,6 +55,10 @@ from gentropy.dataset.l2g_features.distance import (
     common_distance_feature_logic,
     common_neighbourhood_distance_feature_logic,
 )
+from gentropy.dataset.l2g_features.fm_pops import (
+    FmPopsFeature,
+    FmPopsNeighbourhoodFeature,
+)
 from gentropy.dataset.l2g_features.l2g_feature import L2GFeature
 from gentropy.dataset.l2g_features.pathway import (
     PathwayEnrichmentFeature,
@@ -80,6 +84,7 @@ from gentropy.dataset.l2g_features.other import (
 from gentropy.dataset.l2g_features.intervals import (
     e2g_interval_feature_wide_logic,
 )
+from gentropy.dataset.fm_pops_score import FmPopsScore
 from gentropy.dataset.pathway_enrichment import PathwayEnrichment
 from gentropy.dataset.pathway_index import PathwayIndex
 from gentropy.dataset.study_index import StudyIndex
@@ -145,6 +150,8 @@ def test_extract_maximum_coloc_probability_per_region_and_gene(
         ProteinCodingFeature,
         PathwayEnrichmentFeature,
         PathwayEnrichmentNeighbourhoodFeature,
+        FmPopsFeature,
+        FmPopsNeighbourhoodFeature,
     ],
 )
 def test_feature_factory_return_type(
@@ -156,6 +163,7 @@ def test_feature_factory_return_type(
     mock_target_index: TargetIndex,
     mock_pathway_index: PathwayIndex,
     mock_pathway_enrichment: PathwayEnrichment,
+    mock_fm_pops_score: FmPopsScore,
     sample_otp_interactions: Any,
 ) -> None:
     """Test that every feature factory returns a L2GFeature dataset."""
@@ -168,6 +176,7 @@ def test_feature_factory_return_type(
         interactions=sample_otp_interactions,
         pathway_index=mock_pathway_index,
         pathway_enrichment=mock_pathway_enrichment,
+        fm_pops_score=mock_fm_pops_score,
     )
     feature_dataset = feature_class.compute(
         study_loci_to_annotate=mock_study_locus,
@@ -2164,3 +2173,116 @@ class TestPathwayEnrichmentFeature:
             "gene2": pytest.approx(1.0),
             "gene3": pytest.approx(0.0),
         }
+
+
+class TestFmPopsFeature:
+    """Test the fmPops features.
+
+    The scores cover gene1 (0.6), gene2 (-0.2) and gene3 (-0.4). gene4 is protein coding and
+    within the window but has no score, gene5 is a scored identifier with a non-coding biotype,
+    and gene6 is too far away. sl1 sits among the first five genes; sl2 only reaches gene3.
+    """
+
+    @pytest.fixture()
+    def fm_pops_target_index(self, spark: SparkSession) -> TargetIndex:
+        """Genes around position 2,000 of chromosome 1, and one far away."""
+        return TargetIndex(
+            _df=spark.createDataFrame(
+                [
+                    ("gene1", "protein_coding", "1", 1000),
+                    ("gene2", "protein_coding", "1", 2000),
+                    ("gene3", "protein_coding", "1", 3000),
+                    ("gene4", "protein_coding", "1", 2500),
+                    ("gene5", "lncRNA", "1", 2500),
+                    ("gene6", "protein_coding", "1", 10_000_000),
+                ],
+                "id string, biotype string, chromosome string, tss long",
+            ).select(
+                "id",
+                "biotype",
+                f.struct(f.col("chromosome")).alias("genomicLocation"),
+                "tss",
+            ),
+            _schema=TargetIndex.get_schema(),
+        )
+
+    @pytest.fixture()
+    def fm_pops_study_locus(self, spark: SparkSession) -> StudyLocus:
+        """Two credible sets on chromosome 1."""
+        return StudyLocus(
+            _df=spark.createDataFrame(
+                [("sl1", "var1", "study1", 2000), ("sl2", "var2", "study1", 502_500)],
+                "studyLocusId string, variantId string, studyId string, position integer",
+            ).withColumn("chromosome", f.lit("1")),
+            _schema=StudyLocus.get_schema(),
+        )
+
+    @pytest.fixture()
+    def fm_pops_score(
+        self, spark: SparkSession, mock_fm_pops_score: FmPopsScore
+    ) -> FmPopsScore:
+        """The mock scores plus one for the non-coding gene5."""
+        extra = spark.createDataFrame(
+            [("gene5", "1", 9, 2.0)], FmPopsScore.get_schema()
+        )
+        return FmPopsScore(
+            _df=mock_fm_pops_score.df.unionByName(extra),
+            _schema=FmPopsScore.get_schema(),
+        )
+
+    @staticmethod
+    def _scores(feature: L2GFeature, study_locus_id: str) -> dict[str, float]:
+        return {
+            row["geneId"]: float(row["featureValue"])
+            for row in feature.df.filter(
+                f.col("studyLocusId") == study_locus_id
+            ).collect()
+        }
+
+    def test_local_feature_is_the_gene_score(
+        self,
+        fm_pops_score: FmPopsScore,
+        fm_pops_study_locus: StudyLocus,
+        fm_pops_target_index: TargetIndex,
+    ) -> None:
+        """One row per credible set and scored protein-coding gene in the window."""
+        feature = FmPopsFeature.compute(
+            study_loci_to_annotate=fm_pops_study_locus,
+            feature_dependency={
+                "fm_pops_score": fm_pops_score,
+                "study_locus": fm_pops_study_locus,
+                "target_index": fm_pops_target_index,
+            },
+        )
+        assert self._scores(feature, "sl1") == {
+            "gene1": pytest.approx(0.6),
+            "gene2": pytest.approx(-0.2),
+            "gene3": pytest.approx(-0.4),
+        }
+        assert self._scores(feature, "sl2") == {"gene3": pytest.approx(-0.4)}
+        assert feature.df.count() == 4
+
+    def test_neighbourhood_is_scaled_between_the_locus_minimum_and_maximum(
+        self,
+        fm_pops_score: FmPopsScore,
+        fm_pops_study_locus: StudyLocus,
+        fm_pops_target_index: TargetIndex,
+    ) -> None:
+        """The best gene at a locus gets 1, the worst 0, and a lone gene 1."""
+        feature = FmPopsNeighbourhoodFeature.compute(
+            study_loci_to_annotate=fm_pops_study_locus,
+            feature_dependency={
+                "fm_pops_score": fm_pops_score,
+                "study_locus": fm_pops_study_locus,
+                "target_index": fm_pops_target_index,
+            },
+        )
+        assert self._scores(feature, "sl1") == {
+            "gene1": pytest.approx(1.0),
+            "gene2": pytest.approx(0.2),
+            "gene3": pytest.approx(0.0),
+        }
+        assert self._scores(feature, "sl2") == {"gene3": pytest.approx(1.0)}
+        assert {
+            row["featureName"] for row in feature.df.select("featureName").collect()
+        } == {"fmPopsNeighbourhood"}

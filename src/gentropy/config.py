@@ -432,6 +432,7 @@ class LocusToGeneFeatureMatrixConfig(StepConfig):
     gene_interactions_path: str | None = None
     pathway_index_path: str | None = None
     pathway_enrichment_path: str | None = None
+    fm_pops_path: str | None = None
     feature_matrix_path: str = MISSING
     features_list: list[str] = field(
         default_factory=lambda: [
@@ -897,6 +898,29 @@ class PathwayIngestionConfig(StepConfig):
 
 
 @dataclass
+class FmPopsConfig(StepConfig):
+    """fmPops gene-level prior step configuration."""
+
+    session: Any = field(
+        default_factory=lambda: {
+            "extended_spark_conf": {
+                "spark.driver.memory": "48g",
+                "spark.driver.maxResultSize": "4g",
+            }
+        }
+    )
+    credible_set_path: str = MISSING
+    study_index_path: str = MISSING
+    variant_index_path: str = MISSING
+    target_index_path: str = MISSING
+    pops_feature_dir: str = MISSING
+    output_path: str = MISSING
+    lambda_grid: Any = None  # list[float] | None — Any avoids OmegaConf Optional[List] merge bug
+
+    _target_: str = "gentropy.fm_pops.FmPopsStep"
+
+
+@dataclass
 class FineMappingPlanGeneratorConfig(StepConfig):
     """Fine-mapping plan generator step configuration."""
 
@@ -1081,6 +1105,7 @@ def register_config() -> None:
         name="pathway_ingestion",
         node=PathwayIngestionConfig,
     )
+    cs.store(group="step", name="fm_pops", node=FmPopsConfig)
     cs.store(
         group="step",
         name="decode_manifest_generation",

@@ -1,0 +1,29 @@
+{
+  "type": "struct",
+  "fields": [
+    {
+      "name": "geneId",
+      "type": "string",
+      "nullable": false,
+      "metadata": {}
+    },
+    {
+      "name": "chromosome",
+      "type": "string",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "targetCount",
+      "type": "integer",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "fmPops",
+      "type": "double",
+      "nullable": true,
+      "metadata": {}
+    }
+  ]
+}
