@@ -16,7 +16,6 @@ from gentropy.common.genomic_region import LiftOverSpark
 from gentropy.common.session import Session
 from gentropy.dataset.biosample_index import BiosampleIndex
 from gentropy.dataset.colocalisation import Colocalisation
-from gentropy.dataset.fm_pops_score import FmPopsScore
 from gentropy.dataset.intervals import Intervals
 from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
@@ -392,22 +391,6 @@ def mock_pathway_index(spark: SparkSession) -> PathwayIndex:
             PathwayIndex.get_schema(),
         ),
         _schema=PathwayIndex.get_schema(),
-    )
-
-
-@pytest.fixture()
-def mock_fm_pops_score(spark: SparkSession) -> FmPopsScore:
-    """Mock fmPops score dataset over three genes, one of them never a nearest gene."""
-    return FmPopsScore(
-        _df=spark.createDataFrame(
-            [
-                ("gene1", "1", 3, 0.6),
-                ("gene2", "1", 1, -0.2),
-                ("gene3", "1", 0, -0.4),
-            ],
-            FmPopsScore.get_schema(),
-        ),
-        _schema=FmPopsScore.get_schema(),
     )
 
 
