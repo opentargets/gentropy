@@ -90,6 +90,132 @@ def prioritised_disease_genes(
     )
 
 
+def gwas_disease_sets(study_index: StudyIndex) -> DataFrame:
+    """Sorted set of diseases of every GWAS study with at least one disease.
+
+    Studies are grouped by their set of diseases rather than handled one by one: there are
+    far fewer distinct disease sets than studies, and the great majority hold one disease.
+
+    Args:
+        study_index (StudyIndex): Study index
+
+    Returns:
+        DataFrame: `studyId` and `diseaseSet`
+    """
+    return (
+        study_index.df.filter(f.col("studyType") == "gwas")
+        .filter(f.size(f.col("diseaseIds")) > 0)
+        .select("studyId", f.array_sort(f.col("diseaseIds")).alias("diseaseSet"))
+        .distinct()
+    )
+
+
+# The raw and neighbourhood features are computed one after the other from the same inputs.
+# Keeping the last scores lets the second feature reuse them instead of rerunning the
+# release-wide enrichment. The inputs are kept with the scores so their ids stay valid.
+_last_scores: dict[str, Any] = {}
+
+
+def disease_set_pathway_scores(
+    *,
+    pathway_library: PathwayLibrary,
+    study_index: StudyIndex,
+    study_locus: StudyLocus,
+    target_index: TargetIndex,
+    variant_index: VariantIndex,
+    p_value_adjusted_threshold: float,
+    min_pathway_size: int,
+    max_pathway_size: int,
+    min_disease_genes: int,
+    vep_score_threshold: float,
+) -> DataFrame:
+    """Fraction of each gene's pathways that are enriched for each set of study diseases.
+
+    The result is reused when called again with the same input objects and thresholds, see
+    `common_pathway_enrichment_feature_logic` for the arguments.
+
+    Args:
+        pathway_library (PathwayLibrary): GO and Reactome tables of the release
+        study_index (StudyIndex): Study index, used to resolve a study to its diseases
+        study_locus (StudyLocus): Credible sets, the source of the disease gene lists
+        target_index (TargetIndex): Target index, used for gene annotations
+        variant_index (VariantIndex): Variant index, used to prioritise genes at each credible set
+        p_value_adjusted_threshold (float): Largest adjusted p-value, exclusive, for a pathway
+            to count as enriched
+        min_pathway_size (int): Smallest number of member genes a tested pathway may have
+        max_pathway_size (int): Largest number of member genes a tested pathway may have
+        min_disease_genes (int): Smallest number of library genes a disease needs to be tested
+        vep_score_threshold (float): Smallest `vepMaximum` that prioritises a gene
+
+    Returns:
+        DataFrame: `diseaseSet`, `geneId` and `score`, for genes in at least one enriched pathway
+    """
+    inputs = (pathway_library, study_index, study_locus, target_index, variant_index)
+    thresholds = (
+        p_value_adjusted_threshold,
+        min_pathway_size,
+        max_pathway_size,
+        min_disease_genes,
+        vep_score_threshold,
+    )
+    if (
+        _last_scores
+        and all(a is b for a, b in zip(_last_scores["inputs"], inputs))
+        and _last_scores["thresholds"] == thresholds
+    ):
+        return _last_scores["scores"]
+
+    gene_sets = pathway_library.gene_sets(
+        target_index, min_size=min_pathway_size, max_size=max_pathway_size
+    )
+    pathways_per_gene = gene_sets.groupBy("geneId").agg(
+        f.count("pathwayId").alias("pathwaysPerGene")
+    )
+    enriched_pathways = (
+        PathwayLibrary.over_representation(
+            prioritised_disease_genes(
+                study_locus,
+                study_index,
+                variant_index,
+                target_index,
+                vep_score_threshold=vep_score_threshold,
+            ),
+            gene_sets,
+            min_genes=min_disease_genes,
+        )
+        .filter(f.col("pValueAdjusted") < p_value_adjusted_threshold)
+        .select("diseaseId", "pathwayId")
+    )
+
+    disease_sets = gwas_disease_sets(study_index)
+    enriched_pathways_per_gene = (
+        disease_sets.select("diseaseSet")
+        .distinct()
+        .select("diseaseSet", f.explode("diseaseSet").alias("diseaseId"))
+        .distinct()
+        .join(enriched_pathways, "diseaseId", "inner")
+        .select("diseaseSet", "pathwayId")
+        .distinct()
+        .join(gene_sets, "pathwayId", "inner")
+        .groupBy("diseaseSet", "geneId")
+        .agg(f.count("pathwayId").alias("enrichedPathwaysPerGene"))
+    )
+    # Cached because sharing the DataFrame alone does not stop Spark running the plan twice.
+    scores = (
+        enriched_pathways_per_gene.join(pathways_per_gene, "geneId", "inner")
+        .select(
+            "diseaseSet",
+            "geneId",
+            (f.col("enrichedPathwaysPerGene") / f.col("pathwaysPerGene")).alias(
+                "score"
+            ),
+        )
+        .cache()
+    )
+    _last_scores.update(inputs=inputs, thresholds=thresholds, scores=scores)
+    return scores
+
+
 def common_pathway_enrichment_feature_logic(
     study_loci_to_annotate: StudyLocus | L2GGoldStandard,
     feature_name: str,
@@ -152,54 +278,18 @@ def common_pathway_enrichment_feature_logic(
     Returns:
         DataFrame: Feature dataset with one row per study locus and gene in its window
     """
-    gene_sets = pathway_library.gene_sets(
-        target_index, min_size=min_pathway_size, max_size=max_pathway_size
-    )
-    pathways_per_gene = gene_sets.groupBy("geneId").agg(
-        f.count("pathwayId").alias("pathwaysPerGene")
-    )
-    enriched_pathways = (
-        PathwayLibrary.over_representation(
-            prioritised_disease_genes(
-                study_locus,
-                study_index,
-                variant_index,
-                target_index,
-                vep_score_threshold=vep_score_threshold,
-            ),
-            gene_sets,
-            min_genes=min_disease_genes,
-        )
-        .filter(f.col("pValueAdjusted") < p_value_adjusted_threshold)
-        .select("diseaseId", "pathwayId")
-    )
-
-    # Studies are grouped by their set of diseases rather than handled one by one: there are
-    # far fewer distinct disease sets than studies, and the great majority hold one disease.
-    disease_sets = (
-        study_index.df.filter(f.col("studyType") == "gwas")
-        .filter(f.size(f.col("diseaseIds")) > 0)
-        .select("studyId", f.array_sort(f.col("diseaseIds")).alias("diseaseSet"))
-        .distinct()
-    )
-    enriched_pathways_per_gene = (
-        disease_sets.select("diseaseSet")
-        .distinct()
-        .select("diseaseSet", f.explode("diseaseSet").alias("diseaseId"))
-        .distinct()
-        .join(enriched_pathways, "diseaseId", "inner")
-        .select("diseaseSet", "pathwayId")
-        .distinct()
-        .join(gene_sets, "pathwayId", "inner")
-        .groupBy("diseaseSet", "geneId")
-        .agg(f.count("pathwayId").alias("enrichedPathwaysPerGene"))
-    )
-    scores = enriched_pathways_per_gene.join(
-        pathways_per_gene, "geneId", "inner"
-    ).select(
-        "diseaseSet",
-        "geneId",
-        (f.col("enrichedPathwaysPerGene") / f.col("pathwaysPerGene")).alias("score"),
+    disease_sets = gwas_disease_sets(study_index)
+    scores = disease_set_pathway_scores(
+        pathway_library=pathway_library,
+        study_index=study_index,
+        study_locus=study_locus,
+        target_index=target_index,
+        variant_index=variant_index,
+        p_value_adjusted_threshold=p_value_adjusted_threshold,
+        min_pathway_size=min_pathway_size,
+        max_pathway_size=max_pathway_size,
+        min_disease_genes=min_disease_genes,
+        vep_score_threshold=vep_score_threshold,
     )
 
     genes_in_window = (
