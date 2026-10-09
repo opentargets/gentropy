@@ -70,6 +70,48 @@ def _target_index(spark: SparkSession, genes: list[tuple[Any, ...]]) -> TargetIn
     )
 
 
+def _credible_sets(
+    spark: SparkSession, rows: list[tuple[str, str, str, list[str]]]
+) -> StudyLocus:
+    """Credible sets from (studyLocusId, lead variantId, studyId, locus variantIds) tuples."""
+    return StudyLocus(
+        _df=spark.createDataFrame(
+            [
+                (sl, lead, study, [(v, 0.5) for v in locus])
+                for sl, lead, study, locus in rows
+            ],
+            "studyLocusId string, variantId string, studyId string, "
+            "locus array<struct<variantId: string, posteriorProbability: double>>",
+        )
+        .withColumn("chromosome", f.lit("1"))
+        .withColumn("position", f.lit(2000)),
+        _schema=StudyLocus.get_schema(),
+    )
+
+
+def _variants(
+    spark: SparkSession, rows: dict[str, list[tuple[str, str, int]]]
+) -> VariantIndex:
+    """Variant index from {variantId: [(geneId, biotype, distanceFromFootprint)]}."""
+    return VariantIndex(
+        _df=spark.createDataFrame(
+            [
+                (
+                    variant,
+                    "1",
+                    2000,
+                    "A",
+                    "T",
+                    [(d, d, gene, True, biotype) for gene, biotype, d in genes],
+                )
+                for variant, genes in rows.items()
+            ],
+            VARIANT_SCHEMA,
+        ),
+        _schema=VariantIndex.get_schema(),
+    )
+
+
 def _scores(feature: L2GFeature, study_locus_id: str) -> dict[str, float]:
     """Feature values of one credible set, by gene."""
     return {
@@ -211,45 +253,54 @@ class TestPleiotropyPriorTarget:
 class TestPleiotropyPriorFeatureLogic:
     """Test how the gene prior becomes features, with the prior fixed in advance.
 
-    The scores cover gene1 (0.6), gene2 (-0.2), gene3 (-0.4) and gene5 (2.0). gene4 is
-    protein coding and within the window but has no score, gene5 has a non-coding biotype, and
-    gene6 is too far away. sl1 sits among the first five genes; sl2 only reaches gene3.
+    The scores cover gene1 (0.6), gene2 (-0.2), gene3 (-0.4), gene5 (2.0) and gene7 (0.1).
+    The lead variant of sl1 reaches genes 1 to 6: gene4 is protein coding but has no score,
+    gene5 has a non-coding biotype, and gene6 is more than 500 kb away. gene7 is reached only
+    through the second variant of sl1. sl2 only reaches gene3.
     """
 
     @pytest.fixture()
     def dependencies(
         self: TestPleiotropyPriorFeatureLogic, spark: SparkSession
     ) -> dict[str, Any]:
-        """Fitted scores, two credible sets and the genes around them."""
+        """Fitted scores, two credible sets and the genes around their variants."""
         inputs = PleiotropyPriorInputs(*[spark.createDataFrame([], "x int")] * 4)
         inputs._scores = spark.createDataFrame(
-            [("gene1", 0.6), ("gene2", -0.2), ("gene3", -0.4), ("gene5", 2.0)],
-            "geneId string, predictedPleiotropyPrior double",
-        )
-        study_locus = StudyLocus(
-            _df=spark.createDataFrame(
-                [("sl1", "var1", "study1", 2000), ("sl2", "var2", "study1", 502_500)],
-                "studyLocusId string, variantId string, studyId string, position integer",
-            ).withColumn("chromosome", f.lit("1")),
-            _schema=StudyLocus.get_schema(),
-        )
-        target_index = _target_index(
-            spark,
             [
-                ("gene1", "protein_coding", "1", 1000, 1999, 1000),
-                ("gene2", "protein_coding", "1", 2000, 2999, 2000),
-                ("gene3", "protein_coding", "1", 3000, 3999, 3000),
-                ("gene4", "protein_coding", "1", 2500, 2999, 2500),
-                ("gene5", "lncRNA", "1", 2500, 2999, 2500),
-                ("gene6", "protein_coding", "1", 10_000_000, 10_000_999, 10_000_000),
+                ("gene1", 0.6),
+                ("gene2", -0.2),
+                ("gene3", -0.4),
+                ("gene5", 2.0),
+                ("gene7", 0.1),
             ],
+            "geneId string, predictedPleiotropyPrior double",
         )
         return {
             "pleiotropy_prior_inputs": inputs,
-            "study_locus": study_locus,
+            "study_locus": _credible_sets(
+                spark,
+                [
+                    ("sl1", "var1", "study1", ["var1", "var3"]),
+                    ("sl2", "var2", "study1", ["var2"]),
+                ],
+            ),
             "study_index": None,
-            "variant_index": None,
-            "target_index": target_index,
+            "variant_index": _variants(
+                spark,
+                {
+                    "var1": [
+                        ("gene1", "protein_coding", 0),
+                        ("gene2", "protein_coding", 1000),
+                        ("gene3", "protein_coding", 2000),
+                        ("gene4", "protein_coding", 500),
+                        ("gene5", "lncRNA", 500),
+                        ("gene6", "protein_coding", 600_000),
+                    ],
+                    "var2": [("gene3", "protein_coding", 0)],
+                    "var3": [("gene7", "protein_coding", 400_000)],
+                },
+            ),
+            "target_index": None,
         }
 
     def test_local_feature_is_the_gene_score(
@@ -264,9 +315,10 @@ class TestPleiotropyPriorFeatureLogic:
             "gene1": pytest.approx(0.6),
             "gene2": pytest.approx(-0.2),
             "gene3": pytest.approx(-0.4),
+            "gene7": pytest.approx(0.1),
         }
         assert _scores(feature, "sl2") == {"gene3": pytest.approx(-0.4)}
-        assert feature.df.count() == 4
+        assert feature.df.count() == 5
 
     def test_neighbourhood_is_scaled_between_the_locus_minimum_and_maximum(
         self: TestPleiotropyPriorFeatureLogic, dependencies: dict[str, Any]
@@ -280,6 +332,7 @@ class TestPleiotropyPriorFeatureLogic:
             "gene1": pytest.approx(1.0),
             "gene2": pytest.approx(0.2),
             "gene3": pytest.approx(0.0),
+            "gene7": pytest.approx(0.5),
         }
         assert _scores(feature, "sl2") == {"gene3": pytest.approx(1.0)}
         assert {
@@ -590,6 +643,14 @@ class TestPleiotropyPriorEndToEnd:
                     credible_sets,
                     "studyLocusId string, studyId string, variantId string, "
                     "chromosome string, position integer, studyType string",
+                ).withColumn(
+                    "locus",
+                    f.array(
+                        f.struct(
+                            f.col("variantId").alias("variantId"),
+                            f.lit(1.0).alias("posteriorProbability"),
+                        )
+                    ),
                 ),
                 _schema=StudyLocus.get_schema(),
             ),
@@ -631,9 +692,9 @@ class TestPleiotropyPriorEndToEnd:
         assert len(fits) == 1
         local_rows = local.df.toPandas()
         neighbourhood_rows = neighbourhood.df.toPandas()
-        # Genes are 200 kb apart, so each credible set reaches up to five genes.
+        # The variant index links each lead variant to two genes, its own and a neighbour.
         assert len(local_rows) == len(neighbourhood_rows)
-        assert local_rows.groupby("studyLocusId").size().max() == 5
+        assert (local_rows.groupby("studyLocusId").size() == 2).all()
         assert local_rows["geneId"].nunique() == 36
         assert np.isfinite(local_rows["featureValue"]).all()
         assert (local_rows["featureValue"] != 0).any()

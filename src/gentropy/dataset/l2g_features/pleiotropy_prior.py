@@ -17,6 +17,7 @@ from gentropy.dataset.l2g_features.distance import (
     DistanceSentinelTssNeighbourhoodFeature,
 )
 from gentropy.dataset.l2g_features.l2g_feature import L2GFeature
+from gentropy.dataset.l2g_features.other import is_protein_coding_feature_logic
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
 from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import StudyLocus
@@ -578,6 +579,40 @@ class PleiotropyPriorInputs:
         )
 
 
+def protein_coding_genes_in_window(
+    study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+    variant_index: VariantIndex,
+    genomic_window: int,
+) -> DataFrame:
+    """Protein-coding genes the L2G feature matrix keeps for each credible set.
+
+    The same genes as the `isProteinCoding` feature flags with 1: protein-coding genes whose
+    footprint lies within `genomic_window` of any variant of the credible set. Training and
+    prediction keep only these rows of the feature matrix, so a gene prior defined on them
+    covers every row the model sees, and its neighbourhood version is scaled over the same genes.
+
+    Args:
+        study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci
+            that will be used for annotation
+        variant_index (VariantIndex): Variant index, the source of the distances to genes
+        genomic_window (int): Largest distance between a variant and a gene footprint
+
+    Returns:
+        DataFrame: Distinct `studyLocusId` and `geneId` pairs
+    """
+    return (
+        is_protein_coding_feature_logic(
+            study_loci_to_annotate,
+            variant_index=variant_index,
+            feature_name="isProteinCoding",
+            genomic_window=genomic_window,
+        )
+        .filter(f.col("isProteinCoding") == 1.0)
+        .select("studyLocusId", "geneId")
+        .distinct()
+    )
+
+
 def common_pleiotropy_prior_feature_logic(
     study_loci_to_annotate: StudyLocus | L2GGoldStandard,
     feature_name: str,
@@ -589,8 +624,10 @@ def common_pleiotropy_prior_feature_logic(
     target_index: TargetIndex,
     genomic_window: int,
 ) -> DataFrame:
-    """Attach the predicted pleiotropy prior to every protein-coding gene near a credible set.
+    """Attach the predicted pleiotropy prior to every protein-coding gene of a credible set.
 
+    The genes are those the feature matrix keeps, see
+    [`protein_coding_genes_in_window`][gentropy.dataset.l2g_features.pleiotropy_prior.protein_coding_genes_in_window].
     The value does not depend on the credible set: a gene gets the same prior at every locus.
     Genes without a prior get no row and are filled with 0 in the feature matrix, which is the
     prior of an average gene because the target is centred.
@@ -600,12 +637,12 @@ def common_pleiotropy_prior_feature_logic(
             that will be used for annotation
         feature_name (str): The name of the feature
         pleiotropy_prior_inputs (PleiotropyPriorInputs): Gene data the prior is fitted on
-        study_locus (StudyLocus): All credible sets, the source of the target and of the
-            position of the study locus
+        study_locus (StudyLocus): All credible sets, the source of the target
         study_index (StudyIndex): Study index, used to resolve a study to its diseases
         variant_index (VariantIndex): Variant index, the source of the distances to genes
-        target_index (TargetIndex): Target index, used for gene positions and biotypes
-        genomic_window (int): Distance up and downstream of the study locus to collect genes from
+        target_index (TargetIndex): Target index
+        genomic_window (int): Largest distance between a credible-set variant and a gene
+            footprint
 
     Returns:
         DataFrame: Feature dataset with one row per study locus and scored gene in its window
@@ -613,27 +650,9 @@ def common_pleiotropy_prior_feature_logic(
     scores = pleiotropy_prior_inputs.scores(
         study_locus, study_index, variant_index, target_index
     )
-    genes_in_window = (
-        study_locus.df.select("studyLocusId", "chromosome", "position")
-        .join(
-            study_loci_to_annotate.df.select("studyLocusId").distinct(),
-            "studyLocusId",
-            "semi",
-        )
-        .join(
-            target_index.df.filter(f.col("biotype") == "protein_coding").select(
-                f.col("id").alias("geneId"),
-                f.col("genomicLocation.chromosome").alias("geneChromosome"),
-                "tss",
-            ),
-            on=(f.col("chromosome") == f.col("geneChromosome"))
-            & (f.abs(f.col("tss") - f.col("position")) <= genomic_window),
-            how="inner",
-        )
-        .select("studyLocusId", "geneId")
-        .distinct()
-    )
-    return genes_in_window.join(
+    return protein_coding_genes_in_window(
+        study_loci_to_annotate, variant_index, genomic_window
+    ).join(
         scores.select(
             "geneId", f.col("predictedPleiotropyPrior").alias(feature_name)
         ),
