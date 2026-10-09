@@ -1,10 +1,11 @@
 """Docs to apply a method on a dataset."""
+
 from __future__ import annotations
 
-from gentropy import StudyLocus, SummaryStatistics
+from gentropy import CredibleSet, SummaryStatistics
 
 
-def apply_class_method_pics(study_locus_ld_annotated: StudyLocus) -> StudyLocus:
+def apply_class_method_pics(study_locus_ld_annotated: CredibleSet) -> CredibleSet:
     """Docs to apply the PICS class method to mock study loci."""
     # --8<-- [start:apply_class_method_pics]
     from gentropy.method.pics import PICS
