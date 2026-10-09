@@ -362,8 +362,10 @@ class PleiotropyPrior:
             h_g     = sum_i w_i U_gi^2                  influence of gene g on its own score
             loo_g   = (fitted_g - h_g r_g) / (1 - h_g)
 
-        `loo_g` is exactly the score gene `g` gets from the same ridge fitted without `g`, so a
-        gene's own label never reaches its own score. `lambda` minimises generalised
+        `loo_g` is exactly the score gene `g` gets from the same ridge fitted without `g` on the
+        residuals `r`. The covariates are projected out once over all genes, so a gene's own
+        label still reaches its score through that projection; with about a dozen covariates
+        and 20,000 genes its average weight is below 0.1%. `lambda` minimises generalised
         cross-validation, `n RSS / (n - sum_i w_i)^2` with `RSS = |r|^2 - |u|^2 +
         sum_i (1 - w_i)^2 u_i^2`.
 
