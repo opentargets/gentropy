@@ -21,6 +21,8 @@ from pyspark.sql.types import (
 
 from gentropy.dataset.l2g_features.l2g_feature import L2GFeature
 from gentropy.dataset.l2g_features.pleiotropy_prior import (
+    ApproxPopsFeature,
+    ApproxPopsNeighbourhoodFeature,
     PleiotropyPriorInputs,
     PredictedPleiotropyPriorFeature,
     PredictedPleiotropyPriorNeighbourhoodFeature,
@@ -338,6 +340,109 @@ class TestPleiotropyPriorFeatureLogic:
         assert {
             row["featureName"] for row in feature.df.select("featureName").collect()
         } == {"predictedPleiotropyPriorNeighbourhood"}
+
+
+class TestApproxPopsFeatureLogic:
+    """Test how per-disease scores become features, with the scores fixed in advance.
+
+    sl1 belongs to study1, mapped to d1 and d2; sl2 to study2, mapped to d9, which has no
+    scores. gene1 scores 0.5 for d1 and 1.5 for d2, gene2 -1.0 for d1, and gene3 2.0 only for
+    d3, a disease of neither study.
+    """
+
+    @pytest.fixture()
+    def dependencies(
+        self: TestApproxPopsFeatureLogic, spark: SparkSession
+    ) -> dict[str, Any]:
+        """Fitted scores, two credible sets, their studies and the genes around their variants."""
+        inputs = PleiotropyPriorInputs(*[spark.createDataFrame([], "x int")] * 4)
+        inputs._approx_pops = spark.createDataFrame(
+            [
+                ("gene1", "d1", 0.5),
+                ("gene1", "d2", 1.5),
+                ("gene2", "d1", -1.0),
+                ("gene3", "d3", 2.0),
+            ],
+            "geneId string, diseaseId string, approxPops double",
+        )
+        study_locus = _credible_sets(
+            spark,
+            [
+                ("sl1", "var1", "study1", ["var1"]),
+                ("sl2", "var2", "study2", ["var2"]),
+            ],
+        )
+        study_index = StudyIndex(
+            _df=spark.createDataFrame(
+                [
+                    ("study1", "gwas", "p", ["d1", "d2"]),
+                    ("study2", "gwas", "p", ["d9"]),
+                ],
+                "studyId string, studyType string, projectId string, "
+                "diseaseIds array<string>",
+            ),
+            _schema=StudyIndex.get_schema(),
+        )
+        variant_index = _variants(
+            spark,
+            {
+                "var1": [
+                    ("gene1", "protein_coding", 0),
+                    ("gene2", "protein_coding", 1000),
+                    ("gene3", "protein_coding", 2000),
+                ],
+                "var2": [("gene1", "protein_coding", 0)],
+            },
+        )
+        return {
+            "pleiotropy_prior_inputs": inputs,
+            "study_locus": study_locus,
+            "study_index": study_index,
+            "variant_index": variant_index,
+            "target_index": None,
+        }
+
+    def test_local_feature_is_the_highest_score_over_the_study_diseases(
+        self: TestApproxPopsFeatureLogic, dependencies: dict[str, Any]
+    ) -> None:
+        """A gene takes its best score over the study's diseases; other diseases do not count."""
+        feature = ApproxPopsFeature.compute(
+            study_loci_to_annotate=dependencies["study_locus"],
+            feature_dependency=dependencies,
+        )
+        assert _scores(feature, "sl1") == {
+            "gene1": pytest.approx(1.5),
+            "gene2": pytest.approx(-1.0),
+        }
+        assert _scores(feature, "sl2") == {}
+
+    def test_neighbourhood_is_scaled_within_the_locus(
+        self: TestApproxPopsFeatureLogic, dependencies: dict[str, Any]
+    ) -> None:
+        """The best gene at a locus gets 1 and the worst 0."""
+        feature = ApproxPopsNeighbourhoodFeature.compute(
+            study_loci_to_annotate=dependencies["study_locus"],
+            feature_dependency=dependencies,
+        )
+        assert _scores(feature, "sl1") == {
+            "gene1": pytest.approx(1.0),
+            "gene2": pytest.approx(0.0),
+        }
+
+
+def test_feature_block() -> None:
+    """Expression level and specificity are blocks of their own; other features go by source."""
+    assert PleiotropyPriorInputs.feature_block("gtex:level:UBERON_1|") == "gtex:level"
+    assert (
+        PleiotropyPriorInputs.feature_block("pride:specificity:UBERON_1|")
+        == "pride:specificity"
+    )
+    assert PleiotropyPriorInputs.feature_block("go:GO:0001") == "go"
+    assert PleiotropyPriorInputs.feature_block("constraint:lof:oe") == "constraint"
+    assert (
+        PleiotropyPriorInputs.feature_block("essentiality:isEssential")
+        == "essentiality"
+    )
 
 
 def _annotated_target_index(
@@ -702,3 +807,58 @@ class TestPleiotropyPriorEndToEnd:
         assert (
             neighbourhood_rows.groupby("studyLocusId")["featureValue"].max() == 1.0
         ).all()
+
+    def test_feature_factory_builds_approx_pops(
+        self: TestPleiotropyPriorEndToEnd,
+        release: dict[str, Any],
+    ) -> None:
+        """Every non-MHC gene is scored for each kept disease, and both features are built.
+
+        The study of each credible set is remapped to one disease, dGO, when its nearest gene is
+        annotated with GO:0, so that the gene features predict that disease.
+        """
+        in_go0 = {
+            row["id"]
+            for row in release["target_index"].df.collect()
+            if any(term["id"] == "GO:0" for term in row["go"] or [])
+        }
+        gene_of_variant = {
+            row["variantId"]: row["transcriptConsequences"][0]["targetId"]
+            for row in release["variant_index"].df.collect()
+        }
+        go0_studies = [
+            row["studyId"]
+            for row in release["study_locus"].df.collect()
+            if gene_of_variant[row["variantId"]] in in_go0
+        ]
+        release["study_index"] = StudyIndex(
+            _df=release["study_index"].df.withColumn(
+                "diseaseIds",
+                f.when(
+                    f.col("studyId").isin(go0_studies), f.array(f.lit("dGO"))
+                ).otherwise(f.array().cast("array<string>")),
+            ),
+            _schema=StudyIndex.get_schema(),
+        )
+        inputs = release["pleiotropy_prior_inputs"]
+        inputs.approx_pops_min_genes = 3
+        inputs.approx_pops_components = 20
+        local, neighbourhood = FeatureFactory(
+            release["study_locus"], ["approxPops", "approxPopsNeighbourhood"]
+        ).generate_features(L2GFeatureInputLoader(**release))
+
+        scores = inputs.approx_pops_scores(
+            release["study_locus"],
+            release["study_index"],
+            release["variant_index"],
+            release["target_index"],
+        ).toPandas()
+        # Genes on chromosome 6 sit in the MHC and get no score.
+        assert set(scores["diseaseId"]) == {"dGO"}
+        assert not scores["geneId"].str.startswith("chr6_").any()
+        assert (scores.groupby("diseaseId").size() == 24).all()
+        local_rows = local.df.toPandas()
+        neighbourhood_rows = neighbourhood.df.toPandas()
+        assert len(local_rows) == len(neighbourhood_rows)
+        assert np.isfinite(local_rows["featureValue"]).all()
+        assert neighbourhood_rows["featureValue"].between(0.0, 1.0).all()

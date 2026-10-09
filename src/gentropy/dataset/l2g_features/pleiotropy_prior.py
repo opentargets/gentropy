@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import logging
+from dataclasses import dataclass
 from functools import reduce
 from typing import Any
 
 import numpy as np
+import pandas as pd
 import pyspark.sql.functions as f
 import scipy.sparse
 from pyspark.sql import DataFrame, Window
@@ -28,24 +30,18 @@ from gentropy.method.pleiotropy_prior import PleiotropyPrior
 logger = logging.getLogger(__name__)
 
 
-def nearest_gene_disease_counts(
+def nearest_gene_diseases(
     study_locus: StudyLocus,
     study_index: StudyIndex,
     variant_index: VariantIndex,
     target_index: TargetIndex,
 ) -> DataFrame:
-    """Count the distinct diseases each gene is the nearest gene for.
+    """Diseases each gene is the nearest gene for.
 
     The nearest gene of a credible set is the protein-coding gene whose TSS is closest to the
     lead variant, i.e. the gene with `distanceSentinelTssNeighbourhood` equal to 1, so ties keep
     every tied gene. Only GWAS credible sets count. Diseases are the ontology terms in the
-    `diseaseIds` field of the study index, used as mapped, with no expansion to ancestors; a
-    study mapped to several terms contributes each of them, and a term counts once per gene
-    however many credible sets or studies point at it.
-
-    TODO: related traits mapped to different terms are counted separately, which inflates the
-    counts of genes at loci shared by many lipid or blood-cell traits. Grouping terms through
-    the EFO hierarchy or by therapeutic area would temper that.
+    `diseaseIds` field of the study index, used as mapped, with no expansion to ancestors.
 
     Args:
         study_locus (StudyLocus): Credible sets
@@ -54,8 +50,7 @@ def nearest_gene_disease_counts(
         target_index (TargetIndex): Target index, used to keep protein-coding genes
 
     Returns:
-        DataFrame: `geneId` and `targetCount`, for the genes nearest to at least one credible
-            set of a study with a disease
+        DataFrame: Distinct `geneId` and `diseaseId` pairs
     """
     gwas_credible_sets = study_locus.filter(f.col("studyType") == "gwas")
     nearest = (
@@ -79,8 +74,42 @@ def nearest_gene_disease_counts(
             "inner",
         )
         .join(diseases, "studyId", "inner")
+        .select("geneId", "diseaseId")
+        .distinct()
+    )
+
+
+def nearest_gene_disease_counts(
+    study_locus: StudyLocus,
+    study_index: StudyIndex,
+    variant_index: VariantIndex,
+    target_index: TargetIndex,
+) -> DataFrame:
+    """Count the distinct diseases each gene is the nearest gene for.
+
+    The pairs come from
+    [`nearest_gene_diseases`][gentropy.dataset.l2g_features.pleiotropy_prior.nearest_gene_diseases].
+    A study mapped to several terms contributes each of them, and a term counts once per gene
+    however many credible sets or studies point at it.
+
+    TODO: related traits mapped to different terms are counted separately, which inflates the
+    counts of genes at loci shared by many lipid or blood-cell traits. Grouping terms through
+    the EFO hierarchy or by therapeutic area would temper that.
+
+    Args:
+        study_locus (StudyLocus): Credible sets
+        study_index (StudyIndex): Study index, used to resolve a study to its diseases
+        variant_index (VariantIndex): Variant index, the source of the distances to genes
+        target_index (TargetIndex): Target index, used to keep protein-coding genes
+
+    Returns:
+        DataFrame: `geneId` and `targetCount`, for the genes nearest to at least one credible
+            set of a study with a disease
+    """
+    return (
+        nearest_gene_diseases(study_locus, study_index, variant_index, target_index)
         .groupBy("geneId")
-        .agg(f.countDistinct("diseaseId").cast("integer").alias("targetCount"))
+        .agg(f.count("*").cast("integer").alias("targetCount"))
     )
 
 
@@ -140,6 +169,28 @@ def gene_covariates(target_index: TargetIndex, genomic_window: int = 500_000) ->
     )
 
 
+@dataclass
+class GeneData:
+    """Background genes of the priors and their features, held on the driver.
+
+    Attributes:
+        genes (pd.DataFrame): Output of `gene_covariates`, sorted by `geneId`
+        matrix (scipy.sparse.csc_array): `genes x features` matrix, not standardised
+        feature_ids (list[str]): Identifier of every column of `matrix`
+        covariates (np.ndarray): `genes x covariates` positional covariates and source
+            coverage flags
+        covariate_names (list[str]): Name of every column of `covariates`
+        in_mhc (np.ndarray): Whether the gene's TSS lies in the MHC
+    """
+
+    genes: pd.DataFrame
+    matrix: scipy.sparse.csc_array
+    feature_ids: list[str]
+    covariates: np.ndarray
+    covariate_names: list[str]
+    in_mhc: np.ndarray
+
+
 class PleiotropyPriorInputs:
     """Open Targets gene data the predicted pleiotropy prior is fitted on, and the fitted prior.
 
@@ -176,10 +227,21 @@ class PleiotropyPriorInputs:
     genes are rarely anyone's nearest gene for a reason that has nothing to do with their
     biology. No L2G score and no gold-standard label enters the prior.
 
-    The prior is fitted once, the first time a feature asks for it, and kept for the other
-    feature of the same run. The fit runs on the Spark driver: the kernel over about 20,000
-    genes takes 3.2 GB and each fold holds a copy of its training block and its eigenvectors on
-    top, so peak memory is about 12 GB.
+    The same gene features also give approxPops, a per-disease version closer to PoPS. For
+    every disease with at least `approx_pops_min_genes` nearest genes, the 0/1 label "is a
+    nearest gene of this disease", with the same covariates projected out, is regressed on the
+    top `approx_pops_components` principal components of the features, with the leave-one-out
+    scores, AUC filter and z-scoring of
+    [`PleiotropyPrior.approx_pops`][gentropy.method.pleiotropy_prior.PleiotropyPrior.approx_pops].
+    Before the components are taken, every feature is weighted by `1 / sqrt(block size)`, so
+    each block (GO, Reactome, PPI, mouse phenotypes, expression level and specificity per
+    source, constraint, essentiality) carries the same total variance; otherwise the 12,000 PPI
+    columns would dominate. MHC genes are left out of approxPops entirely.
+
+    Each fit runs once, the first time a feature asks for it, and is kept for the other feature
+    of the same run; the gene features are collected once for both. The fits run on the Spark
+    driver: the kernel over about 20,000 genes takes 3.2 GB and each fold holds a copy of its
+    training block and its eigenvectors on top, so peak memory is about 12 GB.
     """
 
     MIN_TERM_SIZE = 10
@@ -203,6 +265,8 @@ class PleiotropyPriorInputs:
         baseline_expression: DataFrame,
         target_essentiality: DataFrame,
         lambda_grid: list[float] | None = None,
+        approx_pops_min_genes: int = 100,
+        approx_pops_components: int = 100,
     ) -> None:
         """Hold the gene data of a release.
 
@@ -213,13 +277,21 @@ class PleiotropyPriorInputs:
             target_essentiality (DataFrame): Open Targets `target_essentiality` dataset
             lambda_grid (list[float] | None): Ridge penalties searched by generalised
                 cross-validation. Defaults to `10^-2` to `10^10` in steps of `10^0.5`.
+            approx_pops_min_genes (int): Fewest nearest genes a disease needs to get an
+                approxPops score
+            approx_pops_components (int): Number of principal components of the gene features
+                approxPops regresses on
         """
         self.interactions = interactions
         self.mouse_phenotype = mouse_phenotype
         self.baseline_expression = baseline_expression
         self.target_essentiality = target_essentiality
         self.lambda_grid = lambda_grid
+        self.approx_pops_min_genes = approx_pops_min_genes
+        self.approx_pops_components = approx_pops_components
         self._scores: DataFrame | None = None
+        self._approx_pops: DataFrame | None = None
+        self._gene_data: GeneData | None = None
 
     def gene_features(
         self: PleiotropyPriorInputs, genes: DataFrame, target_index: TargetIndex
@@ -465,32 +537,37 @@ class PleiotropyPriorInputs:
             self._scores = self._fit(study_locus, study_index, variant_index, target_index)
         return self._scores
 
-    def _fit(
-        self: PleiotropyPriorInputs,
-        study_locus: StudyLocus,
-        study_index: StudyIndex,
-        variant_index: VariantIndex,
-        target_index: TargetIndex,
-    ) -> DataFrame:
-        """Collect the target, features and covariates, fit the prior on the driver.
+    @staticmethod
+    def feature_block(feature_id: str) -> str:
+        """Block a gene feature belongs to: its source, with expression level and specificity apart.
 
         Args:
-            study_locus (StudyLocus): All credible sets of the release
-            study_index (StudyIndex): Study index
-            variant_index (VariantIndex): Variant index
+            feature_id (str): Feature identifier, as built by `gene_features`
+
+        Returns:
+            str: Block name, e.g. `go`, `ppi` or `gtex:level`
+        """
+        parts = feature_id.split(":")
+        if len(parts) > 1 and parts[1] in ("level", "specificity"):
+            return ":".join(parts[:2])
+        return parts[0]
+
+    def _load_gene_data(
+        self: PleiotropyPriorInputs, target_index: TargetIndex
+    ) -> GeneData:
+        """Collect the background genes, their covariates and their features on the driver.
+
+        Args:
             target_index (TargetIndex): Target index
 
         Returns:
-            DataFrame: `geneId` and `predictedPleiotropyPrior`
+            GeneData: Genes, covariates and the sparse feature matrix, in the same gene order
         """
-        spark = study_locus.df.sparkSession
-        counts = nearest_gene_disease_counts(
-            study_locus, study_index, variant_index, target_index
-        )
+        if self._gene_data is not None:
+            return self._gene_data
+        spark = target_index.df.sparkSession
         genes = (
             gene_covariates(target_index)
-            .join(counts, "geneId", "left")
-            .withColumn("targetCount", f.coalesce(f.col("targetCount"), f.lit(0)))
             .toPandas()
             .sort_values("geneId")
             .reset_index(drop=True)
@@ -498,7 +575,6 @@ class PleiotropyPriorInputs:
         gene_index = spark.createDataFrame(
             genes[["geneId"]].assign(geneIndex=np.arange(len(genes), dtype=np.int64))
         )
-
         features, coverage = self.gene_features(
             spark.createDataFrame(genes[["geneId"]]), target_index
         )
@@ -525,10 +601,6 @@ class PleiotropyPriorInputs:
             ),
             shape=(len(genes), len(feature_ids)),
         )
-        kernel, n_features = PleiotropyPrior.accumulate_kernel(
-            PleiotropyPrior.column_chunks(matrix)
-        )
-
         flags = (
             coverage.toPandas()
             .assign(covered=1.0)
@@ -546,25 +618,67 @@ class PleiotropyPriorInputs:
             (genes["chromosome"] == mhc.chromosome)
             & genes["tss"].between(mhc.start, mhc.end)
         ).to_numpy()
+        self._gene_data = GeneData(
+            genes=genes,
+            matrix=matrix,
+            feature_ids=feature_ids,
+            covariates=covariates,
+            covariate_names=["logGeneLength", "logNeighbouringGenes", *flags.columns],
+            in_mhc=in_mhc,
+        )
+        return self._gene_data
 
+    def _fit(
+        self: PleiotropyPriorInputs,
+        study_locus: StudyLocus,
+        study_index: StudyIndex,
+        variant_index: VariantIndex,
+        target_index: TargetIndex,
+    ) -> DataFrame:
+        """Collect the target, features and covariates, fit the prior on the driver.
+
+        Args:
+            study_locus (StudyLocus): All credible sets of the release
+            study_index (StudyIndex): Study index
+            variant_index (VariantIndex): Variant index
+            target_index (TargetIndex): Target index
+
+        Returns:
+            DataFrame: `geneId` and `predictedPleiotropyPrior`
+        """
+        spark = study_locus.df.sparkSession
+        data = self._load_gene_data(target_index)
+        counts = (
+            nearest_gene_disease_counts(
+                study_locus, study_index, variant_index, target_index
+            )
+            .toPandas()
+            .set_index("geneId")["targetCount"]
+        )
+        target_count = (
+            counts.reindex(data.genes["geneId"]).fillna(0).to_numpy(dtype=np.float64)
+        )
+        kernel, n_features = PleiotropyPrior.accumulate_kernel(
+            PleiotropyPrior.column_chunks(data.matrix)
+        )
         fit = PleiotropyPrior.loco_kernel_ridge(
             kernel,
-            np.log1p(genes["targetCount"].to_numpy(dtype=np.float64)),
-            genes["chromosome"].to_numpy(dtype=str),
-            covariates=covariates,
-            fit_mask=~in_mhc,
+            np.log1p(target_count),
+            data.genes["chromosome"].to_numpy(dtype=str),
+            covariates=data.covariates,
+            fit_mask=~data.in_mhc,
             lambdas=self.lambda_grid or PleiotropyPrior.DEFAULT_LAMBDA_GRID,
         )
         logger.info(
             "Predicted pleiotropy prior: %d genes, %d features (%d non-constant), "
-            "coverage flags for %s, %d genes nearest to at least one disease, %d MHC genes "
+            "covariates %s, %d genes nearest to at least one disease, %d MHC genes "
             "kept out of the fit.",
-            len(genes),
-            len(feature_ids),
+            len(data.genes),
+            len(data.feature_ids),
             n_features,
-            ", ".join(flags.columns),
-            int((genes["targetCount"] > 0).sum()),
-            int(in_mhc.sum()),
+            ", ".join(data.covariate_names),
+            int((target_count > 0).sum()),
+            int(data.in_mhc.sum()),
         )
         for held_out, penalty in fit.lambdas.items():
             logger.info(
@@ -574,8 +688,130 @@ class PleiotropyPriorInputs:
             )
 
         return spark.createDataFrame(
-            genes[["geneId"]].assign(predictedPleiotropyPrior=fit.scores),
+            data.genes[["geneId"]].assign(predictedPleiotropyPrior=fit.scores),
             schema="geneId string, predictedPleiotropyPrior double",
+        )
+
+    def approx_pops_scores(
+        self: PleiotropyPriorInputs,
+        study_locus: StudyLocus,
+        study_index: StudyIndex,
+        variant_index: VariantIndex,
+        target_index: TargetIndex,
+    ) -> DataFrame:
+        """Return the approxPops score of every gene for every disease, fitted once and reused.
+
+        Args:
+            study_locus (StudyLocus): All credible sets of the release, the source of the labels
+            study_index (StudyIndex): Study index, used to resolve a study to its diseases
+            variant_index (VariantIndex): Variant index, the source of the distances to genes
+            target_index (TargetIndex): Target index
+
+        Returns:
+            DataFrame: `geneId`, `diseaseId` and `approxPops`
+        """
+        if self._approx_pops is None:
+            self._approx_pops = self._fit_approx_pops(
+                study_locus, study_index, variant_index, target_index
+            )
+        return self._approx_pops
+
+    def _fit_approx_pops(
+        self: PleiotropyPriorInputs,
+        study_locus: StudyLocus,
+        study_index: StudyIndex,
+        variant_index: VariantIndex,
+        target_index: TargetIndex,
+    ) -> DataFrame:
+        """Fit approxPops on the driver.
+
+        Args:
+            study_locus (StudyLocus): All credible sets of the release
+            study_index (StudyIndex): Study index
+            variant_index (VariantIndex): Variant index
+            target_index (TargetIndex): Target index
+
+        Returns:
+            DataFrame: `geneId`, `diseaseId` and `approxPops`
+
+        Raises:
+            ValueError: If no disease has enough nearest genes
+        """
+        spark = study_locus.df.sparkSession
+        data = self._load_gene_data(target_index)
+        fit_genes = data.genes.loc[~data.in_mhc, "geneId"].reset_index(drop=True)
+        gene_position = pd.Series(np.arange(len(fit_genes)), index=fit_genes)
+
+        pairs = (
+            nearest_gene_diseases(study_locus, study_index, variant_index, target_index)
+            .toPandas()
+        )
+        pairs = pairs[pairs["geneId"].isin(gene_position.index)]
+        sizes = pairs["diseaseId"].value_counts()
+        diseases = np.sort(sizes.index[sizes >= self.approx_pops_min_genes].to_numpy())
+        if diseases.size == 0:
+            raise ValueError(
+                f"No disease has {self.approx_pops_min_genes} or more nearest genes."
+            )
+        pairs = pairs[pairs["diseaseId"].isin(diseases)]
+        disease_position = pd.Series(np.arange(len(diseases)), index=diseases)
+        labels = np.zeros((len(fit_genes), len(diseases)))
+        labels[
+            gene_position[pairs["geneId"]].to_numpy(),
+            disease_position[pairs["diseaseId"]].to_numpy(),
+        ] = 1.0
+
+        matrix = data.matrix[~data.in_mhc]
+        variance = (matrix**2).mean(axis=0) - matrix.mean(axis=0) ** 2
+        blocks = pd.Series([self.feature_block(i) for i in data.feature_ids])
+        block_size = blocks.map(blocks[variance > 0].value_counts()).fillna(1)
+        kernel, n_features = PleiotropyPrior.accumulate_kernel(
+            PleiotropyPrior.column_chunks(matrix),
+            column_weights=1 / np.sqrt(block_size.to_numpy(dtype=np.float64)),
+        )
+        eigenvalues, eigenvectors = PleiotropyPrior.top_components(
+            kernel, self.approx_pops_components
+        )
+        del kernel
+        fit = PleiotropyPrior.approx_pops(
+            eigenvalues,
+            eigenvectors,
+            labels,
+            covariates=data.covariates[~data.in_mhc],
+            lambdas=self.lambda_grid or PleiotropyPrior.DEFAULT_LAMBDA_GRID,
+        )
+        logger.info(
+            "approxPops: %d genes (MHC left out), %d non-constant features in %d blocks, "
+            "%d components; %d diseases with >= %d nearest genes, %d kept (leave-one-out AUC "
+            "lower bound > 0.5); median leave-one-out AUC %.3f over all, %.3f over kept.",
+            len(fit_genes),
+            n_features,
+            blocks[variance > 0].nunique(),
+            eigenvalues.size,
+            len(diseases),
+            self.approx_pops_min_genes,
+            int(fit.kept.sum()),
+            float(np.median(fit.auc)),
+            float(np.median(fit.auc[fit.kept])) if fit.kept.any() else float("nan"),
+        )
+
+        kept_diseases = spark.createDataFrame(
+            [(str(d), i) for i, d in enumerate(diseases[fit.kept])],
+            "diseaseId string, diseaseIndex int",
+        )
+        gene_scores = spark.createDataFrame(
+            [
+                (gene, row.tolist())
+                for gene, row in zip(fit_genes, fit.scores.astype(np.float64))
+            ],
+            "geneId string, scores array<double>",
+        )
+        return (
+            gene_scores.select(
+                "geneId", f.posexplode("scores").alias("diseaseIndex", "approxPops")
+            )
+            .join(f.broadcast(kept_diseases), "diseaseIndex", "inner")
+            .select("geneId", "diseaseId", "approxPops")
         )
 
 
@@ -610,6 +846,38 @@ def protein_coding_genes_in_window(
         .filter(f.col("isProteinCoding") == 1.0)
         .select("studyLocusId", "geneId")
         .distinct()
+    )
+
+
+def min_max_within_locus(
+    local_scores: DataFrame, local_feature_name: str, feature_name: str
+) -> DataFrame:
+    """Rescale a feature between its lowest and highest value at the same locus.
+
+    The best-scoring gene at a locus gets 1 and the worst 0. A locus with a single scored gene,
+    or where every gene scores the same, gives 1 to all of them.
+
+    Args:
+        local_scores (DataFrame): `studyLocusId`, `geneId` and the local feature
+        local_feature_name (str): Name of the local feature column
+        feature_name (str): Name of the rescaled feature
+
+    Returns:
+        DataFrame: `studyLocusId`, `geneId` and the rescaled feature
+    """
+    locus = Window.partitionBy("studyLocusId")
+    return (
+        local_scores.withColumn("regionalMin", f.min(local_feature_name).over(locus))
+        .withColumn("regionalMax", f.max(local_feature_name).over(locus))
+        .withColumn(
+            feature_name,
+            f.when(
+                f.col("regionalMax") > f.col("regionalMin"),
+                (f.col(local_feature_name) - f.col("regionalMin"))
+                / (f.col("regionalMax") - f.col("regionalMin")),
+            ).otherwise(f.lit(1.0)),
+        )
+        .drop("regionalMin", "regionalMax", local_feature_name)
     )
 
 
@@ -687,20 +955,84 @@ def common_neighbourhood_pleiotropy_prior_feature_logic(
     local_scores = common_pleiotropy_prior_feature_logic(
         study_loci_to_annotate, local_feature_name, **kwargs
     )
-    locus = Window.partitionBy("studyLocusId")
-    return (
-        local_scores.withColumn("regionalMin", f.min(local_feature_name).over(locus))
-        .withColumn("regionalMax", f.max(local_feature_name).over(locus))
-        .withColumn(
-            feature_name,
-            f.when(
-                f.col("regionalMax") > f.col("regionalMin"),
-                (f.col(local_feature_name) - f.col("regionalMin"))
-                / (f.col("regionalMax") - f.col("regionalMin")),
-            ).otherwise(f.lit(1.0)),
-        )
-        .drop("regionalMin", "regionalMax", local_feature_name)
+    return min_max_within_locus(local_scores, local_feature_name, feature_name)
+
+
+def common_approx_pops_feature_logic(
+    study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+    feature_name: str,
+    *,
+    pleiotropy_prior_inputs: PleiotropyPriorInputs,
+    study_locus: StudyLocus,
+    study_index: StudyIndex,
+    variant_index: VariantIndex,
+    target_index: TargetIndex,
+    genomic_window: int,
+) -> DataFrame:
+    """Attach to every protein-coding gene of a credible set its approxPops score for the study.
+
+    The genes are those the feature matrix keeps, see
+    [`protein_coding_genes_in_window`][gentropy.dataset.l2g_features.pleiotropy_prior.protein_coding_genes_in_window].
+    A study mapped to several diseases takes the highest score of the gene over them. A credible
+    set whose study has no disease with an approxPops score gets no rows, and genes in the MHC
+    have no score.
+
+    Args:
+        study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci
+            that will be used for annotation
+        feature_name (str): The name of the feature
+        pleiotropy_prior_inputs (PleiotropyPriorInputs): Gene data the scores are fitted on
+        study_locus (StudyLocus): All credible sets, the source of the labels and of the
+            study of the study locus
+        study_index (StudyIndex): Study index, used to resolve a study to its diseases
+        variant_index (VariantIndex): Variant index, the source of the distances to genes
+        target_index (TargetIndex): Target index
+        genomic_window (int): Largest distance between a credible-set variant and a gene
+            footprint
+
+    Returns:
+        DataFrame: Feature dataset with one row per study locus and scored gene in its window
+    """
+    scores = pleiotropy_prior_inputs.approx_pops_scores(
+        study_locus, study_index, variant_index, target_index
     )
+    study_diseases = study_locus.df.select("studyLocusId", "studyId").join(
+        study_index.df.select("studyId", f.explode("diseaseIds").alias("diseaseId")),
+        "studyId",
+        "inner",
+    )
+    return (
+        protein_coding_genes_in_window(
+            study_loci_to_annotate, variant_index, genomic_window
+        )
+        .join(study_diseases, "studyLocusId", "inner")
+        .join(scores, ["geneId", "diseaseId"], "inner")
+        .groupBy("studyLocusId", "geneId")
+        .agg(f.max("approxPops").alias(feature_name))
+    )
+
+
+def common_neighbourhood_approx_pops_feature_logic(
+    study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+    feature_name: str,
+    **kwargs: Any,
+) -> DataFrame:
+    """Rescale the approxPops score of a gene between the lowest and highest at the same locus.
+
+    Args:
+        study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci
+            that will be used for annotation
+        feature_name (str): The name of the neighbourhood feature, ending in "Neighbourhood"
+        **kwargs (Any): Arguments of `common_approx_pops_feature_logic`
+
+    Returns:
+        DataFrame: Feature dataset with one row per study locus and scored gene in its window
+    """
+    local_feature_name = feature_name.replace("Neighbourhood", "")
+    local_scores = common_approx_pops_feature_logic(
+        study_loci_to_annotate, local_feature_name, **kwargs
+    )
+    return min_max_within_locus(local_scores, local_feature_name, feature_name)
 
 
 class PredictedPleiotropyPriorFeature(L2GFeature):
@@ -778,6 +1110,94 @@ class PredictedPleiotropyPriorNeighbourhoodFeature(L2GFeature):
         return cls(
             _df=convert_from_wide_to_long(
                 common_neighbourhood_pleiotropy_prior_feature_logic(
+                    study_loci_to_annotate,
+                    cls.feature_name,
+                    genomic_window=cls.genomic_window,
+                    **feature_dependency,
+                ),
+                id_vars=("studyLocusId", "geneId"),
+                var_name="featureName",
+                value_name="featureValue",
+            ),
+            _schema=cls.get_schema(),
+        )
+
+
+class ApproxPopsFeature(L2GFeature):
+    """How much a gene looks, by its Open Targets gene data, like the nearest genes of the study's disease."""
+
+    feature_dependency_type = [
+        PleiotropyPriorInputs,
+        StudyLocus,
+        StudyIndex,
+        VariantIndex,
+        TargetIndex,
+    ]
+    feature_name = "approxPops"
+    genomic_window: int = 500_000
+
+    @classmethod
+    def compute(
+        cls: type[ApproxPopsFeature],
+        study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+        feature_dependency: dict[str, Any],
+    ) -> ApproxPopsFeature:
+        """Computes the feature.
+
+        Args:
+            study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
+            feature_dependency (dict[str, Any]): The gene data of the prior, the credible sets, studies, variants and genes
+
+        Returns:
+            ApproxPopsFeature: Feature dataset
+        """
+        return cls(
+            _df=convert_from_wide_to_long(
+                common_approx_pops_feature_logic(
+                    study_loci_to_annotate,
+                    cls.feature_name,
+                    genomic_window=cls.genomic_window,
+                    **feature_dependency,
+                ),
+                id_vars=("studyLocusId", "geneId"),
+                var_name="featureName",
+                value_name="featureValue",
+            ),
+            _schema=cls.get_schema(),
+        )
+
+
+class ApproxPopsNeighbourhoodFeature(L2GFeature):
+    """approxPops score of a gene rescaled between the lowest and highest at the locus."""
+
+    feature_dependency_type = [
+        PleiotropyPriorInputs,
+        StudyLocus,
+        StudyIndex,
+        VariantIndex,
+        TargetIndex,
+    ]
+    feature_name = "approxPopsNeighbourhood"
+    genomic_window: int = 500_000
+
+    @classmethod
+    def compute(
+        cls: type[ApproxPopsNeighbourhoodFeature],
+        study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+        feature_dependency: dict[str, Any],
+    ) -> ApproxPopsNeighbourhoodFeature:
+        """Computes the feature.
+
+        Args:
+            study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
+            feature_dependency (dict[str, Any]): The gene data of the prior, the credible sets, studies, variants and genes
+
+        Returns:
+            ApproxPopsNeighbourhoodFeature: Feature dataset
+        """
+        return cls(
+            _df=convert_from_wide_to_long(
+                common_neighbourhood_approx_pops_feature_logic(
                     study_loci_to_annotate,
                     cls.feature_name,
                     genomic_window=cls.genomic_window,

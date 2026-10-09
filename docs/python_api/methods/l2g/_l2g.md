@@ -8,7 +8,7 @@ The **“locus-to-gene” (L2G)** model derives features to prioritize likely ca
 - **Molecular QTL Colocalization**
 - **Chromatin Interaction:** (e.g., promoter-capture Hi-C)
 - **Variant Pathogenicity:** (from VEP)
-- **Gene prior (opt-in):** `predictedPleiotropyPrior`, a PoPS-like prior ([Weeks et al. 2023](https://doi.org/10.1038/s41588-023-01443-6)) that predicts from Open Targets gene data how many diseases a gene is the nearest gene for, with `predictedPleiotropyPriorNeighbourhood` rescaling it within the locus as FLAMES does ([Schipper et al. 2025](https://doi.org/10.1038/s41588-025-02084-7))
+- **Gene prior (opt-in):** `predictedPleiotropyPrior`, a PoPS-like prior ([Weeks et al. 2023](https://doi.org/10.1038/s41588-023-01443-6)) that predicts from Open Targets gene data how many diseases a gene is the nearest gene for, with `predictedPleiotropyPriorNeighbourhood` rescaling it within the locus as FLAMES does ([Schipper et al. 2025](https://doi.org/10.1038/s41588-025-02084-7)); and `approxPops`, a per-disease version that predicts whether a gene is a nearest gene of the study's disease, with `approxPopsNeighbourhood`
 
 Some of the predictive features weight variant-to-gene (or genomic region-to-gene) evidence based on the posterior probability that the variant is causal, determined through fine-mapping of the GWAS association.
 

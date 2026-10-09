@@ -12,3 +12,4 @@ model follows the polygenic priority score (PoPS):
 
 ::: gentropy.method.pleiotropy_prior.PleiotropyPrior
 ::: gentropy.method.pleiotropy_prior.PleiotropyPriorFit
+::: gentropy.method.pleiotropy_prior.ApproxPopsFit

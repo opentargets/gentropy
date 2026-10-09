@@ -208,6 +208,8 @@ class LocusToGeneFeatureMatrixStep:
         pleiotropy_prior_features = {
             "predictedPleiotropyPrior",
             "predictedPleiotropyPriorNeighbourhood",
+            "approxPops",
+            "approxPopsNeighbourhood",
         }
         if pleiotropy_prior_features.intersection(features_list) and (
             pleiotropy_prior_inputs is None
@@ -216,7 +218,7 @@ class LocusToGeneFeatureMatrixStep:
             or target_index is None
         ):
             raise ValueError(
-                "Predicted pleiotropy prior features need the interaction, mouse phenotype, "
+                "Predicted pleiotropy prior and approxPops features need the interaction, mouse phenotype, "
                 "baseline expression and target essentiality datasets, the study index, the "
                 "variant index and the target index. Provide `gene_interactions_path`, "
                 "`mouse_phenotype_path`, `baseline_expression_path`, "
