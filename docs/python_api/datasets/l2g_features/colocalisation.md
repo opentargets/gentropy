@@ -16,6 +16,8 @@ title: From colocalisation
 ::: gentropy.dataset.l2g_features.colocalisation.EQtlColocH4MaximumNeighbourhoodFeature
 ::: gentropy.dataset.l2g_features.colocalisation.PQtlColocH4MaximumNeighbourhoodFeature
 ::: gentropy.dataset.l2g_features.colocalisation.SQtlColocH4MaximumNeighbourhoodFeature
+::: gentropy.dataset.l2g_features.colocalisation.EQtlColocH4MaximumEnrichedBiosampleFeature
+::: gentropy.dataset.l2g_features.colocalisation.EQtlColocH4MaximumEnrichedBiosampleNeighbourhoodFeature
 
 ## Common logic
 
@@ -23,3 +25,5 @@ title: From colocalisation
 ::: gentropy.dataset.l2g_features.colocalisation.extend_missing_colocalisation_to_neighbourhood_genes
 ::: gentropy.dataset.l2g_features.colocalisation.common_neighbourhood_colocalisation_feature_logic
 ::: gentropy.dataset.l2g_features.colocalisation.extract_maximum_coloc_probability_per_region_and_gene
+::: gentropy.dataset.l2g_features.colocalisation.enriched_study_biosamples
+::: gentropy.dataset.l2g_features.colocalisation.keep_colocalisation_in_enriched_biosamples
