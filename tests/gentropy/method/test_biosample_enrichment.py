@@ -37,8 +37,9 @@ def _score_test(x: np.ndarray, y: np.ndarray) -> float:
 class TestExpressionSpecificity:
     """Ten protein-coding genes g0-g9 and a lncRNA, scored in three biosamples of one datasource.
 
-    The disease's genes are g0-g3 and the lncRNA. In tissue A g0-g3 score highest, in tissue B
-    lowest, and in tissue C every gene scores 0.
+    The disease's genes are g0-g3 and the lncRNA on chromosome 1 and g4 on chromosome 2, so
+    holding out chromosome 2 leaves g0-g3 and the lncRNA. In tissue A g0-g3 score highest, in
+    tissue B lowest, and in tissue C every gene scores 0.
     """
 
     genes = [f"g{i}" for i in range(10)]
@@ -77,10 +78,11 @@ class TestExpressionSpecificity:
 
     @pytest.fixture()
     def gene_lists(self, spark: SparkSession) -> DataFrame:
-        """disease1: g0-g3 and the lncRNA."""
+        """disease1: g0-g3 and the lncRNA on chromosome 1, g4 on chromosome 2."""
         return spark.createDataFrame(
-            [("disease1", gene) for gene in ["g0", "g1", "g2", "g3", "nc1"]],
-            "diseaseId string, geneId string",
+            [("disease1", "1", gene) for gene in ["g0", "g1", "g2", "g3", "nc1"]]
+            + [("disease1", "2", "g4")],
+            "diseaseId string, chromosome string, geneId string",
         )
 
     def _results(
@@ -88,6 +90,7 @@ class TestExpressionSpecificity:
         expression_specificity: ExpressionSpecificity,
         gene_lists: DataFrame,
         target_index: TargetIndex,
+        held_out_chromosome: str = "2",
         **kwargs: Any,
     ) -> dict[str, dict[str, Any]]:
         return {
@@ -95,6 +98,7 @@ class TestExpressionSpecificity:
             for row in expression_specificity.enrichment(
                 gene_lists, target_index, **kwargs
             ).collect()
+            if row["heldOutChromosome"] == held_out_chromosome
         }
 
     def test_specificity_ids_a_cell_type_within_a_tissue_as_null(
@@ -131,6 +135,31 @@ class TestExpressionSpecificity:
             _score_test(self.tissue_a, self.is_listed)
         )
         assert tissue_a["pValue"] == pytest.approx(norm.sf(tissue_a["zScore"]))
+
+    def test_genes_of_the_held_out_chromosome_are_left_out(
+        self,
+        expression_specificity: ExpressionSpecificity,
+        gene_lists: DataFrame,
+        target_index: TargetIndex,
+    ) -> None:
+        """Holding out chromosome 1 leaves g4 alone; with four genes required only chromosome 2 is held out."""
+        tissue_a = self._results(
+            expression_specificity,
+            gene_lists,
+            target_index,
+            held_out_chromosome="1",
+            min_genes=1,
+        )["UBERON_A"]
+        assert tissue_a["diseaseGeneCount"] == 1
+        assert tissue_a["zScore"] == pytest.approx(
+            _score_test(self.tissue_a, np.eye(10)[4])
+        )
+        assert {
+            row["heldOutChromosome"]
+            for row in expression_specificity.enrichment(
+                gene_lists, target_index, min_genes=4
+            ).collect()
+        } == {"2"}
 
     def test_negative_slope_has_a_p_value_of_one(
         self,

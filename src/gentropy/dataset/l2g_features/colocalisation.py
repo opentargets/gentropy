@@ -1202,7 +1202,8 @@ def enriched_study_biosamples(
     """Biosamples whose specifically expressed genes are enriched for the diseases of each study.
 
     1. At every GWAS credible set the nearest gene and the genes hit by a coding variant are
-        prioritised, see `prioritised_disease_genes`, and pooled per disease.
+        prioritised, see `prioritised_disease_genes`, and pooled per disease, leaving one
+        chromosome out at a time.
     2. Every biosample of the expression specificity catalogue is tested for the disease's
         genes having higher specificity scores there, see `ExpressionSpecificity.enrichment`.
         Diseases with fewer than `min_disease_genes` genes in a datasource are not tested in
@@ -1210,6 +1211,9 @@ def enriched_study_biosamples(
         p-values do not depend on which QTL studies exist.
     3. A biosample counts as enriched for a disease below the adjusted p-value threshold in
         any datasource, and for a study when it is enriched for any of the study's diseases.
+        This holds per held-out chromosome, and a credible set on that chromosome only uses
+        those biosamples, so that neither its own genes nor those of any other credible set
+        nearby select them.
 
     Biosamples that are a cell type within a tissue are tested but returned without an
     identifier, since no study can be matched to them. The result is reused when called again
@@ -1228,7 +1232,8 @@ def enriched_study_biosamples(
         vep_score_threshold (float): Smallest `vepMaximum` that prioritises a gene
 
     Returns:
-        DataFrame: `studyId` and `biosampleId`, one row per study and enriched biosample
+        DataFrame: `studyId`, `chromosome` and `biosampleId`, one row per study, held-out
+            chromosome and enriched biosample
     """
     inputs = (
         expression_specificity,
@@ -1261,7 +1266,9 @@ def enriched_study_biosamples(
             (f.col("pValueAdjusted") < p_value_adjusted_threshold)
             & f.col("biosampleId").isNotNull()
         )
-        .select("diseaseId", "biosampleId")
+        .select(
+            "diseaseId", f.col("heldOutChromosome").alias("chromosome"), "biosampleId"
+        )
         .distinct()
     )
     # Cached because sharing the DataFrame alone does not stop Spark running the plan twice.
@@ -1269,7 +1276,7 @@ def enriched_study_biosamples(
         study_index.df.filter(f.col("studyType") == "gwas")
         .select("studyId", f.explode("diseaseIds").alias("diseaseId"))
         .join(enriched_biosamples, "diseaseId", "inner")
-        .select("studyId", "biosampleId")
+        .select("studyId", "chromosome", "biosampleId")
         .distinct()
         .cache()
     )
@@ -1287,19 +1294,23 @@ def keep_colocalisation_in_enriched_biosamples(
 ) -> Colocalisation:
     """Keep the colocalisations whose QTL biosample is enriched for the diseases of the GWAS study.
 
+    The enrichment used is the one that left out the chromosome of the GWAS credible set.
+
     Args:
         colocalisation (Colocalisation): Colocalisation results
         study_locus (StudyLocus): Credible sets, linking each side of a colocalisation to its study
         study_index (StudyIndex): Study index, the source of the biosample of the QTL study
-        enriched_biosamples (DataFrame): `studyId` and `biosampleId`, as returned by
-            `enriched_study_biosamples`
+        enriched_biosamples (DataFrame): `studyId`, `chromosome` and `biosampleId`, as
+            returned by `enriched_study_biosamples`
 
     Returns:
         Colocalisation: The colocalisations whose right-side biosample is enriched for the
             study of the left side
     """
     left_studies = study_locus.df.select(
-        f.col("studyLocusId").alias("leftStudyLocusId"), "studyId"
+        f.col("studyLocusId").alias("leftStudyLocusId"),
+        "studyId",
+        f.col("chromosome").alias("leftChromosome"),
     )
     right_biosamples = study_locus.df.select(
         f.col("studyLocusId").alias("rightStudyLocusId"),
@@ -1311,7 +1322,11 @@ def keep_colocalisation_in_enriched_biosamples(
     return Colocalisation(
         _df=colocalisation.df.join(left_studies, "leftStudyLocusId")
         .join(right_biosamples, "rightStudyLocusId")
-        .join(enriched_biosamples, ["studyId", "biosampleId"], "semi")
+        .join(
+            enriched_biosamples.withColumnRenamed("chromosome", "leftChromosome"),
+            ["studyId", "leftChromosome", "biosampleId"],
+            "semi",
+        )
         .select(colocalisation.df.columns),
         _schema=Colocalisation.get_schema(),
     )

@@ -2317,65 +2317,87 @@ class TestPathwayEnrichmentFeature:
             assert len(values) == 9
 
 
+def _biosample_release(spark: SparkSession, second_chromosome: str) -> dict[str, Any]:
+    """Toy release of `TestEQtlColocH4MaximumEnrichedBiosampleFeature`, with gene4-gene7 on `second_chromosome`."""
+    tss = {f"gene{i}": 10_000_000 * (i + 1) for i in range(30)}
+    chromosomes = {
+        gene_id: second_chromosome if 4 <= i < 8 else "1"
+        for i, gene_id in enumerate(tss)
+    }
+    genes = [
+        _gene(gene_id, position, chromosome=chromosomes[gene_id])
+        for gene_id, position in tss.items()
+    ]
+    variants = [
+        _variant(f"var{i}", [(f"gene{i}", 0, 0.1)], chromosome=chromosomes[f"gene{i}"])
+        for i in range(8)
+    ]
+    credible_sets = [
+        _credible_set(
+            f"sl{i}",
+            "study1",
+            f"var{i}",
+            tss[f"gene{i}"],
+            chromosome=chromosomes[f"gene{i}"],
+        )
+        for i in range(8)
+    ] + [
+        _credible_set(f"qtl{tissue}", f"eqtl{tissue}", "var0", tss["gene0"], "eqtl")
+        for tissue in "AB"
+    ]
+    studies = [_study("study1", ["disease1"])] + [
+        _study(f"eqtl{tissue}", [], study_type="eqtl")
+        | {"geneId": "gene0", "biosampleId": f"UBERON_{tissue}"}
+        for tissue in "AB"
+    ]
+    datasets = _datasets(spark, genes, variants, credible_sets, studies)
+    datasets["colocalisation"] = Colocalisation(
+        _df=spark.createDataFrame(
+            [
+                {
+                    "leftStudyLocusId": "sl0",
+                    "rightStudyLocusId": f"qtl{tissue}",
+                    "rightStudyType": "eqtl",
+                    "chromosome": "1",
+                    "colocalisationMethod": "COLOC",
+                    "numberColocalisingVariants": 1,
+                    "h4": h4,
+                }
+                for tissue, h4 in [("A", 0.6), ("B", 0.9)]
+            ],
+            Colocalisation.get_schema(),
+        ),
+        _schema=Colocalisation.get_schema(),
+    )
+    specific_genes = {"UBERON_A": range(8), "UBERON_B": range(10, 14)}
+    datasets["expression_specificity"] = ExpressionSpecificity(
+        baseline_expression=spark.createDataFrame(
+            [
+                (f"gene{i}", "source1", tissue, None, float(i in specific))
+                for tissue, specific in specific_genes.items()
+                for i in range(30)
+            ],
+            "targetId string, datasourceId string, tissueBiosampleId string, "
+            "celltypeBiosampleId string, specificity_score double",
+        )
+    )
+    return datasets
+
+
 class TestEQtlColocH4MaximumEnrichedBiosampleFeature:
     """Test the enriched biosample colocalisation features end to end.
 
-    Thirty protein-coding genes. gene0-gene3 are each the nearest gene of one credible set of
-    study1 (disease1). Tissue UBERON_A specifically expresses gene0-gene3, so it is enriched
-    for disease1; tissue UBERON_B specifically expresses gene10-gene13 and is not. sl0
+    Thirty protein-coding genes. gene0-gene7 are each the nearest gene of one credible set of
+    study1 (disease1); gene0-gene3 are on chromosome 1 and gene4-gene7 on chromosome 2. Tissue
+    UBERON_A specifically expresses gene0-gene7, so it is enriched for disease1 with either
+    chromosome left out; tissue UBERON_B specifically expresses gene10-gene13 and is not. sl0
     colocalises with an eQTL for gene0 in each tissue: H4 0.6 in UBERON_A and 0.9 in UBERON_B.
     """
 
     @pytest.fixture()
     def datasets(self, spark: SparkSession) -> dict[str, Any]:
         """Datasets of the toy release."""
-        tss = {f"gene{i}": 10_000_000 * (i + 1) for i in range(30)}
-        genes = [_gene(gene_id, position) for gene_id, position in tss.items()]
-        variants = [_variant(f"var{i}", [(f"gene{i}", 0, 0.1)]) for i in range(4)]
-        credible_sets = [
-            _credible_set(f"sl{i}", "study1", f"var{i}", tss[f"gene{i}"])
-            for i in range(4)
-        ] + [
-            _credible_set(f"qtl{tissue}", f"eqtl{tissue}", "var0", tss["gene0"], "eqtl")
-            for tissue in "AB"
-        ]
-        studies = [_study("study1", ["disease1"])] + [
-            _study(f"eqtl{tissue}", [], study_type="eqtl")
-            | {"geneId": "gene0", "biosampleId": f"UBERON_{tissue}"}
-            for tissue in "AB"
-        ]
-        datasets = _datasets(spark, genes, variants, credible_sets, studies)
-        datasets["colocalisation"] = Colocalisation(
-            _df=spark.createDataFrame(
-                [
-                    {
-                        "leftStudyLocusId": "sl0",
-                        "rightStudyLocusId": f"qtl{tissue}",
-                        "rightStudyType": "eqtl",
-                        "chromosome": "1",
-                        "colocalisationMethod": "COLOC",
-                        "numberColocalisingVariants": 1,
-                        "h4": h4,
-                    }
-                    for tissue, h4 in [("A", 0.6), ("B", 0.9)]
-                ],
-                Colocalisation.get_schema(),
-            ),
-            _schema=Colocalisation.get_schema(),
-        )
-        specific_genes = {"UBERON_A": range(4), "UBERON_B": range(10, 14)}
-        datasets["expression_specificity"] = ExpressionSpecificity(
-            baseline_expression=spark.createDataFrame(
-                [
-                    (f"gene{i}", "source1", tissue, None, float(i in specific))
-                    for tissue, specific in specific_genes.items()
-                    for i in range(30)
-                ],
-                "targetId string, datasourceId string, tissueBiosampleId string, "
-                "celltypeBiosampleId string, specificity_score double",
-            )
-        )
-        return datasets
+        return _biosample_release(spark, second_chromosome="2")
 
     @staticmethod
     def _scores(df: Any, feature_name: str, study_locus_id: str) -> dict[str, float]:
@@ -2385,14 +2407,28 @@ class TestEQtlColocH4MaximumEnrichedBiosampleFeature:
         }
 
     def test_enriched_study_biosamples(self, datasets: dict[str, Any]) -> None:
-        """Only UBERON_A is enriched for disease1, and so for study1."""
+        """Only UBERON_A is enriched for disease1, and so for study1, with either chromosome left out."""
         biosamples = enriched_study_biosamples(
             p_value_adjusted_threshold=0.05,
             min_disease_genes=4,
             vep_score_threshold=0.66,
             **{k: v for k, v in datasets.items() if k != "colocalisation"},
         )
-        assert {tuple(row) for row in biosamples.collect()} == {("study1", "UBERON_A")}
+        assert {tuple(row) for row in biosamples.collect()} == {
+            ("study1", "1", "UBERON_A"),
+            ("study1", "2", "UBERON_A"),
+        }
+
+    def test_the_chromosome_of_the_locus_is_left_out(self, spark: SparkSession) -> None:
+        """With all eight credible sets on chromosome 1, no gene is left to enrich UBERON_A."""
+        datasets = _biosample_release(spark, second_chromosome="1")
+        biosamples = enriched_study_biosamples(
+            p_value_adjusted_threshold=0.05,
+            min_disease_genes=4,
+            vep_score_threshold=0.66,
+            **{k: v for k, v in datasets.items() if k != "colocalisation"},
+        )
+        assert biosamples.count() == 0
 
     def test_feature_ignores_colocalisation_in_other_biosamples(
         self, datasets: dict[str, Any], monkeypatch: pytest.MonkeyPatch
