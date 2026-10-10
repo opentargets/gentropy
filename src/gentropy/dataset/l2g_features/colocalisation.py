@@ -1189,6 +1189,7 @@ _last_enriched_biosamples: dict[str, Any] = {}
 
 
 def enriched_study_biosamples(
+    study_loci_to_annotate: StudyLocus | L2GGoldStandard,
     *,
     expression_specificity: ExpressionSpecificity,
     study_index: StudyIndex,
@@ -1215,11 +1216,16 @@ def enriched_study_biosamples(
         those biosamples, so that neither its own genes nor those of any other credible set
         nearby select them.
 
+    Only the studies and chromosomes of the loci to annotate are returned, since no other pair
+    is ever looked up. Without this every study would be returned for every chromosome.
+
     Biosamples that are a cell type within a tissue are tested but returned without an
     identifier, since no study can be matched to them. The result is reused when called again
     with the same input objects and thresholds.
 
     Args:
+        study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci
+            that will be used for annotation
         expression_specificity (ExpressionSpecificity): Baseline expression of the release
         study_index (StudyIndex): Study index, used to resolve a study to its diseases
         study_locus (StudyLocus): Credible sets, the source of the disease gene lists
@@ -1236,6 +1242,7 @@ def enriched_study_biosamples(
             chromosome and enriched biosample
     """
     inputs = (
+        study_loci_to_annotate,
         expression_specificity,
         study_index,
         study_locus,
@@ -1272,10 +1279,21 @@ def enriched_study_biosamples(
         .distinct()
     )
     # Cached because sharing the DataFrame alone does not stop Spark running the plan twice.
+    study_chromosomes = (
+        study_locus.df.select("studyLocusId", "studyId", "chromosome")
+        .join(
+            study_loci_to_annotate.df.select("studyLocusId").distinct(),
+            "studyLocusId",
+            "semi",
+        )
+        .select("studyId", "chromosome")
+        .distinct()
+    )
     biosamples = (
         study_index.df.filter(f.col("studyType") == "gwas")
         .select("studyId", f.explode("diseaseIds").alias("diseaseId"))
-        .join(enriched_biosamples, "diseaseId", "inner")
+        .join(study_chromosomes, "studyId", "inner")
+        .join(enriched_biosamples, ["diseaseId", "chromosome"], "inner")
         .select("studyId", "chromosome", "biosampleId")
         .distinct()
         .cache()
@@ -1364,6 +1382,7 @@ class EQtlColocH4MaximumEnrichedBiosampleFeature(L2GFeature):
             EQtlColocH4MaximumEnrichedBiosampleFeature: Feature dataset
         """
         enriched_biosamples = enriched_study_biosamples(
+            study_loci_to_annotate,
             p_value_adjusted_threshold=cls.p_value_adjusted_threshold,
             min_disease_genes=cls.min_disease_genes,
             vep_score_threshold=cls.vep_score_threshold,
@@ -1426,6 +1445,7 @@ class EQtlColocH4MaximumEnrichedBiosampleNeighbourhoodFeature(L2GFeature):
             EQtlColocH4MaximumEnrichedBiosampleNeighbourhoodFeature: Feature dataset
         """
         enriched_biosamples = enriched_study_biosamples(
+            study_loci_to_annotate,
             p_value_adjusted_threshold=cls.p_value_adjusted_threshold,
             min_disease_genes=cls.min_disease_genes,
             vep_score_threshold=cls.vep_score_threshold,

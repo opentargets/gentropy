@@ -2445,6 +2445,7 @@ class TestEQtlColocH4MaximumEnrichedBiosampleFeature:
     def test_enriched_study_biosamples(self, datasets: dict[str, Any]) -> None:
         """Only UBERON_A is enriched for disease1, and so for study1, with either chromosome left out."""
         biosamples = enriched_study_biosamples(
+            datasets["study_locus"],
             p_value_adjusted_threshold=0.05,
             min_disease_genes=4,
             vep_score_threshold=0.66,
@@ -2455,10 +2456,29 @@ class TestEQtlColocH4MaximumEnrichedBiosampleFeature:
             ("study1", "2", "UBERON_A"),
         }
 
+    def test_only_the_chromosomes_of_the_loci_to_annotate(
+        self, datasets: dict[str, Any]
+    ) -> None:
+        """Annotating sl0 alone returns study1 on chromosome 1 only."""
+        biosamples = enriched_study_biosamples(
+            StudyLocus(
+                _df=datasets["study_locus"].df.filter(f.col("studyLocusId") == "sl0"),
+                _schema=StudyLocus.get_schema(),
+            ),
+            p_value_adjusted_threshold=0.05,
+            min_disease_genes=4,
+            vep_score_threshold=0.66,
+            **{k: v for k, v in datasets.items() if k != "colocalisation"},
+        )
+        assert {tuple(row) for row in biosamples.collect()} == {
+            ("study1", "1", "UBERON_A"),
+        }
+
     def test_the_chromosome_of_the_locus_is_left_out(self, spark: SparkSession) -> None:
         """With all eight credible sets on chromosome 1, no gene is left to enrich UBERON_A."""
         datasets = _biosample_release(spark, second_chromosome="1")
         biosamples = enriched_study_biosamples(
+            datasets["study_locus"],
             p_value_adjusted_threshold=0.05,
             min_disease_genes=4,
             vep_score_threshold=0.66,
