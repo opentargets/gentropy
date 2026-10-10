@@ -63,7 +63,7 @@ class ExpressionSpecificity:
         target_index: TargetIndex,
         min_genes: int = 25,
     ) -> DataFrame:
-        """Test every biosample for disease genes being more specifically expressed there.
+        """Test every biosample for disease genes being more specifically expressed there, leaving one chromosome out at a time.
 
         For each disease and each biosample of a datasource this is the logistic regression of
         whether a gene is on the disease's list on the gene's specificity score in the
@@ -82,17 +82,24 @@ class ExpressionSpecificity:
         when Z is positive and 1 otherwise. Biosamples where every gene has the same score
         cannot be tested and are left out.
 
-        P-values are adjusted with Benjamini-Hochberg within each disease over every biosample
-        of every datasource it was tested in.
+        Each disease is tested once per held-out chromosome, on its list without the genes of
+        that chromosome, so that a locus can be scored without its own genes or those of any
+        other credible set nearby. Every chromosome of `gene_lists` is held out in turn. Only
+        `m` and `S` change when a chromosome is held out, so they are summed once per
+        chromosome and each held-out value is the total minus that chromosome's part.
+
+        P-values are adjusted with Benjamini-Hochberg within each disease and held-out
+        chromosome over every biosample of every datasource it was tested in.
 
         Args:
-            gene_lists (DataFrame): `diseaseId` and `geneId`, the genes of each disease
+            gene_lists (DataFrame): `diseaseId`, `chromosome` and `geneId`, the genes of each
+                disease with the chromosome they are on
             target_index (TargetIndex): Target index, used to find the protein-coding genes
             min_genes (int): Smallest number of genes of a datasource a disease needs to be
                 tested there
 
         Returns:
-            DataFrame: `diseaseId`, `datasourceId`, `tissueBiosampleId`,
+            DataFrame: `diseaseId`, `heldOutChromosome`, `datasourceId`, `tissueBiosampleId`,
                 `celltypeBiosampleId`, `biosampleId`, `diseaseGeneCount` (m), `geneCount` (n),
                 `zScore`, `pValue` and `pValueAdjusted`
         """
@@ -137,26 +144,61 @@ class ExpressionSpecificity:
             )
         )
         disease_genes = (
-            gene_lists.select("diseaseId", "geneId")
+            gene_lists.select("diseaseId", "chromosome", "geneId")
             .distinct()
             .join(datasource_genes, "geneId")
         )
+        held_out_chromosomes = gene_lists.select(
+            f.col("chromosome").alias("heldOutChromosome")
+        ).distinct()
+        chromosome_sizes = disease_genes.groupBy(
+            "diseaseId", "datasourceId", "chromosome"
+        ).agg(f.count("geneId").alias("chromosomeGeneCount"))
         disease_sizes = (
-            disease_genes.groupBy("diseaseId", "datasourceId")
-            .agg(f.count("geneId").alias("diseaseGeneCount"))
+            chromosome_sizes.groupBy("diseaseId", "datasourceId")
+            .agg(f.sum("chromosomeGeneCount").alias("totalGeneCount"))
+            .crossJoin(held_out_chromosomes)
+            .join(
+                chromosome_sizes.withColumnRenamed("chromosome", "heldOutChromosome"),
+                ["diseaseId", "datasourceId", "heldOutChromosome"],
+                "left",
+            )
+            .select(
+                "diseaseId",
+                "datasourceId",
+                "heldOutChromosome",
+                (
+                    f.col("totalGeneCount")
+                    - f.coalesce(f.col("chromosomeGeneCount"), f.lit(0))
+                ).alias("diseaseGeneCount"),
+            )
             .filter(f.col("diseaseGeneCount") >= min_genes)
         )
-        disease_score_sums = (
+        chromosome_score_sums = (
             disease_genes.join(disease_sizes, ["diseaseId", "datasourceId"], "semi")
             .join(specificity, ["datasourceId", "geneId"])
-            .groupBy("diseaseId", "biosampleKey")
-            .agg(f.sum("specificityScore").alias("diseaseScoreSum"))
+            .groupBy("diseaseId", "biosampleKey", "chromosome")
+            .agg(f.sum("specificityScore").alias("chromosomeScoreSum"))
         )
+        total_score_sums = chromosome_score_sums.groupBy(
+            "diseaseId", "biosampleKey"
+        ).agg(f.sum("chromosomeScoreSum").alias("totalScoreSum"))
         # Every biosample of a datasource is tested, also those where no listed gene scores.
         tests = (
             disease_sizes.join(biosamples, "datasourceId")
-            .join(disease_score_sums, ["diseaseId", "biosampleKey"], "left")
-            .fillna(0.0, subset=["diseaseScoreSum"])
+            .join(total_score_sums, ["diseaseId", "biosampleKey"], "left")
+            .join(
+                chromosome_score_sums.withColumnRenamed(
+                    "chromosome", "heldOutChromosome"
+                ),
+                ["diseaseId", "biosampleKey", "heldOutChromosome"],
+                "left",
+            )
+            .withColumn(
+                "diseaseScoreSum",
+                f.coalesce(f.col("totalScoreSum"), f.lit(0.0))
+                - f.coalesce(f.col("chromosomeScoreSum"), f.lit(0.0)),
+            )
         )
 
         mean_score = f.col("scoreSum") / f.col("geneCount")
@@ -170,7 +212,7 @@ class ExpressionSpecificity:
             f.col("diseaseScoreSum") - f.col("diseaseGeneCount") * mean_score
         ) / f.sqrt(score_variance)
 
-        by_disease = Window.partitionBy("diseaseId")
+        by_disease = Window.partitionBy("diseaseId", "heldOutChromosome")
         by_p_value = by_disease.orderBy(f.col("pValue").asc(), f.col("biosampleKey"))
         # q(i) = min over j >= i of p(j) * m / j, as in `PathwayLibrary.over_representation`.
         step_up = f.min(
@@ -191,6 +233,7 @@ class ExpressionSpecificity:
             .withColumn("pValueAdjusted", f.least(step_up, f.lit(1.0)))
             .select(
                 "diseaseId",
+                "heldOutChromosome",
                 *biosample_cols,
                 "diseaseGeneCount",
                 "geneCount",
