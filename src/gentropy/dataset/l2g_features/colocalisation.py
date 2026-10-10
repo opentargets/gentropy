@@ -12,11 +12,13 @@ from pyspark.sql import Window
 from gentropy.common.spark import convert_from_wide_to_long
 from gentropy.dataset.colocalisation import Colocalisation
 from gentropy.dataset.l2g_features.l2g_feature import L2GFeature
+from gentropy.dataset.l2g_features.pathway import prioritised_disease_genes
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
 from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import StudyLocus
 from gentropy.dataset.target_index import TargetIndex
 from gentropy.dataset.variant_index import VariantIndex
+from gentropy.method.biosample_enrichment import ExpressionSpecificity
 from gentropy.method.colocalisation import ColocalisationMethod
 
 if TYPE_CHECKING:
@@ -1171,6 +1173,282 @@ class TransPQtlColocH4MaximumNeighbourhoodFeature(L2GFeature):
                     intact_threshold=cls.intact_threshold,
                     delta=cls.delta,
                     **feature_dependency,
+                ),
+                id_vars=("studyLocusId", "geneId"),
+                var_name="featureName",
+                value_name="featureValue",
+            ),
+            _schema=cls.get_schema(),
+        )
+
+
+# The raw and neighbourhood features are computed one after the other from the same inputs.
+# Keeping the last result lets the second feature reuse it instead of rerunning the
+# release-wide enrichment. The inputs are kept with it so their ids stay valid.
+_last_enriched_biosamples: dict[str, Any] = {}
+
+
+def enriched_study_biosamples(
+    *,
+    expression_specificity: ExpressionSpecificity,
+    study_index: StudyIndex,
+    study_locus: StudyLocus,
+    target_index: TargetIndex,
+    variant_index: VariantIndex,
+    p_value_adjusted_threshold: float,
+    min_disease_genes: int,
+    vep_score_threshold: float,
+) -> DataFrame:
+    """Biosamples whose specifically expressed genes are enriched for the diseases of each study.
+
+    1. At every GWAS credible set the nearest gene and the genes hit by a coding variant are
+        prioritised, see `prioritised_disease_genes`, and pooled per disease, leaving one
+        chromosome out at a time.
+    2. Every biosample of the expression specificity catalogue is tested for the disease's
+        genes having higher specificity scores there, see `ExpressionSpecificity.enrichment`.
+        Diseases with fewer than `min_disease_genes` genes in a datasource are not tested in
+        it. All biosamples are tested, whether or not a QTL study uses them, so the adjusted
+        p-values do not depend on which QTL studies exist.
+    3. A biosample counts as enriched for a disease below the adjusted p-value threshold in
+        any datasource, and for a study when it is enriched for any of the study's diseases.
+        This holds per held-out chromosome, and a credible set on that chromosome only uses
+        those biosamples, so that neither its own genes nor those of any other credible set
+        nearby select them.
+
+    Biosamples that are a cell type within a tissue are tested but returned without an
+    identifier, since no study can be matched to them. The result is reused when called again
+    with the same input objects and thresholds.
+
+    Args:
+        expression_specificity (ExpressionSpecificity): Baseline expression of the release
+        study_index (StudyIndex): Study index, used to resolve a study to its diseases
+        study_locus (StudyLocus): Credible sets, the source of the disease gene lists
+        target_index (TargetIndex): Target index, used for gene annotations
+        variant_index (VariantIndex): Variant index, used to prioritise genes at each credible set
+        p_value_adjusted_threshold (float): Largest adjusted p-value, exclusive, for a
+            biosample to count as enriched
+        min_disease_genes (int): Smallest number of genes of a datasource a disease needs to be
+            tested there
+        vep_score_threshold (float): Smallest `vepMaximum` that prioritises a gene
+
+    Returns:
+        DataFrame: `studyId`, `chromosome` and `biosampleId`, one row per study, held-out
+            chromosome and enriched biosample
+    """
+    inputs = (
+        expression_specificity,
+        study_index,
+        study_locus,
+        target_index,
+        variant_index,
+    )
+    thresholds = (p_value_adjusted_threshold, min_disease_genes, vep_score_threshold)
+    if (
+        _last_enriched_biosamples
+        and all(a is b for a, b in zip(_last_enriched_biosamples["inputs"], inputs))
+        and _last_enriched_biosamples["thresholds"] == thresholds
+    ):
+        return _last_enriched_biosamples["biosamples"]
+
+    enriched_biosamples = (
+        expression_specificity.enrichment(
+            prioritised_disease_genes(
+                study_locus,
+                study_index,
+                variant_index,
+                target_index,
+                vep_score_threshold=vep_score_threshold,
+            ),
+            target_index,
+            min_genes=min_disease_genes,
+        )
+        .filter(
+            (f.col("pValueAdjusted") < p_value_adjusted_threshold)
+            & f.col("biosampleId").isNotNull()
+        )
+        .select(
+            "diseaseId", f.col("heldOutChromosome").alias("chromosome"), "biosampleId"
+        )
+        .distinct()
+    )
+    # Cached because sharing the DataFrame alone does not stop Spark running the plan twice.
+    biosamples = (
+        study_index.df.filter(f.col("studyType") == "gwas")
+        .select("studyId", f.explode("diseaseIds").alias("diseaseId"))
+        .join(enriched_biosamples, "diseaseId", "inner")
+        .select("studyId", "chromosome", "biosampleId")
+        .distinct()
+        .cache()
+    )
+    _last_enriched_biosamples.update(
+        inputs=inputs, thresholds=thresholds, biosamples=biosamples
+    )
+    return biosamples
+
+
+def keep_colocalisation_in_enriched_biosamples(
+    colocalisation: Colocalisation,
+    study_locus: StudyLocus,
+    study_index: StudyIndex,
+    enriched_biosamples: DataFrame,
+) -> Colocalisation:
+    """Keep the colocalisations whose QTL biosample is enriched for the diseases of the GWAS study.
+
+    The enrichment used is the one that left out the chromosome of the GWAS credible set.
+
+    Args:
+        colocalisation (Colocalisation): Colocalisation results
+        study_locus (StudyLocus): Credible sets, linking each side of a colocalisation to its study
+        study_index (StudyIndex): Study index, the source of the biosample of the QTL study
+        enriched_biosamples (DataFrame): `studyId`, `chromosome` and `biosampleId`, as
+            returned by `enriched_study_biosamples`
+
+    Returns:
+        Colocalisation: The colocalisations whose right-side biosample is enriched for the
+            study of the left side
+    """
+    left_studies = study_locus.df.select(
+        f.col("studyLocusId").alias("leftStudyLocusId"),
+        "studyId",
+        f.col("chromosome").alias("leftChromosome"),
+    )
+    right_biosamples = study_locus.df.select(
+        f.col("studyLocusId").alias("rightStudyLocusId"),
+        f.col("studyId").alias("rightStudyId"),
+    ).join(
+        study_index.df.select(f.col("studyId").alias("rightStudyId"), "biosampleId"),
+        "rightStudyId",
+    )
+    return Colocalisation(
+        _df=colocalisation.df.join(left_studies, "leftStudyLocusId")
+        .join(right_biosamples, "rightStudyLocusId")
+        .join(
+            enriched_biosamples.withColumnRenamed("chromosome", "leftChromosome"),
+            ["studyId", "leftChromosome", "biosampleId"],
+            "semi",
+        )
+        .select(colocalisation.df.columns),
+        _schema=Colocalisation.get_schema(),
+    )
+
+
+class EQtlColocH4MaximumEnrichedBiosampleFeature(L2GFeature):
+    """Max H4 for each (study, locus, gene) over eQTLs from biosamples enriched for the study's diseases."""
+
+    feature_dependency_type = [
+        Colocalisation,
+        ExpressionSpecificity,
+        StudyIndex,
+        StudyLocus,
+        TargetIndex,
+        VariantIndex,
+    ]
+    feature_name = "eQtlColocH4MaximumEnrichedBiosample"
+    p_value_adjusted_threshold: float = 0.05
+    min_disease_genes: int = 25
+    vep_score_threshold: float = 0.66
+
+    @classmethod
+    def compute(
+        cls: type[EQtlColocH4MaximumEnrichedBiosampleFeature],
+        study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+        feature_dependency: dict[str, Any],
+    ) -> EQtlColocH4MaximumEnrichedBiosampleFeature:
+        """Computes the feature.
+
+        Args:
+            study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
+            feature_dependency (dict[str, Any]): Colocalisations, expression specificity, studies, credible sets, genes and variants
+
+        Returns:
+            EQtlColocH4MaximumEnrichedBiosampleFeature: Feature dataset
+        """
+        enriched_biosamples = enriched_study_biosamples(
+            p_value_adjusted_threshold=cls.p_value_adjusted_threshold,
+            min_disease_genes=cls.min_disease_genes,
+            vep_score_threshold=cls.vep_score_threshold,
+            **{k: v for k, v in feature_dependency.items() if k != "colocalisation"},
+        )
+        return cls(
+            _df=convert_from_wide_to_long(
+                common_colocalisation_feature_logic(
+                    study_loci_to_annotate,
+                    "Coloc",
+                    "h4",
+                    cls.feature_name,
+                    ["eqtl", "sceqtl"],
+                    colocalisation=keep_colocalisation_in_enriched_biosamples(
+                        feature_dependency["colocalisation"],
+                        feature_dependency["study_locus"],
+                        feature_dependency["study_index"],
+                        enriched_biosamples,
+                    ),
+                    study_index=feature_dependency["study_index"],
+                    study_locus=feature_dependency["study_locus"],
+                ),
+                id_vars=("studyLocusId", "geneId"),
+                var_name="featureName",
+                value_name="featureValue",
+            ),
+            _schema=cls.get_schema(),
+        )
+
+
+class EQtlColocH4MaximumEnrichedBiosampleNeighbourhoodFeature(L2GFeature):
+    """Max H4 over eQTLs from enriched biosamples, relative to the best gene at the locus."""
+
+    feature_dependency_type = [
+        Colocalisation,
+        ExpressionSpecificity,
+        StudyIndex,
+        StudyLocus,
+        TargetIndex,
+        VariantIndex,
+    ]
+    feature_name = "eQtlColocH4MaximumEnrichedBiosampleNeighbourhood"
+    p_value_adjusted_threshold: float = 0.05
+    min_disease_genes: int = 25
+    vep_score_threshold: float = 0.66
+
+    @classmethod
+    def compute(
+        cls: type[EQtlColocH4MaximumEnrichedBiosampleNeighbourhoodFeature],
+        study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+        feature_dependency: dict[str, Any],
+    ) -> EQtlColocH4MaximumEnrichedBiosampleNeighbourhoodFeature:
+        """Computes the feature.
+
+        Args:
+            study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
+            feature_dependency (dict[str, Any]): Colocalisations, expression specificity, studies, credible sets, genes and variants
+
+        Returns:
+            EQtlColocH4MaximumEnrichedBiosampleNeighbourhoodFeature: Feature dataset
+        """
+        enriched_biosamples = enriched_study_biosamples(
+            p_value_adjusted_threshold=cls.p_value_adjusted_threshold,
+            min_disease_genes=cls.min_disease_genes,
+            vep_score_threshold=cls.vep_score_threshold,
+            **{k: v for k, v in feature_dependency.items() if k != "colocalisation"},
+        )
+        return cls(
+            _df=convert_from_wide_to_long(
+                common_neighbourhood_colocalisation_feature_logic(
+                    study_loci_to_annotate,
+                    "Coloc",
+                    "h4",
+                    cls.feature_name,
+                    ["eqtl", "sceqtl"],
+                    colocalisation=keep_colocalisation_in_enriched_biosamples(
+                        feature_dependency["colocalisation"],
+                        feature_dependency["study_locus"],
+                        feature_dependency["study_index"],
+                        enriched_biosamples,
+                    ),
+                    study_index=feature_dependency["study_index"],
+                    target_index=feature_dependency["target_index"],
+                    study_locus=feature_dependency["study_locus"],
+                    variant_index=feature_dependency["variant_index"],
                 ),
                 id_vars=("studyLocusId", "geneId"),
                 var_name="featureName",
