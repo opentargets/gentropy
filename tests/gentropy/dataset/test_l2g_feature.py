@@ -61,6 +61,7 @@ from gentropy.dataset.l2g_features.pathway import (
     PathwayEnrichmentNeighbourhoodFeature,
     common_neighbourhood_pathway_enrichment_feature_logic,
     common_pathway_enrichment_feature_logic,
+    disease_set_pathway_scores,
     prioritised_disease_genes,
 )
 from gentropy.dataset.l2g_features.vep import (
@@ -2269,6 +2270,41 @@ class TestPathwayEnrichmentFeature:
             "gene0": pytest.approx(0.0),
             "gene8": pytest.approx(0.0),
         }
+
+    def test_scores_only_the_chromosomes_of_the_loci_to_annotate(
+        self, datasets: dict[str, Any], mock_pathway_library: PathwayLibrary
+    ) -> None:
+        """Annotating sl0 alone scores chromosome 1 only, and gives sl0 the scores it gets among all loci."""
+        sl0 = StudyLocus(
+            _df=datasets["study_locus"].df.filter(f.col("studyLocusId") == "sl0"),
+            _schema=StudyLocus.get_schema(),
+        )
+        scores = disease_set_pathway_scores(
+            sl0,
+            pathway_library=mock_pathway_library,
+            **datasets,
+            p_value_adjusted_threshold=0.05,
+            min_pathway_size=1,
+            max_pathway_size=4000,
+            min_disease_genes=4,
+            vep_score_threshold=0.66,
+        )
+        assert {row["chromosome"] for row in scores.collect()} == {"1"}
+        all_loci, sl0_only = (
+            self._scores(
+                common_pathway_enrichment_feature_logic(
+                    loci,
+                    "pathwayEnrichment500kb",
+                    pathway_library=mock_pathway_library,
+                    **datasets,
+                    **self._parameters(),
+                ),
+                "pathwayEnrichment500kb",
+                "sl0",
+            )
+            for loci in (datasets["study_locus"], sl0)
+        )
+        assert sl0_only == all_loci
 
     def test_neighbourhood_is_relative_to_the_best_gene_at_the_locus(
         self, datasets: dict[str, Any], mock_pathway_library: PathwayLibrary

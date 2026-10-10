@@ -119,6 +119,7 @@ _last_scores: dict[str, Any] = {}
 
 
 def disease_set_pathway_scores(
+    study_loci_to_annotate: StudyLocus | L2GGoldStandard,
     *,
     pathway_library: PathwayLibrary,
     study_index: StudyIndex,
@@ -136,10 +137,16 @@ def disease_set_pathway_scores(
     The enrichment leaves out the chromosome the gene is on, see
     `PathwayLibrary.over_representation`, and only that result is scored for the gene.
 
+    Scores are only built for the disease sets and chromosomes of the loci to annotate, since a
+    locus only scores genes on its own chromosome. Without this every disease set would be
+    scored on every chromosome, most of which no study of the set has a credible set on.
+
     The result is reused when called again with the same input objects and thresholds, see
     `common_pathway_enrichment_feature_logic` for the arguments.
 
     Args:
+        study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci
+            that will be used for annotation
         pathway_library (PathwayLibrary): GO and Reactome tables of the release
         study_index (StudyIndex): Study index, used to resolve a study to its diseases
         study_locus (StudyLocus): Credible sets, the source of the disease gene lists
@@ -157,7 +164,14 @@ def disease_set_pathway_scores(
             enriched pathway, where `chromosome` is the chromosome of the gene and the one
             left out of the enrichment
     """
-    inputs = (pathway_library, study_index, study_locus, target_index, variant_index)
+    inputs = (
+        study_loci_to_annotate,
+        pathway_library,
+        study_index,
+        study_locus,
+        target_index,
+        variant_index,
+    )
     thresholds = (
         p_value_adjusted_threshold,
         min_pathway_size,
@@ -201,13 +215,23 @@ def disease_set_pathway_scores(
         f.col("genomicLocation.chromosome").alias("chromosome"),
     )
 
-    disease_sets = gwas_disease_sets(study_index)
+    # Only the disease sets and chromosomes of the loci to annotate are ever looked up.
+    disease_set_chromosomes = (
+        study_locus.df.select("studyLocusId", "studyId", "chromosome")
+        .join(
+            study_loci_to_annotate.df.select("studyLocusId").distinct(),
+            "studyLocusId",
+            "semi",
+        )
+        .join(gwas_disease_sets(study_index), "studyId", "inner")
+        .select("diseaseSet", "chromosome")
+        .distinct()
+    )
     enriched_pathways_per_gene = (
-        disease_sets.select("diseaseSet")
-        .distinct()
-        .select("diseaseSet", f.explode("diseaseSet").alias("diseaseId"))
-        .distinct()
-        .join(enriched_pathways, "diseaseId", "inner")
+        disease_set_chromosomes.select(
+            "diseaseSet", "chromosome", f.explode("diseaseSet").alias("diseaseId")
+        )
+        .join(enriched_pathways, ["diseaseId", "chromosome"], "inner")
         .select("diseaseSet", "chromosome", "pathwayId")
         .distinct()
         .join(
@@ -304,6 +328,7 @@ def common_pathway_enrichment_feature_logic(
     """
     disease_sets = gwas_disease_sets(study_index)
     scores = disease_set_pathway_scores(
+        study_loci_to_annotate,
         pathway_library=pathway_library,
         study_index=study_index,
         study_locus=study_locus,
