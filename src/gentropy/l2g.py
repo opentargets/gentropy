@@ -6,10 +6,9 @@ import json
 import logging
 from typing import Any, NotRequired, TypedDict
 
-import numpy as np
 import pandas as pd
 import pyspark.sql.functions as f
-from pyspark.sql import DataFrame
+from pyspark.sql import DataFrame, Window
 from wandb.sdk.wandb_login import login as wandb_login
 from xgboost import XGBClassifier
 
@@ -47,6 +46,7 @@ class _SetStats(TypedDict):
     n_unique_loci: int
     n_unique_positive_genes: int
     n_unique_positive_gene_disease_pairs: NotRequired[int]
+    n_association_units: NotRequired[int]
 
 
 class LocusToGeneFeatureMatrixStep:
@@ -230,8 +230,13 @@ class LocusToGeneTrainTestSplitStep:
         gene_interactions_path: str | None = None,
         predefined_test_parquet_path: str | None = None,
         split_stats_path: str | None = None,
+        association_unit_seed: int = 42,
     ) -> None:
         """Initialise step: build annotated feature matrix, split, and persist.
+
+        Each credible set is tagged with its association unit and whether it represents the
+        unit, see ``_annotate_association_units``. Nothing is dropped: the trainer uses the tags
+        to weight training rows and to evaluate on one credible set per unit.
 
         Args:
             session (Session): Session object that contains the Spark session
@@ -250,6 +255,7 @@ class LocusToGeneTrainTestSplitStep:
                 genes stay fixed across releases while credible sets and features are rebuilt.
                 ``test_size`` is ignored. Defaults to None (fresh hierarchical split).
             split_stats_path (str | None): Explicit path for the split statistics JSON file. Defaults to ``<train_parquet_path>_split_stats.json``.
+            association_unit_seed (int): Seed of the hash that picks the representative credible set of each association unit. Defaults to 42.
         """
         credible_set = StudyLocus.from_parquet(
             session, credible_set_path, recursiveFileLookup=True
@@ -314,8 +320,6 @@ class LocusToGeneTrainTestSplitStep:
                 "n_train": n_train,
                 "n_test": n_test,
                 "n_lost_total": n_original_total - n_train - n_test,
-                "train": self._compute_set_stats(train_sdf.toPandas()),
-                "test": self._compute_set_stats(test_sdf.toPandas()),
             }
         else:
             train_df, test_df = annotated_fm.generate_train_test_split(
@@ -329,11 +333,20 @@ class LocusToGeneTrainTestSplitStep:
                 "n_train": n_written_train,
                 "n_test": n_written_test,
                 "test_size": test_size,
-                "train": self._compute_set_stats(train_df),
-                "test": self._compute_set_stats(test_df),
             }
             train_sdf = session.spark.createDataFrame(train_df)
             test_sdf = session.spark.createDataFrame(test_df)
+
+        lead_variants = credible_set.df.select("studyLocusId", "variantId")
+        train_sdf, test_sdf = (
+            self._annotate_association_units(
+                sdf, lead_variants, association_unit_seed
+            ).persist()
+            for sdf in (train_sdf, test_sdf)
+        )
+        to_unpersist.extend([train_sdf, test_sdf])
+        split_stats["train"] = self._compute_set_stats(train_sdf.toPandas())
+        split_stats["test"] = self._compute_set_stats(test_sdf.toPandas())
 
         self._write_split_stats(split_stats, train_parquet_path, split_stats_path)
         logger.info("Split stats: %s", split_stats)
@@ -406,6 +419,83 @@ class LocusToGeneTrainTestSplitStep:
             annotated_df.join(train_loci, on="studyLocusId", how="semi"),
             annotated_df.join(test_loci, on="studyLocusId", how="semi"),
         )
+
+    @staticmethod
+    def _annotate_association_units(
+        split_df: DataFrame, lead_variants: DataFrame, seed: int
+    ) -> DataFrame:
+        """Tag each credible set of one split with its association unit and pick one representative.
+
+        The same association is often fine-mapped in many studies. An association unit is the
+        lead variant of a credible set plus its sorted positive genes, so {A, B} and {A} at the
+        same lead are different units. ``associationUnitId`` is the SHA-256 of that key.
+        Within the split, ``isUnitRepresentative`` marks the credible set with the smallest
+        SHA-256 of ``"<seed>:<studyLocusId>"``: a seeded random pick that does not depend on
+        row order.
+
+        Args:
+            split_df (DataFrame): Train or test rows with ``studyLocusId``, ``geneId`` and ``goldStandardSet``.
+            lead_variants (DataFrame): ``studyLocusId`` and lead ``variantId`` of the credible sets.
+            seed (int): Seed of the representative pick.
+
+        Returns:
+            DataFrame: ``split_df`` with ``associationUnitId`` and ``isUnitRepresentative``.
+
+        Examples:
+            >>> df = spark.createDataFrame(
+            ...     [
+            ...         ("cs1", "A", 1), ("cs1", "B", 1), ("cs1", "C", 0),
+            ...         ("cs2", "A", 1), ("cs2", "C", 0),
+            ...         ("cs3", "A", 1), ("cs3", "C", 0),
+            ...     ],
+            ...     "studyLocusId string, geneId string, goldStandardSet int",
+            ... )
+            >>> leads = spark.createDataFrame(
+            ...     [("cs1", "1_100_A_G"), ("cs2", "1_100_A_G"), ("cs3", "1_100_A_G")],
+            ...     "studyLocusId string, variantId string",
+            ... )
+            >>> loci = (
+            ...     LocusToGeneTrainTestSplitStep._annotate_association_units(df, leads, 42)
+            ...     .select("studyLocusId", "associationUnitId", "isUnitRepresentative")
+            ...     .distinct()
+            ...     .toPandas()
+            ... )
+            >>> loci.groupby("associationUnitId").studyLocusId.apply(sorted).sort_values().tolist()
+            [['cs1'], ['cs2', 'cs3']]
+            >>> int(loci.isUnitRepresentative.sum())
+            2
+        """
+        is_positive = f.col("goldStandardSet").cast("string").isin(["1", "positive"])
+        unit = LocusToGeneTrainer.ASSOCIATION_UNIT_COL
+        loci = (
+            split_df.groupBy("studyLocusId")
+            .agg(
+                f.array_sort(f.collect_set(f.when(is_positive, f.col("geneId")))).alias(
+                    "positiveGeneIds"
+                )
+            )
+            .join(lead_variants, on="studyLocusId", how="left")
+            .withColumn(
+                unit,
+                f.sha2(
+                    f.concat_ws(
+                        "|", f.col("variantId"), f.concat_ws(",", "positiveGeneIds")
+                    ),
+                    256,
+                ),
+            )
+            .withColumn(
+                LocusToGeneTrainer.UNIT_REPRESENTATIVE_COL,
+                f.row_number().over(
+                    Window.partitionBy(unit).orderBy(
+                        f.sha2(f.concat(f.lit(f"{seed}:"), f.col("studyLocusId")), 256)
+                    )
+                )
+                == 1,
+            )
+            .select("studyLocusId", unit, LocusToGeneTrainer.UNIT_REPRESENTATIVE_COL)
+        )
+        return split_df.join(loci, on="studyLocusId", how="left")
 
     @staticmethod
     def _parse_gold_standard(
@@ -508,7 +598,7 @@ class LocusToGeneTrainTestSplitStep:
 
         Returns:
             _SetStats: Counts of positive/negative rows, unique loci, unique positive genes,
-                and (when available) unique positive gene–disease pairs.
+                and (when available) unique positive gene–disease pairs and association units.
         """
         positive = df[df["goldStandardSet"] == 1]
         stats: _SetStats = {
@@ -520,6 +610,10 @@ class LocusToGeneTrainTestSplitStep:
         if "traitFromSourceMappedId" in df.columns:
             stats["n_unique_positive_gene_disease_pairs"] = int(
                 positive[["geneId", "traitFromSourceMappedId"]].drop_duplicates().shape[0]
+            )
+        if LocusToGeneTrainer.ASSOCIATION_UNIT_COL in df.columns:
+            stats["n_association_units"] = int(
+                df[LocusToGeneTrainer.ASSOCIATION_UNIT_COL].nunique()
             )
         return stats
 
@@ -572,6 +666,8 @@ class LocusToGeneStep:
         wandb_credentials_path: str | None = None,
         train_parquet_path: str | None = None,
         test_parquet_path: str | None = None,
+        weight_by_association_unit: bool = True,
+        evaluate_on_deduplicated_test: bool = True,
     ) -> None:
         """Initialise the step and run the logic based on mode.
 
@@ -596,6 +692,8 @@ class LocusToGeneStep:
             wandb_credentials_path (str | None): Optional path to the Weights and Biases credentials JSON file. If not provided, the WANDB_API_KEY environment variable will be used.
             train_parquet_path (str | None): Path to the training split parquet produced by ``LocusToGeneTrainTestSplitStep``. Required in train mode.
             test_parquet_path (str | None): Path to the test split parquet produced by ``LocusToGeneTrainTestSplitStep``. Required in train mode.
+            weight_by_association_unit (bool): Weight each training credible set by 1/n, where n is the number of credible sets of its association unit, so each unit counts once. Defaults to True.
+            evaluate_on_deduplicated_test (bool): Report held-out metrics on one credible set per association unit. Defaults to True.
 
         Raises:
             ValueError: If run_mode is not 'train' or 'predict'
@@ -636,6 +734,8 @@ class LocusToGeneStep:
         self.train_parquet_path = train_parquet_path
         self.test_parquet_path = test_parquet_path
         self.train_on_full_dataset = train_on_full_dataset
+        self.weight_by_association_unit = weight_by_association_unit
+        self.evaluate_on_deduplicated_test = evaluate_on_deduplicated_test
 
         # Train parameters
         self.hyperparameters = dict(hyperparameters)
@@ -761,8 +861,12 @@ class LocusToGeneStep:
         # Labels are decoded back to strings because export_to_hugging_face_hub calls
         # generate_train_test_split, which expects string-encoded labels.
         label_map = f.create_map(f.lit(0), f.lit("negative"), f.lit(1), f.lit("positive"))
+        # The association-unit columns are kept out of the feature matrix: it sets the model's
+        # column metadata on the Hub, where any extra column would be read back as a feature.
         feature_matrix = L2GFeatureMatrix(
-            _df=train_sdf.union(test_sdf).withColumn(
+            _df=train_sdf.drop(*LocusToGeneTrainer.UNIT_COLS)
+            .union(test_sdf.drop(*LocusToGeneTrainer.UNIT_COLS))
+            .withColumn(
                 "goldStandardSet",
                 f.coalesce(
                     label_map[f.col("goldStandardSet").cast("int")],
@@ -779,7 +883,10 @@ class LocusToGeneStep:
 
         # Run the training
         trained_model = LocusToGeneTrainer(
-            model=l2g_model, feature_matrix=feature_matrix
+            model=l2g_model,
+            feature_matrix=feature_matrix,
+            weight_by_association_unit=self.weight_by_association_unit,
+            evaluate_on_deduplicated_test=self.evaluate_on_deduplicated_test,
         ).train(
             wandb_run_name=self.wandb_run_name,
             train_on_full_dataset=self.train_on_full_dataset,
@@ -924,6 +1031,8 @@ class LocusToGeneModelTuningStep:
         hyperparameter_grid: dict[str, Any] | None = None,
         cv_results_dir: str | None = None,
         holdout_only: bool = False,
+        weight_by_association_unit: bool = True,
+        evaluate_on_deduplicated_test: bool = True,
     ) -> None:
         """Initialise the step and run cross-validation.
 
@@ -949,18 +1058,24 @@ class LocusToGeneModelTuningStep:
             holdout_only (bool): When True, skip CV folds and evaluate each config directly
                 on the holdout set. Requires ``cv_results_dir`` and a non-empty test set.
                 Defaults to False.
+            weight_by_association_unit (bool): Weight each training credible set by 1/n, where
+                n is the number of credible sets of its association unit. Defaults to True.
+            evaluate_on_deduplicated_test (bool): Evaluate folds and the holdout on one credible
+                set per association unit. Defaults to True.
         """
+        train_sdf = session.load_data(train_feature_matrix_path, "parquet")
+        test_sdf = session.load_data(test_feature_matrix_path, "parquet")
+        # The association-unit columns are not features; they are carried to pandas separately.
         train_feature_matrix = L2GFeatureMatrix(
-            _df=session.load_data(train_feature_matrix_path, "parquet"),
+            _df=train_sdf.drop(*LocusToGeneTrainer.UNIT_COLS),
             features_list=features_list,
             with_gold_standard=True,
-        ).persist()
-
+        )
         test_feature_matrix = L2GFeatureMatrix(
-            _df=session.load_data(test_feature_matrix_path, "parquet"),
+            _df=test_sdf.drop(*LocusToGeneTrainer.UNIT_COLS),
             features_list=features_list,
             with_gold_standard=True,
-        ).persist()
+        )
 
         effective_features = train_feature_matrix.features_list
 
@@ -973,34 +1088,26 @@ class LocusToGeneModelTuningStep:
         trainer = LocusToGeneTrainer(
             model=l2g_model,
             feature_matrix=train_feature_matrix,
+            weight_by_association_unit=weight_by_association_unit,
+            evaluate_on_deduplicated_test=evaluate_on_deduplicated_test,
         )
 
         # Convert to pandas and encode labels, mirroring generate_train_test_split
         label_col = train_feature_matrix.label_col
-        train_pd: pd.DataFrame = train_feature_matrix._df.toPandas()
-        test_pd: pd.DataFrame = test_feature_matrix._df.toPandas()
-        train_feature_matrix._df.unpersist()
-        test_feature_matrix._df.unpersist()
+        train_pd: pd.DataFrame = self._with_unit_columns(
+            train_feature_matrix, train_sdf
+        ).toPandas()
+        test_pd: pd.DataFrame = self._with_unit_columns(
+            test_feature_matrix, test_sdf
+        ).toPandas()
         # The split step saves goldStandardSet as integers 0/1; only encode if still strings.
         for df in (train_pd, test_pd):
             if df[label_col].dtype == object:
                 df[label_col] = df[label_col].map(l2g_model.label_encoder)
 
-        x_train: np.ndarray = (
-            train_pd[effective_features].apply(pd.to_numeric).to_numpy()
-        )
-        y_train: np.ndarray = train_pd[label_col].apply(pd.to_numeric).to_numpy()
-        x_test: np.ndarray = (
-            test_pd[effective_features].apply(pd.to_numeric).to_numpy()
-        )
-        y_test: np.ndarray = test_pd[label_col].apply(pd.to_numeric).to_numpy()
-
-        trainer.train_df = train_pd
-        trainer.test_df = test_pd
-        trainer.x_train = x_train
-        trainer.y_train = y_train
-        trainer.x_test = x_test
-        trainer.y_test = y_test
+        trainer.set_train_test(train_pd, test_pd)
+        if trainer.x_test is None or trainer.y_test is None:
+            raise ValueError("Test data not set.")
 
         trainer.cross_validate(
             parameter_grid=hyperparameter_grid,
@@ -1014,8 +1121,30 @@ class LocusToGeneModelTuningStep:
         trainer.log_to_terminal(
             eval_id="Hold-out",
             metrics=trainer.evaluate(
-                y_true=y_test,
-                y_pred=trainer.model.model.predict(x_test),
-                y_pred_proba=trainer.model.model.predict_proba(x_test),
+                y_true=trainer.y_test,
+                y_pred=trainer.model.model.predict(trainer.x_test),
+                y_pred_proba=trainer.model.model.predict_proba(trainer.x_test),
             ),
+        )
+
+    @staticmethod
+    def _with_unit_columns(
+        feature_matrix: L2GFeatureMatrix, split_df: DataFrame
+    ) -> DataFrame:
+        """Add the association-unit columns of a split parquet back to its feature matrix.
+
+        Args:
+            feature_matrix (L2GFeatureMatrix): Feature matrix built without the unit columns.
+            split_df (DataFrame): Split parquet as read, with or without the unit columns.
+
+        Returns:
+            DataFrame: Feature matrix rows with the unit columns, when the split has them.
+        """
+        unit_cols = [c for c in LocusToGeneTrainer.UNIT_COLS if c in split_df.columns]
+        if not unit_cols:
+            return feature_matrix._df
+        return feature_matrix._df.join(
+            split_df.select("studyLocusId", *unit_cols).distinct(),
+            on="studyLocusId",
+            how="left",
         )

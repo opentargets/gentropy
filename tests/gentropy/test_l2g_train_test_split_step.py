@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -173,3 +174,62 @@ class TestSplitByTestGenes:
         train, test = LocusToGeneTrainTestSplitStep._split_by_test_genes(df, genes)
         assert {r.studyLocusId for r in test.collect()} == {"cs1"}
         assert {r.studyLocusId for r in train.collect()} == {"cs2"}
+
+
+class TestAnnotateAssociationUnits:
+    """Tests for LocusToGeneTrainTestSplitStep._annotate_association_units."""
+
+    def test_representative_is_smallest_seeded_hash(self, spark: SparkSession) -> None:
+        """The representative is the credible set with the smallest sha256("<seed>:<studyLocusId>")."""
+        loci = [f"cs{i}" for i in range(20)]
+        df = spark.createDataFrame(
+            [(locus, "A", 1) for locus in loci],
+            "studyLocusId string, geneId string, goldStandardSet int",
+        )
+        leads = spark.createDataFrame(
+            [(locus, "1_100_A_G") for locus in loci],
+            "studyLocusId string, variantId string",
+        )
+        annotated = LocusToGeneTrainTestSplitStep._annotate_association_units(
+            df.orderBy(f.rand(seed=1)), leads, seed=42
+        )
+        representatives = [
+            r.studyLocusId for r in annotated.filter("isUnitRepresentative").collect()
+        ]
+        expected = min(
+            loci, key=lambda locus: hashlib.sha256(f"42:{locus}".encode()).hexdigest()
+        )
+        assert representatives == [expected]
+        assert annotated.select("associationUnitId").distinct().count() == 1
+
+    def test_negatives_do_not_change_unit(self, spark: SparkSession) -> None:
+        """Credible sets with the same lead and positives share a unit whatever their negatives."""
+        df = spark.createDataFrame(
+            [("cs1", "A", 1), ("cs1", "B", 0), ("cs2", "A", 1), ("cs2", "C", 0)],
+            "studyLocusId string, geneId string, goldStandardSet int",
+        )
+        leads = spark.createDataFrame(
+            [("cs1", "1_100_A_G"), ("cs2", "1_100_A_G")],
+            "studyLocusId string, variantId string",
+        )
+        annotated = LocusToGeneTrainTestSplitStep._annotate_association_units(
+            df, leads, seed=42
+        )
+        assert annotated.select("associationUnitId").distinct().count() == 1
+        assert annotated.count() == df.count()
+
+    def test_different_lead_is_different_unit(self, spark: SparkSession) -> None:
+        """The same positive gene at different lead variants gives different units."""
+        df = spark.createDataFrame(
+            [("cs1", "A", 1), ("cs2", "A", 1)],
+            "studyLocusId string, geneId string, goldStandardSet int",
+        )
+        leads = spark.createDataFrame(
+            [("cs1", "1_100_A_G"), ("cs2", "1_200_A_G")],
+            "studyLocusId string, variantId string",
+        )
+        annotated = LocusToGeneTrainTestSplitStep._annotate_association_units(
+            df, leads, seed=42
+        )
+        assert annotated.select("associationUnitId").distinct().count() == 2
+        assert annotated.filter("isUnitRepresentative").count() == 2

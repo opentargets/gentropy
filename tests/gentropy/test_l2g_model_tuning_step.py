@@ -5,10 +5,13 @@ from __future__ import annotations
 import json
 from pathlib import Path
 from typing import TYPE_CHECKING
+from unittest.mock import patch
 
 import pytest
 
 from gentropy.l2g import LocusToGeneModelTuningStep
+from gentropy.method.l2g.model import LocusToGeneModel
+from gentropy.method.l2g.trainer import LocusToGeneTrainer
 
 if TYPE_CHECKING:
     from gentropy.common.session import Session
@@ -172,3 +175,43 @@ class TestLocusToGeneModelTuningStep:
         )
         data = json.loads((Path(cv_dir) / "cv_results.json").read_text())
         assert data["n_configs"] == 2
+
+
+def test_association_unit_columns_are_not_features(
+    session: Session, tmp_path: Path, mock_l2g_feature_matrix: L2GFeatureMatrix
+) -> None:
+    """Association-unit columns reach the trainer but are never picked up as features."""
+    from pyspark.sql import functions as f
+
+    fm_df = (
+        mock_l2g_feature_matrix.fill_na()
+        ._df.withColumn("associationUnitId", f.sha2(f.col("studyLocusId"), 256))
+        .withColumn("isUnitRepresentative", f.lit(True))
+    )
+    train_path = str(tmp_path / "train_units.parquet")
+    test_path = str(tmp_path / "test_units.parquet")
+    fm_df.write.parquet(train_path)
+    fm_df.write.parquet(test_path)
+
+    trainers: list[LocusToGeneTrainer] = []
+    original_fit = LocusToGeneTrainer.fit
+
+    def capture_fit(self: LocusToGeneTrainer) -> LocusToGeneModel:
+        trainers.append(self)
+        return original_fit(self)
+
+    with (
+        patch.object(LocusToGeneTrainer, "cross_validate"),
+        patch.object(LocusToGeneTrainer, "fit", autospec=True, side_effect=capture_fit),
+    ):
+        LocusToGeneModelTuningStep(
+            session=session,
+            train_feature_matrix_path=train_path,
+            test_feature_matrix_path=test_path,
+            hyperparameters={"max_depth": 3},
+            features_list=None,
+        )
+    (trainer,) = trainers
+    assert trainer.features_list is not None
+    assert not set(trainer.features_list) & set(LocusToGeneTrainer.UNIT_COLS)
+    assert trainer.w_train is not None

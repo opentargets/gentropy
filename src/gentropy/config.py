@@ -368,6 +368,8 @@ class LocusToGeneConfig(StepConfig):
     hf_credentials_path: str | None = None
     train_parquet_path: str | None = None
     test_parquet_path: str | None = None
+    weight_by_association_unit: bool = True
+    evaluate_on_deduplicated_test: bool = True
     _target_: str = "gentropy.l2g.LocusToGeneStep"
 
 
@@ -385,6 +387,7 @@ class LocusToGeneTrainTestSplitConfig(StepConfig):
     gene_interactions_path: str | None = None
     predefined_test_parquet_path: str | None = None
     split_stats_path: str | None = None
+    association_unit_seed: int = 42
     features_list: list[str] = field(default_factory=lambda: list(_L2G_FEATURES_LIST))
     _target_: str = "gentropy.l2g.LocusToGeneTrainTestSplitStep"
 
@@ -407,6 +410,8 @@ class LocusToGeneModelTuningConfig(StepConfig):
     )
     cv_results_dir: str | None = None
     holdout_only: bool = False
+    weight_by_association_unit: bool = True
+    evaluate_on_deduplicated_test: bool = True
     _target_: str = "gentropy.l2g.LocusToGeneModelTuningStep"
 
 
