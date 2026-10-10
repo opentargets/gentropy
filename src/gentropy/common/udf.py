@@ -14,7 +14,7 @@ import numpy as np
 import pandas as pd
 from pyspark.sql import types as t
 from pyspark.sql.pandas.functions import PandasUDFType, pandas_udf
-from scipy.stats import chi2
+from scipy.stats import chi2, hypergeom
 
 
 @pandas_udf(returnType=t.DoubleType(), functionType=PandasUDFType.SCALAR)
@@ -98,3 +98,45 @@ def chi2_survival_function(x: pd.Series) -> pd.Series:
         <BLANKLINE>
     """
     return pd.Series(chi2.sf(x, df=1).astype(np.float64))
+
+
+@pandas_udf(returnType=t.DoubleType(), functionType=PandasUDFType.SCALAR)
+def hypergeometric_survival_function(
+    overlap: pd.Series,
+    population_size: pd.Series,
+    successes: pd.Series,
+    draws: pd.Series,
+) -> pd.Series:
+    """Calculate the upper tail of the hypergeometric distribution, P(X >= overlap).
+
+    This is the one-sided p-value of an over-representation test: the probability of drawing at
+    least `overlap` members of a set of `successes` genes when `draws` genes are taken at random
+    from a population of `population_size`.
+
+    Args:
+        overlap (pd.Series): Number of drawn genes in the set
+        population_size (pd.Series): Number of genes in the population
+        successes (pd.Series): Number of genes of the population in the set
+        draws (pd.Series): Number of genes drawn
+
+    Returns:
+        pd.Series: P(X >= overlap)
+
+    Examples:
+        >>> schema = "overlap int, population int, successes int, draws int"
+        >>> df = spark.createDataFrame([(3, 6, 3, 3), (1, 6, 3, 3), (0, 6, 3, 3)], schema)
+        >>> import pyspark.sql.functions as f
+        >>> p = hypergeometric_survival_function("overlap", "population", "successes", "draws")
+        >>> df.select("overlap", f.round(p, 2).alias("pValue")).show()
+        +-------+------+
+        |overlap|pValue|
+        +-------+------+
+        |      3|  0.05|
+        |      1|  0.95|
+        |      0|   1.0|
+        +-------+------+
+        <BLANKLINE>
+    """
+    return pd.Series(
+        hypergeom.sf(overlap - 1, population_size, successes, draws).astype(np.float64)
+    )

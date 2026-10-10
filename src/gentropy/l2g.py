@@ -21,8 +21,6 @@ from gentropy.dataset.intervals import Intervals
 from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
 from gentropy.dataset.l2g_prediction import L2GPrediction
-from gentropy.dataset.pathway_enrichment import PathwayEnrichment
-from gentropy.dataset.pathway_index import PathwayIndex
 from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import StudyLocus
 from gentropy.dataset.target_index import TargetIndex
@@ -35,6 +33,7 @@ from gentropy.external.wandb import WandbCredentials
 from gentropy.method.l2g.feature_factory import L2GFeatureInputLoader
 from gentropy.method.l2g.model import LocusToGeneModel
 from gentropy.method.l2g.trainer import LocusToGeneTrainer
+from gentropy.method.pathway_enrichment import PathwayLibrary
 
 logger = logging.getLogger(__name__)
 
@@ -64,8 +63,8 @@ class LocusToGeneFeatureMatrixStep:
         target_index_path: str | None = None,
         intervals_path: str | None = None,
         gene_interactions_path: str | None = None,
-        pathway_index_path: str | None = None,
-        pathway_enrichment_path: str | None = None,
+        go_path: str | None = None,
+        reactome_path: str | None = None,
         feature_matrix_path: str,
         append_null_features: bool = False,
     ) -> None:
@@ -81,10 +80,10 @@ class LocusToGeneFeatureMatrixStep:
             target_index_path (str | None): Path to the target index dataset
             intervals_path (str | None): Path to the interval dataset
             gene_interactions_path (str | None): Path to the protein-protein interaction (PPI) dataset
-            pathway_index_path (str | None): Path to the harmonised `PathwayIndex` dataset, as
-                written by the pathway ingestion step
-            pathway_enrichment_path (str | None): Path to the harmonised `PathwayEnrichment`
-                dataset, as written by the pathway ingestion step
+            go_path (str | None): Path to the `go` table of the platform release, used by the
+                pathway enrichment features
+            reactome_path (str | None): Path to the `reactome` table of the platform release,
+                used by the pathway enrichment features
             feature_matrix_path (str): Path to the L2G feature matrix output dataset
             append_null_features (bool): Whether to append null features to the feature matrix. Defaults to False.
         """
@@ -131,15 +130,14 @@ class LocusToGeneFeatureMatrixStep:
             else None
         )
 
-        pathway_index = (
-            PathwayIndex.from_parquet(session, pathway_index_path)
-            if pathway_index_path
-            else None
-        )
-
-        pathway_enrichment = (
-            PathwayEnrichment.from_parquet(session, pathway_enrichment_path)
-            if pathway_enrichment_path
+        pathway_library = (
+            PathwayLibrary(
+                go=session.load_data(go_path, "parquet", recursiveFileLookup=True),
+                reactome=session.load_data(
+                    reactome_path, "parquet", recursiveFileLookup=True
+                ),
+            )
+            if go_path and reactome_path
             else None
         )
 
@@ -163,16 +161,16 @@ class LocusToGeneFeatureMatrixStep:
             "pathwayEnrichment500kbNeighbourhood",
         }
         if pathway_features.intersection(features_list) and (
-            pathway_index is None
-            or pathway_enrichment is None
+            pathway_library is None
             or target_index is None
             or studies is None
+            or variant_index is None
         ):
             raise ValueError(
-                "Pathway enrichment features need the pathway index, the enrichment "
-                "results, the target index and the study index. Provide "
-                "`pathway_index_path`, `pathway_enrichment_path`, `target_index_path` "
-                "and `study_index_path`."
+                "Pathway enrichment features need the GO and Reactome tables of the "
+                "release, the target index, the study index and the variant index. "
+                "Provide `go_path`, `reactome_path`, `target_index_path`, "
+                "`study_index_path` and `variant_index_path`."
             )
 
         features_input_loader = L2GFeatureInputLoader(
@@ -183,8 +181,7 @@ class LocusToGeneFeatureMatrixStep:
             target_index=target_index,
             intervals=intervals,
             interactions=interactions,
-            pathway_index=pathway_index,
-            pathway_enrichment=pathway_enrichment,
+            pathway_library=pathway_library,
         )
 
         fm = credible_set.filter(f.col("studyType") == "gwas").build_feature_matrix(
