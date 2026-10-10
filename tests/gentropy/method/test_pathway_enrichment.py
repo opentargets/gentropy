@@ -11,7 +11,7 @@ from gentropy.dataset.target_index import TargetIndex
 from gentropy.method.pathway_enrichment import PathwayLibrary
 
 if TYPE_CHECKING:
-    from pyspark.sql import SparkSession
+    from pyspark.sql import DataFrame, SparkSession
 
 
 def _gene(
@@ -116,12 +116,13 @@ class TestOverRepresentation:
     """Test the hypergeometric test.
 
     Ten library genes in four pathways: PA holds G1-G4, PB G5-G8, PC G9-G10 and PD G1 and G5.
-    disease1 has G1-G3 and G11, which no pathway contains; disease2 has G9 only.
+    disease1 has G1-G3 and G11, which no pathway contains, on chromosome 1 and G4 on chromosome
+    2; disease2 has G9 only. Holding out chromosome 2 leaves disease1 with G1-G3.
     """
 
     @pytest.fixture()
-    def results(self, spark: SparkSession) -> dict[str, dict[str, Any]]:
-        """Test results of disease1 by pathway, with diseases of two or more genes tested."""
+    def gene_lists(self, spark: SparkSession) -> tuple[DataFrame, DataFrame]:
+        """Gene sets and disease gene lists."""
         members = {
             "PA": ["G1", "G2", "G3", "G4"],
             "PB": ["G5", "G6", "G7", "G8"],
@@ -134,18 +135,26 @@ class TestOverRepresentation:
         )
         gene_lists = spark.createDataFrame(
             [
-                ("disease1", "G1"),
-                ("disease1", "G2"),
-                ("disease1", "G3"),
-                ("disease1", "G11"),
-                ("disease2", "G9"),
+                ("disease1", "1", "G1"),
+                ("disease1", "1", "G2"),
+                ("disease1", "1", "G3"),
+                ("disease1", "1", "G11"),
+                ("disease1", "2", "G4"),
+                ("disease2", "1", "G9"),
             ],
-            "diseaseId string, geneId string",
+            "diseaseId string, chromosome string, geneId string",
         )
-        rows = PathwayLibrary.over_representation(
-            gene_lists, gene_sets, min_genes=2
-        ).collect()
-        assert {row["diseaseId"] for row in rows} == {"disease1"}
+        return gene_lists, gene_sets
+
+    @pytest.fixture()
+    def results(
+        self, gene_lists: tuple[DataFrame, DataFrame]
+    ) -> dict[str, dict[str, Any]]:
+        """Test results of disease1 by pathway, with diseases of two or more genes tested."""
+        rows = PathwayLibrary.over_representation(*gene_lists, min_genes=2).collect()
+        assert {(row["diseaseId"], row["heldOutChromosome"]) for row in rows} == {
+            ("disease1", "2")
+        }
         return {row["pathwayId"]: row.asDict() for row in rows}
 
     def test_only_overlapping_pathways_are_returned(
@@ -157,7 +166,7 @@ class TestOverRepresentation:
     def test_counts_exclude_genes_outside_the_library(
         self, results: dict[str, dict[str, Any]]
     ) -> None:
-        """G11 is in no pathway, so disease1 counts three genes."""
+        """G11 is in no pathway and G4 is held out, so disease1 counts three genes."""
         assert {
             key: results["PA"][key]
             for key in ("overlap", "pathwaySize", "diseaseGeneCount", "backgroundSize")
@@ -166,6 +175,26 @@ class TestOverRepresentation:
             "pathwaySize": 4,
             "diseaseGeneCount": 3,
             "backgroundSize": 10,
+        }
+
+    def test_genes_of_the_held_out_chromosome_are_left_out(
+        self, gene_lists: tuple[DataFrame, DataFrame]
+    ) -> None:
+        """Holding out chromosome 1 leaves disease1 with G4 alone, and disease2 with nothing."""
+        counts = {
+            (row["diseaseId"], row["heldOutChromosome"], row["pathwayId"]): (
+                row["overlap"],
+                row["diseaseGeneCount"],
+            )
+            for row in PathwayLibrary.over_representation(
+                *gene_lists, min_genes=1
+            ).collect()
+        }
+        assert counts == {
+            ("disease1", "1", "PA"): (1, 1),
+            ("disease1", "2", "PA"): (3, 3),
+            ("disease1", "2", "PD"): (1, 3),
+            ("disease2", "2", "PC"): (1, 1),
         }
 
     def test_p_values_are_the_hypergeometric_upper_tail(

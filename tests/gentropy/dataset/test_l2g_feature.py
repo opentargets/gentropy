@@ -2001,12 +2001,14 @@ class TestTransPQtlColocH4MaximumNeighbourhoodFeature:
 
 
 def _variant(
-    variant_id: str, consequences: list[tuple[str, int, float]]
+    variant_id: str,
+    consequences: list[tuple[str, int, float]],
+    chromosome: str = "1",
 ) -> dict[str, Any]:
     """Variant index row with (targetId, distanceFromTss, consequenceScore) consequences."""
     return {
         "variantId": variant_id,
-        "chromosome": "1",
+        "chromosome": chromosome,
         "position": 1,
         "referenceAllele": "A",
         "alternateAllele": "T",
@@ -2028,14 +2030,15 @@ def _credible_set(
     variant_id: str,
     position: int,
     study_type: str = "gwas",
+    chromosome: str = "1",
 ) -> dict[str, Any]:
-    """Single-variant credible set on chromosome 1."""
+    """Single-variant credible set."""
     return {
         "studyLocusId": study_locus_id,
         "studyId": study_id,
         "studyType": study_type,
         "variantId": variant_id,
-        "chromosome": "1",
+        "chromosome": chromosome,
         "position": position,
         "locus": [{"variantId": variant_id, "posteriorProbability": 1.0}],
     }
@@ -2074,12 +2077,13 @@ def _gene(
     tss: int,
     pathways: list[str] | None = None,
     biotype: str = "protein_coding",
+    chromosome: str = "1",
 ) -> dict[str, Any]:
-    """Target index row on chromosome 1 with Reactome annotations."""
+    """Target index row with Reactome annotations."""
     return {
         "id": gene_id,
         "biotype": biotype,
-        "genomicLocation": {"chromosome": "1", "start": tss, "end": tss + 999},
+        "genomicLocation": {"chromosome": chromosome, "start": tss, "end": tss + 999},
         "tss": tss,
         "pathways": [{"pathwayId": pathway} for pathway in pathways or []],
     }
@@ -2133,44 +2137,72 @@ def test_prioritised_disease_genes(spark: SparkSession) -> None:
         ],
     )
     genes = {
-        (row["diseaseId"], row["geneId"])
+        (row["diseaseId"], row["chromosome"], row["geneId"])
         for row in prioritised_disease_genes(**datasets).collect()
     }
-    assert genes == {("d1", "geneB"), ("d1", "geneC"), ("d2", "geneB"), ("d2", "geneC")}
+    assert genes == {
+        ("d1", "1", "geneB"),
+        ("d1", "1", "geneC"),
+        ("d2", "1", "geneB"),
+        ("d2", "1", "geneC"),
+    }
+
+
+def _pathway_release(spark: SparkSession, second_chromosome: str) -> dict[str, Any]:
+    """Toy release of `TestPathwayEnrichmentFeature`, with gene4-gene7 on `second_chromosome`."""
+    tss = {f"gene{i}": 10_000_000 * (i + 1) for i in range(20)}
+    tss["gene8"] = tss["gene0"] + 100_000
+    chromosomes = {
+        gene_id: second_chromosome if 4 <= i < 8 else "1"
+        for i, gene_id in enumerate(tss)
+    }
+    genes = [
+        _gene(
+            gene_id,
+            position,
+            ["R-HSA-2"] if i < 8 else ["R-HSA-1"],
+            chromosome=chromosomes[gene_id],
+        )
+        for i, (gene_id, position) in enumerate(tss.items())
+    ]
+    variants = [
+        _variant(
+            f"var{i}",
+            [(f"gene{i}", 0, 0.1)] + ([("gene8", 100_000, 0.1)] if i == 0 else []),
+            chromosome=chromosomes[f"gene{i}"],
+        )
+        for i in range(8)
+    ]
+    credible_sets = [
+        _credible_set(
+            f"sl{i}",
+            "study1",
+            f"var{i}",
+            tss[f"gene{i}"],
+            chromosome=chromosomes[f"gene{i}"],
+        )
+        for i in range(8)
+    ]
+    return _datasets(
+        spark, genes, variants, credible_sets, [_study("study1", ["disease1"])]
+    )
 
 
 class TestPathwayEnrichmentFeature:
     """Test the pathway enrichment features end to end.
 
     Twenty protein-coding genes, all in Reactome pathway R-HSA-1 through its child R-HSA-2 or
-    directly. gene0-gene3 are in R-HSA-2 and are each the nearest gene of one credible set of
-    study1 (disease1), so R-HSA-2 is enriched for disease1: k = n = K = 4 of N = 20, p = 1/4,845.
-    R-HSA-1 holds every gene and is not. gene4 sits 100 kb from gene0, inside the window of sl0.
+    directly. gene0-gene7 are in R-HSA-2 and are each the nearest gene of one credible set of
+    study1 (disease1); gene0-gene3 are on chromosome 1 and gene4-gene7 on chromosome 2. With
+    chromosome 1 left out R-HSA-2 is enriched for disease1 through gene4-gene7: k = n = 4,
+    K = 8 of N = 20, p = 70/4,845, adjusted over two pathways 0.029. R-HSA-1 holds every gene
+    and is not. gene8 sits 100 kb from gene0, inside the window of sl0.
     """
 
     @pytest.fixture()
     def datasets(self, spark: SparkSession) -> dict[str, Any]:
         """Datasets of the toy release."""
-        tss = {f"gene{i}": 10_000_000 * (i + 1) for i in range(20)}
-        tss["gene4"] = tss["gene0"] + 100_000
-        genes = [
-            _gene(gene_id, position, ["R-HSA-2"] if i < 4 else ["R-HSA-1"])
-            for i, (gene_id, position) in enumerate(tss.items())
-        ]
-        variants = [
-            _variant(
-                f"var{i}",
-                [(f"gene{i}", 0, 0.1)] + ([("gene4", 100_000, 0.1)] if i == 0 else []),
-            )
-            for i in range(4)
-        ]
-        credible_sets = [
-            _credible_set(f"sl{i}", "study1", f"var{i}", tss[f"gene{i}"])
-            for i in range(4)
-        ]
-        return _datasets(
-            spark, genes, variants, credible_sets, [_study("study1", ["disease1"])]
-        )
+        return _pathway_release(spark, second_chromosome="2")
 
     @staticmethod
     def _scores(df: Any, feature_name: str, study_locus_id: str) -> dict[str, float]:
@@ -2192,7 +2224,7 @@ class TestPathwayEnrichmentFeature:
     def test_score_is_the_fraction_of_enriched_pathways(
         self, datasets: dict[str, Any], mock_pathway_library: PathwayLibrary
     ) -> None:
-        """gene0 is in R-HSA-1 and R-HSA-2, one of them enriched; gene4 is in R-HSA-1 only."""
+        """gene0 is in R-HSA-1 and R-HSA-2, one of them enriched; gene8 is in R-HSA-1 only."""
         df = common_pathway_enrichment_feature_logic(
             datasets["study_locus"],
             "pathwayEnrichment500kb",
@@ -2202,13 +2234,13 @@ class TestPathwayEnrichmentFeature:
         )
         assert self._scores(df, "pathwayEnrichment500kb", "sl0") == {
             "gene0": pytest.approx(0.5),
-            "gene4": pytest.approx(0.0),
+            "gene8": pytest.approx(0.0),
         }
 
     def test_diseases_with_too_few_genes_are_not_tested(
         self, datasets: dict[str, Any], mock_pathway_library: PathwayLibrary
     ) -> None:
-        """disease1 has four genes, so a minimum of five leaves every gene at 0."""
+        """disease1 has four genes once a chromosome is left out, so a minimum of five leaves every gene at 0."""
         df = common_pathway_enrichment_feature_logic(
             datasets["study_locus"],
             "pathwayEnrichment500kb",
@@ -2218,7 +2250,24 @@ class TestPathwayEnrichmentFeature:
         )
         assert self._scores(df, "pathwayEnrichment500kb", "sl0") == {
             "gene0": pytest.approx(0.0),
-            "gene4": pytest.approx(0.0),
+            "gene8": pytest.approx(0.0),
+        }
+
+    def test_the_chromosome_of_the_locus_is_left_out(
+        self, spark: SparkSession, mock_pathway_library: PathwayLibrary
+    ) -> None:
+        """With all eight credible sets on chromosome 1, sl0's own chromosome holds every disease gene."""
+        datasets = _pathway_release(spark, second_chromosome="1")
+        df = common_pathway_enrichment_feature_logic(
+            datasets["study_locus"],
+            "pathwayEnrichment500kb",
+            pathway_library=mock_pathway_library,
+            **datasets,
+            **self._parameters(),
+        )
+        assert self._scores(df, "pathwayEnrichment500kb", "sl0") == {
+            "gene0": pytest.approx(0.0),
+            "gene8": pytest.approx(0.0),
         }
 
     def test_neighbourhood_is_relative_to_the_best_gene_at_the_locus(
@@ -2234,7 +2283,7 @@ class TestPathwayEnrichmentFeature:
         )
         assert self._scores(df, "pathwayEnrichment500kbNeighbourhood", "sl0") == {
             "gene0": pytest.approx(1.0),
-            "gene4": pytest.approx(0.0),
+            "gene8": pytest.approx(0.0),
         }
 
     def test_feature_classes_use_the_release_tables(
@@ -2257,4 +2306,4 @@ class TestPathwayEnrichmentFeature:
                 for row in feature.df.collect()
             }
             assert values[("sl0", "gene0")] == 0.0
-            assert len(values) == 5
+            assert len(values) == 9

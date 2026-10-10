@@ -66,15 +66,17 @@ class PathwayLibrary:
             .select("id", "altIds", "isA", "partOf")
             .collect()
         )
-        parents = {
-            term.id: {*(term.isA or []), *(term.partOf or [])} for term in terms
-        }
+        parents = {term.id: {*(term.isA or []), *(term.partOf or [])} for term in terms}
         ancestors: dict[str, set[str]] = {}
 
         def resolve(term_id: str) -> set[str]:
             if term_id not in ancestors:
                 ancestors[term_id] = {term_id}.union(
-                    *(resolve(parent) for parent in parents[term_id] if parent in parents)
+                    *(
+                        resolve(parent)
+                        for parent in parents[term_id]
+                        if parent in parents
+                    )
                 )
             return ancestors[term_id]
 
@@ -150,27 +152,39 @@ class PathwayLibrary:
         gene_sets: DataFrame,
         min_genes: int = 25,
     ) -> DataFrame:
-        """Test every pathway for over-representation among the genes of each disease.
+        """Test every pathway for over-representation among the genes of each disease, leaving one chromosome out at a time.
+
+        Each disease is tested once per held-out chromosome, on its list without the genes of
+        that chromosome. A locus is then scored with the results that left its own chromosome
+        out, so neither its genes nor those of any other credible set nearby take part in the
+        test. Every chromosome of `gene_lists` is held out in turn.
 
         One-sided hypergeometric test, P(X >= k), with the genes of the library as the
         background: `N` genes belong to at least one of the gene sets, `K` of them to the
         pathway, `n` are on the disease's list and `k` of those are in the pathway. Genes of a
-        list that no gene set contains are not counted. Diseases with fewer than `min_genes`
-        genes in the background are not tested.
+        list that no gene set contains are not counted. Disease lists with fewer than
+        `min_genes` genes in the background are not tested.
 
-        P-values are adjusted with Benjamini-Hochberg within each disease over every pathway of
-        the library. Only pairs with at least one overlapping gene are returned: the others
-        have a p-value of 1, and leaving them out does not change the adjusted p-value of the
-        rest, which uses the full number of pathways.
+        Only `n` and `k` change when a chromosome is held out, so they are counted once per
+        chromosome and each held-out count is the total minus that chromosome's part, rather
+        than rejoining the lists with the library for every chromosome.
+
+        P-values are adjusted with Benjamini-Hochberg within each disease and held-out
+        chromosome over every pathway of the library. Only pairs with at least one overlapping
+        gene are returned: the others have a p-value of 1, and leaving them out does not change
+        the adjusted p-value of the rest, which uses the full number of pathways.
 
         Args:
-            gene_lists (DataFrame): `diseaseId` and `geneId`, the genes of each disease
+            gene_lists (DataFrame): `diseaseId`, `chromosome` and `geneId`, the genes of each
+                disease with the chromosome they are on
             gene_sets (DataFrame): `pathwayId` and `geneId`, as returned by `gene_sets`
-            min_genes (int): Smallest number of background genes a disease needs to be tested
+            min_genes (int): Smallest number of background genes a disease list needs to be
+                tested
 
         Returns:
-            DataFrame: `diseaseId`, `pathwayId`, `overlap` (k), `pathwaySize` (K),
-                `diseaseGeneCount` (n), `backgroundSize` (N), `pValue` and `pValueAdjusted`
+            DataFrame: `diseaseId`, `heldOutChromosome`, `pathwayId`, `overlap` (k),
+                `pathwaySize` (K), `diseaseGeneCount` (n), `backgroundSize` (N), `pValue` and
+                `pValueAdjusted`
         """
         library = gene_sets.agg(
             f.countDistinct("geneId").alias("backgroundSize"),
@@ -180,22 +194,60 @@ class PathwayLibrary:
             f.count("geneId").alias("pathwaySize")
         )
         disease_genes = (
-            gene_lists.select("diseaseId", "geneId")
+            gene_lists.select("diseaseId", "chromosome", "geneId")
             .distinct()
             .join(gene_sets.select("geneId").distinct(), "geneId", "semi")
         )
+        held_out_chromosomes = gene_lists.select(
+            f.col("chromosome").alias("heldOutChromosome")
+        ).distinct()
+        chromosome_sizes = disease_genes.groupBy("diseaseId", "chromosome").agg(
+            f.count("geneId").alias("chromosomeGeneCount")
+        )
         disease_sizes = (
-            disease_genes.groupBy("diseaseId")
-            .agg(f.count("geneId").alias("diseaseGeneCount"))
+            chromosome_sizes.groupBy("diseaseId")
+            .agg(f.sum("chromosomeGeneCount").alias("totalGeneCount"))
+            .crossJoin(held_out_chromosomes)
+            .join(
+                chromosome_sizes.withColumnRenamed("chromosome", "heldOutChromosome"),
+                ["diseaseId", "heldOutChromosome"],
+                "left",
+            )
+            .select(
+                "diseaseId",
+                "heldOutChromosome",
+                (
+                    f.col("totalGeneCount")
+                    - f.coalesce(f.col("chromosomeGeneCount"), f.lit(0))
+                ).alias("diseaseGeneCount"),
+            )
             .filter(f.col("diseaseGeneCount") >= min_genes)
         )
-        overlaps = (
+        chromosome_overlaps = (
             disease_genes.join(disease_sizes, "diseaseId", "semi")
             .join(gene_sets, "geneId", "inner")
-            .groupBy("diseaseId", "pathwayId")
-            .agg(f.count("geneId").alias("overlap"))
+            .groupBy("diseaseId", "pathwayId", "chromosome")
+            .agg(f.count("geneId").alias("chromosomeOverlap"))
         )
-        by_p_value = Window.partitionBy("diseaseId").orderBy(
+        overlaps = (
+            chromosome_overlaps.groupBy("diseaseId", "pathwayId")
+            .agg(f.sum("chromosomeOverlap").alias("totalOverlap"))
+            .join(disease_sizes, "diseaseId", "inner")
+            .join(
+                chromosome_overlaps.withColumnRenamed(
+                    "chromosome", "heldOutChromosome"
+                ),
+                ["diseaseId", "pathwayId", "heldOutChromosome"],
+                "left",
+            )
+            .withColumn(
+                "overlap",
+                f.col("totalOverlap")
+                - f.coalesce(f.col("chromosomeOverlap"), f.lit(0)),
+            )
+            .filter(f.col("overlap") > 0)
+        )
+        by_p_value = Window.partitionBy("diseaseId", "heldOutChromosome").orderBy(
             f.col("pValue").asc(), f.col("pathwayId").asc()
         )
         # q(i) = min over j >= i of p(j) * m / j, with row_number() rather than rank() so
@@ -205,7 +257,6 @@ class PathwayLibrary:
         ).over(by_p_value.rowsBetween(Window.currentRow, Window.unboundedFollowing))
         return (
             overlaps.join(pathway_sizes, "pathwayId", "inner")
-            .join(disease_sizes, "diseaseId", "inner")
             .crossJoin(library)
             .withColumn(
                 "pValue",
@@ -217,6 +268,7 @@ class PathwayLibrary:
             .withColumn("pValueAdjusted", f.least(step_up, f.lit(1.0)))
             .select(
                 "diseaseId",
+                "heldOutChromosome",
                 "pathwayId",
                 "overlap",
                 "pathwaySize",

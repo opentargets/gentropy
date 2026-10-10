@@ -38,7 +38,8 @@ def prioritised_disease_genes(
     keep every tied gene), and any gene with a consequence of at least `vep_score_threshold`
     from a variant of the credible set (`vepMaximum`; 0.66 is a missense variant or worse).
     Each credible set's genes go to every disease in its study's `diseaseIds`, used as mapped,
-    with no ontology expansion.
+    with no ontology expansion. Every gene is kept with the chromosome of its credible set, which
+    the gene is on, so that the lists can leave a chromosome out.
 
     Args:
         study_locus (StudyLocus): Credible sets; only the GWAS ones are used
@@ -48,7 +49,8 @@ def prioritised_disease_genes(
         vep_score_threshold (float): Smallest `vepMaximum` that prioritises a gene
 
     Returns:
-        DataFrame: `diseaseId` and `geneId`, one row per disease and prioritised gene
+        DataFrame: `diseaseId`, `chromosome` and `geneId`, one row per disease and prioritised
+            gene
     """
     gwas_credible_sets = study_locus.filter(f.col("studyType") == "gwas")
     nearest_genes = (
@@ -74,7 +76,7 @@ def prioritised_disease_genes(
     return (
         nearest_genes.unionByName(coding_variant_genes)
         .join(
-            gwas_credible_sets.df.select("studyLocusId", "studyId"),
+            gwas_credible_sets.df.select("studyLocusId", "studyId", "chromosome"),
             "studyLocusId",
             "inner",
         )
@@ -85,7 +87,7 @@ def prioritised_disease_genes(
             "studyId",
             "inner",
         )
-        .select("diseaseId", "geneId")
+        .select("diseaseId", "chromosome", "geneId")
         .distinct()
     )
 
@@ -131,6 +133,9 @@ def disease_set_pathway_scores(
 ) -> DataFrame:
     """Fraction of each gene's pathways that are enriched for each set of study diseases.
 
+    The enrichment leaves out the chromosome the gene is on, see
+    `PathwayLibrary.over_representation`, and only that result is scored for the gene.
+
     The result is reused when called again with the same input objects and thresholds, see
     `common_pathway_enrichment_feature_logic` for the arguments.
 
@@ -148,7 +153,9 @@ def disease_set_pathway_scores(
         vep_score_threshold (float): Smallest `vepMaximum` that prioritises a gene
 
     Returns:
-        DataFrame: `diseaseSet`, `geneId` and `score`, for genes in at least one enriched pathway
+        DataFrame: `diseaseSet`, `chromosome`, `geneId` and `score`, for genes in at least one
+            enriched pathway, where `chromosome` is the chromosome of the gene and the one
+            left out of the enrichment
     """
     inputs = (pathway_library, study_index, study_locus, target_index, variant_index)
     thresholds = (
@@ -184,7 +191,14 @@ def disease_set_pathway_scores(
             min_genes=min_disease_genes,
         )
         .filter(f.col("pValueAdjusted") < p_value_adjusted_threshold)
-        .select("diseaseId", "pathwayId")
+        .select(
+            "diseaseId", f.col("heldOutChromosome").alias("chromosome"), "pathwayId"
+        )
+    )
+    # A gene is only scored with the enrichment that left its own chromosome out.
+    gene_chromosomes = target_index.df.select(
+        f.col("id").alias("geneId"),
+        f.col("genomicLocation.chromosome").alias("chromosome"),
     )
 
     disease_sets = gwas_disease_sets(study_index)
@@ -194,10 +208,14 @@ def disease_set_pathway_scores(
         .select("diseaseSet", f.explode("diseaseSet").alias("diseaseId"))
         .distinct()
         .join(enriched_pathways, "diseaseId", "inner")
-        .select("diseaseSet", "pathwayId")
+        .select("diseaseSet", "chromosome", "pathwayId")
         .distinct()
-        .join(gene_sets, "pathwayId", "inner")
-        .groupBy("diseaseSet", "geneId")
+        .join(
+            gene_sets.join(gene_chromosomes, "geneId", "inner"),
+            ["pathwayId", "chromosome"],
+            "inner",
+        )
+        .groupBy("diseaseSet", "chromosome", "geneId")
         .agg(f.count("pathwayId").alias("enrichedPathwaysPerGene"))
     )
     # Cached because sharing the DataFrame alone does not stop Spark running the plan twice.
@@ -205,6 +223,7 @@ def disease_set_pathway_scores(
         enriched_pathways_per_gene.join(pathways_per_gene, "geneId", "inner")
         .select(
             "diseaseSet",
+            "chromosome",
             "geneId",
             (f.col("enrichedPathwaysPerGene") / f.col("pathwaysPerGene")).alias(
                 "score"
@@ -238,12 +257,16 @@ def common_pathway_enrichment_feature_logic(
 
     1. At every GWAS credible set the nearest gene and the genes hit by a coding variant are
         prioritised, see `prioritised_disease_genes`, and pooled per disease.
-    2. Every GO biological process and Reactome pathway of `pathway_library` with
+    2. For each chromosome, the genes on it are left out of every list, so that a locus is
+        scored without its own genes or those of other credible sets nearby (leave one
+        chromosome out).
+    3. Every GO biological process and Reactome pathway of `pathway_library` with
         `min_pathway_size` to `max_pathway_size` protein-coding members is tested for
         over-representation among each disease's genes, against the genes of the library, see
         `PathwayLibrary.over_representation`. Diseases with fewer than `min_disease_genes`
         genes in the library are not tested.
-    3. A pathway counts as enriched for a disease below the adjusted p-value threshold.
+    4. A pathway counts as enriched for a disease below the adjusted p-value threshold, for
+        the chromosome left out.
 
     For a gene the score is the fraction of the pathways it belongs to that are enriched for
     the diseases of the study behind the credible set. A gene that sits in ten pathways of
@@ -253,8 +276,9 @@ def common_pathway_enrichment_feature_logic(
     Pathways are counted once per study even when several of the study's diseases flag the
     same pathway, so the score always falls between 0 and 1.
 
-    The gene lists use every GWAS credible set in `study_locus`, not only the loci to annotate,
-    so the score of a locus does not depend on which other loci are being annotated with it.
+    The gene lists use every GWAS credible set in `study_locus` on other chromosomes, not only
+    the loci to annotate, so the score of a locus does not depend on which other loci are being
+    annotated with it.
 
     Args:
         study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci
@@ -309,12 +333,12 @@ def common_pathway_enrichment_feature_logic(
             & (f.abs(f.col("tss") - f.col("position")) <= genomic_window),
             how="inner",
         )
-        .select("studyLocusId", "studyId", "geneId")
+        .select("studyLocusId", "studyId", "chromosome", "geneId")
     )
 
     return (
         genes_in_window.join(disease_sets, "studyId", "left")
-        .join(scores, ["diseaseSet", "geneId"], "left")
+        .join(scores, ["diseaseSet", "chromosome", "geneId"], "left")
         .select(
             "studyLocusId",
             "geneId",
