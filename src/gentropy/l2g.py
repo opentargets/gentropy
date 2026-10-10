@@ -30,6 +30,7 @@ from gentropy.external.hf_hub import (
     HuggingFaceModelRepoHandle,
 )
 from gentropy.external.wandb import WandbCredentials
+from gentropy.method.biosample_enrichment import ExpressionSpecificity
 from gentropy.method.l2g.feature_factory import L2GFeatureInputLoader
 from gentropy.method.l2g.model import LocusToGeneModel
 from gentropy.method.l2g.trainer import LocusToGeneTrainer
@@ -65,6 +66,7 @@ class LocusToGeneFeatureMatrixStep:
         gene_interactions_path: str | None = None,
         go_path: str | None = None,
         reactome_path: str | None = None,
+        baseline_expression_path: str | None = None,
         feature_matrix_path: str,
         append_null_features: bool = False,
     ) -> None:
@@ -84,6 +86,8 @@ class LocusToGeneFeatureMatrixStep:
                 pathway enrichment features
             reactome_path (str | None): Path to the `reactome` table of the platform release,
                 used by the pathway enrichment features
+            baseline_expression_path (str | None): Path to the `baseline_expression` table of
+                the platform release, used by the enriched biosample colocalisation features
             feature_matrix_path (str): Path to the L2G feature matrix output dataset
             append_null_features (bool): Whether to append null features to the feature matrix. Defaults to False.
         """
@@ -141,6 +145,16 @@ class LocusToGeneFeatureMatrixStep:
             else None
         )
 
+        expression_specificity = (
+            ExpressionSpecificity(
+                baseline_expression=session.load_data(
+                    baseline_expression_path, "parquet", recursiveFileLookup=True
+                )
+            )
+            if baseline_expression_path
+            else None
+        )
+
         trans_pqtl_features = {
             "transPQtlColocH4Maximum",
             "transPQtlColocH4MaximumNeighbourhood",
@@ -173,6 +187,25 @@ class LocusToGeneFeatureMatrixStep:
                 "`study_index_path` and `variant_index_path`."
             )
 
+        enriched_biosample_features = {
+            "eQtlColocH4MaximumEnrichedBiosample",
+            "eQtlColocH4MaximumEnrichedBiosampleNeighbourhood",
+        }
+        if enriched_biosample_features.intersection(features_list) and (
+            expression_specificity is None
+            or coloc is None
+            or target_index is None
+            or studies is None
+            or variant_index is None
+        ):
+            raise ValueError(
+                "Enriched biosample colocalisation features need the baseline expression "
+                "table of the release, the colocalisations, the target index, the study "
+                "index and the variant index. Provide `baseline_expression_path`, "
+                "`colocalisation_path`, `target_index_path`, `study_index_path` and "
+                "`variant_index_path`."
+            )
+
         features_input_loader = L2GFeatureInputLoader(
             variant_index=variant_index,
             colocalisation=coloc,
@@ -182,6 +215,7 @@ class LocusToGeneFeatureMatrixStep:
             intervals=intervals,
             interactions=interactions,
             pathway_library=pathway_library,
+            expression_specificity=expression_specificity,
         )
 
         fm = credible_set.filter(f.col("studyType") == "gwas").build_feature_matrix(
