@@ -84,6 +84,8 @@ class L2GFeatureMatrix:
                 ).generate_features(features_input_loader)
             ],
         )
+        # Sorted, as Spark orders the columns when it finds the names itself.
+        feature_names = sorted(set(features_list))
         if isinstance(study_loci_to_annotate, L2GGoldStandard):
             return cls(
                 _df=convert_from_long_to_wide(
@@ -97,6 +99,7 @@ class L2GFeatureMatrix:
                     ["studyLocusId", "geneId", "goldStandardSet"],
                     "featureName",
                     "featureValue",
+                    feature_names,
                 ),
                 with_gold_standard=True,
             )
@@ -106,6 +109,7 @@ class L2GFeatureMatrix:
                 ["studyLocusId", "geneId"],
                 "featureName",
                 "featureValue",
+                feature_names,
             ),
             with_gold_standard=False,
         )
