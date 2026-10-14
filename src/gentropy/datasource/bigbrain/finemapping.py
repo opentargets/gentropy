@@ -72,7 +72,11 @@ class BigBrainFinemapping:
         Returns:
             DataFrame: Raw fine-mapping rows.
         """
-        return session.spark.read.csv(path, sep="\t", header=True, schema=cls.raw_schema)
+        # FAILFAST: in the default PERMISSIVE mode a malformed field silently becomes
+        # null, which would drop or corrupt credible-set members without an error.
+        return session.spark.read.csv(
+            path, sep="\t", header=True, schema=cls.raw_schema, mode="FAILFAST"
+        )
 
     @classmethod
     def from_source(cls, finemapping: DataFrame, qtl_type: str) -> StudyLocus:
@@ -85,8 +89,9 @@ class BigBrainFinemapping:
         - Rows with `Z == 0` are placeholders for variants that were not tested, and
           are absent from the harmonised summary statistics. Credible sets led by
           one are artefacts and are dropped; any remaining such rows are removed.
-        - The p-value is recomputed from `Z` in -log10 space, because the source
-          `P` underflows to 0 for strong associations.
+        - The p-value is recomputed from `Z` in -log10 space. The published `P` is
+          fine (the strongest is about 1e-235), but this cannot underflow and keeps
+          the mantissa/exponent split consistent with gentropy's other sources.
         - `logBF` is not published, so it is left null. PIP-based colocalisation
           methods do not need it.
         - Purity is not published either. SuSiE only reports sets with a minimum

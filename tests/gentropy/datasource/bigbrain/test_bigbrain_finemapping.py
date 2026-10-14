@@ -76,7 +76,7 @@ class TestBigBrainFinemapping:
     def test_p_value_recomputed_from_z(
         self, credible_sets: dict[int, dict[str, Any]]
     ) -> None:
-        """The source P underflows to 0; the p-value is rebuilt from Z without underflow."""
+        """The p-value is rebuilt from Z, so it survives values below the float64 floor."""
         lead = credible_sets[1]
         assert lead["pValueExponent"] < -300
         assert 1 <= lead["pValueMantissa"] < 10
@@ -138,3 +138,11 @@ def test_sqtl_ingestion_requires_top_assoc(
             credible_set_path=str(tmp_path / "cs"),
             study_index_path=str(tmp_path / "si"),
         )
+
+
+def test_malformed_rows_fail_loudly(session: Session, tmp_path: Path) -> None:
+    """A field that does not parse raises rather than silently becoming null."""
+    path = tmp_path / "bad.txt"
+    path.write_text(HEADER + "\n" + ROWS[0].replace("\t1000\t", "\t1000\xa0\t") + "\n")
+    with pytest.raises(Exception, match="(?i)malformed|parse"):
+        BigBrainFinemapping.read_from_source(session, str(path)).collect()
