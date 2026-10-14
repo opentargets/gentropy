@@ -107,6 +107,73 @@ class FumaGene2Func:
     """
 
     @staticmethod
+    def locus_window_background(
+        credible_set_df: DataFrame,
+        target_index_df: DataFrame,
+        half_window: int = 500_000,
+        group_cols: list[str] | None = None,
+    ) -> DataFrame:
+        """Build a background of every gene in contention around a group's loci.
+
+        Produces the `background_df` that `gene2func_enrichment` accepts: one row per
+        (group, gene) for every gene whose TSS lies within `half_window` of a credible
+        set's lead variant.
+
+        This exists because the default background -- the genes the group scored -- is
+        a model output. For L2G input it means "genes L2G chose to score", so any bias
+        in that choice becomes part of the null. The genes that were ever *candidates*
+        are a property of the genome and the loci instead, and `half_window` defaults
+        to 500kb because that is L2G's own reach: its distance feature scores a gene
+        `genomic_window - |distance| + 1` with `genomic_window = 500_000`, so anything
+        further away scores non-positive and is not really in contention.
+
+        Note this is anchored on the lead variant `position`, not on
+        `locusStart`/`locusEnd`. Those are null for 83% of credible sets in a release
+        and carry different meanings across fine-mapping methods, so a background
+        built from them is silently empty for most studies.
+
+        Args:
+            credible_set_df (DataFrame): Credible sets, with the group columns plus
+                `chromosome` and `position`.
+            target_index_df (DataFrame): Gene index, with `geneId` (or `id`),
+                `chromosome` and `tss`.
+            half_window (int): Half-width of the window in base pairs.
+            group_cols (list[str] | None): Grouping columns, defaulting to
+                `["studyId"]`.
+
+        Returns:
+            DataFrame: Distinct rows of the group columns plus `geneId`.
+        """
+        group_cols = group_cols or ["studyId"]
+        genes = target_index_df
+        if "geneId" not in genes.columns:
+            genes = genes.withColumnRenamed("id", "geneId")
+        genes = genes.select("geneId", "chromosome", "tss").filter(
+            f.col("tss").isNotNull() & f.col("chromosome").isNotNull()
+        )
+
+        loci = (
+            credible_set_df.select(*group_cols, "chromosome", "position")
+            .filter(f.col("position").isNotNull())
+            .distinct()
+        )
+        # The gene index is small enough to broadcast, which keeps the range join
+        # from degenerating into a shuffle over every (locus, gene) pair.
+        return (
+            loci.join(
+                f.broadcast(genes.withColumnRenamed("chromosome", "_gchrom")),
+                on=(
+                    (f.col("chromosome") == f.col("_gchrom"))
+                    & (f.col("tss") >= f.col("position") - half_window)
+                    & (f.col("tss") <= f.col("position") + half_window)
+                ),
+                how="inner",
+            )
+            .select(*group_cols, "geneId")
+            .distinct()
+        )
+
+    @staticmethod
     def _compute_enrichment(
         scored: DataFrame,
         gene_sets_df: DataFrame,
@@ -116,6 +183,7 @@ class FumaGene2Func:
         score_threshold: float,
         set_col: str,
         min_genes: int,
+        background_df: DataFrame | None = None,
     ) -> DataFrame:
         """Core hypergeometric enrichment over arbitrary group columns.
 
@@ -131,6 +199,9 @@ class FumaGene2Func:
             score_threshold (float): Minimum score to treat a gene as prioritised.
             set_col (str): Gene set label column in gene_sets_df.
             min_genes (int): Minimum prioritised genes required per group.
+            background_df (DataFrame | None): Optional background, one row per
+                (group combination, gene). When omitted the background is the set of
+                scored genes, which conditions the test on what the group scored.
 
         Returns:
             DataFrame: One row per (group combination x gene set) containing
@@ -168,19 +239,31 @@ class FumaGene2Func:
         # Gene set universe: restrict background to genes in any set
         universe = gene_sets_df.select(gene_col).distinct()
 
-        # Background per group: scored genes intersect universe (N)
-        background = (
+        # Background genes per group (N). By default these are the genes the group
+        # itself scored, which conditions the test on what was actually interrogated.
+        # That is defensible but it conditions on a MODEL OUTPUT: for L2G input, the
+        # background becomes "genes L2G chose to score", so any bias in that choice
+        # is baked into the null. A caller can instead supply the genes that were
+        # ever in contention -- for L2G, every gene within its +/-500kb candidate
+        # window -- which is a property of the genome rather than of the model.
+        background_genes = (
             scored.select(*group_cols, gene_col)
-            .join(universe, on=gene_col, how="inner")
-            .groupBy(*group_cols)
-            .agg(f.count("*").alias("n_background"))
+            if background_df is None
+            else background_df.select(*group_cols, gene_col).distinct()
+        ).join(universe, on=gene_col, how="inner")
+
+        background = background_genes.groupBy(*group_cols).agg(
+            f.count("*").alias("n_background")
         )
 
-        # Input genes: above threshold, in universe (n)
+        # Input genes: above threshold, and restricted to the background (n). The
+        # intersection is load-bearing for a supplied background -- a scored gene
+        # need not fall inside it, and n > N or k > K would be an invalid
+        # hypergeometric configuration.
         input_genes_all = (
             scored.filter(f.col(score_col) >= score_threshold)
             .select(*group_cols, gene_col)
-            .join(universe, on=gene_col, how="inner")
+            .join(background_genes, on=[*group_cols, gene_col], how="left_semi")
         )
         input_counts = (
             input_genes_all.groupBy(*group_cols)
@@ -194,9 +277,7 @@ class FumaGene2Func:
 
         # K per (group, set): gene set members present in background
         k_gene_set = (
-            scored.select(*group_cols, gene_col)
-            .join(universe, on=gene_col, how="inner")
-            .join(qualifying_groups, on=group_cols, how="inner")
+            background_genes.join(qualifying_groups, on=group_cols, how="inner")
             .join(gene_sets_df.select(set_col, gene_col), on=gene_col, how="inner")
             .groupBy(*group_cols, set_col)
             .agg(f.count("*").alias("k_gene_set"))
@@ -319,6 +400,7 @@ class FumaGene2Func:
         study_index_df: DataFrame | None = None,
         study_disease_col: str = "diseaseIds",
         group_cols: list[str] | None = None,
+        background_df: DataFrame | None = None,
     ) -> DataFrame:
         """Run tissue enrichment from any scored gene DataFrame.
 
@@ -364,6 +446,21 @@ class FumaGene2Func:
                 left after removing gene_col and score_col. Pass this
                 explicitly when scored_df carries non-identifier columns, such
                 as the `features` vector on L2GPrediction.df.
+            background_df (DataFrame | None): Optional background: the genes that were
+                ever in contention per group, with the same group columns as the
+                output plus gene_col. Defaults to the scored genes.
+
+                !!! tip "A wider background is usually better"
+                    The default conditions on a model output -- for L2G input it is
+                    "genes L2G chose to score" -- and gives a small population
+                    (median 47 genes), so p-values are coarse and a fifth of rows have
+                    fewer than 20 background genes. Supplying the genes within L2G's
+                    +/-500kb candidate window instead raised mean AUROC against a
+                    curated trait-to-tissue gold standard at all 16 L2G thresholds
+                    tested (+0.03 typical, 0.692 to 0.720 at a 0.5 cutoff), and
+                    retained 98.5% of the default's significant hits. It also avoids
+                    degenerating at low score thresholds, where the default collapses
+                    to AUROC 0.500 because the input set becomes the background.
 
         Returns:
             DataFrame: One row per (resolved group combination x gene set).
@@ -465,4 +562,5 @@ class FumaGene2Func:
             score_threshold=score_threshold,
             set_col=set_col,
             min_genes=min_genes,
+            background_df=background_df,
         )

@@ -4,8 +4,9 @@ from __future__ import annotations
 
 from typing import Any
 
+import pyspark.sql.functions as f
 import pytest
-from pyspark.sql import Row, SparkSession
+from pyspark.sql import DataFrame, Row, SparkSession
 
 from gentropy.method.fuma_gene2func import FumaGene2Func
 
@@ -294,3 +295,197 @@ class TestGene2FuncGroupColumns:
                 credible_set_df=credible_set_df,
                 group_cols=["nonexistentColumn"],
             )
+
+
+class TestSuppliedBackground:
+    """A caller-supplied background replaces the default scored-gene background.
+
+    The default conditions the test on the genes the group itself scored. For L2G
+    input that is a model output, so a wider background -- every gene that was ever a
+    candidate -- is often preferable; it benchmarks better against a curated
+    trait-to-tissue gold standard.
+    """
+
+    def test_wider_background_lowers_p_value(self, spark: SparkSession) -> None:
+        """Holding the overlap fixed, a wider background makes it more surprising."""
+        scored = spark.createDataFrame(
+            [("S1", f"G{i}", 0.9 if i <= 3 else 0.1) for i in range(1, 11)],
+            ["studyId", "geneId", "score"],
+        )
+        sets = spark.createDataFrame(
+            [("SET1", f"G{i}") for i in range(1, 4)]
+            + [("SET2", f"G{i}") for i in range(4, 11)],
+            ["setName", "geneId"],
+        )
+        # Background adds 40 further candidate genes that were never scored.
+        wider = spark.createDataFrame(
+            [("S1", f"G{i}") for i in range(1, 51)], ["studyId", "geneId"]
+        )
+        sets_wide = spark.createDataFrame(
+            [("SET1", f"G{i}") for i in range(1, 4)]
+            + [("SET2", f"G{i}") for i in range(4, 51)],
+            ["setName", "geneId"],
+        )
+
+        def p_for(gene_sets: DataFrame, background: DataFrame | None) -> Row:
+            """Run the enrichment and return the SET1 result row."""
+            res = FumaGene2Func.gene2func_enrichment(
+                scored_df=scored,
+                gene_sets_df=gene_sets,
+                gene_col="geneId",
+                score_col="score",
+                score_threshold=0.5,
+                min_genes=1,
+                group_cols=["studyId"],
+                background_df=background,
+            ).filter(f.col("setName") == "SET1")
+            return res.collect()[0]
+
+        default = p_for(sets, None)
+        supplied = p_for(sets_wide, wider)
+
+        assert default["k_overlap"] == supplied["k_overlap"] == 3, (
+            "overlap should be unchanged by the background"
+        )
+        assert supplied["n_background"] > default["n_background"], (
+            "supplied background should be wider"
+        )
+        assert supplied["p_value"] < default["p_value"], (
+            "the same overlap against a wider background should be more surprising"
+        )
+
+    def test_input_genes_restricted_to_supplied_background(
+        self, spark: SparkSession
+    ) -> None:
+        """A prioritised gene outside the background must not break the test.
+
+        Nothing guarantees a scored gene falls inside a supplied background -- a
+        locus window is built from coordinates, not from what was scored. Without
+        intersecting, n could exceed N and the hypergeometric would be invalid.
+        """
+        scored = spark.createDataFrame(
+            [("S1", f"G{i}", 0.9) for i in range(1, 6)] + [("S1", "OUTSIDE", 0.9)],
+            ["studyId", "geneId", "score"],
+        )
+        sets = spark.createDataFrame(
+            [("SET1", f"G{i}") for i in range(1, 4)]
+            + [("SET2", f"G{i}") for i in range(4, 6)]
+            + [("SET1", "OUTSIDE")],
+            ["setName", "geneId"],
+        )
+        background = spark.createDataFrame(
+            [("S1", f"G{i}") for i in range(1, 6)], ["studyId", "geneId"]
+        )
+
+        rows = (
+            FumaGene2Func.gene2func_enrichment(
+                scored_df=scored,
+                gene_sets_df=sets,
+                gene_col="geneId",
+                score_col="score",
+                score_threshold=0.5,
+                min_genes=1,
+                group_cols=["studyId"],
+                background_df=background,
+            )
+            .filter(f.col("setName") == "SET1")
+            .collect()
+        )
+        assert rows, "expected a result for SET1"
+        row = rows[0]
+        assert row["n_input"] <= row["n_background"], "n must not exceed N"
+        assert row["k_overlap"] <= row["k_gene_set"], "k must not exceed K"
+        assert row["k_overlap"] == 3, "OUTSIDE should be excluded from the overlap"
+
+
+class TestLocusWindowBackground:
+    """Building the candidate-gene background from credible sets and gene positions."""
+
+    def test_window_selects_genes_by_tss_distance(self, spark: SparkSession) -> None:
+        """Only genes whose TSS falls inside the window are kept."""
+        cs = spark.createDataFrame(
+            [("S1", "1", 1_000_000)], ["studyId", "chromosome", "position"]
+        )
+        genes = spark.createDataFrame(
+            [
+                ("IN_LEFT", "1", 600_000),  # 400kb away
+                ("IN_RIGHT", "1", 1_400_000),  # 400kb away
+                ("EDGE", "1", 1_500_000),  # exactly 500kb -- inclusive
+                ("OUT", "1", 1_600_000),  # 600kb away
+                ("OTHER_CHROM", "2", 1_000_000),
+            ],
+            ["geneId", "chromosome", "tss"],
+        )
+        got = {
+            r["geneId"]
+            for r in FumaGene2Func.locus_window_background(cs, genes).collect()
+        }
+        assert got == {"IN_LEFT", "IN_RIGHT", "EDGE"}, f"unexpected window: {got}"
+
+    def test_unions_across_loci_and_dedupes(self, spark: SparkSession) -> None:
+        """Two loci sharing a gene yield it once, and each contributes its own."""
+        cs = spark.createDataFrame(
+            [("S1", "1", 1_000_000), ("S1", "1", 1_200_000)],
+            ["studyId", "chromosome", "position"],
+        )
+        genes = spark.createDataFrame(
+            [
+                ("SHARED", "1", 1_100_000),
+                ("NEAR_A", "1", 600_000),
+                ("NEAR_B", "1", 1_650_000),
+            ],
+            ["geneId", "chromosome", "tss"],
+        )
+        rows = FumaGene2Func.locus_window_background(cs, genes).collect()
+        assert len(rows) == 3, "rows should be deduplicated across loci"
+        assert {r["geneId"] for r in rows} == {"SHARED", "NEAR_A", "NEAR_B"}
+
+    def test_accepts_target_index_id_column(self, spark: SparkSession) -> None:
+        """The OT target index names the gene column `id`, not `geneId`."""
+        cs = spark.createDataFrame(
+            [("S1", "1", 1_000_000)], ["studyId", "chromosome", "position"]
+        )
+        genes = spark.createDataFrame(
+            [("G1", "1", 1_100_000)], ["id", "chromosome", "tss"]
+        )
+        rows = FumaGene2Func.locus_window_background(cs, genes).collect()
+        assert [r["geneId"] for r in rows] == ["G1"]
+
+    def test_feeds_gene2func_enrichment(self, spark: SparkSession) -> None:
+        """The helper's output is directly usable as `background_df`."""
+        cs = spark.createDataFrame(
+            [("S1", "1", 1_000_000)], ["studyId", "chromosome", "position"]
+        )
+        genes = spark.createDataFrame(
+            [(f"G{i}", "1", 1_000_000 + i * 1_000) for i in range(1, 21)],
+            ["geneId", "chromosome", "tss"],
+        )
+        scored = spark.createDataFrame(
+            [("S1", f"G{i}", 0.9 if i <= 3 else 0.1) for i in range(1, 11)],
+            ["studyId", "geneId", "score"],
+        )
+        sets = spark.createDataFrame(
+            [("SET1", f"G{i}") for i in range(1, 4)]
+            + [("SET2", f"G{i}") for i in range(4, 21)],
+            ["setName", "geneId"],
+        )
+        bg = FumaGene2Func.locus_window_background(cs, genes)
+        row = (
+            FumaGene2Func.gene2func_enrichment(
+                scored_df=scored,
+                gene_sets_df=sets,
+                gene_col="geneId",
+                score_col="score",
+                score_threshold=0.5,
+                min_genes=1,
+                group_cols=["studyId"],
+                background_df=bg,
+            )
+            .filter(f.col("setName") == "SET1")
+            .collect()[0]
+        )
+        # All 20 window genes are in a set, so N is the window, not the 10 scored.
+        assert row["n_background"] == 20, (
+            "background should be the window, not the scored genes"
+        )
+        assert row["k_overlap"] == 3
