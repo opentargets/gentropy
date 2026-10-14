@@ -10,6 +10,7 @@ from pyspark.sql import DataFrame
 
 from gentropy.bigbrain_ingestion import BigBrainFinemappingIngestionStep
 from gentropy.common.session import Session
+from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import CredibleSetConfidenceClasses, StudyLocus
 from gentropy.datasource.bigbrain.finemapping import BigBrainFinemapping
 
@@ -107,12 +108,33 @@ class TestBigBrainFinemapping:
 def test_finemapping_ingestion_step(
     session: Session, finemapping_file: str, tmp_path: Path
 ) -> None:
-    """The step writes the credible sets as a readable StudyLocus dataset."""
-    output = str(tmp_path / "credible_set")
+    """The step writes credible sets and a study index covering every one of them."""
+    cs_path, si_path = str(tmp_path / "credible_set"), str(tmp_path / "study_index")
     BigBrainFinemappingIngestionStep(
         session=session,
         qtl_type="eqtl",
         finemapping_path=finemapping_file,
-        credible_set_path=output,
+        credible_set_path=cs_path,
+        study_index_path=si_path,
     )
-    assert StudyLocus.from_parquet(session, output).df.count() == 2
+    cs = StudyLocus.from_parquet(session, cs_path).df
+    si = StudyIndex.from_parquet(session, si_path).df
+    assert cs.count() == 2
+    assert [(r.studyId, r.geneId) for r in si.collect()] == [
+        ("BigBrain_eqtl_EUR_ENSG01.1", "ENSG01")
+    ]
+    assert cs.join(si, "studyId", "left_anti").count() == 0
+
+
+def test_sqtl_ingestion_requires_top_assoc(
+    session: Session, finemapping_file: str, tmp_path: Path
+) -> None:
+    """SQTL genes come from top_assoc, so the step refuses to run without it."""
+    with pytest.raises(ValueError, match="top_assoc_path"):
+        BigBrainFinemappingIngestionStep(
+            session=session,
+            qtl_type="sqtl",
+            finemapping_path=finemapping_file,
+            credible_set_path=str(tmp_path / "cs"),
+            study_index_path=str(tmp_path / "si"),
+        )

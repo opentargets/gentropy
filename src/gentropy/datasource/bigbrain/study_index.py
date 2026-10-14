@@ -32,6 +32,8 @@ from gentropy.datasource.bigbrain import BigBrainPublicationMetadata
 if TYPE_CHECKING:
     from pyspark.sql import DataFrame
 
+    from gentropy.dataset.target_index import TargetIndex
+
 # Ensembl gene IDs in BigBrain carry a version suffix (e.g. "ENSG00000177757.2").
 _ENSEMBL_VERSION_SUFFIX = r"\.\d+$"
 
@@ -65,7 +67,9 @@ class BigBrainStudyIndex:
         )
 
     @staticmethod
-    def gene_map_from_top_assoc(top_assoc: DataFrame) -> DataFrame:
+    def gene_map_from_top_assoc(
+        top_assoc: DataFrame, target_index: TargetIndex | None = None
+    ) -> DataFrame:
         """Build a feature-to-gene mapping for sQTL from the `top_assoc` file's gene columns.
 
         The genome-wide `full_assoc` file carries no gene annotation for sQTL
@@ -73,22 +77,102 @@ class BigBrainStudyIndex:
         smaller `top_assoc` file provides `gene_id`/`gene_name` per feature, which
         is used here as a lookup table.
 
+        A junction in overlapping genes is annotated with all of them, joined by `;`
+        (about 10% of fine-mapped junctions). A study needs a single gene, so such a
+        junction is resolved with `target_index` to the one gene whose body contains
+        it, or failing that the one protein-coding gene that does. Otherwise `geneId`
+        is left null and study validation excludes the study as an unresolved target.
+
         Args:
             top_assoc (DataFrame): Raw `top_assoc` DataFrame with `feature`, `gene_id`,
                 `gene_name` columns.
+            target_index (TargetIndex | None): Gene coordinates and biotypes used to
+                resolve multi-gene junctions. Without it they all get a null `geneId`.
 
         Returns:
             DataFrame: Columns `feature`, `geneId` (version-stripped), `traitFromSource`
                 (gene symbol). A feature absent from `top_assoc` is simply missing from
                 this mapping and will resolve to a null `geneId` in the study index.
+
+        Examples:
+            >>> top_assoc = spark.createDataFrame(
+            ...     [("chr1_150_250", "ENSG01.3;ENSG02.1", "A;B"), ("chr1_900_950", "ENSG03.2", "C")],
+            ...     "feature STRING, gene_id STRING, gene_name STRING",
+            ... )
+            >>> BigBrainStudyIndex.gene_map_from_top_assoc(top_assoc).orderBy("feature").show()
+            +------------+------+---------------+
+            |     feature|geneId|traitFromSource|
+            +------------+------+---------------+
+            |chr1_150_250|  NULL|            A;B|
+            |chr1_900_950|ENSG03|              C|
+            +------------+------+---------------+
+            <BLANKLINE>
         """
-        return top_assoc.select(
-            f.col("feature"),
-            f.regexp_replace(f.col("gene_id"), _ENSEMBL_VERSION_SUFFIX, "").alias(
-                "geneId"
+        features = top_assoc.select(
+            "feature",
+            f.when(f.col("gene_name") != "NA", f.col("gene_name")).alias(
+                "traitFromSource"
             ),
-            f.col("gene_name").alias("traitFromSource"),
+            f.transform(
+                f.split(f.coalesce(f.col("gene_id"), f.lit("")), ";"),
+                lambda g: f.regexp_replace(g, _ENSEMBL_VERSION_SUFFIX, ""),
+            ).alias("genes"),
         ).dropDuplicates(["feature"])
+        # Keep only Ensembl IDs: junctions without a gene carry the literal "NA".
+        features = features.withColumn(
+            "genes", f.filter(f.col("genes"), lambda g: g.startswith("ENSG"))
+        )
+
+        single = features.filter(f.size("genes") <= 1).select(
+            "feature", f.col("genes")[0].alias("geneId"), "traitFromSource"
+        )
+        multi = features.filter(f.size("genes") > 1)
+        if target_index is None:
+            resolved = multi.select(
+                "feature", f.lit(None).cast("string").alias("geneId"), "traitFromSource"
+            )
+        else:
+            coords = f.split(f.col("feature"), "_")
+            containing = (
+                multi.select(
+                    "feature",
+                    coords.getItem(1).cast("long").alias("junctionStart"),
+                    coords.getItem(2).cast("long").alias("junctionEnd"),
+                    f.explode("genes").alias("geneId"),
+                )
+                .join(
+                    target_index.df.select(
+                        f.col("id").alias("geneId"),
+                        f.col("biotype"),
+                        f.col("genomicLocation.start").alias("geneStart"),
+                        f.col("genomicLocation.end").alias("geneEnd"),
+                    ),
+                    on="geneId",
+                    how="inner",
+                )
+                .filter(
+                    (f.col("geneStart") <= f.col("junctionStart"))
+                    & (f.col("geneEnd") >= f.col("junctionEnd"))
+                )
+                .groupBy("feature")
+                .agg(
+                    f.collect_set("geneId").alias("containing"),
+                    f.collect_set(
+                        f.when(f.col("biotype") == "protein_coding", f.col("geneId"))
+                    ).alias("containingProteinCoding"),
+                )
+            )
+            resolved = multi.join(containing, on="feature", how="left").select(
+                "feature",
+                f.when(f.size("containing") == 1, f.col("containing")[0])
+                .when(
+                    f.size("containingProteinCoding") == 1,
+                    f.col("containingProteinCoding")[0],
+                )
+                .alias("geneId"),
+                "traitFromSource",
+            )
+        return single.unionByName(resolved)
 
     @classmethod
     def from_source(
