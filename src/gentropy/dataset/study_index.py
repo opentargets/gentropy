@@ -6,8 +6,11 @@ publication, the samples and their ancestries, where the summary statistics
 are, and the quality control flags raised on the study.
 
 ``studyId`` is the key other datasets join on, and also partitions the summary
-statistics. ``projectId``, ``studyType`` and ``qualityControls`` are mandatory;
-every other column is optional and may be left out of a DataFrame.
+statistics. ``projectId``, ``studyType``, ``ldPopulationStructure`` and
+``qualityControls`` are mandatory; every other column is optional and may be
+left out of a DataFrame. ``ldPopulationStructure`` is the share of each LD
+reference population in the study's samples, which LD annotation uses to pick
+the population to read; a study with no ancestry information leaves it null.
 
 The layout is the legacy one with one rename: ``sumstatQCValues`` is now
 ``sumstatQcValues``, because column names follow the camelCase form of their
@@ -16,7 +19,7 @@ snake_case attribute and that rule writes acronyms in lower case.
 Examples:
     >>> StudyIndex.print_schema()
     StudyIndex
-     |-- studyId: string (mandatory: CanJoinToStudyIndex.study_id, CanJoinToSummaryStatistics.study_id)
+     |-- studyId: string (mandatory: HasStudyId.study_id)
      |-- projectId: string (mandatory: HasProjectId.project_id)
      |-- studyType: string (mandatory: HasStudyType.study_type)
      |-- traitFromSource: string (optional)
@@ -37,7 +40,7 @@ Examples:
      |-- nControls: int (optional)
      |-- nSamples: int (optional)
      |-- cohorts: array<string> (optional)
-     |-- ldPopulationStructure: array (optional)
+     |-- ldPopulationStructure: array (mandatory: LDPopulationStructure.ld_population_structure)
      |    |-- element: struct
      |    |    |-- ldPopulation: string
      |    |    |-- relativeSampleSize: double
@@ -63,8 +66,10 @@ Examples:
 
     >>> studies = StudyIndex(
     ...     spark.createDataFrame(
-    ...         [("GCST1", "GCST", "gwas", [], "Asthma", 5000)],
+    ...         [("GCST1", "GCST", "gwas", [("nfe", 1.0)], [], "Asthma", 5000)],
     ...         "studyId string, projectId string, studyType string, "
+    ...         "ldPopulationStructure array<struct<ldPopulation: string, "
+    ...         "relativeSampleSize: double>>, "
     ...         "qualityControls array<string>, traitFromSource string, nSamples int",
     ...     )
     ... )
@@ -83,9 +88,13 @@ from pyspark.sql import types as t
 
 from gentropy.model.core.dataset import Dataset
 from gentropy.model.core.schema import implements, optional
-from gentropy.model.trait.join import CanJoinToStudyIndex, CanJoinToSummaryStatistics
+from gentropy.model.trait.identifier import HasStudyId
 from gentropy.model.trait.quality_control import QualityControls
-from gentropy.model.trait.study import HasProjectId, HasStudyType
+from gentropy.model.trait.study import (
+    HasProjectId,
+    HasStudyType,
+    LDPopulationStructure,
+)
 
 _SAMPLES = t.ArrayType(
     t.StructType(
@@ -101,18 +110,16 @@ _SAMPLES = t.ArrayType(
 
 class StudyIndex(
     Dataset[
-        CanJoinToStudyIndex
-        | CanJoinToSummaryStatistics
+        HasStudyId
         | HasProjectId
         | HasStudyType
+        | LDPopulationStructure
         | QualityControls
     ]
 ):
     """One row per study: what was measured, in whom, and where the results are."""
 
-    study_id = implements(
-        CanJoinToStudyIndex.study_id, CanJoinToSummaryStatistics.study_id
-    )
+    study_id = implements(HasStudyId.study_id)
     project_id = implements(HasProjectId.project_id)
     study_type = implements(HasStudyType.study_type)
     trait_from_source = optional(t.StringType())
@@ -133,17 +140,7 @@ class StudyIndex(
     n_controls = optional(t.IntegerType())
     n_samples = optional(t.IntegerType())
     cohorts = optional(t.ArrayType(t.StringType()))
-    ld_population_structure = optional(
-        t.ArrayType(
-            t.StructType(
-                [
-                    t.StructField("ldPopulation", t.StringType()),
-                    t.StructField("relativeSampleSize", t.DoubleType()),
-                ]
-            ),
-            containsNull=False,
-        )
-    )
+    ld_population_structure = implements(LDPopulationStructure.ld_population_structure)
     discovery_samples = optional(_SAMPLES)
     replication_samples = optional(_SAMPLES)
     quality_controls = implements(QualityControls.quality_controls)

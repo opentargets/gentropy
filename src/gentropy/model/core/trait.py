@@ -79,14 +79,14 @@ Column names belong to the dataset
 A field's ``name`` is its attribute in camelCase, but the column that stores it
 is named by the dataset: the dataset's attribute, in camelCase, is the column
 name. ``StudyLocus`` keeps its key as ``id`` by declaring
-``id = implements(CanJoinToStudyLocus.study_locus_id)``. The column records the
+``id = implements(HasStudyLocusId.study_locus_id)``. The column records the
 fields it implements in its metadata, as
-``{"traits": ["CanJoinToStudyLocus.study_locus_id"]}``, and ``Trait.of`` follows
+``{"traits": ["HasStudyLocusId.study_locus_id"]}``, and ``Trait.of`` follows
 that link.
 
 A column only serves a trait field when the dataset links it explicitly. Two
 traits can share a column, as in
-``variant_id = implements(HasVariantId.variant_id, CanJoinToVariantIndex.variant_id)``,
+``lead_variant_id = implements(LeadVariant.variant_id, HasVariantId.variant_id)``,
 but a column that merely has a matching name does not count. Two traits that
 happen to use the same name for different quantities, such as a marginal and a
 conditional ``beta``, therefore never end up reading the same column by
