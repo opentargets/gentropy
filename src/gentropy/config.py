@@ -126,6 +126,16 @@ class BigBrainSummaryStatisticsIngestionConfig(StepConfig):
 
 
 @dataclass
+class BigBrainFinemappingIngestionConfig(StepConfig):
+    """BigBrain fine-mapping ingestion step configuration."""
+
+    qtl_type: str = MISSING
+    finemapping_path: str = MISSING
+    credible_set_path: str = MISSING
+    _target_: str = "gentropy.bigbrain_ingestion.BigBrainFinemappingIngestionStep"
+
+
+@dataclass
 class BigBrainSummaryStatisticsHarmonisationConfig(StepConfig):
     """BigBrain summary statistics harmonisation step configuration."""
 
@@ -1103,4 +1113,9 @@ def register_config() -> None:
         group="step",
         name="bigbrain_summary_statistics_harmonisation",
         node=BigBrainSummaryStatisticsHarmonisationConfig,
+    )
+    cs.store(
+        group="step",
+        name="bigbrain_finemapping_ingestion",
+        node=BigBrainFinemappingIngestionConfig,
     )

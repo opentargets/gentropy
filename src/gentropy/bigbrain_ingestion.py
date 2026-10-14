@@ -12,6 +12,9 @@ must be executed in order, once per QTL type (`eqtl`, `sqtl`):
 3. **Run summary-statistics QC** using the generic `SummaryStatisticsQCStep`
    (`gentropy.sumstat_qc_step`) pointed at the harmonised output path — no
    BigBrain-specific QC step is needed.
+4. **Ingest the published fine-mapping** as credible sets using
+   `BigBrainFinemappingIngestionStep`. BigBrain fine-mapped with in-sample LD, so its
+   credible sets are used directly instead of re-fine-mapping with a reference panel.
 
 !!! note "EUR ancestry only, backfilled sample size"
     Only the EUR-ancestry `full_assoc`/`top_assoc` files are ingested (the multi-ancestry
@@ -83,6 +86,7 @@ from __future__ import annotations
 
 from gentropy.common.session import Session
 from gentropy.dataset.variant_direction import DEFAULT_WINDOW_SIZE, VariantDirection
+from gentropy.datasource.bigbrain.finemapping import BigBrainFinemapping
 from gentropy.datasource.bigbrain.study_index import BigBrainStudyIndex
 from gentropy.datasource.bigbrain.summary_statistics import (
     FULL_ASSOC_SCHEMA,
@@ -210,3 +214,28 @@ class BigBrainSummaryStatisticsHarmonisationStep:
         study_index.df.coalesce(1).write.mode(session.write_mode).parquet(
             study_index_path
         )
+
+
+class BigBrainFinemappingIngestionStep:
+    """Ingest BigBrain's published SuSiE fine-mapping as credible sets."""
+
+    def __init__(
+        self,
+        session: Session,
+        qtl_type: str,
+        finemapping_path: str,
+        credible_set_path: str,
+    ) -> None:
+        """Read the fine-mapping file for one QTL type and write it as credible sets.
+
+        Args:
+            session (Session): Active Gentropy Spark session.
+            qtl_type (str): QTL type identifier, one of `BigBrainQtlType` values (`"eqtl"`, `"sqtl"`).
+            finemapping_path (str): Path to `BigBrain_cis_{eQTL,sQTL}_finemapping.txt.gz`.
+            credible_set_path (str): Destination path for the credible sets.
+        """
+        raw = BigBrainFinemapping.read_from_source(session, finemapping_path)
+        credible_sets = BigBrainFinemapping.from_source(raw, qtl_type)
+        credible_sets.df.coalesce(session.output_partitions).write.mode(
+            session.write_mode
+        ).parquet(credible_set_path)

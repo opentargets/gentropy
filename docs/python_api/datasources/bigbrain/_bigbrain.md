@@ -18,5 +18,11 @@ The source reports no per-variant sample size or allele frequency. `sampleSize` 
 backfilled with the constant total sample size reported for the whole resource
 (10,725 donors, shared by eQTL and sQTL); `effectAlleleFrequencyFromSource` is left null.
 
+!!! note "Credible sets come from BigBrain's own fine-mapping"
+BigBrain fine-mapped with PolyFun + SuSiE using in-sample LD from 3,884 European-ancestry
+donors. Its published credible sets are ingested directly (`BigBrainFinemapping`) rather
+than re-fine-mapped against a reference LD panel. They carry PIPs but no log Bayes factors,
+so they suit PIP-based colocalisation (`coloc_pip`, `ecaviar`).
+
 ::: gentropy.datasource.bigbrain.BigBrainQtlType
 ::: gentropy.datasource.bigbrain.BigBrainPublicationMetadata
