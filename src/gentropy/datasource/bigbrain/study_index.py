@@ -110,6 +110,18 @@ class BigBrainStudyIndex:
         Returns:
             StudyIndex: One row per distinct feature, annotated with bibliographic
                 and cohort metadata from `BigBrainPublicationMetadata`.
+
+        Examples:
+            >>> features = spark.createDataFrame([("ENSG00000177757.2",)], "feature STRING")
+            >>> gene_map = BigBrainStudyIndex.gene_map_from_feature(features)
+            >>> si = BigBrainStudyIndex.from_source(features, gene_map, "eqtl")
+            >>> si.df.select("studyId", "projectId", "studyType", "geneId", "nSamples").show(truncate=False)
+            +-----------------------------------+-----------------+---------+---------------+--------+
+            |studyId                            |projectId        |studyType|geneId         |nSamples|
+            +-----------------------------------+-----------------+---------+---------------+--------+
+            |BigBrain_eqtl_EUR_ENSG00000177757.2|BigBrain-eqtl-EUR|eqtl     |ENSG00000177757|10725   |
+            +-----------------------------------+-----------------+---------+---------------+--------+
+            <BLANKLINE>
         """
         pub = BigBrainPublicationMetadata()
 
@@ -129,7 +141,6 @@ class BigBrainStudyIndex:
             .withColumn("pubmedId", f.lit(pub.PUBMED_ID))
             .withColumn("publicationFirstAuthor", f.lit(pub.PUB_FIRST_AUTHOR))
             .withColumn("publicationDate", f.lit(pub.PUB_DATE))
-            .withColumn("publicationJournal", f.lit(pub.PUB_JOURNAL))
             .withColumn("publicationTitle", f.lit(pub.PUB_TITLE))
             .withColumn(
                 "initialSampleSize",
@@ -150,19 +161,11 @@ class BigBrainStudyIndex:
                 StudyIndex.aggregate_and_map_ancestries(f.col("discoverySamples")),
             )
             .withColumn("cohorts", f.array(f.lit(pub.COHORTS)))
-            # Every BigBrain study is derived from the harmonised summary statistics
-            # this index is built from, so this is always true. It must be set
-            # explicitly: the select below keeps only schema fields actually created
-            # here, and a missing hasSumstats reads back as null, which SusieFineMapper
-            # rejects with "No sumstats found for the studyId".
+            .withColumn("summarystatsLocation", f.lit(pub.SUMSTATS_LOCATION[qtl_type]))
+            # Every study is built from harmonised summary statistics. SusieFineMapper
+            # rejects studies where this is null.
             .withColumn("hasSumstats", f.lit(True))
+            .drop("feature")
         )
 
-        study_index_columns = [
-            field.name
-            for field in StudyIndex.get_schema().fields
-            if field.name in joined.columns
-        ]
-        return StudyIndex(
-            _df=joined.select(*study_index_columns), _schema=StudyIndex.get_schema()
-        )
+        return StudyIndex(_df=joined, _schema=StudyIndex.get_schema())

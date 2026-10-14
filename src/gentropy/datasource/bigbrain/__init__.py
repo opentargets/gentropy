@@ -7,8 +7,8 @@ metadata for the underlying publication.
 The BigBrain dataset originates from the study:
     Réal A, Kailash BP, Dredge W et al.
     "Mapping genetic effects on splicing in ten thousand post-mortem brain samples
-    reveals novel mediators of neurological disease risk."
-    medRxiv, 2025. Meta-analysis method (mmQTL): PubMed 35058635.
+    reveals novel mediators of neurological disease risk." 2025.
+    Meta-analysis method (mmQTL): PubMed 35058635.
 
 Two sub-datasets are supported, both restricted to the EUR-ancestry release:
 
@@ -58,29 +58,18 @@ class BigBrainPublicationMetadata(BaseModel):
     """First author(s) of the BigBrain publication."""
     PUB_DATE: str = "2025"
     """Publication date of the BigBrain study."""
-    PUB_JOURNAL: str = "medRxiv"
-    """Journal/preprint server where the BigBrain study was published."""
     SAMPLE_SIZE: int = 10_725
     """Backfilled total sample size (10,725 samples from 4,656 donors), shared by eQTL and sQTL."""
     ANCESTRY: str = "EUR"
-    """Short ancestry code used in identifiers (studyId, projectId) and display text.
-
-    !!! warning "Not a valid `discoverySamples.ancestry` value"
-        Use `ANCESTRY_LABEL` for `discoverySamples`. This short code is baked into
-        every studyId (`BigBrain_eqtl_EUR_{feature}`), so it must not change.
-    """
+    """Ancestry code used in study and project identifiers."""
     ANCESTRY_LABEL: str = "European"
-    """GWAS Catalog ancestry category, as used in `discoverySamples.ancestry`.
-
-    `StudyIndex.aggregate_and_map_ancestries` looks this up in
-    `gwas_population_2_LD_panel_map.json` to derive `ldPopulationStructure`, whose
-    keys are long-form labels ("European", "Finnish", ...). A short code such as
-    "EUR" is absent from that map and silently yields a null `ldPopulation`, which
-    later makes SusieFineMapperStep reject every study with "Major ancestry is not
-    nfe, csa or afr". Compare deCODE's `ANCESTRY = "Icelandic"` and UKB-PPP's
-    literal "European".
-    """
+    """Ancestry label for `discoverySamples`, as expected by the LD population mapping."""
     COHORTS: str = "BigBrain"
     """Cohort label for the BigBrain meta-analysis (43 tissue-cohort pairs meta-analysed)."""
     BIOSAMPLE_ID: str = "UBERON_0000955"
     """Biosample ID for the BigBrain study - brain."""
+    SUMSTATS_LOCATION: dict[str, str] = {
+        BigBrainQtlType.EQTL.value: "https://zenodo.org/records/17226890/files/BigBrain_cis_eQTL_EUR_full_assoc.tsv.gz",
+        BigBrainQtlType.SQTL.value: "https://zenodo.org/records/17153730/files/BigBrain_cis_sQTL_EUR_full_assoc.tsv.gz",
+    }
+    """Source summary statistics (Zenodo) per QTL type."""
