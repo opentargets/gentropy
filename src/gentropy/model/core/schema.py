@@ -2,10 +2,14 @@
 
 A dataset lists its columns in its class body. Each attribute becomes one column,
 named after the attribute in camelCase, and the order of the attributes is the
-order of the columns. There are two kinds:
+order of the columns. There are three kinds:
 
 * ``optional(dtype)`` declares a column no trait requires. A DataFrame may leave
   it out.
+* ``required(dtype)`` declares a column the dataset itself requires, without a
+  trait. A DataFrame must have it, but no method can ask for it through a trait,
+  so it suits datasets that are only ever used whole, such as the LD index. Its
+  metadata is ``{"mandatory": true}``.
 * ``implements(field, ...)`` declares a mandatory column that stores one or more
   trait fields. Its type is the fields' type, and its metadata records which
   fields it stores, as ``{"mandatory": true, "traits": ["Trait.field", ...]}``.
@@ -71,18 +75,26 @@ class DatasetColumn:
 
     The attribute name, converted to camelCase, is the column name. A column that
     implements trait fields is mandatory and records them in its metadata; any
-    other column is optional. Build one with ``optional`` or ``implements``.
+    other column is optional unless declared required. Build one with
+    ``optional``, ``required`` or ``implements``.
     """
 
-    def __init__(self, dtype: t.DataType, links: tuple[Field, ...] = ()) -> None:
+    def __init__(
+        self,
+        dtype: t.DataType,
+        links: tuple[Field, ...] = (),
+        mandatory: bool = False,
+    ) -> None:
         """Declare a column of type ``dtype`` implementing ``links``.
 
         Args:
             dtype (t.DataType): Spark type of the column.
             links (tuple[Field, ...]): Trait fields the column implements.
+            mandatory (bool): Whether the column is mandatory without a trait link.
         """
         self.dtype = dtype
         self.links = links
+        self.mandatory = mandatory or bool(links)
         self.attribute = ""
 
     def __set_name__(self, owner: type, name: str) -> None:
@@ -121,16 +133,14 @@ class DatasetColumn:
 
     @property
     def struct_field(self) -> t.StructField:
-        """The column as a nullable struct field, marked mandatory if it has links.
+        """The column as a nullable struct field, marked mandatory when it is.
 
         Returns:
             t.StructField: The column's struct field.
         """
-        metadata = (
-            {MANDATORY: True, TRAITS: [field.key for field in self.links]}
-            if self.links
-            else {}
-        )
+        metadata: dict[str, Any] = {MANDATORY: True} if self.mandatory else {}
+        if self.links:
+            metadata[TRAITS] = [field.key for field in self.links]
         return t.StructField(self.name, self.dtype, nullable=True, metadata=metadata)
 
 
@@ -149,6 +159,28 @@ def optional(dtype: t.DataType) -> DatasetColumn:
     if not isinstance(dtype, t.DataType):
         raise SchemaError(f"Column type must be a Spark DataType, got {dtype!r}")
     return DatasetColumn(dtype)
+
+
+def required(dtype: t.DataType) -> DatasetColumn:
+    """Declare a mandatory column that no trait requires.
+
+    Args:
+        dtype (t.DataType): Spark type of the column.
+
+    Returns:
+        DatasetColumn: The column declaration.
+
+    Raises:
+        SchemaError: If ``dtype`` is not a Spark DataType.
+
+    Examples:
+        >>> from pyspark.sql import types as t
+        >>> required(t.StringType()).mandatory
+        True
+    """
+    if not isinstance(dtype, t.DataType):
+        raise SchemaError(f"Column type must be a Spark DataType, got {dtype!r}")
+    return DatasetColumn(dtype, mandatory=True)
 
 
 def implements(*fields: Field) -> DatasetColumn:

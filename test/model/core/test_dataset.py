@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import types
 from typing import Any, cast
 
@@ -10,7 +11,7 @@ from pyspark.sql import SparkSession
 from pyspark.sql import types as t
 
 from gentropy.model.core.dataset import Dataset, DatasetError
-from gentropy.model.core.schema import implements, optional
+from gentropy.model.core.schema import implements, optional, required
 from gentropy.model.core.trait import Field, Trait
 from gentropy.model.core.validation import SchemaValidationError
 
@@ -166,6 +167,36 @@ def test_column_attribute_names_are_checked(attribute: str, problem: str) -> Non
         )
 
 
+class Notes(Dataset[Trait]):
+    """Dataset with no traits, whose layout is fixed by required columns."""
+
+    note_id = required(t.StringType())
+    text = optional(t.StringType())
+
+
+def test_dataset_without_traits_checks_its_required_columns(
+    spark: SparkSession,
+) -> None:
+    """``Dataset[Trait]`` names no trait, yet a missing required column is an error."""
+    assert Notes.traits == frozenset({Trait})
+    with pytest.raises(
+        SchemaValidationError, match="missing_mandatory_columns: noteId"
+    ):
+        Notes(spark.createDataFrame([("hello",)], "text string"))
+
+
+def test_print_schema_labels_a_required_column_as_mandatory(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """A required column is mandatory without naming a trait field."""
+    Notes.print_schema()
+    assert capsys.readouterr().out.splitlines() == [
+        "Notes",
+        " |-- noteId: string (mandatory)",
+        " |-- text: string (optional)",
+    ]
+
+
 def test_dataset_attribute_reads_the_dataframe_column(spark: SparkSession) -> None:
     """``Loci(df).locus_start`` is the DataFrame's ``locusStart`` column."""
     loci = Loci(
@@ -278,3 +309,111 @@ def test_print_schema_expands_structs_and_keeps_simple_types_inline(
         " |    |    |-- beta: double\n"
         " |-- qualityControls: array<string> (optional)\n"
     )
+
+
+def test_generate_identifier_hashes_the_columns_with_nulls_as_none(
+    spark: SparkSession,
+) -> None:
+    """The id is the md5 of the values as strings, a null written as "None"."""
+    df = spark.createDataFrame([("GCST1", 1), ("GCST1", None)], "a string, b int")
+    ids = [
+        row.id
+        for row in df.select(Dataset.generate_identifier(["a", "b"]).alias("id"))
+        .orderBy("b")
+        .collect()
+    ]
+    assert sorted(ids) == sorted(
+        [hashlib.md5(b"GCST11").hexdigest(), hashlib.md5(b"GCST1None").hexdigest()]
+    )
+
+
+def test_pipe_passes_the_dataset_and_arguments_and_returns_the_result(
+    spark: SparkSession,
+) -> None:
+    """``ds.pipe(func, *args, **kwargs)`` is ``func(ds, *args, **kwargs)``."""
+    loci = Loci(
+        spark.createDataFrame(
+            [("GCST1", "1", 100, 200), ("GCST1", "1", 300, 400)],
+            "studyId string, chromosome string, locusStart int, locusEnd int",
+        )
+    )
+
+    def starting_after(dataset: Loci, position: int, *, inclusive: bool) -> Loci:
+        start = dataset.locus_start
+        return Loci(
+            dataset.df.filter(start >= position if inclusive else start > position)
+        )
+
+    piped = loci.pipe(starting_after, 300, inclusive=True)
+
+    assert isinstance(piped, Loci)
+    assert piped.df.select(piped.locus_start).collect() == [(300,)]
+    assert loci.pipe(starting_after, 300, inclusive=False).df.count() == 0
+
+
+class _RegionColumns:
+    """Columns shared by two datasets, declared once."""
+
+    chromosome = implements(HasRegion.chromosome)
+    locus_start = implements(HasRegion.locus_start)
+    locus_end = implements(HasRegion.locus_end)
+
+
+class Regions(_RegionColumns, Dataset[HasRegion]):
+    """The shared columns alone."""
+
+
+class StudyRegions(_RegionColumns, Dataset[HasRegion | HasStudyId]):
+    """The shared columns plus one of its own."""
+
+    study_id = implements(HasStudyId.study_id)
+
+
+def test_columns_can_be_shared_through_a_mixin_and_come_first(
+    spark: SparkSession,
+) -> None:
+    """Two datasets reuse one column declaration; the mixin's columns lead."""
+    assert Regions.schema.fieldNames() == ["chromosome", "locusStart", "locusEnd"]
+    assert StudyRegions.schema.fieldNames() == [
+        "chromosome",
+        "locusStart",
+        "locusEnd",
+        "studyId",
+    ]
+    regions = StudyRegions(
+        spark.createDataFrame(
+            [("1", 100, 200, "GCST1")],
+            "chromosome string, locusStart int, locusEnd int, studyId string",
+        )
+    )
+    assert regions.df.select(regions.locus_start, regions.study_id).first() == (
+        100,
+        "GCST1",
+    )
+
+
+def test_mandatory_columns_from_a_mixin_are_validated(spark: SparkSession) -> None:
+    """A column declared in the mixin is as mandatory as one in the class body."""
+    df = spark.createDataFrame(
+        [("GCST1", "1", 100)], "studyId string, chromosome string, locusStart int"
+    )
+    with pytest.raises(
+        SchemaValidationError, match="missing_mandatory_columns: locusEnd"
+    ):
+        StudyRegions(df)
+
+
+def test_a_column_declared_in_both_the_mixin_and_the_class_is_rejected() -> None:
+    """One attribute, one column: redeclaring would silently replace it."""
+    with pytest.raises(DatasetError, match="Twice.chromosome.*declared twice"):
+
+        class Twice(_RegionColumns, Dataset[HasRegion]):
+            chromosome = implements(HasRegion.chromosome)
+
+
+def test_inheriting_from_a_named_dataset_is_rejected() -> None:
+    """Datasets share columns through a mixin, never through another dataset."""
+    with pytest.raises(DatasetError, match="Extended.*Loci.*mixin"):
+
+        class Extended(Loci, Dataset[HasStudyId | HasRegion]):  # type: ignore[misc]
+            note = optional(t.StringType())

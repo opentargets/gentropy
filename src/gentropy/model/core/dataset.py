@@ -4,7 +4,7 @@ Every gentropy dataset is a subclass of ``Dataset`` that states two things:
 
 * its traits, as the type argument: ``class CredibleSet(Dataset[HasStudyId |
   HasRegion])``. A union of traits reads as "has all of these".
-* its columns, as class attributes declared with ``optional`` or
+* its columns, as class attributes declared with ``optional``, ``required`` or
   ``implements`` (see the ``schema`` module). ``Dataset`` builds ``schema``
   from them, in declaration order.
 
@@ -31,8 +31,9 @@ What is checked when a dataset class is defined
 ``Dataset`` checks each subclass once, at import time, and raises
 ``DatasetError`` if any rule is broken:
 
-* The class names its traits, as in ``Dataset[A | B]``. A dataset without traits
-  could not be passed to any method.
+* The class names its traits, as in ``Dataset[A | B]``. A dataset that has none
+  says so with ``Dataset[Trait]``; it can then only be passed to methods that
+  ask for it by name, and its own ``required`` columns are still checked.
 * The class declares at least one column.
 * Every field of every declared trait is implemented by a column, through
   ``implements``. A column with a matching name does not count without that
@@ -41,14 +42,26 @@ What is checked when a dataset class is defined
 * No column implements a field of a trait the dataset does not declare, since the
   type checker would never see that trait.
 * Column attributes are snake_case and do not reuse a name ``Dataset`` already
-  has (``df``, ``schema``, ``traits``, ``print_schema``).
+  has (``df``, ``schema``, ``traits``, ``print_schema``, ``pipe``).
 * A trait ``Field`` is never assigned directly in a dataset class. Doing so
   would rebind the trait's own field; ``implements`` makes the column instead.
 
 Every problem with the trait links is reported in one message.
 
 A dataset class lists its traits directly. Inheriting from another named
-dataset is not supported.
+dataset is rejected: the subclass would inherit the parent's type argument, so
+the type checker could not see the traits it adds.
+
+Sharing columns between datasets
+--------------------------------
+
+Two datasets that differ by a few columns, such as a study locus before and
+after its ``locus`` is collected, declare the shared columns once in a plain
+mixin class and list it before ``Dataset[...]``. The mixin's columns come
+first in the schema, in the order of the bases, and are checked like the
+class's own. Each dataset still names all of its traits, so the type checker
+sees exactly what it has; a ``TypeAlias`` for the shared union keeps that to
+one line. A column declared both in a mixin and in the class is rejected.
 
 Building a dataset from data
 ----------------------------
@@ -60,7 +73,8 @@ from the legacy package, and a mismatch raises ``SchemaValidationError`` with
 every problem listed:
 
 * a mandatory column that is missing is an error, because methods rely on it.
-  Mandatory columns are found by the marker ``implements`` puts on them;
+  Mandatory columns are found by the marker ``implements`` and ``required``
+  put on them;
 * a column the schema does not list is an error, which also catches typos;
 * a column with a different type is an error;
 * a missing optional column is accepted and means the same as a column of
@@ -130,15 +144,32 @@ Example:
     Traceback (most recent call last):
     ...
     gentropy.model.core.dataset.DatasetError: Partial: HasRegion.locus_start is not implemented; column locusStart exists but is not linked, declare it with implements(...); HasRegion.locus_end is not implemented
+
+    Sharing the region columns between two datasets through a mixin:
+
+    >>> class RegionColumns:
+    ...     chromosome = implements(HasRegion.chromosome)
+    ...     locus_start = implements(HasRegion.locus_start)
+    ...     locus_end = implements(HasRegion.locus_end)
+    >>> class Regions(RegionColumns, Dataset[HasRegion]):
+    ...     pass
+    >>> class StudyRegions(RegionColumns, Dataset[HasRegion | HasStudyId]):
+    ...     study_id = implements(HasStudyId.study_id)
+    >>> StudyRegions.schema.fieldNames()
+    ['chromosome', 'locusStart', 'locusEnd', 'studyId']
 """
 
 from __future__ import annotations
 
+from collections.abc import Callable, Sequence
 from types import UnionType
 from typing import (
     Any,
     ClassVar,
+    Concatenate,
     Generic,
+    ParamSpec,
+    Self,
     TypeVar,
     Union,
     cast,
@@ -146,7 +177,8 @@ from typing import (
     get_origin,
 )
 
-from pyspark.sql import DataFrame
+from pyspark.sql import Column, DataFrame
+from pyspark.sql import functions as f
 from pyspark.sql import types as t
 
 from gentropy.model.core.schema import DatasetColumn
@@ -160,6 +192,8 @@ from gentropy.model.core.trait import (
 from gentropy.model.core.validation import SchemaValidationError, compare_struct_schemas
 
 T_contra = TypeVar("T_contra", bound=Trait, contravariant=True)
+P = ParamSpec("P")
+R = TypeVar("R")
 
 
 class DatasetError(TypeError):
@@ -273,6 +307,40 @@ def _link_problems(
     return problems
 
 
+def _class_attributes(cls: type) -> list[tuple[str, Any]]:
+    """Attributes of ``cls`` and of its column mixins, mixins first in base order.
+
+    A mixin is any base that is not a dataset, ``Generic`` or ``object``.
+
+    Args:
+        cls (type): The dataset class being defined.
+
+    Returns:
+        list[tuple[str, Any]]: (attribute, value) pairs in declaration order.
+
+    Raises:
+        DatasetError: If a column is declared both in a mixin and in the class.
+    """
+    mixins = [
+        base
+        for base in reversed(cls.__mro__[1:])
+        if not issubclass(base, Dataset) and base not in (object, Generic)
+    ]
+    attributes: list[tuple[str, Any]] = []
+    columns: set[str] = set()
+    for owner in [*mixins, cls]:
+        for attribute, value in vars(owner).items():
+            if isinstance(value, DatasetColumn):
+                if attribute in columns:
+                    raise DatasetError(
+                        f"{cls.__name__}.{attribute}: the column is declared twice, "
+                        "in a mixin and again in the class"
+                    )
+                columns.add(attribute)
+            attributes.append((attribute, value))
+    return attributes
+
+
 class Dataset(Generic[T_contra]):
     """Base class of every dataset.
 
@@ -305,7 +373,7 @@ class Dataset(Generic[T_contra]):
         ...     pass
         Traceback (most recent call last):
         ...
-        gentropy.model.core.dataset.DatasetError: NoLayout: declare at least one column with `optional(...)` or `implements(...)`
+        gentropy.model.core.dataset.DatasetError: NoLayout: declare at least one column with `optional(...)`, `required(...)` or `implements(...)`
 
         A trait field is stored through ``implements``, never assigned directly:
 
@@ -349,6 +417,66 @@ class Dataset(Generic[T_contra]):
             )
         self.df = df
 
+    @staticmethod
+    def generate_identifier(uniqueness_defining_columns: Sequence[str]) -> Column:
+        """Hashes the provided columns to generate a unique identifier.
+
+        Args:
+            uniqueness_defining_columns (Sequence[str]): list of columns defining uniqueness
+
+        Returns:
+            Column: column with a unique identifier
+        """
+        hashable_columns = [
+            f.when(f.col(column).cast("string").isNull(), f.lit("None")).otherwise(
+                f.col(column).cast("string")
+            )
+            for column in uniqueness_defining_columns
+        ]
+        return f.md5(f.concat(*hashable_columns))
+
+    def pipe(
+        self,
+        func: Callable[Concatenate[Self, P], R],
+        *args: P.args,
+        **kwargs: P.kwargs,
+    ) -> R:
+        """Call ``func(self, *args, **kwargs)``, so operations chain like methods.
+
+        Operations that work on any dataset with a given trait are plain
+        functions, such as ``pvalue_filter(dataset: D, pvalue) -> D`` with ``D``
+        bound to ``Dataset[Association]``. ``pipe`` lets them read left to right:
+        ``ss.pipe(pvalue_filter, 5e-8).pipe(...)``. The type checker sees the
+        concrete dataset, so it checks that the dataset has the traits ``func``
+        asks for, checks the extra arguments, and keeps the return type, which is
+        whatever ``func`` returns.
+
+        Args:
+            func (Callable[Concatenate[Self, P], R]): The operation; it takes the
+                dataset first.
+            *args (P.args): Further positional arguments for ``func``.
+            **kwargs (P.kwargs): Keyword arguments for ``func``.
+
+        Returns:
+            R: What ``func`` returns.
+
+        Examples:
+            >>> from pyspark.sql import types as t
+            >>> from gentropy.model.core.schema import implements
+            >>> from gentropy.model.core.trait import Field, Trait
+            >>> class HasStudyId(Trait):
+            ...     study_id = Field(t.StringType())
+            >>> class Studies(Dataset[HasStudyId]):
+            ...     study_id = implements(HasStudyId.study_id)
+            >>> def count_studies(dataset: Dataset[HasStudyId], prefix: str) -> int:
+            ...     study_id = HasStudyId.of(dataset).study_id
+            ...     return dataset.df.filter(study_id.startswith(prefix)).count()
+            >>> studies = Studies(spark.createDataFrame([("GCST1",), ("QTL1",)], "studyId string"))
+            >>> studies.pipe(count_studies, "GCST")
+            1
+        """
+        return func(self, *args, **kwargs)
+
     @classmethod
     def print_schema(cls) -> None:
         """Print the column layout, marking mandatory columns and their traits.
@@ -375,8 +503,9 @@ class Dataset(Generic[T_contra]):
         """
         lines = [cls.__name__]
         for column in cls.schema.fields:
+            traits = column.metadata.get(TRAITS)
             kind = (
-                "mandatory: " + ", ".join(column.metadata[TRAITS])
+                ("mandatory: " + ", ".join(traits) if traits else "mandatory")
                 if is_mandatory(column)
                 else "optional"
             )
@@ -406,11 +535,21 @@ class Dataset(Generic[T_contra]):
                 f"{cls.__name__}: declare the traits the dataset implements, "
                 "e.g. `class X(Dataset[A | B])`"
             )
+        if named := [
+            base.__name__
+            for base in cls.__bases__
+            if issubclass(base, Dataset) and base is not Dataset
+        ]:
+            raise DatasetError(
+                f"{cls.__name__}: cannot inherit from the named dataset "
+                f"{', '.join(named)}; declare shared columns in a mixin class "
+                "and list it before `Dataset[...]`"
+            )
         cls.traits = frozenset(_flatten(get_args(declared[0])[0]))
         # ``df`` is set per instance and ``schema`` is only annotated on the base.
         reserved = set(dir(Dataset)) | {"df", "schema"}
         columns = []
-        for attribute, value in vars(cls).items():
+        for attribute, value in _class_attributes(cls):
             if isinstance(value, Field):
                 raise DatasetError(
                     f"{cls.__name__}.{attribute}: a trait field cannot be assigned "
@@ -431,7 +570,7 @@ class Dataset(Generic[T_contra]):
         if not columns:
             raise DatasetError(
                 f"{cls.__name__}: declare at least one column with "
-                "`optional(...)` or `implements(...)`"
+                "`optional(...)`, `required(...)` or `implements(...)`"
             )
         if problems := _link_problems(cls.__name__, columns, cls.traits):
             raise DatasetError(f"{cls.__name__}: " + "; ".join(problems))
