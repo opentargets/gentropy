@@ -1298,6 +1298,15 @@ class TestStudyLocusReplicationFlagging:
         # s11 and s1 share one disease out of a longer list -> not replicated:
         ("12", "v7", "s11"),
         ("13", "v7", "s1"),
+        # Measurements only: sharing one measurement is enough -> replicated:
+        ("14", "v8", "s12"),
+        ("15", "v8", "s13"),
+        # Measurement and disease: the measurement is set aside, the disease matches -> replicated:
+        ("16", "v9", "s14"),
+        ("17", "v9", "s15"),
+        # Measurement and disease: same measurement, different disease -> not replicated:
+        ("18", "v10", "s14"),
+        ("19", "v10", "s16"),
     ]
 
     STUDY_LOCUS_SCHEMA = t.StructType(
@@ -1320,6 +1329,19 @@ class TestStudyLocusReplicationFlagging:
         ("s9", "p1", "gwas", ["d1", "d2"], None, ["c4"], "pm4", [("nfe", 1.0)]),
         ("s10", "p1", "gwas", ["d2", "d1"], None, ["c5"], "pm5", [("nfe", 1.0)]),
         ("s11", "p1", "gwas", ["d1", "d3"], None, ["c6"], "pm6", [("nfe", 1.0)]),
+        ("s12", "p1", "gwas", ["m1", "m2"], None, ["c7"], "pm7", [("nfe", 1.0)]),
+        ("s13", "p1", "gwas", ["m1", "m3"], None, ["c8"], "pm8", [("nfe", 1.0)]),
+        ("s14", "p1", "gwas", ["m1", "d1"], None, ["c9"], "pm9", [("nfe", 1.0)]),
+        ("s15", "p1", "gwas", ["m2", "d1"], None, ["c10"], "pm10", [("nfe", 1.0)]),
+        ("s16", "p1", "gwas", ["m1", "d2"], None, ["c11"], "pm11", [("nfe", 1.0)]),
+    ]
+
+    DISEASE_DATA = [
+        ("m1", ["EFO_0001444"]),
+        ("m2", ["EFO_0001444"]),
+        ("m3", ["EFO_0001444"]),
+        ("d1", ["MONDO_0045024"]),
+        ("d2", ["MONDO_0045024"]),
     ]
 
     STUDY_SCHEMA = t.StructType(
@@ -1361,7 +1383,12 @@ class TestStudyLocusReplicationFlagging:
             _df=spark.createDataFrame(self.STUDY_DATA, schema=self.STUDY_SCHEMA),
             _schema=StudyIndex.get_schema(),
         )
-        self.validated = self.study_locus.qc_replication(self.study_index)
+        disease_index = spark.createDataFrame(
+            self.DISEASE_DATA, "id string, therapeuticAreas array<string>"
+        )
+        self.validated = self.study_locus.qc_replication(
+            self.study_index, disease_index
+        )
 
     def test_replication_flag_type(
         self: TestStudyLocusReplicationFlagging,
@@ -1389,7 +1416,7 @@ class TestStudyLocusReplicationFlagging:
             ).collect()
         }
 
-        assert flagged == {"1", "2", "6", "7", "10", "11"}
+        assert flagged == {"1", "2", "6", "7", "10", "11", "14", "15", "16", "17"}
 
 
 class TestTransQtlFlagging:

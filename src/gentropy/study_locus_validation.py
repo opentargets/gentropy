@@ -21,6 +21,7 @@ class StudyLocusValidationStep:
         study_locus_path: list[str],
         study_index_path: str,
         target_index_path: str,
+        disease_index_path: str,
         valid_study_locus_path: str,
         invalid_study_locus_path: str,
         trans_qtl_threshold: int,
@@ -33,6 +34,7 @@ class StudyLocusValidationStep:
             study_locus_path (list[str]): Path to study locus dataset.
             study_index_path (str): Path to study index file.
             target_index_path (str): path to the target index.
+            disease_index_path (str): Path to the platform disease index, used to tell measurements from diseases in the replication check.
             valid_study_locus_path (str): Path to write the valid records.
             invalid_study_locus_path (str): Path to write the output file.
             trans_qtl_threshold (int): genomic distance above which a QTL is considered trans.
@@ -87,7 +89,14 @@ class StudyLocusValidationStep:
         # Replication is assessed at the very end, once every invalid credible set has been
         # removed: a credible set dropped by any earlier flag, a duplicate included, is not
         # evidence of replication, and duplicated credible sets of one study would count as two.
-        replicated = unique.valid.qc_replication(study_index)
+        replicated = unique.valid.qc_replication(
+            study_index,
+            session.load_data(
+                disease_index_path,
+                "parquet",
+                schema="id STRING, therapeuticAreas ARRAY<STRING>",
+            ),
+        )
 
         (
             # Valid study locus partitioned to simplify the finding of overlaps
