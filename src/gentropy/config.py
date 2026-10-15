@@ -488,7 +488,9 @@ class PICSConfig(StepConfig):
     """PICS step configuration."""
 
     study_locus_ld_annotated_in: str = MISSING
+    study_index_path: str = MISSING
     picsed_study_locus_out: str = MISSING
+    picsed_credible_set_variant_out: str = MISSING
     _target_: str = "gentropy.pics.PICSStep"
 
 

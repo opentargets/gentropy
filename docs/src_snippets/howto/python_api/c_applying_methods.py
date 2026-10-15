@@ -1,19 +1,25 @@
 """Docs to apply a method on a dataset."""
+
 from __future__ import annotations
 
 from gentropy import StudyLocus, SummaryStatistics
+from gentropy.dataset.credible_set import CredibleSet
+from gentropy.dataset.study_index import StudyIndex
+from gentropy.dataset.study_locus import LDAnnotatedStudyLocus
 
 
-def apply_class_method_pics(study_locus_ld_annotated: StudyLocus) -> StudyLocus:
-    """Docs to apply the PICS class method to mock study loci."""
+def apply_class_method_pics(
+    study_locus_ld_annotated: LDAnnotatedStudyLocus, study_index: StudyIndex
+) -> CredibleSet:
+    """Docs to apply the PICS method to LD annotated study loci."""
     # --8<-- [start:apply_class_method_pics]
-    from gentropy.method.pics import PICS
+    from gentropy.method.fine_mapping.pics import PICS
 
-    finemapped_study_locus = PICS.finemap(
-        study_locus_ld_annotated
-    ).annotate_credible_sets()
+    credible_sets, credible_set_variants = PICS().finemap(
+        study_locus_ld_annotated, study_index
+    )
     # --8<-- [end:apply_class_method_pics]
-    return finemapped_study_locus
+    return credible_sets
 
 
 def apply_class_method_clumping(summary_stats: SummaryStatistics) -> StudyLocus:

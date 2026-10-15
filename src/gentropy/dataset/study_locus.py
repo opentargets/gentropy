@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING, ClassVar, Self
 
 import numpy as np
 import pyspark.sql.functions as f
@@ -17,7 +17,7 @@ from gentropy.common.spark import (
     get_struct_field_schema,
     order_array_of_structs_by_field,
 )
-from gentropy.common.stats import get_logsum, neglogpval_from_pvalue
+from gentropy.common.stats import get_logsum, neglogpval_from_pvalue, split_pvalue
 from gentropy.dataset.dataset import Dataset, qc_test
 from gentropy.dataset.study_index import StudyQualityCheck
 from gentropy.dataset.study_locus_overlap import StudyLocusOverlap
@@ -1424,6 +1424,45 @@ class AnnotatedStudyLocus(StudyLocus):
             StructType: schema for the AnnotatedStudyLocus dataset.
         """
         return parse_spark_schema("annotated_study_locus.json")
+
+    def lead_pvalue_filter(self: Self, pvalue: float) -> Self:
+        """Keep the loci whose lead is at least as significant as `pvalue`.
+
+        The lead's p-value is its own entry in `locus`. A locus whose lead has no
+        entry, or no full p-value, is dropped.
+
+        Args:
+            pvalue (float): The largest lead p-value to keep, between 0 and 1.
+
+        Returns:
+            Self: The loci that pass, as the same dataset type.
+
+        Examples:
+            >>> def locus(lead, exponent):
+            ...     return [(lead, 5.0, exponent, 0.3, 1000, 0.1, 0.01)]
+            >>> rows = [
+            ...     ("L1", "S1", "1", 1, 1000, "A", [], locus("A", -8), None),
+            ...     ("L2", "S1", "1", 1, 1000, "B", [], locus("B", -7), None),
+            ...     ("L3", "S1", "1", 1, 1000, "C", [], [], None),
+            ... ]
+            >>> loci = AnnotatedStudyLocus(
+            ...     spark.createDataFrame(rows, AnnotatedStudyLocus.get_schema()),
+            ...     AnnotatedStudyLocus.get_schema(),
+            ... )
+            >>> [row.id for row in loci.lead_pvalue_filter(5e-8).df.collect()]
+            ['L1']
+        """
+        mantissa, exponent = split_pvalue(pvalue)
+        lead = f.get(
+            f.filter("locus", lambda e: e["variantId"] == f.col("leadVariantId")), 0
+        )
+        return self.filter(
+            (lead["pValueExponent"] < exponent)
+            | (
+                (lead["pValueExponent"] == exponent)
+                & (lead["pValueMantissa"] <= mantissa)
+            )
+        )
 
 
 @dataclass
