@@ -447,8 +447,9 @@ class EqtlCatalogueFinemapping:
         A credible set is one SuSiE component of one molecular trait in one region. Its lead is the
         member with the highest posterior probability, ties broken by variant id. The member
         statistics are the marginal ones the study reported; SuSiE gives eQTL Catalogue no
-        conditional effect, so those columns are null, as are `r2Overall` and the allele
-        frequency, which the source only gives as a minor allele frequency.
+        conditional effect, so those columns are null, as are `r2Overall`, the allele
+        frequency, which the source only gives as a minor allele frequency, and the sample size,
+        as the source gives no per-variant sample size of the marginal test.
 
         Args:
             processed_finemapping_df (DataFrame): DataFrame containing the processed SuSIE results.
@@ -509,7 +510,6 @@ class EqtlCatalogueFinemapping:
         variants = members.withColumns(
             {
                 "credibleSetId": f.col("id"),
-                "sampleSize": f.col("nSamples"),
                 "reportedBeta": f.col("beta"),
                 "reportedStandardError": f.col("standardError"),
                 "log10BayesFactor": f.col("logBF") * LOG10_E,
@@ -518,6 +518,7 @@ class EqtlCatalogueFinemapping:
                     name: f.lit(None)
                     for name in (
                         "effectAlleleFrequency",
+                        "sampleSize",
                         "r2Overall",
                         "conditionalBeta",
                         "conditionalStandardError",
