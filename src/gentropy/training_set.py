@@ -9,7 +9,7 @@ A series of optional, parametrised filters then clean the labels to reduce noise
 leakage:
 
 * replication filter — keep only the credible sets carrying the ``REPLICATED`` quality
-  control flag raised by ``StudyLocus.qc_replication``;
+  control flag raised by the PTS credible-set validation step;
 * maximum positives per locus — drop loci with more than ``max_gsp_per_locus`` positives;
 * protein-protein interaction filter — drop negatives that interact (STRING) with a
   positive gene in the same locus;
@@ -73,7 +73,7 @@ class TrainingSetStep:
             session (Session): Session object that contains the Spark session.
             feature_matrix_path (str): Path to the L2G feature matrix parquet.
             credible_set_path (str): Path to the validated credible set (StudyLocus) dataset,
-                the output of ``StudyLocusValidationStep``, which raises the ``REPLICATED`` flag.
+                the output of the PTS credible-set validation step, which raises the ``REPLICATED`` flag.
             study_index_path (str): Path to the study index dataset.
             effector_gene_list_path (str): Path to the Effector Gene List parquet produced by
                 ``EffectorGeneListStep`` (columns ``diseaseId``, ``targetId``).
@@ -82,7 +82,7 @@ class TrainingSetStep:
                 given, negatives interacting with a positive gene in the same locus are dropped.
                 Defaults to None (filter skipped).
             apply_replication_filter (bool): Keep only the credible sets flagged as ``REPLICATED``
-                by ``StudyLocus.qc_replication``. Defaults to True.
+                by the PTS credible-set validation step. Defaults to True.
             max_gsp_per_locus (int): Maximum number of positives allowed per credible set; loci
                 exceeding it are dropped. Defaults to 2.
             interaction_source (str): ``sourceDatabase`` value to keep from the interaction dataset.
