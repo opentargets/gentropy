@@ -956,6 +956,19 @@ class GWASCatalogFineMappingManifestConfig(StepConfig):
 
 
 @dataclass
+class BigBrainFinemappingIngestionConfig(StepConfig):
+    """BigBrain fine-mapping ingestion step configuration."""
+
+    qtl_type: str = MISSING
+    finemapping_path: str = MISSING
+    credible_set_path: str = MISSING
+    study_index_path: str = MISSING
+    top_assoc_path: str | None = None
+    target_index_path: str | None = None
+    _target_: str = "gentropy.bigbrain_ingestion.BigBrainFinemappingIngestionStep"
+
+
+@dataclass
 class Config:
     """Application configuration."""
 
@@ -1105,6 +1118,11 @@ def register_config() -> None:
         group="step",
         name="decode_summary_statistics_qc",
         node=deCODESummaryStatisticsQCConfig,
+    )
+    cs.store(
+        group="step",
+        name="bigbrain_finemapping_ingestion",
+        node=BigBrainFinemappingIngestionConfig,
     )
     cs.store(
         group="step",

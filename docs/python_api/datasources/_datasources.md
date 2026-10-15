@@ -15,6 +15,7 @@ This section contains information about the data source harmonisation tools avai
 1. [GTEx (eQTL catalogue)](eqtl_catalogue/_eqtl_catalogue.md)
 2. [UKB PPP (EUR)](ukb_ppp_eur/_ukb_ppp_eur.md)
 3. [deCODE proteomics](deCODE/_decode.md)
+4. [BigBrain (brain eQTL/sQTL)](bigbrain/_bigbrain.md)
 
 ## Protein complexes
 
