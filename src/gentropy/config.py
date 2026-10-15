@@ -595,25 +595,6 @@ class PanUKBBConfig(StepConfig):
 
 
 @dataclass
-class VariantIndexConfig(StepConfig):
-    """Variant index step configuration."""
-
-    session: Any = field(
-        default_factory=lambda: {
-            "start_hail": False,
-        }
-    )
-    vep_output_json_path: str = MISSING
-    variant_index_path: str = MISSING
-    variant_annotations_path: list[str] | None = None
-    hash_threshold: int = 300
-
-    amino_acid_change_annotations: list[str] = MISSING
-
-    _target_: str = "gentropy.variant_index.VariantIndexStep"
-
-
-@dataclass
 class IntervalE2GStepConfig(StepConfig):
     """Interval E2G step configuration."""
 
@@ -1005,7 +986,6 @@ def register_config() -> None:
     cs.store(group="step", name="pics", node=PICSConfig)
     cs.store(group="step", name="gnomad_variants", node=GnomadVariantConfig)
     cs.store(group="step", name="ukb_ppp_eur_sumstat_preprocess", node=UkbPppEurConfig)
-    cs.store(group="step", name="variant_index", node=VariantIndexConfig)
     cs.store(
         group="step", name="window_based_clumping", node=WindowBasedClumpingStepConfig
     )
