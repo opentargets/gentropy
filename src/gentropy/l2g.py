@@ -19,6 +19,7 @@ from gentropy.common.spark import calculate_harmonic_sum
 from gentropy.dataset.colocalisation import Colocalisation
 from gentropy.dataset.intervals import Intervals
 from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
+from gentropy.dataset.l2g_features.pleiotropy_prior import PleiotropyPriorInputs
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
 from gentropy.dataset.l2g_prediction import L2GPrediction
 from gentropy.dataset.pathway_enrichment import PathwayEnrichment
@@ -66,6 +67,9 @@ class LocusToGeneFeatureMatrixStep:
         gene_interactions_path: str | None = None,
         pathway_index_path: str | None = None,
         pathway_enrichment_path: str | None = None,
+        mouse_phenotype_path: str | None = None,
+        baseline_expression_path: str | None = None,
+        target_essentiality_path: str | None = None,
         feature_matrix_path: str,
         append_null_features: bool = False,
     ) -> None:
@@ -85,6 +89,12 @@ class LocusToGeneFeatureMatrixStep:
                 written by the pathway ingestion step
             pathway_enrichment_path (str | None): Path to the harmonised `PathwayEnrichment`
                 dataset, as written by the pathway ingestion step
+            mouse_phenotype_path (str | None): Path to the Open Targets `mouse_phenotype`
+                dataset, used by the predicted pleiotropy prior
+            baseline_expression_path (str | None): Path to the Open Targets
+                `baseline_expression` dataset, used by the predicted pleiotropy prior
+            target_essentiality_path (str | None): Path to the Open Targets
+                `target_essentiality` dataset, used by the predicted pleiotropy prior
             feature_matrix_path (str): Path to the L2G feature matrix output dataset
             append_null_features (bool): Whether to append null features to the feature matrix. Defaults to False.
         """
@@ -143,6 +153,26 @@ class LocusToGeneFeatureMatrixStep:
             else None
         )
 
+        pleiotropy_prior_inputs = None
+        if (
+            interactions is not None
+            and mouse_phenotype_path
+            and baseline_expression_path
+            and target_essentiality_path
+        ):
+            pleiotropy_prior_inputs = PleiotropyPriorInputs(
+                interactions,
+                session.load_data(
+                    mouse_phenotype_path, "parquet", recursiveFileLookup=True
+                ),
+                session.load_data(
+                    baseline_expression_path, "parquet", recursiveFileLookup=True
+                ),
+                session.load_data(
+                    target_essentiality_path, "parquet", recursiveFileLookup=True
+                ),
+            )
+
         trans_pqtl_features = {
             "transPQtlColocH4Maximum",
             "transPQtlColocH4MaximumNeighbourhood",
@@ -175,6 +205,27 @@ class LocusToGeneFeatureMatrixStep:
                 "and `study_index_path`."
             )
 
+        pleiotropy_prior_features = {
+            "predictedPleiotropyPrior",
+            "predictedPleiotropyPriorNeighbourhood",
+            "approxPops",
+            "approxPopsNeighbourhood",
+        }
+        if pleiotropy_prior_features.intersection(features_list) and (
+            pleiotropy_prior_inputs is None
+            or studies is None
+            or variant_index is None
+            or target_index is None
+        ):
+            raise ValueError(
+                "Predicted pleiotropy prior and approxPops features need the interaction, mouse phenotype, "
+                "baseline expression and target essentiality datasets, the study index, the "
+                "variant index and the target index. Provide `gene_interactions_path`, "
+                "`mouse_phenotype_path`, `baseline_expression_path`, "
+                "`target_essentiality_path`, `study_index_path`, `variant_index_path` and "
+                "`target_index_path`."
+            )
+
         features_input_loader = L2GFeatureInputLoader(
             variant_index=variant_index,
             colocalisation=coloc,
@@ -185,6 +236,7 @@ class LocusToGeneFeatureMatrixStep:
             interactions=interactions,
             pathway_index=pathway_index,
             pathway_enrichment=pathway_enrichment,
+            pleiotropy_prior_inputs=pleiotropy_prior_inputs,
         )
 
         fm = credible_set.filter(f.col("studyType") == "gwas").build_feature_matrix(
