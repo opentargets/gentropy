@@ -22,7 +22,6 @@ This section contains information about the data source harmonisation tools avai
 
 ## Interaction / Interval-based Experiments
 
-1. [Intervals](intervals/_intervals.md)-based datasets, informing about the relationships between genetic elements and their functional implications.
 
 ## Variant annotation/validation
 
