@@ -341,6 +341,36 @@ def test_window_clumping_returns_only_the_leads_by_default(
     ) == [("1_100_A_T", 1, 600, []), ("1_2000_G_A", 1500, 2500, [])]
 
 
+@pytest.mark.parametrize("keep_clumped_loci", [False, True], ids=["leads", "all"])
+@pytest.mark.parametrize(
+    ("mantissa", "exponent"), [(None, None), (None, -20), (1.0, None)]
+)
+def test_variants_without_a_p_value_are_neither_leads_nor_clumped(
+    spark: SparkSession,
+    keep_clumped_loci: bool,
+    mantissa: float | None,
+    exponent: int | None,
+) -> None:
+    """A variant without a full p-value cannot be ranked, so it is left out.
+
+    Ranked, a missing part would sort first, and the variant would clump the
+    measured signal next to it.
+    """
+    rows = [
+        ("GCST1", "1_100_A_T", "1", 100, mantissa, exponent),
+        ("GCST1", "1_200_C_G", "1", 200, 1.0, -10),
+    ]
+
+    loci = WindowClumping(distance=500, keep_clumped_loci=keep_clumped_loci).clump(
+        _summary_statistics(spark, rows)  # type: ignore[arg-type]
+    )
+
+    assert [
+        tuple(row)
+        for row in loci.df.select("leadVariantId", "qualityControls").collect()
+    ] == [("1_200_C_G", [])]
+
+
 class TopHits(Dataset[HasStudyId | VariantLocation | AssociationTrait]):
     """Associations that are not summary statistics, under their own column names."""
 

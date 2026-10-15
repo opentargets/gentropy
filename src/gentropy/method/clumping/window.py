@@ -17,7 +17,10 @@ The algorithm
 
 When ``gwas_significance`` is set, ``clump`` first keeps only the variants at
 least as significant as it, with ``gentropy.operation.association.pvalue_filter``;
-without it, every input variant is clumped. Clumping then runs per study and
+without it, every input variant with a p-value is clumped. A variant missing its
+mantissa or exponent cannot be ranked, so it is left out: it is neither a lead
+nor clumped. (Legacy ranked it first, so it could clump the measured signal next
+to it.) Clumping then runs per study and
 chromosome, in four steps:
 
 1. **Cluster.** Variants are sorted by position. A new cluster starts at the
@@ -239,9 +242,9 @@ class WindowClumping:
         Args:
             associations (Dataset[HasStudyId | VariantLocation | Association]):
                 The variants to clump, from any dataset with these traits. They are
-                filtered by ``gwas_significance`` first when it is set.
-                ``chromosome`` and ``position`` must be filled in; ``variantId``
-                is not parsed.
+                filtered by ``gwas_significance`` first when it is set; variants
+                without a full p-value are left out. ``chromosome`` and
+                ``position`` must be filled in; ``variantId`` is not parsed.
 
         Returns:
             StudyLocus: One row per lead, plus one per clumped variant with
@@ -309,6 +312,11 @@ class WindowClumping:
                 association.variant_id.alias(Association.variant_id.name),
                 association.p_value_mantissa.alias(Association.p_value_mantissa.name),
                 association.p_value_exponent.alias(Association.p_value_exponent.name),
+            )
+            # A missing part would rank first and clump measured signals:
+            .filter(
+                f.col(Association.p_value_mantissa.name).isNotNull()
+                & f.col(Association.p_value_exponent.name).isNotNull()
             )
             .transform(self._cluster, distance)
             .transform(self._assign_leads, distance, self.config.keep_clumped_loci)

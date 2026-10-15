@@ -174,9 +174,7 @@ def _shuffled_columns(loci: LDAnnotatedStudyLocus) -> list[str]:
     """
     jvm = loci.df.sparkSession.sparkContext._jvm
     assert jvm is not None
-    plan = jvm.PythonSQLUtils.explainString(
-        loci.df._jdf.queryExecution(), "formatted"
-    )
+    plan = jvm.PythonSQLUtils.explainString(loci.df._jdf.queryExecution(), "formatted")
     nodes = [node.strip().splitlines() for node in plan.split("\n\n")]
     return [
         line
