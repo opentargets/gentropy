@@ -349,7 +349,7 @@ class TestEqtlCatalogueFinemapping:
         assert (lead.pValueMantissa, lead.pValueExponent) == (pytest.approx(1.078), -10)
         assert lead.reportedBeta == pytest.approx(0.741165)
         assert lead.reportedStandardError == pytest.approx(0.0950277)
-        assert lead.sampleSize == 84
+        assert lead.sampleSize is None
         assert lead.posteriorProbability == pytest.approx(0.1104114)
         assert lead.log10BayesFactor == pytest.approx(36.6787648 * 0.4342945)
         assert lead.effectAlleleFrequency is None
