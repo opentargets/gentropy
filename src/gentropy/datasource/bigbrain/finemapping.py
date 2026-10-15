@@ -30,7 +30,11 @@ from pyspark.sql import functions as f
 from pyspark.sql import types as t
 
 from gentropy.common.stats import neglogpval_from_z2, pvalue_from_neglogpval
-from gentropy.dataset.study_locus import FinemappingMethod, StudyLocus
+from gentropy.dataset.study_locus import (
+    CredibleInterval,
+    FinemappingMethod,
+    StudyLocus,
+)
 from gentropy.datasource.bigbrain import BigBrainPublicationMetadata
 
 if TYPE_CHECKING:
@@ -93,6 +97,9 @@ class BigBrainFinemapping:
           the mantissa/exponent split consistent with gentropy's other sources.
         - `logBF` is not published, so it is left null. PIP-based colocalisation
           methods do not need it.
+        - Each locus is ranked by PIP and restricted to the 95% credible set
+          (`is95CredibleSet`), as on the platform; bounds and region describe the
+          members that remain.
         - Purity is not published either. SuSiE only reports sets with a minimum
           absolute correlation of 0.5 on the in-sample LD, so every set passed a
           purity filter at source; purity is set to 1 for single-variant sets and
@@ -150,15 +157,9 @@ class BigBrainFinemapping:
             "standardError",
         )
         credible_sets = (
-            # annotate_credible_sets() below sorts each locus by descending PIP.
             variants.withColumn("locus", f.collect_list(locus_struct).over(credible_set))
-            .withColumn("locusStart", f.min("position").over(credible_set))
-            .withColumn("locusEnd", f.max("position").over(credible_set))
             .filter(f.col("isLead"))
             .withColumn("finemappingMethod", f.lit(FinemappingMethod.SUSIE.value))
-            .withColumn(
-                "purity", f.when(f.size("locus") == 1, f.lit(1.0)).cast(t.DoubleType())
-            )
             .select(
                 StudyLocus.assign_study_locus_id(
                     ["studyId", "variantId", "finemappingMethod"]
@@ -168,13 +169,6 @@ class BigBrainFinemapping:
                 "variantId",
                 "chromosome",
                 "position",
-                f.concat(
-                    f.col("chromosome"),
-                    f.lit(":"),
-                    f.col("locusStart"),
-                    f.lit("-"),
-                    f.col("locusEnd"),
-                ).alias("region"),
                 "beta",
                 "zScore",
                 "pValueMantissa",
@@ -182,10 +176,6 @@ class BigBrainFinemapping:
                 "standardError",
                 "finemappingMethod",
                 "credibleSetIndex",
-                f.col("purity").alias("purityMeanR2"),
-                f.col("purity").alias("purityMinR2"),
-                "locusStart",
-                "locusEnd",
                 "sampleSize",
                 "locus",
                 f.array().cast(t.ArrayType(t.StringType(), False)).alias(
@@ -193,8 +183,29 @@ class BigBrainFinemapping:
                 ),
             )
         )
-        return (
-            StudyLocus(_df=credible_sets, _schema=StudyLocus.get_schema())
-            .annotate_credible_sets()
-            .assign_confidence()
+        # Sorts each locus by descending PIP, flags the 95%/99% credible sets and keeps
+        # only the 95% members, as the platform does.
+        filtered = StudyLocus(
+            _df=credible_sets, _schema=StudyLocus.get_schema()
+        ).filter_credible_set(CredibleInterval.IS95)
+
+        # Bounds and purity describe the members that remain.
+        member_positions = f.transform(
+            "locus", lambda x: f.split(x["variantId"], "_").getItem(1).cast("int")
         )
+        single_variant_purity = f.when(f.size("locus") == 1, f.lit(1.0)).cast(
+            t.DoubleType()
+        )
+        return StudyLocus(
+            _df=filtered.df.withColumn("locusStart", f.array_min(member_positions))
+            .withColumn("locusEnd", f.array_max(member_positions))
+            .withColumn(
+                "region",
+                f.concat_ws(
+                    "", "chromosome", f.lit(":"), "locusStart", f.lit("-"), "locusEnd"
+                ),
+            )
+            .withColumn("purityMeanR2", single_variant_purity)
+            .withColumn("purityMinR2", single_variant_purity),
+            _schema=StudyLocus.get_schema(),
+        ).assign_confidence()

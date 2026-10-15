@@ -26,6 +26,8 @@ ROWS = [
     ("rs2", 1, 5000, "G", "A", 8.0, 9310, 1e-15, 0.6, 0.2, 0.02, 20, 2, "ENSG01.1"),
     ("rs3", 1, 5100, "T", "C", 7.5, 9310, 1e-13, 0.38, 0.1, 0.02, 30, 2, "ENSG01.1"),
     ("rs4", 1, 5200, "A", "G", 0, 9310, 1, 0.01, 0.0, 0.02, 40, 2, "ENSG01.1"),
+    # Beyond the 95% credible set (cumulative PIP before it is 0.98): dropped.
+    ("rs7", 1, 5300, "C", "A", 2.0, 9310, 0.05, 0.01, 0.0, 0.02, 50, 2, "ENSG01.1"),
     # Credible set led by an untested placeholder: dropped entirely.
     ("rs5", 2, 100, "A", "C", 0, 9310, 1, 0.9, -2.1, 0.01, 50, 3, "ENSG01.1"),
     ("rs6", 2, 200, "G", "T", 3.0, 9310, 0.003, 0.08, 0.1, 0.01, 60, 3, "ENSG01.1"),
@@ -74,6 +76,15 @@ class TestBigBrainFinemapping:
         """Untested placeholder rows are removed from credible sets that are kept."""
         members = [v["variantId"] for v in credible_sets[2]["locus"]]
         assert members == ["1_5000_A_G", "1_5100_C_T"]
+
+    def test_keeps_only_95_credible_set(
+        self, credible_sets: dict[int, dict[str, Any]]
+    ) -> None:
+        """Members beyond the 95% credible set are dropped; the rest are flagged and sorted."""
+        locus = credible_sets[2]["locus"]
+        assert [v["variantId"] for v in locus] == ["1_5000_A_G", "1_5100_C_T"]
+        assert all(v["is95CredibleSet"] for v in locus)
+        assert credible_sets[2]["region"] == "1:5000-5100"
 
     def test_variant_id_uses_a1_as_alternate_allele(
         self, credible_sets: dict[int, dict[str, Any]]
