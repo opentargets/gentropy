@@ -11,7 +11,8 @@ looked up directly. ``chromosome`` sits next to it so the lookup can join on
 both and prune by chromosome.
 
 The index has no traits: it is only ever used whole, to annotate study loci with
-their LD, so every column is simply required.
+their LD, so every column is simply required. It is declared as
+``Dataset[Never]``, so the type checker rejects it wherever a trait is asked for.
 
 Examples:
     >>> LDIndex.print_schema()
@@ -42,14 +43,15 @@ Examples:
 
 from __future__ import annotations
 
+from typing import Never
+
 from pyspark.sql import types as t
 
 from gentropy.model.core.dataset import Dataset
 from gentropy.model.core.schema import required
-from gentropy.model.core.trait import Trait
 
 
-class LDIndex(Dataset[Trait]):
+class LDIndex(Dataset[Never]):
     """One row per reference panel variant, with the variants it tags."""
 
     variant_id = required(t.StringType())

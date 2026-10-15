@@ -32,8 +32,11 @@ What is checked when a dataset class is defined
 ``DatasetError`` if any rule is broken:
 
 * The class names its traits, as in ``Dataset[A | B]``. A dataset that has none
-  says so with ``Dataset[Trait]``; it can then only be passed to methods that
+  says so with ``Dataset[Never]``; it can then only be passed to methods that
   ask for it by name, and its own ``required`` columns are still checked.
+  ``Never`` and not ``Trait``: ``Dataset`` is contravariant in its traits, so
+  ``Dataset[Trait]`` would type-check as a ``Dataset[A]`` for every trait ``A``,
+  while ``Dataset[Never]`` type-checks as none of them.
 * The class declares at least one column.
 * Every field of every declared trait is implemented by a column, through
   ``implements``. A column with a matching name does not count without that
@@ -170,6 +173,7 @@ from typing import (
     ClassVar,
     Concatenate,
     Generic,
+    Never,
     ParamSpec,
     Self,
     TypeVar,
@@ -547,7 +551,9 @@ class Dataset(Generic[T_contra]):
                 f"{', '.join(named)}; declare shared columns in a mixin class "
                 "and list it before `Dataset[...]`"
             )
-        cls.traits = frozenset(_flatten(get_args(declared[0])[0]))
+        cls.traits = frozenset(
+            trait for trait in _flatten(get_args(declared[0])[0]) if trait is not Never
+        )
         # ``df`` is set per instance and ``schema`` is only annotated on the base.
         reserved = set(dir(Dataset)) | {"df", "schema"}
         columns = []

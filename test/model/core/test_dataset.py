@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import types
-from typing import Any, cast
+from typing import Any, Never, cast
 
 import pytest
 from pyspark.sql import SparkSession
@@ -12,7 +12,7 @@ from pyspark.sql import types as t
 
 from gentropy.model.core.dataset import Dataset, DatasetError
 from gentropy.model.core.schema import implements, optional, required
-from gentropy.model.core.trait import Field, Trait
+from gentropy.model.core.trait import Field, Trait, TraitError
 from gentropy.model.core.validation import SchemaValidationError
 
 
@@ -167,7 +167,7 @@ def test_column_attribute_names_are_checked(attribute: str, problem: str) -> Non
         )
 
 
-class Notes(Dataset[Trait]):
+class Notes(Dataset[Never]):
     """Dataset with no traits, whose layout is fixed by required columns."""
 
     note_id = required(t.StringType())
@@ -177,12 +177,26 @@ class Notes(Dataset[Trait]):
 def test_dataset_without_traits_checks_its_required_columns(
     spark: SparkSession,
 ) -> None:
-    """``Dataset[Trait]`` names no trait, yet a missing required column is an error."""
-    assert Notes.traits == frozenset({Trait})
+    """``Dataset[Never]`` names no trait, yet a missing required column is an error."""
+    assert Notes.traits == frozenset()
     with pytest.raises(
         SchemaValidationError, match="missing_mandatory_columns: noteId"
     ):
         Notes(spark.createDataFrame([("hello",)], "text string"))
+
+
+def test_dataset_without_traits_meets_no_trait_requirement(
+    spark: SparkSession,
+) -> None:
+    """A traitless dataset is rejected wherever a trait is asked for.
+
+    The ignore below is needed only while mypy rejects the call; with
+    ``warn_unused_ignores`` mypy fails if a traitless dataset ever type-checks as
+    ``Dataset[HasStudyId]`` again.
+    """
+    notes = Notes(spark.createDataFrame([("n1",)], "noteId string"))
+    with pytest.raises(TraitError):
+        HasStudyId.of(notes)  # type: ignore[arg-type]
 
 
 def test_print_schema_labels_a_required_column_as_mandatory(
@@ -415,5 +429,5 @@ def test_inheriting_from_a_named_dataset_is_rejected() -> None:
     """Datasets share columns through a mixin, never through another dataset."""
     with pytest.raises(DatasetError, match="Extended.*Loci.*mixin"):
 
-        class Extended(Loci, Dataset[HasStudyId | HasRegion]):  # type: ignore[misc]
+        class Extended(Loci, Dataset[HasStudyId | HasRegion]):
             note = optional(t.StringType())
