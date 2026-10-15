@@ -200,8 +200,8 @@ class FumaGene2Func:
             set_col (str): Gene set label column in gene_sets_df.
             min_genes (int): Minimum prioritised genes required per group.
             background_df (DataFrame | None): Optional background, one row per
-                (group combination, gene). When omitted the background is the set of
-                scored genes, which conditions the test on what the group scored.
+                (group combination, gene). When omitted the background is genome-wide
+                -- the whole gene-set universe, identically for every group.
 
         Returns:
             DataFrame: One row per (group combination x gene set) containing
@@ -239,32 +239,39 @@ class FumaGene2Func:
         # Gene set universe: restrict background to genes in any set
         universe = gene_sets_df.select(gene_col).distinct()
 
-        # Background genes per group (N). By default these are the genes the group
-        # itself scored, which conditions the test on what was actually interrogated.
-        # That is defensible but it conditions on a MODEL OUTPUT: for L2G input, the
-        # background becomes "genes L2G chose to score", so any bias in that choice
-        # is baked into the null. A caller can instead supply the genes that were
-        # ever in contention -- for L2G, every gene within its +/-500kb candidate
-        # window -- which is a property of the genome rather than of the model.
-        background_genes = (
-            scored.select(*group_cols, gene_col)
-            if background_df is None
-            else background_df.select(*group_cols, gene_col).distinct()
-        ).join(universe, on=gene_col, how="inner")
+        # Background (N). The default is genome-wide: every group is compared against
+        # the whole gene-set universe, so K is each set's full size. Benchmarked
+        # against a curated trait-to-tissue gold standard it beat both alternatives at
+        # all 16 L2G thresholds tested, and unlike a background built from the scored
+        # genes it cannot degenerate when the score threshold is low enough that the
+        # input set becomes the background.
+        #
+        # Pass background_df for a conditional background instead: the scored genes
+        # themselves for the per-group behaviour, or `locus_window_background` for the
+        # genes that were ever in contention.
+        background_genes: DataFrame | None
+        if background_df is None:
+            background_genes = None
+            input_genes_all = (
+                scored.filter(f.col(score_col) >= score_threshold)
+                .select(*group_cols, gene_col)
+                .join(universe, on=gene_col, how="inner")
+            )
+        else:
+            background_genes = (
+                background_df.select(*group_cols, gene_col)
+                .distinct()
+                .join(universe, on=gene_col, how="inner")
+            )
+            # The intersection is load-bearing for a supplied background -- a scored
+            # gene need not fall inside it, and n > N or k > K would be an invalid
+            # hypergeometric configuration.
+            input_genes_all = (
+                scored.filter(f.col(score_col) >= score_threshold)
+                .select(*group_cols, gene_col)
+                .join(background_genes, on=[*group_cols, gene_col], how="left_semi")
+            )
 
-        background = background_genes.groupBy(*group_cols).agg(
-            f.count("*").alias("n_background")
-        )
-
-        # Input genes: above threshold, and restricted to the background (n). The
-        # intersection is load-bearing for a supplied background -- a scored gene
-        # need not fall inside it, and n > N or k > K would be an invalid
-        # hypergeometric configuration.
-        input_genes_all = (
-            scored.filter(f.col(score_col) >= score_threshold)
-            .select(*group_cols, gene_col)
-            .join(background_genes, on=[*group_cols, gene_col], how="left_semi")
-        )
         input_counts = (
             input_genes_all.groupBy(*group_cols)
             .agg(f.count("*").alias("n_input"))
@@ -275,13 +282,28 @@ class FumaGene2Func:
             qualifying_groups, on=group_cols, how="inner"
         )
 
-        # K per (group, set): gene set members present in background
-        k_gene_set = (
-            background_genes.join(qualifying_groups, on=group_cols, how="inner")
-            .join(gene_sets_df.select(set_col, gene_col), on=gene_col, how="inner")
-            .groupBy(*group_cols, set_col)
-            .agg(f.count("*").alias("k_gene_set"))
-        )
+        if background_genes is None:
+            # N and K are identical for every group, so they are computed once and
+            # broadcast rather than by materialising universe-sized background rows
+            # per group -- which for a release-scale run would be studies x ~30k genes.
+            n_universe = universe.count()
+            background = qualifying_groups.withColumn(
+                "n_background", f.lit(n_universe).cast("long")
+            )
+            k_gene_set = qualifying_groups.crossJoin(
+                gene_sets_df.groupBy(set_col).agg(f.count("*").alias("k_gene_set"))
+            )
+        else:
+            background = background_genes.groupBy(*group_cols).agg(
+                f.count("*").alias("n_background")
+            )
+            # K per (group, set): gene set members present in the background
+            k_gene_set = (
+                background_genes.join(qualifying_groups, on=group_cols, how="inner")
+                .join(gene_sets_df.select(set_col, gene_col), on=gene_col, how="inner")
+                .groupBy(*group_cols, set_col)
+                .agg(f.count("*").alias("k_gene_set"))
+            )
 
         # k per (group, set): overlap of input genes with gene set
         k_overlap = (
@@ -454,13 +476,24 @@ class FumaGene2Func:
                     The default conditions on a model output -- for L2G input it is
                     "genes L2G chose to score" -- and gives a small population
                     (median 47 genes), so p-values are coarse and a fifth of rows have
-                    fewer than 20 background genes. Supplying the genes within L2G's
-                    +/-500kb candidate window instead raised mean AUROC against a
-                    curated trait-to-tissue gold standard at all 16 L2G thresholds
-                    tested (+0.03 typical, 0.692 to 0.720 at a 0.5 cutoff), and
-                    retained 98.5% of the default's significant hits. It also avoids
-                    degenerating at low score thresholds, where the default collapses
-                    to AUROC 0.500 because the input set becomes the background.
+                    fewer than 20 background genes. It also degenerates at low score
+                    thresholds: at a 0.05 cutoff it scores AUROC exactly 0.500, because
+                    nearly every scored gene is then prioritised and the input set *is*
+                    the background.
+
+                    Benchmarked against a curated trait-to-tissue gold standard
+                    (76 traits, `.up` arm, 16 L2G thresholds), mean AUROC was 0.675 for
+                    the default, 0.716 for the genes within L2G's +/-500kb candidate
+                    window, and 0.738 for a genome-wide background. Genome-wide wins at
+                    all 16 thresholds over the window (paired Wilcoxon p = 3e-5), and
+                    both beat the default everywhere.
+
+                    The two wider options tie on "correct tissue in top 3" (49.9% vs
+                    48.8%, and the window is ahead at a 0.5 cutoff), so prefer the
+                    window if only the leading few sets matter. A label permutation
+                    shows all three are *conservative* rather than inflated
+                    (genomic-control lambda 0.47 / 0.51 / 0.52); a genome-wide
+                    background yields more hits through power, not a broken null.
 
         Returns:
             DataFrame: One row per (resolved group combination x gene set).

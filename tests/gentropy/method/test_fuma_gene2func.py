@@ -306,51 +306,122 @@ class TestSuppliedBackground:
     trait-to-tissue gold standard.
     """
 
-    def test_wider_background_lowers_p_value(self, spark: SparkSession) -> None:
-        """Holding the overlap fixed, a wider background makes it more surprising."""
+    def test_default_background_is_genome_wide(self, spark: SparkSession) -> None:
+        """With no background_df, N is the gene-set universe, not the scored genes.
+
+        The fixture separates the two: only five genes are scored, but the sets span
+        eighteen. A conditional background would give N = 3 (the scored genes that
+        land in a set); genome-wide gives N = 18.
+        """
+        scored = spark.createDataFrame(
+            [("S1", f"G{i}", 0.9 if i <= 3 else 0.1) for i in range(1, 6)],
+            ["studyId", "geneId", "score"],
+        )
+        sets = spark.createDataFrame(
+            [("SET1", f"G{i}") for i in range(1, 4)]
+            + [("SET2", f"G{i}") for i in range(6, 21)],
+            ["setName", "geneId"],
+        )
+        row = (
+            FumaGene2Func.gene2func_enrichment(
+                scored_df=scored,
+                gene_sets_df=sets,
+                gene_col="geneId",
+                score_col="score",
+                score_threshold=0.5,
+                min_genes=1,
+                group_cols=["studyId"],
+            )
+            .filter(f.col("setName") == "SET1")
+            .collect()[0]
+        )
+        assert row["n_background"] == 18, (
+            "default background should be the whole gene-set universe"
+        )
+        assert row["n_input"] == 3
+        assert row["k_gene_set"] == 3, "K is the set's full size under genome-wide"
+
+    def test_scored_genes_as_background_restores_conditional(
+        self, spark: SparkSession
+    ) -> None:
+        """Passing the scored genes back in reproduces the conditional background.
+
+        This is the documented way to get the pre-genome-wide behaviour, so it is
+        pinned here rather than left to the docstring.
+        """
+        scored = spark.createDataFrame(
+            [("S1", f"G{i}", 0.9 if i <= 3 else 0.1) for i in range(1, 6)],
+            ["studyId", "geneId", "score"],
+        )
+        sets = spark.createDataFrame(
+            [("SET1", f"G{i}") for i in range(1, 4)]
+            + [("SET2", f"G{i}") for i in range(6, 21)],
+            ["setName", "geneId"],
+        )
+        row = (
+            FumaGene2Func.gene2func_enrichment(
+                scored_df=scored,
+                gene_sets_df=sets,
+                gene_col="geneId",
+                score_col="score",
+                score_threshold=0.5,
+                min_genes=1,
+                group_cols=["studyId"],
+                background_df=scored.select("studyId", "geneId"),
+            )
+            .filter(f.col("setName") == "SET1")
+            .collect()[0]
+        )
+        assert row["n_background"] == 3, (
+            "conditional background is the scored genes that fall in a set"
+        )
+
+    def test_narrowing_the_background_raises_the_p_value(
+        self, spark: SparkSession
+    ) -> None:
+        """Holding the overlap and the gene sets fixed, a narrower background is weaker.
+
+        The gene sets are identical in both calls, so N is the only thing that moves.
+        An earlier version of this test varied the sets as well, which meant it also
+        passed when the default background was conditional.
+        """
         scored = spark.createDataFrame(
             [("S1", f"G{i}", 0.9 if i <= 3 else 0.1) for i in range(1, 11)],
             ["studyId", "geneId", "score"],
         )
         sets = spark.createDataFrame(
             [("SET1", f"G{i}") for i in range(1, 4)]
-            + [("SET2", f"G{i}") for i in range(4, 11)],
-            ["setName", "geneId"],
-        )
-        # Background adds 40 further candidate genes that were never scored.
-        wider = spark.createDataFrame(
-            [("S1", f"G{i}") for i in range(1, 51)], ["studyId", "geneId"]
-        )
-        sets_wide = spark.createDataFrame(
-            [("SET1", f"G{i}") for i in range(1, 4)]
             + [("SET2", f"G{i}") for i in range(4, 51)],
             ["setName", "geneId"],
         )
+        narrow = spark.createDataFrame(
+            [("S1", f"G{i}") for i in range(1, 11)], ["studyId", "geneId"]
+        )
 
-        def p_for(gene_sets: DataFrame, background: DataFrame | None) -> Row:
+        def row_for(background: DataFrame | None) -> Row:
             """Run the enrichment and return the SET1 result row."""
-            res = FumaGene2Func.gene2func_enrichment(
-                scored_df=scored,
-                gene_sets_df=gene_sets,
-                gene_col="geneId",
-                score_col="score",
-                score_threshold=0.5,
-                min_genes=1,
-                group_cols=["studyId"],
-                background_df=background,
-            ).filter(f.col("setName") == "SET1")
-            return res.collect()[0]
+            return (
+                FumaGene2Func.gene2func_enrichment(
+                    scored_df=scored,
+                    gene_sets_df=sets,
+                    gene_col="geneId",
+                    score_col="score",
+                    score_threshold=0.5,
+                    min_genes=1,
+                    group_cols=["studyId"],
+                    background_df=background,
+                )
+                .filter(f.col("setName") == "SET1")
+                .collect()[0]
+            )
 
-        default = p_for(sets, None)
-        supplied = p_for(sets_wide, wider)
-
-        assert default["k_overlap"] == supplied["k_overlap"] == 3, (
+        wide, narrowed = row_for(None), row_for(narrow)
+        assert wide["k_overlap"] == narrowed["k_overlap"] == 3, (
             "overlap should be unchanged by the background"
         )
-        assert supplied["n_background"] > default["n_background"], (
-            "supplied background should be wider"
-        )
-        assert supplied["p_value"] < default["p_value"], (
+        assert wide["n_background"] == 50
+        assert narrowed["n_background"] == 10
+        assert wide["p_value"] < narrowed["p_value"], (
             "the same overlap against a wider background should be more surprising"
         )
 
