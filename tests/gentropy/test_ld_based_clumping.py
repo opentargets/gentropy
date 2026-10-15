@@ -26,20 +26,16 @@ class TestLDBasedClumpingStep:
 
         with (
             patch(
-                "gentropy.ld_based_clumping.StudyLocus.from_parquet"
+                "gentropy.ld_based_clumping.AnnotatedStudyLocus.from_parquet"
             ) as mock_study_locus,
             patch("gentropy.ld_based_clumping.LDIndex.from_parquet") as mock_ld_index,
             patch(
                 "gentropy.ld_based_clumping.StudyIndex.from_parquet"
             ) as mock_study_index,
+            patch("gentropy.ld_based_clumping.annotate_ld"),
+            patch("gentropy.ld_based_clumping.LDClumping"),
         ):
-            # Mock the dataframe objects
-            mock_sl = MagicMock()
-            mock_sl.annotate_ld.return_value = mock_sl
-            mock_sl.clump.return_value = mock_sl
-            mock_sl.df = MagicMock()
-
-            mock_study_locus.return_value = mock_sl
+            mock_study_locus.return_value = MagicMock()
             mock_ld_index.return_value = MagicMock()
             mock_study_index.return_value = MagicMock()
 
@@ -82,25 +78,21 @@ class TestLDBasedClumpingStep:
 
         with (
             patch(
-                "gentropy.ld_based_clumping.StudyLocus.from_parquet"
+                "gentropy.ld_based_clumping.AnnotatedStudyLocus.from_parquet"
             ) as mock_study_locus,
             patch("gentropy.ld_based_clumping.LDIndex.from_parquet") as mock_ld_index,
             patch(
                 "gentropy.ld_based_clumping.StudyIndex.from_parquet"
             ) as mock_study_index,
+            patch("gentropy.ld_based_clumping.annotate_ld") as mock_annotate_ld,
+            patch("gentropy.ld_based_clumping.LDClumping") as mock_ld_clumping,
         ):
-            # Setup mock chain
             mock_sl = MagicMock()
-            mock_annotated = MagicMock()
-            mock_clumped = MagicMock()
-            mock_clumped.df = MagicMock()
-
-            mock_sl.annotate_ld.return_value = mock_annotated
-            mock_annotated.clump.return_value = mock_clumped
-
+            mock_si = MagicMock()
+            mock_ld = MagicMock()
             mock_study_locus.return_value = mock_sl
-            mock_ld_index.return_value = MagicMock()
-            mock_study_index.return_value = MagicMock()
+            mock_study_index.return_value = mock_si
+            mock_ld_index.return_value = mock_ld
 
             LDBasedClumpingStep(
                 session=session,
@@ -110,6 +102,9 @@ class TestLDBasedClumpingStep:
                 clumped_study_locus_output_path=clumped_output_path,
             )
 
-            # Verify methods were called in correct order
-            mock_sl.annotate_ld.assert_called_once()
-            mock_annotated.clump.assert_called_once()
+            # LD annotation feeds LD clumping, which keeps and flags clumped loci:
+            mock_annotate_ld.assert_called_once_with(mock_sl, mock_si, mock_ld)
+            mock_ld_clumping.assert_called_once_with(keep_clumped_loci=True)
+            mock_ld_clumping.return_value.clump.assert_called_once_with(
+                mock_annotate_ld.return_value
+            )
