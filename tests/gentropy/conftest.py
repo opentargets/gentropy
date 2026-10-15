@@ -284,29 +284,17 @@ def mock_study_locus_data(spark: SparkSession) -> DataFrame:
             rows=400,
             partitions=4,
             randomSeedMethod="hash_fieldname",
+            seedColumnName="_id",
         )
         .withSchema(sl_schema)
+        .withColumnSpec("id", expr="md5(cast(_id as string))")
+        .withColumnSpec("leadVariantId", expr="cast(_id as string)")
+        .withColumnSpec("locusStart", minValue=1, maxValue=1_000_000)
+        .withColumnSpec("locusEnd", expr="locusStart + 500000", baseColumn="locusStart")
+        .withColumnSpec("qualityControls", expr="array(cast(rand() as string))")
         .withColumnSpec(
-            "variantId",
-            expr="cast(id as string)",
-        )
-        .withColumnSpec("chromosome", percentNulls=0.1)
-        .withColumnSpec("position", minValue=100, percentNulls=0.1)
-        .withColumnSpec("beta", percentNulls=0.1)
-        .withColumnSpec("effectAlleleFrequencyFromSource", percentNulls=0.1)
-        .withColumnSpec("standardError", percentNulls=0.1)
-        .withColumnSpec("subStudyDescription", percentNulls=0.1)
-        .withColumnSpec("pValueMantissa", minValue=1, percentNulls=0.1)
-        .withColumnSpec("pValueExponent", minValue=-10, percentNulls=0.1)
-        .withColumnSpec(
-            "qualityControls",
-            expr="array(cast(rand() as string))",
-            percentNulls=0.1,
-        )
-        .withColumnSpec("finemappingMethod", percentNulls=0.1)
-        .withColumnSpec(
-            "locus",
-            expr='array(named_struct("is95CredibleSet", cast(rand() > 0.5 as boolean), "is99CredibleSet", cast(rand() > 0.5 as boolean), "logBF", rand(), "posteriorProbability", rand(), "variantId", cast(floor(rand() * 400) + 1 as string), "beta", rand(), "standardError", rand(), "r2Overall", rand(), "pValueMantissa", rand(), "pValueExponent", rand()))',
+            "ldSet",
+            expr='array(named_struct("tagVariantId", cast(floor(rand() * 400) + 1 as string), "r2Overall", cast(rand() as float)))',
             percentNulls=0.1,
         )
     )

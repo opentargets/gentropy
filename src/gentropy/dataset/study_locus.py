@@ -18,21 +18,17 @@ from gentropy.common.spark import (
     order_array_of_structs_by_field,
 )
 from gentropy.common.stats import get_logsum, neglogpval_from_pvalue
-from gentropy.config import WindowBasedClumpingStepConfig
 from gentropy.dataset.dataset import Dataset, qc_test
 from gentropy.dataset.study_index import StudyQualityCheck
 from gentropy.dataset.study_locus_overlap import StudyLocusOverlap
 from gentropy.dataset.variant_index import VariantIndex
-from gentropy.method.clump import LDclumping
 
 if TYPE_CHECKING:
     from pyspark.sql import Column, DataFrame
     from pyspark.sql.types import StructType
 
     from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
-    from gentropy.dataset.ld_index import LDIndex
     from gentropy.dataset.study_index import StudyIndex
-    from gentropy.dataset.summary_statistics import SummaryStatistics
     from gentropy.dataset.target_index import TargetIndex
     from gentropy.method.l2g.feature_factory import L2GFeatureInputLoader
 
@@ -974,25 +970,6 @@ class StudyLocus(Dataset):
             _schema=self._schema,
         )
 
-    @staticmethod
-    def filter_ld_set(ld_set: Column, r2_threshold: float) -> Column:
-        """Filter the LD set by a given R2 threshold.
-
-        Args:
-            ld_set (Column): LD set
-            r2_threshold (float): R2 threshold to filter the LD set on
-
-        Returns:
-            Column: Filtered LD index
-        """
-        return f.when(
-            ld_set.isNotNull(),
-            f.filter(
-                ld_set,
-                lambda tag: tag["r2Overall"] >= r2_threshold,
-            ),
-        )
-
     def find_overlaps(
         self: StudyLocus,
         restrict_right_studies: list[str] | None = None,
@@ -1165,133 +1142,6 @@ class StudyLocus(Dataset):
             ),
         )
         return self
-
-    def annotate_locus_statistics(
-        self: StudyLocus,
-        summary_statistics: SummaryStatistics,
-        collect_locus_distance: int,
-    ) -> StudyLocus:
-        """Annotates study locus with summary statistics in the specified distance around the position.
-
-        Args:
-            summary_statistics (SummaryStatistics): Summary statistics to be used for annotation.
-            collect_locus_distance (int): distance from variant defining window for inclusion of variants in locus.
-
-        Returns:
-            StudyLocus: Study locus annotated with summary statistics in `locus` column. If no statistics are found, the `locus` column will be empty.
-        """
-        # The clumps will be used several times (persisting)
-        self.df.persist()
-        # Renaming columns:
-        sumstats_renamed = summary_statistics.df.selectExpr(
-            *[f"{col} as tag_{col}" for col in summary_statistics.df.columns]
-        ).alias("sumstat")
-
-        locus_df = (
-            sumstats_renamed
-            # Joining the two datasets together:
-            .join(
-                f.broadcast(
-                    self.df.alias("clumped").select(
-                        "position", "chromosome", "studyId", "studyLocusId"
-                    )
-                ),
-                on=[
-                    (f.col("sumstat.tag_studyId") == f.col("clumped.studyId"))
-                    & (f.col("sumstat.tag_chromosome") == f.col("clumped.chromosome"))
-                    & (
-                        f.col("sumstat.tag_position")
-                        >= (f.col("clumped.position") - collect_locus_distance)
-                    )
-                    & (
-                        f.col("sumstat.tag_position")
-                        <= (f.col("clumped.position") + collect_locus_distance)
-                    )
-                ],
-                how="inner",
-            )
-            .withColumn(
-                "locus",
-                f.struct(
-                    f.col("tag_variantId").alias("variantId"),
-                    f.col("tag_beta").alias("beta"),
-                    f.col("tag_pValueMantissa").alias("pValueMantissa"),
-                    f.col("tag_pValueExponent").alias("pValueExponent"),
-                    f.col("tag_standardError").alias("standardError"),
-                ),
-            )
-            .groupBy("studyLocusId")
-            .agg(
-                f.collect_list(f.col("locus")).alias("locus"),
-            )
-        )
-
-        self.df = self.df.drop("locus").join(
-            locus_df,
-            on="studyLocusId",
-            how="left",
-        )
-
-        return self
-
-    def annotate_ld(
-        self: StudyLocus,
-        study_index: StudyIndex,
-        ld_index: LDIndex,
-        r2_threshold: float = 0.0,
-    ) -> StudyLocus:
-        """Annotate LD information to study-locus.
-
-        Args:
-            study_index (StudyIndex): Study index to resolve ancestries.
-            ld_index (LDIndex): LD index to resolve LD information.
-            r2_threshold (float): R2 threshold to filter the LD index. Default is 0.0.
-
-        Returns:
-            StudyLocus: Study locus annotated with ld information from LD index.
-        """
-        from gentropy.method.ld import LDAnnotator
-
-        return LDAnnotator.ld_annotate(self, study_index, ld_index, r2_threshold)
-
-    def clump(self: StudyLocus) -> StudyLocus:
-        """Perform LD clumping of the studyLocus.
-
-        Evaluates whether a lead variant is linked to a tag (with lowest p-value) in the same studyLocus dataset.
-
-        Returns:
-            StudyLocus: with empty credible sets for linked variants and QC flag.
-        """
-        clumped_df = (
-            self.df.withColumn(
-                "is_lead_linked",
-                LDclumping._is_lead_linked(
-                    self.df.studyId,
-                    self.df.chromosome,
-                    self.df.variantId,
-                    self.df.pValueExponent,
-                    self.df.pValueMantissa,
-                    self.df.ldSet,
-                ),
-            )
-            .withColumn(
-                "ldSet",
-                f.when(f.col("is_lead_linked"), f.array()).otherwise(f.col("ldSet")),
-            )
-            .withColumn(
-                "qualityControls",
-                StudyLocus.update_quality_flag(
-                    f.col("qualityControls"),
-                    f.col("is_lead_linked"),
-                    StudyLocusQualityCheck.LD_CLUMPED,
-                ),
-            )
-            .drop("is_lead_linked")
-        )
-        return StudyLocus(
-            _df=clumped_df,
-            _schema=self.get_schema(),
-        )
 
     def exclude_region(
         self: StudyLocus, region: GenomicRegion, exclude_overlap: bool = False
@@ -1468,108 +1318,6 @@ class StudyLocus(Dataset):
             ),
             _schema=StudyLocus.get_schema(),
         )
-
-    @qc_test
-    def _qc_no_population(self: StudyLocus) -> StudyLocus:
-        """Flag associations where the study doesn't have population information to resolve LD.
-
-        Returns:
-            StudyLocus: Updated study locus.
-        """
-        # If the tested column is not present, return self unchanged:
-        if "ldPopulationStructure" not in self.df.columns:
-            return self
-
-        self.df = self.df.withColumn(
-            "qualityControls",
-            self.update_quality_flag(
-                f.col("qualityControls"),
-                f.col("ldPopulationStructure").isNull(),
-                StudyLocusQualityCheck.NO_POPULATION,
-            ),
-        )
-        return self
-
-    def annotate_locus_statistics_boundaries(
-        self: StudyLocus,
-        summary_statistics: SummaryStatistics,
-    ) -> StudyLocus:
-        """Annotates study locus with summary statistics in the specified boundaries - locusStart and locusEnd.
-
-        Args:
-            summary_statistics (SummaryStatistics): Summary statistics to be used for annotation.
-
-        Returns:
-            StudyLocus: Study locus annotated with summary statistics in `locus` column. If no statistics are found, the `locus` column will be empty.
-        """
-        # The clumps will be used several times (persisting)
-        self.df.persist()
-        # Renaming columns:
-        sumstats_renamed = summary_statistics.df.selectExpr(
-            *[f"{col} as tag_{col}" for col in summary_statistics.df.columns]
-        ).alias("sumstat")
-
-        locus_df = (
-            sumstats_renamed
-            # Joining the two datasets together:
-            .join(
-                f.broadcast(
-                    self.df.alias("clumped").select(
-                        "position",
-                        "chromosome",
-                        "studyId",
-                        "studyLocusId",
-                        "locusStart",
-                        "locusEnd",
-                    )
-                ),
-                on=[
-                    (f.col("sumstat.tag_studyId") == f.col("clumped.studyId"))
-                    & (f.col("sumstat.tag_chromosome") == f.col("clumped.chromosome"))
-                    & (f.col("sumstat.tag_position") >= (f.col("clumped.locusStart")))
-                    & (f.col("sumstat.tag_position") <= (f.col("clumped.locusEnd")))
-                ],
-                how="inner",
-            )
-            .withColumn(
-                "locus",
-                f.struct(
-                    f.col("tag_variantId").alias("variantId"),
-                    f.col("tag_beta").alias("beta"),
-                    f.col("tag_pValueMantissa").alias("pValueMantissa"),
-                    f.col("tag_pValueExponent").alias("pValueExponent"),
-                    f.col("tag_standardError").alias("standardError"),
-                ),
-            )
-            .groupBy("studyLocusId")
-            .agg(
-                f.collect_list(f.col("locus")).alias("locus"),
-            )
-        )
-
-        self.df = self.df.drop("locus").join(
-            locus_df,
-            on="studyLocusId",
-            how="left",
-        )
-
-        return self
-
-    def window_based_clumping(
-        self: StudyLocus,
-        window_size: int = WindowBasedClumpingStepConfig().distance,
-    ) -> StudyLocus:
-        """Clump study locus by window size.
-
-        Args:
-            window_size (int): Window size for clumping.
-
-        Returns:
-            StudyLocus: Clumped study locus, where clumped associations are flagged.
-        """
-        from gentropy.method.window_based_clumping import WindowBasedClumping
-
-        return WindowBasedClumping.clump(self, window_size)
 
     def assign_confidence(self: StudyLocus) -> StudyLocus:
         """Assign confidence to study locus.

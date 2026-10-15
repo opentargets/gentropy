@@ -8,7 +8,7 @@ from typing import Any
 import pyspark.sql.functions as f
 import pyspark.sql.types as t
 import pytest
-from pyspark.sql import Column, Row, SparkSession
+from pyspark.sql import Column, SparkSession
 from pyspark.sql.types import (
     ArrayType,
     BooleanType,
@@ -23,7 +23,6 @@ from gentropy.common.schemas import SchemaValidationError
 from gentropy.common.session import Session
 from gentropy.dataset.colocalisation import Colocalisation
 from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
-from gentropy.dataset.ld_index import LDIndex
 from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import (
     CredibleInterval,
@@ -32,7 +31,6 @@ from gentropy.dataset.study_locus import (
     StudyLocusQualityCheck,
 )
 from gentropy.dataset.study_locus_overlap import StudyLocusOverlap
-from gentropy.dataset.summary_statistics import SummaryStatistics
 from gentropy.dataset.target_index import TargetIndex
 from gentropy.dataset.variant_index import VariantIndex
 from gentropy.method.l2g.feature_factory import L2GFeatureInputLoader
@@ -156,16 +154,6 @@ def test_find_overlaps(mock_study_locus: StudyLocus) -> None:
     assert isinstance(mock_study_locus.find_overlaps(), StudyLocusOverlap)
 
 
-def test_annotate_locus_statistics(
-    mock_study_locus: StudyLocus, mock_summary_statistics: SummaryStatistics
-) -> None:
-    """Test annotate locus statistics returns a StudyLocus."""
-    assert isinstance(
-        mock_study_locus.annotate_locus_statistics(mock_summary_statistics, 100),
-        StudyLocus,
-    )
-
-
 def test_filter_credible_set(mock_study_locus: StudyLocus) -> None:
     """Test credible interval filter."""
     assert isinstance(
@@ -261,11 +249,6 @@ def test_unique_variants_in_locus(
 def test_neglog_pvalue(mock_study_locus: StudyLocus) -> None:
     """Test neglog pvalue."""
     assert isinstance(mock_study_locus.neglog_pvalue(), Column)
-
-
-def test_clump(mock_study_locus: StudyLocus) -> None:
-    """Test clump."""
-    assert isinstance(mock_study_locus.clump(), StudyLocus)
 
 
 # Used primarily for test_annotate_credible_sets but also for other tests
@@ -485,60 +468,9 @@ def test_qc_abnormal_pips_bad_locus(spark: SparkSession) -> None:
     ), "Expected number of rows differ from observed."
 
 
-def test_annotate_ld(
-    mock_study_locus: StudyLocus, mock_study_index: StudyIndex, mock_ld_index: LDIndex
-) -> None:
-    """Test annotate_ld."""
-    assert isinstance(
-        mock_study_locus.annotate_ld(mock_study_index, mock_ld_index), StudyLocus
-    )
-
-
-def test__qc_no_population(mock_study_locus: StudyLocus) -> None:
-    """Test _qc_no_population."""
-    assert isinstance(mock_study_locus._qc_no_population(), StudyLocus)
-
-
 def test_qc_MHC_region(mock_study_locus: StudyLocus) -> None:
     """Test qc_MHC_region."""
     assert isinstance(mock_study_locus.qc_MHC_region(), StudyLocus)
-
-
-def test_ldannotate(
-    mock_study_locus: StudyLocus, mock_study_index: StudyIndex, mock_ld_index: LDIndex
-) -> None:
-    """Test ldannotate."""
-    assert isinstance(
-        mock_study_locus.annotate_ld(mock_study_index, mock_ld_index), StudyLocus
-    )
-
-
-def test_filter_ld_set(spark: SparkSession) -> None:
-    """Test filter_ld_set."""
-    observed_data = [
-        Row(studyLocusId="sl1", ldSet=[{"tagVariantId": "tag1", "r2Overall": 0.4}])
-    ]
-    observed_df = spark.createDataFrame(
-        observed_data, ["studyLocusId", "ldSet"]
-    ).withColumn("ldSet", StudyLocus.filter_ld_set(f.col("ldSet"), 0.5))
-    expected_tags_in_ld = 0
-    assert observed_df.filter(f.size("ldSet") > 1).count() == expected_tags_in_ld, (
-        "Expected tags in ld set differ from observed."
-    )
-
-
-def test_annotate_locus_statistics_boundaries(
-    mock_study_locus: StudyLocus, mock_summary_statistics: SummaryStatistics
-) -> None:
-    """Test annotate locus statistics returns a StudyLocus."""
-    df = mock_study_locus.df
-    df = df.withColumn("locusStart", f.col("position") - 10)
-    df = df.withColumn("locusEnd", f.col("position") + 10)
-    slt = StudyLocus(df, StudyLocus.get_schema())
-    assert isinstance(
-        slt.annotate_locus_statistics_boundaries(mock_summary_statistics),
-        StudyLocus,
-    )
 
 
 class TestStudyLocusVariantValidation:
@@ -782,74 +714,6 @@ class TestStudyLocusValidation:
             )
             .count()
         ) == 1
-
-
-class TestStudyLocusWindowClumping:
-    """Testing window-based clumping on study locus."""
-
-    TEST_DATASET = [
-        ("s1", "c1", 1, -1),
-        ("s1", "c1", 2, -2),
-        ("s1", "c1", 3, -3),
-        ("s2", "c2", 2, -2),
-        ("s3", "c2", 2, -2),
-    ]
-
-    TEST_SCHEMA = t.StructType(
-        [
-            t.StructField("studyId", t.StringType(), False),
-            t.StructField("chromosome", t.StringType(), False),
-            t.StructField("position", t.IntegerType(), False),
-            t.StructField("pValueExponent", t.IntegerType(), False),
-        ]
-    )
-
-    @pytest.fixture(autouse=True)
-    def _setup(self: TestStudyLocusWindowClumping, spark: SparkSession) -> None:
-        """Setup study locus for testing."""
-        self.study_locus = StudyLocus(
-            _df=(
-                spark.createDataFrame(
-                    self.TEST_DATASET, schema=self.TEST_SCHEMA
-                ).withColumns(
-                    {
-                        "studyLocusId": f.monotonically_increasing_id().cast(
-                            t.StringType()
-                        ),
-                        "pValueMantissa": f.lit(1).cast(t.FloatType()),
-                        "variantId": f.concat(
-                            f.lit("v"),
-                            f.monotonically_increasing_id().cast(t.StringType()),
-                        ),
-                    }
-                )
-            ),
-            _schema=StudyLocus.get_schema(),
-        )
-
-    def test_clump_return_type(self: TestStudyLocusWindowClumping) -> None:
-        """Testing if the clumping returns the right type."""
-        assert isinstance(self.study_locus.window_based_clumping(3), StudyLocus)
-
-    def test_clump_no_data_loss(self: TestStudyLocusWindowClumping) -> None:
-        """Testing if the clumping returns same number of rows."""
-        assert (
-            self.study_locus.window_based_clumping(3).df.count()
-            == self.study_locus.df.count()
-        )
-
-    def test_correct_flag(self: TestStudyLocusWindowClumping) -> None:
-        """Testing if the clumping flags are for variants."""
-        assert (
-            self.study_locus.window_based_clumping(3)
-            .df.filter(
-                f.array_contains(
-                    f.col("qualityControls"),
-                    StudyLocusQualityCheck.WINDOW_CLUMPED.value,
-                )
-            )
-            .count()
-        ) == 2
 
 
 class TestStudyLocusBuildFeatureMatrix:

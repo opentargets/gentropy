@@ -24,8 +24,10 @@ from gentropy.dataset.summary_statistics import SummaryStatistics
 def test_apply_methods(
     func: Any, mock_study_locus: StudyLocus, mock_summary_statistics: SummaryStatistics
 ) -> None:
-    """Test any method in applying_methods returns an instance of StudyLocus."""
-    if func in [apply_class_method_clumping, apply_instance_method]:
+    """Test the methods in applying_methods return the expected dataset."""
+    if func == apply_class_method_clumping:
         assert isinstance(func(mock_summary_statistics), StudyLocus)
+    elif func == apply_instance_method:
+        assert isinstance(func(mock_summary_statistics), SummaryStatistics)
     elif func == apply_class_method_pics:
         assert isinstance(func(mock_study_locus), StudyLocus)
