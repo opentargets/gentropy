@@ -82,7 +82,10 @@ Examples:
     >>> CredibleSet.ID_COLUMNS
     ('studyId', 'chromosome', 'locusStart', 'locusEnd', 'leadVariantId', 'fineMappingMethod')
     >>> key = credible_sets.df.select(credible_sets.id).first()[0]
-    >>> key == hashlib.md5(b"GCST111000006000001_350000_A_TPICS").hexdigest()
+    >>> key == hashlib.md5(
+    ...     b'{"studyId":"GCST1","chromosome":"1","locusStart":100000,"locusEnd":600000,'
+    ...     b'"leadVariantId":"1_350000_A_T","fineMappingMethod":"PICS"}'
+    ... ).hexdigest()
     True
 
     The lead carries its marginal statistics; the tag only its posterior

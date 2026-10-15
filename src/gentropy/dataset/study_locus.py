@@ -100,7 +100,9 @@ Examples:
     >>> StudyLocus.ID_COLUMNS
     ('studyId', 'chromosome', 'locusStart', 'locusEnd')
     >>> key = loci.df.select(StudyLocus.generate_identifier(StudyLocus.ID_COLUMNS)).first()[0]
-    >>> key == hashlib.md5(b"GCST11100000500000").hexdigest()
+    >>> key == hashlib.md5(
+    ...     b'{"studyId":"GCST1","chromosome":"1","locusStart":100000,"locusEnd":500000}'
+    ... ).hexdigest()
     True
 
     Staging quality control flags are written to ``qualityControls`` by value:

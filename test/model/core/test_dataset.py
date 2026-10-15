@@ -325,20 +325,55 @@ def test_print_schema_expands_structs_and_keeps_simple_types_inline(
     )
 
 
-def test_generate_identifier_hashes_the_columns_with_nulls_as_none(
+def _identifiers(
+    spark: SparkSession, rows: list[tuple[Any, ...]], ddl: str
+) -> list[str]:
+    """Identifiers of ``rows`` over all their columns, in row order.
+
+    Args:
+        spark (SparkSession): Spark session.
+        rows (list[tuple[Any, ...]]): The rows.
+        ddl (str): Their schema.
+
+    Returns:
+        list[str]: One identifier per row.
+    """
+    df = spark.createDataFrame(rows, ddl)
+    return [
+        row.id
+        for row in df.select(
+            Dataset.generate_identifier(df.columns).alias("id")
+        ).collect()
+    ]
+
+
+def test_generate_identifier_hashes_the_columns_as_json(spark: SparkSession) -> None:
+    """The id is the md5 of the columns as a JSON object, nulls included."""
+    [present, missing] = _identifiers(
+        spark, [("GCST1", 1), ("GCST1", None)], "a string, b int"
+    )
+    assert present == hashlib.md5(b'{"a":"GCST1","b":1}').hexdigest()
+    assert missing == hashlib.md5(b'{"a":"GCST1","b":null}').hexdigest()
+
+
+def test_generate_identifier_keeps_the_boundaries_between_values(
     spark: SparkSession,
 ) -> None:
-    """The id is the md5 of the values as strings, a null written as "None"."""
-    df = spark.createDataFrame([("GCST1", 1), ("GCST1", None)], "a string, b int")
-    ids = [
-        row.id
-        for row in df.select(Dataset.generate_identifier(["a", "b"]).alias("id"))
-        .orderBy("b")
-        .collect()
-    ]
-    assert sorted(ids) == sorted(
-        [hashlib.md5(b"GCST11").hexdigest(), hashlib.md5(b"GCST1None").hexdigest()]
+    """Values that concatenate to the same string still get different ids."""
+    first, second = _identifiers(
+        spark,
+        [("GCST1", "11", 100, 200), ("GCST11", "1", 100, 200)],
+        "studyId string, chromosome string, locusStart int, locusEnd int",
     )
+    assert first != second
+
+
+def test_generate_identifier_tells_a_null_from_the_string_none(
+    spark: SparkSession,
+) -> None:
+    """A null and the text "None" are different values, so they get different ids."""
+    null, text = _identifiers(spark, [(None,), ("None",)], "a string")
+    assert null != text
 
 
 def test_pipe_passes_the_dataset_and_arguments_and_returns_the_result(

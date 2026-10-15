@@ -425,21 +425,29 @@ class Dataset(Generic[T_contra]):
 
     @staticmethod
     def generate_identifier(uniqueness_defining_columns: Sequence[str]) -> Column:
-        """Hashes the provided columns to generate a unique identifier.
+        """The md5 of the columns that define a row, written as one JSON object.
+
+        JSON keeps the boundary between values and writes a null as ``null``, so
+        rows only share an identifier when every column is equal. Legacy hashed
+        the plain concatenation, where ``("GCST1", "11")`` and ``("GCST11", "1")``
+        collide, as do a null and the string ``"None"``.
 
         Args:
-            uniqueness_defining_columns (Sequence[str]): list of columns defining uniqueness
+            uniqueness_defining_columns (Sequence[str]): Columns whose values
+                together identify the row, in a fixed order.
 
         Returns:
-            Column: column with a unique identifier
+            Column: The identifier, 32 hexadecimal characters.
+
+        Examples:
+            >>> import hashlib
+            >>> df = spark.createDataFrame([("GCST1", "11"), ("GCST11", "1")], "s string, c string")
+            >>> ids = [row.id for row in df.select(Dataset.generate_identifier(["s", "c"]).alias("id")).collect()]
+            >>> ids[0] == hashlib.md5(b'{"s":"GCST1","c":"11"}').hexdigest(), ids[0] != ids[1]
+            (True, True)
         """
-        hashable_columns = [
-            f.when(f.col(column).cast("string").isNull(), f.lit("None")).otherwise(
-                f.col(column).cast("string")
-            )
-            for column in uniqueness_defining_columns
-        ]
-        return f.md5(f.concat(*hashable_columns))
+        columns = f.struct(*uniqueness_defining_columns)
+        return f.md5(f.to_json(columns, {"ignoreNullFields": "false"}))
 
     def pipe(
         self,

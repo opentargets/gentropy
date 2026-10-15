@@ -36,9 +36,13 @@ def _id(study: str, chromosome: str, start: int, end: int) -> str:
         end (int): Locus end.
 
     Returns:
-        str: md5 of the concatenated values.
+        str: md5 of the values as a JSON object, as ``generate_identifier`` writes it.
     """
-    return hashlib.md5(f"{study}{chromosome}{start}{end}".encode()).hexdigest()
+    key = (
+        f'{{"studyId":"{study}","chromosome":"{chromosome}",'
+        f'"locusStart":{start},"locusEnd":{end}}}'
+    )
+    return hashlib.md5(key.encode()).hexdigest()
 
 
 def _prune_peak(position: np.ndarray, window_size: int) -> DenseVector:
