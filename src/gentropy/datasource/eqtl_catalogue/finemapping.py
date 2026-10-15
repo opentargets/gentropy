@@ -18,19 +18,23 @@ from pyspark.sql.types import (
 from gentropy.common.processing import flag_non_atgc_alleles, normalize_chromosome
 from gentropy.common.session import NativeFileFormat, Session
 from gentropy.common.spark import clean_strings_from_symbols
-from gentropy.common.stats import split_pvalue_column
-from gentropy.dataset.study_locus import FinemappingMethod, StudyLocus
+from gentropy.common.stats import get_logsum_column, split_pvalue, split_pvalue_column
+from gentropy.dataset.credible_set import CredibleSet, CredibleSetVariant
+from gentropy.dataset.study_locus import FinemappingMethod
 from gentropy.datasource.eqtl_catalogue.study_index import EqtlCatalogueStudyIndex
 
 if TYPE_CHECKING:
     pass
+
+LOG10_E = 0.4342944819032518
+"""log10(e): converts a natural logarithm to base 10."""
 
 
 @dataclass
 class EqtlCatalogueFinemapping:
     """SuSIE finemapping dataset for eQTL Catalogue.
 
-    Credible sets from SuSIE are extracted and transformed into StudyLocus objects:
+    Credible sets from SuSIE are extracted and transformed into CredibleSet and CredibleSetVariant objects:
     - A study ID is defined as a triad between: the publication, the tissue, and the measured trait (e.g. Braineac2_substantia_nigra_ENSG00000248275)
     - Each row in the `*.credible_set.parquet` files is represented by molecular_trait_id/variant/rsid trios relevant for a given tissue. Each have their own finemapping statistics
     - log Bayes Factors are available for all variants in the `*.lbf_variable.parquet` files
@@ -265,6 +269,64 @@ class EqtlCatalogueFinemapping:
         return f.regexp_extract(file_path, r"QTD\d{6}", 0).alias("dataset_id")
 
     @classmethod
+    def _region_log10_bayes_factors(
+        cls: type[EqtlCatalogueFinemapping], lbf: DataFrame, credible_sets: DataFrame
+    ) -> DataFrame:
+        r"""Compute the log10 Bayes factor of each credible set over its whole region.
+
+        For the $`l`$-th SuSiE component, the credible set Bayes factor is the log-sum-exp of the
+        variant log Bayes factors with a uniform prior $`1/p`$ over the $`p`$ variants of the region,
+        converted to base 10:
+
+        ```math
+        \log_{10}\operatorname{BF}_l = \log_{10}(e) \left(\operatorname{LSE}_{j}(\operatorname{lbf}_{jl}) - \log p\right)
+        ```
+
+        The `lbf_variable` file holds every variant of the region, not only the credible set members.
+
+        Args:
+            lbf (DataFrame): Log Bayes factors of every variant, as read by `read_lbf_from_source`.
+            credible_sets (DataFrame): Credible set members, as read by `read_credible_set_from_source`.
+
+        Returns:
+            DataFrame: One row per credible set, keyed by `molecular_trait_id`, `region`, `dataset_id`
+                and `credibleSetIndex`, with `credibleSetLog10BayesFactor`.
+
+        Examples:
+            >>> lbf = spark.createDataFrame(
+            ...     [("t1", "r1", "d1", 2.0, 0.0), ("t1", "r1", "d1", 0.0, 1.0)],
+            ...     "molecular_trait_id string, region string, dataset_id string, lbf_variable1 double, lbf_variable2 double",
+            ... )
+            >>> for i in range(3, 11):
+            ...     lbf = lbf.withColumn(f"lbf_variable{i}", f.lit(0.0))
+            >>> credible_sets = spark.createDataFrame(
+            ...     [("t1", "r1", "d1", 1)], "molecular_trait_id string, region string, dataset_id string, credibleSetIndex int"
+            ... )
+            >>> row = EqtlCatalogueFinemapping._region_log10_bayes_factors(lbf, credible_sets).first()
+            >>> round(row.credibleSetLog10BayesFactor, 6)  # log10((e^2 + e^0) / 2)
+            0.622683
+        """
+        keys = ["molecular_trait_id", "region", "dataset_id"]
+        lbf_l = f.element_at(
+            f.array(*[f.col(f"lbf_variable{i}") for i in range(1, 11)]),
+            f.col("credibleSetIndex"),
+        )
+        return (
+            lbf.join(
+                credible_sets.select(*keys, "credibleSetIndex").distinct(), on=keys
+            )
+            .groupBy(*keys, "credibleSetIndex")
+            .agg(f.collect_list(lbf_l).alias("lbfs"))
+            .select(
+                *keys,
+                "credibleSetIndex",
+                (
+                    (get_logsum_column(f.col("lbfs")) - f.log(f.size("lbfs"))) * LOG10_E
+                ).alias("credibleSetLog10BayesFactor"),
+            )
+        )
+
+    @classmethod
     def parse_susie_results(
         cls: type[EqtlCatalogueFinemapping],
         credible_sets: DataFrame,
@@ -289,6 +351,7 @@ class EqtlCatalogueFinemapping:
         Returns:
             DataFrame: Processed SuSIE results to contain metadata about the studies and the finemapping statistics.
         """
+        region_bayes_factors = cls._region_log10_bayes_factors(lbf, credible_sets)
         results = (
             lbf.join(
                 credible_sets.join(f.broadcast(studies_metadata), on="dataset_id"),
@@ -314,11 +377,25 @@ class EqtlCatalogueFinemapping:
                 .when(f.col("credibleSetIndex") == 10, f.col("lbf_variable10")),
             )
             .transform(cls.scale_pip)
+            .join(
+                region_bayes_factors,
+                on=["molecular_trait_id", "region", "dataset_id", "credibleSetIndex"],
+                how="left",
+            )
             .select(
                 f.regexp_replace(f.col("variant"), r"chr", "").alias("variantId"),
                 f.col("region"),
                 normalize_chromosome(f.col("chromosome")).alias("chromosome"),
                 f.col("position"),
+                # The region is chrN:start-end:
+                f.regexp_extract(f.col("region"), r":(\d+)-", 1)
+                .cast(IntegerType())
+                .alias("locusStart"),
+                f.regexp_extract(f.col("region"), r"-(\d+)$", 1)
+                .cast(IntegerType())
+                .alias("locusEnd"),
+                f.col("cs_min_r2").alias("purityMinR2"),
+                f.col("credibleSetLog10BayesFactor"),
                 f.col("pip").alias("posteriorProbability"),
                 *split_pvalue_column(f.col("pvalue")),
                 f.col("sample_size").alias("nSamples"),
@@ -326,7 +403,6 @@ class EqtlCatalogueFinemapping:
                 f.col("se").alias("standardError"),
                 f.col("credibleSetIndex"),
                 f.col("logBF"),
-                f.lit(FinemappingMethod.SUSIE.value).alias("finemappingMethod"),
                 # Study metadata
                 f.col("molecular_trait_id").alias("traitFromSource"),
                 f.col("gene_id").alias("geneId"),
@@ -362,63 +438,102 @@ class EqtlCatalogueFinemapping:
 
     @classmethod
     def from_susie_results(
-        cls: type[EqtlCatalogueFinemapping], processed_finemapping_df: DataFrame
-    ) -> StudyLocus:
-        """Create a StudyLocus object from the processed SuSIE results.
+        cls: type[EqtlCatalogueFinemapping],
+        processed_finemapping_df: DataFrame,
+        lead_pvalue_threshold: float | None = None,
+    ) -> tuple[CredibleSet, CredibleSetVariant]:
+        """Create the credible sets and their variants from the processed SuSIE results.
+
+        A credible set is one SuSiE component of one molecular trait in one region. Its lead is the
+        member with the highest posterior probability, ties broken by variant id. The member
+        statistics are the marginal ones the study reported; SuSiE gives eQTL Catalogue no
+        conditional effect, so those columns are null, as are `r2Overall` and the allele
+        frequency, which the source only gives as a minor allele frequency.
 
         Args:
             processed_finemapping_df (DataFrame): DataFrame containing the processed SuSIE results.
+            lead_pvalue_threshold (float | None): Drop the credible sets whose lead p-value is above it.
+                Defaults to None, which keeps every credible set.
 
         Returns:
-            StudyLocus: eQTL Catalogue credible sets.
+            tuple[CredibleSet, CredibleSetVariant]: eQTL Catalogue credible sets and their variants.
         """
-        lead_w = Window.partitionBy(
+        credible_set = Window.partitionBy(
             "dataset_id", "molecular_trait_id", "region", "credibleSetIndex"
         )
-        study_locus_cols = [
-            field.name
-            for field in StudyLocus.get_schema().fields
-            if field.name in processed_finemapping_df.columns
-        ] + ["locus"]
-        return StudyLocus(
-            _df=(
-                processed_finemapping_df.withColumn(
-                    "isLead",
-                    f.row_number().over(lead_w.orderBy(f.desc("posteriorProbability")))
-                    == f.lit(1),
-                )
-                .withColumn(
-                    # Collecting all variants that constitute the credible set brings as many variants as the credible set size
-                    "locus",
-                    f.when(
-                        f.col("isLead"),
-                        f.collect_list(
-                            f.struct(
-                                "variantId",
-                                "posteriorProbability",
-                                "pValueMantissa",
-                                "pValueExponent",
-                                "logBF",
-                                "beta",
-                                "standardError",
-                            )
-                        ).over(lead_w),
-                    ),
-                )
-                .filter(f.col("isLead"))
-                .drop("isLead")
-                .select(
-                    *study_locus_cols,
-                    StudyLocus.assign_study_locus_id(
-                        ["studyId", "variantId", "finemappingMethod"]
-                    ),
-                    StudyLocus.calculate_credible_set_log10bf(
-                        f.col("locus.logBF")
-                    ).alias("credibleSetlog10BF"),
-                )
-            ),
-            _schema=StudyLocus.get_schema(),
-        ).annotate_credible_sets()
+        lead = f.row_number().over(
+            credible_set.orderBy(f.desc("posteriorProbability"), "variantId")
+        ) == f.lit(1)
+        members = (
+            processed_finemapping_df.withColumn(
+                "leadVariantId",
+                f.first(f.when(lead, f.col("variantId")), ignorenulls=True).over(
+                    credible_set
+                ),
+            )
+            .withColumn("fineMappingMethod", f.lit(FinemappingMethod.SUSIE.value))
+            .withColumn("id", CredibleSet.generate_identifier(CredibleSet.ID_COLUMNS))
+        )
+        if lead_pvalue_threshold is not None:
+            mantissa, exponent = split_pvalue(lead_pvalue_threshold)
+            lead_passes = (f.col("pValueExponent") < exponent) | (
+                (f.col("pValueExponent") == exponent)
+                & (f.col("pValueMantissa") <= mantissa)
+            )
+            members = members.withColumn(
+                "leadPasses",
+                f.max(
+                    f.when(f.col("variantId") == f.col("leadVariantId"), lead_passes)
+                ).over(credible_set),
+            ).filter(f.col("leadPasses"))
+
+        credible_set_schema = CredibleSet.get_schema()
+        credible_sets = (
+            members.filter(f.col("variantId") == f.col("leadVariantId"))
+            .withColumns(
+                {
+                    "log10BayesFactor": f.col("credibleSetLog10BayesFactor"),
+                    "confidence": f.lit(None),
+                    "purityMeanR2": f.lit(None),
+                    "qualityControls": f.array(),
+                }
+            )
+            .select(
+                *[
+                    f.col(field.name).cast(field.dataType)
+                    for field in credible_set_schema.fields
+                ]
+            )
+        )
+        variant_schema = CredibleSetVariant.get_schema()
+        variants = members.withColumns(
+            {
+                "credibleSetId": f.col("id"),
+                "sampleSize": f.col("nSamples"),
+                "reportedBeta": f.col("beta"),
+                "reportedStandardError": f.col("standardError"),
+                "log10BayesFactor": f.col("logBF") * LOG10_E,
+                "qualityControls": f.array(),
+                **{
+                    name: f.lit(None)
+                    for name in (
+                        "effectAlleleFrequency",
+                        "r2Overall",
+                        "conditionalBeta",
+                        "conditionalStandardError",
+                        "rescaledAbsBeta",
+                        "rescaledStandardError",
+                        "rescaledDirection",
+                    )
+                },
+            }
+        ).select(
+            *[f.col(field.name).cast(field.dataType) for field in variant_schema.fields]
+        )
+        return (
+            CredibleSet(_df=credible_sets, _schema=credible_set_schema),
+            CredibleSetVariant(_df=variants, _schema=variant_schema),
+        )
 
     @classmethod
     def read_credible_set_from_source(
@@ -459,6 +574,7 @@ class EqtlCatalogueFinemapping:
                 "se",
                 "pip",
                 "cs_id",
+                "cs_min_r2",
                 "region",
                 "gene_id",
                 # Adding dataset id based on the input file name:

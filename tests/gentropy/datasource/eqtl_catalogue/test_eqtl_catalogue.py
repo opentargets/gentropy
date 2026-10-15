@@ -8,8 +8,9 @@ import pytest
 from pyspark.sql import DataFrame
 from pyspark.sql import functions as f
 
-from gentropy import StudyIndex, StudyLocus
+from gentropy import StudyIndex
 from gentropy.common.session import Session
+from gentropy.dataset.credible_set import CredibleSet, CredibleSetVariant
 from gentropy.datasource.eqtl_catalogue.finemapping import EqtlCatalogueFinemapping
 from gentropy.datasource.eqtl_catalogue.study_index import EqtlCatalogueStudyIndex
 
@@ -134,6 +135,7 @@ class TestEqtlCatalogueFinemapping:
             "se",
             "pip",
             "cs_id",
+            "cs_min_r2",
             "region",
             "gene_id",
             "dataset_id",
@@ -290,6 +292,10 @@ class TestEqtlCatalogueFinemapping:
             "region",
             "chromosome",
             "position",
+            "locusStart",
+            "locusEnd",
+            "purityMinR2",
+            "credibleSetLog10BayesFactor",
             "posteriorProbability",
             "pValueMantissa",
             "pValueExponent",
@@ -298,7 +304,6 @@ class TestEqtlCatalogueFinemapping:
             "standardError",
             "credibleSetIndex",
             "logBF",
-            "finemappingMethod",
             "traitFromSource",
             "geneId",
             "dataset_id",
@@ -315,15 +320,54 @@ class TestEqtlCatalogueFinemapping:
         assert processed_finemapping_df.count() == 15  # 15 credible sets
 
     def test__from_susie_results(self, processed_finemapping_df: DataFrame) -> None:
-        """Test creating a study index from SuSIE results and uniqueness."""
-        data = EqtlCatalogueFinemapping.from_susie_results(processed_finemapping_df)
-        assert isinstance(data, StudyLocus)
+        """The sample's one credible set and its 15 variants carry the source values."""
+        credible_sets, variants = EqtlCatalogueFinemapping.from_susie_results(
+            processed_finemapping_df
+        )
+        assert isinstance(credible_sets, CredibleSet)
+        assert isinstance(variants, CredibleSetVariant)
 
-        find_discrepancies = data.df.select(
-            f.size("locus").alias("locus_size"),
-            f.size(f.array_distinct("locus")).alias("locus_distinct_size"),
-        ).filter(f.col("locus_size") != f.col("locus_distinct_size"))
-        assert find_discrepancies.count() == 0
+        [credible_set] = credible_sets.df.collect()
+        # The bounds come from the source region chrX:148526264-150526264:
+        assert (
+            credible_set.chromosome,
+            credible_set.locusStart,
+            credible_set.locusEnd,
+        ) == ("X", 148526264, 150526264)
+        assert credible_set.leadVariantId == "X_149481619_T_C"  # highest PIP
+        assert credible_set.fineMappingMethod == "SuSiE"
+        assert credible_set.purityMinR2 == pytest.approx(0.5142969)
+        assert credible_set.log10BayesFactor == pytest.approx(13.8846376)
+        assert credible_set.purityMeanR2 is None
+        assert credible_set.confidence is None
+
+        rows = {row.variantId: row for row in variants.df.collect()}
+        assert len(rows) == 15
+        assert {row.credibleSetId for row in rows.values()} == {credible_set.id}
+        lead = rows["X_149481619_T_C"]
+        # Marginal statistics as reported, and the variant Bayes factor in base 10:
+        assert (lead.pValueMantissa, lead.pValueExponent) == (pytest.approx(1.078), -10)
+        assert lead.reportedBeta == pytest.approx(0.741165)
+        assert lead.reportedStandardError == pytest.approx(0.0950277)
+        assert lead.sampleSize == 84
+        assert lead.posteriorProbability == pytest.approx(0.1104114)
+        assert lead.log10BayesFactor == pytest.approx(36.6787648 * 0.4342945)
+        assert lead.effectAlleleFrequency is None
+        assert lead.conditionalBeta is None
+        assert lead.r2Overall is None
+
+    def test__from_susie_results_drops_sub_significant_leads(
+        self, processed_finemapping_df: DataFrame
+    ) -> None:
+        """A credible set whose lead p-value is above the threshold is dropped with its variants."""
+        kept = EqtlCatalogueFinemapping.from_susie_results(
+            processed_finemapping_df, lead_pvalue_threshold=1e-3
+        )
+        dropped = EqtlCatalogueFinemapping.from_susie_results(
+            processed_finemapping_df, lead_pvalue_threshold=1e-11
+        )
+        assert [d.df.count() for d in kept] == [1, 15]
+        assert [d.df.count() for d in dropped] == [0, 0]
 
 
 def test_study_identifier_sanitisation(processed_finemapping_df: DataFrame) -> None:

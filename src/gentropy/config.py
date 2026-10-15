@@ -194,6 +194,7 @@ class EqtlCatalogueConfig(StepConfig):
     lbf_variable_input_glob: str = MISSING
     study_index_output_path: str = MISSING
     credible_set_output_path: str = MISSING
+    credible_set_variant_output_path: str = MISSING
     lead_pvalue_threshold: float = 1e-3
     mqtl_quantification_methods_blacklist: list[str] | None = None
     _target_: str = "gentropy.eqtl_catalogue.EqtlCatalogueStep"

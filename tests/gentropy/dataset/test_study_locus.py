@@ -799,10 +799,10 @@ class TestStudyLocusRedundancyFlagging:
         ("1", "v1", "s1", "PICS", [StudyLocusQualityCheck.TOP_HIT.value]),
         ("1", "v1", "s2", "PICS", [StudyLocusQualityCheck.TOP_HIT.value]),
         ("1", "v1", "s2", "PICS", [StudyLocusQualityCheck.TOP_HIT.value]),
-        ("1", "v1", "s3", "SuSie", []),
+        ("1", "v1", "s3", "SuSiE", []),
         ("1", "v1", "s3", "PICS", [StudyLocusQualityCheck.TOP_HIT.value]),
         ("1", "v1", "s4", "PICS", []),
-        ("1", "v1", "s4", "SuSie", []),
+        ("1", "v1", "s4", "SuSiE", []),
         ("1", "v1", "s4", "PICS", [StudyLocusQualityCheck.TOP_HIT.value]),
     ]
 
