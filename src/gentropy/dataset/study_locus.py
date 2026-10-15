@@ -94,7 +94,7 @@ class FinemappingMethod(Enum):
     """
 
     PICS = "PICS"
-    SUSIE = "SuSie"
+    SUSIE = "SuSiE"
     SUSIE_INF = "SuSiE-inf"
 
     @classmethod

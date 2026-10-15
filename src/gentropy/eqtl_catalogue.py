@@ -24,8 +24,8 @@ class EqtlCatalogueStep:
     4. **Parse and correct the SuSIE results** using `EqtlCatalogueFinemapping.parse_susie_results`,
        joining credible sets, log Bayes factors and study metadata.
     5. **Build the study index** using `EqtlCatalogueStudyIndex.from_susie_results`.
-    6. **Build the credible sets** using `EqtlCatalogueFinemapping.from_susie_results`, flagging
-       loci whose lead p-value is above `lead_pvalue_threshold` as sub-significant.
+    6. **Build the credible sets and their variants** using `EqtlCatalogueFinemapping.from_susie_results`,
+       dropping the credible sets whose lead p-value is above `lead_pvalue_threshold`.
 
     !!! note "eQTL Catalogue data"
         The data needs to be downloaded to hadoop compatible filesystem before
@@ -58,6 +58,7 @@ class EqtlCatalogueStep:
       subgraph OUTPUTS
         O1[study_index]
         O2[credible_set]
+        O3[credible_set_variant]
       end
 
         A1 --> META[read_studies_from_source]
@@ -79,9 +80,10 @@ class EqtlCatalogueStep:
 
         P4 --> CSB[EqtlCatalogueFinemapping.from_susie_results]
         CSB --> O2
+        CSB --> O3
 
         classDef parquet fill:#bd757c,stroke:#73343A,color:#333
-        class A1,A2,A3,P1,P2,P3,P4,O1,O2 parquet
+        class A1,A2,A3,P1,P2,P3,P4,O1,O2,O3 parquet
     ```
 
     ??? tip "Inputs"
@@ -90,10 +92,11 @@ class EqtlCatalogueStep:
         - [x] **lbf_variable.parquet** — raw SuSIE log-Bayes-factor files, one per dataset (`QTS*/QTD*/QTD*.lbf_variable.parquet`).
 
     ??? tip "Outputs"
-        This pipeline produces 2 artefacts:
+        This pipeline produces 3 artefacts:
 
         - [x] **study_index** — study index in Parquet format.
-        - [x] **credible_set** — credible sets in Parquet format, flagged for sub-significant lead loci.
+        - [x] **credible_set** — credible sets in Parquet format, without those whose lead is sub-significant.
+        - [x] **credible_set_variant** — the variants of those credible sets, with their reported marginal statistics.
     """
 
     def __init__(
@@ -104,6 +107,7 @@ class EqtlCatalogueStep:
         lbf_variable_input_glob: str,
         study_index_output_path: str,
         credible_set_output_path: str,
+        credible_set_variant_output_path: str,
         lead_pvalue_threshold: float,
         mqtl_quantification_methods_blacklist: list[str] | None = None,
     ) -> None:
@@ -120,7 +124,8 @@ class EqtlCatalogueStep:
                 Written as a coalesce(1) parquet dataset.
             credible_set_output_path (str): Path to write the credible set parquet file.
                 Written as a partitioned by studyId parquet dataset.
-            lead_pvalue_threshold (float): P-value threshold to flag sub-significant loci.
+            credible_set_variant_output_path (str): Path to write the credible set variant parquet file.
+            lead_pvalue_threshold (float): Credible sets whose lead p-value is above it are dropped.
             mqtl_quantification_methods_blacklist (list[str] | None): List of quantification methods to exclude from the study index.
                 Can be used to exclude mQTL studies from the study index. Allowed values are
                 in gentropy.datasource.eqtl_catalogue.QuantificationMethod.
@@ -166,14 +171,27 @@ class EqtlCatalogueStep:
             .parquet(study_index_output_path)
         )
 
+        credible_sets, credible_set_variants = (
+            EqtlCatalogueFinemapping.from_susie_results(
+                processed_susie_df, lead_pvalue_threshold=lead_pvalue_threshold
+            )
+        )
         (
-            EqtlCatalogueFinemapping.from_susie_results(processed_susie_df)
-            # Flagging sub-significant loci:
-            .validate_lead_pvalue(pvalue_cutoff=lead_pvalue_threshold)
-            .df.repartition(session.output_partitions, "studyId", "chromosome")
-            .sortWithinPartitions("chromosome", "variantId")
+            credible_sets.df.repartition(
+                session.output_partitions, "studyId", "chromosome"
+            )
+            .sortWithinPartitions("chromosome", "leadVariantId")
             .write.mode(session.write_mode)
             .option("maxRecordsPerFile", 50_000_000)
             .parquet(credible_set_output_path)
+        )
+        (
+            credible_set_variants.df.repartition(
+                session.output_partitions, "credibleSetId"
+            )
+            .sortWithinPartitions("credibleSetId", "variantId")
+            .write.mode(session.write_mode)
+            .option("maxRecordsPerFile", 50_000_000)
+            .parquet(credible_set_variant_output_path)
         )
         processed_susie_df.unpersist()

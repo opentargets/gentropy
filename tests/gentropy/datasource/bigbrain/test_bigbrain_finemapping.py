@@ -117,7 +117,7 @@ class TestBigBrainFinemapping:
             == CredibleSetConfidenceClasses.FINEMAPPED_IN_SAMPLE_LD.value
         )
         assert cs["studyType"] == "eqtl"
-        assert cs["finemappingMethod"] == "SuSie"
+        assert cs["finemappingMethod"] == "SuSiE"
         assert cs["variantId"] == "1_5000_A_G"
         assert cs["region"] == "1:5000-5100"
         assert cs["sampleSize"] == 9310
