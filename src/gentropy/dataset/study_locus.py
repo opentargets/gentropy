@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar
 
 import numpy as np
 import pyspark.sql.functions as f
@@ -58,71 +58,21 @@ class CredibleSetConfidenceClasses(Enum):
 
 
 class StudyLocusQualityCheck(Enum):
-    """Study-Locus quality control options listing concerns on the quality of the association.
+    """Study locus quality control flags, raised by clumping and LD annotation.
 
-    Most flags describe a concern, but not all of them: `TOP_HIT` records where the credible set
-    came from and `REPLICATED` records a positive observation on it. Neither is in itself a reason
-    to consider a credible set invalid.
+    `CredibleSet.qualityControls` carries the flags of the study locus it was fine-mapped from.
 
     Attributes:
-        SUBSIGNIFICANT_FLAG (str): p-value below significance threshold
-        NO_GENOMIC_LOCATION_FLAG (str): Incomplete genomic mapping
-        COMPOSITE_FLAG (str): Composite association due to variant x variant interactions
-        INCONSISTENCY_FLAG (str): Inconsistencies in the reported variants
-        NON_MAPPED_VARIANT_FLAG (str): Variant not mapped to GnomAd
-        PALINDROMIC_ALLELE_FLAG (str): Alleles are palindromic - cannot harmonize
-        AMBIGUOUS_STUDY (str): Association with ambiguous study
-        UNRESOLVED_LD (str): Variant not found in LD reference
-        LD_CLUMPED (str): Explained by a more significant variant in high LD
         WINDOW_CLUMPED (str): Explained by a more significant variant in the same window
+        LD_CLUMPED (str): Explained by a more significant variant in high LD
         NO_POPULATION (str): Study does not have population annotation to resolve LD
-        FLAGGED_STUDY (str): Study has quality control flag(s)
-        MISSING_STUDY (str): Flagging study loci if the study is not found in the study index as a reference
-        DUPLICATED_STUDYLOCUS_ID (str): Study-locus identifier is not unique
-        INVALID_VARIANT_IDENTIFIER (str): Flagging study loci where identifier of any tagging variant was not found in the variant index
-        TOP_HIT (str): Study locus from curated top hit
-        IN_MHC (str): Flagging study loci in the MHC region
-        REDUNDANT_PICS_TOP_HIT (str): Flagging study loci in studies with PICS results from summary statistics
-        EXPLAINED_BY_SUSIE (str): Study locus in region explained by a SuSiE credible set
-        ABNORMAL_PIPS (str): Flagging study loci with a sum of PIPs that are not in [0.99,1]
-        OUT_OF_SAMPLE_LD (str): Study locus finemapped without in-sample LD reference
-        INVALID_CHROMOSOME (str): Chromosome not in 1:22, X, Y, XY or MT
-        TOP_HIT_AND_SUMMARY_STATS (str): Curated top hit is flagged because summary statistics are available for study
-        REPLICATED (str): Lead variant of the credible set is replicated in an independent study of the same diseases or gene
+        UNRESOLVED_LD (str): Variant not found in LD reference
     """
 
-    SUBSIGNIFICANT_FLAG = "Subsignificant p-value"
-    NO_GENOMIC_LOCATION_FLAG = "Incomplete genomic mapping"
-    COMPOSITE_FLAG = "Composite association"
-    INCONSISTENCY_FLAG = "Variant inconsistency"
-    NON_MAPPED_VARIANT_FLAG = "No mapping in GnomAd"
-    PALINDROMIC_ALLELE_FLAG = "Palindrome alleles - cannot harmonize"
-    AMBIGUOUS_STUDY = "Association with ambiguous study"
-    UNRESOLVED_LD = "Variant not found in LD reference"
-    LD_CLUMPED = "Explained by a more significant variant in high LD"
     WINDOW_CLUMPED = "Explained by a more significant variant in the same window"
+    LD_CLUMPED = "Explained by a more significant variant in high LD"
     NO_POPULATION = "Study does not have population annotation to resolve LD"
-    FLAGGED_STUDY = "Study has quality control flag(s)"
-    MISSING_STUDY = "Study not found in the study index"
-    DUPLICATED_STUDYLOCUS_ID = "Non-unique study locus identifier"
-    INVALID_VARIANT_IDENTIFIER = (
-        "Some variant identifiers of this locus were not found in variant index"
-    )
-    IN_MHC = "MHC region"
-    REDUNDANT_PICS_TOP_HIT = (
-        "PICS results from summary statistics available for this same study"
-    )
-    TOP_HIT = "Study locus from curated top hit"
-    EXPLAINED_BY_SUSIE = "Study locus in region explained by a SuSiE credible set"
-    OUT_OF_SAMPLE_LD = "Study locus finemapped without in-sample LD reference"
-    ABNORMAL_PIPS = (
-        "Study locus with a sum of PIPs that not in the expected range [0.95,1]"
-    )
-    INVALID_CHROMOSOME = "Chromosome not in 1:22, X, Y, XY or MT"
-    TOP_HIT_AND_SUMMARY_STATS = (
-        "Curated top hit is flagged because summary statistics are available for study"
-    )
-    REPLICATED = "Lead variant is replicated in an independent study"
+    UNRESOLVED_LD = "Variant not found in LD reference"
 
 
 class CredibleInterval(Enum):
@@ -164,10 +114,54 @@ class FinemappingMethod(Enum):
 
 @dataclass
 class StudyLocus(Dataset):
-    """Study-Locus dataset.
+    """Study locus: a region of one study that clumping found worth fine-mapping.
 
-    This dataset captures associations between study/traits and a genetic loci as provided by finemapping methods.
+    Produced by window, locus-breaker and LD clumping and consumed by fine-mapping. Its key
+    `id` hashes `ID_COLUMNS`, and its lead `leadVariantId` is the variant clumping used to
+    define the locus. `ldSet` holds the variants correlated with the lead, once the locus
+    went through LD annotation.
+
+    A study locus comes in three states, each a subclass of the previous one:
+
+    - `StudyLocus`, as clumping produces it.
+    - `AnnotatedStudyLocus`, which adds `locus`: the marginal statistics of every variant the study measured inside the region.
+    - `LDAnnotatedStudyLocus`, whose `ldSet` is mandatory.
+
+    Examples:
+        >>> import hashlib
+        >>> ld_set = [("1_100501_G_A", 0.5)]
+        >>> rows = [
+        ...     ("", "GCST1", "1", 100_000, 500_000, "1_100500_C_T", [], ld_set),
+        ...     ("", "GCST1", "2", 100_000, 500_000, "2_100500_C_T", [], None),
+        ... ]
+        >>> loci = StudyLocus(
+        ...     spark.createDataFrame(rows, StudyLocus.get_schema())
+        ...     .withColumn("id", StudyLocus.generate_identifier(StudyLocus.ID_COLUMNS)),
+        ...     StudyLocus.get_schema(),
+        ... )
+        >>> loci.df.select("chromosome", "leadVariantId", "ldSet").show(truncate=False)
+        +----------+-------------+---------------------+
+        |chromosome|leadVariantId|ldSet                |
+        +----------+-------------+---------------------+
+        |1         |1_100500_C_T |[{1_100501_G_A, 0.5}]|
+        |2         |2_100500_C_T |NULL                 |
+        +----------+-------------+---------------------+
+        <BLANKLINE>
+        >>> StudyLocus.ID_COLUMNS
+        ('studyId', 'chromosome', 'locusStart', 'locusEnd')
+        >>> loci.df.filter("chromosome = '1'").first().id == hashlib.md5(
+        ...     b'{"studyId":"GCST1","chromosome":"1","locusStart":100000,"locusEnd":500000}'
+        ... ).hexdigest()
+        True
     """
+
+    ID_COLUMNS: ClassVar[tuple[str, ...]] = (
+        "studyId",
+        "chromosome",
+        "locusStart",
+        "locusEnd",
+    )
+    """Columns whose values define the key `id`, hashed by `generate_identifier`."""
 
     @qc_test
     def validate_variant_identifiers(
@@ -444,31 +438,6 @@ class StudyLocus(Dataset):
         return StudyLocusOverlap(
             _df=overlaps,
             _schema=StudyLocusOverlap.get_schema(),
-        )
-
-    @staticmethod
-    def assign_study_locus_id(uniqueness_defining_columns: list[str]) -> Column:
-        """Hashes the provided columns to extract a consistent studyLocusId.
-
-        Args:
-            uniqueness_defining_columns (list[str]): list of columns defining uniqueness
-
-        Returns:
-            Column: column with a study locus ID
-
-        Examples:
-            >>> df = spark.createDataFrame([("GCST000001", "1_1000_A_C", "SuSiE-inf"), ("GCST000002", "1_1000_A_C", "pics")]).toDF("studyId", "variantId", "finemappingMethod")
-            >>> df.withColumn("study_locus_id", StudyLocus.assign_study_locus_id(["studyId", "variantId", "finemappingMethod"])).show(truncate=False)
-            +----------+----------+-----------------+--------------------------------+
-            |studyId   |variantId |finemappingMethod|study_locus_id                  |
-            +----------+----------+-----------------+--------------------------------+
-            |GCST000001|1_1000_A_C|SuSiE-inf        |109804fe1e20c94231a31bafd71b566e|
-            |GCST000002|1_1000_A_C|pics             |de310be4558e0482c9cc359c97d37773|
-            +----------+----------+-----------------+--------------------------------+
-            <BLANKLINE>
-        """
-        return Dataset.generate_identifier(uniqueness_defining_columns).alias(
-            "studyLocusId"
         )
 
     @classmethod
@@ -1078,3 +1047,70 @@ class StudyLocus(Dataset):
             _df=df,
             _schema=self.get_schema(),
         )
+
+
+@dataclass
+class AnnotatedStudyLocus(StudyLocus):
+    """Study locus whose `locus` holds the marginal statistics of every variant inside its region.
+
+    `locus` is collected from the summary statistics of the same study and chromosome, between
+    `locusStart` and `locusEnd` (both included), sorted by position. It is empty, not null,
+    when the study measured no variant inside the region.
+
+    Examples:
+        >>> locus = [("1_100500_C_T", 1.0, -10, 0.3, 5000, 0.2, 0.01)]
+        >>> rows = [("sl1", "GCST1", "1", 100_000, 500_000, "1_100500_C_T", [], locus, None)]
+        >>> loci = AnnotatedStudyLocus(
+        ...     spark.createDataFrame(rows, AnnotatedStudyLocus.get_schema()),
+        ...     AnnotatedStudyLocus.get_schema(),
+        ... )
+        >>> loci.df.select("id", f.explode("locus.beta").alias("beta")).show()
+        +---+----+
+        | id|beta|
+        +---+----+
+        |sl1| 0.2|
+        +---+----+
+        <BLANKLINE>
+    """
+
+    @classmethod
+    def get_schema(cls: type[AnnotatedStudyLocus]) -> StructType:
+        """Provides the schema for the AnnotatedStudyLocus dataset.
+
+        Returns:
+            StructType: schema for the AnnotatedStudyLocus dataset.
+        """
+        return parse_spark_schema("annotated_study_locus.json")
+
+
+@dataclass
+class LDAnnotatedStudyLocus(AnnotatedStudyLocus):
+    """Annotated study locus whose `ldSet` holds the variants in LD with the lead.
+
+    `r2Overall` is the r² with the lead in the major population of the study. The lead is
+    always part of its own `ldSet`, with an r² of 1.
+
+    Examples:
+        >>> ld_set = [("1_100500_C_T", 1.0), ("1_100501_G_A", 0.5)]
+        >>> rows = [("sl1", "GCST1", "1", 100_000, 500_000, "1_100500_C_T", [], [], ld_set)]
+        >>> loci = LDAnnotatedStudyLocus(
+        ...     spark.createDataFrame(rows, LDAnnotatedStudyLocus.get_schema()),
+        ...     LDAnnotatedStudyLocus.get_schema(),
+        ... )
+        >>> loci.df.select("id", f.size("ldSet").alias("tags")).show()
+        +---+----+
+        | id|tags|
+        +---+----+
+        |sl1|   2|
+        +---+----+
+        <BLANKLINE>
+    """
+
+    @classmethod
+    def get_schema(cls: type[LDAnnotatedStudyLocus]) -> StructType:
+        """Provides the schema for the LDAnnotatedStudyLocus dataset.
+
+        Returns:
+            StructType: schema for the LDAnnotatedStudyLocus dataset.
+        """
+        return parse_spark_schema("ld_annotated_study_locus.json")
