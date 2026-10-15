@@ -1,7 +1,10 @@
 """Validation of DataFrame schemas against dataset schemas.
 
-Ported from ``gentropy.common.schemas`` in the legacy package. The only change
-renames two variables so the module passes mypy.
+Ported from ``gentropy.common.schemas`` in the legacy package, with two changes:
+two variables are renamed so the module passes mypy, and every field inside a
+struct is mandatory. Legacy treated a nullable nested field as optional, but
+dataset schemas mark every field nullable, so a nested struct could lose a field
+that methods read, such as ``r2Overall`` in ``ldSet``.
 """
 
 from __future__ import annotations
@@ -114,7 +117,9 @@ def compare_struct_schemas(
 
     Checking logic:
     1. Checking for duplicated columns in the observed schema.
-    2. Checking for missing mandatory columns in the observed schema.
+    2. Checking for missing mandatory columns in the observed schema. At the top
+       level a field is mandatory when it is not nullable; inside a struct, every
+       field is, since methods read nested fields without checking for them.
     3. Now we know that all mandatory columns are present, we can iterate over the observed schema and compare the types.
     4. Flagging unexpected columns in the observed schema.
     5. Flagging columns with non-matching types.
@@ -148,8 +153,11 @@ def compare_struct_schemas(
     ):
         schema_issues["duplicated_columns"] += duplicated_columns
 
-    # Testing mandatory fields:
-    required_fields = [x.name for x in expected_schema if not x.nullable]
+    # Testing mandatory fields. Inside a column every field is mandatory, as the
+    # dataset model has no optional nested fields; at the top level only
+    # non-nullable fields are, and datasets check their own mandatory marker.
+    nested = bool(parent_field_name)
+    required_fields = [x.name for x in expected_schema if nested or not x.nullable]
     if missing_required_fields := [
         f"{parent_field_name}{req}"
         for req in required_fields

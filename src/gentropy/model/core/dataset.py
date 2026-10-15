@@ -79,6 +79,8 @@ every problem listed:
 * a column with a different type is an error;
 * a missing optional column is accepted and means the same as a column of
   nulls;
+* inside a column, every field of a struct is mandatory, including the structs
+  of an array, as methods read nested fields without checking for them;
 * nullable flags are not compared. Every column in a dataset schema is
   nullable anyway, and the flag on a DataFrame says nothing about its values.
 

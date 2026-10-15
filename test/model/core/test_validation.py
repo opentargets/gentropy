@@ -297,7 +297,62 @@ class TestSchemaComparisonMethods:
             list,
             {
                 "duplicated_columns": ["a[][].c"],
-                "missing_mandatory_columns": ["a[][].b"],
+                "missing_mandatory_columns": ["a[][].b", "a[][].d"],
                 "unexpected_columns": ["a[][].a"],
             },
         )
+
+    def test_nested_struct_fields_are_mandatory_even_when_nullable(
+        self: TestSchemaComparisonMethods,
+    ) -> None:
+        """A struct inside a column must have every field, whatever its nullability."""
+        expected = StructType(
+            [
+                StructField(
+                    "c",
+                    StructType([self.STRUCT_FIELD_STRING, self.STRUCT_FIELD_INTEGER]),
+                )
+            ]
+        )
+        observed = StructType(
+            [StructField("c", StructType([self.STRUCT_FIELD_STRING]))]
+        )
+
+        discrepancy = compare_struct_schemas(observed, expected)
+
+        assert discrepancy == defaultdict(list, {"missing_mandatory_columns": ["c.b"]})
+
+    def test_array_element_fields_are_mandatory_even_when_nullable(
+        self: TestSchemaComparisonMethods,
+    ) -> None:
+        """The structs of an array column must have every field, as methods read them."""
+        expected = StructType(
+            [
+                StructField(
+                    "c",
+                    ArrayType(
+                        StructType(
+                            [self.STRUCT_FIELD_STRING, self.STRUCT_FIELD_INTEGER]
+                        )
+                    ),
+                )
+            ]
+        )
+        observed = StructType(
+            [StructField("c", ArrayType(StructType([self.STRUCT_FIELD_STRING])))]
+        )
+
+        discrepancy = compare_struct_schemas(observed, expected)
+
+        assert discrepancy == defaultdict(
+            list, {"missing_mandatory_columns": ["c[][].b"]}
+        )
+
+    def test_top_level_nullable_fields_stay_optional(
+        self: TestSchemaComparisonMethods,
+    ) -> None:
+        """Top-level columns are left to the dataset, which checks its own marker."""
+        expected = StructType([self.STRUCT_FIELD_STRING, self.STRUCT_FIELD_INTEGER])
+        observed = StructType([self.STRUCT_FIELD_STRING])
+
+        assert not compare_struct_schemas(observed, expected)
