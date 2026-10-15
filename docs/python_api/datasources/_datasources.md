@@ -22,7 +22,6 @@ This section contains information about the data source harmonisation tools avai
 
 ## Interaction / Interval-based Experiments
 
-
 ## Variant annotation/validation
 
 1. [GnomAD](gnomad/_gnomad.md) v4.1
