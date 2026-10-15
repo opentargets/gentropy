@@ -10,6 +10,41 @@ from gentropy.dataset.target_index import TargetIndex
 from gentropy.datasource.bigbrain.study_index import BigBrainStudyIndex
 
 
+def make_target_index(
+    session: Session, genes: list[tuple[str, str, int, int]]
+) -> TargetIndex:
+    """Build a TargetIndex of the given genes on chromosome 1.
+
+    Args:
+        session (Session): Gentropy session.
+        genes (list[tuple[str, str, int, int]]): (id, biotype, start, end) per gene.
+
+    Returns:
+        TargetIndex: Target index with only these genes.
+    """
+    schema = TargetIndex.get_schema()
+    return TargetIndex(
+        _df=session.spark.createDataFrame(
+            [
+                {fld.name: None for fld in schema.fields}
+                | {
+                    "id": gene_id,
+                    "biotype": biotype,
+                    "genomicLocation": {
+                        "chromosome": "1",
+                        "start": start,
+                        "end": end,
+                        "strand": 1,
+                    },
+                }
+                for gene_id, biotype, start, end in genes
+            ],
+            schema=schema,
+        ),
+        _schema=schema,
+    )
+
+
 class TestBigBrainStudyIndex:
     """Test methods of BigBrainStudyIndex."""
 
@@ -38,7 +73,9 @@ class TestBigBrainStudyIndex:
                 ),
             ]
         )
-        gene_map = BigBrainStudyIndex.gene_map_from_top_assoc(top_assoc)
+        gene_map = BigBrainStudyIndex.gene_map_from_top_assoc(
+            top_assoc, make_target_index(session, [])
+        )
         rows = gene_map.collect()
         assert len(rows) == 1
         assert rows[0].geneId == "ENSG00000107554"
@@ -105,7 +142,9 @@ class TestBigBrainStudyIndex:
                 )
             ]
         )
-        gene_map = BigBrainStudyIndex.gene_map_from_top_assoc(top_assoc)
+        gene_map = BigBrainStudyIndex.gene_map_from_top_assoc(
+            top_assoc, make_target_index(session, [])
+        )
         study_index = BigBrainStudyIndex.from_source(features, gene_map, "sqtl")
 
         rows = {row.studyId: row for row in study_index.df.collect()}
@@ -118,7 +157,6 @@ class TestBigBrainStudyIndex:
         self, session: Session
     ) -> None:
         """A junction in several genes keeps the one gene, or protein-coding gene, containing it."""
-        schema = TargetIndex.get_schema()
         genes = [
             # (id, biotype, start, end)
             ("ENSG_A", "protein_coding", 100, 300),  # contains chr1_150_250
@@ -128,26 +166,7 @@ class TestBigBrainStudyIndex:
             ("ENSG_E", "protein_coding", 650, 900),  # both contain chr1_700_800
             ("ENSG_F", "protein_coding", 690, 850),  # and both are protein coding
         ]
-        target_index = TargetIndex(
-            _df=session.spark.createDataFrame(
-                [
-                    {fld.name: None for fld in schema.fields}
-                    | {
-                        "id": gid,
-                        "biotype": biotype,
-                        "genomicLocation": {
-                            "chromosome": "1",
-                            "start": start,
-                            "end": end,
-                            "strand": 1,
-                        },
-                    }
-                    for gid, biotype, start, end in genes
-                ],
-                schema=schema,
-            ),
-            _schema=schema,
-        )
+        target_index = make_target_index(session, genes)
         top_assoc = session.spark.createDataFrame(
             [
                 Row(
@@ -155,7 +174,8 @@ class TestBigBrainStudyIndex:
                 ),
                 Row(feature="chr1_500_600", gene_id="ENSG_C;ENSG_D", gene_name="C;D"),
                 Row(feature="chr1_700_800", gene_id="ENSG_E;ENSG_F", gene_name="E;F"),
-                Row(feature="chr1_10_20", gene_id="NA", gene_name="NA"),
+                # Junction without a gene: "NA" in the source, read as null.
+                Row(feature="chr1_10_20", gene_id=None, gene_name=None),
             ]
         )
         gene_map = {

@@ -100,7 +100,7 @@ class BigBrainFinemapping:
 
         Args:
             finemapping (DataFrame): Raw rows from `read_from_source`.
-            qtl_type (str): QTL type, e.g. `BigBrainQtlType.EQTL.value`.
+            qtl_type (str): QTL type, e.g. `StudyType.EQTL.value`.
 
         Returns:
             StudyLocus: BigBrain credible sets.
@@ -150,6 +150,7 @@ class BigBrainFinemapping:
             "standardError",
         )
         credible_sets = (
+            # annotate_credible_sets() below sorts each locus by descending PIP.
             variants.withColumn("locus", f.collect_list(locus_struct).over(credible_set))
             .withColumn("locusStart", f.min("position").over(credible_set))
             .withColumn("locusEnd", f.max("position").over(credible_set))
@@ -190,7 +191,6 @@ class BigBrainFinemapping:
                 f.array().cast(t.ArrayType(t.StringType(), False)).alias(
                     "qualityControls"
                 ),
-                f.lit(False).alias("isTransQtl"),
             )
         )
         return (

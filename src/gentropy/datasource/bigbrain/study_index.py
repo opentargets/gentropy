@@ -68,7 +68,7 @@ class BigBrainStudyIndex:
 
     @staticmethod
     def gene_map_from_top_assoc(
-        top_assoc: DataFrame, target_index: TargetIndex | None = None
+        top_assoc: DataFrame, target_index: TargetIndex
     ) -> DataFrame:
         """Build a feature-to-gene mapping for sQTL from the `top_assoc` file's gene columns.
 
@@ -85,9 +85,9 @@ class BigBrainStudyIndex:
 
         Args:
             top_assoc (DataFrame): Raw `top_assoc` DataFrame with `feature`, `gene_id`,
-                `gene_name` columns.
-            target_index (TargetIndex | None): Gene coordinates and biotypes used to
-                resolve multi-gene junctions. Without it they all get a null `geneId`.
+                `gene_name` columns, read with `NA` as null.
+            target_index (TargetIndex): Gene coordinates and biotypes used to resolve
+                multi-gene junctions.
 
         Returns:
             DataFrame: Columns `feature`, `geneId` (version-stripped), `traitFromSource`
@@ -95,83 +95,84 @@ class BigBrainStudyIndex:
                 this mapping and will resolve to a null `geneId` in the study index.
 
         Examples:
+            >>> from gentropy.dataset.target_index import TargetIndex
+            >>> schema = TargetIndex.get_schema()
+            >>> genes = [("ENSG01", 100, 300), ("ENSG02", 200, 400)]  # only ENSG01 contains 150-250
+            >>> target_index = TargetIndex(_df=spark.createDataFrame([
+            ...     {fld.name: None for fld in schema.fields}
+            ...     | {"id": g, "biotype": "protein_coding",
+            ...        "genomicLocation": {"chromosome": "1", "start": s, "end": e, "strand": 1}}
+            ...     for g, s, e in genes
+            ... ], schema=schema), _schema=schema)
             >>> top_assoc = spark.createDataFrame(
             ...     [("chr1_150_250", "ENSG01.3;ENSG02.1", "A;B"), ("chr1_900_950", "ENSG03.2", "C")],
             ...     "feature STRING, gene_id STRING, gene_name STRING",
             ... )
-            >>> BigBrainStudyIndex.gene_map_from_top_assoc(top_assoc).orderBy("feature").show()
+            >>> BigBrainStudyIndex.gene_map_from_top_assoc(top_assoc, target_index).orderBy("feature").show()
             +------------+------+---------------+
             |     feature|geneId|traitFromSource|
             +------------+------+---------------+
-            |chr1_150_250|  NULL|            A;B|
+            |chr1_150_250|ENSG01|            A;B|
             |chr1_900_950|ENSG03|              C|
             +------------+------+---------------+
             <BLANKLINE>
         """
         features = top_assoc.select(
             "feature",
-            f.when(f.col("gene_name") != "NA", f.col("gene_name")).alias(
-                "traitFromSource"
-            ),
+            f.col("gene_name").alias("traitFromSource"),
             f.transform(
                 f.split(f.coalesce(f.col("gene_id"), f.lit("")), ";"),
                 lambda g: f.regexp_replace(g, _ENSEMBL_VERSION_SUFFIX, ""),
             ).alias("genes"),
         ).dropDuplicates(["feature"])
-        # Keep only Ensembl IDs: junctions without a gene carry the literal "NA".
         features = features.withColumn(
-            "genes", f.filter(f.col("genes"), lambda g: g.startswith("ENSG"))
+            "genes", f.filter(f.col("genes"), lambda g: g != "")
         )
 
         single = features.filter(f.size("genes") <= 1).select(
             "feature", f.col("genes")[0].alias("geneId"), "traitFromSource"
         )
         multi = features.filter(f.size("genes") > 1)
-        if target_index is None:
-            resolved = multi.select(
-                "feature", f.lit(None).cast("string").alias("geneId"), "traitFromSource"
-            )
-        else:
-            coords = f.split(f.col("feature"), "_")
-            containing = (
-                multi.select(
-                    "feature",
-                    coords.getItem(1).cast("long").alias("junctionStart"),
-                    coords.getItem(2).cast("long").alias("junctionEnd"),
-                    f.explode("genes").alias("geneId"),
-                )
-                .join(
-                    target_index.df.select(
-                        f.col("id").alias("geneId"),
-                        f.col("biotype"),
-                        f.col("genomicLocation.start").alias("geneStart"),
-                        f.col("genomicLocation.end").alias("geneEnd"),
-                    ),
-                    on="geneId",
-                    how="inner",
-                )
-                .filter(
-                    (f.col("geneStart") <= f.col("junctionStart"))
-                    & (f.col("geneEnd") >= f.col("junctionEnd"))
-                )
-                .groupBy("feature")
-                .agg(
-                    f.collect_set("geneId").alias("containing"),
-                    f.collect_set(
-                        f.when(f.col("biotype") == "protein_coding", f.col("geneId"))
-                    ).alias("containingProteinCoding"),
-                )
-            )
-            resolved = multi.join(containing, on="feature", how="left").select(
+        coords = f.split(f.col("feature"), "_")
+        containing = (
+            multi.select(
                 "feature",
-                f.when(f.size("containing") == 1, f.col("containing")[0])
-                .when(
-                    f.size("containingProteinCoding") == 1,
-                    f.col("containingProteinCoding")[0],
-                )
-                .alias("geneId"),
-                "traitFromSource",
+                coords.getItem(1).cast("long").alias("junctionStart"),
+                coords.getItem(2).cast("long").alias("junctionEnd"),
+                f.explode("genes").alias("geneId"),
             )
+            .join(
+                target_index.df.select(
+                    f.col("id").alias("geneId"),
+                    f.col("biotype"),
+                    f.col("genomicLocation.start").alias("geneStart"),
+                    f.col("genomicLocation.end").alias("geneEnd"),
+                ),
+                on="geneId",
+                how="inner",
+            )
+            .filter(
+                (f.col("geneStart") <= f.col("junctionStart"))
+                & (f.col("geneEnd") >= f.col("junctionEnd"))
+            )
+            .groupBy("feature")
+            .agg(
+                f.collect_set("geneId").alias("containing"),
+                f.collect_set(
+                    f.when(f.col("biotype") == "protein_coding", f.col("geneId"))
+                ).alias("containingProteinCoding"),
+            )
+        )
+        resolved = multi.join(containing, on="feature", how="left").select(
+            "feature",
+            f.when(f.size("containing") == 1, f.col("containing")[0])
+            .when(
+                f.size("containingProteinCoding") == 1,
+                f.col("containingProteinCoding")[0],
+            )
+            .alias("geneId"),
+            "traitFromSource",
+        )
         return single.unionByName(resolved)
 
     @classmethod
@@ -188,8 +189,8 @@ class BigBrainStudyIndex:
                 features in the fine-mapping.
             feature_gene_map (DataFrame): Mapping produced by `gene_map_from_feature`
                 (eQTL) or `gene_map_from_top_assoc` (sQTL).
-            qtl_type (str): QTL type identifier, e.g. `BigBrainQtlType.EQTL.value` or
-                `BigBrainQtlType.SQTL.value`.
+            qtl_type (str): QTL type identifier, e.g. `StudyType.EQTL.value` or
+                `StudyType.SQTL.value`.
 
         Returns:
             StudyIndex: One row per distinct feature, annotated with bibliographic
@@ -200,11 +201,11 @@ class BigBrainStudyIndex:
             >>> gene_map = BigBrainStudyIndex.gene_map_from_feature(features)
             >>> si = BigBrainStudyIndex.from_source(features, gene_map, "eqtl")
             >>> si.df.select("studyId", "projectId", "studyType", "geneId", "nSamples").show(truncate=False)
-            +-----------------------------------+-----------------+---------+---------------+--------+
-            |studyId                            |projectId        |studyType|geneId         |nSamples|
-            +-----------------------------------+-----------------+---------+---------------+--------+
-            |BigBrain_eqtl_EUR_ENSG00000177757.2|BigBrain-eqtl-EUR|eqtl     |ENSG00000177757|10725   |
-            +-----------------------------------+-----------------+---------+---------------+--------+
+            +-----------------------------------+---------+---------+---------------+--------+
+            |studyId                            |projectId|studyType|geneId         |nSamples|
+            +-----------------------------------+---------+---------+---------------+--------+
+            |BigBrain_eqtl_EUR_ENSG00000177757.2|BigBrain |eqtl     |ENSG00000177757|10725   |
+            +-----------------------------------+---------+---------+---------------+--------+
             <BLANKLINE>
         """
         pub = BigBrainPublicationMetadata()
@@ -218,7 +219,7 @@ class BigBrainStudyIndex:
                 ),
             )
             .withColumn(
-                "projectId", f.lit(f"BigBrain-{qtl_type}-{pub.ANCESTRY}")
+                "projectId", f.lit("BigBrain")
             )
             .withColumn("studyType", f.lit(qtl_type))
             .withColumn("biosampleFromSourceId", f.lit(pub.BIOSAMPLE_ID))

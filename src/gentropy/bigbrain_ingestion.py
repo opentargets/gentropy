@@ -19,8 +19,8 @@ per QTL type (`eqtl`, `sqtl`).
 from __future__ import annotations
 
 from gentropy.common.session import Session
+from gentropy.dataset.study_index import StudyType
 from gentropy.dataset.target_index import TargetIndex
-from gentropy.datasource.bigbrain import BigBrainQtlType
 from gentropy.datasource.bigbrain.finemapping import BigBrainFinemapping
 from gentropy.datasource.bigbrain.study_index import BigBrainStudyIndex
 
@@ -47,30 +47,32 @@ class BigBrainFinemappingIngestionStep:
 
         Args:
             session (Session): Active Gentropy Spark session.
-            qtl_type (str): QTL type identifier, one of `BigBrainQtlType` values (`"eqtl"`, `"sqtl"`).
+            qtl_type (str): QTL type identifier, `StudyType.EQTL.value` or `StudyType.SQTL.value`.
             finemapping_path (str): Path to `BigBrain_cis_{eQTL,sQTL}_finemapping.txt.gz`.
             credible_set_path (str): Destination path for the credible sets.
             study_index_path (str): Destination path for the study index.
             top_assoc_path (str | None): Path to the source `top_assoc` TSV. Required for sQTL.
             target_index_path (str | None): Path to the target index, used to resolve
-                multi-gene sQTL junctions. Without it those junctions get no gene.
+                multi-gene sQTL junctions. Required for sQTL.
 
         Raises:
-            ValueError: If `qtl_type` is sQTL and no `top_assoc_path` is given.
+            ValueError: If `qtl_type` is sQTL and `top_assoc_path` or `target_index_path`
+                is missing.
         """
         raw = BigBrainFinemapping.read_from_source(session, finemapping_path)
         features = raw.select("feature").distinct()
-        if qtl_type == BigBrainQtlType.SQTL.value:
-            if top_assoc_path is None:
-                raise ValueError("top_assoc_path is required for sQTL fine-mapping ingestion.")
-            top_assoc = session.spark.read.csv(top_assoc_path, sep="\t", header=True)
-            target_index = (
-                TargetIndex.from_parquet(session, target_index_path)
-                if target_index_path
-                else None
+        if qtl_type == StudyType.SQTL.value:
+            if top_assoc_path is None or target_index_path is None:
+                raise ValueError(
+                    "top_assoc_path and target_index_path are required for sQTL "
+                    "fine-mapping ingestion."
+                )
+            # Junctions without a gene carry the literal "NA" in gene_id and gene_name.
+            top_assoc = session.spark.read.csv(
+                top_assoc_path, sep="\t", header=True, nullValue="NA"
             )
             feature_gene_map = BigBrainStudyIndex.gene_map_from_top_assoc(
-                top_assoc, target_index
+                top_assoc, TargetIndex.from_parquet(session, target_index_path)
             )
         else:
             feature_gene_map = BigBrainStudyIndex.gene_map_from_feature(features)

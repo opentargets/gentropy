@@ -12,28 +12,37 @@ from gentropy.bigbrain_ingestion import BigBrainFinemappingIngestionStep
 from gentropy.common.session import Session
 from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import CredibleSetConfidenceClasses, StudyLocus
+from gentropy.dataset.target_index import TargetIndex
 from gentropy.datasource.bigbrain.finemapping import BigBrainFinemapping
 
-HEADER = "SNP\tCHR\tBP\tA1\tA2\tZ\tN\tP\tPIP\tBETA_MEAN\tBETA_SD\tDISTANCE_FROM_CENTER\tCREDIBLE_SET\tfeature"
+COLUMNS = [
+    "SNP", "CHR", "BP", "A1", "A2", "Z", "N", "P", "PIP",
+    "BETA_MEAN", "BETA_SD", "DISTANCE_FROM_CENTER", "CREDIBLE_SET", "feature",
+]  # fmt: skip
 ROWS = [
     # Single-variant credible set with a p-value far below the float64 floor.
-    "rs1\t1\t1000\tC\tT\t40.0\t9310\t0\t1.0\t0.37\t0.01\t10\t1\tENSG01.1",
+    ("rs1", 1, 1000, "C", "T", 40.0, 9310, 0, 1.0, 0.37, 0.01, 10, 1, "ENSG01.1"),
     # Two-variant credible set, plus an untested placeholder that is not its lead.
-    "rs2\t1\t5000\tG\tA\t8.0\t9310\t1e-15\t0.6\t0.2\t0.02\t20\t2\tENSG01.1",
-    "rs3\t1\t5100\tT\tC\t7.5\t9310\t1e-13\t0.38\t0.1\t0.02\t30\t2\tENSG01.1",
-    "rs4\t1\t5200\tA\tG\t0\t9310\t1\t0.01\t0.0\t0.02\t40\t2\tENSG01.1",
+    ("rs2", 1, 5000, "G", "A", 8.0, 9310, 1e-15, 0.6, 0.2, 0.02, 20, 2, "ENSG01.1"),
+    ("rs3", 1, 5100, "T", "C", 7.5, 9310, 1e-13, 0.38, 0.1, 0.02, 30, 2, "ENSG01.1"),
+    ("rs4", 1, 5200, "A", "G", 0, 9310, 1, 0.01, 0.0, 0.02, 40, 2, "ENSG01.1"),
     # Credible set led by an untested placeholder: dropped entirely.
-    "rs5\t2\t100\tA\tC\t0\t9310\t1\t0.9\t-2.1\t0.01\t50\t3\tENSG01.1",
-    "rs6\t2\t200\tG\tT\t3.0\t9310\t0.003\t0.08\t0.1\t0.01\t60\t3\tENSG01.1",
-]
+    ("rs5", 2, 100, "A", "C", 0, 9310, 1, 0.9, -2.1, 0.01, 50, 3, "ENSG01.1"),
+    ("rs6", 2, 200, "G", "T", 3.0, 9310, 0.003, 0.08, 0.1, 0.01, 60, 3, "ENSG01.1"),
+]  # fmt: skip
+
+
+def write_tsv(path: Path, columns: list[str], rows: list[tuple[Any, ...]]) -> str:
+    """Write rows as a tab-separated file with a header, as the source files are."""
+    lines = ["\t".join(columns)] + ["\t".join(map(str, row)) for row in rows]
+    path.write_text("\n".join(lines) + "\n")
+    return str(path)
 
 
 @pytest.fixture
 def finemapping_file(tmp_path: Path) -> str:
     """Write a small BigBrain fine-mapping file."""
-    path = tmp_path / "BigBrain_cis_eQTL_finemapping.txt"
-    path.write_text("\n".join([HEADER, *ROWS]) + "\n")
-    return str(path)
+    return write_tsv(tmp_path / "BigBrain_cis_eQTL_finemapping.txt", COLUMNS, ROWS)
 
 
 @pytest.fixture
@@ -126,11 +135,39 @@ def test_finemapping_ingestion_step(
     assert cs.join(si, "studyId", "left_anti").count() == 0
 
 
+def test_sqtl_ingestion_step(session: Session, tmp_path: Path) -> None:
+    """SQTL genes come from top_assoc, whose "NA" placeholders are read as null."""
+    junction_rows = [(*row[:-1], "chr1_900_950") for row in ROWS]
+    target_index_path = str(tmp_path / "target_index")
+    schema = TargetIndex.get_schema()
+    session.spark.createDataFrame(
+        [{fld.name: None for fld in schema.fields} | {"id": "ENSG01"}], schema=schema
+    ).write.parquet(target_index_path)
+    si_path = str(tmp_path / "study_index")
+    BigBrainFinemappingIngestionStep(
+        session=session,
+        qtl_type="sqtl",
+        finemapping_path=write_tsv(tmp_path / "sqtl.txt", COLUMNS, junction_rows),
+        credible_set_path=str(tmp_path / "credible_set"),
+        study_index_path=si_path,
+        top_assoc_path=write_tsv(
+            tmp_path / "top_assoc.tsv",
+            ["feature", "gene_id", "gene_name"],
+            [("chr1_900_950", "NA", "NA")],
+        ),
+        target_index_path=target_index_path,
+    )
+    row = StudyIndex.from_parquet(session, si_path).df.collect()[0]
+    assert row.studyId == "BigBrain_sqtl_EUR_chr1_900_950"
+    assert row.geneId is None
+    assert row.traitFromSource is None
+
+
 def test_sqtl_ingestion_requires_top_assoc(
     session: Session, finemapping_file: str, tmp_path: Path
 ) -> None:
     """SQTL genes come from top_assoc, so the step refuses to run without it."""
-    with pytest.raises(ValueError, match="top_assoc_path"):
+    with pytest.raises(ValueError, match="top_assoc_path and target_index_path"):
         BigBrainFinemappingIngestionStep(
             session=session,
             qtl_type="sqtl",
@@ -142,7 +179,7 @@ def test_sqtl_ingestion_requires_top_assoc(
 
 def test_malformed_rows_fail_loudly(session: Session, tmp_path: Path) -> None:
     """A field that does not parse raises rather than silently becoming null."""
-    path = tmp_path / "bad.txt"
-    path.write_text(HEADER + "\n" + ROWS[0].replace("\t1000\t", "\t1000\xa0\t") + "\n")
+    bad_row = (*ROWS[0][:2], "1000\xa0", *ROWS[0][3:])
+    path = write_tsv(tmp_path / "bad.txt", COLUMNS, [bad_row])
     with pytest.raises(Exception, match="(?i)malformed|parse"):
-        BigBrainFinemapping.read_from_source(session, str(path)).collect()
+        BigBrainFinemapping.read_from_source(session, path).collect()

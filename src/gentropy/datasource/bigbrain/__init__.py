@@ -1,8 +1,7 @@
 """BigBrain brain-tissue molecular-QTL datasource module.
 
 This module provides shared constants and metadata for the BigBrain multi-cohort
-brain meta-analysis. It defines the QTL types supported and the bibliographic
-metadata for the underlying publication.
+brain meta-analysis, including the bibliographic metadata for the underlying publication.
 
 The BigBrain dataset originates from the study:
     Réal A, Kailash BP, Dredge W et al.
@@ -12,29 +11,16 @@ The BigBrain dataset originates from the study:
 
 Two sub-datasets are supported, both restricted to the EUR-ancestry release:
 
-- **EQTL** (`BigBrain-eqtl-EUR`): cis-eQTL associations, one study per Ensembl gene.
-- **SQTL** (`BigBrain-sqtl-EUR`): cis-sQTL associations, one study per Leafcutter
-    intron-cluster feature.
+- **eQTL** (`BigBrain_eqtl_EUR_{gene}`): cis-eQTL associations, one study per Ensembl gene.
+- **sQTL** (`BigBrain_sqtl_EUR_{junction}`): cis-sQTL associations, one study per Leafcutter
+    intron junction.
 """
 
 from __future__ import annotations
 
-from enum import Enum
-
 from pydantic import BaseModel
 
-
-class BigBrainQtlType(str, Enum):
-    """Enumeration of BigBrain QTL type identifiers.
-
-    These identifiers are embedded in study IDs and used throughout the pipeline
-    to distinguish the two molecular-trait types.
-    """
-
-    EQTL = "eqtl"
-    """cis-eQTL associations (feature = versioned Ensembl gene ID)."""
-    SQTL = "sqtl"
-    """cis-sQTL associations (feature = Leafcutter intron-cluster coordinate string)."""
+from gentropy.dataset.study_index import StudyType
 
 
 class BigBrainPublicationMetadata(BaseModel):
@@ -69,7 +55,7 @@ class BigBrainPublicationMetadata(BaseModel):
     BIOSAMPLE_ID: str = "UBERON_0000955"
     """Biosample ID for the BigBrain study - brain."""
     SUMSTATS_LOCATION: dict[str, str] = {
-        BigBrainQtlType.EQTL.value: "https://zenodo.org/records/17226890/files/BigBrain_cis_eQTL_EUR_full_assoc.tsv.gz",
-        BigBrainQtlType.SQTL.value: "https://zenodo.org/records/17153730/files/BigBrain_cis_sQTL_EUR_full_assoc.tsv.gz",
+        StudyType.EQTL.value: "https://zenodo.org/records/17226890/files/BigBrain_cis_eQTL_EUR_full_assoc.tsv.gz",
+        StudyType.SQTL.value: "https://zenodo.org/records/17153730/files/BigBrain_cis_sQTL_EUR_full_assoc.tsv.gz",
     }
     """Source summary statistics (Zenodo) per QTL type."""
