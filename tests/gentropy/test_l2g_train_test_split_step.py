@@ -123,3 +123,53 @@ class TestParseGoldStandard:
                 variant_index_path=None,
                 gene_interactions_path=None,
             )
+
+
+class TestSplitByTestGenes:
+    """Tests for LocusToGeneTrainTestSplitStep._split_by_test_genes."""
+
+    @pytest.fixture()
+    def split(self, spark: SparkSession) -> tuple[set[str], set[str]]:
+        """Split a small feature matrix on test gene g1 and return the loci of each side."""
+        df = spark.createDataFrame(
+            [
+                # test: its only positive is a test gene
+                ("cs_test", "g1", "positive"),
+                ("cs_test", "g2", "negative"),
+                # train: no test gene at all
+                ("cs_train", "g2", "positive"),
+                ("cs_train", "g3", "negative"),
+                # dropped: test gene is a negative here
+                ("cs_test_negative", "g3", "positive"),
+                ("cs_test_negative", "g1", "negative"),
+                # dropped: positives on both sides
+                ("cs_both", "g1", "positive"),
+                ("cs_both", "g2", "positive"),
+            ],
+            "studyLocusId string, geneId string, goldStandardSet string",
+        )
+        genes = spark.createDataFrame([("g1",), ("g_absent",)], "geneId string")
+        train, test = LocusToGeneTrainTestSplitStep._split_by_test_genes(df, genes)
+        return (
+            {r.studyLocusId for r in train.select("studyLocusId").distinct().collect()},
+            {r.studyLocusId for r in test.select("studyLocusId").distinct().collect()},
+        )
+
+    def test_test_loci(self, split: tuple[set[str], set[str]]) -> None:
+        """Only credible sets whose positives are all test genes go to test."""
+        assert split[1] == {"cs_test"}
+
+    def test_train_loci(self, split: tuple[set[str], set[str]]) -> None:
+        """Credible sets containing any test gene are kept out of training."""
+        assert split[0] == {"cs_train"}
+
+    def test_encoded_labels(self, spark: SparkSession) -> None:
+        """Integer-encoded labels are recognised as positives."""
+        df = spark.createDataFrame(
+            [("cs1", "g1", 1), ("cs1", "g2", 0), ("cs2", "g2", 1)],
+            "studyLocusId string, geneId string, goldStandardSet int",
+        )
+        genes = spark.createDataFrame([("g1",)], "geneId string")
+        train, test = LocusToGeneTrainTestSplitStep._split_by_test_genes(df, genes)
+        assert {r.studyLocusId for r in test.collect()} == {"cs1"}
+        assert {r.studyLocusId for r in train.collect()} == {"cs2"}

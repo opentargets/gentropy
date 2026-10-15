@@ -121,6 +121,40 @@ def test_summary_statistics__drop_variant_duplicates(
     }
 
 
+def test_summary_statistics__drop_variant_duplicates_drops_every_occurrence(
+    spark: SparkSession,
+) -> None:
+    """The policy is strict: 3 and 4 occurrence collisions are removed entirely."""
+    data = [
+        # three occurrences — all dropped
+        ("s1", "v3", "1", 100, 0.1, None, 5.0, -8, None, None),
+        ("s1", "v3", "1", 100, 0.2, None, 5.0, -8, None, None),
+        ("s1", "v3", "1", 100, 0.3, None, 5.0, -8, None, None),
+        # four occurrences — all dropped
+        ("s1", "v4", "1", 200, 0.1, None, 5.0, -8, None, None),
+        ("s1", "v4", "1", 200, 0.2, None, 5.0, -8, None, None),
+        ("s1", "v4", "1", 200, 0.3, None, 5.0, -8, None, None),
+        ("s1", "v4", "1", 200, 0.4, None, 5.0, -8, None, None),
+        # unique — kept
+        ("s1", "v1", "1", 300, 0.1, None, 5.0, -8, None, None),
+    ]
+    df = spark.createDataFrame(data, schema=SummaryStatistics.get_schema())
+    result = SummaryStatistics(_df=df).drop_variant_duplicates()
+
+    assert [r["variantId"] for r in result.df.collect()] == ["v1"]
+
+
+def test_summary_statistics__drop_variant_duplicates_preserves_columns(
+    spark: SparkSession,
+) -> None:
+    """No helper column may leak into the output schema."""
+    data = [("s1", "v1", "1", 100, 0.1, None, 5.0, -8, None, None)]
+    df = spark.createDataFrame(data, schema=SummaryStatistics.get_schema())
+    result = SummaryStatistics(_df=df).drop_variant_duplicates()
+
+    assert result.df.columns == df.columns
+
+
 def test_summary_statistics__sanity_filter_remove_inf_values(session: Session) -> None:
     """Sanity filter remove inf value from standardError field."""
     data = [
