@@ -135,9 +135,9 @@ from typing import TYPE_CHECKING, Annotated, Self
 import pyspark.sql.functions as f
 import pyspark.sql.types as t
 from pydantic import BaseModel, Field
-from pyspark.sql.window import Window
 
 from gentropy.dataset.study_locus import StudyLocus, StudyLocusQualityFlag
+from gentropy.method.clumping.cluster import cluster
 from gentropy.model.core.dataset import Dataset
 from gentropy.model.trait.association import Association
 from gentropy.model.trait.identifier import HasStudyId
@@ -230,7 +230,8 @@ class WindowClumping:
         filter, the steps of the module docstring run as three DataFrame
         transforms, each documented with an example:
 
-        1. ``_cluster`` numbers the clusters of each study and chromosome.
+        1. ``cluster``, shared with locus-breaker clumping, numbers the
+           clusters of each study and chromosome.
         2. ``_assign_leads`` ranks and prunes each cluster. It returns the leads,
            or with ``keep_clumped_loci`` every variant with its clump's lead.
         3. ``_to_study_locus`` builds the windows, ``id`` and flags.
@@ -318,71 +319,9 @@ class WindowClumping:
                 f.col(Association.p_value_mantissa.name).isNotNull()
                 & f.col(Association.p_value_exponent.name).isNotNull()
             )
-            .transform(self._cluster, distance)
+            .transform(cluster, distance)
             .transform(self._assign_leads, distance, self.config.keep_clumped_loci)
             .transform(self._to_study_locus, distance)
-        )
-
-    @staticmethod
-    def _cluster(df: DataFrame, distance: int) -> DataFrame:
-        """Number the clusters of each study and chromosome, adding ``clusterId``.
-
-        Within each study and chromosome, variants are ordered by position. A
-        variant starts a new cluster when it is the first one, or when the gap to
-        the previous variant is greater than ``distance``. ``clusterId`` counts the
-        cluster starts up to and including the variant, so the clusters of one
-        study and chromosome are numbered 1, 2, 3 and so on from the left.
-
-        Only gaps between adjacent variants are compared, so a cluster can be
-        arbitrarily long: a chain of variants each 400 bp apart is one cluster for
-        a distance of 500, however far its ends are from each other. A gap of
-        exactly ``distance`` keeps the variants together.
-
-        Args:
-            df (DataFrame): Variants with ``studyId``, ``chromosome`` and
-                ``position``.
-            distance (int): The largest gap, in base pairs, that keeps two
-                adjacent variants in one cluster.
-
-        Returns:
-            DataFrame: ``df`` with ``clusterId``, unique within a study and
-                chromosome.
-
-        Examples:
-            A gap of 19 splits chromosome 1 in two; a gap of exactly 10 does not
-            split chromosome 2. Each study and chromosome numbers its own
-            clusters:
-
-            >>> data = [
-            ...     ("s1", "1", 2), ("s1", "1", 4), ("s1", "1", 12),
-            ...     ("s1", "1", 31), ("s1", "1", 38),
-            ...     ("s1", "2", 41), ("s1", "2", 51),
-            ...     ("s2", "2", 55),
-            ... ]
-            >>> df = spark.createDataFrame(data, "studyId string, chromosome string, position int")
-            >>> WindowClumping._cluster(df, 10).orderBy("studyId", "chromosome", "position").show()
-            +-------+----------+--------+---------+
-            |studyId|chromosome|position|clusterId|
-            +-------+----------+--------+---------+
-            |     s1|         1|       2|        1|
-            |     s1|         1|       4|        1|
-            |     s1|         1|      12|        1|
-            |     s1|         1|      31|        2|
-            |     s1|         1|      38|        2|
-            |     s1|         2|      41|        1|
-            |     s1|         2|      51|        1|
-            |     s2|         2|      55|        1|
-            +-------+----------+--------+---------+
-            <BLANKLINE>
-        """
-        by_position = Window.partitionBy("studyId", "chromosome").orderBy("position")
-        gap = f.col("position") - f.lag("position").over(by_position)
-        starts_cluster = f.when(gap.isNull() | (gap > distance), 1).otherwise(0)
-        return df.withColumn(
-            "clusterId",
-            f.sum(starts_cluster).over(
-                by_position.rowsBetween(Window.unboundedPreceding, Window.currentRow)
-            ),
         )
 
     @staticmethod
@@ -404,7 +343,7 @@ class WindowClumping:
         second pass of the same cost.
 
         The grouping keys include study and chromosome, so Spark reuses the
-        partitioning of ``_cluster`` and does not shuffle again.
+        partitioning of ``cluster`` and does not shuffle again.
 
         Args:
             df (DataFrame): Variants with ``studyId``, ``chromosome``,
