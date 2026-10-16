@@ -228,7 +228,7 @@ class FinngenFinemappingConfig(StepConfig):
 
     session: Any = field(
         default_factory=lambda: {
-            "start_hail": True,
+            "use_enhanced_bgzip_codec": True,
         }
     )
     finngen_susie_finemapping_snp_files: str = (
@@ -237,7 +237,9 @@ class FinngenFinemappingConfig(StepConfig):
     finngen_susie_finemapping_cs_summary_files: str = (
         "gs://finngen-public-data-r11/finemap/summary/*SUSIE.cred.summary.tsv"
     )
+    finngen_annotated_variants_path: str = MISSING
     finngen_finemapping_out: str = MISSING
+    finngen_finemapping_credible_set_variant_out: str = MISSING
     finngen_finemapping_lead_pvalue_threshold: float = 1e-5
     finngen_release_prefix: str = "FINNGEN_R11"
     _target_: str = (

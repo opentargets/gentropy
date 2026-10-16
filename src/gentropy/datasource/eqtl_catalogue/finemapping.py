@@ -18,16 +18,17 @@ from pyspark.sql.types import (
 from gentropy.common.processing import flag_non_atgc_alleles, normalize_chromosome
 from gentropy.common.session import NativeFileFormat, Session
 from gentropy.common.spark import clean_strings_from_symbols
-from gentropy.common.stats import get_logsum_column, split_pvalue, split_pvalue_column
+from gentropy.common.stats import (
+    LOG10_E,
+    region_log10_bayes_factor,
+    split_pvalue_column,
+)
 from gentropy.dataset.credible_set import CredibleSet, CredibleSetVariant
 from gentropy.dataset.study_locus import FinemappingMethod
 from gentropy.datasource.eqtl_catalogue.study_index import EqtlCatalogueStudyIndex
 
 if TYPE_CHECKING:
     pass
-
-LOG10_E = 0.4342944819032518
-"""log10(e): converts a natural logarithm to base 10."""
 
 
 @dataclass
@@ -320,9 +321,9 @@ class EqtlCatalogueFinemapping:
             .select(
                 *keys,
                 "credibleSetIndex",
-                (
-                    (get_logsum_column(f.col("lbfs")) - f.log(f.size("lbfs"))) * LOG10_E
-                ).alias("credibleSetLog10BayesFactor"),
+                region_log10_bayes_factor(f.col("lbfs")).alias(
+                    "credibleSetLog10BayesFactor"
+                ),
             )
         )
 
@@ -459,81 +460,18 @@ class EqtlCatalogueFinemapping:
         Returns:
             tuple[CredibleSet, CredibleSetVariant]: eQTL Catalogue credible sets and their variants.
         """
-        credible_set = Window.partitionBy(
-            "dataset_id", "molecular_trait_id", "region", "credibleSetIndex"
-        )
-        lead = f.row_number().over(
-            credible_set.orderBy(f.desc("posteriorProbability"), "variantId")
-        ) == f.lit(1)
-        members = (
-            processed_finemapping_df.withColumn(
-                "leadVariantId",
-                f.first(f.when(lead, f.col("variantId")), ignorenulls=True).over(
-                    credible_set
-                ),
-            )
-            .withColumn("fineMappingMethod", f.lit(FinemappingMethod.SUSIE.value))
-            .withColumn("id", CredibleSet.generate_identifier(CredibleSet.ID_COLUMNS))
-        )
-        if lead_pvalue_threshold is not None:
-            mantissa, exponent = split_pvalue(lead_pvalue_threshold)
-            lead_passes = (f.col("pValueExponent") < exponent) | (
-                (f.col("pValueExponent") == exponent)
-                & (f.col("pValueMantissa") <= mantissa)
-            )
-            members = members.withColumn(
-                "leadPasses",
-                f.max(
-                    f.when(f.col("variantId") == f.col("leadVariantId"), lead_passes)
-                ).over(credible_set),
-            ).filter(f.col("leadPasses"))
-
-        credible_set_schema = CredibleSet.get_schema()
-        credible_sets = (
-            members.filter(f.col("variantId") == f.col("leadVariantId"))
-            .withColumns(
-                {
-                    "log10BayesFactor": f.col("credibleSetLog10BayesFactor"),
-                    "confidence": f.lit(None),
-                    "purityMeanR2": f.lit(None),
-                    "qualityControls": f.array(),
-                }
-            )
-            .select(
-                *[
-                    f.col(field.name).cast(field.dataType)
-                    for field in credible_set_schema.fields
-                ]
-            )
-        )
-        variant_schema = CredibleSetVariant.get_schema()
-        variants = members.withColumns(
+        members = processed_finemapping_df.withColumns(
             {
-                "credibleSetId": f.col("id"),
+                "fineMappingMethod": f.lit(FinemappingMethod.SUSIE.value),
                 "reportedBeta": f.col("beta"),
                 "reportedStandardError": f.col("standardError"),
                 "log10BayesFactor": f.col("logBF") * LOG10_E,
-                "qualityControls": f.array(),
-                **{
-                    name: f.lit(None)
-                    for name in (
-                        "effectAlleleFrequency",
-                        "sampleSize",
-                        "r2Overall",
-                        "conditionalBeta",
-                        "conditionalStandardError",
-                        "rescaledAbsBeta",
-                        "rescaledStandardError",
-                        "rescaledDirection",
-                    )
-                },
             }
-        ).select(
-            *[f.col(field.name).cast(field.dataType) for field in variant_schema.fields]
         )
-        return (
-            CredibleSet(_df=credible_sets, _schema=credible_set_schema),
-            CredibleSetVariant(_df=variants, _schema=variant_schema),
+        return CredibleSet.from_members(
+            members,
+            ["dataset_id", "molecular_trait_id", "region", "credibleSetIndex"],
+            lead_pvalue_threshold=lead_pvalue_threshold,
         )
 
     @classmethod

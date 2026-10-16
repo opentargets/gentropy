@@ -17,6 +17,9 @@ from gentropy.common.udf import chi2_inverse_survival_function, chi2_survival_fu
 if TYPE_CHECKING:
     from numpy.typing import NDArray
 
+LOG10_E = 0.4342944819032518
+"""log10(e): converts a natural logarithm to base 10."""
+
 ###################### PYTHON FUNCTION #######################
 
 
@@ -71,6 +74,36 @@ def get_logsum_column(arr: Column) -> Column:
             lambda acc, x: acc + x,
         )
     )
+
+
+def region_log10_bayes_factor(lbfs: Column) -> Column:
+    r"""Log10 Bayes factor of one SuSiE single effect over its whole fine-mapped region.
+
+    This is the definition of `CredibleSet.log10BayesFactor` for every SuSiE source. With
+    $`\operatorname{lbf}_{j}`$ the natural log Bayes factor of variant $`j`$ in the effect and a
+    uniform prior $`1/p`$ over the $`p`$ variants of the region:
+
+    ```math
+    \log_{10}\operatorname{BF} = \log_{10}(e) \left(\operatorname{LSE}_{j}(\operatorname{lbf}_{j}) - \log p\right)
+    ```
+
+    Args:
+        lbfs (Column): array<double> of the natural log Bayes factors of every variant of the region.
+
+    Returns:
+        Column: The log10 Bayes factor, as a double column.
+
+    Examples:
+        >>> df = spark.createDataFrame([([2.0, 0.0],)], ["lbfs"])
+        >>> df.select(f.round(region_log10_bayes_factor(f.col("lbfs")), 6).alias("bf")).show()
+        +--------+
+        |      bf|
+        +--------+
+        |0.622683|
+        +--------+
+        <BLANKLINE>
+    """
+    return (get_logsum_column(lbfs) - f.log(f.size(lbfs))) * LOG10_E
 
 
 def split_pvalue(pvalue: float) -> tuple[float, int]:
