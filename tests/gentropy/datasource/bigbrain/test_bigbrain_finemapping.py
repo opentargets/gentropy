@@ -10,8 +10,8 @@ from pyspark.sql import DataFrame
 
 from gentropy.bigbrain_ingestion import BigBrainFinemappingIngestionStep
 from gentropy.common.session import Session
+from gentropy.dataset.credible_set import CredibleSet, CredibleSetVariant
 from gentropy.dataset.study_index import StudyIndex
-from gentropy.dataset.study_locus import CredibleSetConfidenceClasses, StudyLocus
 from gentropy.dataset.target_index import TargetIndex
 from gentropy.datasource.bigbrain.finemapping import BigBrainFinemapping
 
@@ -54,90 +54,100 @@ def raw_finemapping(session: Session, finemapping_file: str) -> DataFrame:
 
 
 @pytest.fixture
-def credible_sets(raw_finemapping: DataFrame) -> dict[int, dict[str, Any]]:
-    """Credible sets keyed by credibleSetIndex."""
-    cs = BigBrainFinemapping.from_source(raw_finemapping, "eqtl")
-    assert isinstance(cs, StudyLocus)
-    return {r.credibleSetIndex: r.asDict(recursive=True) for r in cs.df.collect()}
+def credible_sets(
+    raw_finemapping: DataFrame,
+) -> dict[str, tuple[dict[str, Any], dict[str, dict[str, Any]]]]:
+    """Credible sets keyed by their lead, each with its variants keyed by variant id."""
+    cs, variants = BigBrainFinemapping.from_source(raw_finemapping, "eqtl")
+    assert isinstance(cs, CredibleSet)
+    assert isinstance(variants, CredibleSetVariant)
+    members: dict[str, dict[str, dict[str, Any]]] = {}
+    for row in variants.df.collect():
+        members.setdefault(row.credibleSetId, {})[row.variantId] = row.asDict()
+    return {
+        row.leadVariantId: (row.asDict(), members[row.id]) for row in cs.df.collect()
+    }
 
 
 class TestBigBrainFinemapping:
     """Test BigBrainFinemapping.from_source."""
 
     def test_drops_credible_sets_led_by_untested_variant(
-        self, credible_sets: dict[int, dict[str, Any]]
+        self, credible_sets: dict[str, tuple[dict[str, Any], dict[str, Any]]]
     ) -> None:
         """A credible set whose lead has Z == 0 is an artefact and is removed."""
-        assert sorted(credible_sets) == [1, 2]
+        assert sorted(credible_sets) == ["1_1000_T_C", "1_5000_A_G"]
 
-    def test_drops_untested_members(
-        self, credible_sets: dict[int, dict[str, Any]]
+    def test_keeps_only_95_credible_set_without_untested_members(
+        self, credible_sets: dict[str, tuple[dict[str, Any], dict[str, Any]]]
     ) -> None:
-        """Untested placeholder rows are removed from credible sets that are kept."""
-        members = [v["variantId"] for v in credible_sets[2]["locus"]]
-        assert members == ["1_5000_A_G", "1_5100_C_T"]
-
-    def test_keeps_only_95_credible_set(
-        self, credible_sets: dict[int, dict[str, Any]]
-    ) -> None:
-        """Members beyond the 95% credible set are dropped; the rest are flagged and sorted."""
-        locus = credible_sets[2]["locus"]
-        assert [v["variantId"] for v in locus] == ["1_5000_A_G", "1_5100_C_T"]
-        assert all(v["is95CredibleSet"] for v in locus)
-        assert credible_sets[2]["region"] == "1:5000-5100"
+        """Untested placeholders and members beyond the 95% credible set are dropped."""
+        cs, members = credible_sets["1_5000_A_G"]
+        assert sorted(members) == ["1_5000_A_G", "1_5100_C_T"]
+        assert (cs["locusStart"], cs["locusEnd"]) == (5000, 5100)
 
     def test_variant_id_uses_a1_as_alternate_allele(
-        self, credible_sets: dict[int, dict[str, Any]]
+        self, credible_sets: dict[str, tuple[dict[str, Any], dict[str, Any]]]
     ) -> None:
         """`variantId` is CHR_BP_A2_A1, so the effect allele A1 is the alternate allele."""
-        assert credible_sets[1]["variantId"] == "1_1000_T_C"
-        assert credible_sets[1]["studyId"] == "BigBrain_eqtl_EUR_ENSG01.1"
+        cs, _ = credible_sets["1_1000_T_C"]
+        assert cs["studyId"] == "BigBrain_eqtl_EUR_ENSG01.1"
 
     def test_p_value_recomputed_from_z(
-        self, credible_sets: dict[int, dict[str, Any]]
+        self, credible_sets: dict[str, tuple[dict[str, Any], dict[str, Any]]]
     ) -> None:
         """The p-value is rebuilt from Z, so it survives values below the float64 floor."""
-        lead = credible_sets[1]
+        _, members = credible_sets["1_1000_T_C"]
+        lead = members["1_1000_T_C"]
         assert lead["pValueExponent"] < -300
         assert 1 <= lead["pValueMantissa"] < 10
 
     def test_purity_only_for_single_variant_sets(
-        self, credible_sets: dict[int, dict[str, Any]]
+        self, credible_sets: dict[str, tuple[dict[str, Any], dict[str, Any]]]
     ) -> None:
         """Purity is 1 for single-variant sets and unknown otherwise."""
-        assert credible_sets[1]["purityMinR2"] == 1.0
-        assert credible_sets[1]["purityMeanR2"] == 1.0
-        assert credible_sets[2]["purityMinR2"] is None
+        single, _ = credible_sets["1_1000_T_C"]
+        assert (single["purityMinR2"], single["purityMeanR2"]) == (1.0, 1.0)
+        assert credible_sets["1_5000_A_G"][0]["purityMinR2"] is None
 
-    def test_annotations(self, credible_sets: dict[int, dict[str, Any]]) -> None:
-        """Credible sets carry in-sample-LD confidence, PIPs and no log Bayes factors."""
-        cs = credible_sets[2]
-        assert (
-            cs["confidence"]
-            == CredibleSetConfidenceClasses.FINEMAPPED_IN_SAMPLE_LD.value
-        )
-        assert cs["studyType"] == "eqtl"
-        assert cs["finemappingMethod"] == "SuSiE"
-        assert cs["variantId"] == "1_5000_A_G"
-        assert cs["region"] == "1:5000-5100"
-        assert cs["sampleSize"] == 9310
-        assert [v["posteriorProbability"] for v in cs["locus"]] == [0.6, 0.38]
-        assert all(v["logBF"] is None for v in cs["locus"])
+    def test_annotations(
+        self, credible_sets: dict[str, tuple[dict[str, Any], dict[str, Any]]]
+    ) -> None:
+        """Members carry PIP and N; effects and Bayes factors are not published on our scale."""
+        cs, members = credible_sets["1_5000_A_G"]
+        assert (cs["studyType"], cs["fineMappingMethod"]) == ("eqtl", "SuSiE")
+        assert cs["logBayesFactor"] is None
+        assert cs["confidence"] is None
+        assert cs["qualityControls"] == []
+        assert {v: m["posteriorProbability"] for v, m in members.items()} == {
+            "1_5000_A_G": pytest.approx(0.6),
+            "1_5100_C_T": pytest.approx(0.38),
+        }
+        for member in members.values():
+            assert member["sampleSize"] == 9310
+            assert member["logBayesFactor"] is None
+            assert member["reportedBeta"] is None
+            assert member["conditionalBeta"] is None
+            assert member["conditionalStandardError"] is None
+            assert member["qualityControls"] == []
 
 
 def test_finemapping_ingestion_step(
     session: Session, finemapping_file: str, tmp_path: Path
 ) -> None:
-    """The step writes credible sets and a study index covering every one of them."""
+    """The step writes credible sets, their variants and a study index covering every one of them."""
     cs_path, si_path = str(tmp_path / "credible_set"), str(tmp_path / "study_index")
+    variant_path = str(tmp_path / "credible_set_variant")
     BigBrainFinemappingIngestionStep(
         session=session,
         qtl_type="eqtl",
         finemapping_path=finemapping_file,
         credible_set_path=cs_path,
+        credible_set_variant_path=variant_path,
         study_index_path=si_path,
     )
-    cs = StudyLocus.from_parquet(session, cs_path).df
+    cs = CredibleSet.from_parquet(session, cs_path).df
+    assert CredibleSetVariant.from_parquet(session, variant_path).df.count() == 3
     si = StudyIndex.from_parquet(session, si_path).df
     assert cs.count() == 2
     assert [(r.studyId, r.geneId) for r in si.collect()] == [
@@ -160,6 +170,7 @@ def test_sqtl_ingestion_step(session: Session, tmp_path: Path) -> None:
         qtl_type="sqtl",
         finemapping_path=write_tsv(tmp_path / "sqtl.txt", COLUMNS, junction_rows),
         credible_set_path=str(tmp_path / "credible_set"),
+        credible_set_variant_path=str(tmp_path / "credible_set_variant"),
         study_index_path=si_path,
         top_assoc_path=write_tsv(
             tmp_path / "top_assoc.tsv",
@@ -184,6 +195,7 @@ def test_sqtl_ingestion_requires_top_assoc(
             qtl_type="sqtl",
             finemapping_path=finemapping_file,
             credible_set_path=str(tmp_path / "cs"),
+            credible_set_variant_path=str(tmp_path / "csv"),
             study_index_path=str(tmp_path / "si"),
         )
 

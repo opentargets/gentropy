@@ -851,6 +851,7 @@ class BigBrainFinemappingIngestionConfig(StepConfig):
     qtl_type: str = MISSING
     finemapping_path: str = MISSING
     credible_set_path: str = MISSING
+    credible_set_variant_path: str = MISSING
     study_index_path: str = MISSING
     top_assoc_path: str | None = None
     target_index_path: str | None = None
