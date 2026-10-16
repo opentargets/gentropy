@@ -1,51 +1,52 @@
-"""Step to run credible set quality control on finemapping output StudyLoci."""
+"""Step to run credible set quality control on fine-mapping output credible sets."""
 
 from __future__ import annotations
 
 from gentropy.common.session import Session
+from gentropy.dataset.credible_set import CredibleSet, CredibleSetVariant
 from gentropy.dataset.ld_index import LDIndex
 from gentropy.dataset.study_index import StudyIndex
-from gentropy.dataset.study_locus import StudyLocus
-from gentropy.method.susie_inf import SUSIE_inf
+from gentropy.method.fine_mapping.credible_set_qc import credible_set_qc
 
 
 class CredibleSetQCStep:
-    """Credible set quality control step for fine mapped StudyLoci."""
+    """Credible set quality control step for fine-mapped credible sets."""
 
     def __init__(
         self,
         session: Session,
-        credible_sets_path: str,
-        output_path: str,
+        credible_set_path: str,
+        credible_set_variant_path: str,
+        credible_set_output_path: str,
+        credible_set_variant_output_path: str,
         p_value_threshold: float,
         purity_min_r2: float,
-        clump: bool,
         ld_index_path: str | None,
         study_index_path: str | None,
-        ld_min_r2: float | None,
+        ld_min_r2: float,
         n_partitions: int | None,
     ) -> None:
         """Run credible set quality control step.
 
         Check defaults used by steps in hydra configuration `gentropy.config.CredibleSetQCStepConfig`
 
-        Due to the large number of partitions at the input credible_set_path after finemapping, the
-        best strategy it is to repartition and save the dataset after deduplication.
+        Due to the large number of partitions at the inputs after fine-mapping, both are read
+        recursively and coalesced before quality control.
 
-        The `clump` mode will perform additional LD based clumping on the input credible sets.
-        Enabling `clump` mode requires providing `ld_index_path`, `study_index_path` and `ld_min_r2`.
+        Giving `ld_index_path` also LD-clumps the credible sets, which requires `study_index_path`.
 
         Args:
             session (Session): Session object.
-            credible_sets_path (str): Path to credible sets file.
-            output_path (str): Path to write the output file.
-            p_value_threshold (float): P-value threshold for credible set quality control.
-            purity_min_r2 (float): Minimum R2 for purity estimation.
-            clump (bool): Whether to clump the credible sets by LD.
-            ld_index_path (str | None): Path to LD index file.
-            study_index_path (str | None): Path to study index file.
-            ld_min_r2 (float | None): Minimum R2 for LD estimation.
-            n_partitions (int | None): Number of partitions to coalesce the dataset after reading. Defaults to 200
+            credible_set_path (str): Path to the credible sets.
+            credible_set_variant_path (str): Path to the credible set variants.
+            credible_set_output_path (str): Path to write the credible sets that pass.
+            credible_set_variant_output_path (str): Path to write their variants.
+            p_value_threshold (float): Largest lead p-value kept.
+            purity_min_r2 (float): Smallest `purityMinR2` kept.
+            ld_index_path (str | None): Path to the LD index; when given, credible sets are LD-clumped.
+            study_index_path (str | None): Path to the study index, required with `ld_index_path`.
+            ld_min_r2 (float): Smallest r2 between two leads that clumps the less significant one.
+            n_partitions (int | None): Number of partitions to coalesce the inputs to. Defaults to 200
         """
         n_partitions = n_partitions or 200
 
@@ -57,21 +58,25 @@ class CredibleSetQCStep:
             if study_index_path
             else None
         )
-
-        cred_sets = StudyLocus.from_parquet(
-            session, credible_sets_path, recursiveFileLookup=True
+        credible_sets = CredibleSet.from_parquet(
+            session, credible_set_path, recursiveFileLookup=True
+        ).coalesce(n_partitions)
+        credible_set_variants = CredibleSetVariant.from_parquet(
+            session, credible_set_variant_path, recursiveFileLookup=True
         ).coalesce(n_partitions)
 
-        cred_sets_clean = SUSIE_inf.credible_set_qc(
-            cred_sets,
+        clean_credible_sets, clean_variants = credible_set_qc(
+            credible_sets,
+            credible_set_variants,
             p_value_threshold,
             purity_min_r2,
-            clump,
             ld_index,
             study_index,
             ld_min_r2,
         )
-        # ensure the saved object is still a valid StudyLocus
-        StudyLocus(
-            _df=cred_sets_clean.df, _schema=StudyLocus.get_schema()
-        ).df.write.mode(session.write_mode).parquet(output_path)
+        clean_credible_sets.df.write.mode(session.write_mode).parquet(
+            credible_set_output_path
+        )
+        clean_variants.df.write.mode(session.write_mode).parquet(
+            credible_set_variant_output_path
+        )
