@@ -664,7 +664,6 @@ class FinemapperConfig(StepConfig):
     purity_mean_r2_threshold: float = MISSING
     purity_min_r2_threshold: float = MISSING
     cs_lbf_thr: float = MISSING
-    sum_pips: float = MISSING
     susie_est_tausq: bool = MISSING
     run_carma: bool = MISSING
     carma_tau: float = MISSING
