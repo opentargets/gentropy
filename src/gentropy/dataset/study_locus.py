@@ -56,7 +56,7 @@ class CredibleSetConfidenceClasses(Enum):
 
 
 class StudyLocusQualityCheck(Enum):
-    """Study locus quality control flags, raised by clumping and LD annotation.
+    """Study locus quality control flags, raised by clumping, LD annotation and fine-mapping.
 
     `CredibleSet.qualityControls` carries the flags of the study locus it was fine-mapped from.
 
@@ -65,12 +65,14 @@ class StudyLocusQualityCheck(Enum):
         LD_CLUMPED (str): Explained by a more significant variant in high LD
         NO_POPULATION (str): Study does not have population annotation to resolve LD
         UNRESOLVED_LD (str): Variant not found in LD reference
+        OUT_OF_SAMPLE_LD (str): Study locus finemapped without in-sample LD reference
     """
 
     WINDOW_CLUMPED = "Explained by a more significant variant in the same window"
     LD_CLUMPED = "Explained by a more significant variant in high LD"
     NO_POPULATION = "Study does not have population annotation to resolve LD"
     UNRESOLVED_LD = "Variant not found in LD reference"
+    OUT_OF_SAMPLE_LD = "Study locus finemapped without in-sample LD reference"
 
 
 class CredibleInterval(Enum):

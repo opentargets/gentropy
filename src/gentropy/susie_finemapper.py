@@ -1,38 +1,86 @@
-"""Step to run a finemapping using."""
+"""Step to run a finemapping using SuSiE-inf.
+
+Each run fine-maps one study locus into credible sets and their variants.
+
+Conditional statistics are on the per-allele scale. SuSiE-inf sees only z-scores and the
+sample size n (`X'y = sqrt(n)·z`, `X'X = n·LD`), so its posterior effect `mu` is in standard
+deviation units, roughly `z / sqrt(n)`. For effect `l` with per-effect inclusion probabilities
+`alpha_l` (`PIP[:, l]` of SuSiE-inf, which is SuSiE's alpha and not a per-variant PIP), the
+alpha-weighted moments `alpha_l·mu_l` and `sqrt(alpha_l·(mu_l² + 1/omega_l) - (alpha_l·mu_l)²)`
+are the quantities FinnGen reports as `mean{l}` and `sd{l}`, but FinnGen's are per allele. Both
+are multiplied by `se_j·sqrt(n)`, with `se_j` the variant's marginal standard error and n the
+sample size given to SuSiE-inf: since `z / sqrt(n) · se·sqrt(n) = z·se = beta`, this puts them
+on the scale of the reported beta, so `conditionalBeta` means the same in every source. A
+member without a marginal standard error (an imputed variant) has null conditional statistics.
+
+Marginal statistics are the study's own, taken from the locus; none is recomputed from z,
+which may be imputed. A member missing from the locus gets the `NOT_IN_LOCUS` flag, and the
+lead p-value threshold drops a credible set whose lead has no reported p-value.
+
+`r2Overall` is the squared correlation with the lead in the LD matrix used for fine-mapping,
+an out-of-sample reference panel; every credible set carries the `OUT_OF_SAMPLE_LD` flag.
+
+Study gating (study type, ancestry, summary statistics availability and study flags) is not done
+here: the fine-mapping manifest decides which loci are fine-mapped.
+"""
 
 from __future__ import annotations
 
 import logging
+import math
 import time
 from typing import Any
 
 import numpy as np
 import pandas as pd
 import pyspark.sql.functions as f
-from pyspark.sql import DataFrame, Row, Window
-from pyspark.sql.functions import desc, row_number
-from pyspark.sql.types import (
-    DoubleType,
-    IntegerType,
-    StringType,
-    StructField,
-    StructType,
-)
+from pyspark.sql import DataFrame, Row
 
+from gentropy.common.ld import major_population
 from gentropy.common.session import Session
-from gentropy.common.spark import order_array_of_structs_by_field
-from gentropy.common.stats import neglogpval_from_z2, pvalue_from_neglogpval
+from gentropy.common.stats import LOG10_E
+from gentropy.dataset.credible_set import (
+    CredibleSet,
+    CredibleSetVariant,
+    CredibleSetVariantQualityCheck,
+)
 from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import (
+    AnnotatedStudyLocus,
     FinemappingMethod,
-    StudyLocus,
     StudyLocusQualityCheck,
 )
 from gentropy.method.carma import CARMA
-from gentropy.method.ld import LDAnnotator
 from gentropy.method.ld_matrix_interface import LDMatrixInterface
 from gentropy.method.sumstat_imputation import SummaryStatisticsImputation
 from gentropy.method.susie_inf import SUSIE_inf
+
+# Credible set coverage: the cumulative posterior probability of its members.
+COVERAGE = 0.95
+
+# Sample size given to SuSiE-inf when the study index reports none.
+DEFAULT_SAMPLE_SIZE = 100_000
+
+# Fields of a locus entry carried to the credible set variants.
+MARGINAL_COLUMNS = (
+    "variantId",
+    "pValueMantissa",
+    "pValueExponent",
+    "effectAlleleFrequencyFromSource",
+    "sampleSize",
+    "beta",
+    "standardError",
+)
+
+_MEMBERS_SCHEMA = (
+    "credibleSetIndex int, variantId string, posteriorProbability double, "
+    "log10BayesFactor double, conditionalBeta double, conditionalStandardError double, "
+    "r2Overall double, pValueMantissa float, pValueExponent int, "
+    "effectAlleleFrequency float, sampleSize int, reportedBeta double, "
+    "reportedStandardError double, inLocus boolean, studyId string, studyType string, "
+    "chromosome string, locusStart int, locusEnd int, fineMappingMethod string, "
+    "credibleSetLog10BayesFactor double, purityMeanR2 double, purityMinR2 double"
+)
 
 
 class SusieFineMapperStep:
@@ -54,7 +102,6 @@ class SusieFineMapperStep:
         purity_mean_r2_threshold: float = 0,
         purity_min_r2_threshold: float = 0.25,
         cs_lbf_thr: float = 2,
-        sum_pips: float = 0.99,
         susie_est_tausq: bool = False,
         run_carma: bool = False,
         run_sumstat_imputation: bool = False,
@@ -63,20 +110,19 @@ class SusieFineMapperStep:
         imputed_r2_threshold: float = 0.9,
         ld_score_threshold: float = 5,
         ld_min_r2: float = 0.8,
-        ignore_qc: bool = False,
     ) -> None:
-        """Run fine-mapping on a studyLocusId from a collected studyLocus table.
+        """Run fine-mapping on one study locus listed in a manifest.
 
-        Method require a `study_locus_manifest_path` file that will contain ["study_locus_input", "study_locus_output", "log_file"]. `log_file`
-        is optional parameter to the manifest. In case it does not exist, the logs from the finemapper are saved under the same directory
-        as the `study_locus_output` with `.log` suffix.
-        Each execution of the method will only evaluate a single row from the `study_locus_manifest` that is inferred from the `study_locus_index`
-        variable.
+        The `study_locus_manifest_path` CSV has the columns `study_locus_input` (an
+        AnnotatedStudyLocus with one locus), `credible_set_output` and
+        `credible_set_variant_output`, and optionally `log_output`. Without `log_output`, the
+        log is written next to `credible_set_output` with a `.log` suffix. Each execution
+        evaluates the single manifest row at `study_locus_index`.
 
         Args:
             session (Session): Spark session
             study_index_path (str): path to the study index
-            study_locus_manifest_path (str): Path to the CSV manifest containing all study locus input and output locations. Should contain two columns: study_locus_input and study_locus_output
+            study_locus_manifest_path (str): Path to the CSV manifest with the input and output locations
             study_locus_index (int): Index (0-based) of the locus in the manifest to process in this call
             ld_matrix_paths (dict[str, str]): Dictionary with paths to LD matrices
             max_causal_snps (int): Maximum number of causal variants in locus, default is 10
@@ -84,7 +130,6 @@ class SusieFineMapperStep:
             purity_mean_r2_threshold (float): threshold for purity mean r2 qc metrics for filtering credible sets, default is 0
             purity_min_r2_threshold (float): threshold for purity min r2 qc metrics for filtering credible sets, default is 0.25
             cs_lbf_thr (float): credible set logBF threshold for filtering credible sets, default is 2
-            sum_pips (float): the expected sum of posterior probabilities in the locus, default is 0.99 (99% credible set)
             susie_est_tausq (bool): estimate tau squared, default is False
             run_carma (bool): run CARMA, default is False
             run_sumstat_imputation (bool): run summary statistics imputation, default is False
@@ -93,28 +138,20 @@ class SusieFineMapperStep:
             imputed_r2_threshold (float): imputed R2 threshold, default is 0.9
             ld_score_threshold (float): LD score threshold ofr imputation, default is 5
             ld_min_r2 (float): Threshold to filter CS by leads in high LD, default is 0.8
-            ignore_qc (bool): run SuSiE regardless of QC flags, default is False
         """
         # Read locus manifest.
         study_locus_manifest = pd.read_csv(study_locus_manifest_path)
         row = study_locus_manifest.loc[study_locus_index]
         study_locus_input = row["study_locus_input"]
-        study_locus_output = row["study_locus_output"]
-        log_output = study_locus_output + ".log"
+        credible_set_output = row["credible_set_output"]
+        credible_set_variant_output = row["credible_set_variant_output"]
+        log_output = credible_set_output + ".log"
         if "log_output" in study_locus_manifest.columns:
             log_output = row["log_output"] + ".log"
 
-        # Read studyLocus
-        study_locus = (
-            StudyLocus.from_parquet(session, study_locus_input)
-            .df.withColumn(
-                "studyLocusId",
-                StudyLocus.assign_study_locus_id(
-                    ["studyId", "variantId", "finemappingMethod"]
-                ),
-            )
-            .collect()[0]
-        )
+        study_locus = AnnotatedStudyLocus.from_parquet(
+            session, study_locus_input
+        ).df.collect()[0]
         study_index = StudyIndex.from_parquet(session, study_index_path)
         # Run fine-mapping
 
@@ -127,7 +164,6 @@ class SusieFineMapperStep:
             purity_mean_r2_threshold=purity_mean_r2_threshold,
             purity_min_r2_threshold=purity_min_r2_threshold,
             cs_lbf_thr=cs_lbf_thr,
-            sum_pips=sum_pips,
             lead_pval_threshold=lead_pval_threshold,
             susie_est_tausq=susie_est_tausq,
             run_carma=run_carma,
@@ -138,25 +174,21 @@ class SusieFineMapperStep:
             ld_score_threshold=ld_score_threshold,
             ld_min_r2=ld_min_r2,
             log_output=log_output,
-            ignore_qc=ignore_qc,
         )
 
         if result_logging is not None:
-            if result_logging["study_locus"] is not None:
+            if result_logging["credible_set"] is not None:
                 # Write result
-                df: DataFrame = result_logging["study_locus"].df
-                df = df.withColumn("qualityControls", f.lit(None))
-                df = df.withColumn(
-                    "qualityControls",
-                    StudyLocus.update_quality_flag(
-                        f.col("qualityControls"),
-                        f.lit(True),
-                        StudyLocusQualityCheck.OUT_OF_SAMPLE_LD,
+                for dataset, path in (
+                    (result_logging["credible_set"], credible_set_output),
+                    (
+                        result_logging["credible_set_variant"],
+                        credible_set_variant_output,
                     ),
-                )
-                df.coalesce(session.output_partitions).write.mode(
-                    session.write_mode
-                ).parquet(study_locus_output)
+                ):
+                    dataset.df.coalesce(session.output_partitions).write.mode(
+                        session.write_mode
+                    ).parquet(path)
             if result_logging["log"] is not None:
                 # Write log
                 result_logging["log"].to_csv(log_output, index=False, sep="\t")
@@ -190,282 +222,242 @@ class SusieFineMapperStep:
         ).to_csv(path_out, index=False, sep="\t")
 
     @staticmethod
-    def susie_inf_to_studylocus(  # noqa: C901
+    def susie_inf_to_credible_sets(  # noqa: C901
         susie_output: dict[str, Any],
         session: Session,
         studyId: str,
-        region: str,
-        variant_index: DataFrame,
+        variants: pd.DataFrame,
         ld_matrix: np.ndarray,
         locusStart: int,
         locusEnd: int,
+        n: int,
+        marginals: DataFrame | None = None,
+        study_type: str = "gwas",
+        quality_controls: list[str] | None = None,
         cs_lbf_thr: float = 2,
-        sum_pips: float = 0.99,
-        lead_pval_threshold: float = 1,
+        lead_pval_threshold: float | None = 1,
         purity_mean_r2_threshold: float = 0,
         purity_min_r2_threshold: float = 0,
         ld_min_r2: float = 0.9,
-    ) -> StudyLocus | None:
-        """Convert SuSiE-inf output to StudyLocus DataFrame.
+    ) -> tuple[CredibleSet, CredibleSetVariant] | None:
+        """Convert SuSiE-inf output to credible sets and their variants.
+
+        Effects are taken in decreasing order of their Bayes factor: the first always, the others
+        when it reaches `cs_lbf_thr`. A credible set holds the variants with the highest `alpha_l`
+        up to a cumulative 95%, and is led by its highest `alpha_l`, ties broken by `variantId`.
+        Credible sets are then filtered, in order, on the lead p-value, the Bayes factor and the
+        purity; one credible set is kept per lead, and of leads with r2 of at least `ld_min_r2`
+        only the one with the highest |z| is kept.
+
+        Statistics, as described in the module docstring:
+
+        - `posteriorProbability` is `alpha_l` and `log10BayesFactor` is `lbf_variable_l·log10(e)`;
+        - `conditionalBeta` and `conditionalStandardError` are the alpha-weighted moments of
+          effect l, multiplied by `se_j·sqrt(n)` to the per-allele scale;
+        - `r2Overall` is the squared LD with the lead in `ld_matrix`;
+        - the marginal statistics are the member's entry in `marginals`;
+        - the credible set `log10BayesFactor` is SuSiE-inf's `lbf_l·log10(e)`, which is already
+          over every variant of the region;
+        - credible set flags are `quality_controls` plus `OUT_OF_SAMPLE_LD`.
 
         Args:
             susie_output (dict[str, Any]): SuSiE-inf output dictionary
             session (Session): Spark session
             studyId (str): study ID
-            region (str): region
-            variant_index (DataFrame): DataFrame with variant information
+            variants (pd.DataFrame): The fine-mapped variants, in the order of `ld_matrix`, with
+                `variantId` and `z`
             ld_matrix (np.ndarray): LD matrix used for fine-mapping
             locusStart (int): locus start
             locusEnd (int): locus end
+            n (int): sample size given to SuSiE-inf
+            marginals (DataFrame | None): The study's statistics per variant, as `MARGINAL_COLUMNS`;
+                None leaves every member without marginal statistics
+            study_type (str): study type of the credible sets, default is "gwas"
+            quality_controls (list[str] | None): flags of the fine-mapped study locus
             cs_lbf_thr (float): credible set logBF threshold for filtering credible sets, default is 2
-            sum_pips (float): the expected sum of posterior probabilities in the locus, default is 0.99 (99% credible set)
-            lead_pval_threshold (float): p-value threshold for the lead variant from CS
+            lead_pval_threshold (float | None): p-value threshold for the lead variant from CS;
+                None keeps credible sets whatever their lead p-value
             purity_mean_r2_threshold (float): thrshold for purity mean r2 qc metrics for filtering credible sets
             purity_min_r2_threshold (float): thrshold for purity min r2 qc metrics for filtering credible sets
             ld_min_r2 (float): Threshold to fillter CS by leads in high LD, default is 0.9
 
         Returns:
-            StudyLocus | None: StudyLocus object with fine-mapped credible sets
+            tuple[CredibleSet, CredibleSetVariant] | None: credible sets and their variants, or
+                None when no credible set passes the filters
         """
-        # PLEASE DO NOT REMOVE THIS LINE
-        pd.DataFrame.iteritems = pd.DataFrame.items
-
-        variant_index = variant_index.withColumn(
-            "neglogpval", neglogpval_from_z2(f.col("z") ** 2)
-        )
-
-        variants = np.array(
-            [row["variantId"] for row in variant_index.select("variantId").collect()]
-        ).reshape(-1, 1)
-
-        PIPs = susie_output["PIP"]
+        variant_ids = variants["variantId"].to_numpy()
+        z_values = variants["z"].to_numpy(dtype=float)
+        alphas = susie_output["PIP"]
         lbfs = susie_output["lbf_variable"]
         mu = susie_output["mu"]
-        susie_result = np.hstack((variants, PIPs, lbfs, mu))
+        omega = susie_output["omega"]
+        study_marginals = (
+            {}
+            if marginals is None
+            else {
+                row["variantId"]: row.asDict()
+                for row in marginals.select(*MARGINAL_COLUMNS).collect()
+            }
+        )
 
-        L_snps = PIPs.shape[1]
+        def lead_neglogpval(lead: str) -> float | None:
+            marginal = study_marginals.get(lead)
+            if marginal is None or marginal["pValueMantissa"] is None:
+                return None
+            return -(
+                math.log10(marginal["pValueMantissa"]) + marginal["pValueExponent"]
+            )
 
         # Extracting credible sets
         order_creds = list(enumerate(susie_output["lbf"]))
         order_creds.sort(key=lambda x: x[1], reverse=True)
 
-        counter = 0
-        for i, cs_lbf_value in order_creds:
-            if counter > 0 and cs_lbf_value < cs_lbf_thr:
-                counter += 1
+        cred_sets = []
+        for counter, (i, cs_lbf_value) in enumerate(order_creds, start=1):
+            if counter > 1 and cs_lbf_value < cs_lbf_thr:
                 continue
-            counter += 1
-            sorted_arr = susie_result[
-                susie_result[:, i + 1].astype(float).argsort()[::-1]
-            ]
-            cumsum_arr = np.cumsum(sorted_arr[:, i + 1].astype(float))
-            filter_row = np.argmax(cumsum_arr >= sum_pips)
-            if filter_row == 0 and cumsum_arr[0] < sum_pips:
-                filter_row = len(cumsum_arr)
-            filter_row += 1
-            filtered_arr = sorted_arr[:filter_row]
-            cred_set = filtered_arr[:, [0, i + 1, i + L_snps + 1, i + 2 * L_snps + 1]]
-            win = Window.rowsBetween(
-                Window.unboundedPreceding, Window.unboundedFollowing
+            alpha = alphas[:, i]
+            ranked = np.lexsort((variant_ids, -alpha))
+            size = min(
+                int(np.searchsorted(np.cumsum(alpha[ranked]), COVERAGE)) + 1,
+                len(ranked),
             )
-
-            cred_set = (
-                session.spark.createDataFrame(
-                    cred_set.tolist(),
-                    ["variantId", "posteriorProbability", "logBF", "beta"],
-                )
-                .join(
-                    variant_index.select(
-                        "variantId",
-                        "chromosome",
-                        "position",
-                        "neglogpval",
-                    ),
-                    "variantId",
-                )
-                .sort(f.desc(f.col("posteriorProbability").cast("double")))
-                .withColumn(
-                    "locus",
-                    f.collect_list(
-                        f.struct(
-                            f.col("variantId").cast("string").alias("variantId"),
-                            f.col("posteriorProbability")
-                            .cast("double")
-                            .alias("posteriorProbability"),
-                            f.col("logBF").cast("double").alias("logBF"),
-                            f.col("beta").cast("double").alias("beta"),
-                            pvalue_from_neglogpval(f.col("neglogpval"))[0].alias(
-                                "pValueMantissa"
-                            ),
-                            pvalue_from_neglogpval(f.col("neglogpval"))[1].alias(
-                                "pValueExponent"
-                            ),
-                        )
-                    ).over(win),
-                )
-                .limit(1)
-                .withColumns(
-                    {
-                        "studyId": f.lit(studyId),
-                        "region": f.lit(region),
-                        "credibleSetIndex": f.lit(counter),
-                        "credibleSetlog10BF": f.lit(cs_lbf_value * 0.4342944819),
-                        "finemappingMethod": f.lit(FinemappingMethod.SUSIE_INF.value),
-                    }
-                )
-                .withColumn(
-                    "studyLocusId",
-                    StudyLocus.assign_study_locus_id(
-                        ["studyId", "variantId", "finemappingMethod"]
-                    ),
-                )
-                .select(
-                    "studyLocusId",
-                    "studyId",
-                    "region",
-                    "credibleSetIndex",
-                    "locus",
-                    "variantId",
-                    "chromosome",
-                    "position",
-                    "finemappingMethod",
-                    "credibleSetlog10BF",
-                )
+            members = ranked[:size]
+            squared_matrix = ld_matrix[members, :][:, members] ** 2
+            cred_sets.append(
+                {
+                    "credibleSetIndex": counter,
+                    "effect": i,
+                    "members": members,
+                    "lead": members[0],
+                    "leadVariantId": variant_ids[members[0]],
+                    "neglogpval": lead_neglogpval(variant_ids[members[0]]),
+                    "credibleSetLog10BayesFactor": cs_lbf_value * LOG10_E,
+                    "purityMeanR2": float(np.mean(squared_matrix)),
+                    "purityMinR2": float(np.min(squared_matrix)),
+                }
             )
-            if counter == 1:
-                cred_sets = cred_set
-            else:
-                cred_sets = cred_sets.unionByName(cred_set)
-
-        # Calulating purity
-        variant_index_df = variant_index.toPandas()
-        cred_sets_variantId = cred_sets.select("locus.variantId").toPandas()
-
-        lead_variantId_list = (
-            cred_sets.select("variantId").toPandas()["variantId"].tolist()
-        )
-        cred_set_index = (
-            cred_sets.select("credibleSetIndex").toPandas()["credibleSetIndex"].tolist()
-        )
-        vlist_series = pd.Series(lead_variantId_list)
-        ind = vlist_series.map(variant_index_df.set_index("variantId").index.get_loc)
-
-        z_values = variant_index_df.iloc[ind]["z"].tolist()
-        neglogpval = variant_index_df.iloc[ind]["neglogpval"].tolist()
-
-        neglogpval = [None if np.isinf(val) else val for val in neglogpval]
-
-        list_purity_mean_r2 = []
-        list_purity_min_r2 = []
-        for _, row in cred_sets_variantId.iterrows():
-            row = row.iloc[0]
-            vlist_series = pd.Series(row)
-            ind = vlist_series.map(
-                variant_index_df.set_index("variantId").index.get_loc
-            )
-            # print(variant_index_df.iloc[ind,0]==vlist)
-            squared_matrix = ld_matrix[ind, :][:, ind] ** 2
-            purity_mean_r2 = np.mean(squared_matrix)
-            purity_min_r2 = np.min(squared_matrix)
-            list_purity_mean_r2.append(purity_mean_r2)
-            list_purity_min_r2.append(purity_min_r2)
-
-        cred_sets = cred_sets.drop("pValueMantissa", "pValueExponent")
-
-        df = pd.DataFrame(
-            {
-                "credibleSetIndex": cred_set_index,
-                "purityMeanR2": list_purity_mean_r2,
-                "purityMinR2": list_purity_min_r2,
-                "zScore": z_values,
-                "neglogpval": neglogpval,
-            }
-        )
-        schema = StructType(
-            [
-                StructField("credibleSetIndex", IntegerType(), True),
-                StructField("purityMeanR2", DoubleType(), True),
-                StructField("purityMinR2", DoubleType(), True),
-                StructField("zScore", DoubleType(), True),
-                StructField("neglogpval", DoubleType(), True),
-            ]
-        )
-
-        df_spark = session.spark.createDataFrame(df, schema=schema)
-
-        cred_sets = cred_sets.join(df_spark, on="credibleSetIndex")
-
-        mantissa, exponent = pvalue_from_neglogpval(cred_sets.neglogpval)
-        cred_sets = cred_sets.withColumn("pValueMantissa", mantissa)
-        cred_sets = cred_sets.withColumn("pValueExponent", exponent)
-        cred_sets = cred_sets.withColumn(
-            "pValueMantissa", f.col("pValueMantissa").cast("float")
-        )
 
         # Filter by lead p-value, credible set logBF, purity mean r2 and purity min r2
-        cred_sets = cred_sets.filter(
-            (f.col("neglogpval") >= -np.log10(lead_pval_threshold))
-            & (f.col("credibleSetlog10BF") >= cs_lbf_thr * 0.4342944819)
-            & (~f.isnan(f.col("credibleSetlog10BF")))
-            & (f.col("purityMinR2") >= purity_min_r2_threshold)
-            & (f.col("purityMeanR2") >= purity_mean_r2_threshold)
-        )
-
-        if cred_sets.count() == 0:
+        cred_sets = [
+            cs
+            for cs in cred_sets
+            if (
+                lead_pval_threshold is None
+                or (
+                    cs["neglogpval"] is not None
+                    and cs["neglogpval"] >= -np.log10(lead_pval_threshold)
+                )
+            )
+            and cs["credibleSetLog10BayesFactor"] >= cs_lbf_thr * LOG10_E
+            and not np.isnan(cs["credibleSetLog10BayesFactor"])
+            and cs["purityMinR2"] >= purity_min_r2_threshold
+            and cs["purityMeanR2"] >= purity_mean_r2_threshold
+        ]
+        if not cred_sets:
             return None
 
         # Remove duplicated by lead variant
-        if cred_sets.count() > 1:
-            window = Window.partitionBy("variantId").orderBy("credibleSetIndex")
-            cred_sets = cred_sets.withColumn("rank", row_number().over(window))
-            cred_sets = cred_sets.filter(cred_sets["rank"] == 1).drop("rank")
-            cred_sets = cred_sets.orderBy("credibleSetIndex")
+        first_by_lead: dict[str, dict[str, Any]] = {}
+        for cs in sorted(cred_sets, key=lambda cs: cs["credibleSetIndex"]):
+            first_by_lead.setdefault(cs["leadVariantId"], cs)
+        cred_sets = list(first_by_lead.values())
 
         # Remove CSs with high LD between leads
-        if cred_sets.count() > 1:
-            cred_sets = cred_sets.orderBy(desc("neglogpval"))
-            lead_variantId_list = (
-                cred_sets.select("variantId").toPandas()["variantId"].tolist()
-            )
-            vlist_series = pd.Series(lead_variantId_list)
-            ind = vlist_series.map(
-                variant_index_df.set_index("variantId").index.get_loc
-            )
+        if len(cred_sets) > 1:
+            cred_sets.sort(key=lambda cs: abs(z_values[cs["lead"]]), reverse=True)
+            ind = [cs["lead"] for cs in cred_sets]
             ld_leads = ld_matrix[ind, :][:, ind]
             ld_leads = ld_leads**2
             ld_leads = ld_leads - np.tril(ld_leads)
             np.fill_diagonal(ld_leads, -1)
 
-            lead_variantId_list_to_delete: list[str] = []
-            for idx in range(len(lead_variantId_list)):
-                vId = lead_variantId_list[idx]
-                if vId in lead_variantId_list_to_delete:
+            to_delete: set[int] = set()
+            for idx in range(len(cred_sets)):
+                if idx in to_delete:
                     continue
-                high_ld_indices = np.where(ld_leads[idx, :] >= ld_min_r2)[0]
-                if len(high_ld_indices) > 0:
-                    lead_variantId_list_to_delete = (
-                        lead_variantId_list_to_delete
-                        + list(np.array(lead_variantId_list)[high_ld_indices])
+                to_delete.update(np.where(ld_leads[idx, :] >= ld_min_r2)[0].tolist())
+            cred_sets = [cs for idx, cs in enumerate(cred_sets) if idx not in to_delete]
+
+        rows = []
+        for cs in cred_sets:
+            effect, lead = cs["effect"], cs["lead"]
+            for j in cs["members"]:
+                marginal = study_marginals.get(variant_ids[j])
+                alpha_mu = alphas[j, effect] * mu[j, effect]
+                variance = (
+                    alphas[j, effect] * (mu[j, effect] ** 2 + 1 / omega[j, effect])
+                    - alpha_mu**2
+                )
+                se = None if marginal is None else marginal["standardError"]
+                scale = None if se is None else se * math.sqrt(n)
+                rows.append(
+                    (
+                        cs["credibleSetIndex"],
+                        str(variant_ids[j]),
+                        float(alphas[j, effect]),
+                        float(lbfs[j, effect] * LOG10_E),
+                        None if scale is None else float(alpha_mu * scale),
+                        None
+                        if scale is None
+                        else float(math.sqrt(max(variance, 0)) * scale),
+                        float(ld_matrix[lead, j] ** 2),
+                        *(
+                            (None,) * 6
+                            if marginal is None
+                            else (
+                                marginal["pValueMantissa"],
+                                marginal["pValueExponent"],
+                                marginal["effectAlleleFrequencyFromSource"],
+                                marginal["sampleSize"],
+                                marginal["beta"],
+                                se,
+                            )
+                        ),
+                        marginal is not None,
+                        studyId,
+                        study_type,
+                        str(cs["leadVariantId"]).split("_")[0],
+                        int(locusStart),
+                        int(locusEnd),
+                        FinemappingMethod.SUSIE_INF.value,
+                        float(cs["credibleSetLog10BayesFactor"]),
+                        cs["purityMeanR2"],
+                        cs["purityMinR2"],
                     )
-            if len(lead_variantId_list_to_delete) > 0:
-                for vId in lead_variantId_list_to_delete:
-                    cred_sets = cred_sets.filter(f.col("variantId") != vId)
+                )
 
-        cred_sets = cred_sets.drop("neglogpval")
-        cred_sets = cred_sets.withColumn("locusStart", f.lit(locusStart))
-        cred_sets = cred_sets.withColumn("locusEnd", f.lit(locusEnd))
-
-        cred_sets = cred_sets.drop("beta").withColumn(
-            "beta",
-            f.expr("""
-                filter(locus, x -> x.variantId = variantId)[0].beta
-            """),
+        # Literal arrays, as the schemas allow no null flag:
+        members_df = session.spark.createDataFrame(rows, _MEMBERS_SCHEMA).withColumns(
+            {
+                "credibleSetQualityControls": f.array(
+                    *(f.lit(flag) for flag in quality_controls or [])
+                ),
+                "qualityControls": f.when(
+                    ~f.col("inLocus"),
+                    f.array(f.lit(CredibleSetVariantQualityCheck.NOT_IN_LOCUS.value)),
+                )
+                .when(
+                    f.col("effectAlleleFrequency").isNotNull(),
+                    f.array(
+                        f.lit(CredibleSetVariantQualityCheck.EAF_FROM_SOURCE.value)
+                    ),
+                )
+                .otherwise(f.array()),
+            }
         )
-
-        return StudyLocus(
-            _df=cred_sets,
-            _schema=StudyLocus.get_schema(),
+        credible_sets, credible_set_variants = CredibleSet.from_members(
+            members_df, ["credibleSetIndex"]
         )
+        credible_sets.df = credible_sets.df.withColumn(
+            "qualityControls",
+            CredibleSet.update_quality_flag(
+                f.col("qualityControls"),
+                f.lit(True),
+                StudyLocusQualityCheck.OUT_OF_SAMPLE_LD,
+            ),
+        )
+        return credible_sets, credible_set_variants
 
     @staticmethod
     def susie_finemapper_from_prepared_dataframes(
@@ -478,6 +470,9 @@ class SusieFineMapperStep:
         region: str,
         locusStart: int,
         locusEnd: int,
+        marginals: DataFrame | None = None,
+        study_type: str = "gwas",
+        quality_controls: list[str] | None = None,
         susie_est_tausq: bool = False,
         run_carma: bool = False,
         run_sumstat_imputation: bool = False,
@@ -485,13 +480,12 @@ class SusieFineMapperStep:
         carma_tau: float = 0.04,
         imputed_r2_threshold: float = 0.8,
         ld_score_threshold: float = 4,
-        sum_pips: float = 0.99,
-        lead_pval_threshold: float = 1e-5,
+        lead_pval_threshold: float | None = 1e-5,
         purity_mean_r2_threshold: float = 0,
         purity_min_r2_threshold: float = 0.25,
         cs_lbf_thr: float = 2,
         ld_min_r2: float = 0.9,
-        N_total: int = 100_000,
+        N_total: int = DEFAULT_SAMPLE_SIZE,
     ) -> dict[str, Any] | None:
         """Susie fine-mapper function that uses LD, z-scores, variant info and other options for Fine-Mapping.
 
@@ -505,6 +499,9 @@ class SusieFineMapperStep:
             region (str): region
             locusStart (int): locus start
             locusEnd (int): locus end
+            marginals (DataFrame | None): The study's statistics per variant, as `MARGINAL_COLUMNS`
+            study_type (str): study type of the credible sets, default is "gwas"
+            quality_controls (list[str] | None): flags of the fine-mapped study locus
             susie_est_tausq (bool): estimate tau squared, default is False
             run_carma (bool): run CARMA, default is False
             run_sumstat_imputation (bool): run summary statistics imputation, default is False
@@ -512,8 +509,7 @@ class SusieFineMapperStep:
             carma_tau (float): CARMA tau, shrinkage parameter
             imputed_r2_threshold (float): imputed R2 threshold, default is 0.8
             ld_score_threshold (float): LD score threshold ofr imputation, default is 4
-            sum_pips (float): the expected sum of posterior probabilities in the locus, default is 0.99 (99% credible set)
-            lead_pval_threshold (float): p-value threshold for the lead variant from CS, default is 1e-5
+            lead_pval_threshold (float | None): p-value threshold for the lead variant from CS, default is 1e-5
             purity_mean_r2_threshold (float): thrshold for purity mean r2 qc metrics for filtering credible sets
             purity_min_r2_threshold (float): thrshold for purity min r2 qc metrics for filtering credible sets
             cs_lbf_thr (float): credible set logBF threshold for filtering credible sets, default is 2
@@ -521,7 +517,7 @@ class SusieFineMapperStep:
             N_total (int): total number of samples, default is 100_000
 
         Returns:
-            dict[str, Any] | None: dictionary with study locus, number of GWAS variants, number of LD variants, number of variants after merge, number of outliers, number of imputed variants, number of variants to fine-map
+            dict[str, Any] | None: dictionary with the credible sets, their variants, the log, the LD matrix and the fine-mapped variants
         """
         # PLEASE DO NOT REMOVE THIS LINE
         pd.DataFrame.iteritems = pd.DataFrame.items
@@ -620,81 +616,49 @@ class SusieFineMapperStep:
             z=z_to_fm, LD=ld_to_fm, L=L, est_tausq=susie_est_tausq, n=N_total
         )
 
-        schema = StructType(
-            [
-                StructField("variantId", StringType(), True),
-                StructField("z", DoubleType(), True),
-            ]
-        )
-        variant_index = (
-            session.spark.createDataFrame(
-                GWAS_df[["variantId", "z"]],
-                schema=schema,
-            )
-            .withColumn(
-                "chromosome", f.split(f.col("variantId"), "_")[0].cast("string")
-            )
-            .withColumn("position", f.split(f.col("variantId"), "_")[1].cast("int"))
-        )
-
-        study_locus = SusieFineMapperStep.susie_inf_to_studylocus(
+        credible_sets = SusieFineMapperStep.susie_inf_to_credible_sets(
             susie_output=susie_output,
             session=session,
             studyId=studyId,
-            region=region,
-            variant_index=variant_index,
-            sum_pips=sum_pips,
+            variants=GWAS_df[["variantId", "z"]],
             ld_matrix=ld_to_fm,
+            locusStart=locusStart,
+            locusEnd=locusEnd,
+            n=N_total,
+            marginals=marginals,
+            study_type=study_type,
+            quality_controls=quality_controls,
             lead_pval_threshold=lead_pval_threshold,
             purity_mean_r2_threshold=purity_mean_r2_threshold,
             purity_min_r2_threshold=purity_min_r2_threshold,
             cs_lbf_thr=cs_lbf_thr,
             ld_min_r2=ld_min_r2,
-            locusStart=locusStart,
-            locusEnd=locusEnd,
         )
+        credible_set, credible_set_variant = credible_sets or (None, None)
 
         end_time = time.time()
 
-        if study_locus is not None:
-            log_df = pd.DataFrame(
-                {
-                    "studyId": studyId,
-                    "region": region,
-                    "N_gwas_before_dedupl": N_gwas_before_dedupl,
-                    "N_gwas": N_gwas,
-                    "N_ld": N_ld,
-                    "N_overlap": N_after_merge,
-                    "N_outliers": N_outliers,
-                    "N_imputed": N_imputed,
-                    "N_final_to_fm": len(ld_to_fm),
-                    "elapsed_time": end_time - start_time,
-                    "number_of_CS": study_locus.df.count(),
-                    "error": "",
-                },
-                index=[0],
-            )
-        else:
-            log_df = pd.DataFrame(
-                {
-                    "studyId": studyId,
-                    "region": region,
-                    "N_gwas_before_dedupl": N_gwas_before_dedupl,
-                    "N_gwas": N_gwas,
-                    "N_ld": N_ld,
-                    "N_overlap": N_after_merge,
-                    "N_outliers": N_outliers,
-                    "N_imputed": N_imputed,
-                    "N_final_to_fm": len(ld_to_fm),
-                    "elapsed_time": end_time - start_time,
-                    "number_of_CS": 0,
-                    "error": "",
-                },
-                index=[0],
-            )
+        log_df = pd.DataFrame(
+            {
+                "studyId": studyId,
+                "region": region,
+                "N_gwas_before_dedupl": N_gwas_before_dedupl,
+                "N_gwas": N_gwas,
+                "N_ld": N_ld,
+                "N_overlap": N_after_merge,
+                "N_outliers": N_outliers,
+                "N_imputed": N_imputed,
+                "N_final_to_fm": len(ld_to_fm),
+                "elapsed_time": end_time - start_time,
+                "number_of_CS": 0 if credible_set is None else credible_set.df.count(),
+                "error": "",
+            },
+            index=[0],
+        )
 
         return {
-            "study_locus": study_locus,
+            "credible_set": credible_set,
+            "credible_set_variant": credible_set_variant,
             "log": log_df,
             "LD": ld_to_fm,
             "GWAS_df": GWAS_df,
@@ -714,20 +678,22 @@ class SusieFineMapperStep:
         carma_tau: float = 0.04,
         imputed_r2_threshold: float = 0.9,
         ld_score_threshold: float = 5,
-        sum_pips: float = 0.99,
         lead_pval_threshold: float = 1e-5,
         purity_mean_r2_threshold: float = 0,
         purity_min_r2_threshold: float = 0.25,
         cs_lbf_thr: float = 2,
         ld_min_r2: float = 0.9,
         log_output: str = "",
-        ignore_qc: bool = False,
     ) -> dict[str, Any] | None:
-        """Susie fine-mapper function that uses study-locus row with collected locus, chromosome and position as inputs.
+        """Susie fine-mapper function that uses an annotated study-locus row as input.
+
+        The study index gives the major population, which chooses the LD matrix, the study type
+        and the sample size, 100,000 when the study reports none. Whether the study should be
+        fine-mapped at all is decided by the fine-mapping manifest, not here.
 
         Args:
             session (Session): Spark session
-            study_locus_row (Row): StudyLocus row with collected locus
+            study_locus_row (Row): AnnotatedStudyLocus row with collected locus
             study_index (StudyIndex): StudyIndex object
             ld_matrix_paths (dict[str, str]): Dictionary with paths to LD matrices
             max_causal_snps (int): maximum number of causal variants
@@ -738,17 +704,15 @@ class SusieFineMapperStep:
             carma_tau (float): CARMA tau, shrinkage parameter
             imputed_r2_threshold (float): imputed R2 threshold, default is 0.8
             ld_score_threshold (float): LD score threshold ofr imputation, default is 4
-            sum_pips (float): the expected sum of posterior probabilities in the locus, default is 0.99 (99% credible set)
             lead_pval_threshold (float): p-value threshold for the lead variant from CS, default is 1e-5
             purity_mean_r2_threshold (float): thrshold for purity mean r2 qc metrics for filtering credible sets
             purity_min_r2_threshold (float): thrshold for purity min r2 qc metrics for filtering credible sets
             cs_lbf_thr (float): credible set logBF threshold for filtering credible sets, default is 2
             ld_min_r2 (float): Threshold to fillter CS by leads in high LD, default is 0.9
             log_output (str): path to the log output
-            ignore_qc (bool): run SuSiE regardless of QC flags, default is False
 
         Returns:
-            dict[str, Any] | None: dictionary with study locus, number of GWAS variants, number of LD variants, number of variants after merge, number of outliers, number of imputed variants, number of variants to fine-map, or None
+            dict[str, Any] | None: dictionary with the credible sets, their variants, the log, the LD matrix and the fine-mapped variants, or None
         """
         # PLEASE DO NOT REMOVE THIS LINE
         pd.DataFrame.iteritems = pd.DataFrame.items
@@ -758,11 +722,19 @@ class SusieFineMapperStep:
         locusStart = study_locus_row["locusStart"]
         locusEnd = study_locus_row["locusEnd"]
 
-        study_index_df = study_index._df
-        study_index_df = study_index_df.filter(f.col("studyId") == studyId)
+        study = (
+            study_index.df.filter(f.col("studyId") == studyId)
+            .select(
+                "studyType",
+                "nSamples",
+                major_population(f.col("ldPopulationStructure")).alias(
+                    "majorPopulation"
+                ),
+            )
+            .collect()
+        )
 
-        # Desision tree - study index
-        if study_index_df.count() == 0:
+        if not study:
             if log_output != "":
                 SusieFineMapperStep._empty_log_mg(
                     studyId=studyId,
@@ -773,178 +745,39 @@ class SusieFineMapperStep:
             logging.warning("No study index found for the studyId")
             return None
 
-        major_population = (
-            study_index_df.select(
-                "studyId",
-                order_array_of_structs_by_field(
-                    "ldPopulationStructure", "relativeSampleSize"
-                ).alias("ldPopulationStructure"),
-            )
-            .withColumn(
-                "majorPopulation",
-                f.when(
-                    f.col("ldPopulationStructure").isNotNull(),
-                    LDAnnotator._get_major_population(f.col("ldPopulationStructure")),
-                ),
-            )
-            .collect()[0]["majorPopulation"]
-        )
-
+        major_population_name = study[0]["majorPopulation"]
         # This is a temporary solution
-        if major_population == "eas":
-            major_population = "csa"
+        if major_population_name == "eas":
+            major_population_name = "csa"
 
-        N_total = int(study_index_df.select("nSamples").collect()[0]["nSamples"])
-        if N_total is None:
-            N_total = 100_000
+        N_total = (
+            DEFAULT_SAMPLE_SIZE
+            if study[0]["nSamples"] is None
+            else int(study[0]["nSamples"])
+        )
 
         locusStart = max(locusStart, 0)
 
         region = chromosome + ":" + str(int(locusStart)) + "-" + str(int(locusEnd))
 
-        # Desision tree - studyType
-        if study_index_df.select("studyType").collect()[0]["studyType"] not in [
-            "gwas",
-            "pqtl",
-        ]:
+        if major_population_name is None:
             if log_output != "":
                 SusieFineMapperStep._empty_log_mg(
                     studyId=studyId,
                     region=region,
-                    error_mg="Study type is not GWAS or non gwas catalog pqtl",
+                    error_mg="No LD population for the study",
                     path_out=log_output,
                 )
-            logging.warning("Study type is not GWAS or non gwas catalog pqtl")
-            if not ignore_qc:
-                return None
-
-        # Desision tree - ancestry
-        if major_population not in ["nfe", "csa", "afr"]:
-            if log_output != "":
-                SusieFineMapperStep._empty_log_mg(
-                    studyId=studyId,
-                    region=region,
-                    error_mg="Major ancestry is not nfe, csa or afr",
-                    path_out=log_output,
-                )
-            logging.warning("Major ancestry is not nfe, csa or afr")
-            if not ignore_qc:
-                return None
-        else:
-            has_high_relative_sample = (
-                study_index_df.withColumn(
-                    "hasHighRelativeSampleSize",
-                    f.expr(
-                        "exists(ldPopulationStructure, x -> x.relativeSampleSize >= 0.9)"
-                    ),
-                )
-                .select("hasHighRelativeSampleSize")
-                .collect()[0]["hasHighRelativeSampleSize"]
-            )
-            if not has_high_relative_sample:
-                SusieFineMapperStep._empty_log_mg(
-                    studyId=studyId,
-                    region=region,
-                    error_mg="Major ancestry is less than 90% of total sample size",
-                    path_out=log_output,
-                )
-                logging.warning("Major ancestry is less than 90% of total sample size")
-                if not ignore_qc:
-                    return None
-
-        # Desision tree - hasSumstats
-        if not study_index_df.select("hasSumstats").collect()[0]["hasSumstats"]:
-            if log_output != "":
-                SusieFineMapperStep._empty_log_mg(
-                    studyId=studyId,
-                    region=region,
-                    error_mg="No sumstats found for the studyId",
-                    path_out=log_output,
-                )
-            logging.warning("No sumstats found for the studyId")
-            if not ignore_qc:
-                return None
-
-        # Desision tree - qulityControls
-        keys_reasons = [
-            "SMALL_NUMBER_OF_SNPS",
-            "FAILED_GC_LAMBDA_CHECK",
-            "FAILED_PZ_CHECK",
-            "FAILED_MEAN_BETA_CHECK",
-            "NO_OT_CURATION",
-            "SUMSTATS_NOT_AVAILABLE",
-        ]
-
-        qc_mappings_dict = StudyIndex.get_QC_mappings()
-        invalid_reasons = [
-            qc_mappings_dict[key] for key in keys_reasons if key in qc_mappings_dict
-        ]
-
-        x_boolean = (
-            study_index_df.withColumn(
-                "FailedQC",
-                f.arrays_overlap(
-                    f.col("qualityControls"),
-                    f.array([f.lit(reason) for reason in invalid_reasons]),
-                ),
-            )
-            .select("FailedQC")
-            .collect()[0]["FailedQC"]
-        )
-        if x_boolean:
-            if log_output != "":
-                SusieFineMapperStep._empty_log_mg(
-                    studyId=studyId,
-                    region=region,
-                    error_mg="Quality control check failed for this study",
-                    path_out=log_output,
-                )
-            logging.warning("Quality control check failed for this study")
-            if not ignore_qc:
-                return None
-
-        # Desision tree - analysisFlags
-        study_index_df = study_index_df.drop("FailedQC")
-        invalid_reasons = [
-            "Multivariate analysis",
-            "ExWAS",
-            "Non-additive model",
-            "GxG",
-            "GxE",
-            "Case-case study",
-            "wgsGWAS",
-            "GxE, Case-case study",
-        ]
-        x_boolean = (
-            study_index_df.withColumn(
-                "FailedQC",
-                f.arrays_overlap(
-                    f.col("analysisFlags"),
-                    f.array([f.lit(reason) for reason in invalid_reasons]),
-                ),
-            )
-            .select("FailedQC")
-            .collect()[0]["FailedQC"]
-        )
-        if x_boolean:
-            if log_output != "":
-                SusieFineMapperStep._empty_log_mg(
-                    studyId=studyId,
-                    region=region,
-                    error_mg="Analysis Flags check failed for this study",
-                    path_out=log_output,
-                )
-            logging.warning("Analysis Flags check failed for this study")
-            if not ignore_qc:
-                return None
+            logging.warning("No LD population for the study")
+            return None
 
         gwas_df = session.spark.createDataFrame(
-            [study_locus_row], StudyLocus.get_schema()
+            [study_locus_row], AnnotatedStudyLocus.get_schema()
         )
         exploded_df = gwas_df.select(f.explode("locus").alias("locus"))
 
         result_df = exploded_df.select(
-            "locus.variantId", "locus.beta", "locus.standardError"
+            *(f"locus.{column}" for column in MARGINAL_COLUMNS)
         )
         gwas_df = (
             result_df.withColumn("z", f.col("beta") / f.col("standardError"))
@@ -962,11 +795,12 @@ class SusieFineMapperStep:
         variant_counts = gwas_df.groupBy("variantId").count()
         unique_variants = variant_counts.filter(f.col("count") == 1)
         gwas_df = gwas_df.join(unique_variants, on="variantId", how="left_semi")
+        marginals = gwas_df.select(*MARGINAL_COLUMNS)
 
         ld_index = LDMatrixInterface.get_locus_index_boundaries(
             ld_matrix_paths=ld_matrix_paths,
             study_locus_row=study_locus_row,
-            ancestry=major_population,
+            ancestry=major_population_name,
             session=session,
         )
 
@@ -1008,7 +842,7 @@ class SusieFineMapperStep:
             gnomad_ld = LDMatrixInterface.get_numpy_matrix(
                 ld_matrix_paths=ld_matrix_paths,
                 locus_index=gwas_index,
-                ancestry=major_population,
+                ancestry=major_population_name,
             )
 
             # Module to remove NANs from the LD matrix
@@ -1073,7 +907,7 @@ class SusieFineMapperStep:
             gnomad_ld = LDMatrixInterface.get_numpy_matrix(
                 ld_matrix_paths=ld_matrix_paths,
                 locus_index=gwas_index,
-                ancestry=major_population,
+                ancestry=major_population_name,
             )
 
             # Module to remove NANs from the LD matrix
@@ -1150,8 +984,7 @@ class SusieFineMapperStep:
                     path_out=log_output,
                 )
             logging.warning("More than 15000 variants after joining GWAS and LD index")
-            if not ignore_qc:
-                return None
+            return None
 
         out = SusieFineMapperStep.susie_finemapper_from_prepared_dataframes(
             GWAS_df=gwas_df,
@@ -1163,6 +996,9 @@ class SusieFineMapperStep:
             region=region,
             locusStart=int(locusStart),
             locusEnd=int(locusEnd),
+            marginals=marginals,
+            study_type=study[0]["studyType"],
+            quality_controls=study_locus_row["qualityControls"],
             susie_est_tausq=susie_est_tausq,
             run_carma=run_carma,
             run_sumstat_imputation=run_sumstat_imputation,
@@ -1170,7 +1006,6 @@ class SusieFineMapperStep:
             carma_tau=carma_tau,
             imputed_r2_threshold=imputed_r2_threshold,
             ld_score_threshold=ld_score_threshold,
-            sum_pips=sum_pips,
             lead_pval_threshold=lead_pval_threshold,
             purity_mean_r2_threshold=purity_mean_r2_threshold,
             purity_min_r2_threshold=purity_min_r2_threshold,
