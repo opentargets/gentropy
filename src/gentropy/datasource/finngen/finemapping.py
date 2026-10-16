@@ -11,8 +11,7 @@ from pyspark.sql import Column, SparkSession
 from pyspark.sql.types import DoubleType, StringType, StructField, StructType
 
 from gentropy.common.stats import (
-    LOG10_E,
-    region_log10_bayes_factor,
+    region_log_bayes_factor,
     split_pvalue_column,
 )
 from gentropy.dataset.credible_set import (
@@ -170,8 +169,8 @@ class FinnGenFinemapping:
 
         - `leadVariantId`: the member with the highest posterior probability, ties broken by variant id.
         - `locusStart`, `locusEnd`: the bounds of the fine-mapped region.
-        - `log10BayesFactor`: the region-wide Bayes factor of the single effect, computed from every
-          variant of the region (see `gentropy.common.stats.region_log10_bayes_factor`).
+        - `logBayesFactor`: the region-wide Bayes factor of the single effect, computed from every
+          variant of the region (see `gentropy.common.stats.region_log_bayes_factor`).
         - `purityMeanR2`, `purityMinR2`: `cs_avg_r2` and `cs_min_r2` of the credible set summaries.
 
         Credible set variant columns:
@@ -180,8 +179,8 @@ class FinnGenFinemapping:
           `p`, `beta` and `se`.
         - `posteriorProbability`: the variant's posterior inclusion probability in the single
           effect, `alpha<cs>`.
-        - `log10BayesFactor`: the variant's log Bayes factor in the single effect, `lbf_variable<cs>`,
-          in base 10.
+        - `logBayesFactor`: the variant's natural log Bayes factor in the single effect,
+          `lbf_variable<cs>`.
         - `conditionalBeta`, `conditionalStandardError`: `mean<cs>` and `sd<cs>`, the posterior mean
           and standard deviation of the variant's effect in the single effect, as SuSiE reports them.
         - `r2Overall`: `lead_r2`, the in-sample r2 with FinnGen's lead of the credible set. FinnGen's
@@ -250,8 +249,8 @@ class FinnGenFinemapping:
                 "studyId",
                 "region",
                 "credibleSetIndex",
-                region_log10_bayes_factor(f.col("lbfs")).alias(
-                    "credibleSetLog10BayesFactor"
+                region_log_bayes_factor(f.col("lbfs")).alias(
+                    "credibleSetLogBayesFactor"
                 ),
             )
         )
@@ -283,7 +282,7 @@ class FinnGenFinemapping:
             .alias("locusEnd"),
             f.lit("gwas").alias("studyType"),
             f.lit(FinemappingMethod.SUSIE.value).alias("fineMappingMethod"),
-            "credibleSetLog10BayesFactor",
+            "credibleSetLogBayesFactor",
             "purityMeanR2",
             "purityMinR2",
             *split_pvalue_column(f.col("p").cast(t.DoubleType())),
@@ -291,7 +290,7 @@ class FinnGenFinemapping:
             f.col("se").cast(t.DoubleType()).alias("reportedStandardError"),
             effect_allele_frequency.alias("effectAlleleFrequency"),
             _effect("alpha").alias("posteriorProbability"),
-            (_effect("lbf_variable") * LOG10_E).alias("log10BayesFactor"),
+            _effect("lbf_variable").alias("logBayesFactor"),
             _effect("mean").cast(t.DoubleType()).alias("conditionalBeta"),
             _effect("sd").cast(t.DoubleType()).alias("conditionalStandardError"),
             f.col("lead_r2").cast(t.FloatType()).alias("r2Overall"),

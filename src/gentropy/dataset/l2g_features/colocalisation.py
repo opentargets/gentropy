@@ -89,14 +89,14 @@ def extract_maximum_coloc_probability_per_region_and_gene(
         .filter(reduce(lambda a, b: a & b, coloc_filtering_expr))
         # and filters colocalisation results to only include the subset of studylocus that contains gwas studylocusid
         .join(
-            study_locus.df.selectExpr("studyLocusId as leftStudyLocusId"),
-            "leftStudyLocusId",
+            study_locus.df.selectExpr("studyLocusId as leftLocusId"),
+            "leftLocusId",
         )
     )
 
     return get_record_with_maximum_value(
         filtered_colocalisation.withColumnRenamed(
-            "leftStudyLocusId", "studyLocusId"
+            "leftLocusId", "studyLocusId"
         ).withColumnRenamed("rightGeneId", "geneId"),
         ["studyLocusId", "geneId"],
         metric,
@@ -890,7 +890,7 @@ def common_trans_pqtl_colocalisation_feature_logic(
             how="inner",
         )
         .select(
-            f.col("studyLocusId").alias("rightStudyLocusId"),
+            f.col("studyLocusId").alias("rightLocusId"),
             f.col("geneId").alias("transPQTLGeneId"),
         )
         .filter(f.col("transPQTLGeneId").isNotNull())
@@ -904,13 +904,13 @@ def common_trans_pqtl_colocalisation_feature_logic(
             (f.col("rightStudyType") == "pqtl")
             & f.lower("colocalisationMethod").isin(coloc_methods)
         )
-        .select("leftStudyLocusId", "rightStudyLocusId", colocalisation_metric, "colocalisationMethod")
-        .join(trans_pqtl_study_loci, on="rightStudyLocusId", how="inner")
+        .select("leftLocusId", "rightLocusId", colocalisation_metric, "colocalisationMethod")
+        .join(trans_pqtl_study_loci, on="rightLocusId", how="inner")
         .join(
             study_locus.df.select("studyLocusId", "chromosome", "position").withColumnRenamed(
-                "studyLocusId", "leftStudyLocusId"
+                "studyLocusId", "leftLocusId"
             ),
-            on="leftStudyLocusId",
+            on="leftLocusId",
             how="inner",
         )
     )
@@ -962,7 +962,7 @@ def common_trans_pqtl_colocalisation_feature_logic(
     # Step 5: Aggregate max colocalisation score per (GWAS locus, local gene)
     trans_interaction_feature = (
         coloc_trans_inter.select(
-            f.col("leftStudyLocusId").alias("studyLocusId"),
+            f.col("leftLocusId").alias("studyLocusId"),
             f.col("targetB").alias("geneId"),
             f.col(colocalisation_metric),
         )

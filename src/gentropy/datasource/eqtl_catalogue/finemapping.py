@@ -19,8 +19,7 @@ from gentropy.common.processing import flag_non_atgc_alleles, normalize_chromoso
 from gentropy.common.session import NativeFileFormat, Session
 from gentropy.common.spark import clean_strings_from_symbols
 from gentropy.common.stats import (
-    LOG10_E,
-    region_log10_bayes_factor,
+    region_log_bayes_factor,
     split_pvalue_column,
 )
 from gentropy.dataset.credible_set import CredibleSet, CredibleSetVariant
@@ -270,17 +269,16 @@ class EqtlCatalogueFinemapping:
         return f.regexp_extract(file_path, r"QTD\d{6}", 0).alias("dataset_id")
 
     @classmethod
-    def _region_log10_bayes_factors(
+    def _region_log_bayes_factors(
         cls: type[EqtlCatalogueFinemapping], lbf: DataFrame, credible_sets: DataFrame
     ) -> DataFrame:
-        r"""Compute the log10 Bayes factor of each credible set over its whole region.
+        r"""Compute the log Bayes factor of each credible set over its whole region.
 
         For the $`l`$-th SuSiE component, the credible set Bayes factor is the log-sum-exp of the
-        variant log Bayes factors with a uniform prior $`1/p`$ over the $`p`$ variants of the region,
-        converted to base 10:
+        variant log Bayes factors with a uniform prior $`1/p`$ over the $`p`$ variants of the region:
 
         ```math
-        \log_{10}\operatorname{BF}_l = \log_{10}(e) \left(\operatorname{LSE}_{j}(\operatorname{lbf}_{jl}) - \log p\right)
+        \log\operatorname{BF}_l = \operatorname{LSE}_{j}(\operatorname{lbf}_{jl}) - \log p
         ```
 
         The `lbf_variable` file holds every variant of the region, not only the credible set members.
@@ -291,7 +289,7 @@ class EqtlCatalogueFinemapping:
 
         Returns:
             DataFrame: One row per credible set, keyed by `molecular_trait_id`, `region`, `dataset_id`
-                and `credibleSetIndex`, with `credibleSetLog10BayesFactor`.
+                and `credibleSetIndex`, with `credibleSetLogBayesFactor`.
 
         Examples:
             >>> lbf = spark.createDataFrame(
@@ -303,9 +301,9 @@ class EqtlCatalogueFinemapping:
             >>> credible_sets = spark.createDataFrame(
             ...     [("t1", "r1", "d1", 1)], "molecular_trait_id string, region string, dataset_id string, credibleSetIndex int"
             ... )
-            >>> row = EqtlCatalogueFinemapping._region_log10_bayes_factors(lbf, credible_sets).first()
-            >>> round(row.credibleSetLog10BayesFactor, 6)  # log10((e^2 + e^0) / 2)
-            0.622683
+            >>> row = EqtlCatalogueFinemapping._region_log_bayes_factors(lbf, credible_sets).first()
+            >>> round(row.credibleSetLogBayesFactor, 6)  # log((e^2 + e^0) / 2)
+            1.433781
         """
         keys = ["molecular_trait_id", "region", "dataset_id"]
         lbf_l = f.element_at(
@@ -321,8 +319,8 @@ class EqtlCatalogueFinemapping:
             .select(
                 *keys,
                 "credibleSetIndex",
-                region_log10_bayes_factor(f.col("lbfs")).alias(
-                    "credibleSetLog10BayesFactor"
+                region_log_bayes_factor(f.col("lbfs")).alias(
+                    "credibleSetLogBayesFactor"
                 ),
             )
         )
@@ -352,7 +350,7 @@ class EqtlCatalogueFinemapping:
         Returns:
             DataFrame: Processed SuSIE results to contain metadata about the studies and the finemapping statistics.
         """
-        region_bayes_factors = cls._region_log10_bayes_factors(lbf, credible_sets)
+        region_bayes_factors = cls._region_log_bayes_factors(lbf, credible_sets)
         results = (
             lbf.join(
                 credible_sets.join(f.broadcast(studies_metadata), on="dataset_id"),
@@ -396,7 +394,7 @@ class EqtlCatalogueFinemapping:
                 .cast(IntegerType())
                 .alias("locusEnd"),
                 f.col("cs_min_r2").alias("purityMinR2"),
-                f.col("credibleSetLog10BayesFactor"),
+                f.col("credibleSetLogBayesFactor"),
                 f.col("pip").alias("posteriorProbability"),
                 *split_pvalue_column(f.col("pvalue")),
                 f.col("sample_size").alias("nSamples"),
@@ -465,7 +463,7 @@ class EqtlCatalogueFinemapping:
                 "fineMappingMethod": f.lit(FinemappingMethod.SUSIE.value),
                 "reportedBeta": f.col("beta"),
                 "reportedStandardError": f.col("standardError"),
-                "log10BayesFactor": f.col("logBF") * LOG10_E,
+                "logBayesFactor": f.col("logBF"),
             }
         )
         return CredibleSet.from_members(

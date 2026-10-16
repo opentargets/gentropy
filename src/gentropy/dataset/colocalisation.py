@@ -77,12 +77,12 @@ class Colocalisation(Dataset):
         return (
             # Append that to the respective side of the colocalisation dataset
             study_loci_w_metadata.selectExpr(
-                f"studyLocusId as {colocalisation_side}StudyLocusId",
+                f"studyLocusId as {colocalisation_side}LocusId",
                 *[
                     f"{col} as {colocalisation_side}{col[0].upper() + col[1:]}"
                     for col in metadata_cols
                 ],
-            ).join(coloc_df, f"{colocalisation_side}StudyLocusId", "right")
+            ).join(coloc_df, f"{colocalisation_side}LocusId", "right")
         )
 
     def drop_trans_effects(
@@ -101,7 +101,7 @@ class Colocalisation(Dataset):
         ).df.select("studyLocusId")
         filtered_coloc = self.df.join(
             cis_study_loci,
-            self.df.rightStudyLocusId == cis_study_loci.studyLocusId,
+            self.df.rightLocusId == cis_study_loci.studyLocusId,
             "inner",
         ).drop("studyLocusId")
         return Colocalisation(

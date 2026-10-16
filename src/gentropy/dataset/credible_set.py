@@ -13,13 +13,14 @@ Keys, the lead, the method, the posterior probability and the quality controls a
 Every statistic is nullable, as not every method or source gives it: a PICS credible set, for
 example, has no Bayes factor, and its tag variants have no conditional effect.
 
-Bayes factors are base-10 logarithms, with one definition per level across all sources:
+Bayes factors are natural logarithms, as colocalisation reads them, with one definition per
+level across all sources:
 
-- `CredibleSetVariant.log10BayesFactor` is the variant's log Bayes factor in the SuSiE single
+- `CredibleSetVariant.logBayesFactor` is the variant's log Bayes factor in the SuSiE single
   effect of its credible set.
-- `CredibleSet.log10BayesFactor` is that single effect's Bayes factor over its whole fine-mapped
+- `CredibleSet.logBayesFactor` is that single effect's Bayes factor over its whole fine-mapped
   region: the log-sum-exp of the variant log Bayes factors of every variant of the region, with a
-  uniform prior over them (`gentropy.common.stats.region_log10_bayes_factor`). Credible set Bayes
+  uniform prior over them (`gentropy.common.stats.region_log_bayes_factor`). Credible set Bayes
   factors that a source reports with another definition, such as FinnGen's model comparison
   `cs_log10bf`, are not stored.
 """
@@ -140,7 +141,7 @@ class CredibleSet(Dataset):
         set takes its own columns from the lead's row and its key from `ID_COLUMNS`.
 
         Where a credible set column and a variant column share a name, the credible set one is
-        given in `members` with a `credibleSet` prefix: `credibleSetLog10BayesFactor` and
+        given in `members` with a `credibleSet` prefix: `credibleSetLogBayesFactor` and
         `credibleSetQualityControls`. A column of either schema missing from `members` is null,
         and a missing quality controls column is empty.
 
@@ -166,12 +167,12 @@ class CredibleSet(Dataset):
             ...     "studyId": f.lit("S1"), "studyType": f.lit("gwas"), "fineMappingMethod": f.lit("SuSiE"),
             ... })
             >>> credible_sets, variants = CredibleSet.from_members(members, ["region"])
-            >>> credible_sets.df.select("leadVariantId", "log10BayesFactor", "qualityControls").show()
-            +-------------+----------------+---------------+
-            |leadVariantId|log10BayesFactor|qualityControls|
-            +-------------+----------------+---------------+
-            |     1_10_A_T|            NULL|             []|
-            +-------------+----------------+---------------+
+            >>> credible_sets.df.select("leadVariantId", "logBayesFactor", "qualityControls").show()
+            +-------------+--------------+---------------+
+            |leadVariantId|logBayesFactor|qualityControls|
+            +-------------+--------------+---------------+
+            |     1_10_A_T|          NULL|             []|
+            +-------------+--------------+---------------+
             <BLANKLINE>
             >>> variants.df.select("variantId", "reportedBeta", "sampleSize").orderBy("variantId").show()
             +---------+------------+----------+
@@ -232,7 +233,7 @@ class CredibleSet(Dataset):
                     members.filter(is_lead_row),
                     credible_set_schema,
                     {
-                        "log10BayesFactor": "credibleSetLog10BayesFactor",
+                        "logBayesFactor": "credibleSetLogBayesFactor",
                         "qualityControls": "credibleSetQualityControls",
                     },
                 ),
@@ -252,7 +253,7 @@ class CredibleSetVariant(Dataset):
     The marginal statistics (`pValueMantissa`, `pValueExponent`, `effectAlleleFrequency`,
     `sampleSize`, `reportedBeta`, `reportedStandardError`) are the ones the study reported. The
     conditional effect of the fine-mapping method, when it gives one, is kept apart in
-    `conditionalBeta` and `conditionalStandardError`. Bayes factors are base-10 logarithms.
+    `conditionalBeta` and `conditionalStandardError`. Bayes factors are natural logarithms.
 
     Examples:
         >>> rows = [

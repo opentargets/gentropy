@@ -21,11 +21,11 @@ from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
 from gentropy.dataset.l2g_prediction import L2GPrediction
 from gentropy.dataset.ld_index import LDIndex
+from gentropy.dataset.locus_overlap import LocusOverlap
 from gentropy.dataset.pathway_enrichment import PathwayEnrichment
 from gentropy.dataset.pathway_index import PathwayIndex
 from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import StudyLocus
-from gentropy.dataset.study_locus_overlap import StudyLocusOverlap
 from gentropy.dataset.summary_statistics import SummaryStatistics
 from gentropy.dataset.target_index import TargetIndex
 from gentropy.dataset.variant_index import VariantIndex
@@ -77,11 +77,11 @@ def mock_colocalisation(spark: SparkSession) -> Colocalisation:
         )
         .withSchema(coloc_schema)
         .withColumnSpec(
-            "leftStudyLocusId",
+            "leftLocusId",
             expr="cast(id as string)",
         )
         .withColumnSpec(
-            "rightStudyLocusId",
+            "rightLocusId",
             expr="cast(id as string)",
         )
         .withColumnSpec("h0", percentNulls=0.1)
@@ -242,9 +242,9 @@ def mock_study_index_gwas_catalog(spark: SparkSession) -> StudyIndexGWASCatalog:
 
 
 @pytest.fixture()
-def mock_study_locus_overlap(spark: SparkSession) -> StudyLocusOverlap:
-    """Mock StudyLocusOverlap dataset."""
-    overlap_schema = StudyLocusOverlap.get_schema()
+def mock_locus_overlap(spark: SparkSession) -> LocusOverlap:
+    """Mock LocusOverlap dataset."""
+    overlap_schema = LocusOverlap.get_schema()
 
     data_spec = (
         dg.DataGenerator(
@@ -255,11 +255,11 @@ def mock_study_locus_overlap(spark: SparkSession) -> StudyLocusOverlap:
         )
         .withSchema(overlap_schema)
         .withColumnSpec(
-            "leftStudyLocusId",
+            "leftLocusId",
             expr="cast(id as string)",
         )
         .withColumnSpec(
-            "rightStudyLocusId",
+            "rightLocusId",
             expr="cast(id as string)",
         )
         .withColumnSpec(
@@ -271,7 +271,7 @@ def mock_study_locus_overlap(spark: SparkSession) -> StudyLocusOverlap:
         )
     )
 
-    return StudyLocusOverlap(_df=data_spec.build(), _schema=overlap_schema)
+    return LocusOverlap(_df=data_spec.build(), _schema=overlap_schema)
 
 
 def mock_study_locus_data(spark: SparkSession) -> DataFrame:
@@ -677,15 +677,6 @@ def sample_ukbiobank_studies(spark: SparkSession) -> DataFrame:
         sep="\t",
         header=True,
         inferSchema=True,
-    )
-
-
-@pytest.fixture()
-def study_locus_sample_for_colocalisation(spark: SparkSession) -> StudyLocus:
-    """Sample study locus data for colocalisation."""
-    return StudyLocus(
-        _df=spark.read.parquet("tests/gentropy/data_samples/coloc_test.parquet"),
-        _schema=StudyLocus.get_schema(),
     )
 
 

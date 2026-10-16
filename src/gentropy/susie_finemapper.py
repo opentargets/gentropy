@@ -38,7 +38,6 @@ from pyspark.sql import DataFrame, Row
 
 from gentropy.common.ld import major_population
 from gentropy.common.session import Session
-from gentropy.common.stats import LOG10_E
 from gentropy.dataset.credible_set import (
     CredibleSet,
     CredibleSetVariant,
@@ -74,12 +73,12 @@ MARGINAL_COLUMNS = (
 
 _MEMBERS_SCHEMA = (
     "credibleSetIndex int, variantId string, posteriorProbability double, "
-    "log10BayesFactor double, conditionalBeta double, conditionalStandardError double, "
+    "logBayesFactor double, conditionalBeta double, conditionalStandardError double, "
     "r2Overall double, pValueMantissa float, pValueExponent int, "
     "effectAlleleFrequency float, sampleSize int, reportedBeta double, "
     "reportedStandardError double, inLocus boolean, studyId string, studyType string, "
     "chromosome string, locusStart int, locusEnd int, fineMappingMethod string, "
-    "credibleSetLog10BayesFactor double, purityMeanR2 double, purityMinR2 double"
+    "credibleSetLogBayesFactor double, purityMeanR2 double, purityMinR2 double"
 )
 
 
@@ -251,12 +250,12 @@ class SusieFineMapperStep:
 
         Statistics, as described in the module docstring:
 
-        - `posteriorProbability` is `alpha_l` and `log10BayesFactor` is `lbf_variable_l·log10(e)`;
+        - `posteriorProbability` is `alpha_l` and `logBayesFactor` is `lbf_variable_l`;
         - `conditionalBeta` and `conditionalStandardError` are the alpha-weighted moments of
           effect l, multiplied by `se_j·sqrt(n)` to the per-allele scale;
         - `r2Overall` is the squared LD with the lead in `ld_matrix`;
         - the marginal statistics are the member's entry in `marginals`;
-        - the credible set `log10BayesFactor` is SuSiE-inf's `lbf_l·log10(e)`, which is already
+        - the credible set `logBayesFactor` is SuSiE-inf's `lbf_l`, which is already
           over every variant of the region;
         - credible set flags are `quality_controls` plus `OUT_OF_SAMPLE_LD`.
 
@@ -332,7 +331,7 @@ class SusieFineMapperStep:
                     "lead": members[0],
                     "leadVariantId": variant_ids[members[0]],
                     "neglogpval": lead_neglogpval(variant_ids[members[0]]),
-                    "credibleSetLog10BayesFactor": cs_lbf_value * LOG10_E,
+                    "credibleSetLogBayesFactor": cs_lbf_value,
                     "purityMeanR2": float(np.mean(squared_matrix)),
                     "purityMinR2": float(np.min(squared_matrix)),
                 }
@@ -349,8 +348,8 @@ class SusieFineMapperStep:
                     and cs["neglogpval"] >= -np.log10(lead_pval_threshold)
                 )
             )
-            and cs["credibleSetLog10BayesFactor"] >= cs_lbf_thr * LOG10_E
-            and not np.isnan(cs["credibleSetLog10BayesFactor"])
+            and cs["credibleSetLogBayesFactor"] >= cs_lbf_thr
+            and not np.isnan(cs["credibleSetLogBayesFactor"])
             and cs["purityMinR2"] >= purity_min_r2_threshold
             and cs["purityMeanR2"] >= purity_mean_r2_threshold
         ]
@@ -396,7 +395,7 @@ class SusieFineMapperStep:
                         cs["credibleSetIndex"],
                         str(variant_ids[j]),
                         float(alphas[j, effect]),
-                        float(lbfs[j, effect] * LOG10_E),
+                        float(lbfs[j, effect]),
                         None if scale is None else float(alpha_mu * scale),
                         None
                         if scale is None
@@ -421,7 +420,7 @@ class SusieFineMapperStep:
                         int(locusStart),
                         int(locusEnd),
                         FinemappingMethod.SUSIE_INF.value,
-                        float(cs["credibleSetLog10BayesFactor"]),
+                        float(cs["credibleSetLogBayesFactor"]),
                         cs["purityMeanR2"],
                         cs["purityMinR2"],
                     )

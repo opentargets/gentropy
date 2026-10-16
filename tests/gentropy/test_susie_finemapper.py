@@ -10,7 +10,6 @@ import pandas as pd
 import pytest
 
 from gentropy.common.session import Session
-from gentropy.common.stats import LOG10_E
 from gentropy.dataset.credible_set import (
     CredibleSet,
     CredibleSetVariant,
@@ -380,7 +379,7 @@ class TestSusieInfToCredibleSets:
             "SuSiE-inf",
         )
         assert (first.chromosome, first.locusStart, first.locusEnd) == ("1", 1, 1000)
-        assert first.log10BayesFactor == pytest.approx(10 * LOG10_E)
+        assert first.logBayesFactor == pytest.approx(10.0)
         assert first.purityMeanR2 == pytest.approx(0.82)
         assert first.purityMinR2 == pytest.approx(0.64)
         assert first.confidence is None
@@ -396,7 +395,7 @@ class TestSusieInfToCredibleSets:
         assert set(variants) == {"1_100_A_T", "1_200_C_G", "1_300_G_A", "1_400_T_C"}
         lead = variants["1_100_A_T"]
         assert lead.posteriorProbability == pytest.approx(0.9)
-        assert lead.log10BayesFactor == pytest.approx(5 * LOG10_E)
+        assert lead.logBayesFactor == pytest.approx(5.0)
         assert lead.r2Overall == pytest.approx(1.0)
         assert variants["1_200_C_G"].r2Overall == pytest.approx(0.64)
         assert (lead.pValueMantissa, lead.pValueExponent) == (1.0, -10)

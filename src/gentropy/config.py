@@ -47,6 +47,7 @@ class ColocalisationConfig(StepConfig):
     """Colocalisation step configuration."""
 
     credible_set_path: str = MISSING
+    credible_set_variant_path: str = MISSING
     coloc_path: str = MISSING
     colocalisation_method: str = MISSING
     restrict_right_studies: list[str] | None = None

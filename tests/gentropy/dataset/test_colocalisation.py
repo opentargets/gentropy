@@ -104,8 +104,8 @@ class TestAppendStudyMetadata:
             _df=spark.createDataFrame(
                 [("1", "2", "eqtl", "X", "COLOC", 1, 0.9)],
                 [
-                    "leftStudyLocusId",
-                    "rightStudyLocusId",
+                    "leftLocusId",
+                    "rightLocusId",
                     "rightStudyType",
                     "chromosome",
                     "colocalisationMethod",
@@ -154,8 +154,8 @@ def test_drop_trans_effects(spark: SparkSession) -> None:
                 ("gwas3", "3", "eqtl", "X", "COLOC", 1, 0.7),  # should remain
             ],
             [
-                "leftStudyLocusId",
-                "rightStudyLocusId",
+                "leftLocusId",
+                "rightLocusId",
                 "rightStudyType",
                 "chromosome",
                 "colocalisationMethod",
@@ -170,8 +170,6 @@ def test_drop_trans_effects(spark: SparkSession) -> None:
     filtered_coloc = sample_colocalisation.drop_trans_effects(sample_study_locus)
 
     result_ids = (
-        filtered_coloc.df.select("leftStudyLocusId")
-        .toPandas()["leftStudyLocusId"]
-        .tolist()
+        filtered_coloc.df.select("leftLocusId").toPandas()["leftLocusId"].tolist()
     )
     assert result_ids == expected_ids, "Expected ids do not match result ids"

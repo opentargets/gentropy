@@ -50,7 +50,7 @@
     },
     {
       "metadata": {},
-      "name": "log10BayesFactor",
+      "name": "logBayesFactor",
       "nullable": true,
       "type": "double"
     },

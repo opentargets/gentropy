@@ -5,7 +5,7 @@ Fine-mapping writes the credible sets of every locus on its own; this gathers th
 1. **A significant lead.** The lead's p-value is the one on its credible set variant row; a lead
    without one, such as an imputed variant, does not pass.
 2. **Pure credible sets**, whose `purityMinR2` reaches the threshold; a null purity does not pass.
-3. **One credible set per `id`**, the one with the highest `log10BayesFactor`. The `id` hashes
+3. **One credible set per `id`**, the one with the highest `logBayesFactor`. The `id` hashes
    the study, the locus bounds, the lead and the method. Fine-mapped loci of a study do not
    overlap (they come from locus-breaker clumping, and a lead lies inside its locus), so a
    duplicated `id` is the same locus fine-mapped again, which is what the former study locus
@@ -80,7 +80,7 @@ def credible_set_qc(
         ...     lead("c", "1_30_G_A", -10),
         ... ], CredibleSetVariant.get_schema()))
         >>> kept, kept_variants = credible_set_qc(credible_sets, variants)
-        >>> [(row.id, row.log10BayesFactor) for row in kept.df.collect()]
+        >>> [(row.id, row.logBayesFactor) for row in kept.df.collect()]
         [('a', 5.0)]
         >>> kept_variants.df.count()
         1
@@ -112,7 +112,7 @@ def credible_set_qc(
         .withColumn(
             "rank",
             f.row_number().over(
-                Window.partitionBy("id").orderBy(f.desc_nulls_last("log10BayesFactor"))
+                Window.partitionBy("id").orderBy(f.desc_nulls_last("logBayesFactor"))
             ),
         )
         .filter(f.col("rank") == 1)

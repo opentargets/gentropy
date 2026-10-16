@@ -55,20 +55,21 @@ if TYPE_CHECKING:
     from gentropy.dataset.study_index import StudyIndex
     from gentropy.dataset.study_locus import LDAnnotatedStudyLocus
 
+# Spread used when PICS gives none, for a tag in perfect LD with the lead.
 _ZERO_SPREAD = 0.001
-"""Spread used when PICS gives none, for a tag in perfect LD with the lead."""
 
+# Smallest ``r2`` to the lead the PICS formulas hold for.
 _MIN_R2 = 0.5
-"""Smallest ``r2`` to the lead the PICS formulas hold for."""
 
+# ``ldSet`` fields holding the tag variant and its ``r2`` to the lead.
 _TAG, _R2 = "tagVariantId", "r2Overall"
-"""``ldSet`` fields holding the tag variant and its ``r2`` to the lead."""
 
 _VARIANT, _R2_OVERALL, _POSTERIOR = "variantId", "r2Overall", "posteriorProbability"
 
+# Column of the members of each credible set, sorted by posterior and cut.
 _MEMBERS = "members"
-"""Column of the members of each credible set, sorted by posterior and cut."""
 
+# One member: the variant, its ``r2`` to the lead and its posterior.
 _MEMBER = t.StructType(
     [
         t.StructField(_VARIANT, t.StringType()),
@@ -76,10 +77,9 @@ _MEMBER = t.StructType(
         t.StructField(_POSTERIOR, t.DoubleType()),
     ]
 )
-"""One member: the variant, its ``r2`` to the lead and its posterior."""
 
+# Temporary columns: the lead's ``-log10 p``, its usable tags and their likelihoods.
 _NEGLOG_P, _TAGS, _LIKELIHOODS = "neglogP", "tags", "likelihoods"
-"""Temporary columns: the lead's ``-log10 p``, its usable tags and their likelihoods."""
 
 
 def _likelihood_batch(neglog_p: pd.Series, r2: pd.Series, k: pd.Series) -> pd.Series:
@@ -245,7 +245,7 @@ class PICS:
                 {
                     name: f.lit(None).cast(schema[name].dataType)
                     for name in (
-                        "log10BayesFactor",
+                        "logBayesFactor",
                         "confidence",
                         "purityMeanR2",
                         "purityMinR2",
