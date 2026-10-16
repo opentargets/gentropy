@@ -12,7 +12,8 @@ per QTL type (`eqtl`, `sqtl`).
     - [x] **Target index** (sQTL only): resolves junctions annotated to several genes.
 
 ??? tip "Outputs"
-    - [x] **credible_set**: `StudyLocus` credible sets.
+    - [x] **credible_set**: `CredibleSet` credible sets.
+    - [x] **credible_set_variant**: `CredibleSetVariant`, their member variants.
     - [x] **study_index**: `StudyIndex`, one row per gene (eQTL) or intron junction (sQTL).
 """
 
@@ -34,11 +35,12 @@ class BigBrainFinemappingIngestionStep:
         qtl_type: str,
         finemapping_path: str,
         credible_set_path: str,
+        credible_set_variant_path: str,
         study_index_path: str,
         top_assoc_path: str | None = None,
         target_index_path: str | None = None,
     ) -> None:
-        """Read the fine-mapping file for one QTL type and write credible sets and a study index.
+        """Read the fine-mapping file for one QTL type and write credible sets, their variants and a study index.
 
         The study index is built from the fine-mapped features themselves, so every
         credible set has a study. For sQTL the junction-to-gene mapping comes from the
@@ -50,6 +52,7 @@ class BigBrainFinemappingIngestionStep:
             qtl_type (str): QTL type identifier, `StudyType.EQTL.value` or `StudyType.SQTL.value`.
             finemapping_path (str): Path to `BigBrain_cis_{eQTL,sQTL}_finemapping.txt.gz`.
             credible_set_path (str): Destination path for the credible sets.
+            credible_set_variant_path (str): Destination path for the credible set variants.
             study_index_path (str): Destination path for the study index.
             top_assoc_path (str | None): Path to the source `top_assoc` TSV. Required for sQTL.
             target_index_path (str | None): Path to the target index, used to resolve
@@ -80,6 +83,13 @@ class BigBrainFinemappingIngestionStep:
         BigBrainStudyIndex.from_source(
             features, feature_gene_map, qtl_type
         ).df.coalesce(1).write.mode(session.write_mode).parquet(study_index_path)
-        BigBrainFinemapping.from_source(raw, qtl_type).df.coalesce(
-            session.output_partitions
-        ).write.mode(session.write_mode).parquet(credible_set_path)
+        credible_sets, credible_set_variants = BigBrainFinemapping.from_source(
+            raw, qtl_type
+        )
+        for dataset, path in (
+            (credible_sets, credible_set_path),
+            (credible_set_variants, credible_set_variant_path),
+        ):
+            dataset.df.coalesce(session.output_partitions).write.mode(
+                session.write_mode
+            ).parquet(path)

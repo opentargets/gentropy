@@ -2,10 +2,11 @@
 
 BigBrain publishes its own SuSiE fine-mapping alongside the summary statistics
 (`BigBrain_cis_eQTL_finemapping.txt.gz`, `BigBrain_cis_sQTL_finemapping.txt.gz`).
-These were produced with PolyFun + SuSiE (L=5, residual variance fixed at 1) using
-in-sample LD from 3,884 European-ancestry BigBrain donors, on the EUR meta-analysis.
-That LD matches the summary statistics far better than any public reference panel,
-so the published credible sets are ingested directly rather than re-fine-mapped.
+These were produced with PolyFun's `finemapper.py` running SuSiE (L=5, residual variance
+fixed at 1, a 1 Mb window around the feature) on munged Z-scores and sample sizes, with
+in-sample LD from 3,884 European-ancestry BigBrain donors (Réal et al. 2025, Methods). That
+LD matches the summary statistics far better than any public reference panel, so the
+published credible sets are ingested directly rather than re-fine-mapped.
 
 The file has one row per credible-set member variant:
 
@@ -15,10 +16,17 @@ The file has one row per credible-set member variant:
 | `CHR`, `BP` | GRCh38 position |
 | `A1`, `A2` | effect and other allele |
 | `Z`, `P`, `N` | marginal Z-score, p-value and sample size |
-| `PIP` | posterior inclusion probability |
+| `PIP` | posterior inclusion probability in any of the SuSiE effects |
 | `BETA_MEAN`, `BETA_SD` | SuSiE posterior mean and standard deviation of the effect |
 | `CREDIBLE_SET` | credible-set index within the feature (1-5) |
 | `feature` | molecular trait (versioned Ensembl gene ID, or Leafcutter intron) |
+
+`BETA_MEAN` and `BETA_SD` are not stored. SuSiE was fitted on Z-scores and N, so they are on
+the standardised scale (`BETA_SD·sqrt(N)` is about 1 and `BETA_MEAN` about `Z/sqrt(N)` for
+single-variant credible sets in the eQTL release), and summed over all effects. No marginal
+standard error is published to put them on the per-allele scale of the other sources' conditional
+statistics, and the sQTL fine-mapping used random-effects Z-scores, so the fixed-effect standard
+errors of the full summary statistics would not convert them exactly either.
 """
 
 from __future__ import annotations
@@ -30,11 +38,8 @@ from pyspark.sql import functions as f
 from pyspark.sql import types as t
 
 from gentropy.common.stats import neglogpval_from_z2, pvalue_from_neglogpval
-from gentropy.dataset.study_locus import (
-    CredibleInterval,
-    FinemappingMethod,
-    StudyLocus,
-)
+from gentropy.dataset.credible_set import CredibleSet, CredibleSetVariant
+from gentropy.dataset.study_locus import FinemappingMethod
 from gentropy.datasource.bigbrain import BigBrainPublicationMetadata
 
 if TYPE_CHECKING:
@@ -83,8 +88,10 @@ class BigBrainFinemapping:
         )
 
     @classmethod
-    def from_source(cls, finemapping: DataFrame, qtl_type: str) -> StudyLocus:
-        """Convert BigBrain fine-mapping rows into credible sets.
+    def from_source(
+        cls, finemapping: DataFrame, qtl_type: str
+    ) -> tuple[CredibleSet, CredibleSetVariant]:
+        """Convert BigBrain fine-mapping rows into credible sets and their variants.
 
         - `variantId` is `CHR_BP_A2_A1`, so the effect allele `A1` is the alternate
           allele, matching gentropy's convention. In the EUR eQTL release 99.4% of
@@ -95,11 +102,15 @@ class BigBrainFinemapping:
         - The p-value is recomputed from `Z` in -log10 space. The published `P` is
           fine (the strongest is about 1e-235), but this cannot underflow and keeps
           the mantissa/exponent split consistent with gentropy's other sources.
-        - `logBF` is not published, so it is left null. PIP-based colocalisation
-          methods do not need it.
-        - Each locus is ranked by PIP and restricted to the 95% credible set
-          (`is95CredibleSet`), as on the platform; bounds and region describe the
-          members that remain.
+        - `sampleSize` is `N`, the sample size of the association test at the locus.
+        - `posteriorProbability` is `PIP`, the probability of being causal in any of the SuSiE
+          effects, not in the credible set's own effect: the per-effect probabilities are not
+          published.
+        - The beta, standard error and conditional statistics are null (see the module
+          docstring), and so are the Bayes factors, which are not published.
+        - Each credible set is ranked by PIP and restricted to its 95% credible set, the members
+          whose preceding cumulative PIP is below 0.95, as on the platform; its lead is the top
+          PIP, ties broken by variant id, and its bounds are those of the members that remain.
         - Purity is not published either. SuSiE only reports sets with a minimum
           absolute correlation of 0.5 on the in-sample LD, so every set passed a
           purity filter at source; purity is set to 1 for single-variant sets and
@@ -110,27 +121,31 @@ class BigBrainFinemapping:
             qtl_type (str): QTL type, e.g. `StudyType.EQTL.value`.
 
         Returns:
-            StudyLocus: BigBrain credible sets.
+            tuple[CredibleSet, CredibleSetVariant]: BigBrain credible sets and their variants.
         """
         pub = BigBrainPublicationMetadata()
         credible_set = Window.partitionBy("studyId", "credibleSetIndex")
-        by_pip = credible_set.orderBy(f.desc("posteriorProbability"), f.col("variantId"))
+        by_pip = credible_set.orderBy(
+            f.desc("posteriorProbability"), f.col("variantId")
+        )
 
         variants = (
             finemapping.select(
                 f.concat_ws(
-                    "_", f.lit("BigBrain"), f.lit(qtl_type), f.lit(pub.ANCESTRY), f.col("feature")
+                    "_",
+                    f.lit("BigBrain"),
+                    f.lit(qtl_type),
+                    f.lit(pub.ANCESTRY),
+                    f.col("feature"),
                 ).alias("studyId"),
                 f.col("CHR").alias("chromosome"),
                 f.col("BP").alias("position"),
-                f.concat_ws("_", f.col("CHR"), f.col("BP"), f.col("A2"), f.col("A1")).alias(
-                    "variantId"
-                ),
+                f.concat_ws(
+                    "_", f.col("CHR"), f.col("BP"), f.col("A2"), f.col("A1")
+                ).alias("variantId"),
                 f.col("Z").alias("zScore"),
                 f.col("N").alias("sampleSize"),
                 f.col("PIP").alias("posteriorProbability"),
-                f.col("BETA_MEAN").alias("beta"),
-                f.col("BETA_SD").alias("standardError"),
                 f.col("CREDIBLE_SET").alias("credibleSetIndex"),
             )
             .withColumn("isLead", f.row_number().over(by_pip) == 1)
@@ -144,68 +159,38 @@ class BigBrainFinemapping:
             )
             .filter(f.col("leadIsUntested").isNull() & (f.col("zScore") != 0))
             .drop("leadIsUntested")
-            .select("*", *pvalue_from_neglogpval(neglogpval_from_z2(f.col("zScore") ** 2)))
-        )
-
-        locus_struct = f.struct(
-            "variantId",
-            "posteriorProbability",
-            "pValueMantissa",
-            "pValueExponent",
-            f.lit(None).cast(t.DoubleType()).alias("logBF"),
-            "beta",
-            "standardError",
-        )
-        credible_sets = (
-            variants.withColumn("locus", f.collect_list(locus_struct).over(credible_set))
-            .filter(f.col("isLead"))
-            .withColumn("finemappingMethod", f.lit(FinemappingMethod.SUSIE.value))
             .select(
-                StudyLocus.assign_study_locus_id(
-                    ["studyId", "variantId", "finemappingMethod"]
-                ),
-                "studyId",
-                f.lit(qtl_type).alias("studyType"),
-                "variantId",
-                "chromosome",
-                "position",
-                "beta",
-                "zScore",
-                "pValueMantissa",
-                "pValueExponent",
-                "standardError",
-                "finemappingMethod",
-                "credibleSetIndex",
-                "sampleSize",
-                "locus",
-                f.array().cast(t.ArrayType(t.StringType(), False)).alias(
-                    "qualityControls"
-                ),
+                "*", *pvalue_from_neglogpval(neglogpval_from_z2(f.col("zScore") ** 2))
             )
         )
-        # Sorts each locus by descending PIP, flags the 95%/99% credible sets and keeps
-        # only the 95% members, as the platform does.
-        filtered = StudyLocus(
-            _df=credible_sets, _schema=StudyLocus.get_schema()
-        ).filter_credible_set(CredibleInterval.IS95)
-
-        # Bounds and purity describe the members that remain.
-        member_positions = f.transform(
-            "locus", lambda x: f.split(x["variantId"], "_").getItem(1).cast("int")
+        # The 95% credible set: members whose preceding cumulative PIP is below 0.95.
+        preceding_pip = f.coalesce(
+            f.sum("posteriorProbability").over(
+                by_pip.rowsBetween(Window.unboundedPreceding, -1)
+            ),
+            f.lit(0.0),
         )
-        single_variant_purity = f.when(f.size("locus") == 1, f.lit(1.0)).cast(
-            t.DoubleType()
-        )
-        return StudyLocus(
-            _df=filtered.df.withColumn("locusStart", f.array_min(member_positions))
-            .withColumn("locusEnd", f.array_max(member_positions))
-            .withColumn(
-                "region",
-                f.concat_ws(
-                    "", "chromosome", f.lit(":"), "locusStart", f.lit("-"), "locusEnd"
-                ),
+        single_variant_purity = f.when(
+            f.count("variantId").over(credible_set) == 1, f.lit(1.0)
+        ).cast(t.DoubleType())
+        members = (
+            variants.withColumn("precedingPip", preceding_pip)
+            .filter(f.col("precedingPip") < 0.95)
+            .drop("precedingPip")
+            .withColumns(
+                {
+                    "studyType": f.lit(qtl_type),
+                    "fineMappingMethod": f.lit(FinemappingMethod.SUSIE.value),
+                    # Bounds and purity describe the members that remain.
+                    "locusStart": f.min("position").over(credible_set),
+                    "locusEnd": f.max("position").over(credible_set),
+                }
             )
-            .withColumn("purityMeanR2", single_variant_purity)
-            .withColumn("purityMinR2", single_variant_purity),
-            _schema=StudyLocus.get_schema(),
-        ).assign_confidence()
+            .withColumns(
+                {
+                    "purityMeanR2": single_variant_purity,
+                    "purityMinR2": single_variant_purity,
+                }
+            )
+        )
+        return CredibleSet.from_members(members, ["studyId", "credibleSetIndex"])
