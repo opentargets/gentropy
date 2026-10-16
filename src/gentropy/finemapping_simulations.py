@@ -92,7 +92,7 @@ class FineMappingSimulations:
             "studyId",
             "chromosome",
             "leadVariantId",
-            "log10BayesFactor",
+            "logBayesFactor",
             "purityMeanR2",
             "purityMinR2",
             "members",

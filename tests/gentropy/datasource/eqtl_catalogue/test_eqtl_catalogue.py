@@ -295,7 +295,7 @@ class TestEqtlCatalogueFinemapping:
             "locusStart",
             "locusEnd",
             "purityMinR2",
-            "credibleSetLog10BayesFactor",
+            "credibleSetLogBayesFactor",
             "posteriorProbability",
             "pValueMantissa",
             "pValueExponent",
@@ -337,7 +337,7 @@ class TestEqtlCatalogueFinemapping:
         assert credible_set.leadVariantId == "X_149481619_T_C"  # highest PIP
         assert credible_set.fineMappingMethod == "SuSiE"
         assert credible_set.purityMinR2 == pytest.approx(0.5142969)
-        assert credible_set.log10BayesFactor == pytest.approx(13.8846376)
+        assert credible_set.logBayesFactor == pytest.approx(31.9705596)
         assert credible_set.purityMeanR2 is None
         assert credible_set.confidence is None
 
@@ -351,7 +351,7 @@ class TestEqtlCatalogueFinemapping:
         assert lead.reportedStandardError == pytest.approx(0.0950277)
         assert lead.sampleSize is None
         assert lead.posteriorProbability == pytest.approx(0.1104114)
-        assert lead.log10BayesFactor == pytest.approx(36.6787648 * 0.4342945)
+        assert lead.logBayesFactor == pytest.approx(36.6787648)
         assert lead.effectAlleleFrequency is None
         assert lead.conditionalBeta is None
         assert lead.r2Overall is None

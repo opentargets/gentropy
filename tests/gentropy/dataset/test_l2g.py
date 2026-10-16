@@ -12,9 +12,9 @@ from pyspark.sql.types import FloatType
 from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
 from gentropy.dataset.l2g_prediction import L2GPrediction
+from gentropy.dataset.locus_overlap import LocusOverlap
 from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import StudyLocus
-from gentropy.dataset.study_locus_overlap import StudyLocusOverlap
 
 if TYPE_CHECKING:
     from pyspark.sql import SparkSession
@@ -79,7 +79,7 @@ def test_filter_unique_associations(spark: SparkSession) -> None:
             ("1", "2", "eqtl", "CHROM1", "variant2", None),
             ("1", "4", "eqtl", "CHROM1", "variant4", None),
         ],
-        StudyLocusOverlap.get_schema(),
+        LocusOverlap.get_schema(),
     )
 
     expected_df = spark.createDataFrame(
@@ -94,8 +94,8 @@ def test_filter_unique_associations(spark: SparkSession) -> None:
     mock_l2g_gs = L2GGoldStandard(
         _df=mock_l2g_gs_df, _schema=L2GGoldStandard.get_schema()
     )
-    mock_sl_overlap = StudyLocusOverlap(
-        _df=mock_sl_overlap_df, _schema=StudyLocusOverlap.get_schema()
+    mock_sl_overlap = LocusOverlap(
+        _df=mock_sl_overlap_df, _schema=LocusOverlap.get_schema()
     )._convert_to_square_matrix()
 
     observed_df = mock_l2g_gs.filter_unique_associations(mock_sl_overlap).df

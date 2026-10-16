@@ -18,7 +18,7 @@ if TYPE_CHECKING:
     from pyspark.sql.types import StructType
 
     from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
-    from gentropy.dataset.study_locus_overlap import StudyLocusOverlap
+    from gentropy.dataset.locus_overlap import LocusOverlap
     from gentropy.dataset.variant_index import VariantIndex
 
 
@@ -34,7 +34,7 @@ class L2GGoldStandard(Dataset):
     def from_otg_curation(
         cls: type[L2GGoldStandard],
         gold_standard_curation: DataFrame,
-        study_locus_overlap: StudyLocusOverlap,
+        study_locus_overlap: LocusOverlap,
         variant_index: VariantIndex,
         interactions: DataFrame,
     ) -> L2GGoldStandard:
@@ -42,7 +42,7 @@ class L2GGoldStandard(Dataset):
 
         Args:
             gold_standard_curation (DataFrame): Gold standard curation dataframe, extracted from
-            study_locus_overlap (StudyLocusOverlap): Study locus overlap dataset to remove duplicated loci
+            study_locus_overlap (LocusOverlap): Study locus overlap dataset to remove duplicated loci
             variant_index (VariantIndex): Dataset to bring distance between a variant and a gene's footprint
             interactions (DataFrame): Gene-gene interactions dataset to remove negative cases where the gene interacts with a positive gene
 
@@ -140,7 +140,7 @@ class L2GGoldStandard(Dataset):
 
     def filter_unique_associations(
         self: L2GGoldStandard,
-        study_locus_overlap: StudyLocusOverlap,
+        study_locus_overlap: LocusOverlap,
     ) -> L2GGoldStandard:
         """Refines the gold standard to filter out loci that are not independent.
 
@@ -150,7 +150,7 @@ class L2GGoldStandard(Dataset):
         - If two loci point to different genes, and have overlapping variants, we keep both.
 
         Args:
-            study_locus_overlap (StudyLocusOverlap): A dataset detailing variants that overlap between StudyLocus.
+            study_locus_overlap (LocusOverlap): A dataset detailing variants that overlap between StudyLocus.
 
         Returns:
             L2GGoldStandard: L2GGoldStandard updated to exclude false negatives and redundant positives.
@@ -166,7 +166,7 @@ class L2GGoldStandard(Dataset):
             # identify all the study loci that have an overlapping variant
             .join(
                 squared_overlaps.df.alias("right"),
-                (f.col("left.studyLocusId") == f.col("right.leftStudyLocusId"))
+                (f.col("left.studyLocusId") == f.col("right.leftLocusId"))
                 & (f.col("left.variantId") == f.col("right.tagVariantId")),
                 "left",
             )

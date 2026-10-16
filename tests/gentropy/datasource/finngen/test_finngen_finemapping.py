@@ -62,7 +62,7 @@ def test_credible_set_carries_the_region_and_its_bayes_factor(
         "SuSiE",
     )
     # Region-wide: over all 89 variants of the region, not FinnGen's cs_log10bf of 4.46.
-    assert credible_set.log10BayesFactor == pytest.approx(6.8642419)
+    assert credible_set.logBayesFactor == pytest.approx(15.8055011)
     assert credible_set.purityMeanR2 == pytest.approx(0.678175582701)
     assert credible_set.purityMinR2 == pytest.approx(0.468032488641)
     assert credible_set.confidence is None
@@ -89,7 +89,7 @@ def test_credible_set_variants_carry_marginal_and_single_effect_statistics(
     assert lead.reportedBeta == pytest.approx(0.196413)
     assert lead.reportedStandardError == pytest.approx(0.0298788)
     assert lead.posteriorProbability == pytest.approx(0.367106415849495)
-    assert lead.log10BayesFactor == pytest.approx(8.3789305)
+    assert lead.logBayesFactor == pytest.approx(19.2932005)
     assert lead.conditionalBeta == pytest.approx(0.0705310811656966)
     assert lead.conditionalStandardError == pytest.approx(0.0943204169456985)
     assert lead.r2Overall == pytest.approx(1.0)

@@ -20,12 +20,12 @@ class TestCredibleSetQCStep:
 
         Six credible sets: A three times, as if fine-mapped thrice; B with a lead p-value above
         the threshold; C with a purity below it; D passing. A with the highest
-        log10BayesFactor and D are expected to remain.
+        logBayesFactor and D are expected to remain.
         """
         self.purity_min_r2 = 0.01
         self.p_value_threshold = 1e-5
         self.n_partitions = 1
-        # (id, lead, log10BayesFactor, purityMinR2, lead p-value exponent)
+        # (id, lead, logBayesFactor, purityMinR2, lead p-value exponent)
         credible_sets = [
             ("A", "1_100_G_GA", 1.0, 1.0, -6),
             ("A", "1_100_G_GA", 3.0, 1.0, -6),
@@ -87,7 +87,7 @@ class TestCredibleSetQCStep:
         for run, row in enumerate(cs_df.collect()):
             cs_df.filter(
                 (f.col("id") == row.id)
-                & (f.col("log10BayesFactor") == row.log10BayesFactor)
+                & (f.col("logBayesFactor") == row.logBayesFactor)
             ).write.parquet(f"{self.cs_path}/{row.id}/{run}")
             variant_df.filter(f.col("credibleSetId") == row.id).limit(1).write.parquet(
                 f"{self.variant_path}/{row.id}/{run}"
@@ -118,8 +118,8 @@ class TestCredibleSetQCStep:
             "Incorrect number of partitions in the output."
         )
         cs = CredibleSet.from_parquet(session, self.output_path)
-        data = {row.id: row.log10BayesFactor for row in cs.df.collect()}
-        # A with the highest log10BayesFactor, and D.
+        data = {row.id: row.logBayesFactor for row in cs.df.collect()}
+        # A with the highest logBayesFactor, and D.
         assert data == {"A": 3.0, "D": 1.0}
         variants = CredibleSetVariant.from_parquet(session, self.variant_output_path)
         assert sorted(

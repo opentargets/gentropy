@@ -441,8 +441,8 @@ class TestCommonColocalisationFeatureLogic:
             _df=spark.createDataFrame(
                 [
                     {
-                        "leftStudyLocusId": "1",
-                        "rightStudyLocusId": "2",
+                        "leftLocusId": "1",
+                        "rightLocusId": "2",
                         "chromosome": "1",
                         "colocalisationMethod": "COLOC",
                         "numberColocalisingVariants": 1,
@@ -450,8 +450,8 @@ class TestCommonColocalisationFeatureLogic:
                         "rightStudyType": "eqtl",
                     },
                     {
-                        "leftStudyLocusId": "1",
-                        "rightStudyLocusId": "3",  # qtl linked to the same gene as studyLocusId 2 with a lower score
+                        "leftLocusId": "1",
+                        "rightLocusId": "3",  # qtl linked to the same gene as studyLocusId 2 with a lower score
                         "chromosome": "1",
                         "colocalisationMethod": "COLOC",
                         "numberColocalisingVariants": 1,
@@ -459,8 +459,8 @@ class TestCommonColocalisationFeatureLogic:
                         "rightStudyType": "eqtl",
                     },
                     {
-                        "leftStudyLocusId": "1",
-                        "rightStudyLocusId": "4",  # qtl linked to a diff gene and with the highest score
+                        "leftLocusId": "1",
+                        "rightLocusId": "4",  # qtl linked to a diff gene and with the highest score
                         "chromosome": "1",
                         "colocalisationMethod": "COLOC",
                         "numberColocalisingVariants": 1,
@@ -1510,8 +1510,8 @@ class TestTransPQtlColocH4Feature:
             _df=spark.createDataFrame(
                 [
                     {
-                        "leftStudyLocusId": "1",  # GWAS locus coloc with cis-pQTL for gene1
-                        "rightStudyLocusId": "2",
+                        "leftLocusId": "1",  # GWAS locus coloc with cis-pQTL for gene1
+                        "rightLocusId": "2",
                         "chromosome": "1",
                         "colocalisationMethod": "COLOC",
                         "numberColocalisingVariants": 1,
@@ -1520,8 +1520,8 @@ class TestTransPQtlColocH4Feature:
                         "rightStudyType": "pqtl",
                     },
                     {
-                        "leftStudyLocusId": "1",  # GWAS locus coloc with trans-pQTL for geneX
-                        "rightStudyLocusId": "5",
+                        "leftLocusId": "1",  # GWAS locus coloc with trans-pQTL for geneX
+                        "rightLocusId": "5",
                         "chromosome": "1",
                         "colocalisationMethod": "COLOC",
                         "numberColocalisingVariants": 1,
@@ -1530,8 +1530,8 @@ class TestTransPQtlColocH4Feature:
                         "rightStudyType": "pqtl",
                     },
                     {
-                        "leftStudyLocusId": "1",  # trans-pQTL for geneY: interaction scoring below threshold
-                        "rightStudyLocusId": "6",
+                        "leftLocusId": "1",  # trans-pQTL for geneY: interaction scoring below threshold
+                        "rightLocusId": "6",
                         "chromosome": "1",
                         "colocalisationMethod": "COLOC",
                         "numberColocalisingVariants": 1,
@@ -1786,8 +1786,8 @@ class TestTransPQtlColocH4MaximumNeighbourhoodFeature:
             _df=spark.createDataFrame(
                 [
                     {
-                        "leftStudyLocusId": "1",
-                        "rightStudyLocusId": "2",
+                        "leftLocusId": "1",
+                        "rightLocusId": "2",
                         "chromosome": "1",
                         "colocalisationMethod": "COLOC",
                         "numberColocalisingVariants": 1,
@@ -1796,8 +1796,8 @@ class TestTransPQtlColocH4MaximumNeighbourhoodFeature:
                         "rightStudyType": "pqtl",
                     },
                     {
-                        "leftStudyLocusId": "1",  # trans-pQTL for geneX (STRING interaction with gene1)
-                        "rightStudyLocusId": "5",
+                        "leftLocusId": "1",  # trans-pQTL for geneX (STRING interaction with gene1)
+                        "rightLocusId": "5",
                         "chromosome": "1",
                         "colocalisationMethod": "COLOC",
                         "numberColocalisingVariants": 1,
@@ -1806,8 +1806,8 @@ class TestTransPQtlColocH4MaximumNeighbourhoodFeature:
                         "rightStudyType": "pqtl",
                     },
                     {
-                        "leftStudyLocusId": "1",  # trans-pQTL for geneY (IntAct interaction with gene1)
-                        "rightStudyLocusId": "6",
+                        "leftLocusId": "1",  # trans-pQTL for geneY (IntAct interaction with gene1)
+                        "rightLocusId": "6",
                         "chromosome": "1",
                         "colocalisationMethod": "COLOC",
                         "numberColocalisingVariants": 1,

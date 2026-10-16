@@ -205,7 +205,7 @@ def test_credible_set_carries_the_locus_and_study(
     )
     assert row.qualityControls == [flag]
     assert (
-        row.log10BayesFactor,
+        row.logBayesFactor,
         row.confidence,
         row.purityMeanR2,
         row.purityMinR2,
@@ -254,7 +254,7 @@ def test_members_carry_their_marginal_statistics(
     assert (lead.r2Overall, tag.r2Overall) == pytest.approx((1.0, 0.8))
     assert all(
         row.conditionalBeta is None
-        and row.log10BayesFactor is None
+        and row.logBayesFactor is None
         and row.rescaledAbsBeta is None
         for row in rows.values()
     )

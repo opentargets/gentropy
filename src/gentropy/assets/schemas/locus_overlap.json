@@ -2,13 +2,13 @@
   "fields": [
     {
       "metadata": {},
-      "name": "leftStudyLocusId",
+      "name": "leftLocusId",
       "nullable": false,
       "type": "string"
     },
     {
       "metadata": {},
-      "name": "rightStudyLocusId",
+      "name": "rightLocusId",
       "nullable": false,
       "type": "string"
     },

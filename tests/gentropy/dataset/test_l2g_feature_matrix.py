@@ -219,8 +219,8 @@ class TestFromFeaturesList:
             _df=spark.createDataFrame(
                 [("1", "2", "eqtl", "X", "COLOC", 1, 0.9)],
                 [
-                    "leftStudyLocusId",
-                    "rightStudyLocusId",
+                    "leftLocusId",
+                    "rightLocusId",
                     "rightStudyType",
                     "chromosome",
                     "colocalisationMethod",
