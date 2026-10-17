@@ -635,17 +635,6 @@ class VariantIndexConfig(StepConfig):
 
 
 @dataclass
-class ConvertToVcfStepConfig(StepConfig):
-    """Variant to VCF step configuration."""
-
-    source_paths: list[str] = MISSING
-    source_formats: list[str] = MISSING
-    output_path: str = MISSING
-    partition_size: int = 2000
-    _target_: str = "gentropy.variant_index.ConvertToVcfStep"
-
-
-@dataclass
 class IntervalE2GStepConfig(StepConfig):
     """Interval E2G step configuration."""
 
@@ -952,7 +941,9 @@ class GWASCatalogFineMappingManifestConfig(StepConfig):
     fine_mapping_planner_path: str = MISSING
     output_path: str = MISSING
     summary_statistics_glob: str | None = None
-    _target_: str = "gentropy.finemapping_manifest.GWASCatalogFineMappingManifestGenerator"
+    _target_: str = (
+        "gentropy.finemapping_manifest.GWASCatalogFineMappingManifestGenerator"
+    )
 
 
 @dataclass
@@ -1037,7 +1028,6 @@ def register_config() -> None:
     cs.store(group="step", name="ukb_ppp_eur_sumstat_preprocess", node=UkbPppEurConfig)
     cs.store(group="step", name="lof_curation_ingestion", node=LOFIngestionConfig)
     cs.store(group="step", name="variant_index", node=VariantIndexConfig)
-    cs.store(group="step", name="variant_to_vcf", node=ConvertToVcfStepConfig)
     cs.store(
         group="step", name="window_based_clumping", node=WindowBasedClumpingStepConfig
     )
