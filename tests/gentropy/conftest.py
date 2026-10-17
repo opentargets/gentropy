@@ -31,7 +31,6 @@ from gentropy.dataset.target_index import TargetIndex
 from gentropy.dataset.variant_index import VariantIndex
 from gentropy.datasource.eqtl_catalogue.finemapping import EqtlCatalogueFinemapping
 from gentropy.datasource.eqtl_catalogue.study_index import EqtlCatalogueStudyIndex
-from gentropy.datasource.gwas_catalog.associations import StudyLocusGWASCatalog
 from gentropy.datasource.gwas_catalog.study_index import StudyIndexGWASCatalog
 from utils.spark import get_spark_testing_conf
 
@@ -307,15 +306,6 @@ def mock_study_locus(spark: SparkSession) -> StudyLocus:
     return StudyLocus(
         _df=mock_study_locus_data(spark),
         _schema=StudyLocus.get_schema(),
-    )
-
-
-@pytest.fixture()
-def mock_study_locus_gwas_catalog(spark: SparkSession) -> StudyLocusGWASCatalog:
-    """Mock study_locus dataset."""
-    return StudyLocusGWASCatalog(
-        _df=mock_study_locus_data(spark),
-        _schema=StudyLocusGWASCatalog.get_schema(),
     )
 
 
