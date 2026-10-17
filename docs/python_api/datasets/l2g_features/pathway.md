@@ -9,5 +9,6 @@ title: Pathway enrichment features
 
 ## Common logic
 
+::: gentropy.dataset.l2g_features.pathway.prioritised_disease_genes
 ::: gentropy.dataset.l2g_features.pathway.common_pathway_enrichment_feature_logic
 ::: gentropy.dataset.l2g_features.pathway.common_neighbourhood_pathway_enrichment_feature_logic
