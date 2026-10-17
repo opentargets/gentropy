@@ -52,7 +52,7 @@ class CredibleSetConfidenceClasses(Enum):
 
 
 class StudyLocusQualityCheck(Enum):
-    """Study locus quality control flags, raised by clumping, LD annotation and fine-mapping.
+    """Study locus quality control flags, raised by curation, clumping, LD annotation and fine-mapping.
 
     `CredibleSet.qualityControls` carries the flags of the study locus it was fine-mapped from.
 
@@ -62,6 +62,11 @@ class StudyLocusQualityCheck(Enum):
         NO_POPULATION (str): Study does not have population annotation to resolve LD
         UNRESOLVED_LD (str): Variant not found in LD reference
         OUT_OF_SAMPLE_LD (str): Study locus finemapped without in-sample LD reference
+        SUBSIGNIFICANT_FLAG (str): Curated top hit with a p-value above the significance threshold
+        COMPOSITE_FLAG (str): Curated top hit of several variants, such as an interaction or a haplotype
+        INCONSISTENCY_FLAG (str): Curated top hit whose location or variants disagree
+        PALINDROMIC_ALLELE_FLAG (str): Curated top hit with palindromic alleles, whose effect cannot be harmonised
+        TOP_HIT (str): Study locus from curated top hit
     """
 
     WINDOW_CLUMPED = "Explained by a more significant variant in the same window"
@@ -69,6 +74,11 @@ class StudyLocusQualityCheck(Enum):
     NO_POPULATION = "Study does not have population annotation to resolve LD"
     UNRESOLVED_LD = "Variant not found in LD reference"
     OUT_OF_SAMPLE_LD = "Study locus finemapped without in-sample LD reference"
+    SUBSIGNIFICANT_FLAG = "Subsignificant p-value"
+    COMPOSITE_FLAG = "Composite association"
+    INCONSISTENCY_FLAG = "Variant inconsistency"
+    PALINDROMIC_ALLELE_FLAG = "Palindrome alleles - cannot harmonize"
+    TOP_HIT = "Study locus from curated top hit"
 
 
 class CredibleInterval(Enum):
