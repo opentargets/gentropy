@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from itertools import product
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, ClassVar
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -63,7 +63,22 @@ def reset_wandb_env() -> None:
 
 @dataclass
 class LocusToGeneTrainer:
-    """Modelling of what is the most likely causal gene associated with a given locus."""
+    """Modelling of what is the most likely causal gene associated with a given locus.
+
+    The same association is often fine-mapped in many studies, so the labelled set holds many
+    near-identical credible sets. The split step tags each credible set with an association
+    unit (its lead variant and its sorted positive genes) and marks one representative credible
+    set per unit. When those columns are present the trainer:
+
+    * weights every credible set by 1/n, where n is the number of credible sets of its unit in
+      the set being fitted, so each unit counts once (``weight_by_association_unit``);
+    * evaluates on the representative credible sets only, so each association is scored once
+      (``evaluate_on_deduplicated_test``).
+    """
+
+    ASSOCIATION_UNIT_COL: ClassVar[str] = "associationUnitId"
+    UNIT_REPRESENTATIVE_COL: ClassVar[str] = "isUnitRepresentative"
+    UNIT_COLS: ClassVar[tuple[str, str]] = (ASSOCIATION_UNIT_COL, UNIT_REPRESENTATIVE_COL)
 
     model: LocusToGeneModel
     feature_matrix: L2GFeatureMatrix
@@ -74,10 +89,13 @@ class LocusToGeneTrainer:
     test_df: pd.DataFrame | None = None
     x_train: np.ndarray | None = None
     y_train: np.ndarray | None = None
+    w_train: np.ndarray | None = None
     x_test: np.ndarray | None = None
     y_test: np.ndarray | None = None
     run: Run | None = None
     wandb_l2g_project_name: str = "gentropy-locus-to-gene"
+    weight_by_association_unit: bool = True
+    evaluate_on_deduplicated_test: bool = True
 
     def __post_init__(self) -> None:
         """Set default features_list to feature_matrix's features_list if not provided."""
@@ -107,7 +125,9 @@ class LocusToGeneTrainer:
             assert self.x_train.size != 0 and self.y_train.size != 0, (
                 "Train data not set, nothing to fit."
             )
-            fitted_model = self.model.model.fit(X=self.x_train, y=self.y_train)
+            fitted_model = self.model.model.fit(
+                X=self.x_train, y=self.y_train, sample_weight=self.w_train
+            )
             self.model = LocusToGeneModel(
                 model=fitted_model,
                 hyperparameters=fitted_model.get_params(),
@@ -116,6 +136,113 @@ class LocusToGeneTrainer:
             )
             return self.model
         raise ValueError("Train data not set, nothing to fit.")
+
+    @classmethod
+    def association_unit_weights(cls, df: pd.DataFrame) -> np.ndarray:
+        """Weight every row by 1/n, where n is the number of credible sets of its association unit.
+
+        All candidate-gene rows of a credible set get the same weight. The weights are rescaled
+        to a mean of 1 over rows, so ``min_child_weight`` keeps its meaning. A credible set with
+        no unit is its own unit.
+
+        Args:
+            df (pd.DataFrame): Rows with ``studyLocusId`` and ``associationUnitId``.
+
+        Returns:
+            np.ndarray: One weight per row.
+
+        Examples:
+            >>> df = pd.DataFrame({
+            ...     "studyLocusId": ["cs1", "cs1", "cs2", "cs2", "cs3", "cs3"],
+            ...     "associationUnitId": ["u1", "u1", "u1", "u1", "u2", "u2"],
+            ... })
+            >>> LocusToGeneTrainer.association_unit_weights(df).round(2).tolist()
+            [0.75, 0.75, 0.75, 0.75, 1.5, 1.5]
+        """
+        units = df[cls.ASSOCIATION_UNIT_COL].fillna(df["studyLocusId"])
+        loci_per_unit = (
+            pd.DataFrame({"studyLocusId": df["studyLocusId"], "unit": units})
+            .drop_duplicates()
+            .groupby("unit")
+            .size()
+        )
+        weights = 1.0 / units.map(loci_per_unit).to_numpy(dtype=float)
+        return weights / weights.mean()
+
+    def _sample_weights(self: LocusToGeneTrainer, df: pd.DataFrame) -> np.ndarray | None:
+        """Association-unit weights for the rows to fit, or None when weighting is off.
+
+        Args:
+            df (pd.DataFrame): Rows to fit.
+
+        Returns:
+            np.ndarray | None: One weight per row, or None to fit unweighted.
+        """
+        if not self.weight_by_association_unit:
+            return None
+        if self.ASSOCIATION_UNIT_COL not in df.columns:
+            logging.warning(
+                "No %s column: training without association-unit weights.",
+                self.ASSOCIATION_UNIT_COL,
+            )
+            return None
+        return self.association_unit_weights(df)
+
+    def _evaluation_rows(self: LocusToGeneTrainer, df: pd.DataFrame) -> pd.DataFrame:
+        """Keep one credible set per association unit for evaluation.
+
+        Args:
+            df (pd.DataFrame): Rows to evaluate on.
+
+        Returns:
+            pd.DataFrame: Rows of the representative credible sets, or ``df`` when deduplication is off.
+        """
+        if not self.evaluate_on_deduplicated_test:
+            return df
+        if self.UNIT_REPRESENTATIVE_COL not in df.columns:
+            logging.warning(
+                "No %s column: evaluating on all credible sets.",
+                self.UNIT_REPRESENTATIVE_COL,
+            )
+            return df
+        return df[df[self.UNIT_REPRESENTATIVE_COL].fillna(True).astype(bool)].reset_index(
+            drop=True
+        )
+
+    def _to_arrays(
+        self: LocusToGeneTrainer, df: pd.DataFrame
+    ) -> tuple[np.ndarray, np.ndarray]:
+        """Feature matrix and labels of a set of rows.
+
+        Args:
+            df (pd.DataFrame): Rows with the features and the label column.
+
+        Returns:
+            tuple[np.ndarray, np.ndarray]: Features and labels.
+        """
+        return (
+            df[self.features_list].apply(pd.to_numeric).values,
+            df[self.feature_matrix.label_col].apply(pd.to_numeric).values,
+        )
+
+    def set_train_test(
+        self: LocusToGeneTrainer, train_df: pd.DataFrame, test_df: pd.DataFrame
+    ) -> None:
+        """Set the training and evaluation data.
+
+        The training rows get association-unit weights and the test rows are reduced to one
+        credible set per unit, depending on ``weight_by_association_unit`` and
+        ``evaluate_on_deduplicated_test``.
+
+        Args:
+            train_df (pd.DataFrame): Training rows with integer-encoded labels.
+            test_df (pd.DataFrame): Held-out rows with integer-encoded labels.
+        """
+        self.train_df = train_df
+        self.test_df = self._evaluation_rows(test_df)
+        self.x_train, self.y_train = self._to_arrays(train_df)
+        self.x_test, self.y_test = self._to_arrays(self.test_df)
+        self.w_train = self._sample_weights(train_df)
 
     def _get_shap_explanation(
         self: LocusToGeneTrainer,
@@ -290,9 +417,12 @@ class LocusToGeneTrainer:
         The training strategy is as follows:
             1. Create held-out test set via hierarchical splitting (or use pre-split DataFrames)
             2. Optionally perform cross-validation on the training set
-            3. Train model on the training set (held-out set excluded)
-            4. Evaluate once on the held-out test set — this is the reported benchmark
-            5. Optionally retrain on the full dataset (train + held-out) for the saved model
+            3. Train model on the training set (held-out set excluded), weighting credible sets
+               by association unit
+            4. Evaluate once on the held-out test set, one credible set per association unit —
+               this is the reported benchmark
+            5. Optionally retrain on the full dataset (train + every held-out credible set),
+               weighted, for the saved model
 
         Step 5 follows the standard practice of using train/test splits exclusively for
         honest evaluation, then retraining on all available labelled data before saving.
@@ -316,24 +446,18 @@ class LocusToGeneTrainer:
                 "presplit_train_df and presplit_test_df must both be provided, or neither."
             )
         if presplit_train_df is not None and presplit_test_df is not None:
-            self.train_df = presplit_train_df
-            self.test_df = presplit_test_df
+            train_df, full_test_df = presplit_train_df, presplit_test_df
         else:
             # Create held-out test set using hierarchical splitting
-            self.train_df, self.test_df = self.feature_matrix.generate_train_test_split(
+            train_df, full_test_df = self.feature_matrix.generate_train_test_split(
                 test_size=test_size,
                 verbose=True,
                 label_encoder=self.model.label_encoder,
                 label_col=self.feature_matrix.label_col,
             )
-        self.x_train = self.train_df[self.features_list].apply(pd.to_numeric).values
-        self.y_train = (
-            self.train_df[self.feature_matrix.label_col].apply(pd.to_numeric).values
-        )
-        self.x_test = self.test_df[self.features_list].apply(pd.to_numeric).values
-        self.y_test = (
-            self.test_df[self.feature_matrix.label_col].apply(pd.to_numeric).values
-        )
+        self.set_train_test(train_df, full_test_df)
+        if self.x_test is None or self.y_test is None or self.test_df is None:
+            raise ValueError("Test data not set.")
 
         # Train model on training set and evaluate on held-out test set
         self.fit()
@@ -349,26 +473,29 @@ class LocusToGeneTrainer:
                     y_pred_proba=self.model.model.predict_proba(self.x_test),
                 ),
             )
+        if len(full_test_df) != len(self.test_df):
+            # Repeated credible sets inflate the metrics; logged for comparison only.
+            x_all, y_all = self._to_arrays(full_test_df)
+            self.log_to_terminal(
+                eval_id="Hold-out, all credible sets",
+                metrics=self.evaluate(
+                    y_true=y_all,
+                    y_pred=self.model.model.predict(x_all),
+                    y_pred_proba=self.model.model.predict_proba(x_all),
+                ),
+            )
 
         # Retrain on full dataset so the saved model benefits from all labelled data.
-        # Evaluation above is already complete and unaffected by this step.
+        # Evaluation above is already complete and unaffected by this step. Every held-out
+        # credible set is used, not only the representatives: the weights count each unit once.
         if train_on_full_dataset:
             logging.info(
                 "Retraining final model on full dataset (train + held-out). "
                 "Reported metrics reflect held-out performance only."
             )
-            if (
-                self.x_train is None
-                or self.x_test is None
-                or self.y_train is None
-                or self.y_test is None
-            ):
-                raise ValueError(
-                    "Training and test arrays must be initialised before retraining "
-                    "on the full dataset."
-                )
-            self.x_train = np.vstack((self.x_train, self.x_test))
-            self.y_train = np.concatenate((self.y_train, self.y_test))
+            full_df = pd.concat([train_df, full_test_df], ignore_index=True)
+            self.x_train, self.y_train = self._to_arrays(full_df)
+            self.w_train = self._sample_weights(full_df)
             self.fit()
             if wandb_run_name:
                 self.x_test = self.x_train
@@ -530,6 +657,7 @@ class LocusToGeneTrainer:
             collect_for_file (bool): Whether to append fold data to fold_results.
             fold_results (list[dict[str, Any]]): Mutable list that fold data is appended to.
         """
+        fold_val_df = self._evaluation_rows(fold_val_df)
         x_fold_train = fold_train_df[self.features_list].values
         x_fold_val = fold_val_df[self.features_list].values
         y_fold_train = fold_train_df[self.feature_matrix.label_col].values
@@ -538,7 +666,9 @@ class LocusToGeneTrainer:
         fold_model = clone(self.model.model)
         if config:
             fold_model.set_params(**config)
-        fold_model.fit(x_fold_train, y_fold_train)
+        fold_model.fit(
+            x_fold_train, y_fold_train, sample_weight=self._sample_weights(fold_train_df)
+        )
         y_pred_proba = fold_model.predict_proba(x_fold_val)
         y_pred = fold_model.predict(x_fold_val)
 
@@ -644,7 +774,7 @@ class LocusToGeneTrainer:
         holdout_model = clone(self.model.model)
         if config:
             holdout_model.set_params(**config)
-        holdout_model.fit(self.x_train, self.y_train)
+        holdout_model.fit(self.x_train, self.y_train, sample_weight=self.w_train)
         y_pred_proba = holdout_model.predict_proba(self.x_test)
         y_pred = holdout_model.predict(self.x_test)
 

@@ -433,3 +433,131 @@ def test_hierarchical_split() -> None:
     assert len(test_df[test_df["goldStandardSet"] == 0]) > 0, "No negatives in test_df"
     assert train_df.shape[1] == df.shape[1], "Columns are missing in train_df"
     assert test_df.shape[1] == df.shape[1], "Columns are missing in test_df"
+
+
+class TestAssociationUnits:
+    """Tests for association-unit weighting and deduplicated evaluation."""
+
+    FEATURES = ["distanceTssMean", "distanceSentinelTssMinimum"]
+
+    @staticmethod
+    def _add_units(df: pd.DataFrame) -> pd.DataFrame:
+        """Put the credible sets into two units, with the first credible set of each as representative."""
+        loci = sorted(df["studyLocusId"].unique())
+        unit = {locus: f"u{i % 2}" for i, locus in enumerate(loci)}
+        representatives = set(loci[:2])
+        return df.assign(
+            associationUnitId=df["studyLocusId"].map(unit),
+            isUnitRepresentative=df["studyLocusId"].isin(representatives),
+        )
+
+    @pytest.fixture()
+    def presplit(
+        self, mock_l2g_feature_matrix: L2GFeatureMatrix
+    ) -> tuple[L2GFeatureMatrix, pd.DataFrame, pd.DataFrame]:
+        """Train and test rows of the mock feature matrix, tagged with association units."""
+        filled_fm = mock_l2g_feature_matrix.fill_na()
+        train_df, test_df = filled_fm.generate_train_test_split(
+            test_size=0.3,
+            verbose=False,
+            label_encoder={"negative": 0, "positive": 1},
+            label_col=filled_fm.label_col,
+        )
+        return filled_fm, self._add_units(train_df), self._add_units(test_df)
+
+    def _trainer(
+        self,
+        feature_matrix: L2GFeatureMatrix,
+        weight_by_association_unit: bool = True,
+        evaluate_on_deduplicated_test: bool = True,
+    ) -> LocusToGeneTrainer:
+        return LocusToGeneTrainer(
+            model=LocusToGeneModel(
+                model=XGBClassifier(),
+                hyperparameters={"max_depth": 2},
+                features_list=self.FEATURES,
+            ),
+            feature_matrix=feature_matrix,
+            features_list=self.FEATURES,
+            weight_by_association_unit=weight_by_association_unit,
+            evaluate_on_deduplicated_test=evaluate_on_deduplicated_test,
+        )
+
+    def test_weights_count_each_unit_once(self) -> None:
+        """Every unit gets the same total credible-set weight, and row weights average to 1."""
+        df = pd.DataFrame(
+            {
+                "studyLocusId": ["a", "a", "b", "b", "b", "c", "d", "d"],
+                "associationUnitId": ["u1", "u1", "u1", "u1", "u1", "u1", "u2", "u2"],
+            }
+        )
+        weights = LocusToGeneTrainer.association_unit_weights(df)
+        assert weights.mean() == pytest.approx(1.0)
+        per_locus = (
+            pd.Series(weights, index=df["studyLocusId"]).groupby(level=0).first()
+        )
+        assert per_locus[["a", "b", "c"]].sum() == pytest.approx(per_locus["d"])
+
+    def test_missing_unit_is_its_own_unit(self) -> None:
+        """A credible set without a unit is not pooled with other credible sets."""
+        df = pd.DataFrame(
+            {"studyLocusId": ["a", "b"], "associationUnitId": [None, None]}
+        )
+        assert LocusToGeneTrainer.association_unit_weights(df).tolist() == [1.0, 1.0]
+
+    def test_set_train_test(
+        self, presplit: tuple[L2GFeatureMatrix, pd.DataFrame, pd.DataFrame]
+    ) -> None:
+        """Training rows are weighted and the test set keeps the representatives only."""
+        fm, train_df, test_df = presplit
+        trainer = self._trainer(fm)
+        trainer.set_train_test(train_df, test_df)
+        assert trainer.w_train is not None
+        assert trainer.w_train.shape == (len(train_df),)
+        assert trainer.test_df is not None
+        assert trainer.test_df["isUnitRepresentative"].all()
+        assert trainer.x_test is not None
+        assert trainer.x_test.shape[0] == test_df["isUnitRepresentative"].sum()
+
+    def test_flags_off(
+        self, presplit: tuple[L2GFeatureMatrix, pd.DataFrame, pd.DataFrame]
+    ) -> None:
+        """With both flags off, training is unweighted and evaluation uses every credible set."""
+        fm, train_df, test_df = presplit
+        trainer = self._trainer(
+            fm, weight_by_association_unit=False, evaluate_on_deduplicated_test=False
+        )
+        trainer.set_train_test(train_df, test_df)
+        assert trainer.w_train is None
+        assert trainer.test_df is test_df
+
+    def test_fit_passes_sample_weight(
+        self, presplit: tuple[L2GFeatureMatrix, pd.DataFrame, pd.DataFrame]
+    ) -> None:
+        """The weights reach the classifier's fit."""
+        fm, train_df, test_df = presplit
+        trainer = self._trainer(fm)
+        trainer.set_train_test(train_df, test_df)
+        with patch.object(
+            XGBClassifier, "fit", autospec=True, side_effect=lambda self, **_: self
+        ) as fit:
+            trainer.fit()
+        np.testing.assert_array_equal(
+            fit.call_args.kwargs["sample_weight"], trainer.w_train
+        )
+
+    def test_full_dataset_uses_every_test_credible_set(
+        self, presplit: tuple[L2GFeatureMatrix, pd.DataFrame, pd.DataFrame]
+    ) -> None:
+        """Evaluation is deduplicated, but the full-dataset retrain sees every credible set, weighted."""
+        fm, train_df, test_df = presplit
+        trainer = self._trainer(fm)
+        trainer.train(
+            train_on_full_dataset=True,
+            presplit_train_df=train_df,
+            presplit_test_df=test_df,
+        )
+        assert trainer.x_train is not None
+        assert trainer.w_train is not None
+        assert trainer.x_train.shape[0] == len(train_df) + len(test_df)
+        assert trainer.w_train.shape == (len(train_df) + len(test_df),)
