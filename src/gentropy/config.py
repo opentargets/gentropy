@@ -780,25 +780,6 @@ class CredibleSetQCStepConfig(StepConfig):
 
 
 @dataclass
-class StudyValidationStepConfig(StepConfig):
-    """Configuration of the study index validation step.
-
-    The study indices are read from multiple location, therefore we are expecting a list of paths.
-    """
-
-    study_index_path: list[str] = MISSING
-    target_index_path: str = MISSING
-    disease_index_path: str = MISSING
-    biosample_index_path: str = MISSING
-    valid_study_index_path: str = MISSING
-    invalid_study_index_path: str = MISSING
-    invalid_qc_reasons: list[str] = MISSING
-    deprecated_project_ids: list[str] | None = None
-    heritability_input_path: str | None = None
-    _target_: str = "gentropy.study_validation.StudyValidationStep"
-
-
-@dataclass
 class LocusToGeneEvidenceStepConfig(StepConfig):
     """Configuration of the locus to gene evidence step."""
 
@@ -1052,11 +1033,6 @@ def register_config() -> None:
         group="step",
         name="credible_set_validation",
         node=StudyLocusValidationStepConfig,
-    )
-    cs.store(
-        group="step",
-        name="study_validation",
-        node=StudyValidationStepConfig,
     )
     cs.store(
         group="step",
