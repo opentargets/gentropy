@@ -1006,3 +1006,75 @@ class StudyLocus(Dataset):
         from gentropy.method.window_based_clumping import WindowBasedClumping
 
         return WindowBasedClumping.clump(self, window_size)
+
+    def assign_confidence(self: StudyLocus) -> StudyLocus:
+        """Assign confidence to study locus.
+
+        Returns:
+            StudyLocus: Study locus with confidence assigned.
+        """
+        # Return self if the required columns are not in the dataframe:
+        if (
+            "qualityControls" not in self.df.columns
+            or "finemappingMethod" not in self.df.columns
+        ):
+            return self
+
+        # Assign confidence based on the presence of quality controls
+        df = self.df.withColumn(
+            "confidence",
+            f.when(
+                (
+                    f.col("finemappingMethod").isin(
+                        FinemappingMethod.SUSIE.value,
+                        FinemappingMethod.SUSIE_INF.value,
+                    )
+                )
+                & (
+                    ~f.array_contains(
+                        f.col("qualityControls"),
+                        StudyLocusQualityCheck.OUT_OF_SAMPLE_LD.value,
+                    )
+                ),
+                CredibleSetConfidenceClasses.FINEMAPPED_IN_SAMPLE_LD.value,
+            )
+            .when(
+                (
+                    f.col("finemappingMethod").isin(
+                        FinemappingMethod.SUSIE.value,
+                        FinemappingMethod.SUSIE_INF.value,
+                    )
+                )
+                & (
+                    f.array_contains(
+                        f.col("qualityControls"),
+                        StudyLocusQualityCheck.OUT_OF_SAMPLE_LD.value,
+                    )
+                ),
+                CredibleSetConfidenceClasses.FINEMAPPED_OUT_OF_SAMPLE_LD.value,
+            )
+            .when(
+                (f.col("finemappingMethod") == FinemappingMethod.PICS.value)
+                & (
+                    ~f.array_contains(
+                        f.col("qualityControls"), StudyLocusQualityCheck.TOP_HIT.value
+                    )
+                ),
+                CredibleSetConfidenceClasses.PICSED_SUMMARY_STATS.value,
+            )
+            .when(
+                (f.col("finemappingMethod") == FinemappingMethod.PICS.value)
+                & (
+                    f.array_contains(
+                        f.col("qualityControls"), StudyLocusQualityCheck.TOP_HIT.value
+                    )
+                ),
+                CredibleSetConfidenceClasses.PICSED_TOP_HIT.value,
+            )
+            .otherwise(CredibleSetConfidenceClasses.UNKNOWN.value),
+        )
+
+        return StudyLocus(
+            _df=df,
+            _schema=self.get_schema(),
+        )
