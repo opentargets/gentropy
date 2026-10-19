@@ -23,3 +23,11 @@ title: Credible Set
 ### Schema
 
 --8<-- "assets/schemas/credible_set_variant.md"
+
+## Credible Set Locus
+
+::: gentropy.dataset.credible_set.CredibleSetLocus
+
+### Schema
+
+--8<-- "assets/schemas/credible_set_locus.md"

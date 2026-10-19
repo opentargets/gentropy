@@ -34,6 +34,7 @@ from typing import TYPE_CHECKING, ClassVar
 import pyspark.sql.functions as f
 from pyspark.sql import Window
 
+from gentropy.common.processing import extract_position
 from gentropy.common.schemas import parse_spark_schema
 from gentropy.common.stats import split_pvalue
 from gentropy.dataset.dataset import Dataset
@@ -42,6 +43,9 @@ from gentropy.dataset.study_locus import StudyLocusQualityCheck
 if TYPE_CHECKING:
     from pyspark.sql import DataFrame
     from pyspark.sql.types import StructType
+
+    from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
+    from gentropy.method.l2g.feature_factory import L2GFeatureInputLoader
 
 
 class CredibleSetVariantQualityCheck(Enum):
@@ -245,6 +249,77 @@ class CredibleSet(Dataset):
             ),
         )
 
+    def to_locus_view(
+        self: CredibleSet, credible_set_variants: CredibleSetVariant
+    ) -> CredibleSetLocus:
+        """Join the credible sets with their variants into the locus view read by locus-to-gene.
+
+        Each credible set keeps its key as `credibleSetId`, its lead as `variantId` and the lead's
+        `position`, and gathers its members into `locus`. `isTransQtl` is read from the
+        `TRANS_QTL` quality control flag. A credible set without variants gets an empty `locus`.
+
+        Args:
+            credible_set_variants (CredibleSetVariant): The variants of the credible sets.
+
+        Returns:
+            CredibleSetLocus: One row per credible set, with its members in `locus`.
+
+        Examples:
+            >>> credible_sets = CredibleSet(
+            ...     spark.createDataFrame(
+            ...         [("cs1", "1", 1, 100, "S1", "eqtl", "1_10_A_T", "SuSiE", None, None, None, None,
+            ...           ["Trans QTL"])],
+            ...         CredibleSet.get_schema(),
+            ...     ),
+            ...     CredibleSet.get_schema(),
+            ... )
+            >>> variants = CredibleSetVariant(
+            ...     spark.createDataFrame(
+            ...         [("cs1", v, None, None, None, None, None, None, pp, None, None, None, None,
+            ...           None, None, None, []) for v, pp in [("1_10_A_T", 0.7), ("1_20_C_G", 0.3)]],
+            ...         CredibleSetVariant.get_schema(),
+            ...     ),
+            ...     CredibleSetVariant.get_schema(),
+            ... )
+            >>> credible_sets.to_locus_view(variants).df.select(
+            ...     "credibleSetId", "variantId", "position", "isTransQtl", "locus.variantId"
+            ... ).show(truncate=False)
+            +-------------+---------+--------+----------+--------------------+
+            |credibleSetId|variantId|position|isTransQtl|variantId           |
+            +-------------+---------+--------+----------+--------------------+
+            |cs1          |1_10_A_T |10      |true      |[1_10_A_T, 1_20_C_G]|
+            +-------------+---------+--------+----------+--------------------+
+            <BLANKLINE>
+        """
+        locus = credible_set_variants.df.groupBy(
+            f.col("credibleSetId").alias("id")
+        ).agg(
+            f.sort_array(
+                f.collect_list(f.struct("variantId", "posteriorProbability"))
+            ).alias("locus")
+        )
+        schema = CredibleSetLocus.get_schema()
+        return CredibleSetLocus(
+            _df=self.df.join(locus, on="id", how="left").select(
+                f.col("id").alias("credibleSetId"),
+                "studyId",
+                "studyType",
+                "chromosome",
+                extract_position(f.col("leadVariantId")).cast("int").alias("position"),
+                f.col("leadVariantId").alias("variantId"),
+                "fineMappingMethod",
+                "confidence",
+                "qualityControls",
+                f.array_contains(
+                    "qualityControls", StudyLocusQualityCheck.TRANS_QTL.value
+                ).alias("isTransQtl"),
+                f.coalesce("locus", f.array().cast(schema["locus"].dataType)).alias(
+                    "locus"
+                ),
+            ),
+            _schema=schema,
+        )
+
 
 @dataclass
 class CredibleSetVariant(Dataset):
@@ -303,3 +378,55 @@ class CredibleSetVariant(Dataset):
             dict[str, str]: Mapping between flag name and QC column category value.
         """
         return {member.name: member.value for member in CredibleSetVariantQualityCheck}
+
+
+@dataclass
+class CredibleSetLocus(Dataset):
+    """Credible sets joined with their variants, the input locus-to-gene annotates.
+
+    Built by `CredibleSet.to_locus_view`, never persisted. It keeps the shape locus-to-gene
+    features were written for: the lead as `variantId` with its `position`, the members in `locus`,
+    `confidence` and `isTransQtl`.
+
+    `confidence` is the `CredibleSet` byte, assigned by the platform transformation stage.
+    `isTransQtl` is true when the credible set carries the `TRANS_QTL` quality control flag.
+
+    Only the key, the lead and the study are mandatory, as in the study locus the features were
+    written for: the view is built from validated datasets, and features read a few columns each.
+    """
+
+    @classmethod
+    def get_schema(cls: type[CredibleSetLocus]) -> StructType:
+        """Provides the schema for the CredibleSetLocus dataset.
+
+        Returns:
+            StructType: schema for the CredibleSetLocus dataset.
+        """
+        return parse_spark_schema("credible_set_locus.json")
+
+    def build_feature_matrix(
+        self: CredibleSetLocus,
+        features_list: list[str],
+        features_input_loader: L2GFeatureInputLoader,
+        append_null_features: bool = False,
+    ) -> L2GFeatureMatrix:
+        """Returns the feature matrix for the credible sets.
+
+        Args:
+            features_list (list[str]): List of features to include in the feature matrix.
+            features_input_loader (L2GFeatureInputLoader): Feature input loader to use.
+            append_null_features (bool): If True, appends null features to the feature matrix. Default is False. Usefull with small datasets that may have all null features, that are anyway required by the model.
+
+        Returns:
+            L2GFeatureMatrix: Feature matrix for these credible sets.
+        """
+        from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
+
+        feature_matrix = L2GFeatureMatrix.from_features_list(
+            self,
+            features_list,
+            features_input_loader,
+        )
+        if append_null_features:
+            feature_matrix = feature_matrix.append_null_features(features_list)
+        return feature_matrix.fill_na()
