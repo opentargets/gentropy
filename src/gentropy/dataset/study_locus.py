@@ -6,23 +6,14 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import TYPE_CHECKING, ClassVar, Self
 
-import numpy as np
 import pyspark.sql.functions as f
-from pyspark.sql.types import ArrayType, FloatType, StringType
 
 from gentropy.common.genomic_region import GenomicRegion
 from gentropy.common.schemas import parse_spark_schema
-from gentropy.common.spark import (
-    create_empty_column_if_not_exists,
-    get_struct_field_schema,
-    order_array_of_structs_by_field,
-)
-from gentropy.common.stats import get_logsum, neglogpval_from_pvalue, split_pvalue
-from gentropy.dataset.dataset import Dataset, qc_test
-from gentropy.dataset.variant_index import VariantIndex
+from gentropy.common.stats import split_pvalue
+from gentropy.dataset.dataset import Dataset
 
 if TYPE_CHECKING:
-    from pyspark.sql import Column, DataFrame
     from pyspark.sql.types import StructType
 
 
@@ -60,20 +51,6 @@ class StudyLocusQualityCheck(Enum):
     TOP_HIT = "Study locus from curated top hit"
     TRANS_QTL = "Trans QTL"
     REPLICATED = "Lead variant is replicated in an independent study"
-
-
-class CredibleInterval(Enum):
-    """Credible interval enum.
-
-    Interval within which an unobserved parameter value falls with a particular probability.
-
-    Attributes:
-        IS95 (str): 95% credible interval
-        IS99 (str): 99% credible interval
-    """
-
-    IS95 = "is95CredibleSet"
-    IS99 = "is99CredibleSet"
 
 
 class FinemappingMethod(Enum):
@@ -150,176 +127,6 @@ class StudyLocus(Dataset):
     )
     """Columns whose values define the key `id`, hashed by `generate_identifier`."""
 
-    @qc_test
-    def validate_variant_identifiers(
-        self: StudyLocus, variant_index: VariantIndex
-    ) -> StudyLocus:
-        """Flagging study loci, where tagging variant identifiers are not found in variant index.
-
-        Args:
-            variant_index (VariantIndex): Variant index to resolve variant identifiers.
-
-        Returns:
-            StudyLocus: Updated study locus with quality control flags.
-        """
-        # QC column might not be present in the variant index schema, so we have to be ready to handle it:
-        qc_select_expression = (
-            f.col("qualityControls")
-            if "qualityControls" in self.df.columns
-            else f.lit(None).cast(ArrayType(StringType()))
-        )
-
-        # Find out which study loci have variants not in the variant index:
-        flag = (
-            self.df
-            # Exploding locus:
-            .select("studyLocusId", f.explode("locus").alias("locus"))
-            .select("studyLocusId", "locus.variantId")
-            # Join with variant index variants:
-            .join(
-                variant_index.df.select(
-                    "variantId", f.lit(True).alias("inVariantIndex")
-                ),
-                on="variantId",
-                how="left",
-            )
-            # Flagging variants not in the variant index:
-            .withColumn("inVariantIndex", f.col("inVariantIndex").isNotNull())
-            # Flagging study loci with ANY variants not in the variant index:
-            .groupBy("studyLocusId")
-            .agg(f.collect_set("inVariantIndex").alias("inVariantIndex"))
-            .select(
-                "studyLocusId",
-                f.array_contains("inVariantIndex", False).alias("toFlag"),
-            )
-        )
-
-        return StudyLocus(
-            _df=(
-                self.df.join(flag, on="studyLocusId", how="left")
-                .withColumn(
-                    "qualityControls",
-                    self.update_quality_flag(
-                        qc_select_expression,
-                        f.col("toFlag"),
-                        StudyLocusQualityCheck.INVALID_VARIANT_IDENTIFIER,
-                    ),
-                )
-                .drop("toFlag")
-            ),
-            _schema=self.get_schema(),
-        )
-
-    @qc_test
-    def validate_lead_pvalue(self: StudyLocus, pvalue_cutoff: float) -> StudyLocus:
-        """Flag associations below significant threshold.
-
-        Args:
-            pvalue_cutoff (float): association p-value cut-off
-
-        Returns:
-            StudyLocus: Updated study locus with quality control flags.
-        """
-        df = self.df
-        qc_colname = StudyLocus.get_QC_column_name()
-        if qc_colname not in self.df.columns:
-            df = self.df.withColumn(
-                qc_colname,
-                create_empty_column_if_not_exists(
-                    qc_colname,
-                    get_struct_field_schema(StudyLocus.get_schema(), qc_colname),
-                ),
-            )
-        return StudyLocus(
-            _df=(
-                df.withColumn(
-                    qc_colname,
-                    # Because this QC might already run on the dataset, the unique set of flags is generated:
-                    f.array_distinct(
-                        self._qc_subsignificant_associations(
-                            f.col("qualityControls"),
-                            f.col("pValueMantissa"),
-                            f.col("pValueExponent"),
-                            pvalue_cutoff,
-                        )
-                    ),
-                )
-            ),
-            _schema=self.get_schema(),
-        )
-
-    @staticmethod
-    def _qc_subsignificant_associations(
-        quality_controls_column: Column,
-        p_value_mantissa: Column,
-        p_value_exponent: Column,
-        pvalue_cutoff: float,
-    ) -> Column:
-        """Flag associations below significant threshold.
-
-        Args:
-            quality_controls_column (Column): QC column
-            p_value_mantissa (Column): P-value mantissa column
-            p_value_exponent (Column): P-value exponent column
-            pvalue_cutoff (float): association p-value cut-off
-
-        Returns:
-            Column: Updated QC column with flag.
-
-        Examples:
-            >>> import pyspark.sql.types as t
-            >>> d = [{'qc': None, 'p_value_mantissa': 1, 'p_value_exponent': -7}, {'qc': None, 'p_value_mantissa': 1, 'p_value_exponent': -8}, {'qc': None, 'p_value_mantissa': 5, 'p_value_exponent': -8}, {'qc': None, 'p_value_mantissa': 1, 'p_value_exponent': -9}]
-            >>> df = spark.createDataFrame(d, t.StructType([t.StructField('qc', t.ArrayType(t.StringType()), True), t.StructField('p_value_mantissa', t.IntegerType()), t.StructField('p_value_exponent', t.IntegerType())]))
-            >>> df.withColumn('qc', StudyLocus._qc_subsignificant_associations(f.col("qc"), f.col("p_value_mantissa"), f.col("p_value_exponent"), 5e-8)).show(truncate = False)
-            +------------------------+----------------+----------------+
-            |qc                      |p_value_mantissa|p_value_exponent|
-            +------------------------+----------------+----------------+
-            |[Subsignificant p-value]|1               |-7              |
-            |[]                      |1               |-8              |
-            |[]                      |5               |-8              |
-            |[]                      |1               |-9              |
-            +------------------------+----------------+----------------+
-            <BLANKLINE>
-
-        """
-        return StudyLocus.update_quality_flag(
-            quality_controls_column,
-            neglogpval_from_pvalue(p_value_mantissa, p_value_exponent)
-            < f.lit(-np.log10(pvalue_cutoff)),
-            StudyLocusQualityCheck.SUBSIGNIFICANT_FLAG,
-        )
-
-    @classmethod
-    def calculate_credible_set_log10bf(
-        cls: type[StudyLocus], logbfs: Column, num_variants_region: int = 500
-    ) -> Column:
-        """Calculate Bayes factor for the entire credible set. The Bayes factor is calculated as the logsumexp of the logBF values of the variants in the locus.
-
-        Args:
-            logbfs (Column): Array column with the logBF values of the variants in the locus.
-            num_variants_region (int): Number of variants in the region for calculation of priors. Default: 500.
-
-        Returns:
-            Column: log10 Bayes factor for the entire credible set.
-
-        Examples:
-            >>> spark.createDataFrame([([1.0, 0.5, 0.25, 0.0],)]).toDF("logBF").select(f.round(StudyLocus.calculate_credible_set_log10bf(f.col("logBF"), 4), 7).alias("credibleSetlog10BF")).show()
-            +------------------+
-            |credibleSetlog10BF|
-            +------------------+
-            |         0.2208288|
-            +------------------+
-            <BLANKLINE>
-        """
-        # log10=log/log(10)=log*0.43429448190325176
-        logsumexp_udf = f.udf(
-            lambda x: (
-                get_logsum(x + np.log(1 / num_variants_region)) * 0.43429448190325176
-            ),
-            FloatType(),
-        )
-        return logsumexp_udf(logbfs).cast("double").alias("credibleSetlog10BF")
-
     @classmethod
     def get_schema(cls: type[StudyLocus]) -> StructType:
         """Provides the schema for the StudyLocus dataset.
@@ -346,118 +153,6 @@ class StudyLocus(Dataset):
             dict[str, str]: Mapping between flag name and QC column category value.
         """
         return {member.name: member.value for member in StudyLocusQualityCheck}
-
-    def filter_credible_set(
-        self: StudyLocus,
-        credible_interval: CredibleInterval,
-    ) -> StudyLocus:
-        """Annotate and filter study-locus tag variants based on given credible interval.
-
-        Args:
-            credible_interval (CredibleInterval): Credible interval to filter for.
-
-        Returns:
-            StudyLocus: Filtered study-locus dataset.
-        """
-        return StudyLocus(
-            _df=self.annotate_credible_sets().df.withColumn(
-                "locus",
-                f.filter(
-                    f.col("locus"),
-                    lambda tag: tag[credible_interval.value],
-                ),
-            ),
-            _schema=self._schema,
-        )
-
-    def unique_variants_in_locus(self: StudyLocus) -> DataFrame:
-        """All unique variants collected in a `StudyLocus` dataframe.
-
-        Returns:
-            DataFrame: A dataframe containing `variantId` and `chromosome` columns.
-        """
-        return (
-            self.df.withColumn(
-                "variantId",
-                # Joint array of variants in that studylocus. Locus can be null
-                f.explode(
-                    f.array_union(
-                        f.array(f.col("variantId")),
-                        f.coalesce(f.col("locus.variantId"), f.array()),
-                    )
-                ),
-            )
-            .select(
-                "variantId", f.split(f.col("variantId"), "_")[0].alias("chromosome")
-            )
-            .distinct()
-        )
-
-    def neglog_pvalue(self: StudyLocus) -> Column:
-        """Returns the negative log p-value.
-
-        Returns:
-            Column: Negative log p-value
-        """
-        return neglogpval_from_pvalue(
-            self.df.pValueMantissa,
-            self.df.pValueExponent,
-        )
-
-    def annotate_credible_sets(self: StudyLocus) -> StudyLocus:
-        """Annotate study-locus dataset with credible set flags.
-
-        Sorts the array in the `locus` column elements by their `posteriorProbability` values in descending order and adds
-        `is95CredibleSet` and `is99CredibleSet` fields to the elements, indicating which are the tagging variants whose cumulative sum
-        of their `posteriorProbability` values is below 0.95 and 0.99, respectively.
-
-        Returns:
-            StudyLocus: including annotation on `is95CredibleSet` and `is99CredibleSet`.
-
-        Raises:
-            ValueError: If `locus` column is not available.
-        """
-        if "locus" not in self.df.columns:
-            raise ValueError("Locus column not available.")
-
-        self.df = self.df.withColumn(
-            # Sort credible set by posterior probability in descending order
-            "locus",
-            f.when(
-                f.col("locus").isNotNull() & (f.size(f.col("locus")) > 0),
-                order_array_of_structs_by_field("locus", "posteriorProbability"),
-            ),
-        ).withColumn(
-            # Calculate array of cumulative sums of posterior probabilities to determine which variants are in the 95% and 99% credible sets
-            # and zip the cumulative sums array with the credible set array to add the flags
-            "locus",
-            f.when(
-                f.col("locus").isNotNull() & (f.size(f.col("locus")) > 0),
-                f.zip_with(
-                    f.col("locus"),
-                    f.transform(
-                        f.sequence(f.lit(1), f.size(f.col("locus"))),
-                        lambda index: f.aggregate(
-                            f.slice(
-                                # By using `index - 1` we introduce a value of `0.0` in the cumulative sums array. to ensure that the last variant
-                                # that exceeds the 0.95 threshold is included in the cumulative sum, as its probability is necessary to satisfy the threshold.
-                                f.col("locus.posteriorProbability"),
-                                1,
-                                index - 1,
-                            ),
-                            f.lit(0.0),
-                            lambda acc, el: acc + el,
-                        ),
-                    ),
-                    lambda struct_e, acc: struct_e.withField(
-                        CredibleInterval.IS95.value, (acc < 0.95) & acc.isNotNull()
-                    ).withField(
-                        CredibleInterval.IS99.value, (acc < 0.99) & acc.isNotNull()
-                    ),
-                ),
-            ),
-        )
-        return self
 
     def exclude_region(
         self: StudyLocus, region: GenomicRegion, exclude_overlap: bool = False
