@@ -29,6 +29,10 @@ class LDBasedClumpingStep:
     ) -> None:
         """Run LD-based clumping step.
 
+        Leads are linked by LD at r2 0.5 or more in the study's major population
+        (the `annotate_ld` default). Legacy annotated at r2 0.0, which also linked
+        leads in LD only in another population of the LD index.
+
         Args:
             session (Session): Session object.
             study_locus_input_path (str): Path to the input study locus, annotated with its summary statistics.

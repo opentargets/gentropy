@@ -9,8 +9,9 @@ from typing import TYPE_CHECKING, ClassVar, Self
 import pyspark.sql.functions as f
 
 from gentropy.common.genomic_region import GenomicRegion
+from gentropy.common.processing import extract_position
 from gentropy.common.schemas import parse_spark_schema
-from gentropy.common.stats import split_pvalue
+from gentropy.common.stats import pvalue_at_most
 from gentropy.dataset.dataset import Dataset
 
 if TYPE_CHECKING:
@@ -155,16 +156,34 @@ class StudyLocus(Dataset):
         return {member.name: member.value for member in StudyLocusQualityCheck}
 
     def exclude_region(
-        self: StudyLocus, region: GenomicRegion, exclude_overlap: bool = False
-    ) -> StudyLocus:
+        self: Self, region: GenomicRegion, exclude_overlap: bool = False
+    ) -> Self:
         """Exclude a region from the StudyLocus dataset.
+
+        By default a study locus is excluded when its lead lies in the region; the lead's position
+        is read from `leadVariantId`. With `exclude_overlap`, any study locus whose window overlaps
+        the region is excluded.
 
         Args:
             region (GenomicRegion): genomic region object.
             exclude_overlap (bool): If True, excludes StudyLocus windows with any overlap with the region.
 
         Returns:
-            StudyLocus: filtered StudyLocus object.
+            Self: filtered study loci, of the same class.
+
+        Examples:
+            >>> from gentropy.common.genomic_region import GenomicRegion
+            >>> rows = [
+            ...     ("in", "S1", "6", 28_600_000, 29_600_000, "6_29000000_A_T", [], None),
+            ...     ("overlap", "S1", "6", 25_000_000, 26_000_000, "6_25500000_A_T", [], None),
+            ...     ("out", "S1", "6", 40_000_000, 41_000_000, "6_40500000_A_T", [], None),
+            ... ]
+            >>> loci = StudyLocus(spark.createDataFrame(rows, StudyLocus.get_schema()), StudyLocus.get_schema())
+            >>> mhc = GenomicRegion.from_string("chr6:25726063-33400556")
+            >>> sorted(row.id for row in loci.exclude_region(mhc).df.collect())
+            ['out', 'overlap']
+            >>> sorted(row.id for row in loci.exclude_region(mhc, exclude_overlap=True).df.collect())
+            ['out']
         """
         if exclude_overlap:
             filter_condition = ~(
@@ -175,18 +194,12 @@ class StudyLocus(Dataset):
                 )
             )
         else:
+            lead_position = extract_position(f.col("leadVariantId")).cast("int")
             filter_condition = ~(
                 (f.col("chromosome") == region.chromosome)
-                & (
-                    (f.col("position") >= region.start)
-                    & (f.col("position") <= region.end)
-                )
+                & ((lead_position >= region.start) & (lead_position <= region.end))
             )
-
-        return StudyLocus(
-            _df=self.df.filter(filter_condition),
-            _schema=StudyLocus.get_schema(),
-        )
+        return self.filter(filter_condition)
 
 
 @dataclass
@@ -249,16 +262,11 @@ class AnnotatedStudyLocus(StudyLocus):
             >>> [row.id for row in loci.lead_pvalue_filter(5e-8).df.collect()]
             ['L1']
         """
-        mantissa, exponent = split_pvalue(pvalue)
         lead = f.get(
             f.filter("locus", lambda e: e["variantId"] == f.col("leadVariantId")), 0
         )
         return self.filter(
-            (lead["pValueExponent"] < exponent)
-            | (
-                (lead["pValueExponent"] == exponent)
-                & (lead["pValueMantissa"] <= mantissa)
-            )
+            pvalue_at_most(lead["pValueMantissa"], lead["pValueExponent"], pvalue)
         )
 
 

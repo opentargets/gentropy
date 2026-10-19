@@ -168,6 +168,9 @@ class PICS:
 
         The credible set is led by the lead of the study locus, carries the study
         type from the study index and the quality controls of the study locus. A
+        study missing from the study index gives a null study type; such credible
+        sets are dropped by the credible set validation of the platform
+        transformation stage, which also requires the study in the index. A
         lead tied with many perfect proxies can fall outside the cut, so the lead
         is not always a member of its own credible set.
 

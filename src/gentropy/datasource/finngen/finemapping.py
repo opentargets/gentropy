@@ -254,18 +254,22 @@ class FinnGenFinemapping:
                 ),
             )
         )
+        # Read twice, to select the allele frequencies and to join them: persist, so the
+        # SuSiE outputs are read once.
         members = (
             snps.filter(f.col("cs").cast(t.IntegerType()) > 0)
             .withColumn("credibleSetIndex", f.col("cs").cast(t.IntegerType()))
             .join(credible_sets, on=["studyId", "region", "credibleSetIndex"])
             .join(region_bayes_factors, on=["studyId", "region", "credibleSetIndex"])
+            .persist()
         )
         allele_frequencies = (
             spark.read.option("delimiter", "\t")
             .csv(finngen_annotated_variants_path, header=True)
             .select(f.col("#variant").alias("v"), f.col("AF").cast(t.FloatType()))
-            # Only the frequencies of the members are needed:
-            .join(f.broadcast(members.select("v").distinct()), on="v")
+            # Only the frequencies of the members are needed. Spark broadcasts the members
+            # when they are few enough, and shuffles them otherwise:
+            .join(members.select("v").distinct(), on="v")
         )
         effect_allele_frequency = f.col("AF")
         members = members.join(allele_frequencies, on="v", how="left").select(

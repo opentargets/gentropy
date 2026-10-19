@@ -144,8 +144,14 @@ def annotate_ld(
     which one counts: the population with the largest share of its samples
     (see ``major_population``). ``r2Overall`` is that population's ``r``
     squared, or 0 when the panel has no ``r`` for it. Tags with
-    ``r2Overall`` at or above ``r2_threshold`` are kept; the index is built
-    at r2 0.5, so a lower threshold keeps nothing more.
+    ``r2Overall`` at or above ``r2_threshold`` are kept.
+
+    The index holds the pairs at r2 0.5 or more in at least one of its
+    populations, so a pair can be in the index with no ``r`` for the study's
+    population and an ``r2Overall`` of 0. The default threshold of 0.5 keeps
+    only tags in LD in the study's own population. Legacy annotated at 0.0,
+    which also kept those zero tags, so a lead in LD with a stronger lead only
+    in another population was clumped, and PICS received tags at r2 0.
 
     Every lead ends up with an ``ldSet``. When nothing is kept, because the
     lead is not in the panel, the study has no population, or no tag passes
