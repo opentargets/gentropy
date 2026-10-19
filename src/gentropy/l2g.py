@@ -17,14 +17,15 @@ from gentropy.common.schemas import compare_struct_schemas
 from gentropy.common.session import Session
 from gentropy.common.spark import calculate_harmonic_sum
 from gentropy.dataset.colocalisation import Colocalisation
+from gentropy.dataset.credible_set import CredibleSet, CredibleSetVariant
 from gentropy.dataset.intervals import Intervals
 from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
 from gentropy.dataset.l2g_prediction import L2GPrediction
+from gentropy.dataset.locus_overlap import LocusOverlap
 from gentropy.dataset.pathway_enrichment import PathwayEnrichment
 from gentropy.dataset.pathway_index import PathwayIndex
 from gentropy.dataset.study_index import StudyIndex
-from gentropy.dataset.study_locus import StudyLocus
 from gentropy.dataset.target_index import TargetIndex
 from gentropy.dataset.variant_index import VariantIndex
 from gentropy.external.hf_hub import (
@@ -58,6 +59,7 @@ class LocusToGeneFeatureMatrixStep:
         *,
         features_list: list[str],
         credible_set_path: str,
+        credible_set_variant_path: str,
         variant_index_path: str | None = None,
         colocalisation_path: str | None = None,
         study_index_path: str | None = None,
@@ -75,6 +77,7 @@ class LocusToGeneFeatureMatrixStep:
             session (Session): Session object that contains the Spark session
             features_list (list[str]): List of features to use for the model
             credible_set_path (str): Path to the credible set dataset necessary to build the feature matrix
+            credible_set_variant_path (str): Path to the variants of the credible sets
             variant_index_path (str | None): Path to the variant index dataset
             colocalisation_path (str | None): Path to the colocalisation dataset
             study_index_path (str | None): Path to the study index dataset
@@ -88,8 +91,12 @@ class LocusToGeneFeatureMatrixStep:
             feature_matrix_path (str): Path to the L2G feature matrix output dataset
             append_null_features (bool): Whether to append null features to the feature matrix. Defaults to False.
         """
-        credible_set = StudyLocus.from_parquet(
+        credible_set = CredibleSet.from_parquet(
             session, credible_set_path, recursiveFileLookup=True
+        ).to_locus_view(
+            CredibleSetVariant.from_parquet(
+                session, credible_set_variant_path, recursiveFileLookup=True
+            )
         )
         studies = (
             StudyIndex.from_parquet(session, study_index_path, recursiveFileLookup=True)
@@ -226,6 +233,7 @@ class LocusToGeneTrainTestSplitStep:
         test_parquet_path: str,
         features_list: list[str],
         test_size: float = 0.15,
+        credible_set_variant_path: str | None = None,
         variant_index_path: str | None = None,
         gene_interactions_path: str | None = None,
         predefined_test_parquet_path: str | None = None,
@@ -242,6 +250,7 @@ class LocusToGeneTrainTestSplitStep:
             test_parquet_path (str): Output path for the held-out test split parquet
             features_list (list[str]): Features to select from the feature matrix
             test_size (float): Proportion of study loci assigned to the test split. Defaults to 0.15.
+            credible_set_variant_path (str | None): Path to the variants of the credible sets (required for OTG gold standard)
             variant_index_path (str | None): Path to the variant index (required for OTG gold standard)
             gene_interactions_path (str | None): Path to the PPI dataset (required for OTG gold standard)
             predefined_test_parquet_path (str | None): Path to an existing test-split parquet
@@ -251,7 +260,7 @@ class LocusToGeneTrainTestSplitStep:
                 ``test_size`` is ignored. Defaults to None (fresh hierarchical split).
             split_stats_path (str | None): Explicit path for the split statistics JSON file. Defaults to ``<train_parquet_path>_split_stats.json``.
         """
-        credible_set = StudyLocus.from_parquet(
+        credible_set = CredibleSet.from_parquet(
             session, credible_set_path, recursiveFileLookup=True
         )
         feature_matrix = L2GFeatureMatrix(
@@ -261,6 +270,7 @@ class LocusToGeneTrainTestSplitStep:
             session=session,
             gold_standard_curation_path=gold_standard_curation_path,
             credible_set=credible_set,
+            credible_set_variant_path=credible_set_variant_path,
             variant_index_path=variant_index_path,
             gene_interactions_path=gene_interactions_path,
         )
@@ -359,7 +369,7 @@ class LocusToGeneTrainTestSplitStep:
         with positives on both sides are dropped, so no positive gene is shared between the sets.
 
         Args:
-            annotated_df (DataFrame): Annotated feature matrix with ``studyLocusId``, ``geneId``
+            annotated_df (DataFrame): Annotated feature matrix with ``credibleSetId``, ``geneId``
                 and ``goldStandardSet``.
             test_genes (DataFrame): Test genes in a ``geneId`` column.
 
@@ -374,13 +384,13 @@ class LocusToGeneTrainTestSplitStep:
             ...         ("cs3", "g3", "positive"), ("cs3", "g1", "negative"),
             ...         ("cs4", "g1", "positive"), ("cs4", "g2", "positive"),
             ...     ],
-            ...     "studyLocusId string, geneId string, goldStandardSet string",
+            ...     "credibleSetId string, geneId string, goldStandardSet string",
             ... )
             >>> genes = spark.createDataFrame([("g1",)], "geneId string")
             >>> train, test = LocusToGeneTrainTestSplitStep._split_by_test_genes(df, genes)
-            >>> sorted(r.studyLocusId for r in train.select("studyLocusId").distinct().collect())
+            >>> sorted(r.credibleSetId for r in train.select("credibleSetId").distinct().collect())
             ['cs2']
-            >>> sorted(r.studyLocusId for r in test.select("studyLocusId").distinct().collect())
+            >>> sorted(r.credibleSetId for r in test.select("credibleSetId").distinct().collect())
             ['cs1']
         """
         genes = test_genes.select("geneId").distinct().withColumn("isTestGene", f.lit(True))
@@ -391,27 +401,28 @@ class LocusToGeneTrainTestSplitStep:
                 "isPositive",
                 f.col("goldStandardSet").cast("string").isin(["1", "positive"]),
             )
-            .groupBy("studyLocusId")
+            .groupBy("credibleSetId")
             .agg(
                 f.max("isTestGene").alias("hasTestGene"),
                 f.max(f.col("isPositive") & f.col("isTestGene")).alias("hasTestPositive"),
                 f.max(f.col("isPositive") & ~f.col("isTestGene")).alias("hasTrainPositive"),
             )
         )
-        train_loci = loci.filter(~f.col("hasTestGene")).select("studyLocusId")
+        train_loci = loci.filter(~f.col("hasTestGene")).select("credibleSetId")
         test_loci = loci.filter(
             f.col("hasTestPositive") & ~f.col("hasTrainPositive")
-        ).select("studyLocusId")
+        ).select("credibleSetId")
         return (
-            annotated_df.join(train_loci, on="studyLocusId", how="semi"),
-            annotated_df.join(test_loci, on="studyLocusId", how="semi"),
+            annotated_df.join(train_loci, on="credibleSetId", how="semi"),
+            annotated_df.join(test_loci, on="credibleSetId", how="semi"),
         )
 
     @staticmethod
     def _parse_gold_standard(
         session: Session,
         gold_standard_curation_path: str,
-        credible_set: StudyLocus,
+        credible_set: CredibleSet,
+        credible_set_variant_path: str | None,
         variant_index_path: str | None,
         gene_interactions_path: str | None,
     ) -> L2GGoldStandard:
@@ -420,7 +431,8 @@ class LocusToGeneTrainTestSplitStep:
         Args:
             session (Session): Active Spark session.
             gold_standard_curation_path (str): Path to the gold standard curation file (parquet or JSON).
-            credible_set (StudyLocus): Credible set used for OTG curation parsing.
+            credible_set (CredibleSet): Credible set used for OTG curation parsing.
+            credible_set_variant_path (str | None): Path to the credible set variants (required for OTG format).
             variant_index_path (str | None): Path to variant index (required for OTG format).
             gene_interactions_path (str | None): Path to PPI dataset (required for OTG format).
 
@@ -450,7 +462,7 @@ class LocusToGeneTrainTestSplitStep:
                 )
             case {
                 "missing_mandatory_columns": [
-                    "studyLocusId",
+                    "credibleSetId",
                     "variantId",
                     "studyId",
                     "geneId",
@@ -468,11 +480,16 @@ class LocusToGeneTrainTestSplitStep:
                     raise ValueError("Interactions are required for parsing OTG curation.")
                 if variant_index_path is None:
                     raise ValueError("Variant Index is required for parsing OTG curation.")
+                if credible_set_variant_path is None:
+                    raise ValueError(
+                        "Credible set variants are required for parsing OTG curation."
+                    )
                 interactions = session.load_data(
                     gene_interactions_path, "parquet", recursiveFileLookup=True
                 )
                 variant_index = VariantIndex.from_parquet(session, variant_index_path)
-                study_locus_overlap = StudyLocus(
+                # The credible sets led by a curated sentinel, and their variants.
+                curated_credible_sets = CredibleSet(
                     _df=credible_set.df.join(
                         gold_standard_raw.select(
                             f.concat_ws(
@@ -481,18 +498,33 @@ class LocusToGeneTrainTestSplitStep:
                                 f.col("sentinel_variant.locus_GRCh38.position"),
                                 f.col("sentinel_variant.alleles.reference"),
                                 f.col("sentinel_variant.alleles.alternative"),
-                            ).alias("variantId"),
+                            ).alias("leadVariantId"),
                             f.col("association_info.otg_id").alias("studyId"),
                         ),
-                        on=["studyId", "variantId"],
-                        how="inner",
+                        on=["studyId", "leadVariantId"],
+                        how="semi",
                     ),
-                    _schema=StudyLocus.get_schema(),
-                ).find_overlaps()
+                    _schema=CredibleSet.get_schema(),
+                )
+                curated_credible_set_variants = CredibleSetVariant(
+                    _df=CredibleSetVariant.from_parquet(
+                        session, credible_set_variant_path, recursiveFileLookup=True
+                    ).df.join(
+                        curated_credible_sets.df.select(
+                            f.col("id").alias("credibleSetId")
+                        ),
+                        on="credibleSetId",
+                        how="semi",
+                    ),
+                    _schema=CredibleSetVariant.get_schema(),
+                )
                 return L2GGoldStandard.from_otg_curation(
                     gold_standard_curation=gold_standard_raw,
+                    credible_set=curated_credible_sets,
                     variant_index=variant_index,
-                    study_locus_overlap=study_locus_overlap,
+                    study_locus_overlap=LocusOverlap.from_credible_sets(
+                        curated_credible_sets, curated_credible_set_variants
+                    ),
                     interactions=interactions,
                 )
             case _:
@@ -514,7 +546,7 @@ class LocusToGeneTrainTestSplitStep:
         stats: _SetStats = {
             "n_positive": int(positive.shape[0]),
             "n_negative": int((df["goldStandardSet"] == 0).sum()),
-            "n_unique_loci": int(df["studyLocusId"].nunique()),
+            "n_unique_loci": int(df["credibleSetId"].nunique()),
             "n_unique_positive_genes": int(positive["geneId"].nunique()),
         }
         if "traitFromSourceMappedId" in df.columns:
@@ -662,7 +694,7 @@ class LocusToGeneStep:
                 raise ValueError("credible_set_path is required for predict mode.")
             if not feature_matrix_path:
                 raise ValueError("feature_matrix_path is required for predict mode.")
-            self.credible_set = StudyLocus.from_parquet(
+            self.credible_set = CredibleSet.from_parquet(
                 session, credible_set_path, recursiveFileLookup=True
             )
             self.feature_matrix = L2GFeatureMatrix(
@@ -827,7 +859,7 @@ class LocusToGeneEvidenceStep:
             session, locus_to_gene_predictions_path
         )
         # Reading the credible set
-        credible_sets = StudyLocus.from_parquet(session, credible_set_path)
+        credible_sets = CredibleSet.from_parquet(session, credible_set_path)
 
         # Reading the study index
         study_index = StudyIndex.from_parquet(session, study_index_path)
@@ -930,7 +962,7 @@ class LocusToGeneModelTuningStep:
         Args:
             session (Session): Session object that contains the Spark session
             train_feature_matrix_path (str): Path to the parquet file containing the
-                annotated training feature matrix.  Must include ``studyLocusId``,
+                annotated training feature matrix.  Must include ``credibleSetId``,
                 ``geneId``, a ``goldStandardSet`` column with values ``"positive"``/
                 ``"negative"`` (strings) or ``1``/``0`` (integers), and one column per feature.
             test_feature_matrix_path (str): Path to the parquet file containing the

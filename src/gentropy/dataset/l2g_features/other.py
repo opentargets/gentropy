@@ -7,9 +7,9 @@ from typing import TYPE_CHECKING, Any
 import pyspark.sql.functions as f
 
 from gentropy.common.spark import convert_from_wide_to_long
+from gentropy.dataset.credible_set import CredibleSetLocus
 from gentropy.dataset.l2g_features.l2g_feature import L2GFeature
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
-from gentropy.dataset.study_locus import CredibleSetConfidenceClasses, StudyLocus
 from gentropy.dataset.target_index import TargetIndex
 from gentropy.dataset.variant_index import VariantIndex
 
@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 
 
 def common_genecount_feature_logic(
-    study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+    study_loci_to_annotate: CredibleSetLocus | L2GGoldStandard,
     *,
     target_index: TargetIndex,
     feature_name: str,
@@ -28,7 +28,7 @@ def common_genecount_feature_logic(
     """Computes the feature.
 
     Args:
-        study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci
+        study_loci_to_annotate (CredibleSetLocus | L2GGoldStandard): The dataset containing study loci
             that will be used for annotation
         target_index (TargetIndex): Dataset containing information related to all genes in release.
         feature_name (str): The name of the feature
@@ -62,7 +62,7 @@ def common_genecount_feature_logic(
             ),
             how="inner",
         )
-        .groupBy("studyLocusId")
+        .groupBy("credibleSetId")
         .agg(f.approx_count_distinct(f.col("id").alias("geneId")).alias(feature_name))
     )
 
@@ -76,14 +76,14 @@ def common_genecount_feature_logic(
             ),
             how="inner",
         )
-        .join(distinct_gene_counts, on="studyLocusId", how="inner")
-        .select("studyLocusId", f.col("id").alias("geneId"), feature_name)
+        .join(distinct_gene_counts, on="credibleSetId", how="inner")
+        .select("credibleSetId", f.col("id").alias("geneId"), feature_name)
         .distinct()
     )
 
 
 def is_protein_coding_feature_logic(
-    study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+    study_loci_to_annotate: CredibleSetLocus | L2GGoldStandard,
     *,
     variant_index: VariantIndex,
     feature_name: str,
@@ -92,7 +92,7 @@ def is_protein_coding_feature_logic(
     """Computes the feature to indicate if a gene is protein-coding or not.
 
     Args:
-        study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci
+        study_loci_to_annotate (CredibleSetLocus | L2GGoldStandard): The dataset containing study loci
             that will be used for annotation
         variant_index (VariantIndex): Dataset containing information related to all overlapping genes within a genomic window.
         feature_name (str): The name of the feature
@@ -119,13 +119,13 @@ def is_protein_coding_feature_logic(
         )
         .filter(f.col("distanceFromFootprint") <= genomic_window)
     )
-    if isinstance(study_loci_to_annotate, StudyLocus):
+    if isinstance(study_loci_to_annotate, CredibleSetLocus):
         variants_df = study_loci_to_annotate.df.select(
             f.explode_outer("locus.variantId").alias("variantId"),
-            "studyLocusId",
+            "credibleSetId",
         ).filter(f.col("variantId").isNotNull())
     elif isinstance(study_loci_to_annotate, L2GGoldStandard):
-        variants_df = study_loci_to_annotate.df.select("studyLocusId", "variantId")
+        variants_df = study_loci_to_annotate.df.select("credibleSetId", "variantId")
     return (
         # Annotate all genes in the window of a locus
         variants_df.join(
@@ -139,7 +139,7 @@ def is_protein_coding_feature_logic(
                 f.lit(0.0)
             ),
         )
-        .select("studyLocusId", "geneId", feature_name)
+        .select("credibleSetId", "geneId", feature_name)
         .distinct()
     )
 
@@ -153,13 +153,13 @@ class GeneCountFeature(L2GFeature):
     @classmethod
     def compute(
         cls: type[GeneCountFeature],
-        study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+        study_loci_to_annotate: CredibleSetLocus | L2GGoldStandard,
         feature_dependency: dict[str, Any],
     ) -> GeneCountFeature:
         """Computes the gene count feature.
 
         Args:
-            study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
+            study_loci_to_annotate (CredibleSetLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
             feature_dependency (dict[str, Any]): Dictionary containing dependencies, with target index and window size
 
         Returns:
@@ -176,7 +176,7 @@ class GeneCountFeature(L2GFeature):
         return cls(
             _df=convert_from_wide_to_long(
                 gene_count_df,
-                id_vars=("studyLocusId", "geneId"),
+                id_vars=("credibleSetId", "geneId"),
                 var_name="featureName",
                 value_name="featureValue",
             ),
@@ -193,13 +193,13 @@ class ProteinGeneCountFeature(L2GFeature):
     @classmethod
     def compute(
         cls: type[ProteinGeneCountFeature],
-        study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+        study_loci_to_annotate: CredibleSetLocus | L2GGoldStandard,
         feature_dependency: dict[str, Any],
     ) -> ProteinGeneCountFeature:
         """Computes the gene count feature.
 
         Args:
-            study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
+            study_loci_to_annotate (CredibleSetLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
             feature_dependency (dict[str, Any]): Dictionary containing dependencies, with target index and window size
 
         Returns:
@@ -217,7 +217,7 @@ class ProteinGeneCountFeature(L2GFeature):
         return cls(
             _df=convert_from_wide_to_long(
                 gene_count_df,
-                id_vars=("studyLocusId", "geneId"),
+                id_vars=("credibleSetId", "geneId"),
                 var_name="featureName",
                 value_name="featureValue",
             ),
@@ -234,13 +234,13 @@ class ProteinCodingFeature(L2GFeature):
     @classmethod
     def compute(
         cls: type[ProteinCodingFeature],
-        study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+        study_loci_to_annotate: CredibleSetLocus | L2GGoldStandard,
         feature_dependency: dict[str, Any],
     ) -> ProteinCodingFeature:
         """Computes the protein coding feature.
 
         Args:
-            study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
+            study_loci_to_annotate (CredibleSetLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
             feature_dependency (dict[str, Any]): Dictionary containing dependencies, including variant index
 
         Returns:
@@ -257,7 +257,7 @@ class ProteinCodingFeature(L2GFeature):
         return cls(
             _df=convert_from_wide_to_long(
                 protein_coding_df,
-                id_vars=("studyLocusId", "geneId"),
+                id_vars=("credibleSetId", "geneId"),
                 var_name="featureName",
                 value_name="featureValue",
             ),
@@ -268,26 +268,26 @@ class ProteinCodingFeature(L2GFeature):
 class CredibleSetConfidenceFeature(L2GFeature):
     """Distance of the sentinel variant to gene TSS. This is not weighted by the causal probability."""
 
-    feature_dependency_type = [StudyLocus, VariantIndex]
+    feature_dependency_type = [CredibleSetLocus, VariantIndex]
     feature_name = "credibleSetConfidence"
 
     @classmethod
     def compute(
         cls: type[CredibleSetConfidenceFeature],
-        study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+        study_loci_to_annotate: CredibleSetLocus | L2GGoldStandard,
         feature_dependency: dict[str, Any],
     ) -> CredibleSetConfidenceFeature:
         """Computes the feature.
 
         Args:
-            study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
+            study_loci_to_annotate (CredibleSetLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
             feature_dependency (dict[str, Any]): Dataset that contains the distance information
 
         Returns:
             CredibleSetConfidenceFeature: Feature dataset
         """
         full_credible_set = feature_dependency["study_locus"].df.select(
-            "studyLocusId",
+            "credibleSetId",
             "studyId",
             f.explode("locus.variantId").alias("variantId"),
             cls.score_credible_set_confidence(f.col("confidence")).alias(
@@ -298,7 +298,7 @@ class CredibleSetConfidenceFeature(L2GFeature):
         return cls(
             _df=convert_from_wide_to_long(
                 (
-                    study_loci_to_annotate.df.drop("studyLocusId")
+                    study_loci_to_annotate.df.drop("credibleSetId")
                     # Annotate genes
                     .join(
                         feature_dependency["variant_index"].df.select(
@@ -312,9 +312,9 @@ class CredibleSetConfidenceFeature(L2GFeature):
                     )
                     # Annotate credible set confidence
                     .join(full_credible_set, ["variantId", "studyId"])
-                    .select("studyLocusId", "geneId", cls.feature_name)
+                    .select("credibleSetId", "geneId", cls.feature_name)
                 ),
-                id_vars=("studyLocusId", "geneId"),
+                id_vars=("credibleSetId", "geneId"),
                 var_name="featureName",
                 value_name="featureValue",
             ),
@@ -328,35 +328,27 @@ class CredibleSetConfidenceFeature(L2GFeature):
     ) -> Column:
         """Expression that assigns a score to the credible set confidence.
 
+        `CredibleSet.confidence` is a byte assigned by the platform transformation stage. Each level
+        stands for one of the confidence classes the score was trained on:
+
+        | confidence | class                                                      | score |
+        |-----------:|------------------------------------------------------------|------:|
+        |          4 | SuSiE fine-mapped credible set with in-sample LD           |  1.0  |
+        |          3 | SuSiE fine-mapped credible set with out-of-sample LD       |  0.75 |
+        |          2 | PICS fine-mapped credible set extracted from summary stats |  0.5  |
+        |          1 | PICS fine-mapped credible set based on reported top hit    |  0.25 |
+        |          0 | Unknown confidence                                         |  0.0  |
+
         Args:
-            confidence_column (Column): Confidence column in the StudyLocus object
+            confidence_column (Column): Confidence column in the CredibleSetLocus object
 
         Returns:
             Column: A confidence score between 0 and 1
         """
         return (
-            f.when(
-                f.col("confidence")
-                == CredibleSetConfidenceClasses.FINEMAPPED_IN_SAMPLE_LD.value,
-                f.lit(1.0),
-            )
-            .when(
-                f.col("confidence")
-                == CredibleSetConfidenceClasses.FINEMAPPED_OUT_OF_SAMPLE_LD.value,
-                f.lit(0.75),
-            )
-            .when(
-                f.col("confidence")
-                == CredibleSetConfidenceClasses.PICSED_SUMMARY_STATS.value,
-                f.lit(0.5),
-            )
-            .when(
-                f.col("confidence")
-                == CredibleSetConfidenceClasses.PICSED_TOP_HIT.value,
-                f.lit(0.25),
-            )
-            .when(
-                f.col("confidence") == CredibleSetConfidenceClasses.UNKNOWN.value,
-                f.lit(0.0),
-            )
+            f.when(confidence_column == 4, f.lit(1.0))
+            .when(confidence_column == 3, f.lit(0.75))
+            .when(confidence_column == 2, f.lit(0.5))
+            .when(confidence_column == 1, f.lit(0.25))
+            .when(confidence_column == 0, f.lit(0.0))
         )

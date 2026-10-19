@@ -170,7 +170,7 @@ class LocusToGeneModel:
                 for column in model_config["sklearn"]["columns"]
                 if column
                 not in [
-                    "studyLocusId",
+                    "credibleSetId",
                     "geneId",
                     "traitFromSourceMappedId",
                     "goldStandardSet",

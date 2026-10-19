@@ -26,32 +26,8 @@ if TYPE_CHECKING:
     from pyspark.sql import Column, DataFrame
     from pyspark.sql.types import StructType
 
-    from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
     from gentropy.dataset.study_index import StudyIndex
     from gentropy.dataset.target_index import TargetIndex
-    from gentropy.method.l2g.feature_factory import L2GFeatureInputLoader
-
-
-class CredibleSetConfidenceClasses(Enum):
-    """Confidence assignments for credible sets, based on finemapping method and quality checks.
-
-    List of confidence classes, from the highest to the lowest confidence level.
-
-    Attributes:
-        FINEMAPPED_IN_SAMPLE_LD (str): SuSiE fine-mapped credible set with in-sample LD
-        FINEMAPPED_OUT_OF_SAMPLE_LD (str): SuSiE fine-mapped credible set with out-of-sample LD
-        PICSED_SUMMARY_STATS (str): PICS fine-mapped credible set extracted from summary statistics
-        PICSED_TOP_HIT (str): PICS fine-mapped credible set based on reported top hit
-        UNKNOWN (str): Unknown confidence, for credible sets which did not fit any of the above categories
-    """
-
-    FINEMAPPED_IN_SAMPLE_LD = "SuSiE fine-mapped credible set with in-sample LD"
-    FINEMAPPED_OUT_OF_SAMPLE_LD = "SuSiE fine-mapped credible set with out-of-sample LD"
-    PICSED_SUMMARY_STATS = (
-        "PICS fine-mapped credible set extracted from summary statistics"
-    )
-    PICSED_TOP_HIT = "PICS fine-mapped credible set based on reported top hit"
-    UNKNOWN = "Unknown confidence"
 
 
 class StudyLocusQualityCheck(Enum):
@@ -70,6 +46,10 @@ class StudyLocusQualityCheck(Enum):
         INCONSISTENCY_FLAG (str): Curated top hit whose location or variants disagree
         PALINDROMIC_ALLELE_FLAG (str): Curated top hit with palindromic alleles, whose effect cannot be harmonised
         TOP_HIT (str): Study locus from curated top hit
+        TRANS_QTL (str): QTL credible set acting in trans on its measured gene, raised by the platform
+            transformation stage
+        REPLICATED (str): Lead variant is replicated in an independent study, raised by the platform
+            transformation stage
     """
 
     WINDOW_CLUMPED = "Explained by a more significant variant in the same window"
@@ -82,6 +62,8 @@ class StudyLocusQualityCheck(Enum):
     INCONSISTENCY_FLAG = "Variant inconsistency"
     PALINDROMIC_ALLELE_FLAG = "Palindrome alleles - cannot harmonize"
     TOP_HIT = "Study locus from curated top hit"
+    TRANS_QTL = "Trans QTL"
+    REPLICATED = "Lead variant is replicated in an independent study"
 
 
 class CredibleInterval(Enum):
@@ -879,43 +861,6 @@ class StudyLocus(Dataset):
             self.df.pValueExponent,
         )
 
-    def build_feature_matrix(
-        self: StudyLocus,
-        features_list: list[str],
-        features_input_loader: L2GFeatureInputLoader,
-        append_null_features: bool = False,
-    ) -> L2GFeatureMatrix:
-        """Returns the feature matrix for a StudyLocus.
-
-        Args:
-            features_list (list[str]): List of features to include in the feature matrix.
-            features_input_loader (L2GFeatureInputLoader): Feature input loader to use.
-            append_null_features (bool): If True, appends null features to the feature matrix. Default is False. Usefull with small datasets that may have all null features, that are anyway required by the model.
-
-        Returns:
-            L2GFeatureMatrix: Feature matrix for this study-locus.
-        """
-        from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
-
-        if append_null_features:
-            feature_matrix = (
-                L2GFeatureMatrix.from_features_list(
-                    self,
-                    features_list,
-                    features_input_loader,
-                )
-                .append_null_features(features_list)
-                .fill_na()
-            )
-        else:
-            feature_matrix = L2GFeatureMatrix.from_features_list(
-                self,
-                features_list,
-                features_input_loader,
-            ).fill_na()
-
-        return feature_matrix
-
     def annotate_credible_sets(self: StudyLocus) -> StudyLocus:
         """Annotate study-locus dataset with credible set flags.
 
@@ -1145,78 +1090,6 @@ class StudyLocus(Dataset):
                 .drop("inSuSiE")
             ),
             _schema=StudyLocus.get_schema(),
-        )
-
-    def assign_confidence(self: StudyLocus) -> StudyLocus:
-        """Assign confidence to study locus.
-
-        Returns:
-            StudyLocus: Study locus with confidence assigned.
-        """
-        # Return self if the required columns are not in the dataframe:
-        if (
-            "qualityControls" not in self.df.columns
-            or "finemappingMethod" not in self.df.columns
-        ):
-            return self
-
-        # Assign confidence based on the presence of quality controls
-        df = self.df.withColumn(
-            "confidence",
-            f.when(
-                (
-                    f.col("finemappingMethod").isin(
-                        FinemappingMethod.SUSIE.value,
-                        FinemappingMethod.SUSIE_INF.value,
-                    )
-                )
-                & (
-                    ~f.array_contains(
-                        f.col("qualityControls"),
-                        StudyLocusQualityCheck.OUT_OF_SAMPLE_LD.value,
-                    )
-                ),
-                CredibleSetConfidenceClasses.FINEMAPPED_IN_SAMPLE_LD.value,
-            )
-            .when(
-                (
-                    f.col("finemappingMethod").isin(
-                        FinemappingMethod.SUSIE.value,
-                        FinemappingMethod.SUSIE_INF.value,
-                    )
-                )
-                & (
-                    f.array_contains(
-                        f.col("qualityControls"),
-                        StudyLocusQualityCheck.OUT_OF_SAMPLE_LD.value,
-                    )
-                ),
-                CredibleSetConfidenceClasses.FINEMAPPED_OUT_OF_SAMPLE_LD.value,
-            )
-            .when(
-                (f.col("finemappingMethod") == FinemappingMethod.PICS.value)
-                & (
-                    ~f.array_contains(
-                        f.col("qualityControls"), StudyLocusQualityCheck.TOP_HIT.value
-                    )
-                ),
-                CredibleSetConfidenceClasses.PICSED_SUMMARY_STATS.value,
-            )
-            .when(
-                (f.col("finemappingMethod") == FinemappingMethod.PICS.value)
-                & (
-                    f.array_contains(
-                        f.col("qualityControls"), StudyLocusQualityCheck.TOP_HIT.value
-                    )
-                ),
-                CredibleSetConfidenceClasses.PICSED_TOP_HIT.value,
-            )
-            .otherwise(CredibleSetConfidenceClasses.UNKNOWN.value),
-        )
-
-        return StudyLocus(
-            _df=df,
-            _schema=self.get_schema(),
         )
 
 

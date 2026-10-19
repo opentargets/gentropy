@@ -385,6 +385,7 @@ class LocusToGeneTrainTestSplitConfig(StepConfig):
     train_parquet_path: str = MISSING
     test_parquet_path: str = MISSING
     test_size: float = 0.15
+    credible_set_variant_path: str | None = None
     variant_index_path: str | None = None
     gene_interactions_path: str | None = None
     predefined_test_parquet_path: str | None = None
@@ -428,6 +429,7 @@ class LocusToGeneFeatureMatrixConfig(StepConfig):
         }
     )
     credible_set_path: str = MISSING
+    credible_set_variant_path: str = MISSING
     variant_index_path: str | None = None
     colocalisation_path: str | None = None
     study_index_path: str | None = None

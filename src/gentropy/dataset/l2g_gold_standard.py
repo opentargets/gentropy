@@ -11,12 +11,12 @@ from pyspark.sql import Window
 from gentropy.common.schemas import parse_spark_schema
 from gentropy.common.spark import get_record_with_maximum_value
 from gentropy.dataset.dataset import Dataset
-from gentropy.dataset.study_locus import StudyLocus
 
 if TYPE_CHECKING:
     from pyspark.sql import DataFrame
     from pyspark.sql.types import StructType
 
+    from gentropy.dataset.credible_set import CredibleSet
     from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
     from gentropy.dataset.locus_overlap import LocusOverlap
     from gentropy.dataset.variant_index import VariantIndex
@@ -34,6 +34,7 @@ class L2GGoldStandard(Dataset):
     def from_otg_curation(
         cls: type[L2GGoldStandard],
         gold_standard_curation: DataFrame,
+        credible_set: CredibleSet,
         study_locus_overlap: LocusOverlap,
         variant_index: VariantIndex,
         interactions: DataFrame,
@@ -42,7 +43,8 @@ class L2GGoldStandard(Dataset):
 
         Args:
             gold_standard_curation (DataFrame): Gold standard curation dataframe, extracted from
-            study_locus_overlap (LocusOverlap): Study locus overlap dataset to remove duplicated loci
+            credible_set (CredibleSet): Credible sets led by a curated sentinel, which give the curated loci their `credibleSetId`
+            study_locus_overlap (LocusOverlap): Overlaps between those credible sets, to remove duplicated loci
             variant_index (VariantIndex): Dataset to bring distance between a variant and a gene's footprint
             interactions (DataFrame): Gene-gene interactions dataset to remove negative cases where the gene interacts with a positive gene
 
@@ -57,7 +59,7 @@ class L2GGoldStandard(Dataset):
 
         return (
             OpenTargetsL2GGoldStandard.as_l2g_gold_standard(
-                gold_standard_curation, variant_index
+                gold_standard_curation, credible_set, variant_index
             )
             .filter_unique_associations(study_locus_overlap)
             .remove_false_negatives(interactions_df)
@@ -108,13 +110,13 @@ class L2GGoldStandard(Dataset):
     def build_feature_matrix(
         self: L2GGoldStandard,
         full_feature_matrix: L2GFeatureMatrix,
-        credible_set: StudyLocus,
+        credible_set: CredibleSet,
     ) -> L2GFeatureMatrix:
         """Return a feature matrix for study loci in the gold standard.
 
         Args:
             full_feature_matrix (L2GFeatureMatrix): Feature matrix for all study loci to join on
-            credible_set (StudyLocus): Full credible sets to annotate the feature matrix with variant and study IDs and perform the join
+            credible_set (CredibleSet): Full credible sets to annotate the feature matrix with lead variant and study IDs and perform the join
 
         Returns:
             L2GFeatureMatrix: Feature matrix for study loci in the gold standard
@@ -123,12 +125,16 @@ class L2GGoldStandard(Dataset):
 
         return L2GFeatureMatrix(
             _df=full_feature_matrix._df.join(
-                credible_set.df.select("studyLocusId", "variantId", "studyId"),
-                "studyLocusId",
+                credible_set.df.select(
+                    f.col("id").alias("credibleSetId"),
+                    f.col("leadVariantId").alias("variantId"),
+                    "studyId",
+                ),
+                "credibleSetId",
                 "left",
             )
             .join(
-                f.broadcast(self.df.drop("studyLocusId", "sources")),
+                f.broadcast(self.df.drop("credibleSetId", "sources")),
                 on=["studyId", "variantId", "geneId"],
                 how="inner",
             )
@@ -149,6 +155,10 @@ class L2GGoldStandard(Dataset):
         - If two loci point to the same gene, both positive or negative, and have overlapping variants, we drop one.
         - If two loci point to different genes, and have overlapping variants, we keep both.
 
+        The gold standard and the overlaps are both keyed by `CredibleSet.id`. Before, the curated
+        loci were keyed by a hash of study and sentinel that no credible set carried, so no overlap
+        ever matched and this filter removed nothing.
+
         Args:
             study_locus_overlap (LocusOverlap): A dataset detailing variants that overlap between StudyLocus.
 
@@ -161,12 +171,12 @@ class L2GGoldStandard(Dataset):
             # identify all the study loci that point to the same gene
             .withColumn(
                 "sl_same_gene",
-                f.collect_set("studyLocusId").over(Window.partitionBy("geneId")),
+                f.collect_set("credibleSetId").over(Window.partitionBy("geneId")),
             )
             # identify all the study loci that have an overlapping variant
             .join(
                 squared_overlaps.df.alias("right"),
-                (f.col("left.studyLocusId") == f.col("right.leftLocusId"))
+                (f.col("left.credibleSetId") == f.col("right.leftLocusId"))
                 & (f.col("left.variantId") == f.col("right.tagVariantId")),
                 "left",
             )

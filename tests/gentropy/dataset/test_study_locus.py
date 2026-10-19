@@ -21,18 +21,14 @@ from pyspark.sql.types import (
 
 from gentropy.common.schemas import SchemaValidationError
 from gentropy.common.session import Session
-from gentropy.dataset.colocalisation import Colocalisation
-from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
 from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import (
     CredibleInterval,
-    CredibleSetConfidenceClasses,
     StudyLocus,
     StudyLocusQualityCheck,
 )
 from gentropy.dataset.target_index import TargetIndex
 from gentropy.dataset.variant_index import VariantIndex
-from gentropy.method.l2g.feature_factory import L2GFeatureInputLoader
 
 
 def test_filter_credible_set(mock_study_locus: StudyLocus) -> None:
@@ -519,28 +515,6 @@ class TestStudyLocusValidation:
             self.study_locus.validate_lead_pvalue(test_pvalues), StudyLocus
         )
 
-    def test_confidence_flag_return_type(self: TestStudyLocusValidation) -> None:
-        """Testing if the confidence flagging returns the right type."""
-        assert isinstance(self.study_locus.assign_confidence(), StudyLocus)
-
-    def test_confidence_flag_new_column(self: TestStudyLocusValidation) -> None:
-        """Testing if the confidence flagging adds a new column."""
-        assert (
-            self.study_locus.assign_confidence().df.columns
-            == self.study_locus.df.columns + ["confidence"]
-        )
-
-    def test_confidence_flag_unknown_confidence(self: TestStudyLocusValidation) -> None:
-        """Testing if the confidence flagging adds a new column."""
-        assert (
-            self.study_locus.assign_confidence()
-            .df.filter(
-                f.col("confidence") == CredibleSetConfidenceClasses.UNKNOWN.value
-            )
-            .count()
-            == 1
-        )
-
     @pytest.mark.parametrize(
         ("test_pvalues", "flagged_count"),
         [(1e-5, 3), (1e-4, 2)],
@@ -595,78 +569,6 @@ class TestStudyLocusValidation:
             )
             .count()
         ) == 1
-
-
-class TestStudyLocusBuildFeatureMatrix:
-    """Collection of tests related to building feature matrix from study locus."""
-
-    def test_build_feature_matrix(
-        self: TestStudyLocusBuildFeatureMatrix,
-        mock_study_locus: StudyLocus,
-        mock_colocalisation: Colocalisation,
-        mock_study_index: StudyIndex,
-    ) -> None:
-        """Test building feature matrix with the eQtlColocH4Maximum feature."""
-        features_list = ["eQtlColocH4Maximum"]
-        loader = L2GFeatureInputLoader(
-            colocalisation=mock_colocalisation,
-            study_index=mock_study_index,
-            study_locus=mock_study_locus,
-        )
-        fm = mock_study_locus.build_feature_matrix(features_list, loader)
-        assert isinstance(fm, L2GFeatureMatrix), (
-            "Feature matrix should be of type L2GFeatureMatrix"
-        )
-
-    def test_build_feature_matrix_append_null_false(
-        self: TestStudyLocusBuildFeatureMatrix,
-        mock_study_locus: StudyLocus,
-        mock_colocalisation: Colocalisation,
-        mock_study_index_no_pqtl: StudyIndex,
-    ) -> None:
-        """Test building feature matrix with the eQtlColocH4Maximum feature."""
-        features_list = ["eQtlColocH4Maximum", "pQtlColocH4Maximum"]
-        loader = L2GFeatureInputLoader(
-            colocalisation=mock_colocalisation,
-            study_index=mock_study_index_no_pqtl,
-            study_locus=mock_study_locus,
-        )
-
-        fm = mock_study_locus.build_feature_matrix(
-            features_list, loader, append_null_features=False
-        )
-
-        assert isinstance(fm, L2GFeatureMatrix), (
-            "Feature matrix should be of type L2GFeatureMatrix"
-        )
-        assert "eQtlColocH4Maximum" in fm._df.columns
-        assert "eQtlColocH4Maximum" in fm.features_list
-        assert "pQtlColocH4Maximum" not in fm._df.columns
-        assert "pQtlColocH4Maximum" not in fm.features_list
-
-    def test_build_feature_matrix_append_null_true(
-        self: TestStudyLocusBuildFeatureMatrix,
-        mock_study_locus: StudyLocus,
-        mock_colocalisation: Colocalisation,
-        mock_study_index_no_pqtl: StudyIndex,
-    ) -> None:
-        """Test building feature matrix with the eQtlColocH4Maximum feature."""
-        features_list = ["eQtlColocH4Maximum", "pQtlColocH4Maximum"]
-        loader = L2GFeatureInputLoader(
-            colocalisation=mock_colocalisation,
-            study_index=mock_study_index_no_pqtl,
-            study_locus=mock_study_locus,
-        )
-        fm = mock_study_locus.build_feature_matrix(
-            features_list, loader, append_null_features=True
-        )
-        assert isinstance(fm, L2GFeatureMatrix), (
-            "Feature matrix should be of type L2GFeatureMatrix"
-        )
-        assert "eQtlColocH4Maximum" in fm._df.columns
-        assert "eQtlColocH4Maximum" in fm.features_list
-        assert "pQtlColocH4Maximum" in fm._df.columns
-        assert "pQtlColocH4Maximum" in fm.features_list
 
 
 class TestStudyLocusRedundancyFlagging:

@@ -16,6 +16,7 @@ from gentropy.common.genomic_region import LiftOverSpark
 from gentropy.common.session import Session
 from gentropy.dataset.biosample_index import BiosampleIndex
 from gentropy.dataset.colocalisation import Colocalisation
+from gentropy.dataset.credible_set import CredibleSet, CredibleSetLocus
 from gentropy.dataset.intervals import Intervals
 from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
@@ -307,6 +308,56 @@ def mock_study_locus(spark: SparkSession) -> StudyLocus:
         _df=mock_study_locus_data(spark),
         _schema=StudyLocus.get_schema(),
     )
+
+
+@pytest.fixture()
+def mock_credible_set(spark: SparkSession) -> CredibleSet:
+    """Mock credible set dataset."""
+    schema = CredibleSet.get_schema()
+    data_spec = (
+        dg.DataGenerator(
+            spark,
+            rows=400,
+            partitions=4,
+            randomSeedMethod="hash_fieldname",
+            seedColumnName="_id",
+        )
+        .withSchema(schema)
+        .withColumnSpec("id", expr="cast(_id as string)")
+        .withColumnSpec("leadVariantId", expr="cast(_id as string)")
+        .withColumnSpec("studyType", values=["gwas", "eqtl", "pqtl", "sqtl"])
+        .withColumnSpec("locusStart", minValue=1, maxValue=1_000_000)
+        .withColumnSpec("locusEnd", expr="locusStart + 500000", baseColumn="locusStart")
+        .withColumnSpec("qualityControls", expr="array(cast(rand() as string))")
+    )
+    return CredibleSet(_df=data_spec.build(), _schema=schema)
+
+
+@pytest.fixture()
+def mock_credible_set_locus(spark: SparkSession) -> CredibleSetLocus:
+    """Mock credible set locus view, the locus-to-gene input."""
+    schema = CredibleSetLocus.get_schema()
+    data_spec = (
+        dg.DataGenerator(
+            spark,
+            rows=400,
+            partitions=4,
+            randomSeedMethod="hash_fieldname",
+        )
+        .withSchema(schema)
+        .withColumnSpec("credibleSetId", expr="cast(id as string)")
+        .withColumnSpec("variantId", expr="cast(id as string)")
+        .withColumnSpec("chromosome", percentNulls=0.1)
+        .withColumnSpec("position", minValue=100, percentNulls=0.1)
+        .withColumnSpec("confidence", minValue=0, maxValue=4, percentNulls=0.1)
+        .withColumnSpec("qualityControls", expr="array(cast(rand() as string))")
+        .withColumnSpec(
+            "locus",
+            expr='array(named_struct("variantId", cast(floor(rand() * 400) + 1 as string), "posteriorProbability", cast(rand() as float)))',
+            percentNulls=0.1,
+        )
+    )
+    return CredibleSetLocus(_df=data_spec.build(), _schema=schema)
 
 
 @pytest.fixture()
@@ -790,7 +841,7 @@ def mock_l2g_feature_matrix(spark: SparkSession) -> L2GFeatureMatrix:
                 ("loc5", "gene1", "trait3", 150.0, 15.0, "positive"),
                 ("loc6", "gene2", "trait4", 250.0, 25.0, "positive"),
                 # Negative class samples
-                # These share studyLocusId with positive samples to test proper negative propagation
+                # These share credibleSetId with positive samples to test proper negative propagation
                 ("loc1", "gene5", "trait1", 500.0, 50.0, "negative"),
                 ("loc2", "gene6", "trait1", 600.0, 60.0, "negative"),
                 ("loc3", "gene7", "trait2", 700.0, 70.0, "negative"),
@@ -804,7 +855,7 @@ def mock_l2g_feature_matrix(spark: SparkSession) -> L2GFeatureMatrix:
                 ("loc9", "gene7", "trait3", 750.0, 75.0, "negative"),
                 ("loc10", "gene8", "trait4", 850.0, 85.0, "negative"),
             ],
-            "studyLocusId STRING, geneId STRING, traitFromSourceMappedId STRING, distanceTssMean FLOAT, distanceSentinelTssMinimum FLOAT, goldStandardSet STRING",
+            "credibleSetId STRING, geneId STRING, traitFromSourceMappedId STRING, distanceTssMean FLOAT, distanceSentinelTssMinimum FLOAT, goldStandardSet STRING",
         ),
         with_gold_standard=True,
     )
@@ -820,7 +871,7 @@ def mock_l2g_gold_standard(spark: SparkSession) -> L2GGoldStandard:
         )
         .withSchema(schema)
         .withColumnSpec(
-            "studyLocusId",
+            "credibleSetId",
             expr="cast(id as string)",
         )
         .withColumnSpec(
@@ -857,7 +908,7 @@ def mock_l2g_predictions(spark: SparkSession) -> L2GPrediction:
         )
         .withSchema(schema)
         .withColumnSpec(
-            "studyLocusId",
+            "credibleSetId",
             expr="cast(id as string)",
         )
         .withColumnSpec(
