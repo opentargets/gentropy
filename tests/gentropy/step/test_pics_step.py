@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -18,10 +19,10 @@ def test_pics_step_writes_credible_sets_of_significant_loci(
 ) -> None:
     """The step fine-maps the loci with a significant lead and writes both datasets."""
 
-    def locus(lead: str, exponent: int) -> list[tuple]:
+    def locus(lead: str, exponent: int) -> list[tuple[Any, ...]]:
         return [(lead, 1.0, exponent, 0.3, 1000, 0.1, 0.01)]
 
-    rows = [
+    rows: list[tuple[Any, ...]] = [
         ("L1", "S1", "1", 1, 1000, "1_100_A_T", [], locus("1_100_A_T", -10), [("1_100_A_T", 1.0), ("1_150_C_G", 0.8)]),
         ("L2", "S1", "2", 1, 1000, "2_100_A_T", [], locus("2_100_A_T", -6), [("2_100_A_T", 1.0)]),
     ]  # fmt: skip

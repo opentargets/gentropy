@@ -123,7 +123,7 @@ def _likelihood_batch(neglog_p: pd.Series, r2: pd.Series, k: pd.Series) -> pd.Se
 # so the UDF is cast to what it is: a function of columns returning a column.
 _relative_likelihoods = cast(
     "Callable[..., Column]",
-    pandas_udf(_likelihood_batch, t.ArrayType(t.DoubleType())),  # type: ignore[call-overload]
+    pandas_udf(_likelihood_batch, t.ArrayType(t.DoubleType())),
 )
 
 

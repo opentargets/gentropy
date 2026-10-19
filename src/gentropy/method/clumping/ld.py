@@ -68,11 +68,11 @@ from gentropy.dataset.study_locus import LDAnnotatedStudyLocus, StudyLocusQualit
 if TYPE_CHECKING:
     from pyspark.sql import DataFrame
 
+# Temporary column marking linked leads; a window result is filtered as a column.
 _LINKED = "isLinked"
-"""Temporary column marking linked leads; a window result is filtered as a column."""
 
+# Temporary column: the lead and the ids of its tags.
 _TAGS = "tags"
-"""Temporary column: the lead and the ids of its tags."""
 
 
 class LDClumpingConfig(BaseModel):

@@ -22,13 +22,13 @@ from gentropy.dataset.summary_statistics import SummaryStatistics
 from gentropy.method.annotation import annotate_locus
 from gentropy.method.clumping.window import WindowClumping
 
+# Summary statistics schema accepting nulls, to build rows with missing values.
 NULLABLE_SUMMARY_STATISTICS_SCHEMA = t.StructType(
     [
         t.StructField(field.name, field.dataType, True)
         for field in SummaryStatistics.get_schema()
     ]
 )
-"""Summary statistics schema accepting nulls, to build rows with missing values."""
 
 
 def _id(study: str, chromosome: str, start: int, end: int) -> str:
@@ -85,8 +85,8 @@ def _prune_peak(position: np.ndarray, window_size: int) -> DenseVector:
     return DenseVector(is_lead)
 
 
+# (studyId, variantId, chromosome, position, pValueMantissa, pValueExponent).
 Association = tuple[str, str, str, int, float | None, int | None]
-"""(studyId, variantId, chromosome, position, pValueMantissa, pValueExponent)."""
 
 
 def _random_associations(seed: int, distance: int) -> list[Association]:

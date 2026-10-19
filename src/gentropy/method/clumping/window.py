@@ -144,6 +144,7 @@ if TYPE_CHECKING:
 
     from gentropy.dataset.summary_statistics import SummaryStatistics
 
+# The leads of one cluster: rank in the cluster, from 0, position and variant.
 _LEADS = t.ArrayType(
     t.StructType(
         [
@@ -153,7 +154,6 @@ _LEADS = t.ArrayType(
         ]
     )
 )
-"""The leads of one cluster: rank in the cluster, from 0, position and variant."""
 
 
 class WindowClumpingConfig(BaseModel):

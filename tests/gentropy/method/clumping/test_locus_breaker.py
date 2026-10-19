@@ -13,19 +13,19 @@ from gentropy.dataset.summary_statistics import SummaryStatistics
 from gentropy.method.clumping.locus_breaker import LocusBreakerClumping
 from gentropy.method.clumping.window import WindowClumping
 
+# Study, chromosome, position, p-value mantissa and exponent.
 Association: TypeAlias = tuple[str, str, int, float | None, int | None]
-"""Study, chromosome, position, p-value mantissa and exponent."""
 
+# Study, chromosome, locus start, locus end and lead variant.
 Locus: TypeAlias = tuple[str, str, int, int, str]
-"""Study, chromosome, locus start, locus end and lead variant."""
 
+# Summary statistics schema accepting nulls, to build rows with missing p-values.
 NULLABLE_SUMMARY_STATISTICS_SCHEMA = t.StructType(
     [
         t.StructField(field.name, field.dataType, True)
         for field in SummaryStatistics.get_schema()
     ]
 )
-"""Summary statistics schema accepting nulls, to build rows with missing p-values."""
 
 
 def _summary_statistics(
