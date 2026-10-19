@@ -13,13 +13,21 @@ from gentropy.dataset.study_index import StudyIndex
 from gentropy.method.fine_mapping.credible_set_qc import credible_set_qc
 
 
-def _credible_set(id: str, lead: str, chromosome: str = "1") -> tuple[Any, ...]:
+def _credible_set(
+    id: str,
+    lead: str,
+    chromosome: str = "1",
+    locus_start: int = 1,
+    log_bayes_factor: float = 5.0,
+) -> tuple[Any, ...]:
     """A credible set row of study S1.
 
     Args:
         id (str): Credible set id.
         lead (str): Lead variant id.
         chromosome (str): Chromosome.
+        locus_start (int): Locus start; the locus ends 999 bp later.
+        log_bayes_factor (float): Credible set log Bayes factor.
 
     Returns:
         tuple[Any, ...]: The row, in the CredibleSet schema order.
@@ -27,13 +35,13 @@ def _credible_set(id: str, lead: str, chromosome: str = "1") -> tuple[Any, ...]:
     return (
         id,
         chromosome,
-        1,
-        1000,
+        locus_start,
+        locus_start + 999,
         "S1",
         "gwas",
         lead,
         "SuSiE-inf",
-        5.0,
+        log_bayes_factor,
         None,
         None,
         0.5,
@@ -187,3 +195,27 @@ def test_ld_index_requires_study_index(
     ld_index = LDIndex(spark.createDataFrame([], LDIndex.get_schema()))
     with pytest.raises(ValueError, match="requires the study index"):
         credible_set_qc(*credible_sets, ld_index=ld_index)
+
+
+def test_same_lead_from_overlapping_loci_is_kept_once(spark: SparkSession) -> None:
+    """A lead fine-mapped in two overlapping windows keeps the credible set with the higher Bayes factor."""
+    credible_sets = CredibleSet(
+        _df=spark.createDataFrame(
+            [
+                _credible_set("W1", "1_500_A_T", locus_start=1, log_bayes_factor=4.0),
+                _credible_set("W2", "1_500_A_T", locus_start=400, log_bayes_factor=6.0),
+            ],
+            CredibleSet.get_schema(),
+        ),
+        _schema=CredibleSet.get_schema(),
+    )
+    variants = CredibleSetVariant(
+        _df=spark.createDataFrame(
+            [_variant(id, "1_500_A_T", -10) for id in ("W1", "W2")],
+            CredibleSetVariant.get_schema(),
+        ),
+        _schema=CredibleSetVariant.get_schema(),
+    )
+    kept, kept_variants = credible_set_qc(credible_sets, variants)
+    assert [row.id for row in kept.df.collect()] == ["W2"]
+    assert [row.credibleSetId for row in kept_variants.df.collect()] == ["W2"]

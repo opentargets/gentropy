@@ -5,13 +5,13 @@ Fine-mapping writes the credible sets of every locus on its own; this gathers th
 1. **A significant lead.** The lead's p-value is the one on its credible set variant row; a lead
    without one, such as an imputed variant, does not pass.
 2. **Pure credible sets**, whose `purityMinR2` reaches the threshold; a null purity does not pass.
-3. **One credible set per `id`**, the one with the highest `logBayesFactor`. The `id` hashes
-   the study, the locus bounds, the lead and the method. Fine-mapped loci of a study do not
-   overlap (they come from locus-breaker clumping, and a lead lies inside its locus), so a
-   duplicated `id` is the same locus fine-mapped again, which is what the former study locus
-   id, over the study, lead and method, caught. Two runs over different bounds give different
-   ids and are both kept. The variants of a duplicated `id` cannot be told apart by run, so
-   they are deduplicated on `(credibleSetId, variantId)`.
+3. **One credible set per study, lead and method**, the one with the highest `logBayesFactor`
+   (ties broken by `id`). This is the key of the former study locus id. The `id` also hashes
+   the locus bounds, and the bounds alone do not tell two signals apart: locus-breaker splits
+   a large block into windows of `distance` on each side of leads at least `distance` apart,
+   so neighbouring windows overlap and the same lead can be fine-mapped in both. Its variants
+   are kept with the credible set kept; a credible set fine-mapped twice over the same bounds
+   has one `id` for both runs, so its variants are deduplicated on `(credibleSetId, variantId)`.
 4. **Optionally, leads not in LD with a more significant lead of the study.** Each credible set
    becomes a study locus with its lead's statistics as `locus`, its lead is annotated with the
    LD index (`annotate_ld`), and `LDClumping` drops the leads in LD with a more significant one.
@@ -112,7 +112,9 @@ def credible_set_qc(
         .withColumn(
             "rank",
             f.row_number().over(
-                Window.partitionBy("id").orderBy(f.desc_nulls_last("logBayesFactor"))
+                Window.partitionBy(
+                    "studyId", "leadVariantId", "fineMappingMethod"
+                ).orderBy(f.desc_nulls_last("logBayesFactor"), "id")
             ),
         )
         .filter(f.col("rank") == 1)
@@ -138,9 +140,11 @@ def credible_set_qc(
             ),
             _schema=loci_schema,
         )
-        unclumped = LDClumping().clump(
-            annotate_ld(loci, study_index, ld_index, r2_threshold=ld_min_r2)
-        )
+        # clump reads its input twice; persist so the LD index join runs once.
+        annotated = annotate_ld(
+            loci, study_index, ld_index, r2_threshold=ld_min_r2
+        ).persist()
+        unclumped = LDClumping().clump(annotated)
         kept = kept.join(unclumped.df.select("id"), on="id", how="left_semi")
     credible_set_schema = CredibleSet.get_schema()
     variant_schema = CredibleSetVariant.get_schema()

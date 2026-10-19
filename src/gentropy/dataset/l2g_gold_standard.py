@@ -6,7 +6,6 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 import pyspark.sql.functions as f
-from pyspark.sql import Window
 
 from gentropy.common.schemas import parse_spark_schema
 from gentropy.common.spark import get_record_with_maximum_value
@@ -150,10 +149,11 @@ class L2GGoldStandard(Dataset):
     ) -> L2GGoldStandard:
         """Refines the gold standard to filter out loci that are not independent.
 
-        Rules:
-        - If two loci point to the same gene, one positive and one negative, and have overlapping variants, we keep the positive one.
-        - If two loci point to the same gene, both positive or negative, and have overlapping variants, we drop one.
-        - If two loci point to different genes, and have overlapping variants, we keep both.
+        Two loci overlap when they share a variant. For each pair of overlapping loci pointing to
+        the same gene:
+        - If one is positive and the other negative, we keep the positive one.
+        - If both are positive or both negative, we keep the one with the smaller `credibleSetId`.
+        Loci pointing to different genes are kept, overlapping or not.
 
         The gold standard and the overlaps are both keyed by `CredibleSet.id`. Before, the curated
         loci were keyed by a hash of study and sentinel that no credible set carried, so no overlap
@@ -165,31 +165,37 @@ class L2GGoldStandard(Dataset):
         Returns:
             L2GGoldStandard: L2GGoldStandard updated to exclude false negatives and redundant positives.
         """
-        squared_overlaps = study_locus_overlap._convert_to_square_matrix()
-        unique_associations = (
-            self.df.alias("left")
-            # identify all the study loci that point to the same gene
-            .withColumn(
-                "sl_same_gene",
-                f.collect_set("credibleSetId").over(Window.partitionBy("geneId")),
-            )
-            # identify all the study loci that have an overlapping variant
-            .join(
-                squared_overlaps.df.alias("right"),
-                (f.col("left.credibleSetId") == f.col("right.leftLocusId"))
-                & (f.col("left.variantId") == f.col("right.tagVariantId")),
-                "left",
-            )
-            .withColumn(
-                "overlaps",
-                f.when(f.col("right.tagVariantId").isNotNull(), f.lit(True)).otherwise(
-                    f.lit(False)
-                ),
-            )
-            # drop redundant rows: where the variantid overlaps and the gene is "explained" by more than one study locus
-            .filter(~((f.size("sl_same_gene") > 1) & (f.col("overlaps") == 1)))
-            .select(*self.df.columns)
+        pairs = (
+            study_locus_overlap._convert_to_square_matrix()
+            .df.select("leftLocusId", "rightLocusId")
+            .distinct()
         )
+        labels = self.df.select("credibleSetId", "geneId", "goldStandardSet")
+        left, right = labels.alias("left"), labels.alias("right")
+        # (locus, gene) rows explained by an overlapping locus that wins the pair.
+        dominated = (
+            left.join(pairs, f.col("left.credibleSetId") == f.col("leftLocusId"))
+            .join(
+                right,
+                (f.col("rightLocusId") == f.col("right.credibleSetId"))
+                & (f.col("left.geneId") == f.col("right.geneId")),
+            )
+            .filter(
+                (
+                    (f.col("right.goldStandardSet") == self.GS_POSITIVE_LABEL)
+                    & (f.col("left.goldStandardSet") == self.GS_NEGATIVE_LABEL)
+                )
+                | (
+                    (f.col("right.goldStandardSet") == f.col("left.goldStandardSet"))
+                    & (f.col("right.credibleSetId") < f.col("left.credibleSetId"))
+                )
+            )
+            .select("left.credibleSetId", "left.geneId")
+            .distinct()
+        )
+        unique_associations = self.df.join(
+            dominated, on=["credibleSetId", "geneId"], how="left_anti"
+        ).select(*self.df.columns)
         return L2GGoldStandard(_df=unique_associations, _schema=self.get_schema())
 
     def remove_false_negatives(

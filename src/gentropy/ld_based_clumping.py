@@ -40,10 +40,10 @@ class LDBasedClumpingStep:
         ld_index = LDIndex.from_parquet(session, ld_index_path)
         study_index = StudyIndex.from_parquet(session, study_index_path)
 
-        # Annotating study locus with LD information, then flagging linked leads:
-        clumped = LDClumping(keep_clumped_loci=True).clump(
-            annotate_ld(study_locus, study_index, ld_index)
-        )
+        # Annotating study locus with LD information, then flagging linked leads.
+        # clump reads its input twice; persist so the LD index join runs once.
+        annotated = annotate_ld(study_locus, study_index, ld_index).persist()
+        clumped = LDClumping(keep_clumped_loci=True).clump(annotated)
         clumped.df.write.mode(session.write_mode).parquet(
             clumped_study_locus_output_path
         )

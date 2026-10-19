@@ -249,15 +249,39 @@ def test_build_feature_matrix(
     ), "Feature matrix should be of type L2GFeatureMatrix"
 
 
-def test_filter_unique_associations_drops_overlapping_locus_of_same_gene(
+@pytest.mark.parametrize(
+    ("labels", "genes", "expected"),
+    [
+        pytest.param(
+            ("positive", "positive"),
+            ("g1", "g1"),
+            [("csA", "g1")],
+            id="same label keeps smaller id",
+        ),
+        pytest.param(
+            ("negative", "positive"), ("g1", "g1"), [("csB", "g1")], id="positive wins"
+        ),
+        pytest.param(
+            ("positive", "positive"),
+            ("g1", "g2"),
+            [("csA", "g1"), ("csB", "g2")],
+            id="different genes kept",
+        ),
+    ],
+)
+def test_filter_unique_associations(
     spark: SparkSession,
+    labels: tuple[str, str],
+    genes: tuple[str, str],
+    expected: list[tuple[str, str]],
 ) -> None:
-    """Curated credible sets pointing to one gene and sharing a variant are no longer both kept."""
+    """Of two overlapping loci pointing to the same gene, exactly one is kept."""
     gold_standard = L2GGoldStandard(
         _df=spark.createDataFrame(
             [
-                ("csA", "1_10_A_T", "S1", "gene1", None, "positive", ["source"]),
-                ("csB", "1_20_C_G", "S2", "gene1", None, "positive", ["source"]),
+                ("csA", "1_10_A_T", "S1", genes[0], None, labels[0], ["source"]),
+                # Same sentinel: the shared variant is the lead of both loci.
+                ("csB", "1_10_A_T", "S2", genes[1], None, labels[1], ["source"]),
             ],
             L2GGoldStandard.get_schema(),
         ),
@@ -271,4 +295,6 @@ def test_filter_unique_associations_drops_overlapping_locus_of_same_gene(
         _schema=LocusOverlap.get_schema(),
     )
     kept = gold_standard.filter_unique_associations(overlaps)
-    assert [row.credibleSetId for row in kept.df.collect()] == ["csB"]
+    assert (
+        sorted((row.credibleSetId, row.geneId) for row in kept.df.collect()) == expected
+    )

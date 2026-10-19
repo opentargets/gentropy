@@ -149,6 +149,9 @@ class CredibleSet(Dataset):
         `credibleSetQualityControls`. A column of either schema missing from `members` is null,
         and a missing quality controls column is empty.
 
+        The members are persisted, as both datasets are projected from them: writing both
+        otherwise reads and computes the source twice.
+
         Args:
             members (DataFrame): One row per member, with `credible_set_keys`, `variantId`,
                 `posteriorProbability`, `pValueMantissa`, `pValueExponent` and the credible set
@@ -213,6 +216,8 @@ class CredibleSet(Dataset):
                 .filter(f.col("leadPasses"))
                 .drop("leadPasses")
             )
+        # Both datasets are projected from the members: persist them, so the source is read once.
+        members = members.persist()
 
         def projected(
             df: DataFrame, schema: StructType, renamed: dict[str, str]
