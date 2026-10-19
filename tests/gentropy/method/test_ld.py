@@ -15,7 +15,6 @@ if TYPE_CHECKING:
     from pyspark.sql import SparkSession
 
 
-
 class TestLDAnnotator:
     """Test LDAnnotatorGnomad."""
 
