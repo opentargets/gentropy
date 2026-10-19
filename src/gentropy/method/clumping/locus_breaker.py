@@ -109,14 +109,14 @@ import pyspark.sql.functions as f
 import pyspark.sql.types as t
 from pydantic import BaseModel, Field
 
-from gentropy.common.stats import split_pvalue
+from gentropy.common.stats import pvalue_at_most
 from gentropy.dataset.study_locus import StudyLocus
 from gentropy.dataset.summary_statistics import SummaryStatistics
 from gentropy.method.clumping.cluster import cluster
 from gentropy.method.clumping.window import WindowClumping
 
 if TYPE_CHECKING:
-    from pyspark.sql import Column, DataFrame
+    from pyspark.sql import DataFrame
 
 
 class LocusBreakerClumpingConfig(BaseModel):
@@ -229,7 +229,7 @@ class LocusBreakerClumping:
             variants.transform(cluster, self.config.gap)
             .transform(self._blocks)
             .filter(
-                _at_least_as_significant(
+                pvalue_at_most(
                     f.col("lead")["pValueMantissa"],
                     f.col("lead")["pValueExponent"],
                     self.config.gwas_significance,
@@ -373,27 +373,3 @@ class LocusBreakerClumping:
                 "qualityControls",
             )
         )
-
-
-def _at_least_as_significant(
-    mantissa: Column, exponent: Column, pvalue: float
-) -> Column:
-    """Whether a p-value is at most ``pvalue``, compared as ``pvalue_filter`` does.
-
-    Args:
-        mantissa (Column): The p-value's base-10 mantissa.
-        exponent (Column): The p-value's base-10 exponent.
-        pvalue (float): The threshold, kept when equal.
-
-    Returns:
-        Column: True when the p-value passes.
-
-    Examples:
-        >>> df = spark.createDataFrame([(1.0, -8), (5.0, -8), (5.1, -8)], "m float, e int")
-        >>> [row.ok for row in df.select(_at_least_as_significant(df.m, df.e, 5e-8).alias("ok")).collect()]
-        [True, True, False]
-    """
-    threshold_mantissa, threshold_exponent = split_pvalue(pvalue)
-    return (exponent < threshold_exponent) | (
-        (exponent == threshold_exponent) & (mantissa <= threshold_mantissa)
-    )

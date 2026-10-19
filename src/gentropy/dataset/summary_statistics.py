@@ -10,7 +10,7 @@ from pyspark.sql import Window
 
 from gentropy.common.genomic_region import GenomicRegion
 from gentropy.common.schemas import parse_spark_schema
-from gentropy.common.stats import split_pvalue
+from gentropy.common.stats import pvalue_at_most
 from gentropy.dataset.dataset import Dataset
 
 if TYPE_CHECKING:
@@ -44,16 +44,8 @@ class SummaryStatistics(Dataset):
         Returns:
             SummaryStatistics: summary statistics object containing single point associations with p-values at least as significant as the provided threshold.
         """
-        # Converting p-value to mantissa and exponent:
-        (mantissa, exponent) = split_pvalue(pvalue)
-
-        # Applying filter:
         df = self._df.filter(
-            (f.col("pValueExponent") < exponent)
-            | (
-                (f.col("pValueExponent") == exponent)
-                & (f.col("pValueMantissa") <= mantissa)
-            )
+            pvalue_at_most(f.col("pValueMantissa"), f.col("pValueExponent"), pvalue)
         )
         return SummaryStatistics(_df=df, _schema=self._schema)
 

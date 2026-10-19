@@ -36,7 +36,7 @@ from pyspark.sql import Window
 
 from gentropy.common.processing import extract_position
 from gentropy.common.schemas import parse_spark_schema
-from gentropy.common.stats import split_pvalue
+from gentropy.common.stats import pvalue_at_most
 from gentropy.dataset.dataset import Dataset
 from gentropy.dataset.study_locus import StudyLocusQualityCheck
 
@@ -204,10 +204,8 @@ class CredibleSet(Dataset):
         ).withColumn("id", cls.generate_identifier(cls.ID_COLUMNS))
         is_lead_row = f.col("variantId") == f.col("leadVariantId")
         if lead_pvalue_threshold is not None:
-            mantissa, exponent = split_pvalue(lead_pvalue_threshold)
-            passes = (f.col("pValueExponent") < exponent) | (
-                (f.col("pValueExponent") == exponent)
-                & (f.col("pValueMantissa") <= mantissa)
+            passes = pvalue_at_most(
+                f.col("pValueMantissa"), f.col("pValueExponent"), lead_pvalue_threshold
             )
             members = (
                 members.withColumn(

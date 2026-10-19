@@ -140,6 +140,31 @@ def split_pvalue(pvalue: float) -> tuple[float, int]:
 ##################### SPARK FUNCTION #######################
 
 
+def pvalue_at_most(mantissa: Column, exponent: Column, pvalue: float) -> Column:
+    """Whether a p-value given as mantissa and exponent is at most ``pvalue``.
+
+    The comparison is done on the base-10 components, so no p-value underflows. It is null
+    when either component is null, which a filter treats as not passing.
+
+    Args:
+        mantissa (Column): The p-value's base-10 mantissa.
+        exponent (Column): The p-value's base-10 exponent.
+        pvalue (float): The threshold, kept when equal.
+
+    Returns:
+        Column: True when the p-value is at most the threshold.
+
+    Examples:
+        >>> df = spark.createDataFrame([(1.0, -8), (5.0, -8), (5.1, -8), (None, None)], "m float, e int")
+        >>> [row.ok for row in df.select(pvalue_at_most(df.m, df.e, 5e-8).alias("ok")).collect()]
+        [True, True, False, None]
+    """
+    threshold_mantissa, threshold_exponent = split_pvalue(pvalue)
+    return (exponent < threshold_exponent) | (
+        (exponent == threshold_exponent) & (mantissa <= threshold_mantissa)
+    )
+
+
 def chi2_from_pvalue(p_value_mantissa: Column, p_value_exponent: Column) -> Column:
     """Calculate chi2 from p-value.
 

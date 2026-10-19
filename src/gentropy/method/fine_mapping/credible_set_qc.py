@@ -24,7 +24,7 @@ from __future__ import annotations
 import pyspark.sql.functions as f
 from pyspark.sql import Window
 
-from gentropy.common.stats import split_pvalue
+from gentropy.common.stats import pvalue_at_most
 from gentropy.dataset.credible_set import CredibleSet, CredibleSetVariant
 from gentropy.dataset.ld_index import LDIndex
 from gentropy.dataset.study_index import StudyIndex
@@ -87,7 +87,6 @@ def credible_set_qc(
     """
     if ld_index is not None and study_index is None:
         raise ValueError("LD clumping requires the study index.")
-    mantissa, exponent = split_pvalue(p_value_threshold)
     leads = credible_set_variants.df.select(
         f.col("credibleSetId").alias("id"),
         f.col("variantId").alias("leadVariantId"),
@@ -101,9 +100,8 @@ def credible_set_qc(
             f.col("reportedStandardError").alias("standardError"),
         ).alias("lead"),
     ).dropDuplicates(["id", "leadVariantId"])
-    lead_p_passes = (f.col("lead.pValueExponent") < exponent) | (
-        (f.col("lead.pValueExponent") == exponent)
-        & (f.col("lead.pValueMantissa") <= mantissa)
+    lead_p_passes = pvalue_at_most(
+        f.col("lead.pValueMantissa"), f.col("lead.pValueExponent"), p_value_threshold
     )
     kept = (
         credible_sets.df.join(leads, on=["id", "leadVariantId"], how="left")
