@@ -45,7 +45,7 @@ from gentropy.dataset.credible_set import (
     CredibleSetVariant,
     CredibleSetVariantQualityCheck,
 )
-from gentropy.dataset.study_locus import FinemappingMethod
+from gentropy.dataset.study_locus import FinemappingMethod, StudyLocusQualityCheck
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -167,7 +167,8 @@ class PICS:
         """Fine-map each locus into one credible set and its member variants.
 
         The credible set is led by the lead of the study locus, carries the study
-        type from the study index and the quality controls of the study locus. A
+        type from the study index and the quality controls of the study locus,
+        plus ``OUT_OF_SAMPLE_LD``, as the LD comes from a reference panel. A
         study missing from the study index gives a null study type; such credible
         sets are dropped by the credible set validation of the platform
         transformation stage, which also requires the study in the index. A
@@ -211,6 +212,8 @@ class PICS:
             |    1_100_A_T|     gwas|             PICS|
             +-------------+---------+-----------------+
             <BLANKLINE>
+            >>> credible_sets.df.first().qualityControls
+            ['Study locus finemapped without in-sample LD reference']
             >>> variants.df.select("variantId", "pValueExponent", f.round("posteriorProbability", 3).alias("pp"), "qualityControls").show(truncate=False)
             +---------+--------------+-----+------------------------------------------------------------+
             |variantId|pValueExponent|pp   |qualityControls                                             |
@@ -254,7 +257,17 @@ class PICS:
                         "purityMinR2",
                     )
                 }
-            ).select(*schema.fieldNames()),
+            )
+            # The LD comes from a reference panel, not from the study's own samples.
+            .withColumn(
+                "qualityControls",
+                CredibleSet.update_quality_flag(
+                    f.col("qualityControls"),
+                    f.lit(True),
+                    StudyLocusQualityCheck.OUT_OF_SAMPLE_LD,
+                ),
+            )
+            .select(*schema.fieldNames()),
             _schema=schema,
         )
 

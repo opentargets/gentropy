@@ -8,7 +8,7 @@ from pyspark.sql import functions as f
 
 from gentropy.dataset.credible_set import CredibleSet, CredibleSetVariantQualityCheck
 from gentropy.dataset.study_index import StudyIndex
-from gentropy.dataset.study_locus import LDAnnotatedStudyLocus
+from gentropy.dataset.study_locus import LDAnnotatedStudyLocus, StudyLocusQualityCheck
 from gentropy.method.fine_mapping.pics import PICS, _relative_likelihoods
 
 LEAD = "1_100_A_T"
@@ -203,7 +203,9 @@ def test_credible_set_carries_the_locus_and_study(
         "PICS",
         "gwas",
     )
-    assert row.qualityControls == [flag]
+    assert sorted(row.qualityControls) == sorted(
+        [flag, StudyLocusQualityCheck.OUT_OF_SAMPLE_LD.value]
+    )
     assert (
         row.logBayesFactor,
         row.confidence,
