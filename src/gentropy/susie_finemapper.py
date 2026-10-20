@@ -2,16 +2,15 @@
 
 Each run fine-maps one study locus into credible sets and their variants.
 
-Conditional statistics are on the per-allele scale. SuSiE-inf sees only z-scores and the
-sample size n (`X'y = sqrt(n)·z`, `X'X = n·LD`), so its posterior effect `mu` is in standard
-deviation units, roughly `z / sqrt(n)`. For effect `l` with per-effect inclusion probabilities
-`alpha_l` (`PIP[:, l]` of SuSiE-inf, which is SuSiE's alpha and not a per-variant PIP), the
-alpha-weighted moments `alpha_l·mu_l` and `sqrt(alpha_l·(mu_l² + 1/omega_l) - (alpha_l·mu_l)²)`
-are the quantities FinnGen reports as `mean{l}` and `sd{l}`, but FinnGen's are per allele. Both
-are multiplied by `se_j·sqrt(n)`, with `se_j` the variant's marginal standard error and n the
-sample size given to SuSiE-inf: since `z / sqrt(n) · se·sqrt(n) = z·se = beta`, this puts them
-on the scale of the reported beta, so `conditionalBeta` means the same in every source. A
-member without a marginal standard error (an imputed variant) has null conditional statistics.
+Conditional statistics are SuSiE-inf's own, unscaled. SuSiE-inf sees only z-scores and the
+sample size n (`X'y = sqrt(n)·z`, `X'X = n·LD`), so they are in standard deviation units. For
+effect `l`, `conditionalBeta` is `mu_l`, the posterior mean of the effect given that the variant is
+the causal one for `l`, and `conditionalStandardError` is `1/sqrt(omega_l)`, its posterior
+standard deviation under the same condition. This is the counterpart of a COJO joint estimate: the
+effect of the variant assuming it is in the model, adjusted for the other effects. The per-effect
+inclusion probability `alpha_l` is stored as `posteriorProbability`, so the posterior mean
+`alpha_l·mu_l` can be derived. Rescaling to the per-allele scale is left to the `rescaled*`
+columns, which this step does not fill.
 
 Marginal statistics are the study's own, taken from the locus; none is recomputed from z,
 which may be imputed. A member missing from the locus gets the `NOT_IN_LOCUS` flag, and the
@@ -251,8 +250,8 @@ class SusieFineMapperStep:
         Statistics, as described in the module docstring:
 
         - `posteriorProbability` is `alpha_l` and `logBayesFactor` is `lbf_variable_l`;
-        - `conditionalBeta` and `conditionalStandardError` are the alpha-weighted moments of
-          effect l, multiplied by `se_j·sqrt(n)` to the per-allele scale;
+        - `conditionalBeta` is `mu_l` and `conditionalStandardError` is `1/sqrt(omega_l)`,
+          unscaled;
         - `r2Overall` is the squared LD with the lead in `ld_matrix`;
         - the marginal statistics are the member's entry in `marginals`;
         - the credible set `logBayesFactor` is SuSiE-inf's `lbf_l`, which is already
@@ -383,23 +382,14 @@ class SusieFineMapperStep:
             effect, lead = cs["effect"], cs["lead"]
             for j in cs["members"]:
                 marginal = study_marginals.get(variant_ids[j])
-                alpha_mu = alphas[j, effect] * mu[j, effect]
-                variance = (
-                    alphas[j, effect] * (mu[j, effect] ** 2 + 1 / omega[j, effect])
-                    - alpha_mu**2
-                )
-                se = None if marginal is None else marginal["standardError"]
-                scale = None if se is None else se * math.sqrt(n)
                 rows.append(
                     (
                         cs["credibleSetIndex"],
                         str(variant_ids[j]),
                         float(alphas[j, effect]),
                         float(lbfs[j, effect]),
-                        None if scale is None else float(alpha_mu * scale),
-                        None
-                        if scale is None
-                        else float(math.sqrt(max(variance, 0)) * scale),
+                        float(mu[j, effect]),
+                        float(1 / math.sqrt(omega[j, effect])),
                         float(ld_matrix[lead, j] ** 2),
                         *(
                             (None,) * 6
@@ -410,7 +400,7 @@ class SusieFineMapperStep:
                                 marginal["effectAlleleFrequencyFromSource"],
                                 marginal["sampleSize"],
                                 marginal["beta"],
-                                se,
+                                marginal["standardError"],
                             )
                         ),
                         marginal is not None,

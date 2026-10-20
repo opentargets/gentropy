@@ -386,7 +386,7 @@ class TestSusieInfToCredibleSets:
         assert first.qualityControls == [StudyLocusQualityCheck.OUT_OF_SAMPLE_LD.value]
 
     def test_credible_set_variants(self, session: Session) -> None:
-        """Members carry the locus statistics and the per-allele conditional statistics."""
+        """Members carry the locus statistics and SuSiE-inf's unscaled conditional statistics."""
         result = self._credible_sets(session)
         assert result is not None
         variants = {row.variantId: row for row in result[1].df.collect()}
@@ -402,12 +402,9 @@ class TestSusieInfToCredibleSets:
         assert (lead.reportedBeta, lead.reportedStandardError) == (0.2, 0.02)
         assert lead.effectAlleleFrequency == pytest.approx(0.3)
         assert lead.sampleSize == 5000
-        # alpha·mu = 0.018 and the standard deviation sqrt(0.9·(0.02² + 1e-4) - 0.018²) are
-        # rescaled by se·sqrt(n) = 0.02·100:
-        assert lead.conditionalBeta == pytest.approx(0.036)
-        assert lead.conditionalStandardError == pytest.approx(
-            np.sqrt(0.9 * (0.02**2 + 1e-4) - 0.018**2) * 2, rel=1e-6
-        )
+        # mu and 1/sqrt(omega) of effect 1, unscaled:
+        assert lead.conditionalBeta == pytest.approx(0.02)
+        assert lead.conditionalStandardError == pytest.approx(0.01)
         assert lead.qualityControls == [
             CredibleSetVariantQualityCheck.EAF_FROM_SOURCE.value
         ]
@@ -416,8 +413,10 @@ class TestSusieInfToCredibleSets:
         assert imputed.r2Overall == pytest.approx(0.49)
         assert imputed.pValueMantissa is None
         assert imputed.reportedBeta is None
-        assert imputed.conditionalBeta is None
-        assert imputed.conditionalStandardError is None
+        # SuSiE-inf's own statistics do not need the locus:
+        assert imputed.conditionalBeta == pytest.approx(0.005)
+        assert imputed.conditionalStandardError == pytest.approx(0.01)
+        assert imputed.rescaledAbsBeta is None
         assert imputed.qualityControls == [
             CredibleSetVariantQualityCheck.NOT_IN_LOCUS.value
         ]
