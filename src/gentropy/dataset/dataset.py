@@ -207,7 +207,7 @@ class Dataset(ABC):
             Self: Dataset with the parquet file contents
 
         Raises:
-            ValueError: Parquet file is empty
+            ValueError: Parquet file is empty, or lacks a column the schema requires
         """
         schema = cls.get_schema()
 
@@ -217,6 +217,19 @@ class Dataset(ABC):
         df = session.load_data(path, fmt="parquet", schema=schema, **spark_params)
         if df.isEmpty():
             raise ValueError(f"Parquet file is empty: {path}")
+        # Reading with a schema fills a column the files do not have with nulls, whatever
+        # its nullability, so check the files' own columns. One footer is enough for that.
+        stored = session.load_data(
+            path, fmt="parquet", **{**spark_params, "mergeSchema": False}
+        ).columns
+        if missing := [
+            field.name
+            for field in schema.fields
+            if not field.nullable and field.name not in stored
+        ]:
+            raise ValueError(
+                f"{cls.__name__} at {path} lacks the required columns {missing}"
+            )
         return cls(_df=df, _schema=schema, **class_params)
 
     def filter(self: Self, condition: Column) -> Self:
