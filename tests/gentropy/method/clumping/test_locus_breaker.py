@@ -213,7 +213,7 @@ def test_a_large_locus_is_split_into_windows_around_its_signals(
 ) -> None:
     """A locus wider than ``large_locus_size`` becomes the window clumping loci inside it.
 
-    Each split locus spans the window clumping distance on each side of its
+    Each split locus spans half of ``large_locus_size`` on each side of its
     lead; a small block next to it stays as it is.
     """
     rows = [*_large_block({12: -6, 26: -5}), ("s1", "1", 100, 1.0, -4)]
@@ -226,8 +226,8 @@ def test_a_large_locus_is_split_into_windows_around_its_signals(
     )
 
     assert _loci(loci) == [
-        ("s1", "1", 8, 16, "1_12"),
-        ("s1", "1", 22, 30, "1_26"),
+        ("s1", "1", 7, 17, "1_12"),
+        ("s1", "1", 21, 31, "1_26"),
         ("s1", "1", 98, 102, "1_100"),
     ]
 
@@ -267,15 +267,15 @@ def test_a_stronger_signal_outside_a_large_locus_does_not_suppress_its_leads(
         window=WindowClumping(distance=20, gwas_significance=1e-3),
     )
 
-    assert _loci(loci) == [("s1", "1", 8, 48, "1_28"), ("s1", "1", 38, 42, "1_40")]
+    assert _loci(loci) == [("s1", "1", 23, 33, "1_28"), ("s1", "1", 38, 42, "1_40")]
 
 
 def test_window_clumping_defaults_to_the_gwas_significance(
     spark: SparkSession,
 ) -> None:
-    """Without a window method, large loci are split 500 kb around leads at ``gwas_significance``."""
+    """Without a window method, leads of large loci are found at ``gwas_significance``."""
     rows = _large_block({12: -6})
 
     assert _loci(_clump(spark, rows, large_locus_size=10)) == [
-        ("s1", "1", 1, 500_012, "1_12")
+        ("s1", "1", 7, 17, "1_12")
     ]

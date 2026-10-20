@@ -27,9 +27,9 @@ Per study and chromosome:
    ``locusEnd`` is the last position plus ``flanking_distance``.
 5. **Split.** A locus wider than ``large_locus_size`` is too large to
    fine-map. Its block is handed to ``window``, a ``WindowClumping``, and
-   replaced by the loci it returns: a window around each lead it finds, with
-   its own distance and significance. A large locus where window clumping finds
-   no lead disappears.
+   replaced by a locus around each lead it finds, ``large_locus_size // 2`` on
+   each side, cut at 1. A large locus where window clumping finds no lead
+   disappears.
 
 Both thresholds keep a p-value equal to them, like
 ``SummaryStatistics.pvalue_filter``. Changes from legacy:
@@ -41,8 +41,6 @@ Both thresholds keep a p-value equal to them, like
 * Legacy window-clumped the whole genome and kept the leads inside large
   loci, so a stronger signal in a neighbouring locus could explain them away.
   Window clumping now sees only the variants of the large loci.
-* Legacy gave a split locus ``large_loci_size // 2`` on each side of its lead;
-  it now keeps the window clumping distance.
 
 Example:
     Chromosome 1 breaks into two blocks at the gap of 400 base pairs. The
@@ -77,7 +75,7 @@ Example:
     <BLANKLINE>
 
     With a ``large_locus_size`` of 250, the first locus, 300 wide, is split. Window
-    clumping finds one lead in its block, at 1100, and gives it a window of 50:
+    clumping finds one lead in its block, at 1100, which gets 125 on each side:
 
     >>> from gentropy.method.clumping.window import WindowClumping
     >>> method = LocusBreakerClumping(
@@ -95,7 +93,7 @@ Example:
     +-------------+----------+--------+
     |leadVariantId|locusStart|locusEnd|
     +-------------+----------+--------+
-    |   1_1100_C_G|      1050|    1150|
+    |   1_1100_C_G|       975|    1225|
     |   1_1500_G_A|      1400|    1600|
     +-------------+----------+--------+
     <BLANKLINE>
@@ -244,10 +242,20 @@ class LocusBreakerClumping:
         )
         large = (f.col("locusEnd") - f.col("locusStart")) > self.config.large_locus_size
         split = self.window.clump(self._variants_within(baseline, blocks.filter(large)))
+        # Window clumping ends a locus at its lead plus its distance; the split locus
+        # spans half of large_locus_size on each side of the lead instead.
+        half = self.config.large_locus_size // 2
+        lead_position = f.col("locusEnd") - self.window.config.distance
+        split_df = split.df.withColumns(
+            {
+                "locusStart": f.greatest(f.lit(1), lead_position - half),
+                "locusEnd": lead_position + half,
+            }
+        ).withColumn("id", StudyLocus.generate_identifier(StudyLocus.ID_COLUMNS))
         return StudyLocus(
             _df=blocks.filter(~large)
             .transform(self._to_study_locus)
-            .unionByName(split.df),
+            .unionByName(split_df),
             _schema=StudyLocus.get_schema(),
         )
 
