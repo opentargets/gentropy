@@ -181,8 +181,14 @@ class FinnGenFinemapping:
           effect, `alpha<cs>`.
         - `logBayesFactor`: the variant's natural log Bayes factor in the single effect,
           `lbf_variable<cs>`.
-        - `conditionalBeta`, `conditionalStandardError`: `mean<cs>` and `sd<cs>`, the posterior mean
-          and standard deviation of the variant's effect in the single effect, as SuSiE reports them.
+        - `conditionalBeta`, `conditionalStandardError`: the posterior mean and standard deviation
+          of the variant's effect given that it is the causal variant of the single effect,
+          `mu<cs>` and `sqrt(mu2<cs> - mu<cs>^2)` in SuSiE's notation, per allele. FinnGen reports
+          them weighted by the posterior probability, `mean<cs> = alpha<cs> * mu<cs>` and
+          `sd<cs> = sqrt(alpha<cs> * mu2<cs> - mean<cs>^2)` (the overall `mean` is their sum over
+          effects), so they are recovered exactly as `mean<cs> / alpha<cs>` and
+          `sqrt((sd<cs>^2 + mean<cs>^2) / alpha<cs> - (mean<cs> / alpha<cs>)^2)`. This makes them the
+          same quantity as the other SuSiE sources' conditional statistics.
         - `r2Overall`: `lead_r2`, the in-sample r2 with FinnGen's lead of the credible set. FinnGen's
           lead is the variant with the highest overall posterior inclusion probability (`prob`),
           which is nearly always our lead, the highest `alpha<cs>`.
@@ -272,6 +278,13 @@ class FinnGenFinemapping:
             .join(members.select("v").distinct(), on="v")
         )
         effect_allele_frequency = f.col("AF")
+        alpha = _effect("alpha").cast(t.DoubleType())
+        mean = _effect("mean").cast(t.DoubleType())
+        sd = _effect("sd").cast(t.DoubleType())
+        # FinnGen reports the effect weighted by alpha; dividing by it gives the conditional
+        # moments. Clamped at 0, as the variance can come out slightly negative in floating point:
+        conditional_beta = f.when(alpha > 0, mean / alpha)
+        conditional_variance = (sd**2 + mean**2) / alpha - conditional_beta**2
         members = members.join(allele_frequencies, on="v", how="left").select(
             "studyId",
             "region",
@@ -295,8 +308,10 @@ class FinnGenFinemapping:
             effect_allele_frequency.alias("effectAlleleFrequency"),
             _effect("alpha").alias("posteriorProbability"),
             _effect("lbf_variable").alias("logBayesFactor"),
-            _effect("mean").cast(t.DoubleType()).alias("conditionalBeta"),
-            _effect("sd").cast(t.DoubleType()).alias("conditionalStandardError"),
+            conditional_beta.alias("conditionalBeta"),
+            f.when(alpha > 0, f.sqrt(f.greatest(conditional_variance, f.lit(0.0)))).alias(
+                "conditionalStandardError"
+            ),
             f.col("lead_r2").cast(t.FloatType()).alias("r2Overall"),
             f.when(
                 effect_allele_frequency.isNotNull(),

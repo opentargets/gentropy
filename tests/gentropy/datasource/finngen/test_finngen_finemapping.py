@@ -90,8 +90,9 @@ def test_credible_set_variants_carry_marginal_and_single_effect_statistics(
     assert lead.reportedStandardError == pytest.approx(0.0298788)
     assert lead.posteriorProbability == pytest.approx(0.367106415849495)
     assert lead.logBayesFactor == pytest.approx(19.2932005)
-    assert lead.conditionalBeta == pytest.approx(0.0705310811656966)
-    assert lead.conditionalStandardError == pytest.approx(0.0943204169456985)
+    # mean1 / alpha1 and sqrt((sd1^2 + mean1^2) / alpha1 - (mean1 / alpha1)^2) of the source:
+    assert lead.conditionalBeta == pytest.approx(0.0705310811656966 / 0.367106415849495)
+    assert lead.conditionalStandardError == pytest.approx(0.0295263014)
     assert lead.r2Overall == pytest.approx(1.0)
     assert lead.sampleSize is None
     assert lead.rescaledAbsBeta is None
