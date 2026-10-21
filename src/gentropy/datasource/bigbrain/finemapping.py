@@ -38,7 +38,8 @@ This is a deliberate exception to the per-effect convention, and its limitations
 - `BETA_SD` is the posterior standard deviation of that sum, not of a single effect.
 - Neither is comparable in magnitude with the per-effect, per-allele conditional statistics of the
   other sources. Use them for direction, not for effect size.
-- The reported beta stays null, so colocalisation gives BigBrain credible sets no beta ratio.
+- The reported beta stays null, so the colocalisation beta ratio of BigBrain credible sets
+  rests on this sign alone.
 """
 
 from __future__ import annotations
