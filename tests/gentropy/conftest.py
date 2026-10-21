@@ -700,6 +700,17 @@ def sample_eqtl_catalogue_finemapping_lbf(session: Session) -> DataFrame:
 
 
 @pytest.fixture()
+def sample_eqtl_catalogue_finemapping_full_susie(session: Session) -> DataFrame:
+    """Sample raw eQTL Catalogue table with the SuSIE posterior effects."""
+    return EqtlCatalogueFinemapping.read_full_susie_from_source(
+        full_susie_path=[
+            "tests/gentropy/data_samples/QTD000001/QTS00001/QTS000001.full_susie.parquet"
+        ],
+        session=session,
+    )
+
+
+@pytest.fixture()
 def sample_eqtl_catalogue_studies_metadata(spark: SparkSession) -> DataFrame:
     """Sample raw eQTL Catalogue table with metadata about the QTD000584 study."""
     return spark.read.option("delimiter", "\t").csv(

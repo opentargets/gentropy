@@ -29,6 +29,22 @@ def processed_finemapping_df(
     )
 
 
+@pytest.fixture
+def processed_finemapping_with_full_susie_df(
+    sample_eqtl_catalogue_finemapping_credible_sets: DataFrame,
+    sample_eqtl_catalogue_finemapping_lbf: DataFrame,
+    sample_eqtl_catalogue_studies_metadata: DataFrame,
+    sample_eqtl_catalogue_finemapping_full_susie: DataFrame,
+) -> DataFrame:
+    """Fixture to provide a processed finemapping DataFrame with the posterior effects."""
+    return EqtlCatalogueFinemapping.parse_susie_results(
+        sample_eqtl_catalogue_finemapping_credible_sets,
+        sample_eqtl_catalogue_finemapping_lbf,
+        sample_eqtl_catalogue_studies_metadata,
+        full_susie=sample_eqtl_catalogue_finemapping_full_susie,
+    )
+
+
 class TestEqtlCatalogueStudyIndex:
     """Test the correctness of the study index dataset from eQTL Catalogue."""
 
@@ -114,6 +130,27 @@ class TestEqtlCatalogueFinemapping:
             *[f"lbf_variable{i}" for i in range(1, 11)],
             "dataset_id",
         }
+
+    def test__read_full_susie_from_source(
+        self: TestEqtlCatalogueFinemapping,
+        sample_eqtl_catalogue_finemapping_full_susie: DataFrame,
+    ) -> None:
+        """Only the 15 credible set members are kept, with the moments of every effect."""
+        data = sample_eqtl_catalogue_finemapping_full_susie
+        assert data.count() == 15
+        assert set(data.columns) == {
+            "molecular_trait_id",
+            "region",
+            "variant",
+            "dataset_id",
+            "conditionalBetas",
+            "conditionalStandardErrors",
+        }
+        row = data.filter(f.col("variant") == "chrX_149481619_T_C").first()
+        assert len(row.conditionalBetas) == 10
+        assert row.conditionalBetas[0] == pytest.approx(0.444699)
+        assert row.conditionalStandardErrors[0] == pytest.approx(0.05)
+        assert row.conditionalStandardErrors[1] == 0.0
 
     def test__read_credible_set_from_source(
         self: TestEqtlCatalogueFinemapping,
@@ -302,6 +339,8 @@ class TestEqtlCatalogueFinemapping:
             "nSamples",
             "beta",
             "standardError",
+            "conditionalBeta",
+            "conditionalStandardError",
             "credibleSetIndex",
             "logBF",
             "traitFromSource",
@@ -355,6 +394,24 @@ class TestEqtlCatalogueFinemapping:
         assert lead.effectAlleleFrequency is None
         assert lead.conditionalBeta is None
         assert lead.r2Overall is None
+
+    def test__from_susie_results_with_full_susie(
+        self, processed_finemapping_with_full_susie_df: DataFrame
+    ) -> None:
+        """With the full SuSiE output, every member carries its effect's posterior, unscaled."""
+        credible_sets, variants = EqtlCatalogueFinemapping.from_susie_results(
+            processed_finemapping_with_full_susie_df
+        )
+        assert credible_sets.df.count() == 1
+        rows = {row.variantId: row for row in variants.df.collect()}
+        assert len(rows) == 15
+        assert all(row.conditionalBeta is not None for row in rows.values())
+        lead = rows["X_149481619_T_C"]
+        assert lead.reportedBeta == pytest.approx(0.741165)
+        assert lead.conditionalBeta == pytest.approx(0.444699)
+        assert lead.conditionalStandardError == pytest.approx(0.05)
+        assert (lead.rescaledAbsBeta, lead.rescaledStandardError) == (None, None)
+        assert lead.rescaledDirection is None
 
     def test__from_susie_results_drops_sub_significant_leads(
         self, processed_finemapping_df: DataFrame

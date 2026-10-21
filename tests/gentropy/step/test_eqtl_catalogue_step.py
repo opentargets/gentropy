@@ -138,9 +138,12 @@ class TestEqtlCatalogueStep:
         )
         lbf_mock.persist.assert_called_once()
 
+        # Without a full SuSiE glob, the posterior effects are not read.
+        finemapping_mock.read_full_susie_from_source.assert_not_called()
+
         # --- Transform ---
         finemapping_mock.parse_susie_results.assert_called_once_with(
-            credible_sets_mock, lbf_mock, studies_metadata_mock
+            credible_sets_mock, lbf_mock, studies_metadata_mock, full_susie=None
         )
         processed_susie_mock.persist.assert_called_once()
 
