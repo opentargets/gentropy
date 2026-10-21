@@ -19,9 +19,10 @@ if TYPE_CHECKING:
 
 
 class StudyLocusQualityCheck(Enum):
-    """Study locus quality control flags, raised by curation, clumping, LD annotation and fine-mapping.
+    """Study locus quality control flags, raised by curation, clumping, LD annotation, fine-mapping and validation.
 
-    `CredibleSet.qualityControls` carries the flags of the study locus it was fine-mapped from.
+    `CredibleSet.qualityControls` carries the flags of the study locus it was fine-mapped from, and
+    the flags of credible set validation (`gentropy.credible_set_validation`).
 
     Attributes:
         WINDOW_CLUMPED (str): Explained by a more significant variant in the same window
@@ -34,10 +35,17 @@ class StudyLocusQualityCheck(Enum):
         INCONSISTENCY_FLAG (str): Curated top hit whose location or variants disagree
         PALINDROMIC_ALLELE_FLAG (str): Curated top hit with palindromic alleles, whose effect cannot be harmonised
         TOP_HIT (str): Study locus from curated top hit
-        TRANS_QTL (str): QTL credible set acting in trans on its measured gene, raised by the platform
-            transformation stage
-        REPLICATED (str): Lead variant is replicated in an independent study, raised by the platform
-            transformation stage
+        TRANS_QTL (str): QTL credible set acting in trans on its measured gene
+        REPLICATED (str): Lead variant is replicated in an independent study
+        FLAGGED_STUDY (str): Study has quality control flag(s)
+        MISSING_STUDY (str): Study not found in the study index
+        TOP_HIT_AND_SUMMARY_STATS (str): Curated top hit of a study with summary statistics
+        IN_MHC (str): Lead variant in the MHC region
+        INVALID_CHROMOSOME (str): Chromosome not in 1:22, X, Y, XY or MT
+        REDUNDANT_PICS_TOP_HIT (str): Curated top hit of a study with PICS credible sets from summary statistics
+        EXPLAINED_BY_SUSIE (str): Credible set in a region explained by a SuSiE credible set of the same study
+        ABNORMAL_PIPS (str): Sum of the posterior probabilities outside [0.95, 1]
+        DUPLICATED_STUDYLOCUS_ID (str): Credible set identifier is not unique
     """
 
     WINDOW_CLUMPED = "Explained by a more significant variant in the same window"
@@ -52,6 +60,21 @@ class StudyLocusQualityCheck(Enum):
     TOP_HIT = "Study locus from curated top hit"
     TRANS_QTL = "Trans QTL"
     REPLICATED = "Lead variant is replicated in an independent study"
+    FLAGGED_STUDY = "Study has quality control flag(s)"
+    MISSING_STUDY = "Study not found in the study index"
+    TOP_HIT_AND_SUMMARY_STATS = (
+        "Curated top hit is flagged because summary statistics are available for study"
+    )
+    IN_MHC = "MHC region"
+    INVALID_CHROMOSOME = "Chromosome not in 1:22, X, Y, XY or MT"
+    REDUNDANT_PICS_TOP_HIT = (
+        "PICS results from summary statistics available for this same study"
+    )
+    EXPLAINED_BY_SUSIE = "Study locus in region explained by a SuSiE credible set"
+    ABNORMAL_PIPS = (
+        "Study locus with a sum of PIPs that not in the expected range [0.95,1]"
+    )
+    DUPLICATED_STUDYLOCUS_ID = "Non-unique study locus identifier"
 
 
 class FinemappingMethod(Enum):

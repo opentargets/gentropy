@@ -328,7 +328,7 @@ class CredibleSetConfidenceFeature(L2GFeature):
     ) -> Column:
         """Expression that assigns a score to the credible set confidence.
 
-        `CredibleSet.confidence` is a byte assigned by the platform transformation stage. Each level
+        `CredibleSet.confidence` is a byte assigned by credible set validation. Each level
         stands for one of the confidence classes the score was trained on:
 
         | confidence | class                                                      | score |

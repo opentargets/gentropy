@@ -690,6 +690,28 @@ class SummaryStatisticsQCStepConfig(StepConfig):
 
 
 @dataclass
+class CredibleSetValidationStepConfig(StepConfig):
+    """Configuration of the credible set validation step.
+
+    Credible sets and their variants are read from several sources, so both are lists of paths, in
+    the same order.
+    """
+
+    credible_set_path: list[str] = MISSING
+    credible_set_variant_path: list[str] = MISSING
+    study_index_path: str = MISSING
+    target_index_path: str = MISSING
+    disease_index_path: str = MISSING
+    valid_credible_set_path: str = MISSING
+    valid_credible_set_variant_path: str = MISSING
+    invalid_credible_set_path: str = MISSING
+    invalid_credible_set_variant_path: str = MISSING
+    invalid_qc_reasons: list[str] = MISSING
+    trans_qtl_threshold: int = MISSING
+    _target_: str = "gentropy.credible_set_validation.CredibleSetValidationStep"
+
+
+@dataclass
 class CredibleSetQCStepConfig(StepConfig):
     """Credible set quality control step configuration."""
 
@@ -954,6 +976,11 @@ def register_config() -> None:
         node=FinngenUkbMvpMetaSummaryStatisticsIngestionConfig,
     )
     cs.store(group="step", name="credible_set_qc", node=CredibleSetQCStepConfig)
+    cs.store(
+        group="step",
+        name="credible_set_validation",
+        node=CredibleSetValidationStepConfig,
+    )
     cs.store(
         group="step", name="heritability_estimate", node=HeritabilityEstimateConfig
     )
