@@ -149,6 +149,7 @@ def test_from_credible_sets_semantic(
     overlaps = LocusOverlap.from_credible_sets(credible_sets, variants)
 
     def rounded(value: float | None) -> float | None:
+        """Round to 6 decimals, keeping nulls."""
         return None if value is None else round(value, 6)
 
     observed = sorted(
@@ -170,8 +171,38 @@ def test_from_credible_sets_semantic(
         } == {("1", "2")}
 
 
+def test_from_credible_sets_beta_prefers_conditional(spark: SparkSession) -> None:
+    """The tag beta is the conditional one where given, and the reported one otherwise."""
+    credible_sets = CredibleSet(
+        spark.createDataFrame(
+            [
+                _credible_set("1", "study1", "gwas"),
+                _credible_set("2", "study2", "eqtl"),
+            ],
+            CredibleSet.get_schema(),
+        )
+    )
+    with_conditional = list(_variant("1", "tag", 0.9))
+    conditional_beta = (
+        CredibleSetVariant.get_schema().fieldNames().index("conditionalBeta")
+    )
+    with_conditional[conditional_beta] = -0.5
+    variants = CredibleSetVariant(
+        spark.createDataFrame(
+            [tuple(with_conditional), _variant("2", "tag", 0.6)],
+            CredibleSetVariant.get_schema(),
+        )
+    )
+    [row] = (
+        LocusOverlap.from_credible_sets(credible_sets, variants)
+        .df.select("statistics.*")
+        .collect()
+    )
+    assert (row.left_beta, row.right_beta) == (-0.5, 0.1)
+
+
 def test_from_credible_sets_statistics(spark: SparkSession) -> None:
-    """Tags carry the natural log Bayes factor and the reported (marginal) beta."""
+    """Tags carry the natural log Bayes factor and, without a conditional beta, the reported one."""
     credible_sets = CredibleSet(
         spark.createDataFrame(
             [
@@ -201,6 +232,7 @@ def test_from_study_loci(spark: SparkSession) -> None:
     """Study loci overlap through their locus, with the study type from the study index."""
 
     def locus(variant: str, beta: float) -> tuple[Any, ...]:
+        """A locus entry with the given beta."""
         return (variant, 1.0, -8, None, None, beta, 0.01)
 
     study_loci = AnnotatedStudyLocus(

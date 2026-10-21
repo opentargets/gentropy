@@ -42,7 +42,9 @@ class LocusOverlap(Dataset):
     each side:
 
     - from credible sets (`from_credible_sets`): the natural log Bayes factor (`logBF`), the
-      posterior probability, the marginal (`reportedBeta`) beta and the p-value;
+      posterior probability, the beta and the p-value. The beta is the fine-mapping one
+      (`conditionalBeta`) where the source gives it, and the marginal one (`reportedBeta`)
+      otherwise, as for PICS: only its sign is used, by the beta ratio;
     - from study loci (`from_study_loci`): the marginal beta and the p-value, with a null Bayes
       factor and posterior probability.
 
@@ -125,7 +127,9 @@ class LocusOverlap(Dataset):
             f.col("variantId").alias("tagVariantId"),
             f.col("logBayesFactor").cast(t.DoubleType()).alias("logBF"),
             f.col("posteriorProbability").cast(t.DoubleType()),
-            f.col("reportedBeta").alias("beta"),
+            f.coalesce(
+                f.col("conditionalBeta").cast(t.DoubleType()), f.col("reportedBeta")
+            ).alias("beta"),
             "pValueMantissa",
             "pValueExponent",
         )
