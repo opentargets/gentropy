@@ -33,7 +33,7 @@ from typing import TYPE_CHECKING, cast
 import numpy as np
 import pandas as pd
 from pydantic import BaseModel, Field
-from pyspark.sql import Column
+from pyspark.sql import Column, Window
 from pyspark.sql import functions as f
 from pyspark.sql import types as t
 from pyspark.sql.pandas.functions import pandas_udf
@@ -69,61 +69,48 @@ _VARIANT, _R2_OVERALL, _POSTERIOR = "variantId", "r2Overall", "posteriorProbabil
 # Column of the members of each credible set, sorted by posterior and cut.
 _MEMBERS = "members"
 
-# One member: the variant, its ``r2`` to the lead and its posterior.
-_MEMBER = t.StructType(
-    [
-        t.StructField(_VARIANT, t.StringType()),
-        t.StructField(_R2_OVERALL, t.FloatType()),
-        t.StructField(_POSTERIOR, t.DoubleType()),
-    ]
-)
-
-# Temporary columns: the lead's ``-log10 p``, its usable tags and their likelihoods.
-_NEGLOG_P, _TAGS, _LIKELIHOODS = "neglogP", "tags", "likelihoods"
+# Temporary columns: the lead's ``-log10 p``, a tag's likelihood, the posteriors before it and its rank.
+_NEGLOG_P, _LIKELIHOOD, _PRECEDING, _RANK = "neglogP", "likelihood", "preceding", "rank"
 
 
 def _likelihood_batch(neglog_p: pd.Series, r2: pd.Series, k: pd.Series) -> pd.Series:
     """The PICS likelihood of each tag being causal, relative to the lead.
 
-    This is the body of the ``_relative_likelihoods`` pandas UDF. Each row holds
-    one locus: the lead's ``-log10 p``, the ``r2`` of its tags and the PICS
-    constant. The tags of the whole batch are flattened into one array, so scipy
-    evaluates them in a single call, and the result is split back into the rows.
-    The caller removes tags the formulas do not hold for before calling.
+    This is the body of the ``_relative_likelihood`` pandas UDF. Each row holds one tag of one
+    locus: the lead's ``-log10 p``, the tag's ``r2`` to the lead and the PICS constant, so scipy
+    evaluates a whole batch of tags in one call. The caller removes tags the formulas do not hold
+    for before calling.
 
     Args:
-        neglog_p (pd.Series): The lead's ``-log10 p``, one per locus.
-        r2 (pd.Series): The ``r2`` of each tag to the lead, an array per locus.
-        k (pd.Series): The PICS constant, one per locus.
+        neglog_p (pd.Series): The lead's ``-log10 p``.
+        r2 (pd.Series): The tag's ``r2`` to the lead.
+        k (pd.Series): The PICS constant.
 
     Returns:
-        pd.Series: The relative likelihood of each tag, in the order of ``r2``.
+        pd.Series: The relative likelihood of each tag.
 
     Examples:
         >>> from pyspark.sql import functions as f
-        >>> df = spark.createDataFrame([(10.0, [1.0, 0.8])], "neglogP double, r2 array<double>")
-        >>> row = df.select(
-        ...     _relative_likelihoods("neglogP", "r2", f.lit(6.4)).alias("likelihoods")
-        ... ).first()
-        >>> [round(likelihood, 4) for likelihood in row.likelihoods]
+        >>> df = spark.createDataFrame([(10.0, 1.0), (10.0, 0.8)], "neglogP double, r2 double")
+        >>> [round(r.likelihood, 4) for r in df.select(
+        ...     _relative_likelihood("neglogP", "r2", f.lit(6.4)).alias("likelihood")
+        ... ).collect()]
         [1.0, 0.0766]
     """
-    sizes = r2.map(len).to_numpy()
-    tag_r2 = np.concatenate([np.empty(0), *r2]).astype(np.float64)
-    lead = np.repeat(neglog_p.to_numpy(dtype=np.float64), sizes)
-    constant = np.repeat(k.to_numpy(dtype=np.float64), sizes)
+    lead = neglog_p.to_numpy(dtype=np.float64)
+    tag_r2 = r2.to_numpy(dtype=np.float64)
+    constant = k.to_numpy(dtype=np.float64)
     mu = tag_r2 * lead
     sd = np.sqrt(1 - np.sqrt(tag_r2) ** constant) * np.sqrt(lead) / 2
     sd = np.where(sd == 0, _ZERO_SPREAD, sd)
-    likelihoods = 2 * norm.sf(lead, mu, sd)
-    return pd.Series(np.split(likelihoods, np.cumsum(sizes)[:-1]))
+    return pd.Series(2 * norm.sf(lead, mu, sd))
 
 
 # pyspark's stubs only type the deprecated ``functionType`` form, not type hints,
 # so the UDF is cast to what it is: a function of columns returning a column.
-_relative_likelihoods = cast(
+_relative_likelihood = cast(
     "Callable[..., Column]",
-    pandas_udf(_likelihood_batch, t.ArrayType(t.DoubleType())),
+    pandas_udf(_likelihood_batch, t.DoubleType()),
 )
 
 
@@ -284,24 +271,30 @@ class PICS:
         """
         schema = CredibleSetVariant.get_schema()
         entry = f.col("entry")
-        members = posteriors.select(
-            f.col("id").alias("credibleSetId"),
-            f.inline(
-                f.transform(
-                    _MEMBERS,
-                    lambda m: f.struct(
-                        m.alias("member"),
-                        f.get(
-                            f.filter("locus", lambda e: e["variantId"] == m[_VARIANT]),
-                            0,
-                        ).alias("entry"),
-                    ),
-                )
-            ),
+        # Each member gets its locus entry by a join, not by searching ``locus`` per member, which
+        # is quadratic on summary-statistics loci. A variant listed twice in ``locus`` keeps its
+        # first entry.
+        first = Window.partitionBy("credibleSetId", "variantId").orderBy("position")
+        entries = (
+            posteriors.select(
+                f.col("id").alias("credibleSetId"),
+                f.posexplode("locus").alias("position", "entry"),
+            )
+            .withColumn("variantId", entry["variantId"])
+            .withColumn("rank", f.row_number().over(first))
+            .filter(f.col("rank") == 1)
+            .select("credibleSetId", "variantId", "entry")
+        )
+        members = (
+            posteriors.select(
+                f.col("id").alias("credibleSetId"), f.explode(_MEMBERS).alias("member")
+            )
+            .withColumn("variantId", f.col("member")[_VARIANT])
+            .join(entries, on=["credibleSetId", "variantId"], how="left")
         )
         variants = members.select(
             "credibleSetId",
-            f.col("member")[_VARIANT].alias("variantId"),
+            "variantId",
             entry["pValueMantissa"].alias("pValueMantissa"),
             entry["pValueExponent"].alias("pValueExponent"),
             entry["effectAlleleFrequencyFromSource"].alias("effectAlleleFrequency"),
@@ -340,10 +333,13 @@ class PICS:
 
         A locus is fine-mapped from its lead's p-value, read from the lead's
         entry in ``locus``, and from the tags in ``ldSet`` with ``r2`` of at
-        least 0.5. A locus without the lead's p-value or without ``ldSet`` is
-        removed before the likelihoods are computed: Spark evaluates a Python
-        UDF on every row, even inside ``when``. A locus whose tags are all
-        removed has no members and is removed too.
+        least 0.5. A locus without the lead's p-value, or whose tags are all
+        removed, gives nothing.
+
+        The tags are handled as rows, one per tag of a locus, and the posteriors,
+        their order and the coverage cut are window functions over the locus: a
+        locus can have thousands of tags, and the same steps as array functions are
+        evaluated interpreted and exhaust the memory on the GWAS Catalog top hits.
 
         The members are sorted by posterior, then by variant id so equal
         posteriors always sort the same way. A member is kept while the
@@ -355,98 +351,59 @@ class PICS:
 
         Returns:
             DataFrame: The columns of the loci and ``members``, an array of
-                ``variantId``, ``r2Overall`` and ``posteriorProbability``.
+                ``variantId``, ``r2Overall`` and ``posteriorProbability``, sorted.
         """
         lead = f.col("leadVariantId")
         entry = f.get(f.filter("locus", lambda e: e["variantId"] == lead), 0)
-        candidates = loci.df.withColumns(
-            {
-                _NEGLOG_P: neglogpval_from_pvalue(
-                    entry["pValueMantissa"], entry["pValueExponent"]
+        candidates = loci.df.withColumn(
+            _NEGLOG_P,
+            neglogpval_from_pvalue(entry["pValueMantissa"], entry["pValueExponent"]),
+        ).filter(f.col(_NEGLOG_P).isNotNull())
+        tags = (
+            candidates.select("id", _NEGLOG_P, f.inline("ldSet"))
+            .filter(f.col(_R2) >= _MIN_R2)
+            .withColumn(
+                _LIKELIHOOD,
+                _relative_likelihood(
+                    f.col(_NEGLOG_P),
+                    f.col(_R2).cast(t.DoubleType()),
+                    f.lit(self.config.k),
                 ),
-                _TAGS: f.filter("ldSet", lambda e: e[_R2] >= _MIN_R2),
-            }
-        ).filter(f.col(_NEGLOG_P).isNotNull() & f.col(_TAGS).isNotNull())
-        with_likelihoods = candidates.withColumn(
-            _LIKELIHOODS,
-            _relative_likelihoods(
-                f.col(_NEGLOG_P),
-                f.transform(f.col(_TAGS), lambda e: e[_R2].cast(t.DoubleType())),
-                f.lit(self.config.k),
-            ),
+            )
         )
-        total = f.aggregate(f.col(_LIKELIHOODS), f.lit(0.0), lambda acc, x: acc + x)
-        members = f.zip_with(
-            f.col(_TAGS),
-            f.col(_LIKELIHOODS),
-            lambda tag, likelihood: f.struct(
-                tag[_TAG].alias(_VARIANT),
-                tag[_R2].alias(_R2_OVERALL),
-                (likelihood / total).alias(_POSTERIOR),
-            ),
+        locus = Window.partitionBy("id")
+        ranked = locus.orderBy(f.desc(_POSTERIOR), f.asc(_VARIANT))
+        members = (
+            tags.select(
+                "id",
+                f.col(_TAG).alias(_VARIANT),
+                f.col(_R2).cast(t.FloatType()).alias(_R2_OVERALL),
+                (f.col(_LIKELIHOOD) / f.sum(_LIKELIHOOD).over(locus)).alias(_POSTERIOR),
+            )
+            .withColumns(
+                {
+                    _PRECEDING: f.coalesce(
+                        f.sum(_POSTERIOR).over(
+                            ranked.rowsBetween(Window.unboundedPreceding, -1)
+                        ),
+                        f.lit(0.0),
+                    ),
+                    _RANK: f.row_number().over(ranked),
+                }
+            )
+            .filter(f.col(_PRECEDING) < self.config.coverage)
+            .groupBy("id")
+            .agg(
+                # Sorting the (rank, member) structs by their natural order restores the rank order:
+                f.array_sort(
+                    f.collect_list(
+                        f.struct(
+                            _RANK,
+                            f.struct(_VARIANT, _R2_OVERALL, _POSTERIOR).alias("member"),
+                        )
+                    )
+                ).alias(_MEMBERS)
+            )
+            .select("id", f.col(_MEMBERS)["member"].alias(_MEMBERS))
         )
-        return (
-            with_likelihoods.withColumn(_MEMBERS, self._cut(_sorted(members)))
-            .drop(_NEGLOG_P, _TAGS, _LIKELIHOODS)
-            .filter(f.size(_MEMBERS) > 0)
-        )
-
-    def _cut(self: PICS, members: Column) -> Column:
-        """Keep sorted members while the posteriors before them are below coverage.
-
-        Args:
-            members (Column): Members sorted by posterior, largest first.
-
-        Returns:
-            Column: The members of the credible set.
-        """
-        kept, reached = "kept", "reached"
-        start = f.struct(
-            f.array().cast(t.ArrayType(_MEMBER)).alias(kept),
-            f.lit(0.0).alias(reached),
-        )
-        return f.aggregate(
-            members,
-            start,
-            lambda acc, member: f.struct(
-                f.when(
-                    acc[reached] < self.config.coverage,
-                    f.concat(acc[kept], f.array(member)),
-                )
-                .otherwise(acc[kept])
-                .alias(kept),
-                (acc[reached] + member[_POSTERIOR]).alias(reached),
-            ),
-            lambda acc: acc[kept],
-        )
-
-
-def _sorted(members: Column) -> Column:
-    """Sort members by posterior, largest first, then by variant id.
-
-    Args:
-        members (Column): Members of one locus.
-
-    Returns:
-        Column: The same members, sorted.
-    """
-
-    def compare(left: Column, right: Column) -> Column:
-        """Order two members: negative if ``left`` comes first.
-
-        Args:
-            left (Column): One member.
-            right (Column): Another member.
-
-        Returns:
-            Column: -1, 0 or 1.
-        """
-        return (
-            f.when(left[_POSTERIOR] > right[_POSTERIOR], -1)
-            .when(left[_POSTERIOR] < right[_POSTERIOR], 1)
-            .when(left[_VARIANT] < right[_VARIANT], -1)
-            .when(left[_VARIANT] > right[_VARIANT], 1)
-            .otherwise(0)
-        )
-
-    return f.array_sort(members, compare)
+        return candidates.drop(_NEGLOG_P).join(members, on="id", how="inner")

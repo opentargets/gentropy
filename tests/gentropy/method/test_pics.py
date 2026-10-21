@@ -9,7 +9,7 @@ from pyspark.sql import functions as f
 from gentropy.dataset.credible_set import CredibleSet, CredibleSetVariantQualityCheck
 from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import LDAnnotatedStudyLocus, StudyLocusQualityCheck
-from gentropy.method.fine_mapping.pics import PICS, _relative_likelihoods
+from gentropy.method.fine_mapping.pics import PICS, _relative_likelihood
 
 LEAD = "1_100_A_T"
 
@@ -17,7 +17,7 @@ LEAD = "1_100_A_T"
 def _likelihoods(
     spark: SparkSession, rows: list[tuple[float, list[float]]], k: float = 6.4
 ) -> list[list[float]]:
-    """Run the likelihood UDF over (lead -log10 p, r2 of each tag) rows.
+    """Run the likelihood UDF over the tags of (lead -log10 p, r2 of each tag) loci.
 
     Args:
         spark (SparkSession): Spark session.
@@ -25,23 +25,30 @@ def _likelihoods(
         k (float): PICS constant.
 
     Returns:
-        list[list[float]]: The relative likelihood of each tag, per row, in order.
+        list[list[float]]: The relative likelihood of each tag, per locus, in order.
     """
-    df = spark.createDataFrame(
-        [(i, *row) for i, row in enumerate(rows)],
-        "row int, neglogP double, r2 array<double>",
-    )
-    return [
-        row.likelihoods
-        for row in df.select(
+    tags = [
+        (i, j, neglog_p, r2)
+        for i, (neglog_p, r2s) in enumerate(rows)
+        for j, r2 in enumerate(r2s)
+    ]
+    observed: list[list[float]] = [[] for _ in rows]
+    if not tags:
+        return observed
+    df = spark.createDataFrame(tags, "row int, tag int, neglogP double, r2 double")
+    for row in (
+        df.select(
             "row",
-            _relative_likelihoods(f.col("neglogP"), f.col("r2"), f.lit(k)).alias(
-                "likelihoods"
+            "tag",
+            _relative_likelihood(f.col("neglogP"), f.col("r2"), f.lit(k)).alias(
+                "likelihood"
             ),
         )
-        .orderBy("row")
+        .orderBy("row", "tag")
         .collect()
-    ]
+    ):
+        observed[row.row].append(row.likelihood)
+    return observed
 
 
 def test_likelihoods_normalise_to_dev_posteriors(spark: SparkSession) -> None:
@@ -62,7 +69,7 @@ def test_a_perfect_proxy_is_as_likely_as_the_lead(spark: SparkSession) -> None:
 
 
 def test_rows_of_different_lengths_stay_aligned(spark: SparkSession) -> None:
-    """A batch of uneven arrays returns each row's likelihoods with its own tags."""
+    """Tags of loci with different numbers of tags each get their own likelihood."""
     observed = _likelihoods(spark, [(10.0, [1.0, 0.8]), (10.0, []), (10.0, [0.8])])
 
     assert [len(row) for row in observed] == [2, 0, 1]
