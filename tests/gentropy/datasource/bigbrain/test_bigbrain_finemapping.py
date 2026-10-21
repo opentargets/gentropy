@@ -113,7 +113,7 @@ class TestBigBrainFinemapping:
     def test_annotations(
         self, credible_sets: dict[str, tuple[dict[str, Any], dict[str, Any]]]
     ) -> None:
-        """Members carry PIP and N; effects and Bayes factors are not published on our scale."""
+        """Members carry PIP, N and the posterior effect; marginal effects and Bayes factors are not published."""
         cs, members = credible_sets["1_5000_A_G"]
         assert (cs["studyType"], cs["fineMappingMethod"]) == ("eqtl", "SuSiE")
         assert cs["logBayesFactor"] is None
@@ -127,9 +127,14 @@ class TestBigBrainFinemapping:
             assert member["sampleSize"] == 9310
             assert member["logBayesFactor"] is None
             assert member["reportedBeta"] is None
-            assert member["conditionalBeta"] is None
-            assert member["conditionalStandardError"] is None
             assert member["qualityControls"] == []
+        assert {
+            v: (m["conditionalBeta"], m["conditionalStandardError"])
+            for v, m in members.items()
+        } == {
+            "1_5000_A_G": pytest.approx((0.2, 0.02)),
+            "1_5100_C_T": pytest.approx((0.1, 0.02)),
+        }
 
 
 def test_finemapping_ingestion_step(

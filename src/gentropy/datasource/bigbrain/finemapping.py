@@ -21,12 +21,24 @@ The file has one row per credible-set member variant:
 | `CREDIBLE_SET` | credible-set index within the feature (1-5) |
 | `feature` | molecular trait (versioned Ensembl gene ID, or Leafcutter intron) |
 
-`BETA_MEAN` and `BETA_SD` are not stored. SuSiE was fitted on Z-scores and N, so they are on
-the standardised scale (`BETA_SD·sqrt(N)` is about 1 and `BETA_MEAN` about `Z/sqrt(N)` for
-single-variant credible sets in the eQTL release), and summed over all effects. No marginal
-standard error is published to put them on the per-allele scale of the other sources' conditional
-statistics, and the sQTL fine-mapping used random-effects Z-scores, so the fixed-effect standard
-errors of the full summary statistics would not convert them exactly either.
+`BETA_MEAN` and `BETA_SD` are stored as the conditional statistics, as the method's direct
+output. Unlike the other SuSiE sources, they are not per effect: PolyFun sums the posterior mean
+over all effects, and SuSiE was fitted on Z-scores and N, so they are on the standardised scale
+(`BETA_SD·sqrt(N)` is about 1 and `BETA_MEAN` about `Z/sqrt(N)` for single-variant credible sets
+in the eQTL release). Their sign gives the direction of effect, which the file has no marginal
+beta for. They are not rescaled: no marginal standard error is published, and the sQTL
+fine-mapping used random-effects Z-scores, so the fixed-effect standard errors of the full summary
+statistics would not convert them exactly either.
+
+This is a deliberate exception to the per-effect convention, and its limitations are known:
+
+- A member's `BETA_MEAN` is `sum_l alpha_l * mu_l`, so it includes the other effects of the
+  feature. For most members the credible set's own effect dominates and the sign is that effect's
+  direction; for members with a low PIP, another effect can dominate and the sign can be wrong.
+- `BETA_SD` is the posterior standard deviation of that sum, not of a single effect.
+- Neither is comparable in magnitude with the per-effect, per-allele conditional statistics of the
+  other sources. Use them for direction, not for effect size.
+- The reported beta stays null, so colocalisation gives BigBrain credible sets no beta ratio.
 """
 
 from __future__ import annotations
@@ -106,8 +118,10 @@ class BigBrainFinemapping:
         - `posteriorProbability` is `PIP`, the probability of being causal in any of the SuSiE
           effects, not in the credible set's own effect: the per-effect probabilities are not
           published.
-        - The beta, standard error and conditional statistics are null (see the module
-          docstring), and so are the Bayes factors, which are not published.
+        - `conditionalBeta` and `conditionalStandardError` are `BETA_MEAN` and `BETA_SD`, summed
+          over all effects and on the standardised scale (see the module docstring). The reported
+          beta and standard error are null, as the file has none, and so are the Bayes factors,
+          which are not published.
         - Each credible set is ranked by PIP and restricted to its 95% credible set, the members
           whose preceding cumulative PIP is below 0.95, as on the platform; its lead is the top
           PIP, ties broken by variant id, and its bounds are those of the members that remain.
@@ -146,6 +160,8 @@ class BigBrainFinemapping:
                 f.col("Z").alias("zScore"),
                 f.col("N").alias("sampleSize"),
                 f.col("PIP").alias("posteriorProbability"),
+                f.col("BETA_MEAN").alias("conditionalBeta"),
+                f.col("BETA_SD").alias("conditionalStandardError"),
                 f.col("CREDIBLE_SET").alias("credibleSetIndex"),
             )
             .withColumn("isLead", f.row_number().over(by_pip) == 1)
