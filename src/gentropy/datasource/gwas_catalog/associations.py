@@ -1158,9 +1158,8 @@ class GWASCatalogCuratedAssociationsParser:
     def to_study_locus(associations: DataFrame) -> AnnotatedStudyLocus:
         """Make one study locus of each curated association.
 
-        Curated associations are the signals a study reported, often already independent, such
-        as conditionally independent hits a few hundred kb apart. They are therefore not window
-        clumped: each association becomes its own study locus, and only LD clumping prunes them.
+        Each association becomes its own study locus; `window_clump` then flags those explained by
+        a more significant association of the study nearby.
 
         - An association without a mapped variant cannot be placed, and is dropped.
         - The locus is the association's position (`locusStart` and `locusEnd` are both the
@@ -1247,4 +1246,77 @@ class GWASCatalogCuratedAssociationsParser:
                 )
             ),
             _schema=schema,
+        )
+
+    @staticmethod
+    def window_clump(
+        loci: AnnotatedStudyLocus,
+        distance: int = WindowBasedClumpingStepConfig().distance,
+    ) -> AnnotatedStudyLocus:
+        """Flag the curated associations explained by a more significant one of the study within `distance`.
+
+        Window clumping as for summary statistics (`gentropy.method.clumping.window`): per study
+        and chromosome, the associations are ranked by p-value (then position and variant id), and
+        an association is a lead unless a more significant lead is less than `distance` away. The
+        others are flagged `WINDOW_CLUMPED` and kept, with their own locus, so that credible set
+        validation excludes them, as before the refactor. An association without a full p-value
+        is neither a lead nor flagged.
+
+        Args:
+            loci (AnnotatedStudyLocus): Point loci from `to_study_locus`.
+            distance (int): Base pairs within which a more significant association explains another.
+
+        Returns:
+            AnnotatedStudyLocus: The same loci, the clumped ones flagged `WINDOW_CLUMPED`.
+
+        Examples:
+            >>> def locus(variant, position, exponent):
+            ...     return ("", "S1", "1", position, position, variant, [], [(variant, 1.0, exponent, None, None, None, None)], None)
+            >>> loci = AnnotatedStudyLocus(spark.createDataFrame(
+            ...     [locus("1_100_A_T", 100, -10), locus("1_400_A_T", 400, -12), locus("1_900_A_T", 900, -9)],
+            ...     AnnotatedStudyLocus.get_schema(),
+            ... ))
+            >>> clumped = GWASCatalogCuratedAssociationsParser.window_clump(loci, distance=500)
+            >>> [(r.leadVariantId, r.qualityControls) for r in clumped.df.orderBy("leadVariantId").collect()]
+            [('1_100_A_T', ['Explained by a more significant variant in the same window']), ('1_400_A_T', []), ('1_900_A_T', [])]
+        """
+        from gentropy.method.clumping.cluster import cluster
+        from gentropy.method.clumping.window import WindowClumping
+
+        association = f.col("locus")[0]
+        clumped = (
+            loci.df.select(
+                "studyId",
+                "chromosome",
+                f.col("locusStart").alias("position"),
+                f.col("leadVariantId").alias("variantId"),
+                association["pValueMantissa"].alias("pValueMantissa"),
+                association["pValueExponent"].alias("pValueExponent"),
+            )
+            .filter(
+                f.col("pValueMantissa").isNotNull()
+                & f.col("pValueExponent").isNotNull()
+            )
+            .transform(cluster, distance)
+            .transform(WindowClumping._assign_leads, distance, True)
+            .filter(~f.col("isLead"))
+            .select(
+                "studyId",
+                "chromosome",
+                f.col("variantId").alias("leadVariantId"),
+                f.lit(True).alias("_windowClumped"),
+            )
+        )
+        df = loci.df.join(
+            clumped, on=["studyId", "chromosome", "leadVariantId"], how="left"
+        ).withColumn(
+            "qualityControls",
+            AnnotatedStudyLocus.update_quality_flag(
+                f.col("qualityControls"),
+                f.coalesce(f.col("_windowClumped"), f.lit(False)),
+                StudyLocusQualityCheck.WINDOW_CLUMPED,
+            ),
+        )
+        return AnnotatedStudyLocus(
+            _df=df.select(*loci.df.columns), _schema=AnnotatedStudyLocus.get_schema()
         )

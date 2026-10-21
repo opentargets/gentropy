@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from gentropy.common.session import Session
+from gentropy.config import WindowBasedClumpingStepConfig
 from gentropy.dataset.variant_index import VariantIndex
 from gentropy.datasource.gwas_catalog.associations import (
     GWASCatalogCuratedAssociationsParser,
@@ -25,6 +26,7 @@ class GWASCatalogTopHitIngestionStep:
         variant_annotation_path: str,
         catalog_studies_out: str,
         catalog_associations_out: str,
+        distance: int = WindowBasedClumpingStepConfig().distance,
     ) -> None:
         """Run step.
 
@@ -36,8 +38,9 @@ class GWASCatalogTopHitIngestionStep:
             variant_annotation_path (str): Path to GnomAD variants.
             catalog_studies_out (str): Output GWAS catalog studies path.
             catalog_associations_out (str): Output path of the curated associations, as one
-                `AnnotatedStudyLocus` per association. They are not window clumped, as curated
-                associations may already be independent signals: LD clumping prunes them.
+                `AnnotatedStudyLocus` per association; those explained by a more significant one of
+                the study within `distance` are flagged `WINDOW_CLUMPED` and kept.
+            distance (int): Window clumping distance, in base pairs.
         """
         # Extract
         gnomad_variants = VariantIndex.from_parquet(session, variant_annotation_path)
@@ -69,7 +72,10 @@ class GWASCatalogTopHitIngestionStep:
         )
 
         (
-            GWASCatalogCuratedAssociationsParser.to_study_locus(associations)
+            GWASCatalogCuratedAssociationsParser.window_clump(
+                GWASCatalogCuratedAssociationsParser.to_study_locus(associations),
+                distance,
+            )
             .df.write.mode(session.write_mode)
             .parquet(catalog_associations_out)
         )

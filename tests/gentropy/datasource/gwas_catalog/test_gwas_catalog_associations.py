@@ -93,7 +93,7 @@ class TestToStudyLocus:
                 # Two alleles at one position: the more significant one is kept.
                 ("1_100_A_T", "1", 100, "S1", 1.0, -10, [], 0.2, 0.01),
                 ("1_100_A_G", "1", 100, "S1", 1.0, -9, [], 0.1, 0.01),
-                # Close to the first, but its own locus: no window clumping.
+                # Close to the first, but its own locus (window clumping only flags it):
                 ("1_150_C_G", "1", 150, "S1", 2.0, -9, [self.COMPOSITE], None, None),
                 # The same position in another study is another locus.
                 ("1_100_A_T", "1", 100, "S2", 3.0, -8, [], 0.3, 0.02),
@@ -122,3 +122,31 @@ class TestToStudyLocus:
             [self.COMPOSITE, self.TOP_HIT]
         )
         assert rows[("S1", "1_100_A_T")].id != rows[("S2", "1_100_A_T")].id
+
+    def test_window_clump(self, spark: SparkSession) -> None:
+        """Associations explained by a more significant one of the study within the distance are flagged and kept."""
+        associations = spark.createDataFrame(
+            [
+                ("1_100_A_T", "1", 100, "S1", 1.0, -10, [], 0.2, 0.01),
+                # 300 bp from the stronger 1_100_A_T: clumped.
+                ("1_400_C_G", "1", 400, "S1", 2.0, -9, [], None, None),
+                # 800 bp from it: its own lead.
+                ("1_900_C_G", "1", 900, "S1", 2.0, -9, [], None, None),
+                # Another study and another chromosome are clumped separately.
+                ("1_400_C_G", "1", 400, "S2", 3.0, -8, [], None, None),
+                ("2_150_A_T", "2", 150, "S1", 1.0, -8, [], None, None),
+            ],
+            self.SCHEMA,
+        )
+        loci = GWASCatalogCuratedAssociationsParser.to_study_locus(associations)
+
+        clumped = GWASCatalogCuratedAssociationsParser.window_clump(loci, distance=500)
+
+        assert isinstance(clumped, AnnotatedStudyLocus)
+        assert clumped.df.count() == loci.df.count()
+        flagged = {
+            (row.studyId, row.leadVariantId)
+            for row in clumped.df.collect()
+            if StudyLocusQualityCheck.WINDOW_CLUMPED.value in row.qualityControls
+        }
+        assert flagged == {("S1", "1_400_C_G")}
