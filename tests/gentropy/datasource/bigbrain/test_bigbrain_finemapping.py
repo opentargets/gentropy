@@ -22,11 +22,11 @@ COLUMNS = [
 ROWS = [
     # Single-variant credible set with a p-value far below the float64 floor.
     ("rs1", 1, 1000, "C", "T", 40.0, 9310, 0, 1.0, 0.37, 0.01, 10, 1, "ENSG01.1"),
-    # Two-variant credible set, plus an untested placeholder that is not its lead.
+    # Three-variant credible set, plus an untested placeholder that is not its lead.
     ("rs2", 1, 5000, "G", "A", 8.0, 9310, 1e-15, 0.6, 0.2, 0.02, 20, 2, "ENSG01.1"),
     ("rs3", 1, 5100, "T", "C", 7.5, 9310, 1e-13, 0.38, 0.1, 0.02, 30, 2, "ENSG01.1"),
     ("rs4", 1, 5200, "A", "G", 0, 9310, 1, 0.01, 0.0, 0.02, 40, 2, "ENSG01.1"),
-    # Beyond the 95% credible set (cumulative PIP before it is 0.98): dropped.
+    # A low-PIP member (cumulative PIP before it is 0.98): kept, as published.
     ("rs7", 1, 5300, "C", "A", 2.0, 9310, 0.05, 0.01, 0.0, 0.02, 50, 2, "ENSG01.1"),
     # Credible set led by an untested placeholder: dropped entirely.
     ("rs5", 2, 100, "A", "C", 0, 9310, 1, 0.9, -2.1, 0.01, 50, 3, "ENSG01.1"),
@@ -78,13 +78,23 @@ class TestBigBrainFinemapping:
         """A credible set whose lead has Z == 0 is an artefact and is removed."""
         assert sorted(credible_sets) == ["1_1000_T_C", "1_5000_A_G"]
 
-    def test_keeps_only_95_credible_set_without_untested_members(
+    def test_keeps_published_credible_set_without_untested_members(
         self, credible_sets: dict[str, tuple[dict[str, Any], dict[str, Any]]]
     ) -> None:
-        """Untested placeholders and members beyond the 95% credible set are dropped."""
+        """Every published member is kept, however low its PIP; untested placeholders are dropped."""
         cs, members = credible_sets["1_5000_A_G"]
-        assert sorted(members) == ["1_5000_A_G", "1_5100_C_T"]
-        assert (cs["locusStart"], cs["locusEnd"]) == (5000, 5100)
+        assert sorted(members) == ["1_5000_A_G", "1_5100_C_T", "1_5300_A_C"]
+        assert (cs["locusStart"], cs["locusEnd"]) == (5000, 5300)
+
+    def test_posterior_probabilities_sum_to_0_9501(
+        self, credible_sets: dict[str, tuple[dict[str, Any], dict[str, Any]]]
+    ) -> None:
+        """PIPs are scaled to sum to 0.9501 over each credible set, keeping their order."""
+        for _, members in credible_sets.values():
+            total = sum(m["posteriorProbability"] for m in members.values())
+            assert total == pytest.approx(0.9501, abs=1e-6)
+        _, single = credible_sets["1_1000_T_C"]
+        assert single["1_1000_T_C"]["posteriorProbability"] == pytest.approx(0.9501)
 
     def test_variant_id_uses_a1_as_alternate_allele(
         self, credible_sets: dict[str, tuple[dict[str, Any], dict[str, Any]]]
@@ -119,9 +129,11 @@ class TestBigBrainFinemapping:
         assert cs["logBayesFactor"] is None
         assert cs["confidence"] is None
         assert cs["qualityControls"] == []
+        # Published PIPs 0.6, 0.38 and 0.01 (sum 0.99), scaled to 0.9501:
         assert {v: m["posteriorProbability"] for v, m in members.items()} == {
-            "1_5000_A_G": pytest.approx(0.6),
-            "1_5100_C_T": pytest.approx(0.38),
+            "1_5000_A_G": pytest.approx(0.6 * 0.9501 / 0.99),
+            "1_5100_C_T": pytest.approx(0.38 * 0.9501 / 0.99),
+            "1_5300_A_C": pytest.approx(0.01 * 0.9501 / 0.99),
         }
         for member in members.values():
             assert member["sampleSize"] == 9310
@@ -134,6 +146,7 @@ class TestBigBrainFinemapping:
         } == {
             "1_5000_A_G": pytest.approx((0.2, 0.02)),
             "1_5100_C_T": pytest.approx((0.1, 0.02)),
+            "1_5300_A_C": pytest.approx((0.0, 0.02)),
         }
 
 
@@ -152,7 +165,7 @@ def test_finemapping_ingestion_step(
         study_index_path=si_path,
     )
     cs = CredibleSet.from_parquet(session, cs_path).df
-    assert CredibleSetVariant.from_parquet(session, variant_path).df.count() == 3
+    assert CredibleSetVariant.from_parquet(session, variant_path).df.count() == 4
     si = StudyIndex.from_parquet(session, si_path).df
     assert cs.count() == 2
     assert [(r.studyId, r.geneId) for r in si.collect()] == [

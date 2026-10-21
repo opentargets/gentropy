@@ -116,16 +116,20 @@ class BigBrainFinemapping:
           fine (the strongest is about 1e-235), but this cannot underflow and keeps
           the mantissa/exponent split consistent with gentropy's other sources.
         - `sampleSize` is `N`, the sample size of the association test at the locus.
-        - `posteriorProbability` is `PIP`, the probability of being causal in any of the SuSiE
-          effects, not in the credible set's own effect: the per-effect probabilities are not
-          published.
+        - The published credible sets are kept as they are: PolyFun reports SuSiE's 95% credible
+          sets, so no member is dropped by a cumulative PIP cut.
+        - `posteriorProbability` is `PIP` scaled so that it sums to 0.9501 over each credible set.
+          The published `PIP` is the probability of being causal in any of the SuSiE effects, not
+          in the credible set's own effect (the per-effect probabilities are not published), and
+          each variant is listed in one credible set only, so the published sums range from 0.03
+          to 2.6. Scaling keeps the order of the members; for the few sets that lost variants to
+          an earlier set of their feature, it inflates the members that remain.
         - `conditionalBeta` and `conditionalStandardError` are `BETA_MEAN` and `BETA_SD`, summed
           over all effects and on the standardised scale (see the module docstring). The reported
           beta and standard error are null, as the file has none, and so are the Bayes factors,
           which are not published.
-        - Each credible set is ranked by PIP and restricted to its 95% credible set, the members
-          whose preceding cumulative PIP is below 0.95, as on the platform; its lead is the top
-          PIP, ties broken by variant id, and its bounds are those of the members that remain.
+        - The lead of a credible set is the top PIP, ties broken by variant id, and its bounds
+          are those of its members.
         - Purity is not published either. SuSiE only reports sets with a minimum
           absolute correlation of 0.5 on the in-sample LD, so every set passed a
           purity filter at source; purity is set to 1 for single-variant sets and
@@ -180,25 +184,21 @@ class BigBrainFinemapping:
                 "*", *pvalue_from_neglogpval(neglogpval_from_z2(f.col("zScore") ** 2))
             )
         )
-        # The 95% credible set: members whose preceding cumulative PIP is below 0.95.
-        preceding_pip = f.coalesce(
-            f.sum("posteriorProbability").over(
-                by_pip.rowsBetween(Window.unboundedPreceding, -1)
-            ),
-            f.lit(0.0),
-        )
         single_variant_purity = f.when(
             f.count("variantId").over(credible_set) == 1, f.lit(1.0)
         ).cast(t.DoubleType())
         members = (
-            variants.withColumn("precedingPip", preceding_pip)
-            .filter(f.col("precedingPip") < 0.95)
-            .drop("precedingPip")
+            variants.withColumn(
+                "posteriorProbability",
+                f.col("posteriorProbability")
+                * 0.9501
+                / f.sum("posteriorProbability").over(credible_set),
+            )
             .withColumns(
                 {
                     "studyType": f.lit(qtl_type),
                     "fineMappingMethod": f.lit(FinemappingMethod.SUSIE.value),
-                    # Bounds and purity describe the members that remain.
+                    # Bounds and purity describe the tested members.
                     "locusStart": f.min("position").over(credible_set),
                     "locusEnd": f.max("position").over(credible_set),
                 }
