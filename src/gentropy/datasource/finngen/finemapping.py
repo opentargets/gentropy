@@ -11,7 +11,7 @@ from pyspark.sql import Column, SparkSession
 from pyspark.sql.types import DoubleType, StringType, StructField, StructType
 
 from gentropy.common.stats import (
-    region_log_bayes_factor,
+    region_log_bayes_factors,
     split_pvalue_column,
 )
 from gentropy.dataset.credible_set import (
@@ -170,7 +170,7 @@ class FinnGenFinemapping:
         - `leadVariantId`: the member with the highest posterior probability, ties broken by variant id.
         - `locusStart`, `locusEnd`: the bounds of the fine-mapped region.
         - `logBayesFactor`: the region-wide Bayes factor of the single effect, computed from every
-          variant of the region (see `gentropy.common.stats.region_log_bayes_factor`).
+          variant of the region (see `gentropy.common.stats.region_log_bayes_factors`).
         - `purityMeanR2`, `purityMinR2`: `cs_avg_r2` and `cs_min_r2` of the credible set summaries.
 
         Credible set variant columns:
@@ -240,25 +240,16 @@ class FinnGenFinemapping:
             )
             .drop("cs_log10bf")
         )
-        region_bayes_factors = (
-            # Every variant of the region counts, not only the credible set members:
+        # Every variant of the region counts, not only the credible set members:
+        region_bayes_factors = region_log_bayes_factors(
             snps.select(
                 "studyId", "region", *[f"lbf_variable{i}" for i in range(1, 11)]
-            )
-            .join(
+            ).join(
                 credible_sets.select("studyId", "region", "credibleSetIndex"),
                 on=["studyId", "region"],
-            )
-            .groupBy("studyId", "region", "credibleSetIndex")
-            .agg(f.collect_list(_effect("lbf_variable")).alias("lbfs"))
-            .select(
-                "studyId",
-                "region",
-                "credibleSetIndex",
-                region_log_bayes_factor(f.col("lbfs")).alias(
-                    "credibleSetLogBayesFactor"
-                ),
-            )
+            ),
+            ["studyId", "region", "credibleSetIndex"],
+            _effect("lbf_variable").cast(t.DoubleType()),
         )
         # Read twice, to select the allele frequencies and to join them: persist, so the
         # SuSiE outputs are read once.
@@ -309,9 +300,9 @@ class FinnGenFinemapping:
             _effect("alpha").alias("posteriorProbability"),
             _effect("lbf_variable").alias("logBayesFactor"),
             conditional_beta.alias("conditionalBeta"),
-            f.when(alpha > 0, f.sqrt(f.greatest(conditional_variance, f.lit(0.0)))).alias(
-                "conditionalStandardError"
-            ),
+            f.when(
+                alpha > 0, f.sqrt(f.greatest(conditional_variance, f.lit(0.0)))
+            ).alias("conditionalStandardError"),
             f.col("lead_r2").cast(t.FloatType()).alias("r2Overall"),
             f.when(
                 effect_allele_frequency.isNotNull(),

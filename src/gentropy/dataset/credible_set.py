@@ -20,7 +20,7 @@ level across all sources:
   effect of its credible set.
 - `CredibleSet.logBayesFactor` is that single effect's Bayes factor over its whole fine-mapped
   region: the log-sum-exp of the variant log Bayes factors of every variant of the region, with a
-  uniform prior over them (`gentropy.common.stats.region_log_bayes_factor`). Credible set Bayes
+  uniform prior over them (`gentropy.common.stats.region_log_bayes_factors`). Credible set Bayes
   factors that a source reports with another definition, such as FinnGen's model comparison
   `cs_log10bf`, are not stored.
 """

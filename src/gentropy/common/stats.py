@@ -7,7 +7,7 @@ from math import floor, log10
 from typing import TYPE_CHECKING
 
 import numpy as np
-from pyspark.sql import Column
+from pyspark.sql import Column, Window
 from pyspark.sql import functions as f
 from pyspark.sql import types as t
 
@@ -16,6 +16,7 @@ from gentropy.common.udf import chi2_inverse_survival_function, chi2_survival_fu
 
 if TYPE_CHECKING:
     from numpy.typing import NDArray
+    from pyspark.sql import DataFrame
 
 
 ###################### PYTHON FUNCTION #######################
@@ -74,8 +75,10 @@ def get_logsum_column(arr: Column) -> Column:
     )
 
 
-def region_log_bayes_factor(lbfs: Column) -> Column:
-    r"""Natural log Bayes factor of one SuSiE single effect over its whole fine-mapped region.
+def region_log_bayes_factors(
+    variants: DataFrame, keys: list[str], log_bayes_factor: Column
+) -> DataFrame:
+    r"""Natural log Bayes factor of each SuSiE single effect over its whole fine-mapped region.
 
     This is the definition of `CredibleSet.logBayesFactor` for every SuSiE source. With
     $`\operatorname{lbf}_{j}`$ the natural log Bayes factor of variant $`j`$ in the effect and a
@@ -83,25 +86,48 @@ def region_log_bayes_factor(lbfs: Column) -> Column:
 
     ```math
     \log\operatorname{BF} = \operatorname{LSE}_{j}(\operatorname{lbf}_{j}) - \log p
+    = m + \log\sum_{j} e^{\operatorname{lbf}_{j} - m} - \log p, \qquad m = \max_{j} \operatorname{lbf}_{j}
     ```
 
+    It is computed with plain aggregations, one row per effect, rather than over an array of the
+    region's Bayes factors: a region holds thousands of variants, and log-sum-exp over such arrays
+    with higher-order functions is interpreted, so it was the slowest part of ingestion.
+
     Args:
-        lbfs (Column): array<double> of the natural log Bayes factors of every variant of the region.
+        variants (DataFrame): One row per variant of the region and effect.
+        keys (list[str]): Columns identifying the effect, e.g. study, region and credible set index.
+        log_bayes_factor (Column): The variant's natural log Bayes factor in the effect; nulls are ignored.
 
     Returns:
-        Column: The natural log Bayes factor, as a double column.
+        DataFrame: One row per effect: `keys` and `credibleSetLogBayesFactor`.
 
     Examples:
-        >>> df = spark.createDataFrame([([2.0, 0.0],)], ["lbfs"])
-        >>> df.select(f.round(region_log_bayes_factor(f.col("lbfs")), 6).alias("bf")).show()
-        +--------+
-        |      bf|
-        +--------+
-        |1.433781|
-        +--------+
+        >>> df = spark.createDataFrame([("cs1", 2.0), ("cs1", 0.0), ("cs1", None)], "cs string, lbf double")
+        >>> region_log_bayes_factors(df, ["cs"], f.col("lbf")).select(
+        ...     "cs", f.round("credibleSetLogBayesFactor", 6).alias("bf")
+        ... ).show()  # log((e^2 + e^0) / 2)
+        +---+--------+
+        | cs|      bf|
+        +---+--------+
+        |cs1|1.433781|
+        +---+--------+
         <BLANKLINE>
     """
-    return get_logsum_column(lbfs) - f.log(f.size(lbfs))
+    lbf = f.col("_lbf")
+    maximum = f.max(lbf).over(Window.partitionBy(*keys))
+    return (
+        variants.select(*keys, log_bayes_factor.alias("_lbf"))
+        .filter(lbf.isNotNull())
+        .withColumn("_max", maximum)
+        .groupBy(*keys)
+        .agg(
+            (
+                f.first("_max")
+                + f.log(f.sum(f.exp(lbf - f.col("_max"))))
+                - f.log(f.count(lbf))
+            ).alias("credibleSetLogBayesFactor")
+        )
+    )
 
 
 def split_pvalue(pvalue: float) -> tuple[float, int]:

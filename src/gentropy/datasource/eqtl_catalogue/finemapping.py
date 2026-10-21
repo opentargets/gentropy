@@ -19,7 +19,7 @@ from gentropy.common.processing import flag_non_atgc_alleles, normalize_chromoso
 from gentropy.common.session import NativeFileFormat, Session
 from gentropy.common.spark import clean_strings_from_symbols
 from gentropy.common.stats import (
-    region_log_bayes_factor,
+    region_log_bayes_factors,
     split_pvalue_column,
 )
 from gentropy.dataset.credible_set import CredibleSet, CredibleSetVariant
@@ -322,19 +322,12 @@ class EqtlCatalogueFinemapping:
             f.array(*[f.col(f"lbf_variable{i}") for i in range(1, 11)]),
             f.col("credibleSetIndex"),
         )
-        return (
+        return region_log_bayes_factors(
             lbf.join(
                 credible_sets.select(*keys, "credibleSetIndex").distinct(), on=keys
-            )
-            .groupBy(*keys, "credibleSetIndex")
-            .agg(f.collect_list(lbf_l).alias("lbfs"))
-            .select(
-                *keys,
-                "credibleSetIndex",
-                region_log_bayes_factor(f.col("lbfs")).alias(
-                    "credibleSetLogBayesFactor"
-                ),
-            )
+            ),
+            [*keys, "credibleSetIndex"],
+            lbf_l,
         )
 
     @classmethod
