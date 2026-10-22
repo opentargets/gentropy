@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from enum import Enum
 from functools import reduce
@@ -207,7 +207,7 @@ class Dataset(ABC):
             Self: Dataset with the parquet file contents
 
         Raises:
-            ValueError: Parquet file is empty
+            ValueError: Parquet file is empty, or lacks a column the schema requires
         """
         schema = cls.get_schema()
 
@@ -217,6 +217,19 @@ class Dataset(ABC):
         df = session.load_data(path, fmt="parquet", schema=schema, **spark_params)
         if df.isEmpty():
             raise ValueError(f"Parquet file is empty: {path}")
+        # Reading with a schema fills a column the files do not have with nulls, whatever
+        # its nullability, so check the files' own columns. One footer is enough for that.
+        stored = session.load_data(
+            path, fmt="parquet", **{**spark_params, "mergeSchema": False}
+        ).columns
+        if missing := [
+            field.name
+            for field in schema.fields
+            if not field.nullable and field.name not in stored
+        ]:
+            raise ValueError(
+                f"{cls.__name__} at {path} lacks the required columns {missing}"
+            )
         return cls(_df=df, _schema=schema, **class_params)
 
     def filter(self: Self, condition: Column) -> Self:
@@ -469,22 +482,32 @@ class Dataset(ABC):
         )
 
     @staticmethod
-    def generate_identifier(uniqueness_defining_columns: list[str]) -> Column:
+    def generate_identifier(uniqueness_defining_columns: Sequence[str]) -> Column:
         """Hashes the provided columns to generate a unique identifier.
 
+        The identifier is the md5 of the columns written as one JSON object, in the given
+        order, keeping nulls. Column names and value types are part of the hashed text, so
+        `("GCST1", "11")` and `("GCST11", "1")` or a null and the string `"None"` no longer
+        collide.
+
         Args:
-            uniqueness_defining_columns (list[str]): list of columns defining uniqueness
+            uniqueness_defining_columns (Sequence[str]): columns defining uniqueness
 
         Returns:
             Column: column with a unique identifier
+
+        Examples:
+            >>> import hashlib
+            >>> df = spark.createDataFrame([("GCST1", "1", 100, None)], "studyId string, chromosome string, locusStart int, locusEnd int")
+            >>> key = df.select(Dataset.generate_identifier(["studyId", "chromosome", "locusStart", "locusEnd"])).first()[0]
+            >>> key == hashlib.md5(b'{"studyId":"GCST1","chromosome":"1","locusStart":100,"locusEnd":null}').hexdigest()
+            True
         """
-        hashable_columns = [
-            f.when(f.col(column).cast("string").isNull(), f.lit("None")).otherwise(
-                f.col(column).cast("string")
+        return f.md5(
+            f.to_json(
+                f.struct(*uniqueness_defining_columns), {"ignoreNullFields": "false"}
             )
-            for column in uniqueness_defining_columns
-        ]
-        return f.md5(f.concat(*hashable_columns))
+        )
 
     @classmethod
     def qc_tests(cls: type[Self]) -> list[Callable[..., Self]]:

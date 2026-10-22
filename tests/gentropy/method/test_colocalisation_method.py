@@ -13,23 +13,22 @@ import pytest
 from pandas.testing import assert_frame_equal
 from pydantic import ValidationError
 from pyspark.sql import SparkSession
+from pyspark.sql import functions as f
 from pyspark.sql.types import DoubleType, StringType, StructField, StructType
 
 from gentropy.dataset.colocalisation import Colocalisation
-from gentropy.dataset.study_locus_overlap import StudyLocusOverlap
+from gentropy.dataset.locus_overlap import LocusOverlap
 from gentropy.method.colocalisation.coloc import Coloc
 from gentropy.method.colocalisation.coloc_pip import ColocPIP
 from gentropy.method.colocalisation.coloc_pip_ecaviar import ColocPIPECaviar
 from gentropy.method.colocalisation.ecaviar import ECaviar
 
 
-def test_coloc(mock_study_locus_overlap: StudyLocusOverlap) -> None:
+def test_coloc(mock_locus_overlap: LocusOverlap) -> None:
     """Test coloc."""
-    assert isinstance(Coloc.colocalise(mock_study_locus_overlap), Colocalisation)
+    assert isinstance(Coloc.colocalise(mock_locus_overlap), Colocalisation)
     assert isinstance(
-        Coloc.colocalise(
-            mock_study_locus_overlap, priorc1=1e-4, priorc2=1e-4, priorc12=1e-5
-        ),
+        Coloc.colocalise(mock_locus_overlap, priorc1=1e-4, priorc2=1e-4, priorc12=1e-5),
         Colocalisation,
     )
 
@@ -42,8 +41,8 @@ def test_coloc(mock_study_locus_overlap: StudyLocusOverlap) -> None:
             # observed overlap
             [
                 {
-                    "leftStudyLocusId": "1",
-                    "rightStudyLocusId": "2",
+                    "leftLocusId": "1",
+                    "rightLocusId": "2",
                     "rightStudyType": "eqtl",
                     "chromosome": "1",
                     "tagVariantId": "snp",
@@ -73,8 +72,8 @@ def test_coloc(mock_study_locus_overlap: StudyLocusOverlap) -> None:
             # observed overlap
             [
                 {
-                    "leftStudyLocusId": "1",
-                    "rightStudyLocusId": "2",
+                    "leftLocusId": "1",
+                    "rightLocusId": "2",
                     "rightStudyType": "eqtl",
                     "chromosome": "1",
                     "tagVariantId": "snp1",
@@ -88,8 +87,8 @@ def test_coloc(mock_study_locus_overlap: StudyLocusOverlap) -> None:
                     },
                 },
                 {
-                    "leftStudyLocusId": "1",
-                    "rightStudyLocusId": "2",
+                    "leftLocusId": "1",
+                    "rightLocusId": "2",
                     "rightStudyType": "eqtl",
                     "chromosome": "1",
                     "tagVariantId": "snp2",
@@ -111,8 +110,8 @@ def test_coloc(mock_study_locus_overlap: StudyLocusOverlap) -> None:
             # observed overlap
             [
                 {
-                    "leftStudyLocusId": "1",
-                    "rightStudyLocusId": "2",
+                    "leftLocusId": "1",
+                    "rightLocusId": "2",
                     "rightStudyType": "eqtl",
                     "chromosome": "1",
                     "tagVariantId": "snp1",
@@ -126,8 +125,8 @@ def test_coloc(mock_study_locus_overlap: StudyLocusOverlap) -> None:
                     },
                 },
                 {
-                    "leftStudyLocusId": "1",
-                    "rightStudyLocusId": "2",
+                    "leftLocusId": "1",
+                    "rightLocusId": "2",
                     "rightStudyType": "eqtl",
                     "chromosome": "1",
                     "tagVariantId": "snp2",
@@ -157,8 +156,8 @@ def test_coloc(mock_study_locus_overlap: StudyLocusOverlap) -> None:
             # observed overlap
             [
                 {
-                    "leftStudyLocusId": "1",
-                    "rightStudyLocusId": "2",
+                    "leftLocusId": "1",
+                    "rightLocusId": "2",
                     "rightStudyType": "eqtl",
                     "chromosome": "1",
                     "tagVariantId": "snp1",
@@ -172,8 +171,8 @@ def test_coloc(mock_study_locus_overlap: StudyLocusOverlap) -> None:
                     },
                 },
                 {
-                    "leftStudyLocusId": "1",
-                    "rightStudyLocusId": "2",
+                    "leftLocusId": "1",
+                    "rightLocusId": "2",
                     "rightStudyType": "eqtl",
                     "chromosome": "1",
                     "tagVariantId": "snp2",
@@ -187,8 +186,8 @@ def test_coloc(mock_study_locus_overlap: StudyLocusOverlap) -> None:
                     },
                 },
                 {
-                    "leftStudyLocusId": "1",
-                    "rightStudyLocusId": "2",
+                    "leftLocusId": "1",
+                    "rightLocusId": "2",
                     "rightStudyType": "eqtl",
                     "chromosome": "1",
                     "tagVariantId": "snp3",
@@ -218,8 +217,8 @@ def test_coloc(mock_study_locus_overlap: StudyLocusOverlap) -> None:
             # observed overlap
             [
                 {
-                    "leftStudyLocusId": "1",
-                    "rightStudyLocusId": "2",
+                    "leftLocusId": "1",
+                    "rightLocusId": "2",
                     "rightStudyType": "eqtl",
                     "chromosome": "1",
                     "tagVariantId": "snp1",
@@ -233,8 +232,8 @@ def test_coloc(mock_study_locus_overlap: StudyLocusOverlap) -> None:
                     },
                 },
                 {
-                    "leftStudyLocusId": "1",
-                    "rightStudyLocusId": "2",
+                    "leftLocusId": "1",
+                    "rightLocusId": "2",
                     "rightStudyType": "eqtl",
                     "chromosome": "1",
                     "tagVariantId": "snp2",
@@ -248,8 +247,8 @@ def test_coloc(mock_study_locus_overlap: StudyLocusOverlap) -> None:
                     },
                 },
                 {
-                    "leftStudyLocusId": "1",
-                    "rightStudyLocusId": "2",
+                    "leftLocusId": "1",
+                    "rightLocusId": "2",
                     "rightStudyType": "eqtl",
                     "chromosome": "1",
                     "tagVariantId": "snp3",
@@ -274,11 +273,11 @@ def test_coloc_semantic(
     expected_data: list[Any],
 ) -> None:
     """Test our COLOC with the implementation in R."""
-    observed_overlap = StudyLocusOverlap(
+    observed_overlap = LocusOverlap(
         _df=spark.createDataFrame(
-            cast(Any, observed_data), schema=StudyLocusOverlap.get_schema()
+            cast(Any, observed_data), schema=LocusOverlap.get_schema()
         ),
-        _schema=StudyLocusOverlap.get_schema(),
+        _schema=LocusOverlap.get_schema(),
     )
 
     observed_coloc_df = Coloc.colocalise(
@@ -330,15 +329,15 @@ def test_coloc_no_logbf(
     maximum_expected_h4: float = 1e-5,
 ) -> None:
     """Test COLOC output when the input data has irrelevant logBF."""
-    observed_overlap = StudyLocusOverlap(
+    observed_overlap = LocusOverlap(
         (
             spark.createDataFrame(
                 cast(
                     Any,
                     [
                         {
-                            "leftStudyLocusId": "1",
-                            "rightStudyLocusId": "2",
+                            "leftLocusId": "1",
+                            "rightLocusId": "2",
                             "rightStudyType": "eqtl",
                             "chromosome": "1",
                             "tagVariantId": "snp",
@@ -355,8 +354,8 @@ def test_coloc_no_logbf(
                 ),
                 schema=StructType(
                     [
-                        StructField("leftStudyLocusId", StringType(), False),
-                        StructField("rightStudyLocusId", StringType(), False),
+                        StructField("leftLocusId", StringType(), False),
+                        StructField("rightLocusId", StringType(), False),
                         StructField("rightStudyType", StringType(), False),
                         StructField("chromosome", StringType(), False),
                         StructField("tagVariantId", StringType(), False),
@@ -381,7 +380,7 @@ def test_coloc_no_logbf(
                 ),
             )
         ),
-        StudyLocusOverlap.get_schema(),
+        LocusOverlap.get_schema(),
     )
     observed_coloc_df = Coloc.colocalise(observed_overlap).df
     row_h0 = observed_coloc_df.select("h0").collect()[0].asDict()
@@ -396,15 +395,15 @@ def test_coloc_no_logbf(
 
 def test_coloc_no_betas(spark: SparkSession) -> None:
     """Test COLOC output when the input data has no betas."""
-    observed_overlap = StudyLocusOverlap(
+    observed_overlap = LocusOverlap(
         (
             spark.createDataFrame(
                 cast(
                     Any,
                     [
                         {
-                            "leftStudyLocusId": "1",
-                            "rightStudyLocusId": "2",
+                            "leftLocusId": "1",
+                            "rightLocusId": "2",
                             "rightStudyType": "eqtl",
                             "chromosome": "1",
                             "tagVariantId": "snp",
@@ -421,8 +420,8 @@ def test_coloc_no_betas(spark: SparkSession) -> None:
                 ),
                 schema=StructType(
                     [
-                        StructField("leftStudyLocusId", StringType(), False),
-                        StructField("rightStudyLocusId", StringType(), False),
+                        StructField("leftLocusId", StringType(), False),
+                        StructField("rightLocusId", StringType(), False),
                         StructField("rightStudyType", StringType(), False),
                         StructField("chromosome", StringType(), False),
                         StructField("tagVariantId", StringType(), False),
@@ -447,7 +446,7 @@ def test_coloc_no_betas(spark: SparkSession) -> None:
                 ),
             )
         ),
-        StudyLocusOverlap.get_schema(),
+        LocusOverlap.get_schema(),
     )
     observed_coloc_df = Coloc.colocalise(observed_overlap).df
     beta_ratio_row = (
@@ -458,17 +457,17 @@ def test_coloc_no_betas(spark: SparkSession) -> None:
     )
 
 
-def test_ecaviar(mock_study_locus_overlap: StudyLocusOverlap) -> None:
+def test_ecaviar(mock_locus_overlap: LocusOverlap) -> None:
     """Test eCAVIAR."""
-    assert isinstance(ECaviar.colocalise(mock_study_locus_overlap), Colocalisation)
+    assert isinstance(ECaviar.colocalise(mock_locus_overlap), Colocalisation)
 
 
-def test_coloc_pip(mock_study_locus_overlap: StudyLocusOverlap) -> None:
+def test_coloc_pip(mock_locus_overlap: LocusOverlap) -> None:
     """Test ColocPIP basic functionality."""
-    assert isinstance(ColocPIP.colocalise(mock_study_locus_overlap), Colocalisation)
+    assert isinstance(ColocPIP.colocalise(mock_locus_overlap), Colocalisation)
     assert isinstance(
         ColocPIP.colocalise(
-            mock_study_locus_overlap, priorc1=1e-4, priorc2=1e-4, priorc12=1e-5
+            mock_locus_overlap, priorc1=1e-4, priorc2=1e-4, priorc12=1e-5
         ),
         Colocalisation,
     )
@@ -482,8 +481,8 @@ def test_coloc_pip(mock_study_locus_overlap: StudyLocusOverlap) -> None:
             # observed overlap
             [
                 {
-                    "leftStudyLocusId": "1",
-                    "rightStudyLocusId": "2",
+                    "leftLocusId": "1",
+                    "rightLocusId": "2",
                     "rightStudyType": "eqtl",
                     "chromosome": "1",
                     "tagVariantId": "snp1",
@@ -505,8 +504,8 @@ def test_coloc_pip(mock_study_locus_overlap: StudyLocusOverlap) -> None:
             # observed overlap
             [
                 {
-                    "leftStudyLocusId": "1",
-                    "rightStudyLocusId": "2",
+                    "leftLocusId": "1",
+                    "rightLocusId": "2",
                     "rightStudyType": "eqtl",
                     "chromosome": "1",
                     "tagVariantId": "snp1",
@@ -518,8 +517,8 @@ def test_coloc_pip(mock_study_locus_overlap: StudyLocusOverlap) -> None:
                     },
                 },
                 {
-                    "leftStudyLocusId": "1",
-                    "rightStudyLocusId": "2",
+                    "leftLocusId": "1",
+                    "rightLocusId": "2",
                     "rightStudyType": "eqtl",
                     "chromosome": "1",
                     "tagVariantId": "snp2",
@@ -541,8 +540,8 @@ def test_coloc_pip(mock_study_locus_overlap: StudyLocusOverlap) -> None:
             # observed overlap
             [
                 {
-                    "leftStudyLocusId": "1",
-                    "rightStudyLocusId": "2",
+                    "leftLocusId": "1",
+                    "rightLocusId": "2",
                     "rightStudyType": "eqtl",
                     "chromosome": "1",
                     "tagVariantId": "snp1",
@@ -554,8 +553,8 @@ def test_coloc_pip(mock_study_locus_overlap: StudyLocusOverlap) -> None:
                     },
                 },
                 {
-                    "leftStudyLocusId": "1",
-                    "rightStudyLocusId": "2",
+                    "leftLocusId": "1",
+                    "rightLocusId": "2",
                     "rightStudyType": "eqtl",
                     "chromosome": "1",
                     "tagVariantId": "snp2",
@@ -578,8 +577,8 @@ def test_coloc_pip(mock_study_locus_overlap: StudyLocusOverlap) -> None:
             # observed overlap
             [
                 {
-                    "leftStudyLocusId": "1",
-                    "rightStudyLocusId": "2",
+                    "leftLocusId": "1",
+                    "rightLocusId": "2",
                     "rightStudyType": "eqtl",
                     "chromosome": "1",
                     "tagVariantId": "snp1",
@@ -604,11 +603,11 @@ def test_coloc_pip_semantic(
     expected_data: dict[str, float],
 ) -> None:
     """Test ColocPIP with various PIP patterns."""
-    observed_overlap = StudyLocusOverlap(
+    observed_overlap = LocusOverlap(
         _df=spark.createDataFrame(
-            cast(Any, observed_data), schema=StudyLocusOverlap.get_schema()
+            cast(Any, observed_data), schema=LocusOverlap.get_schema()
         ),
-        _schema=StudyLocusOverlap.get_schema(),
+        _schema=LocusOverlap.get_schema(),
     )
 
     observed_coloc_df = ColocPIP.colocalise(observed_overlap).df
@@ -655,14 +654,14 @@ def test_coloc_pip_semantic(
 def test_coloc_pip_priors(spark: SparkSession) -> None:
     """Test that ColocPIP correctly responds to custom priors."""
     # Multiple SNPs with moderate PIPs where priors will have an effect
-    observed_overlap = StudyLocusOverlap(
+    observed_overlap = LocusOverlap(
         _df=spark.createDataFrame(
             cast(
                 Any,
                 [
                     {
-                        "leftStudyLocusId": "1",
-                        "rightStudyLocusId": "2",
+                        "leftLocusId": "1",
+                        "rightLocusId": "2",
                         "rightStudyType": "eqtl",
                         "chromosome": "1",
                         "tagVariantId": "snp1",
@@ -674,8 +673,8 @@ def test_coloc_pip_priors(spark: SparkSession) -> None:
                         },
                     },
                     {
-                        "leftStudyLocusId": "1",
-                        "rightStudyLocusId": "2",
+                        "leftLocusId": "1",
+                        "rightLocusId": "2",
                         "rightStudyType": "eqtl",
                         "chromosome": "1",
                         "tagVariantId": "snp2",
@@ -687,8 +686,8 @@ def test_coloc_pip_priors(spark: SparkSession) -> None:
                         },
                     },
                     {
-                        "leftStudyLocusId": "1",
-                        "rightStudyLocusId": "2",
+                        "leftLocusId": "1",
+                        "rightLocusId": "2",
                         "rightStudyType": "eqtl",
                         "chromosome": "1",
                         "tagVariantId": "snp3",
@@ -701,9 +700,9 @@ def test_coloc_pip_priors(spark: SparkSession) -> None:
                     },
                 ],
             ),
-            schema=StudyLocusOverlap.get_schema(),
+            schema=LocusOverlap.get_schema(),
         ),
-        _schema=StudyLocusOverlap.get_schema(),
+        _schema=LocusOverlap.get_schema(),
     )
 
     # Test with higher p12 prior (should favor H4 - shared causal)
@@ -737,11 +736,11 @@ def test_coloc_pip_priors(spark: SparkSession) -> None:
     assert abs((result_low_p12["h3"] + result_low_p12["h4"]) - 1.0) < 0.01
 
 
-def test_coloc_pip_type_error(mock_study_locus_overlap: StudyLocusOverlap) -> None:
+def test_coloc_pip_type_error(mock_locus_overlap: LocusOverlap) -> None:
     """Test that ColocPIP raises ValidationError for incorrect prior types."""
     with pytest.raises(ValidationError):
         ColocPIP.colocalise(
-            mock_study_locus_overlap,
+            mock_locus_overlap,
             priorc1="invalid",
             priorc2=1e-4,
             priorc12=1e-5,
@@ -750,14 +749,14 @@ def test_coloc_pip_type_error(mock_study_locus_overlap: StudyLocusOverlap) -> No
 
 def test_coloc_pip_null_pips(spark: SparkSession) -> None:
     """Test ColocPIP handles null PIPs by filling with zeros."""
-    observed_overlap = StudyLocusOverlap(
+    observed_overlap = LocusOverlap(
         _df=spark.createDataFrame(
             cast(
                 Any,
                 [
                     {
-                        "leftStudyLocusId": "1",
-                        "rightStudyLocusId": "2",
+                        "leftLocusId": "1",
+                        "rightLocusId": "2",
                         "rightStudyType": "eqtl",
                         "chromosome": "1",
                         "tagVariantId": "snp1",
@@ -772,8 +771,8 @@ def test_coloc_pip_null_pips(spark: SparkSession) -> None:
             ),
             schema=StructType(
                 [
-                    StructField("leftStudyLocusId", StringType(), False),
-                    StructField("rightStudyLocusId", StringType(), False),
+                    StructField("leftLocusId", StringType(), False),
+                    StructField("rightLocusId", StringType(), False),
                     StructField("rightStudyType", StringType(), False),
                     StructField("chromosome", StringType(), False),
                     StructField("tagVariantId", StringType(), False),
@@ -795,7 +794,7 @@ def test_coloc_pip_null_pips(spark: SparkSession) -> None:
                 ]
             ),
         ),
-        _schema=StudyLocusOverlap.get_schema(),
+        _schema=LocusOverlap.get_schema(),
     )
 
     # Should not raise an error
@@ -805,14 +804,14 @@ def test_coloc_pip_null_pips(spark: SparkSession) -> None:
 
 def test_coloc_pip_beta_ratio(spark: SparkSession) -> None:
     """Test that ColocPIP includes beta ratio calculations."""
-    observed_overlap = StudyLocusOverlap(
+    observed_overlap = LocusOverlap(
         _df=spark.createDataFrame(
             cast(
                 Any,
                 [
                     {
-                        "leftStudyLocusId": "1",
-                        "rightStudyLocusId": "2",
+                        "leftLocusId": "1",
+                        "rightLocusId": "2",
                         "rightStudyType": "eqtl",
                         "chromosome": "1",
                         "tagVariantId": "snp1",
@@ -825,9 +824,9 @@ def test_coloc_pip_beta_ratio(spark: SparkSession) -> None:
                     },
                 ],
             ),
-            schema=StudyLocusOverlap.get_schema(),
+            schema=LocusOverlap.get_schema(),
         ),
-        _schema=StudyLocusOverlap.get_schema(),
+        _schema=LocusOverlap.get_schema(),
     )
 
     result = ColocPIP.colocalise(observed_overlap).df.collect()[0]
@@ -840,14 +839,14 @@ def test_coloc_pip_beta_ratio(spark: SparkSession) -> None:
 
 def test_coloc_characterization(spark: SparkSession) -> None:
     """Pin Coloc posteriors at 1e-9 (single high-PP overlapping SNP)."""
-    observed_overlap = StudyLocusOverlap(
+    observed_overlap = LocusOverlap(
         _df=spark.createDataFrame(
             cast(
                 Any,
                 [
                     {
-                        "leftStudyLocusId": "1",
-                        "rightStudyLocusId": "2",
+                        "leftLocusId": "1",
+                        "rightLocusId": "2",
                         "rightStudyType": "eqtl",
                         "chromosome": "1",
                         "tagVariantId": "snp",
@@ -862,9 +861,9 @@ def test_coloc_characterization(spark: SparkSession) -> None:
                     }
                 ],
             ),
-            schema=StudyLocusOverlap.get_schema(),
+            schema=LocusOverlap.get_schema(),
         ),
-        _schema=StudyLocusOverlap.get_schema(),
+        _schema=LocusOverlap.get_schema(),
     )
     row = (
         Coloc.colocalise(observed_overlap, overlap_size_cutoff=5, posterior_cutoff=0.1)
@@ -885,14 +884,14 @@ def test_coloc_characterization(spark: SparkSession) -> None:
 
 def test_coloc_pip_characterization(spark: SparkSession) -> None:
     """Pin ColocPIP h3/h4 at 1e-9 (single high-PIP overlapping SNP)."""
-    observed_overlap = StudyLocusOverlap(
+    observed_overlap = LocusOverlap(
         _df=spark.createDataFrame(
             cast(
                 Any,
                 [
                     {
-                        "leftStudyLocusId": "1",
-                        "rightStudyLocusId": "2",
+                        "leftLocusId": "1",
+                        "rightLocusId": "2",
                         "rightStudyType": "eqtl",
                         "chromosome": "1",
                         "tagVariantId": "snp1",
@@ -905,9 +904,9 @@ def test_coloc_pip_characterization(spark: SparkSession) -> None:
                     }
                 ],
             ),
-            schema=StudyLocusOverlap.get_schema(),
+            schema=LocusOverlap.get_schema(),
         ),
-        _schema=StudyLocusOverlap.get_schema(),
+        _schema=LocusOverlap.get_schema(),
     )
     row = ColocPIP.colocalise(observed_overlap).df.collect()[0].asDict()
     # H0-H2 are exactly zero in ColocPIP; H3+H4 normalise to 1.
@@ -926,14 +925,14 @@ def test_coloc_pip_ecaviar_characterization(spark: SparkSession) -> None:
     ColocPIP, clpp from eCAVIAR, numberColocalisingVariants, and
     betaRatioSignAverage.
     """
-    observed_overlap = StudyLocusOverlap(
+    observed_overlap = LocusOverlap(
         _df=spark.createDataFrame(
             cast(
                 Any,
                 [
                     {
-                        "leftStudyLocusId": "1",
-                        "rightStudyLocusId": "2",
+                        "leftLocusId": "1",
+                        "rightLocusId": "2",
                         "rightStudyType": "eqtl",
                         "chromosome": "1",
                         "tagVariantId": "snp1",
@@ -945,8 +944,8 @@ def test_coloc_pip_ecaviar_characterization(spark: SparkSession) -> None:
                         },
                     },
                     {
-                        "leftStudyLocusId": "1",
-                        "rightStudyLocusId": "2",
+                        "leftLocusId": "1",
+                        "rightLocusId": "2",
                         "rightStudyType": "eqtl",
                         "chromosome": "1",
                         "tagVariantId": "snp2",
@@ -959,9 +958,9 @@ def test_coloc_pip_ecaviar_characterization(spark: SparkSession) -> None:
                     },
                 ],
             ),
-            schema=StudyLocusOverlap.get_schema(),
+            schema=LocusOverlap.get_schema(),
         ),
-        _schema=StudyLocusOverlap.get_schema(),
+        _schema=LocusOverlap.get_schema(),
     )
     row = ColocPIPECaviar.colocalise(observed_overlap).df.collect()[0].asDict()
     assert row["colocalisationMethod"] == "COLOC_PIP_ECAVIAR"
@@ -975,3 +974,64 @@ def test_coloc_pip_ecaviar_characterization(spark: SparkSession) -> None:
     assert abs((row["h3"] + row["h4"]) - 1.0) <= 1e-9
     # betaRatioSign: snp1 sign(0.5/0.3)=+1, snp2 sign(0.2/-0.1)=-1 -> avg 0.0.
     assert abs(row["betaRatioSignAverage"] - 0.0) <= 1e-9
+
+
+@pytest.mark.parametrize(
+    ("priorc1", "priorc2", "priorc12"),
+    [(1e-4, 1e-4, 1e-5), (1e-4, 1e-4, 5e-6)],
+)
+def test_clpp2coloc_recovers_coloc_pip_h4(
+    mock_locus_overlap: LocusOverlap,
+    priorc1: float,
+    priorc2: float,
+    priorc12: float,
+) -> None:
+    """Test that converting CLPP with the credible set sizes recovers the coloc-pip H3 and H4."""
+    priors = {"priorc1": priorc1, "priorc2": priorc2, "priorc12": priorc12}
+    stats = mock_locus_overlap.df.select(
+        "leftLocusId",
+        "rightLocusId",
+        f.greatest(
+            f.coalesce("statistics.left_posteriorProbability", f.lit(0.0)), f.lit(1e-16)
+        ).alias("pip1"),
+        f.greatest(
+            f.coalesce("statistics.right_posteriorProbability", f.lit(0.0)),
+            f.lit(1e-16),
+        ).alias("pip2"),
+    )
+    sums = stats.groupBy("leftLocusId", "rightLocusId").agg(
+        f.sum("pip1").alias("s1"),
+        f.sum("pip2").alias("s2"),
+        f.sum(f.col("pip1") * f.col("pip2")).alias("clpp"),
+    )
+    coloc = ColocPIP.colocalise(mock_locus_overlap, **priors).df.select(
+        "leftLocusId", "rightLocusId", "h3", "h4"
+    )
+    h3, h4 = ColocPIP.clpp2coloc(f.col("clpp"), f.col("s1"), f.col("s2"), **priors)
+    rows = (
+        sums.join(coloc, ["leftLocusId", "rightLocusId"])
+        .select("h3", "h4", h3.alias("h3_from_clpp"), h4.alias("h4_from_clpp"))
+        .collect()
+    )
+    assert rows, "Expected at least one overlapping pair"
+    for row in rows:
+        assert row["h3_from_clpp"] == pytest.approx(row["h3"], rel=1e-9, abs=1e-12)
+        assert row["h4_from_clpp"] == pytest.approx(row["h4"], rel=1e-9, abs=1e-12)
+
+
+def test_coloc2clpp_inverts_clpp2coloc(spark: SparkSession) -> None:
+    """Test that coloc2clpp returns the CLPP that clpp2coloc was given."""
+    df = spark.createDataFrame(
+        [(1e-6, 0.95, 0.95), (0.001, 0.95, 0.99), (0.01, 0.9, 0.95), (0.5, 1.0, 1.0)],
+        ["clpp", "s1", "s2"],
+    )
+    _, h4 = ColocPIP.clpp2coloc(f.col("clpp"), f.col("s1"), f.col("s2"))
+    rows = (
+        df.withColumn("h4", h4)
+        .withColumn(
+            "clpp_back", ColocPIP.coloc2clpp(f.col("h4"), f.col("s1"), f.col("s2"))
+        )
+        .collect()
+    )
+    for row in rows:
+        assert row["clpp_back"] == pytest.approx(row["clpp"], rel=1e-9)

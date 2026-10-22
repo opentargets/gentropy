@@ -16,20 +16,22 @@ from gentropy.common.genomic_region import LiftOverSpark
 from gentropy.common.session import Session
 from gentropy.dataset.biosample_index import BiosampleIndex
 from gentropy.dataset.colocalisation import Colocalisation
+from gentropy.dataset.credible_set import CredibleSet, CredibleSetLocus
 from gentropy.dataset.intervals import Intervals
 from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
 from gentropy.dataset.l2g_prediction import L2GPrediction
 from gentropy.dataset.ld_index import LDIndex
+from gentropy.dataset.locus_overlap import LocusOverlap
+from gentropy.dataset.pathway_enrichment import PathwayEnrichment
+from gentropy.dataset.pathway_index import PathwayIndex
 from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import StudyLocus
-from gentropy.dataset.study_locus_overlap import StudyLocusOverlap
 from gentropy.dataset.summary_statistics import SummaryStatistics
 from gentropy.dataset.target_index import TargetIndex
 from gentropy.dataset.variant_index import VariantIndex
 from gentropy.datasource.eqtl_catalogue.finemapping import EqtlCatalogueFinemapping
 from gentropy.datasource.eqtl_catalogue.study_index import EqtlCatalogueStudyIndex
-from gentropy.datasource.gwas_catalog.associations import StudyLocusGWASCatalog
 from gentropy.datasource.gwas_catalog.study_index import StudyIndexGWASCatalog
 from utils.spark import get_spark_testing_conf
 
@@ -75,11 +77,11 @@ def mock_colocalisation(spark: SparkSession) -> Colocalisation:
         )
         .withSchema(coloc_schema)
         .withColumnSpec(
-            "leftStudyLocusId",
+            "leftLocusId",
             expr="cast(id as string)",
         )
         .withColumnSpec(
-            "rightStudyLocusId",
+            "rightLocusId",
             expr="cast(id as string)",
         )
         .withColumnSpec("h0", percentNulls=0.1)
@@ -240,9 +242,9 @@ def mock_study_index_gwas_catalog(spark: SparkSession) -> StudyIndexGWASCatalog:
 
 
 @pytest.fixture()
-def mock_study_locus_overlap(spark: SparkSession) -> StudyLocusOverlap:
-    """Mock StudyLocusOverlap dataset."""
-    overlap_schema = StudyLocusOverlap.get_schema()
+def mock_locus_overlap(spark: SparkSession) -> LocusOverlap:
+    """Mock LocusOverlap dataset."""
+    overlap_schema = LocusOverlap.get_schema()
 
     data_spec = (
         dg.DataGenerator(
@@ -253,11 +255,11 @@ def mock_study_locus_overlap(spark: SparkSession) -> StudyLocusOverlap:
         )
         .withSchema(overlap_schema)
         .withColumnSpec(
-            "leftStudyLocusId",
+            "leftLocusId",
             expr="cast(id as string)",
         )
         .withColumnSpec(
-            "rightStudyLocusId",
+            "rightLocusId",
             expr="cast(id as string)",
         )
         .withColumnSpec(
@@ -269,7 +271,7 @@ def mock_study_locus_overlap(spark: SparkSession) -> StudyLocusOverlap:
         )
     )
 
-    return StudyLocusOverlap(_df=data_spec.build(), _schema=overlap_schema)
+    return LocusOverlap(_df=data_spec.build(), _schema=overlap_schema)
 
 
 def mock_study_locus_data(spark: SparkSession) -> DataFrame:
@@ -282,31 +284,14 @@ def mock_study_locus_data(spark: SparkSession) -> DataFrame:
             rows=400,
             partitions=4,
             randomSeedMethod="hash_fieldname",
+            seedColumnName="_id",
         )
         .withSchema(sl_schema)
-        .withColumnSpec(
-            "variantId",
-            expr="cast(id as string)",
-        )
-        .withColumnSpec("chromosome", percentNulls=0.1)
-        .withColumnSpec("position", minValue=100, percentNulls=0.1)
-        .withColumnSpec("beta", percentNulls=0.1)
-        .withColumnSpec("effectAlleleFrequencyFromSource", percentNulls=0.1)
-        .withColumnSpec("standardError", percentNulls=0.1)
-        .withColumnSpec("subStudyDescription", percentNulls=0.1)
-        .withColumnSpec("pValueMantissa", minValue=1, percentNulls=0.1)
-        .withColumnSpec("pValueExponent", minValue=-10, percentNulls=0.1)
-        .withColumnSpec(
-            "qualityControls",
-            expr="array(cast(rand() as string))",
-            percentNulls=0.1,
-        )
-        .withColumnSpec("finemappingMethod", percentNulls=0.1)
-        .withColumnSpec(
-            "locus",
-            expr='array(named_struct("is95CredibleSet", cast(rand() > 0.5 as boolean), "is99CredibleSet", cast(rand() > 0.5 as boolean), "logBF", rand(), "posteriorProbability", rand(), "variantId", cast(floor(rand() * 400) + 1 as string), "beta", rand(), "standardError", rand(), "r2Overall", rand(), "pValueMantissa", rand(), "pValueExponent", rand()))',
-            percentNulls=0.1,
-        )
+        .withColumnSpec("id", expr="md5(cast(_id as string))")
+        .withColumnSpec("leadVariantId", expr="cast(_id as string)")
+        .withColumnSpec("locusStart", minValue=1, maxValue=1_000_000)
+        .withColumnSpec("locusEnd", expr="locusStart + 500000", baseColumn="locusStart")
+        .withColumnSpec("qualityControls", expr="array(cast(rand() as string))")
     )
     return data_spec.build()
 
@@ -321,12 +306,53 @@ def mock_study_locus(spark: SparkSession) -> StudyLocus:
 
 
 @pytest.fixture()
-def mock_study_locus_gwas_catalog(spark: SparkSession) -> StudyLocusGWASCatalog:
-    """Mock study_locus dataset."""
-    return StudyLocusGWASCatalog(
-        _df=mock_study_locus_data(spark),
-        _schema=StudyLocusGWASCatalog.get_schema(),
+def mock_credible_set(spark: SparkSession) -> CredibleSet:
+    """Mock credible set dataset."""
+    schema = CredibleSet.get_schema()
+    data_spec = (
+        dg.DataGenerator(
+            spark,
+            rows=400,
+            partitions=4,
+            randomSeedMethod="hash_fieldname",
+            seedColumnName="_id",
+        )
+        .withSchema(schema)
+        .withColumnSpec("id", expr="cast(_id as string)")
+        .withColumnSpec("leadVariantId", expr="cast(_id as string)")
+        .withColumnSpec("studyType", values=["gwas", "eqtl", "pqtl", "sqtl"])
+        .withColumnSpec("locusStart", minValue=1, maxValue=1_000_000)
+        .withColumnSpec("locusEnd", expr="locusStart + 500000", baseColumn="locusStart")
+        .withColumnSpec("qualityControls", expr="array(cast(rand() as string))")
     )
+    return CredibleSet(_df=data_spec.build(), _schema=schema)
+
+
+@pytest.fixture()
+def mock_credible_set_locus(spark: SparkSession) -> CredibleSetLocus:
+    """Mock credible set locus view, the locus-to-gene input."""
+    schema = CredibleSetLocus.get_schema()
+    data_spec = (
+        dg.DataGenerator(
+            spark,
+            rows=400,
+            partitions=4,
+            randomSeedMethod="hash_fieldname",
+        )
+        .withSchema(schema)
+        .withColumnSpec("credibleSetId", expr="cast(id as string)")
+        .withColumnSpec("variantId", expr="cast(id as string)")
+        .withColumnSpec("chromosome", percentNulls=0.1)
+        .withColumnSpec("position", minValue=100, percentNulls=0.1)
+        .withColumnSpec("confidence", minValue=0, maxValue=4, percentNulls=0.1)
+        .withColumnSpec("qualityControls", expr="array(cast(rand() as string))")
+        .withColumnSpec(
+            "locus",
+            expr='array(named_struct("variantId", cast(floor(rand() * 400) + 1 as string), "posteriorProbability", cast(rand() as float)))',
+            percentNulls=0.1,
+        )
+    )
+    return CredibleSetLocus(_df=data_spec.build(), _schema=schema)
 
 
 @pytest.fixture()
@@ -348,6 +374,75 @@ def mock_intervals(spark: SparkSession) -> Intervals:
     )
 
     return Intervals(_df=data_spec.build(), _schema=interval_schema)
+
+
+@pytest.fixture()
+def mock_pathway_index(spark: SparkSession) -> PathwayIndex:
+    """Mock pathway index dataset.
+
+    Three gene sets over three genes: gene1 sits in two of them, gene2 in two, gene3 in one.
+    The gene identifiers are already resolved, as they are in an ingested index, and pathway3
+    is one whose source identifier did not resolve.
+    """
+    return PathwayIndex(
+        _df=spark.createDataFrame(
+            [
+                (
+                    "pathway1 [Reactome]",
+                    "R-HSA-1",
+                    "R-HSA-1",
+                    "Reactome",
+                    ["GENE1", "GENE2"],
+                    ["gene1", "gene2"],
+                ),
+                (
+                    "pathway2 [GO BP]",
+                    "GO:0000002",
+                    "GO:0000002",
+                    "GO BP",
+                    ["GENE1", "GENE3"],
+                    ["gene1", "gene3"],
+                ),
+                (
+                    "pathway3 [GO BP]",
+                    "GO:0000003",
+                    None,
+                    "GO BP",
+                    ["GENE2"],
+                    ["gene2"],
+                ),
+            ],
+            PathwayIndex.get_schema(),
+        ),
+        _schema=PathwayIndex.get_schema(),
+    )
+
+
+@pytest.fixture()
+def mock_pathway_enrichment(spark: SparkSession) -> PathwayEnrichment:
+    """Mock disease-pathway enrichment dataset.
+
+    `disease1` is enriched for pathway1 only, `disease2` for pathway2 only, and `disease3` has
+    no adjusted p-value at all, the way whole diseases can come out of a gene set enrichment
+    run.
+    """
+    return PathwayEnrichment(
+        _df=spark.createDataFrame(
+            [
+                ("disease1", "pathway1 [Reactome]", "Reactome", 2.1, 0.0001, 0.001),
+                ("disease1", "pathway2 [GO BP]", "GO BP", 1.1, 0.3, 0.6),
+                ("disease1", "pathway3 [GO BP]", "GO BP", 1.0, 0.7, 0.9),
+                ("disease2", "pathway1 [Reactome]", "Reactome", 1.0, 0.8, 0.9),
+                ("disease2", "pathway2 [GO BP]", "GO BP", 2.4, 0.0002, 0.002),
+                ("disease2", "pathway3 [GO BP]", "GO BP", 1.2, 0.4, 0.7),
+                ("disease3", "pathway1 [Reactome]", "Reactome", 2.0, 0.001, None),
+                ("disease3", "pathway2 [GO BP]", "GO BP", 1.3, 0.02, None),
+                ("disease3", "pathway3 [GO BP]", "GO BP", 1.0, 0.5, None),
+            ],
+            PathwayEnrichment.get_schema(),
+        ),
+        _schema=PathwayEnrichment.get_schema(),
+    )
 
 
 @pytest.fixture()
@@ -600,6 +695,17 @@ def sample_eqtl_catalogue_finemapping_lbf(session: Session) -> DataFrame:
 
 
 @pytest.fixture()
+def sample_eqtl_catalogue_finemapping_full_susie(session: Session) -> DataFrame:
+    """Sample raw eQTL Catalogue table with the SuSIE posterior effects."""
+    return EqtlCatalogueFinemapping.read_full_susie_from_source(
+        full_susie_path=[
+            "tests/gentropy/data_samples/QTD000001/QTS00001/QTS000001.full_susie.parquet"
+        ],
+        session=session,
+    )
+
+
+@pytest.fixture()
 def sample_eqtl_catalogue_studies_metadata(spark: SparkSession) -> DataFrame:
     """Sample raw eQTL Catalogue table with metadata about the QTD000584 study."""
     return spark.read.option("delimiter", "\t").csv(
@@ -618,15 +724,6 @@ def sample_ukbiobank_studies(spark: SparkSession) -> DataFrame:
         sep="\t",
         header=True,
         inferSchema=True,
-    )
-
-
-@pytest.fixture()
-def study_locus_sample_for_colocalisation(spark: SparkSession) -> StudyLocus:
-    """Sample study locus data for colocalisation."""
-    return StudyLocus(
-        _df=spark.read.parquet("tests/gentropy/data_samples/coloc_test.parquet"),
-        _schema=StudyLocus.get_schema(),
     )
 
 
@@ -750,7 +847,7 @@ def mock_l2g_feature_matrix(spark: SparkSession) -> L2GFeatureMatrix:
                 ("loc5", "gene1", "trait3", 150.0, 15.0, "positive"),
                 ("loc6", "gene2", "trait4", 250.0, 25.0, "positive"),
                 # Negative class samples
-                # These share studyLocusId with positive samples to test proper negative propagation
+                # These share credibleSetId with positive samples to test proper negative propagation
                 ("loc1", "gene5", "trait1", 500.0, 50.0, "negative"),
                 ("loc2", "gene6", "trait1", 600.0, 60.0, "negative"),
                 ("loc3", "gene7", "trait2", 700.0, 70.0, "negative"),
@@ -764,7 +861,7 @@ def mock_l2g_feature_matrix(spark: SparkSession) -> L2GFeatureMatrix:
                 ("loc9", "gene7", "trait3", 750.0, 75.0, "negative"),
                 ("loc10", "gene8", "trait4", 850.0, 85.0, "negative"),
             ],
-            "studyLocusId STRING, geneId STRING, traitFromSourceMappedId STRING, distanceTssMean FLOAT, distanceSentinelTssMinimum FLOAT, goldStandardSet STRING",
+            "credibleSetId STRING, geneId STRING, traitFromSourceMappedId STRING, distanceTssMean FLOAT, distanceSentinelTssMinimum FLOAT, goldStandardSet STRING",
         ),
         with_gold_standard=True,
     )
@@ -780,7 +877,7 @@ def mock_l2g_gold_standard(spark: SparkSession) -> L2GGoldStandard:
         )
         .withSchema(schema)
         .withColumnSpec(
-            "studyLocusId",
+            "credibleSetId",
             expr="cast(id as string)",
         )
         .withColumnSpec(
@@ -817,7 +914,7 @@ def mock_l2g_predictions(spark: SparkSession) -> L2GPrediction:
         )
         .withSchema(schema)
         .withColumnSpec(
-            "studyLocusId",
+            "credibleSetId",
             expr="cast(id as string)",
         )
         .withColumnSpec(

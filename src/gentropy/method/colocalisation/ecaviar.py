@@ -9,7 +9,7 @@ from pyspark.sql import functions as f
 from pyspark.sql import types as t
 
 from gentropy.dataset.colocalisation import Colocalisation
-from gentropy.dataset.study_locus_overlap import StudyLocusOverlap
+from gentropy.dataset.locus_overlap import LocusOverlap
 from gentropy.method.colocalisation.model import ColocalisationMethodInterface
 
 if TYPE_CHECKING:
@@ -32,13 +32,13 @@ class ECaviar(ColocalisationMethodInterface):
     @classmethod
     def colocalise(
         cls: type[ECaviar],
-        overlapping_signals: StudyLocusOverlap,
+        overlapping_signals: LocusOverlap,
         **kwargs: Any,
     ) -> Colocalisation:
         """Calculate bayesian colocalisation based on overlapping signals.
 
         Args:
-            overlapping_signals (StudyLocusOverlap): overlapping signals.
+            overlapping_signals (LocusOverlap): overlapping signals.
             **kwargs (Any): Additional parameters passed to the colocalise method.
                 Currently not used for this method.
 
@@ -59,16 +59,14 @@ class ECaviar(ColocalisationMethodInterface):
                     }
                 )
                 .groupBy(
-                    "leftStudyLocusId",
-                    "rightStudyLocusId",
+                    "leftLocusId",
+                    "rightLocusId",
                     "rightStudyType",
                     "chromosome",
                 )
                 .agg(
                     # Count the number of tag variants that can be found in both loci:
-                    f.sum(
-                        f.when(f.col("tagVariantSource") == "both", 1).otherwise(0)
-                    )
+                    f.sum(f.when(f.col("tagVariantSource") == "both", 1).otherwise(0))
                     .cast(t.LongType())
                     .alias("numberColocalisingVariants"),
                     f.sum(f.col("clpp")).alias("clpp"),
@@ -76,7 +74,7 @@ class ECaviar(ColocalisationMethodInterface):
                 .withColumn("colocalisationMethod", f.lit(cls.METHOD_NAME))
                 .join(
                     overlapping_signals.calculate_beta_ratio(),
-                    on=["leftStudyLocusId", "rightStudyLocusId", "chromosome"],
+                    on=["leftLocusId", "rightLocusId", "chromosome"],
                     how="left",
                 )
             ),

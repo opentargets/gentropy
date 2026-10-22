@@ -9,12 +9,12 @@ from pyspark.sql import DataFrame
 from pyspark.sql import functions as f
 from pyspark.sql.types import FloatType
 
+from gentropy.dataset.credible_set import CredibleSet
 from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
 from gentropy.dataset.l2g_prediction import L2GPrediction
+from gentropy.dataset.locus_overlap import LocusOverlap
 from gentropy.dataset.study_index import StudyIndex
-from gentropy.dataset.study_locus import StudyLocus
-from gentropy.dataset.study_locus_overlap import StudyLocusOverlap
 
 if TYPE_CHECKING:
     from pyspark.sql import SparkSession
@@ -71,7 +71,7 @@ def test_filter_unique_associations(spark: SparkSession) -> None:
                 "positive",
             ),  # in same locus as sl1 and pointing to diff gene, has to be kept
         ],
-        "studyLocusId STRING, variantId STRING, studyId STRING, geneId STRING, goldStandardSet STRING",
+        "credibleSetId STRING, variantId STRING, studyId STRING, geneId STRING, goldStandardSet STRING",
     )
 
     mock_sl_overlap_df = spark.createDataFrame(
@@ -79,7 +79,7 @@ def test_filter_unique_associations(spark: SparkSession) -> None:
             ("1", "2", "eqtl", "CHROM1", "variant2", None),
             ("1", "4", "eqtl", "CHROM1", "variant4", None),
         ],
-        StudyLocusOverlap.get_schema(),
+        LocusOverlap.get_schema(),
     )
 
     expected_df = spark.createDataFrame(
@@ -88,14 +88,14 @@ def test_filter_unique_associations(spark: SparkSession) -> None:
             ("3", "variant3", "study1", "gene1", "positive"),
             ("4", "variant4", "study1", "gene2", "positive"),
         ],
-        "studyLocusId STRING, variantId STRING, studyId STRING, geneId STRING, goldStandardSet STRING",
+        "credibleSetId STRING, variantId STRING, studyId STRING, geneId STRING, goldStandardSet STRING",
     )
 
     mock_l2g_gs = L2GGoldStandard(
         _df=mock_l2g_gs_df, _schema=L2GGoldStandard.get_schema()
     )
-    mock_sl_overlap = StudyLocusOverlap(
-        _df=mock_sl_overlap_df, _schema=StudyLocusOverlap.get_schema()
+    mock_sl_overlap = LocusOverlap(
+        _df=mock_sl_overlap_df, _schema=LocusOverlap.get_schema()
     )._convert_to_square_matrix()
 
     observed_df = mock_l2g_gs.filter_unique_associations(mock_sl_overlap).df
@@ -130,7 +130,7 @@ def test_remove_false_negatives(spark: SparkSession) -> None:
                 "positive",
             ),  # gene 4 is a partner of gene1, has to be kept because it's positive
         ],
-        "studyLocusId STRING, variantId STRING, studyId STRING, geneId STRING, goldStandardSet STRING",
+        "credibleSetId STRING, variantId STRING, studyId STRING, geneId STRING, goldStandardSet STRING",
     )
 
     mock_interactions_df = spark.createDataFrame(
@@ -148,7 +148,7 @@ def test_remove_false_negatives(spark: SparkSession) -> None:
             ("3", "variant3", "study1", "gene3", "negative"),
             ("4", "variant4", "study1", "gene4", "positive"),
         ],
-        "studyLocusId STRING, variantId STRING, studyId STRING, geneId STRING, goldStandardSet STRING",
+        "credibleSetId STRING, variantId STRING, studyId STRING, geneId STRING, goldStandardSet STRING",
     )
 
     mock_l2g_gs = L2GGoldStandard(
@@ -156,7 +156,7 @@ def test_remove_false_negatives(spark: SparkSession) -> None:
     )
 
     observed_df = mock_l2g_gs.remove_false_negatives(mock_interactions_df).df.orderBy(
-        "studyLocusId"
+        "credibleSetId"
     )
 
     assert observed_df.collect() == expected_df.collect()
@@ -172,7 +172,7 @@ def test_l2g_feature_constructor_with_schema_mismatch(
                 ("1", "gene1", 100.0),
                 ("2", "gene2", 1000.0),
             ],
-            "studyLocusId STRING, geneId STRING, distanceTssMean DOUBLE",
+            "credibleSetId STRING, geneId STRING, distanceTssMean DOUBLE",
         ),
         with_gold_standard=False,
     )
@@ -210,7 +210,7 @@ class TestEvidenceGeneration:
         "targetFromSourceId",
         "diseaseFromSourceMappedId",
         "resourceScore",
-        "studyLocusId",
+        "credibleSetId",
         "literature",
         "curationDate",
     ]
@@ -223,8 +223,8 @@ class TestEvidenceGeneration:
         ("4", "gene2", 0.9),
     ]
 
-    # StudyLocus data:
-    STUDYLOCUS_DATA = [
+    # CredibleSet data (id, lead, study):
+    CREDIBLE_SET_DATA = [
         ("1", "v1", "s1"),
         ("2", "v2", "s1"),
         ("3", "v2", "s3"),
@@ -267,16 +267,33 @@ class TestEvidenceGeneration:
             .drop("pubmedId")
         )
 
-        self.study_locus = StudyLocus(
+        self.study_locus = CredibleSet(
             spark.createDataFrame(
-                self.STUDYLOCUS_DATA,
-                "studyLocusId STRING, variantId STRING, studyId STRING",
+                [
+                    (
+                        id,
+                        "1",
+                        1,
+                        100,
+                        study,
+                        "gwas",
+                        lead,
+                        "SuSiE",
+                        None,
+                        None,
+                        None,
+                        None,
+                        [],
+                    )
+                    for id, lead, study in self.CREDIBLE_SET_DATA
+                ],
+                CredibleSet.get_schema(),
             )
         )
 
         self.l2g = L2GPrediction(
             spark.createDataFrame(
-                self.L2G_DATA, "studyLocusId STRING, geneId STRING, score DOUBLE"
+                self.L2G_DATA, "credibleSetId STRING, geneId STRING, score DOUBLE"
             )
         )
 

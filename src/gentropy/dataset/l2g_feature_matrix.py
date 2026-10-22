@@ -16,7 +16,7 @@ from gentropy.method.l2g.feature_factory import FeatureFactory, L2GFeatureInputL
 if TYPE_CHECKING:
     from pyspark.sql import DataFrame
 
-    from gentropy.dataset.study_locus import StudyLocus
+    from gentropy.dataset.credible_set import CredibleSetLocus
 
 
 class L2GFeatureMatrix:
@@ -39,7 +39,7 @@ class L2GFeatureMatrix:
 
         """
         self.with_gold_standard = with_gold_standard
-        self.fixed_cols = ["studyLocusId", "geneId"]
+        self.fixed_cols = ["credibleSetId", "geneId"]
         if self.with_gold_standard:
             self.label_col = label_col
             self.fixed_cols.append(label_col)
@@ -60,14 +60,14 @@ class L2GFeatureMatrix:
     @classmethod
     def from_features_list(
         cls: type[L2GFeatureMatrix],
-        study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+        study_loci_to_annotate: CredibleSetLocus | L2GGoldStandard,
         features_list: list[str],
         features_input_loader: L2GFeatureInputLoader,
     ) -> L2GFeatureMatrix:
         """Generate features from the gentropy datasets by calling the feature factory that will instantiate the corresponding features.
 
         Args:
-            study_loci_to_annotate (StudyLocus | L2GGoldStandard): Study locus pairs to annotate
+            study_loci_to_annotate (CredibleSetLocus | L2GGoldStandard): Study locus pairs to annotate
             features_list (list[str]): List of feature names to be computed.
             features_input_loader (L2GFeatureInputLoader): Object that contais features input.
 
@@ -90,11 +90,11 @@ class L2GFeatureMatrix:
                     # Add gold standard set to the feature matrix
                     features_long_df.join(
                         study_loci_to_annotate.df.select(
-                            "studyLocusId", "geneId", "goldStandardSet"
+                            "credibleSetId", "geneId", "goldStandardSet"
                         ),
-                        ["studyLocusId", "geneId"],
+                        ["credibleSetId", "geneId"],
                     ),
-                    ["studyLocusId", "geneId", "goldStandardSet"],
+                    ["credibleSetId", "geneId", "goldStandardSet"],
                     "featureName",
                     "featureValue",
                 ),
@@ -103,7 +103,7 @@ class L2GFeatureMatrix:
         return cls(
             _df=convert_from_long_to_wide(
                 features_long_df,
-                ["studyLocusId", "geneId"],
+                ["credibleSetId", "geneId"],
                 "featureName",
                 "featureValue",
             ),
@@ -161,7 +161,7 @@ class L2GFeatureMatrix:
                     col,
                     f.when(
                         f.col(col).isNull(),
-                        f.mean(f.col(col)).over(Window.partitionBy("studyLocusId")),
+                        f.mean(f.col(col)).over(Window.partitionBy("credibleSetId")),
                     ).otherwise(f.col(col)),
                 )
         self._df = self._df.fillna(na_value, subset=subset)
