@@ -6,6 +6,7 @@ import importlib.resources as pkg_resources
 import json
 from dataclasses import dataclass
 from itertools import chain
+from math import log10
 from typing import TYPE_CHECKING, cast
 
 import pyspark.sql.functions as f
@@ -15,10 +16,18 @@ from pyspark.sql.window import Window
 from gentropy.assets import data
 from gentropy.common.processing import parse_efos
 from gentropy.common.spark import get_record_with_maximum_value
-from gentropy.common.stats import normalise_gwas_statistics, pvalue_from_neglogpval
+from gentropy.common.stats import (
+    neglogpval_from_pvalue,
+    normalise_gwas_statistics,
+    pvalue_from_neglogpval,
+)
 from gentropy.common.types import PValComponents
 from gentropy.config import WindowBasedClumpingStepConfig
-from gentropy.dataset.study_locus import StudyLocus, StudyLocusQualityCheck
+from gentropy.dataset.study_locus import (
+    AnnotatedStudyLocus,
+    StudyLocus,
+    StudyLocusQualityCheck,
+)
 
 if TYPE_CHECKING:
     from pyspark.sql import Column, DataFrame
@@ -749,22 +758,57 @@ class GWASCatalogCuratedAssociationsParser:
         qc = GWASCatalogCuratedAssociationsParser._qc_variant_interactions(
             qc, strongest_snp_risk_allele
         )
-        qc = StudyLocus._qc_subsignificant_associations(
+        qc = GWASCatalogCuratedAssociationsParser._qc_subsignificant_associations(
             qc, p_value_mantissa, p_value_exponent, p_value_cutoff
-        )
-        qc = GWASCatalogCuratedAssociationsParser._qc_genomic_location(
-            qc, chromosome, position
         )
         qc = GWASCatalogCuratedAssociationsParser._qc_variant_inconsistencies(
             qc, chromosome, position, strongest_snp_risk_allele
-        )
-        qc = GWASCatalogCuratedAssociationsParser._qc_unmapped_variants(
-            qc, alternate_allele
         )
         qc = GWASCatalogCuratedAssociationsParser._qc_palindromic_alleles(
             qc, reference_allele, alternate_allele
         )
         return qc
+
+    @staticmethod
+    def _qc_subsignificant_associations(
+        qc: Column,
+        p_value_mantissa: Column,
+        p_value_exponent: Column,
+        p_value_cutoff: float,
+    ) -> Column:
+        """Flag associations with a p-value above the significance threshold.
+
+        Args:
+            qc (Column): QC column
+            p_value_mantissa (Column): P-value mantissa column
+            p_value_exponent (Column): P-value exponent column
+            p_value_cutoff (float): Largest p-value not flagged
+
+        Returns:
+            Column: Updated QC column with flag.
+
+        Examples:
+            >>> df = spark.createDataFrame(
+            ...     [([], 1.0, -10), ([], 1.0, -7)],
+            ...     "qc array<string>, mantissa float, exponent int",
+            ... )
+            >>> df.select(GWASCatalogCuratedAssociationsParser._qc_subsignificant_associations(
+            ...     f.col("qc"), f.col("mantissa"), f.col("exponent"), 1e-8
+            ... ).alias("qc")).show(truncate=False)
+            +------------------------+
+            |qc                      |
+            +------------------------+
+            |[]                      |
+            |[Subsignificant p-value]|
+            +------------------------+
+            <BLANKLINE>
+        """
+        return StudyLocus.update_quality_flag(
+            qc,
+            neglogpval_from_pvalue(p_value_mantissa, p_value_exponent)
+            < f.lit(-log10(p_value_cutoff)),
+            StudyLocusQualityCheck.SUBSIGNIFICANT_FLAG,
+        )
 
     @staticmethod
     def _qc_variant_interactions(
@@ -783,42 +827,6 @@ class GWASCatalogCuratedAssociationsParser:
             qc,
             strongest_snp_risk_allele.contains(";"),
             StudyLocusQualityCheck.COMPOSITE_FLAG,
-        )
-
-    @staticmethod
-    def _qc_genomic_location(
-        qc: Column, chromosome: Column, position: Column
-    ) -> Column:
-        """Flag associations without genomic location in GWAS Catalog.
-
-        Args:
-            qc (Column): QC column
-            chromosome (Column): Chromosome column in GWAS Catalog
-            position (Column): Position column in GWAS Catalog
-
-        Returns:
-            Column: Updated QC column with flag.
-
-        Examples:
-            >>> import pyspark.sql.types as t
-            >>> d = [{'qc': None, 'chromosome': None, 'position': None}, {'qc': None, 'chromosome': '1', 'position': None}, {'qc': None, 'chromosome': None, 'position': 1}, {'qc': None, 'chromosome': '1', 'position': 1}]
-            >>> df = spark.createDataFrame(d, schema=t.StructType([t.StructField('qc', t.ArrayType(t.StringType()), True), t.StructField('chromosome', t.StringType()), t.StructField('position', t.IntegerType())]))
-            >>> df.withColumn('qc', GWASCatalogCuratedAssociationsParser._qc_genomic_location(df.qc, df.chromosome, df.position)).show(truncate=False)
-            +----------------------------+----------+--------+
-            |qc                          |chromosome|position|
-            +----------------------------+----------+--------+
-            |[Incomplete genomic mapping]|NULL      |NULL    |
-            |[Incomplete genomic mapping]|1         |NULL    |
-            |[Incomplete genomic mapping]|NULL      |1       |
-            |[]                          |1         |1       |
-            +----------------------------+----------+--------+
-            <BLANKLINE>
-
-        """
-        return StudyLocus.update_quality_flag(
-            qc,
-            position.isNull() | chromosome.isNull(),
-            StudyLocusQualityCheck.NO_GENOMIC_LOCATION_FLAG,
         )
 
     @staticmethod
@@ -849,38 +857,6 @@ class GWASCatalogCuratedAssociationsParser:
                 != f.size(f.split(strongest_snp_risk_allele, ";"))
             ),
             StudyLocusQualityCheck.INCONSISTENCY_FLAG,
-        )
-
-    @staticmethod
-    def _qc_unmapped_variants(qc: Column, alternate_allele: Column) -> Column:
-        """Flag associations with variants not mapped to variantAnnotation.
-
-        Args:
-            qc (Column): QC column
-            alternate_allele (Column): alternate allele
-
-        Returns:
-            Column: Updated QC column with flag.
-
-        Example:
-            >>> import pyspark.sql.types as t
-            >>> d = [{'alternate_allele': 'A', 'qc': None}, {'alternate_allele': None, 'qc': None}]
-            >>> schema = t.StructType([t.StructField('alternate_allele', t.StringType(), True), t.StructField('qc', t.ArrayType(t.StringType()), True)])
-            >>> df = spark.createDataFrame(data=d, schema=schema)
-            >>> df.withColumn("new_qc", GWASCatalogCuratedAssociationsParser._qc_unmapped_variants(f.col("qc"), f.col("alternate_allele"))).show()
-            +----------------+----+--------------------+
-            |alternate_allele|  qc|              new_qc|
-            +----------------+----+--------------------+
-            |               A|NULL|                  []|
-            |            NULL|NULL|[No mapping in Gn...|
-            +----------------+----+--------------------+
-            <BLANKLINE>
-
-        """
-        return StudyLocus.update_quality_flag(
-            qc,
-            alternate_allele.isNull(),
-            StudyLocusQualityCheck.NON_MAPPED_VARIANT_FLAG,
         )
 
     @staticmethod
@@ -1096,11 +1072,11 @@ class GWASCatalogCuratedAssociationsParser:
         gwas_associations: DataFrame,
         gnomad_variants: VariantIndex,
         pvalue_threshold: float = WindowBasedClumpingStepConfig.gwas_significance,
-    ) -> StudyLocusGWASCatalog:
+    ) -> DataFrame:
         """Read GWASCatalog associations.
 
-        It reads the GWAS Catalog association dataset, selects and renames columns, casts columns, and
-        applies some pre-defined filters on the data:
+        It reads the GWAS Catalog association dataset, maps the variants to the variant annotation,
+        flags associations failing the quality controls and harmonises their effect to a beta.
 
         Args:
             gwas_associations (DataFrame): GWAS Catalog raw associations dataset.
@@ -1108,15 +1084,18 @@ class GWASCatalogCuratedAssociationsParser:
             pvalue_threshold (float): P-value threshold for flagging associations.
 
         Returns:
-            StudyLocusGWASCatalog: GWASCatalogAssociations dataset
+            DataFrame: One row per association, with `studyId`, `subStudyDescription` (which
+                `GWASCatalogStudySplitter` splits studies on), the mapped variant, its p-value,
+                `beta`, `standardError` and `qualityControls`. Associations that could not be
+                mapped to a variant have a null `variantId`.
 
         pvalue_threshold is kept in sync with the WindowBasedClumpingStep gwas_significance.
         """
         pvalue_columns = GWASCatalogCuratedAssociationsParser._split_pvalue_column(
             f.col("P-VALUE")
         )
-        return StudyLocusGWASCatalog(
-            _df=gwas_associations.withColumn(
+        return (
+            gwas_associations.withColumn(
                 # temporary column
                 "rowId",
                 f.monotonically_increasing_id().cast(StringType()),
@@ -1153,14 +1132,7 @@ class GWASCatalogCuratedAssociationsParser:
             )
             .transform(cls.harmonise_association_effect_to_beta)
             .withColumnRenamed("STUDY ACCESSION", "studyId")
-            # Adding study-locus id:
-            .withColumn(
-                "studyLocusId",
-                StudyLocus.assign_study_locus_id(["studyId", "variantId"]),
-            )
             .select(
-                # INSIDE STUDY-LOCUS SCHEMA:
-                "studyLocusId",
                 "variantId",
                 # Mapped genomic location of the variant (; separated list)
                 "chromosome",
@@ -1179,91 +1151,172 @@ class GWASCatalogCuratedAssociationsParser:
                 "qualityControls",
                 "beta",
                 "standardError",
-            ),
-            _schema=StudyLocusGWASCatalog.get_schema(),
+            )
         )
 
+    @staticmethod
+    def to_study_locus(associations: DataFrame) -> AnnotatedStudyLocus:
+        """Make one study locus of each curated association.
 
-@dataclass
-class StudyLocusGWASCatalog(StudyLocus):
-    """Study locus Dataset for GWAS Catalog curated associations.
+        Each association becomes its own study locus; `window_clump` then flags those explained by
+        a more significant association of the study nearby.
 
-    A study index dataset captures all the metadata for all studies including GWAS and Molecular QTL.
-    """
-
-    def update_study_id(
-        self: StudyLocusGWASCatalog, study_annotation: DataFrame
-    ) -> StudyLocusGWASCatalog:
-        """Update final studyId and studyLocusId with a dataframe containing study annotation.
+        - An association without a mapped variant cannot be placed, and is dropped.
+        - The locus is the association's position (`locusStart` and `locusEnd` are both the
+          position), as a curated hit tells nothing about the region around it, and `locus`
+          holds the association itself.
+        - Associations of a study at the same position, the same variant reported twice or two
+          alleles of a site, would be the same locus: the most significant is kept, ties broken by
+          variant id.
+        - Every locus is flagged `TOP_HIT`, on top of the curation flags of the association.
 
         Args:
-            study_annotation (DataFrame): Dataframe containing `updatedStudyId` and key columns `studyId` and `subStudyDescription`.
+            associations (DataFrame): Associations from `from_source`, after study splitting.
 
         Returns:
-            StudyLocusGWASCatalog: Updated study locus with new `studyId` and `studyLocusId`.
+            AnnotatedStudyLocus: One study locus per curated association.
+
+        Examples:
+            >>> associations = spark.createDataFrame(
+            ...     [("1_100_A_T", "1", 100, "S1", 1.0, -10, [], 0.2, 0.01),
+            ...      ("1_100_A_G", "1", 100, "S1", 1.0, -9, [], 0.1, 0.01),
+            ...      (None, None, None, "S1", 1.0, -12, [], None, None)],
+            ...     "variantId string, chromosome string, position int, studyId string, "
+            ...     "pValueMantissa float, pValueExponent int, qualityControls array<string>, "
+            ...     "beta double, standardError double",
+            ... )
+            >>> loci = GWASCatalogCuratedAssociationsParser.to_study_locus(associations)
+            >>> loci.df.select("leadVariantId", "locusStart", "locusEnd", "qualityControls").show(truncate=False)
+            +-------------+----------+--------+----------------------------------+
+            |leadVariantId|locusStart|locusEnd|qualityControls                   |
+            +-------------+----------+--------+----------------------------------+
+            |1_100_A_T    |100       |100     |[Study locus from curated top hit]|
+            +-------------+----------+--------+----------------------------------+
+            <BLANKLINE>
         """
-        self.df = (
-            self._df.join(
-                study_annotation, on=["studyId", "subStudyDescription"], how="left"
+        schema = AnnotatedStudyLocus.get_schema()
+        same_locus = Window.partitionBy("studyId", "chromosome", "position").orderBy(
+            f.col("pValueExponent").asc_nulls_last(),
+            f.col("pValueMantissa").asc_nulls_last(),
+            "variantId",
+        )
+        loci = (
+            associations.filter(
+                f.col("variantId").isNotNull()
+                & f.col("chromosome").isNotNull()
+                & f.col("position").isNotNull()
             )
-            .withColumn("studyId", f.coalesce("updatedStudyId", "studyId"))
-            .drop("subStudyDescription", "updatedStudyId")
-        ).withColumn(
-            "studyLocusId",
-            StudyLocus.assign_study_locus_id(["studyId", "variantId"]),
-        )
-        return self
-
-    def qc_ambiguous_study(self: StudyLocusGWASCatalog) -> StudyLocusGWASCatalog:
-        """Flag associations with variants that can not be unambiguously associated with one study.
-
-        Returns:
-            StudyLocusGWASCatalog: Updated study locus.
-        """
-        assoc_ambiguity_window = Window.partitionBy(
-            f.col("studyId"), f.col("variantId")
-        )
-
-        self._df.withColumn(
-            "qualityControls",
-            StudyLocus.update_quality_flag(
-                f.col("qualityControls"),
-                f.count(f.col("variantId")).over(assoc_ambiguity_window) > 1,
-                StudyLocusQualityCheck.AMBIGUOUS_STUDY,
-            ),
-        )
-        return self
-
-    def qc_flag_all_tophits(self: StudyLocusGWASCatalog) -> StudyLocusGWASCatalog:
-        """Flag all associations as top hits.
-
-        Returns:
-            StudyLocusGWASCatalog: Updated study locus.
-        """
-        return StudyLocusGWASCatalog(
-            _df=self._df.withColumn(
-                "qualityControls",
+            .withColumn("rank", f.row_number().over(same_locus))
+            .filter(f.col("rank") == 1)
+            .select(
+                "studyId",
+                "chromosome",
+                f.col("position").alias("locusStart"),
+                f.col("position").alias("locusEnd"),
+                f.col("variantId").alias("leadVariantId"),
                 StudyLocus.update_quality_flag(
                     f.col("qualityControls"),
                     f.lit(True),
                     StudyLocusQualityCheck.TOP_HIT,
-                ),
+                ).alias("qualityControls"),
+                f.array(
+                    f.struct(
+                        f.col("variantId"),
+                        f.col("pValueMantissa"),
+                        f.col("pValueExponent"),
+                        f.lit(None).alias("effectAlleleFrequencyFromSource"),
+                        f.lit(None).alias("sampleSize"),
+                        f.col("beta"),
+                        f.col("standardError"),
+                    )
+                ).alias("locus"),
+            )
+            .withColumn("id", StudyLocus.generate_identifier(StudyLocus.ID_COLUMNS))
+        )
+        return AnnotatedStudyLocus(
+            _df=loci.select(
+                *(
+                    # The flags are not cast: Spark cannot cast them to non-null elements.
+                    f.col(field.name)
+                    if field.name == "qualityControls"
+                    else f.col(field.name).cast(field.dataType)
+                    if field.name in loci.columns
+                    else f.lit(None).cast(field.dataType).alias(field.name)
+                    for field in schema.fields
+                )
             ),
-            _schema=StudyLocusGWASCatalog.get_schema(),
+            _schema=schema,
         )
 
-    def apply_inclusion_list(
-        self: StudyLocusGWASCatalog, inclusion_list: DataFrame
-    ) -> StudyLocusGWASCatalog:
-        """Restricting GWAS Catalog studies based on a list of accpected study ids.
+    @staticmethod
+    def window_clump(
+        loci: AnnotatedStudyLocus,
+        distance: int = WindowBasedClumpingStepConfig().distance,
+    ) -> AnnotatedStudyLocus:
+        """Flag the curated associations explained by a more significant one of the study within `distance`.
+
+        Window clumping as for summary statistics (`gentropy.method.clumping.window`): per study
+        and chromosome, the associations are ranked by p-value (then position and variant id), and
+        an association is a lead unless a more significant lead is less than `distance` away. The
+        others are flagged `WINDOW_CLUMPED` and kept, with their own locus, so that credible set
+        validation excludes them, as before the refactor. An association without a full p-value
+        is neither a lead nor flagged.
 
         Args:
-            inclusion_list (DataFrame): List of accepted GWAS Catalog study identifiers
+            loci (AnnotatedStudyLocus): Point loci from `to_study_locus`.
+            distance (int): Base pairs within which a more significant association explains another.
 
         Returns:
-            StudyLocusGWASCatalog: Filtered dataset.
+            AnnotatedStudyLocus: The same loci, the clumped ones flagged `WINDOW_CLUMPED`.
+
+        Examples:
+            >>> def locus(variant, position, exponent):
+            ...     return ("", "S1", "1", position, position, variant, [], [(variant, 1.0, exponent, None, None, None, None)])
+            >>> loci = AnnotatedStudyLocus(spark.createDataFrame(
+            ...     [locus("1_100_A_T", 100, -10), locus("1_400_A_T", 400, -12), locus("1_900_A_T", 900, -9)],
+            ...     AnnotatedStudyLocus.get_schema(),
+            ... ))
+            >>> clumped = GWASCatalogCuratedAssociationsParser.window_clump(loci, distance=500)
+            >>> [(r.leadVariantId, r.qualityControls) for r in clumped.df.orderBy("leadVariantId").collect()]
+            [('1_100_A_T', ['Explained by a more significant variant in the same window']), ('1_400_A_T', []), ('1_900_A_T', [])]
         """
-        return StudyLocusGWASCatalog(
-            _df=self.df.join(inclusion_list, on="studyId", how="inner"),
-            _schema=StudyLocusGWASCatalog.get_schema(),
+        from gentropy.method.clumping.cluster import cluster
+        from gentropy.method.clumping.window import WindowClumping
+
+        association = f.col("locus")[0]
+        clumped = (
+            loci.df.select(
+                "studyId",
+                "chromosome",
+                f.col("locusStart").alias("position"),
+                f.col("leadVariantId").alias("variantId"),
+                association["pValueMantissa"].alias("pValueMantissa"),
+                association["pValueExponent"].alias("pValueExponent"),
+            )
+            .filter(
+                f.col("pValueMantissa").isNotNull()
+                & f.col("pValueExponent").isNotNull()
+            )
+            .transform(cluster, distance)
+            .transform(WindowClumping._assign_leads, distance, True)
+            .filter(~f.col("isLead"))
+            .select(
+                "studyId",
+                "chromosome",
+                f.col("variantId").alias("leadVariantId"),
+                f.lit(True).alias("_windowClumped"),
+            )
+        )
+        df = loci.df.join(
+            clumped, on=["studyId", "chromosome", "leadVariantId"], how="left"
+        ).withColumn(
+            "qualityControls",
+            AnnotatedStudyLocus.update_quality_flag(
+                f.col("qualityControls"),
+                f.coalesce(f.col("_windowClumped"), f.lit(False)),
+                StudyLocusQualityCheck.WINDOW_CLUMPED,
+            ),
+        )
+        return AnnotatedStudyLocus(
+            _df=df.select(*loci.df.columns), _schema=AnnotatedStudyLocus.get_schema()
         )

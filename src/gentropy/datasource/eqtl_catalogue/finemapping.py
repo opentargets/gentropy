@@ -18,8 +18,12 @@ from pyspark.sql.types import (
 from gentropy.common.processing import flag_non_atgc_alleles, normalize_chromosome
 from gentropy.common.session import NativeFileFormat, Session
 from gentropy.common.spark import clean_strings_from_symbols
-from gentropy.common.stats import split_pvalue_column
-from gentropy.dataset.study_locus import FinemappingMethod, StudyLocus
+from gentropy.common.stats import (
+    region_log_bayes_factors,
+    split_pvalue_column,
+)
+from gentropy.dataset.credible_set import CredibleSet, CredibleSetVariant
+from gentropy.dataset.study_locus import FinemappingMethod
 from gentropy.datasource.eqtl_catalogue.study_index import EqtlCatalogueStudyIndex
 
 if TYPE_CHECKING:
@@ -30,10 +34,11 @@ if TYPE_CHECKING:
 class EqtlCatalogueFinemapping:
     """SuSIE finemapping dataset for eQTL Catalogue.
 
-    Credible sets from SuSIE are extracted and transformed into StudyLocus objects:
+    Credible sets from SuSIE are extracted and transformed into CredibleSet and CredibleSetVariant objects:
     - A study ID is defined as a triad between: the publication, the tissue, and the measured trait (e.g. Braineac2_substantia_nigra_ENSG00000248275)
     - Each row in the `*.credible_set.parquet` files is represented by molecular_trait_id/variant/rsid trios relevant for a given tissue. Each have their own finemapping statistics
     - log Bayes Factors are available for all variants in the `*.lbf_variable.parquet` files
+    - the SuSiE posterior of every effect is available for all variants in the `*.full_susie.parquet` files
     """
 
     raw_credible_set_schema: StructType = StructType(
@@ -75,6 +80,17 @@ class EqtlCatalogueFinemapping:
                 StructField(f"lbf_variable{i}", DoubleType(), True)
                 for i in range(1, 11)
             ],
+        ]
+    )
+
+    raw_full_susie_schema: StructType = StructType(
+        [
+            StructField("molecular_trait_id", StringType(), True),
+            StructField("region", StringType(), True),
+            StructField("variant", StringType(), True),
+            StructField("cs_index", StringType(), True),
+            *[StructField(f"mu_{i}", DoubleType(), True) for i in range(1, 11)],
+            *[StructField(f"mu2_{i}", DoubleType(), True) for i in range(1, 11)],
         ]
     )
 
@@ -265,12 +281,63 @@ class EqtlCatalogueFinemapping:
         return f.regexp_extract(file_path, r"QTD\d{6}", 0).alias("dataset_id")
 
     @classmethod
+    def _region_log_bayes_factors(
+        cls: type[EqtlCatalogueFinemapping], lbf: DataFrame, credible_sets: DataFrame
+    ) -> DataFrame:
+        r"""Compute the log Bayes factor of each credible set over its whole region.
+
+        For the $`l`$-th SuSiE component, the credible set Bayes factor is the log-sum-exp of the
+        variant log Bayes factors with a uniform prior $`1/p`$ over the $`p`$ variants of the region:
+
+        ```math
+        \log\operatorname{BF}_l = \operatorname{LSE}_{j}(\operatorname{lbf}_{jl}) - \log p
+        ```
+
+        The `lbf_variable` file holds every variant of the region, not only the credible set members.
+
+        Args:
+            lbf (DataFrame): Log Bayes factors of every variant, as read by `read_lbf_from_source`.
+            credible_sets (DataFrame): Credible set members, as read by `read_credible_set_from_source`.
+
+        Returns:
+            DataFrame: One row per credible set, keyed by `molecular_trait_id`, `region`, `dataset_id`
+                and `credibleSetIndex`, with `credibleSetLogBayesFactor`.
+
+        Examples:
+            >>> lbf = spark.createDataFrame(
+            ...     [("t1", "r1", "d1", 2.0, 0.0), ("t1", "r1", "d1", 0.0, 1.0)],
+            ...     "molecular_trait_id string, region string, dataset_id string, lbf_variable1 double, lbf_variable2 double",
+            ... )
+            >>> for i in range(3, 11):
+            ...     lbf = lbf.withColumn(f"lbf_variable{i}", f.lit(0.0))
+            >>> credible_sets = spark.createDataFrame(
+            ...     [("t1", "r1", "d1", 1)], "molecular_trait_id string, region string, dataset_id string, credibleSetIndex int"
+            ... )
+            >>> row = EqtlCatalogueFinemapping._region_log_bayes_factors(lbf, credible_sets).first()
+            >>> round(row.credibleSetLogBayesFactor, 6)  # log((e^2 + e^0) / 2)
+            1.433781
+        """
+        keys = ["molecular_trait_id", "region", "dataset_id"]
+        lbf_l = f.element_at(
+            f.array(*[f.col(f"lbf_variable{i}") for i in range(1, 11)]),
+            f.col("credibleSetIndex"),
+        )
+        return region_log_bayes_factors(
+            lbf.join(
+                credible_sets.select(*keys, "credibleSetIndex").distinct(), on=keys
+            ),
+            [*keys, "credibleSetIndex"],
+            lbf_l,
+        )
+
+    @classmethod
     def parse_susie_results(
         cls: type[EqtlCatalogueFinemapping],
         credible_sets: DataFrame,
         lbf: DataFrame,
         studies_metadata: DataFrame,
         ss_ftp_path_template: str = "https://ftp.ebi.ac.uk/pub/databases/spot/eQTL/r8_beta/sumstats",
+        full_susie: DataFrame | None = None,
     ) -> DataFrame:
         """Parse the SuSIE results into a DataFrame containing the finemapping statistics and metadata about the studies.
 
@@ -280,15 +347,29 @@ class EqtlCatalogueFinemapping:
         [`scale_pip`][gentropy.datasource.eqtl_catalogue.finemapping.EqtlCatalogueFinemapping.scale_pip],
         which recomputes alpha from the log Bayes factors for any study affected by this issue.
 
+        `conditionalBeta` and `conditionalStandardError` are the posterior mean and standard
+        deviation of the variant's effect in the credible set's own SuSiE effect, taken from
+        `full_susie` (see `read_full_susie_from_source`); they are null without it, or for a
+        member it does not hold.
+
         Args:
             credible_sets (DataFrame): DataFrame containing raw statistics of all variants in the credible sets.
             lbf (DataFrame): DataFrame containing the raw log Bayes Factors for all variants.
             studies_metadata (DataFrame): DataFrame containing the study metadata.
             ss_ftp_path_template (str, optional): eQTL Catalogue FTP path template for summary statistics. Defaults to "https://ftp.ebi.ac.uk/pub/databases/spot/eQTL/r8_beta/sumstats".
+            full_susie (DataFrame | None, optional): Posterior effects, as read by `read_full_susie_from_source`. Defaults to None.
 
         Returns:
             DataFrame: Processed SuSIE results to contain metadata about the studies and the finemapping statistics.
         """
+        region_bayes_factors = cls._region_log_bayes_factors(lbf, credible_sets)
+        keys = ["molecular_trait_id", "region", "variant", "dataset_id"]
+        if full_susie is None:
+            full_susie = credible_sets.sparkSession.createDataFrame(
+                [],
+                "molecular_trait_id string, region string, variant string, dataset_id string, "
+                "conditionalBetas array<double>, conditionalStandardErrors array<double>",
+            )
         results = (
             lbf.join(
                 credible_sets.join(f.broadcast(studies_metadata), on="dataset_id"),
@@ -314,19 +395,39 @@ class EqtlCatalogueFinemapping:
                 .when(f.col("credibleSetIndex") == 10, f.col("lbf_variable10")),
             )
             .transform(cls.scale_pip)
+            .join(full_susie, on=keys, how="left")
+            .join(
+                region_bayes_factors,
+                on=["molecular_trait_id", "region", "dataset_id", "credibleSetIndex"],
+                how="left",
+            )
             .select(
                 f.regexp_replace(f.col("variant"), r"chr", "").alias("variantId"),
                 f.col("region"),
                 normalize_chromosome(f.col("chromosome")).alias("chromosome"),
                 f.col("position"),
+                # The region is chrN:start-end:
+                f.regexp_extract(f.col("region"), r":(\d+)-", 1)
+                .cast(IntegerType())
+                .alias("locusStart"),
+                f.regexp_extract(f.col("region"), r"-(\d+)$", 1)
+                .cast(IntegerType())
+                .alias("locusEnd"),
+                f.col("cs_min_r2").alias("purityMinR2"),
+                f.col("credibleSetLogBayesFactor"),
                 f.col("pip").alias("posteriorProbability"),
                 *split_pvalue_column(f.col("pvalue")),
                 f.col("sample_size").alias("nSamples"),
                 f.col("beta"),
                 f.col("se").alias("standardError"),
+                f.element_at("conditionalBetas", f.col("credibleSetIndex")).alias(
+                    "conditionalBeta"
+                ),
+                f.element_at(
+                    "conditionalStandardErrors", f.col("credibleSetIndex")
+                ).alias("conditionalStandardError"),
                 f.col("credibleSetIndex"),
                 f.col("logBF"),
-                f.lit(FinemappingMethod.SUSIE.value).alias("finemappingMethod"),
                 # Study metadata
                 f.col("molecular_trait_id").alias("traitFromSource"),
                 f.col("gene_id").alias("geneId"),
@@ -362,63 +463,41 @@ class EqtlCatalogueFinemapping:
 
     @classmethod
     def from_susie_results(
-        cls: type[EqtlCatalogueFinemapping], processed_finemapping_df: DataFrame
-    ) -> StudyLocus:
-        """Create a StudyLocus object from the processed SuSIE results.
+        cls: type[EqtlCatalogueFinemapping],
+        processed_finemapping_df: DataFrame,
+        lead_pvalue_threshold: float | None = None,
+    ) -> tuple[CredibleSet, CredibleSetVariant]:
+        """Create the credible sets and their variants from the processed SuSIE results.
+
+        A credible set is one SuSiE component of one molecular trait in one region. Its lead is the
+        member with the highest posterior probability, ties broken by variant id. The reported
+        statistics are the marginal ones the study reported, and the conditional ones the SuSiE
+        posterior of the credible set's own effect, unscaled (see `read_full_susie_from_source`);
+        the rescaled statistics are null. So are `r2Overall`, the allele frequency, which the
+        source only gives as a minor allele frequency, and the sample size, as the source gives no
+        per-variant sample size of the marginal test.
 
         Args:
             processed_finemapping_df (DataFrame): DataFrame containing the processed SuSIE results.
+            lead_pvalue_threshold (float | None): Drop the credible sets whose lead p-value is above it.
+                Defaults to None, which keeps every credible set.
 
         Returns:
-            StudyLocus: eQTL Catalogue credible sets.
+            tuple[CredibleSet, CredibleSetVariant]: eQTL Catalogue credible sets and their variants.
         """
-        lead_w = Window.partitionBy(
-            "dataset_id", "molecular_trait_id", "region", "credibleSetIndex"
+        members = processed_finemapping_df.withColumns(
+            {
+                "fineMappingMethod": f.lit(FinemappingMethod.SUSIE.value),
+                "reportedBeta": f.col("beta"),
+                "reportedStandardError": f.col("standardError"),
+                "logBayesFactor": f.col("logBF"),
+            }
         )
-        study_locus_cols = [
-            field.name
-            for field in StudyLocus.get_schema().fields
-            if field.name in processed_finemapping_df.columns
-        ] + ["locus"]
-        return StudyLocus(
-            _df=(
-                processed_finemapping_df.withColumn(
-                    "isLead",
-                    f.row_number().over(lead_w.orderBy(f.desc("posteriorProbability")))
-                    == f.lit(1),
-                )
-                .withColumn(
-                    # Collecting all variants that constitute the credible set brings as many variants as the credible set size
-                    "locus",
-                    f.when(
-                        f.col("isLead"),
-                        f.collect_list(
-                            f.struct(
-                                "variantId",
-                                "posteriorProbability",
-                                "pValueMantissa",
-                                "pValueExponent",
-                                "logBF",
-                                "beta",
-                                "standardError",
-                            )
-                        ).over(lead_w),
-                    ),
-                )
-                .filter(f.col("isLead"))
-                .drop("isLead")
-                .select(
-                    *study_locus_cols,
-                    StudyLocus.assign_study_locus_id(
-                        ["studyId", "variantId", "finemappingMethod"]
-                    ),
-                    StudyLocus.calculate_credible_set_log10bf(
-                        f.col("locus.logBF")
-                    ).alias("credibleSetlog10BF"),
-                )
-            ),
-            _schema=StudyLocus.get_schema(),
-        ).annotate_credible_sets()
+        return CredibleSet.from_members(
+            members,
+            ["dataset_id", "molecular_trait_id", "region", "credibleSetIndex"],
+            lead_pvalue_threshold=lead_pvalue_threshold,
+        )
 
     @classmethod
     def read_credible_set_from_source(
@@ -459,6 +538,7 @@ class EqtlCatalogueFinemapping:
                 "se",
                 "pip",
                 "cs_id",
+                "cs_min_r2",
                 "region",
                 "gene_id",
                 # Adding dataset id based on the input file name:
@@ -470,6 +550,74 @@ class EqtlCatalogueFinemapping:
             .filter(flag_non_atgc_alleles(f.col("ref"), f.col("alt")))
             .drop("ref", "alt")
             # Remove duplicates caused by explosion of single variants to multiple rsid-s:
+            .distinct()
+        )
+
+    @classmethod
+    def read_full_susie_from_source(
+        cls: type[EqtlCatalogueFinemapping],
+        full_susie_path: str | list[str],
+        session: Session | None = None,
+    ) -> DataFrame:
+        r"""Load the SuSiE posterior effects from eQTL Catalogue.
+
+        The `*.full_susie.parquet` files hold, for every variant of a fine-mapped region and every
+        SuSiE effect $`l`$, the first and second moments $`\mu_l`$ and $`\mu^{(2)}_l`$ of the
+        variant's effect given that it is the causal variant of effect $`l`$. They are on the scale
+        SuSiE was fitted on, per standard deviation of the genotype: dividing them by the file's
+        `X_column_scale_factors` gives per-allele effects, which is left to a later rescaling.
+        Only the credible set members (`cs_index` set) are kept; a member of two credible sets
+        keeps the moments of both effects.
+
+        Args:
+            full_susie_path (str | list[str]): Path(s) or glob to the `*.full_susie.parquet` files.
+            session (Session | None, optional): Session object. If not provided, the method will try to find an active session. Defaults to None.
+
+        Returns:
+            DataFrame: One row per credible set member, keyed by `molecular_trait_id`, `region`,
+                `variant` and `dataset_id`, with `conditionalBetas`, the posterior means
+                $`\mu_l`$, and `conditionalStandardErrors`, the posterior standard deviations
+                $`\sqrt{\mu^{(2)}_l - \mu_l^2}`$, indexed by effect.
+
+        Examples:
+            >>> import pandas as pd, tempfile
+            >>> row = {"molecular_trait_id": "t1", "region": "r1", "variant": "chr1_10_A_T", "cs_index": "L1"}
+            >>> row |= {f"mu_{i}": 0.0 for i in range(1, 11)} | {f"mu2_{i}": 0.0 for i in range(1, 11)}
+            >>> row |= {"mu_1": 0.5, "mu2_1": 0.26}
+            >>> path = tempfile.mkdtemp() + "/QTD000001.full_susie.parquet"
+            >>> pd.DataFrame([row, row | {"variant": "chr1_20_C_G", "cs_index": None}]).to_parquet(path)
+            >>> r = EqtlCatalogueFinemapping.read_full_susie_from_source(path).first()
+            >>> (r.variant, r.dataset_id, r.conditionalBetas[0], round(r.conditionalStandardErrors[0], 6))
+            ('chr1_10_A_T', 'QTD000001', 0.5, 0.1)
+        """
+        session = session or Session.find()
+        return (
+            session.load_data(
+                full_susie_path,
+                fmt=NativeFileFormat.PARQUET.value,
+                schema=cls.raw_full_susie_schema,
+            )
+            .filter(f.col("cs_index").isNotNull())
+            .select(
+                "molecular_trait_id",
+                "region",
+                "variant",
+                cls._extract_dataset_id_from_file_path(f.input_file_name()),
+                f.array(*[f.col(f"mu_{i}") for i in range(1, 11)]).alias(
+                    "conditionalBetas"
+                ),
+                # Clamped at 0, as the variance can come out slightly negative in floating point:
+                f.array(
+                    *[
+                        f.sqrt(
+                            f.greatest(
+                                f.col(f"mu2_{i}") - f.col(f"mu_{i}") ** 2, f.lit(0.0)
+                            )
+                        )
+                        for i in range(1, 11)
+                    ]
+                ).alias("conditionalStandardErrors"),
+            )
             .distinct()
         )
 
