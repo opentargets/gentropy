@@ -238,10 +238,10 @@ def test_from_study_loci(spark: SparkSession) -> None:
     study_loci = AnnotatedStudyLocus(
         spark.createDataFrame(
             [
-                ("L1", "study1", "1", 1, 100, "tag", [], [locus("tag", 0.2)], None),
-                ("L2", "study2", "1", 1, 100, "tag", [], [locus("tag", -0.3)], None),
+                ("L1", "study1", "1", 1, 100, "tag", [], [locus("tag", 0.2)]),
+                ("L2", "study2", "1", 1, 100, "tag", [], [locus("tag", -0.3)]),
                 # A study missing from the study index is left out:
-                ("L3", "study3", "1", 1, 100, "tag", [], [locus("tag", 0.1)], None),
+                ("L3", "study3", "1", 1, 100, "tag", [], [locus("tag", 0.1)]),
             ],
             AnnotatedStudyLocus.get_schema(),
         )

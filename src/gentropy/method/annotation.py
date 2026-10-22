@@ -63,7 +63,7 @@ def annotate_locus(
         >>> from gentropy.dataset.summary_statistics import SummaryStatistics
         >>> loci = StudyLocus(
         ...     spark.createDataFrame(
-        ...         [("L1", "GCST1", "1", 100, 300, "1_200_A_T", [], None)],
+        ...         [("L1", "GCST1", "1", 100, 300, "1_200_A_T", [])],
         ...         StudyLocus.get_schema(),
         ...     )
         ... )
@@ -157,8 +157,8 @@ def annotate_ld(
     lead is not in the panel, the study has no population, or no tag passes
     the threshold, the row is flagged ``UNRESOLVED_LD`` and the lead is its
     only tag. A study with no population is also flagged ``NO_POPULATION``.
-    The lead's own ``r2Overall`` is always 1. Any ``ldSet`` already on the
-    rows is replaced, and ``locus`` is kept as it is.
+    The lead's own ``r2Overall`` is always 1. Loci that already carry an ``ldSet``,
+    such as an ``LDAnnotatedStudyLocus``, have it replaced, and ``locus`` is kept as it is.
 
     Args:
         loci (AnnotatedStudyLocus): The annotated loci.
@@ -174,7 +174,7 @@ def annotate_ld(
         >>> from gentropy.dataset.study_index import StudyIndex
         >>> loci = AnnotatedStudyLocus(
         ...     spark.createDataFrame(
-        ...         [("L1", "GCST1", "1", 100, 300, "1_200_A_T", [], [], None)],
+        ...         [("L1", "GCST1", "1", 100, 300, "1_200_A_T", [], [])],
         ...         AnnotatedStudyLocus.get_schema(),
         ...     )
         ... )
@@ -243,6 +243,7 @@ def annotate_ld(
     )
 
     annotated = (
+        # An LDAnnotatedStudyLocus is also an AnnotatedStudyLocus: replace its ldSet.
         loci.df.drop("ldSet")
         .join(
             study_index.df.select("studyId", "ldPopulationStructure"),

@@ -106,34 +106,32 @@ class StudyLocus(Dataset):
 
     Produced by window, locus-breaker and LD clumping and consumed by fine-mapping. Its key
     `id` hashes `ID_COLUMNS`, and its lead `leadVariantId` is the variant clumping used to
-    define the locus. `ldSet` holds the variants correlated with the lead, once the locus
-    went through LD annotation.
+    define the locus.
 
-    A study locus comes in three states, each a subclass of the previous one:
+    A study locus comes in three states, each a subclass of the previous one that adds a column:
 
     - `StudyLocus`, as clumping produces it.
     - `AnnotatedStudyLocus`, which adds `locus`: the marginal statistics of every variant the study measured inside the region.
-    - `LDAnnotatedStudyLocus`, whose `ldSet` is mandatory.
+    - `LDAnnotatedStudyLocus`, which adds `ldSet`: the variants correlated with the lead.
 
     Examples:
         >>> import hashlib
-        >>> ld_set = [("1_100501_G_A", 0.5)]
         >>> rows = [
-        ...     ("", "GCST1", "1", 100_000, 500_000, "1_100500_C_T", [], ld_set),
-        ...     ("", "GCST1", "2", 100_000, 500_000, "2_100500_C_T", [], None),
+        ...     ("", "GCST1", "1", 100_000, 500_000, "1_100500_C_T", []),
+        ...     ("", "GCST1", "2", 100_000, 500_000, "2_100500_C_T", []),
         ... ]
         >>> loci = StudyLocus(
         ...     spark.createDataFrame(rows, StudyLocus.get_schema())
         ...     .withColumn("id", StudyLocus.generate_identifier(StudyLocus.ID_COLUMNS)),
         ...     StudyLocus.get_schema(),
         ... )
-        >>> loci.df.select("chromosome", "leadVariantId", "ldSet").show(truncate=False)
-        +----------+-------------+---------------------+
-        |chromosome|leadVariantId|ldSet                |
-        +----------+-------------+---------------------+
-        |1         |1_100500_C_T |[{1_100501_G_A, 0.5}]|
-        |2         |2_100500_C_T |NULL                 |
-        +----------+-------------+---------------------+
+        >>> loci.df.select("chromosome", "leadVariantId", "locusStart", "locusEnd").show()
+        +----------+-------------+----------+--------+
+        |chromosome|leadVariantId|locusStart|locusEnd|
+        +----------+-------------+----------+--------+
+        |         1| 1_100500_C_T|    100000|  500000|
+        |         2| 2_100500_C_T|    100000|  500000|
+        +----------+-------------+----------+--------+
         <BLANKLINE>
         >>> StudyLocus.ID_COLUMNS
         ('studyId', 'chromosome', 'locusStart', 'locusEnd')
@@ -197,9 +195,9 @@ class StudyLocus(Dataset):
         Examples:
             >>> from gentropy.common.genomic_region import GenomicRegion
             >>> rows = [
-            ...     ("in", "S1", "6", 28_600_000, 29_600_000, "6_29000000_A_T", [], None),
-            ...     ("overlap", "S1", "6", 25_000_000, 26_000_000, "6_25500000_A_T", [], None),
-            ...     ("out", "S1", "6", 40_000_000, 41_000_000, "6_40500000_A_T", [], None),
+            ...     ("in", "S1", "6", 28_600_000, 29_600_000, "6_29000000_A_T", []),
+            ...     ("overlap", "S1", "6", 25_000_000, 26_000_000, "6_25500000_A_T", []),
+            ...     ("out", "S1", "6", 40_000_000, 41_000_000, "6_40500000_A_T", []),
             ... ]
             >>> loci = StudyLocus(spark.createDataFrame(rows, StudyLocus.get_schema()), StudyLocus.get_schema())
             >>> mhc = GenomicRegion.from_string("chr6:25726063-33400556")
@@ -235,7 +233,7 @@ class AnnotatedStudyLocus(StudyLocus):
 
     Examples:
         >>> locus = [("1_100500_C_T", 1.0, -10, 0.3, 5000, 0.2, 0.01)]
-        >>> rows = [("sl1", "GCST1", "1", 100_000, 500_000, "1_100500_C_T", [], locus, None)]
+        >>> rows = [("sl1", "GCST1", "1", 100_000, 500_000, "1_100500_C_T", [], locus)]
         >>> loci = AnnotatedStudyLocus(
         ...     spark.createDataFrame(rows, AnnotatedStudyLocus.get_schema()),
         ...     AnnotatedStudyLocus.get_schema(),
@@ -274,9 +272,9 @@ class AnnotatedStudyLocus(StudyLocus):
             >>> def locus(lead, exponent):
             ...     return [(lead, 5.0, exponent, 0.3, 1000, 0.1, 0.01)]
             >>> rows = [
-            ...     ("L1", "S1", "1", 1, 1000, "A", [], locus("A", -8), None),
-            ...     ("L2", "S1", "1", 1, 1000, "B", [], locus("B", -7), None),
-            ...     ("L3", "S1", "1", 1, 1000, "C", [], [], None),
+            ...     ("L1", "S1", "1", 1, 1000, "A", [], locus("A", -8)),
+            ...     ("L2", "S1", "1", 1, 1000, "B", [], locus("B", -7)),
+            ...     ("L3", "S1", "1", 1, 1000, "C", [], []),
             ... ]
             >>> loci = AnnotatedStudyLocus(
             ...     spark.createDataFrame(rows, AnnotatedStudyLocus.get_schema()),

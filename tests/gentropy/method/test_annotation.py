@@ -37,7 +37,7 @@ def _loci(
     return StudyLocus(
         _df=spark.createDataFrame(
             [
-                (id_, "GCST1", chrom, start, end, lead, flags, None)
+                (id_, "GCST1", chrom, start, end, lead, flags)
                 for id_, chrom, start, end, lead, flags in rows
             ],
             StudyLocus.get_schema(),
@@ -155,14 +155,11 @@ def _annotated_loci(
         rows (list[tuple[str, str, str]]): One tuple per locus.
 
     Returns:
-        AnnotatedStudyLocus: The loci, each with a stale ``ldSet`` to be replaced.
+        AnnotatedStudyLocus: The loci.
     """
     return AnnotatedStudyLocus(
         _df=spark.createDataFrame(
-            [
-                (id_, study, "1", 100, 300, lead, [], [], [("stale", 0.9)])
-                for id_, study, lead in rows
-            ],
+            [(id_, study, "1", 100, 300, lead, [], []) for id_, study, lead in rows],
             AnnotatedStudyLocus.get_schema(),
         ),
         _schema=AnnotatedStudyLocus.get_schema(),

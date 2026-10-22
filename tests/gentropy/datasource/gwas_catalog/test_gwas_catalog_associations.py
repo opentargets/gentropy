@@ -117,7 +117,6 @@ class TestToStudyLocus:
         assert lead.qualityControls == [self.TOP_HIT]
         assert [entry.variantId for entry in lead.locus] == ["1_100_A_T"]
         assert (lead.locus[0].pValueExponent, lead.locus[0].beta) == (-10, 0.2)
-        assert lead.ldSet is None
         assert sorted(rows[("S1", "1_150_C_G")].qualityControls) == sorted(
             [self.COMPOSITE, self.TOP_HIT]
         )

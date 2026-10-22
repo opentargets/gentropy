@@ -134,7 +134,6 @@ def credible_set_qc(
                 f.array(f.col("lead"))
                 .cast(loci_schema["locus"].dataType)
                 .alias("locus"),
-                f.lit(None).cast(loci_schema["ldSet"].dataType).alias("ldSet"),
             ),
             _schema=loci_schema,
         )

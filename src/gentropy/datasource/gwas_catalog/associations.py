@@ -1271,7 +1271,7 @@ class GWASCatalogCuratedAssociationsParser:
 
         Examples:
             >>> def locus(variant, position, exponent):
-            ...     return ("", "S1", "1", position, position, variant, [], [(variant, 1.0, exponent, None, None, None, None)], None)
+            ...     return ("", "S1", "1", position, position, variant, [], [(variant, 1.0, exponent, None, None, None, None)])
             >>> loci = AnnotatedStudyLocus(spark.createDataFrame(
             ...     [locus("1_100_A_T", 100, -10), locus("1_400_A_T", 400, -12), locus("1_900_A_T", 900, -9)],
             ...     AnnotatedStudyLocus.get_schema(),

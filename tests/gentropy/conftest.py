@@ -292,11 +292,6 @@ def mock_study_locus_data(spark: SparkSession) -> DataFrame:
         .withColumnSpec("locusStart", minValue=1, maxValue=1_000_000)
         .withColumnSpec("locusEnd", expr="locusStart + 500000", baseColumn="locusStart")
         .withColumnSpec("qualityControls", expr="array(cast(rand() as string))")
-        .withColumnSpec(
-            "ldSet",
-            expr='array(named_struct("tagVariantId", cast(floor(rand() * 400) + 1 as string), "r2Overall", cast(rand() as float)))',
-            percentNulls=0.1,
-        )
     )
     return data_spec.build()
 

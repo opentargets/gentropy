@@ -45,32 +45,6 @@
         "elementType": "string",
         "type": "array"
       }
-    },
-    {
-      "metadata": {},
-      "name": "ldSet",
-      "nullable": true,
-      "type": {
-        "containsNull": true,
-        "elementType": {
-          "fields": [
-            {
-              "metadata": {},
-              "name": "tagVariantId",
-              "nullable": true,
-              "type": "string"
-            },
-            {
-              "metadata": {},
-              "name": "r2Overall",
-              "nullable": true,
-              "type": "float"
-            }
-          ],
-          "type": "struct"
-        },
-        "type": "array"
-      }
     }
   ],
   "type": "struct"
