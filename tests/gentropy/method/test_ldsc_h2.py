@@ -5,7 +5,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from gentropy.method.ldsc_h2 import (
+from gentropy.method.ldsc import (
     IRWLS,
     Hsq,
     Jackknife,
