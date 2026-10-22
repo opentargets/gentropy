@@ -23,6 +23,29 @@ level across all sources:
   uniform prior over them (`gentropy.common.stats.region_log_bayes_factors`). Credible set Bayes
   factors that a source reports with another definition, such as FinnGen's model comparison
   `cs_log10bf`, are not stored.
+
+`CredibleSetVariant` holds three kinds of effect size, each in its own columns:
+
+- `reportedBeta` and `reportedStandardError` are the marginal effect as the study reported it,
+  per allele.
+- `conditionalBeta` and `conditionalStandardError` are the fine-mapping method's own output,
+  unscaled: the posterior mean and standard deviation of the variant's effect given that it is
+  the causal variant of its credible set's single effect (SuSiE's `mu` and `sqrt(mu2 - mu^2)`).
+  They are the counterpart of a joint estimate: adjusted for the other single effects, not for
+  the other members of the same credible set. The posterior mean weighted by the probability of
+  being causal is their product with `posteriorProbability`. They are on the scale the method
+  was fitted on, which differs by source, so their magnitudes are not comparable across
+  sources:
+
+    - FinnGen: per allele, recovered from the published `mean` and `sd` by dividing out `alpha`;
+    - SuSiE-inf: per standard deviation of genotype and phenotype, as it is fitted on z-scores;
+    - eQTL Catalogue: per standard deviation of genotype, and only with `full_susie_input_glob`;
+    - BigBrain: per standard deviation, and summed over all single effects of the feature, a
+      documented exception: use its sign for the direction of effect only;
+    - PICS: null, as PICS gives no effect.
+
+- `rescaledAbsBeta`, `rescaledStandardError` and `rescaledDirection` are for effects rescaled to
+  one scale comparable across sources. No source fills them yet.
 """
 
 from __future__ import annotations
@@ -837,7 +860,9 @@ class CredibleSetVariant(Dataset):
     The marginal statistics (`pValueMantissa`, `pValueExponent`, `effectAlleleFrequency`,
     `sampleSize`, `reportedBeta`, `reportedStandardError`) are the ones the study reported. The
     conditional effect of the fine-mapping method, when it gives one, is kept apart in
-    `conditionalBeta` and `conditionalStandardError`. Bayes factors are natural logarithms.
+    `conditionalBeta` and `conditionalStandardError`, on the method's own scale, and
+    `rescaled*` is for effects comparable across sources (see the module docstring). Bayes
+    factors are natural logarithms.
 
     Examples:
         >>> rows = [
