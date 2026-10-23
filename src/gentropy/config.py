@@ -240,6 +240,37 @@ class FinngenFinemappingConfig(StepConfig):
 
 
 @dataclass
+class FinngenMultiomeIngestionConfig(StepConfig):
+    """FinnGen multiome single-cell eQTL ingestion step configuration."""
+
+    session: Any = field(
+        default_factory=lambda: {
+            "use_enhanced_bgzip_codec": True,
+        }
+    )
+    snp_files: str = (
+        "gs://finngen-public-data-multiome/eQTL/finemapping/*.SUSIE.snp.tsv.gz"
+    )
+    cs_summary_files: str = (
+        "gs://finngen-public-data-multiome/eQTL/finemapping/*.SUSIE.cred.tsv.gz"
+    )
+    nominal_files: str = (
+        "gs://finngen-public-data-multiome/eQTL/cis_nominal/*.cis_nominal.tsv.gz"
+    )
+    summary_stats_location_template: str = "gs://finngen-public-data-multiome/eQTL/cis_nominal/finngen_multiome_v1.eQTL.{cell_type}.cis_nominal.tsv.gz"
+    study_index_output_path: str = MISSING
+    credible_set_output_path: str = MISSING
+    credible_set_variant_output_path: str = MISSING
+    # Release 1 of the FinnGen multiome atlas (FinnGen R12):
+    project_prefix: str = "FINNGEN_MULTIOME_V1"
+    lead_pvalue_threshold: float = 1e-3
+    # log10(e^2) = 2 / ln(10): a Bayes factor of e^2, the threshold of the FinnGen publication.
+    credset_lbf_threshold: float = 0.8685889638065036
+    purity_min_r2_threshold: float = 0.25
+    _target_: str = "gentropy.finngen_multiome_ingestion.FinnGenMultiomeIngestionStep"
+
+
+@dataclass
 class LDIndexConfig(StepConfig):
     """LD index step configuration."""
 
@@ -946,6 +977,11 @@ def register_config() -> None:
         group="step",
         name="finngen_finemapping_ingestion",
         node=FinngenFinemappingConfig,
+    )
+    cs.store(
+        group="step",
+        name="finngen_multiome_ingestion",
+        node=FinngenMultiomeIngestionConfig,
     )
 
     cs.store(group="step", name="pics", node=PICSConfig)
