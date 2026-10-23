@@ -22,11 +22,22 @@ class TestEqtlCatalogueStep:
 
     @pytest.fixture
     def credible_set_df(self, session: Session) -> DataFrame:
-        """Minimal DataFrame standing in for the StudyLocus payload, shaped for repartition/sort."""
+        """Minimal DataFrame standing in for the CredibleSet payload, shaped for repartition/sort."""
         return session.spark.createDataFrame(
             [
-                Row(studyId="s1", chromosome="1", variantId="1_1_A_T"),
-                Row(studyId="s1", chromosome="2", variantId="2_2_C_G"),
+                Row(studyId="s1", chromosome="1", leadVariantId="1_1_A_T"),
+                Row(studyId="s1", chromosome="2", leadVariantId="2_2_C_G"),
+            ]
+        )
+
+    @pytest.fixture
+    def credible_set_variant_df(self, session: Session) -> DataFrame:
+        """Minimal DataFrame standing in for the CredibleSetVariant payload."""
+        return session.spark.createDataFrame(
+            [
+                Row(credibleSetId="cs1", variantId="1_1_A_T"),
+                Row(credibleSetId="cs1", variantId="1_2_C_G"),
+                Row(credibleSetId="cs2", variantId="2_2_C_G"),
             ]
         )
 
@@ -41,6 +52,7 @@ class TestEqtlCatalogueStep:
         tmp_path: Path,
         study_index_df: DataFrame,
         credible_set_df: DataFrame,
+        credible_set_variant_df: DataFrame,
     ) -> None:
         """The step should extract, join/transform and write study index and credible sets.
 
@@ -53,6 +65,9 @@ class TestEqtlCatalogueStep:
         lbf_variable_input_glob = "lbf_glob"
         study_index_output_path = (tmp_path / "study_index").as_posix()
         credible_set_output_path = (tmp_path / "credible_set").as_posix()
+        credible_set_variant_output_path = (
+            tmp_path / "credible_set_variant"
+        ).as_posix()
         lead_pvalue_threshold = 1e-3
         mqtl_quantification_methods_blacklist = ["ge"]
 
@@ -82,10 +97,14 @@ class TestEqtlCatalogueStep:
         study_index_dataset.df = study_index_df
         study_index_mock.from_susie_results.return_value = study_index_dataset
 
-        study_locus_dataset = MagicMock(name="study_locus_dataset")
-        study_locus_dataset.validate_lead_pvalue.return_value = study_locus_dataset
-        study_locus_dataset.df = credible_set_df
-        finemapping_mock.from_susie_results.return_value = study_locus_dataset
+        credible_set_dataset = MagicMock(name="credible_set_dataset")
+        credible_set_dataset.df = credible_set_df
+        credible_set_variant_dataset = MagicMock(name="credible_set_variant_dataset")
+        credible_set_variant_dataset.df = credible_set_variant_df
+        finemapping_mock.from_susie_results.return_value = (
+            credible_set_dataset,
+            credible_set_variant_dataset,
+        )
 
         EqtlCatalogueStep(
             session=session,
@@ -94,6 +113,7 @@ class TestEqtlCatalogueStep:
             lbf_variable_input_glob=lbf_variable_input_glob,
             study_index_output_path=study_index_output_path,
             credible_set_output_path=credible_set_output_path,
+            credible_set_variant_output_path=credible_set_variant_output_path,
             lead_pvalue_threshold=lead_pvalue_threshold,
             mqtl_quantification_methods_blacklist=mqtl_quantification_methods_blacklist,
         )
@@ -118,9 +138,12 @@ class TestEqtlCatalogueStep:
         )
         lbf_mock.persist.assert_called_once()
 
+        # Without a full SuSiE glob, the posterior effects are not read.
+        finemapping_mock.read_full_susie_from_source.assert_not_called()
+
         # --- Transform ---
         finemapping_mock.parse_susie_results.assert_called_once_with(
-            credible_sets_mock, lbf_mock, studies_metadata_mock
+            credible_sets_mock, lbf_mock, studies_metadata_mock, full_susie=None
         )
         processed_susie_mock.persist.assert_called_once()
 
@@ -140,14 +163,13 @@ class TestEqtlCatalogueStep:
 
         # --- Credible set write ---
         finemapping_mock.from_susie_results.assert_called_once_with(
-            processed_susie_mock
-        )
-        study_locus_dataset.validate_lead_pvalue.assert_called_once_with(
-            pvalue_cutoff=lead_pvalue_threshold
+            processed_susie_mock, lead_pvalue_threshold=lead_pvalue_threshold
         )
         assert Path(credible_set_output_path).exists()
         written_credible_sets = session.spark.read.parquet(credible_set_output_path)
         assert written_credible_sets.count() == credible_set_df.count()
+        written_variants = session.spark.read.parquet(credible_set_variant_output_path)
+        assert written_variants.count() == credible_set_variant_df.count()
 
         # The fully processed, joined DataFrame is only freed once both writes are done.
         processed_susie_mock.unpersist.assert_called_once()

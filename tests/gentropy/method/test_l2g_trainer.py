@@ -401,7 +401,7 @@ def test_hierarchical_split() -> None:
     df = pd.DataFrame(
         {
             "geneId": ["G1", "G1", "G1", "G2", "G2", "G3", "G4", "G4"],
-            "studyLocusId": ["L1", "L1", "L2", "L2", "L3", "L3", "L4", "L4"],
+            "credibleSetId": ["L1", "L1", "L2", "L2", "L3", "L3", "L4", "L4"],
             "goldStandardSet": [1, 0, 1, 1, 0, 1, 0, 0],
             "feature1": [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8],
         }
@@ -421,9 +421,9 @@ def test_hierarchical_split() -> None:
     )
     assert len(train_df) + len(test_df) != len(df)
     assert (
-        len(set(train_df["studyLocusId"]).intersection(set(test_df["studyLocusId"])))
+        len(set(train_df["credibleSetId"]).intersection(set(test_df["credibleSetId"])))
         == 0
-    ), "Data leakage detected! Overlapping studyLocusIds between splits."
+    ), "Data leakage detected! Overlapping credibleSetIds between splits."
     assert len(set(train_df["geneId"]).intersection(set(test_df["geneId"]))) > 0, (
         "G1 is not present in both splits"
     )
