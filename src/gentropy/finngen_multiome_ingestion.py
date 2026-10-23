@@ -14,6 +14,48 @@ class FinnGenMultiomeIngestionStep:
     FinnGen multiome atlas cis-eQTL fine-mapping, with effect allele frequencies taken from the
     cis-nominal summary statistics. Credible sets with a lead p-value above
     `lead_pvalue_threshold` are dropped with their variants.
+
+    ## Data flow
+
+    ```mermaid
+    flowchart TD
+      subgraph INPUTS
+        A1["*.SUSIE.cred.tsv.gz (credible set summaries)"]
+        A2["*.SUSIE.snp.tsv.gz (every variant tested per gene)"]
+        A3["*.cis_nominal.tsv.gz (marginal statistics)"]
+      end
+
+      subgraph OUTPUTS
+        O1[study_index]
+        O2[credible_set]
+        O3[credible_set_variant]
+      end
+
+      A1 --> F["keep first credible set of a gene or cs_log10bf > log10(e^2), and min r2 >= 0.25"]
+      F --> SI["one study per cell type and gene: Cell Ontology term and donors per cell type"]
+      SI --> O1
+      A2 --> BF["per gene and effect: Bayes factor over all tested variants, locus bounds"]
+      F --> BF
+      A2 --> M["credible set members: marginal and conditional effects of their single effect"]
+      F --> M
+      BF --> M
+      A3 --> EAF["alternative allele frequency AF_Allele2 of the members"]
+      M --> EAF
+      EAF --> CS["CredibleSet.from_members: lead variant, drop leads with p above lead_pvalue_threshold"]
+      CS --> O2
+      CS --> O3
+    ```
+
+    ## Rationale
+
+    - The studies are defined per cell type and gene, as for the single-cell eQTL studies of the
+      eQTL Catalogue, so colocalisation and the locus-to-gene features treat them the same way.
+    - The purity filter matches FinnGen's `low_purity` flag; the Bayes factor filter matches the
+      FinnGen GWAS ingestion.
+    - The effect allele frequency comes from the cis-nominal files, as `maf` of the fine-mapping
+      files is the minor allele frequency.
+    - The conditional effects follow the FinnGen GWAS ingestion, which shares the SuSiE output
+      layout (see `FinnGenMultiomeFinemapping.from_source`).
     """
 
     def __init__(

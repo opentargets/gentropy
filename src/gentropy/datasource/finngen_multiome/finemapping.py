@@ -8,6 +8,7 @@ import pyspark.sql.functions as f
 import pyspark.sql.types as t
 from pyspark.sql import Column, DataFrame, Window
 
+from gentropy.common.processing import normalize_chromosome
 from gentropy.common.session import Session
 from gentropy.common.stats import region_log_bayes_factors, split_pvalue_column
 from gentropy.dataset.credible_set import (
@@ -36,6 +37,30 @@ class FinnGenMultiomeFinemapping:
     `cs` column. Credible sets are kept if they are the first in the region or their log10 Bayes
     factor exceeds `credset_lbf_threshold`, and if their minimum pairwise r2 is at least
     `purity_min_r2_threshold`.
+
+    The files are block gzipped with tabix indices, so they are read with a session using
+    `use_enhanced_bgzip_codec`, which splits them across tasks.
+
+    An example row of the SuSiE variant files (`*.SUSIE.snp.tsv.gz`, one row per variant tested
+    for a gene, with the per-effect `alpha1..10`, `mean1..10`, `sd1..10` and `lbf_variable1..10`
+    columns not shown):
+
+    | trait | region | v | chromosome | position | allele1 | allele2 | maf | beta | se | p | cs |
+    |---|---|---|---|---|---|---|---|---|---|---|---|
+    | integrated_gex_batch1_5.fgid.qc.predicted.celltype.l1.B.mean.inv.SAIGE | ENSG00000015475 | 22:17774372:T:G | chr22 | 17774372 | T | G | 0.37647 | 0.1694 | 0.014516 | 2.3306e-31 | 1 |
+
+    An example row of the credible set summaries (`*.SUSIE.cred.tsv.gz`):
+
+    | trait | region | cs | cs_log10bf | cs_avg_r2 | cs_min_r2 | low_purity | cs_size |
+    |---|---|---|---|---|---|---|---|
+    | integrated_gex_batch1_5.fgid.qc.predicted.celltype.l1.B.mean.inv.SAIGE | ENSG00000015475 | 1 | 27.148 | 1 | 1 | FALSE | 1 |
+
+    An example row of the cis-nominal summary statistics (`*.cis_nominal.tsv.gz`), of which only
+    the alternative allele frequency `AF_Allele2` is used:
+
+    | #CHR | POS | cell_type | phenotype_id | MarkerID | AF_Allele2 | BETA | SE | p.value |
+    |---|---|---|---|---|---|---|---|---|
+    | chr22 | 16774862 | predicted.celltype.l1.B | ENSG00000015475 | chr22_16774862_A_G | 0.30818 | -0.00031305 | 0.015152 | 0.98352 |
     """
 
     cs_summary_schema: t.StructType = t.StructType(
@@ -331,7 +356,7 @@ class FinnGenMultiomeFinemapping:
             ).alias("studyId"),
             "credibleSetIndex",
             "variantId",
-            f.regexp_replace(f.col("chromosome"), "^chr", "").alias("chromosome"),
+            normalize_chromosome(f.col("chromosome")),
             "locusStart",
             "locusEnd",
             f.lit(StudyType.SCEQTL.value).alias("studyType"),

@@ -19,10 +19,10 @@ from gentropy.datasource.finngen_multiome.study_index import FinnGenMultiomeStud
 from gentropy.finngen_multiome_ingestion import FinnGenMultiomeIngestionStep
 
 DATA = "tests/gentropy/data_samples/finngen_multiome"
-SNP_FILES = f"{DATA}/*.SUSIE.snp.tsv.gz"
-CS_SUMMARY_FILES = f"{DATA}/*.SUSIE.cred.tsv.gz"
-NOMINAL_FILES = f"{DATA}/*.cis_nominal.tsv.gz"
-TEMPLATE = "gs://bucket/finngen_multiome_v1.eQTL.{cell_type}.cis_nominal.tsv.gz"
+SNP_FILES = f"{DATA}/*.SUSIE.snp.tsv"
+CS_SUMMARY_FILES = f"{DATA}/*.SUSIE.cred.tsv"
+NOMINAL_FILES = f"{DATA}/*.cis_nominal.tsv"
+TEMPLATE = "gs://bucket/finngen_multiome_v1.eQTL.{cell_type}.cis_nominal.tsv"
 PREFIX = "FINNGEN_MULTIOME_V1"
 
 
@@ -190,9 +190,10 @@ def test_study_index(session: Session) -> None:
     assert row.biosampleFromSourceId == "CL_0000236"
     assert row.nSamples == 1103
     assert row.ldPopulationStructure[0].ldPopulation == "fin"
+    assert (row.pubmedId, row.publicationFirstAuthor) == ("42816628", "Kanai M")
     assert (
         row.summarystatsLocation
-        == "gs://bucket/finngen_multiome_v1.eQTL.l1.B.cis_nominal.tsv.gz"
+        == "gs://bucket/finngen_multiome_v1.eQTL.l1.B.cis_nominal.tsv"
     )
 
 

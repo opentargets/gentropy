@@ -66,7 +66,9 @@ class FinnGenMultiomeStudyIndex:
         "hasSumstats": True,
         "publicationTitle": "Population-scale immune multiome atlas reveals regulatory disease mechanisms",
         "publicationJournal": "Nature",
-        "publicationDate": "2026",
+        "publicationFirstAuthor": "Kanai M",
+        "publicationDate": "2026-09-30",
+        "pubmedId": "42816628",
     }
 
     @classmethod
@@ -98,6 +100,17 @@ class FinnGenMultiomeStudyIndex:
     ) -> StudyIndex:
         """Build the study index from the credible set summaries.
 
+        The studies are read from the credible set summaries, e.g.:
+
+        | trait | region | cs | cs_log10bf | cs_avg_r2 | cs_min_r2 | low_purity | cs_size |
+        |---|---|---|---|---|---|---|---|
+        | integrated_gex_batch1_5.fgid.qc.predicted.celltype.l1.B.mean.inv.SAIGE | ENSG00000015475 | 1 | 27.148 | 1 | 1 | FALSE | 1 |
+
+        which gives the study `FINNGEN_MULTIOME_V1_ge_l1_B_ENSG00000015475` of cell type `l1.B`
+        and gene `ENSG00000015475`. A cell type missing from `CELL_TYPES` is logged rather than
+        failing the step: its studies are written without a biosample or sample size, and
+        flagging them is left to study validation.
+
         Args:
             session (Session): Session object.
             cs_summary_files (str | list[str]): Paths to the `*.SUSIE.cred.tsv.gz` files.
@@ -109,9 +122,6 @@ class FinnGenMultiomeStudyIndex:
 
         Returns:
             StudyIndex: One study per cell type and gene.
-
-        Raises:
-            ValueError: If a cell type in the input has no annotation.
         """
         studies = (
             FinnGenMultiomeFinemapping.read_cs_summary_files(
@@ -135,7 +145,7 @@ class FinnGenMultiomeStudyIndex:
             if r.cellType not in known
         }
         if unknown:
-            raise ValueError(f"Cell types without annotation: {sorted(unknown)}")
+            session.logger.warning(f"Cell types without annotation: {sorted(unknown)}")
 
         prefix, suffix = summary_stats_location_template.split("{cell_type}")
         return StudyIndex(
