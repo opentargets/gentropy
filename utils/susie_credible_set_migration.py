@@ -22,9 +22,13 @@ Mapping:
   fine-mapper writes nothing for such a study.
 - From the harmonised summary statistics, joined on study and variant: `pValueMantissa`,
   `pValueExponent`, `reportedBeta`, `reportedStandardError`, `effectAlleleFrequency` and
-  `sampleSize`. A variant with several rows in a study counts as missing, as the fine-mapper drops
-  such variants. A member without statistics is flagged `NOT_IN_LOCUS`; one with an allele
-  frequency, `EAF_FROM_SOURCE`.
+  `sampleSize`. A variant with several rows in a study keeps one of them when they share the
+  p-value (the largest sample size, then with an allele frequency, then the smallest standard
+  error and beta); when their p-values differ, it counts as missing, as the fine-mapper drops
+  such variants. A member without
+  statistics is flagged `NOT_IN_LOCUS`; one with an allele frequency, `EAF_FROM_SOURCE`. Only the
+  rows of credible set members are kept before duplicates are looked for, so the summary
+  statistics are never shuffled in full.
 - The lead is recomputed as the member with the highest posterior probability, ties broken by
   variant id, and `id` hashes the new key.
 
@@ -130,8 +134,7 @@ def read_summary_statistics(
         study_ids (list[str]): Studies to read.
 
     Returns:
-        DataFrame: `studyId`, `variantId` and `SUMSTAT_COLUMNS`, one row per study and variant
-            that occurs once in the study.
+        DataFrame: `studyId`, `variantId` and `SUMSTAT_COLUMNS`, every row as read.
     """
     paths = [template.format(studyId=study_id) for study_id in study_ids]
     reader = spark.read
@@ -148,36 +151,83 @@ def read_summary_statistics(
         ).alias(name)
         for name, dtype in SUMSTAT_COLUMNS.items()
     ]
-    once = Window.partitionBy("studyId", "variantId")
-    return (
-        sumstats.select(f.col("studyId").cast("string"), "variantId", *columns)
-        .withColumn("_rows", f.count(f.lit(1)).over(once))
-        .filter(f.col("_rows") == 1)
-        .drop("_rows")
+    return sumstats.select(f.col("studyId").cast("string"), "variantId", *columns)
+
+
+def pick_order() -> list[Column]:
+    """Order of the rows of one study and variant: the first one is kept.
+
+    Returns:
+        list[Column]: Largest sample size, then with an allele frequency, then smallest
+            standard error, then smallest beta.
+    """
+    return [
+        f.col("sampleSize").desc_nulls_last(),
+        f.col("effectAlleleFrequencyFromSource").isNull(),
+        f.col("standardError").asc_nulls_last(),
+        f.col("beta").asc_nulls_last(),
+    ]
+
+
+def unique_rows(sumstats: DataFrame) -> tuple[DataFrame, DataFrame]:
+    """Keep one row per study and variant, unless its rows disagree on the p-value.
+
+    Duplicate rows with the same p-value give one row, the first by `pick_order`. A study and
+    variant whose rows differ in p-value is dropped, as the fine-mapper drops every duplicated
+    variant.
+
+    Args:
+        sumstats (DataFrame): Summary statistics, already restricted to credible set members.
+
+    Returns:
+        tuple[DataFrame, DataFrame]: The unique rows, and one row per duplicated study and
+            variant with `rows` (rows read) and `pValues` (distinct p-values).
+    """
+    key = ["studyId", "variantId"]
+    per_key = Window.partitionBy(*key)
+    ranked = sumstats.withColumns(
+        {
+            "rows": f.count(f.lit(1)).over(per_key),
+            "pValues": f.size(
+                f.collect_set(f.struct("pValueMantissa", "pValueExponent")).over(
+                    per_key
+                )
+            ),
+            "_rank": f.row_number().over(per_key.orderBy(*pick_order())),
+        }
     )
+    unique = ranked.filter((f.col("pValues") == 1) & (f.col("_rank") == 1)).drop(
+        "rows", "pValues", "_rank"
+    )
+    duplicated = ranked.filter((f.col("rows") > 1) & (f.col("_rank") == 1)).select(
+        *key, "rows", "pValues"
+    )
+    return unique, duplicated
 
 
-def existing_paths(
+def existing_studies(
     spark: SparkSession, template: str, study_ids: list[str]
 ) -> list[str]:
-    """The studies whose summary statistics path exists.
+    """The studies whose summary statistics directory exists, from one listing.
 
     Args:
         spark (SparkSession): Spark session.
-        template (str): Path of one study, with `{studyId}`.
+        template (str): Path of one study, with `{studyId}` in its last path element.
         study_ids (list[str]): Studies to look for.
 
     Returns:
-        list[str]: Studies with a summary statistics path.
+        list[str]: Studies with a summary statistics directory.
     """
+    parent, leaf = template.rstrip("/").rsplit("/", 1)
+    prefix, suffix = leaf.split("{studyId}")
     jvm = spark.sparkContext._jvm
     conf = spark.sparkContext._jsc.hadoopConfiguration()
-    found = []
-    for study_id in study_ids:
-        path = jvm.org.apache.hadoop.fs.Path(template.format(studyId=study_id))
-        if path.getFileSystem(conf).exists(path):
-            found.append(study_id)
-    return found
+    root = jvm.org.apache.hadoop.fs.Path(parent)
+    names = {
+        status.getPath().getName()
+        for status in root.getFileSystem(conf).listStatus(root)
+    }
+    return [s for s in study_ids if f"{prefix}{s}{suffix}" in names]
 
 
 def convert(
@@ -428,7 +478,7 @@ def main() -> int:
     dropped = old_all.count() - old.count()
 
     study_ids = sorted(r.studyId for r in old.select("studyId").distinct().collect())
-    with_sumstats = existing_paths(spark, args.summary_statistics, study_ids)
+    with_sumstats = existing_studies(spark, args.summary_statistics, study_ids)
     print(
         f"INFO studies: {len(study_ids)}, with summary statistics: {len(with_sumstats)}"
     )
@@ -437,24 +487,37 @@ def main() -> int:
     members = old.select(
         "studyId", f.explode("locus.variantId").alias("variantId")
     ).distinct()
-    sumstats = (
-        read_summary_statistics(spark, args.summary_statistics, with_sumstats)
-        if with_sumstats
-        else spark.createDataFrame(
-            [],
-            t.StructType(
-                [
-                    t.StructField("studyId", t.StringType()),
-                    t.StructField("variantId", t.StringType()),
-                ]
-                + [t.StructField(n, d) for n, d in SUMSTAT_COLUMNS.items()]
-            ),
+    member_rows = (
+        (
+            read_summary_statistics(spark, args.summary_statistics, with_sumstats)
+            if with_sumstats
+            else spark.createDataFrame(
+                [],
+                t.StructType(
+                    [
+                        t.StructField("studyId", t.StringType()),
+                        t.StructField("variantId", t.StringType()),
+                    ]
+                    + [t.StructField(n, d) for n, d in SUMSTAT_COLUMNS.items()]
+                ),
+            )
         )
-    ).join(
-        f.broadcast(members) if len(study_ids) < 1000 else members,
-        ["studyId", "variantId"],
-        "left_semi",
+        .join(
+            f.broadcast(members) if len(study_ids) < 1000 else members,
+            ["studyId", "variantId"],
+            "left_semi",
+        )
+        .persist()
     )
+    sumstats, duplicated = unique_rows(member_rows)
+    duplicated = duplicated.persist()
+    print(
+        "INFO members with duplicated summary statistics: "
+        f"{duplicated.count()} (same p-value, one row kept: "
+        f"{duplicated.filter(f.col('pValues') == 1).count()}; different p-values, dropped: "
+        f"{duplicated.filter(f.col('pValues') > 1).count()})"
+    )
+    duplicated.orderBy("studyId", "variantId").show(20, truncate=False)
 
     credible_sets, variants = convert(old, study_index, sumstats)
     out_sets = f"{args.output}/credible_set"
