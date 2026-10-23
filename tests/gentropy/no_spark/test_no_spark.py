@@ -9,6 +9,7 @@ from pyspark.sql import types as t
 
 from gentropy import Session
 from gentropy.common.session import SparkWriteMode
+from gentropy.datasource.finngen.finemapping import FinnGenFinemapping
 from gentropy.datasource.finngen_meta import MetaAnalysisDataSource
 from gentropy.datasource.finngen_meta.summary_statistics import (
     FinnGenUkbMvpMetaSummaryStatistics,
@@ -66,7 +67,10 @@ class TestNoSpark:
 
         expected_bgzip_conf = {
             "spark.jars.packages": "org.seqdoop:hadoop-bam:7.10.0",
-            "spark.hadoop.io.compression.codecs": "org.seqdoop.hadoop_bam.util.BGZFEnhancedGzipCodec",
+            "spark.hadoop.io.compression.codecs": (
+                "org.seqdoop.hadoop_bam.util.BGZFEnhancedGzipCodec,"
+                "org.seqdoop.hadoop_bam.util.BGZFCodec"
+            ),
             "spark.gentropy.useEnhancedBgzipCodec": "true",
         }
 
@@ -142,4 +146,34 @@ class TestNoSpark:
             "studyId", t.StringType(), nullable=True
         )  # studyId is added during bgzip_to_parquet
         assert df.schema == expected_schema, "Schemas do not match after conversion."
+        session.spark.stop()
+
+    @pytest.mark.download_jars_from_web
+    @pytest.mark.usefixtures("_no_spark_session")
+    def test_finngen_finemapping_from_block_gzipped_files(self, tmp_path: Path) -> None:
+        """Test that FinnGen SuSiE `.bgz` outputs are read without Hail.
+
+        Note:
+            Like `test_bgzip_from_parquet_with_codec`, this test downloads hadoop-bam from Maven
+            Central, so it needs internet access and runs separately from other tests.
+        """
+        ivy_cache_dir = tmp_path / "ivy_cache"
+        ivy_cache_dir.mkdir(parents=True, exist_ok=True)
+        conf = self.ex_conf.copy()
+        conf["spark.jars.ivy"] = ivy_cache_dir.as_posix()
+        session = Session(
+            spark_uri="local[1]",
+            extended_spark_conf=conf,
+            use_enhanced_bgzip_codec=True,
+            dynamic_allocation=False,
+        )
+        credible_sets, variants = FinnGenFinemapping.from_finngen_susie_finemapping(
+            spark=session.spark,
+            finngen_susie_finemapping_snp_files="tests/gentropy/data_samples/finngen_R9_AB1_EBV.SUSIE.snp.bgz",
+            finngen_susie_finemapping_cs_summary_files="tests/gentropy/data_samples/finngen_credset_summary_sample.tsv.bgz",
+            finngen_annotated_variants_path="tests/gentropy/data_samples/finngen_annotated_variants_sample.tsv",
+            finngen_release_prefix="FINNGEN_R11",
+        )
+        assert credible_sets.df.count() == 1
+        assert variants.df.count() == 4
         session.spark.stop()

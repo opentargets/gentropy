@@ -10,4 +10,4 @@ Please refer to the original publication for in-depth details: [PICS Publication
 
 We use PICS for both GWAS clumping results and GWAS curated studies.
 
-:::gentropy.method.pics.PICS
+::: gentropy.method.fine_mapping.pics.PICS

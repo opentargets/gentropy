@@ -5,7 +5,9 @@ from __future__ import annotations
 from gentropy.common.genomic_region import GenomicRegion, KnownGenomicRegions
 from gentropy.common.session import Session
 from gentropy.dataset.summary_statistics import SummaryStatistics
-from gentropy.method.locus_breaker_clumping import LocusBreakerClumping
+from gentropy.method.annotation import annotate_locus
+from gentropy.method.clumping.locus_breaker import LocusBreakerClumping
+from gentropy.method.clumping.window import WindowClumping
 
 
 class LocusBreakerClumpingStep:
@@ -50,19 +52,16 @@ class LocusBreakerClumpingStep:
             session,
             summary_statistics_input_path,
         )
-        lbc = sum_stats.locus_breaker_clumping(
-            lbc_baseline_pvalue,
-            lbc_distance_cutoff,
-            lbc_pvalue_threshold,
-            lbc_flanking_distance,
-        )
-        wbc = sum_stats.window_based_clumping(wbc_clump_distance, wbc_pvalue_threshold)
-
-        clumped_result = LocusBreakerClumping.process_locus_breaker_output(
-            lbc,
-            wbc,
-            large_loci_size,
-        )
+        clumped_result = LocusBreakerClumping(
+            baseline_significance=lbc_baseline_pvalue,
+            gap=lbc_distance_cutoff,
+            gwas_significance=lbc_pvalue_threshold,
+            flanking_distance=lbc_flanking_distance,
+            large_locus_size=large_loci_size,
+            window=WindowClumping(
+                distance=wbc_clump_distance, gwas_significance=wbc_pvalue_threshold
+            ),
+        ).clump(sum_stats)
         if remove_mhc:
             clumped_result = clumped_result.exclude_region(
                 GenomicRegion.from_known_genomic_region(KnownGenomicRegions.MHC),
@@ -70,9 +69,7 @@ class LocusBreakerClumpingStep:
             )
 
         if collect_locus:
-            clumped_result = clumped_result.annotate_locus_statistics_boundaries(
-                sum_stats
-            )
-        clumped_result.df.write.partitionBy("studyLocusId").mode(
-            session.write_mode
-        ).parquet(clumped_study_locus_output_path)
+            clumped_result = annotate_locus(clumped_result, sum_stats)
+        clumped_result.df.write.partitionBy("id").mode(session.write_mode).parquet(
+            clumped_study_locus_output_path
+        )

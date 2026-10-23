@@ -7,8 +7,8 @@ from typing import TYPE_CHECKING
 import pytest
 
 from gentropy.dataset.colocalisation import Colocalisation
+from gentropy.dataset.credible_set import CredibleSetLocus
 from gentropy.dataset.study_index import StudyIndex
-from gentropy.dataset.study_locus import StudyLocus
 
 if TYPE_CHECKING:
     from pyspark.sql import SparkSession
@@ -21,7 +21,7 @@ def test_colocalisation_creation(mock_colocalisation: Colocalisation) -> None:
 
 def test_append_study_metadata_study_locus(
     mock_colocalisation: Colocalisation,
-    mock_study_locus: StudyLocus,
+    mock_credible_set_locus: CredibleSetLocus,
     mock_study_index: StudyIndex,
     metadata_cols: list[str] | None = None,
 ) -> None:
@@ -30,7 +30,7 @@ def test_append_study_metadata_study_locus(
         metadata_cols = ["studyType"]
     expected_extra_col = ["rightStudyType", "rightStudyId"]
     res_df = mock_colocalisation.append_study_metadata(
-        mock_study_locus,
+        mock_credible_set_locus,
         mock_study_index,
         metadata_cols=metadata_cols,
         colocalisation_side="right",
@@ -70,7 +70,7 @@ class TestAppendStudyMetadata:
     @pytest.fixture(autouse=True)
     def _setup(self: TestAppendStudyMetadata, spark: SparkSession) -> None:
         """Setup fixture."""
-        self.sample_study_locus = StudyLocus(
+        self.sample_study_locus = CredibleSetLocus(
             _df=spark.createDataFrame(
                 [
                     (
@@ -84,9 +84,9 @@ class TestAppendStudyMetadata:
                         "eqtl1",
                     ),
                 ],
-                ["studyLocusId", "variantId", "studyId"],
+                ["credibleSetId", "variantId", "studyId"],
             ),
-            _schema=StudyLocus.get_schema(),
+            _schema=CredibleSetLocus.get_schema(),
         )
         self.sample_study_index = StudyIndex(
             _df=spark.createDataFrame(
@@ -104,8 +104,8 @@ class TestAppendStudyMetadata:
             _df=spark.createDataFrame(
                 [("1", "2", "eqtl", "X", "COLOC", 1, 0.9)],
                 [
-                    "leftStudyLocusId",
-                    "rightStudyLocusId",
+                    "leftLocusId",
+                    "rightLocusId",
                     "rightStudyType",
                     "chromosome",
                     "colocalisationMethod",
@@ -119,7 +119,7 @@ class TestAppendStudyMetadata:
 
 def test_drop_trans_effects(spark: SparkSession) -> None:
     """Test filtering out trans effects from QTLs."""
-    sample_study_locus = StudyLocus(
+    sample_study_locus = CredibleSetLocus(
         _df=spark.createDataFrame(
             [
                 (
@@ -141,9 +141,9 @@ def test_drop_trans_effects(spark: SparkSession) -> None:
                     None,  # null case
                 ),
             ],
-            ["studyLocusId", "variantId", "studyId", "isTransQtl"],
+            ["credibleSetId", "variantId", "studyId", "isTransQtl"],
         ),
-        _schema=StudyLocus.get_schema(),
+        _schema=CredibleSetLocus.get_schema(),
     )
 
     sample_colocalisation = Colocalisation(
@@ -154,8 +154,8 @@ def test_drop_trans_effects(spark: SparkSession) -> None:
                 ("gwas3", "3", "eqtl", "X", "COLOC", 1, 0.7),  # should remain
             ],
             [
-                "leftStudyLocusId",
-                "rightStudyLocusId",
+                "leftLocusId",
+                "rightLocusId",
                 "rightStudyType",
                 "chromosome",
                 "colocalisationMethod",
@@ -170,8 +170,6 @@ def test_drop_trans_effects(spark: SparkSession) -> None:
     filtered_coloc = sample_colocalisation.drop_trans_effects(sample_study_locus)
 
     result_ids = (
-        filtered_coloc.df.select("leftStudyLocusId")
-        .toPandas()["leftStudyLocusId"]
-        .tolist()
+        filtered_coloc.df.select("leftLocusId").toPandas()["leftLocusId"].tolist()
     )
     assert result_ids == expected_ids, "Expected ids do not match result ids"
