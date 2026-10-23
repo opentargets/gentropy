@@ -7,7 +7,9 @@ from typing import Literal, NotRequired, TypedDict
 import pyspark.sql.functions as f
 
 from gentropy.common.session import Session
-from gentropy.dataset.study_locus import FinemappingMethod, StudyLocus
+from gentropy.dataset.credible_set import CredibleSet, CredibleSetVariant
+from gentropy.dataset.locus_overlap import LocusOverlap
+from gentropy.dataset.study_locus import FinemappingMethod
 from gentropy.method.colocalisation import ColocalisationMethod
 
 
@@ -38,6 +40,7 @@ class ColocalisationStep:
         self,
         session: Session,
         credible_set_path: str,
+        credible_set_variant_path: str,
         coloc_path: str,
         colocalisation_method: Literal[
             "coloc", "ecaviar", "coloc_pip", "coloc_pip_ecaviar"
@@ -53,6 +56,7 @@ class ColocalisationStep:
         Args:
             session (Session): Session object.
             credible_set_path (str): Input credible sets path.
+            credible_set_variant_path (str): Input credible set variants path.
             coloc_path (str): Output path.
             colocalisation_method (Literal["coloc", "ecaviar", "coloc_pip", "coloc_pip_ecaviar"]): Colocalisation method. Use 'coloc_pip_ecaviar' to run both ColocPIP and eCAVIAR and merge results.
             restrict_right_studies (list[str] | None): List of study IDs to restrict the right side of the colocalisation overlaps to, e.g. all gwas vs a single studyId. Defaults to None.
@@ -68,18 +72,21 @@ class ColocalisationStep:
             pseudocutoff (float): Pseudocount to avoid log(0). Defaults to 1e-10. For coloc method only.
         """
         cm = ColocalisationMethod.get_method_class(colocalisation_method)
-        cs = StudyLocus.from_parquet(session, credible_set_path)
+        cs = CredibleSet.from_parquet(session, credible_set_path)
+        variants = CredibleSetVariant.from_parquet(session, credible_set_variant_path)
 
         if colocalisation_method.upper() == ColocalisationMethod.COLOC.name:
             cs = cs.filter(
-                f.col("finemappingMethod").isin(FinemappingMethod.methods_with_lbf())
+                f.col("fineMappingMethod").isin(FinemappingMethod.methods_with_lbf())
             )
 
         # No `.persist()` on the aligned overlaps here: the production
         # `coloc_pip_ecaviar` path consumes them once (a single fused groupBy), so
-        # caching would be pure overhead. `find_overlaps` already persists the
+        # caching would be pure overhead. `from_credible_sets` already persists the
         # genuinely-reused intermediate (`loci_to_overlap`).
-        overlaps = cs.find_overlaps(
+        overlaps = LocusOverlap.from_credible_sets(
+            cs,
+            variants,
             restrict_right_studies=restrict_right_studies,
             gwas_v_qtl_overlap_only=gwas_v_qtl_overlap_only,
         )

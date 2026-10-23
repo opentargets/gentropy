@@ -553,11 +553,15 @@ class Session:
         This codec implements:
           (1) SplittableCompressionCodec allowing parallel reading of bgzip files.
           (2) GzipCodec allowing reading of standard gzip files.
+
+        The `BGZFCodec` from the same package is registered for files with the `.bgz` extension,
+        such as the FinnGen SuSiE outputs, which the codecs above do not claim.
         """
         c = Session._append_package(c, "org.seqdoop:hadoop-bam:7.10.0")
         return c.set(
             "spark.hadoop.io.compression.codecs",
-            "org.seqdoop.hadoop_bam.util.BGZFEnhancedGzipCodec",
+            "org.seqdoop.hadoop_bam.util.BGZFEnhancedGzipCodec,"
+            "org.seqdoop.hadoop_bam.util.BGZFCodec",
         ).set("spark.gentropy.useEnhancedBgzipCodec", "true")
 
     def _setup_s3_connector(

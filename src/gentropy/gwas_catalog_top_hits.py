@@ -37,8 +37,10 @@ class GWASCatalogTopHitIngestionStep:
             catalog_associations_file (str): Raw GWAS catalog associations file.
             variant_annotation_path (str): Path to GnomAD variants.
             catalog_studies_out (str): Output GWAS catalog studies path.
-            catalog_associations_out (str): Output GWAS catalog associations path.
-            distance (int): Distance, within which tagging variants are collected around the semi-index.
+            catalog_associations_out (str): Output path of the curated associations, as one
+                `AnnotatedStudyLocus` per association; those explained by a more significant one of
+                the study within `distance` are flagged `WINDOW_CLUMPED` and kept.
+            distance (int): Window clumping distance, in base pairs.
         """
         # Extract
         gnomad_variants = VariantIndex.from_parquet(session, variant_annotation_path)
@@ -53,7 +55,7 @@ class GWASCatalogTopHitIngestionStep:
         ).persist()
 
         # Transform
-        study_index, study_locus = GWASCatalogStudySplitter.split(
+        study_index, associations = GWASCatalogStudySplitter.split(
             StudyIndexGWASCatalogParser.from_source(catalog_studies, ancestry_lut),
             GWASCatalogCuratedAssociationsParser.from_source(
                 catalog_associations, gnomad_variants
@@ -70,7 +72,10 @@ class GWASCatalogTopHitIngestionStep:
         )
 
         (
-            study_locus.window_based_clumping(distance)
+            GWASCatalogCuratedAssociationsParser.window_clump(
+                GWASCatalogCuratedAssociationsParser.to_study_locus(associations),
+                distance,
+            )
             .df.write.mode(session.write_mode)
             .parquet(catalog_associations_out)
         )

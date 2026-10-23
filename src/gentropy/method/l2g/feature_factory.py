@@ -49,8 +49,12 @@ from gentropy.dataset.l2g_features.intervals import (
     E2gMeanFeature,
     E2gMeanNeighbourhoodFeature,
 )
+from gentropy.dataset.l2g_features.pathway import (
+    PathwayEnrichmentFeature,
+    PathwayEnrichmentNeighbourhoodFeature,
+)
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
-from gentropy.dataset.study_locus import StudyLocus
+from gentropy.dataset.credible_set import CredibleSetLocus
 
 
 class L2GFeatureInputLoader:
@@ -140,6 +144,8 @@ class FeatureFactory:
         "vepMaximumNeighbourhood": VepMaximumNeighbourhoodFeature,
         "e2gMean": E2gMeanFeature,
         "e2gMeanNeighbourhood": E2gMeanNeighbourhoodFeature,
+        "pathwayEnrichment500kb": PathwayEnrichmentFeature,
+        "pathwayEnrichment500kbNeighbourhood": PathwayEnrichmentNeighbourhoodFeature,
         "geneCount500kb": GeneCountFeature,
         "proteinGeneCount500kb": ProteinGeneCountFeature,
         "isProteinCoding": ProteinCodingFeature,
@@ -148,13 +154,13 @@ class FeatureFactory:
 
     def __init__(
         self: FeatureFactory,
-        study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+        study_loci_to_annotate: CredibleSetLocus | L2GGoldStandard,
         features_list: list[str],
     ) -> None:
         """Initializes the factory.
 
         Args:
-            study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
+            study_loci_to_annotate (CredibleSetLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
             features_list (list[str]): list of features to compute.
         """
         self.study_loci_to_annotate = study_loci_to_annotate
