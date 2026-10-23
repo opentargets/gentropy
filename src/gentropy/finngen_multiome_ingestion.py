@@ -13,7 +13,7 @@ class FinnGenMultiomeIngestionStep:
     Builds a study index (one study per cell type and gene) and SuSiE credible sets from the
     FinnGen multiome atlas cis-eQTL fine-mapping, with effect allele frequencies taken from the
     cis-nominal summary statistics. Credible sets with a lead p-value above
-    `lead_pvalue_threshold` are flagged as sub-significant.
+    `lead_pvalue_threshold` are dropped with their variants.
     """
 
     def __init__(
@@ -25,6 +25,7 @@ class FinnGenMultiomeIngestionStep:
         summary_stats_location_template: str,
         study_index_output_path: str,
         credible_set_output_path: str,
+        credible_set_variant_output_path: str,
         project_prefix: str,
         lead_pvalue_threshold: float,
         credset_lbf_threshold: float,
@@ -40,8 +41,9 @@ class FinnGenMultiomeIngestionStep:
             summary_stats_location_template (str): Location of the cis-nominal summary statistics with `{cell_type}` placeholder.
             study_index_output_path (str): Output path for the study index.
             credible_set_output_path (str): Output path for the credible sets.
+            credible_set_variant_output_path (str): Output path for the credible set variants.
             project_prefix (str): Prefix for study identifiers.
-            lead_pvalue_threshold (float): Lead p-value threshold to flag sub-significant credible sets.
+            lead_pvalue_threshold (float): Credible sets whose lead p-value is above it are dropped.
             credset_lbf_threshold (float): Minimum log10 Bayes factor for credible sets other than the first.
             purity_min_r2_threshold (float): Minimum pairwise r2 within the credible set.
         """
@@ -58,17 +60,17 @@ class FinnGenMultiomeIngestionStep:
             .write.mode(session.write_mode)
             .parquet(study_index_output_path)
         )
-        (
-            FinnGenMultiomeFinemapping.from_source(
-                session=session,
-                snp_files=snp_files,
-                cs_summary_files=cs_summary_files,
-                nominal_files=nominal_files,
-                project_prefix=project_prefix,
-                credset_lbf_threshold=credset_lbf_threshold,
-                purity_min_r2_threshold=purity_min_r2_threshold,
-            )
-            .validate_lead_pvalue(pvalue_cutoff=lead_pvalue_threshold)
-            .df.write.mode(session.write_mode)
-            .parquet(credible_set_output_path)
+        credible_sets, credible_set_variants = FinnGenMultiomeFinemapping.from_source(
+            session=session,
+            snp_files=snp_files,
+            cs_summary_files=cs_summary_files,
+            nominal_files=nominal_files,
+            project_prefix=project_prefix,
+            credset_lbf_threshold=credset_lbf_threshold,
+            purity_min_r2_threshold=purity_min_r2_threshold,
+            lead_pvalue_threshold=lead_pvalue_threshold,
+        )
+        credible_sets.df.write.mode(session.write_mode).parquet(credible_set_output_path)
+        credible_set_variants.df.write.mode(session.write_mode).parquet(
+            credible_set_variant_output_path
         )

@@ -1,4 +1,4 @@
-"""Datasource ingestion: FinnGen multiome single-cell eQTL fine-mapping (SuSiE) to StudyLocus."""
+"""Datasource ingestion: FinnGen multiome single-cell eQTL fine-mapping (SuSiE) to credible sets."""
 
 from __future__ import annotations
 
@@ -6,13 +6,18 @@ from dataclasses import dataclass
 
 import pyspark.sql.functions as f
 import pyspark.sql.types as t
-from pyspark.sql import Column, DataFrame
+from pyspark.sql import Column, DataFrame, Window
 
 from gentropy.common.session import Session
-from gentropy.common.stats import split_pvalue_column
+from gentropy.common.stats import region_log_bayes_factors, split_pvalue_column
+from gentropy.dataset.credible_set import (
+    CredibleSet,
+    CredibleSetVariant,
+    CredibleSetVariantQualityCheck,
+)
 from gentropy.dataset.study_index import StudyType
-from gentropy.dataset.study_locus import FinemappingMethod, StudyLocus
-from gentropy.datasource.finngen.finemapping import FinnGenFinemapping
+from gentropy.dataset.study_locus import FinemappingMethod
+from gentropy.datasource.finngen.finemapping import FinnGenFinemapping, _effect
 
 
 @dataclass
@@ -125,79 +130,28 @@ class FinnGenMultiomeFinemapping:
             gene_id,
         )
 
-    @staticmethod
-    def _pick_single_effect(prefix: str) -> Column:
-        """Pick the per-effect value matching the credible set index.
-
-        Args:
-            prefix (str): Column prefix of the per-effect columns, e.g. `alpha` for `alpha1..alpha10`.
-
-        Returns:
-            Column: Value of the effect given by `credibleSetIndex`.
-        """
-        return f.element_at(
-            f.array(
-                *[f.col(f"{prefix}{i}").cast(t.DoubleType()) for i in range(1, 11)]
-            ),
-            f.col("credibleSetIndex"),
-        )
-
     @classmethod
     def read_snp_files(
         cls: type[FinnGenMultiomeFinemapping],
         session: Session,
         snp_files: str | list[str],
     ) -> DataFrame:
-        """Read credible set variants and the locus boundaries of each gene.
-
-        The files hold every variant tested for a gene, so the minimum and maximum position are
-        aggregated in the same pass that keeps the credible set variants.
+        """Read the SuSiE variant files: every variant tested for a gene, one row each.
 
         Args:
             session (Session): Session object.
             snp_files (str | list[str]): Paths to the `*.SUSIE.snp.tsv.gz` files.
 
         Returns:
-            DataFrame: One row per variant and credible set, with locus boundaries.
+            DataFrame: The variants, keyed by `trait` and `region` (the gene).
         """
-        raw = (
+        return (
             session.spark.read.schema(FinnGenFinemapping.raw_schema)
             .option("delimiter", "\t")
             .option("header", True)
             .csv(snp_files)
             .withColumn("position", f.col("position").cast(t.IntegerType()))
-            .withColumn("credibleSetIndex", f.col("cs").cast(t.IntegerType()))
             .filter(f.col("position").isNotNull())
-        )
-        cs_variant = f.struct(
-            f.regexp_replace(f.col("v"), ":", "_").alias("variantId"),
-            f.regexp_replace(f.col("chromosome"), "^chr", "").alias("chromosome"),
-            f.col("position"),
-            f.col("credibleSetIndex"),
-            f.col("beta").cast(t.DoubleType()).alias("beta"),
-            f.col("se").cast(t.DoubleType()).alias("standardError"),
-            f.col("p").alias("p"),
-            cls._pick_single_effect("alpha").alias("posteriorProbability"),
-            cls._pick_single_effect("lbf_variable").alias("logBF"),
-        )
-        return (
-            raw.groupBy("trait", "region")
-            .agg(
-                f.min("position").alias("locusStart"),
-                f.max("position").alias("locusEnd"),
-                # collect_list drops the nulls produced for variants outside any credible set:
-                f.collect_list(f.when(f.col("credibleSetIndex") > 0, cs_variant)).alias(
-                    "variants"
-                ),
-            )
-            .select(
-                "trait",
-                "region",
-                "locusStart",
-                "locusEnd",
-                f.explode("variants").alias("v"),
-            )
-            .select("trait", "region", "locusStart", "locusEnd", "v.*")
         )
 
     @classmethod
@@ -279,8 +233,26 @@ class FinnGenMultiomeFinemapping:
         project_prefix: str,
         credset_lbf_threshold: float = 0.8685889638065036,
         purity_min_r2_threshold: float = 0.25,
-    ) -> StudyLocus:
-        """Build credible sets from the FinnGen multiome SuSiE results.
+        lead_pvalue_threshold: float | None = None,
+    ) -> tuple[CredibleSet, CredibleSetVariant]:
+        """Build credible sets and their variants from the FinnGen multiome SuSiE results.
+
+        The columns follow the FinnGen GWAS ingestion (`FinnGenFinemapping.from_finngen_susie_finemapping`),
+        whose SuSiE layout these files share:
+
+        - `reportedBeta`, `reportedStandardError`, `pValueMantissa`, `pValueExponent`: the
+          marginal `beta`, `se` and `p` of the alternative allele.
+        - `posteriorProbability`, `logBayesFactor`: `alpha<cs>` and `lbf_variable<cs>` of the
+          credible set's single effect.
+        - `conditionalBeta`, `conditionalStandardError`: the posterior mean and standard deviation
+          of the effect given that the variant is causal, recovered from FinnGen's alpha-weighted
+          `mean<cs>` and `sd<cs>` as `mean<cs> / alpha<cs>` and
+          `sqrt((sd<cs>^2 + mean<cs>^2) / alpha<cs> - (mean<cs> / alpha<cs>)^2)`.
+        - `r2Overall`: `lead_r2`.
+        - `effectAlleleFrequency`: `AF_Allele2` of the cis-nominal files, flagged `EAF_FROM_SOURCE`.
+        - Credible set `logBayesFactor`: the Bayes factor of the single effect over every variant
+          tested for the gene (see `gentropy.common.stats.region_log_bayes_factors`).
+        - `locusStart`, `locusEnd`: the positions of the first and last variant tested for the gene.
 
         Args:
             session (Session): Session object.
@@ -292,114 +264,101 @@ class FinnGenMultiomeFinemapping:
                 Default 0.8685889638065036 == np.log10(np.exp(2)), as in the FinnGen GWAS ingestion.
             purity_min_r2_threshold (float): Minimum pairwise r2 within the credible set. Default 0.25,
                 which is also the cut-off behind FinnGen's `low_purity` flag.
+            lead_pvalue_threshold (float | None): Drop the credible sets whose lead p-value is above it.
+                Defaults to None, which keeps every credible set.
 
         Returns:
-            StudyLocus: Credible sets, one study per cell type and gene.
+            tuple[CredibleSet, CredibleSetVariant]: Credible sets, one study per cell type and gene, and their variants.
         """
-        cs_variants = cls.read_snp_files(session, snp_files).join(
-            cls.read_cs_summary_files(
-                session,
-                cs_summary_files,
-                credset_lbf_threshold,
-                purity_min_r2_threshold,
-            ),
-            on=["trait", "region", "credibleSetIndex"],
-            how="inner",
+        snps = cls.read_snp_files(session, snp_files)
+        credible_sets = cls.read_cs_summary_files(
+            session, cs_summary_files, credset_lbf_threshold, purity_min_r2_threshold
         )
-        cs_variants = (
-            cs_variants.withColumns(
+        keys = ["trait", "region", "credibleSetIndex"]
+        gene = Window.partitionBy("trait", "region")
+        # Every variant tested for the gene counts, for the Bayes factor and the locus bounds.
+        # Both come from the same aggregation, so the variant files are scanned once for them:
+        region_statistics = region_log_bayes_factors(
+            snps.select(
+                "trait",
+                "region",
+                "position",
+                *[f"lbf_variable{i}" for i in range(1, 11)],
+            )
+            .join(credible_sets.select(*keys), on=["trait", "region"])
+            .withColumns(
+                {
+                    "locusStart": f.min("position").over(gene),
+                    "locusEnd": f.max("position").over(gene),
+                }
+            ),
+            [*keys, "locusStart", "locusEnd"],
+            _effect("lbf_variable").cast(t.DoubleType()),
+        )
+        # Read twice, to select the allele frequencies and to join them: persist, so the
+        # SuSiE outputs are read once.
+        members = (
+            snps.withColumn("credibleSetIndex", f.col("cs").cast(t.IntegerType()))
+            .filter(f.col("credibleSetIndex") > 0)
+            .join(credible_sets, on=keys)
+            .join(region_statistics, on=keys)
+            .withColumns(
                 {
                     "cellType": cls.extract_cell_type(f.col("trait")),
                     "geneId": f.col("region"),
+                    "variantId": f.regexp_replace(f.col("v"), ":", "_"),
                 }
             )
-            .join(
-                cls.read_nominal_files(session, nominal_files),
-                on=["cellType", "geneId", "variantId"],
-                how="left",
-            )
-            .select(
-                cls.build_study_id(
-                    project_prefix, f.col("cellType"), f.col("geneId")
-                ).alias("studyId"),
-                "credibleSetIndex",
-                "variantId",
-                "chromosome",
-                "position",
-                "beta",
-                "standardError",
-                *split_pvalue_column(f.col("p")),
-                "posteriorProbability",
-                "logBF",
-                "effectAlleleFrequencyFromSource",
-                "credibleSetlog10BF",
-                "purityMeanR2",
-                "purityMinR2",
-                "locusStart",
-                "locusEnd",
-            )
+            .persist()
         )
-
-        # Lead variant and locus in one aggregation, so the inputs are scanned once.
-        # Ties on posterior probability are broken by variant identifier to keep the lead deterministic.
-        lead_columns = [
+        allele_frequencies = cls.read_nominal_files(session, nominal_files).join(
+            members.select("cellType", "geneId", "variantId").distinct(),
+            on=["cellType", "geneId", "variantId"],
+        )
+        effect_allele_frequency = f.col("effectAlleleFrequencyFromSource")
+        alpha = _effect("alpha").cast(t.DoubleType())
+        mean = _effect("mean").cast(t.DoubleType())
+        sd = _effect("sd").cast(t.DoubleType())
+        # FinnGen reports the effect weighted by alpha; dividing by it gives the conditional
+        # moments. Clamped at 0, as the variance can come out slightly negative in floating point:
+        conditional_beta = f.when(alpha > 0, mean / alpha)
+        conditional_variance = (sd**2 + mean**2) / alpha - conditional_beta**2
+        members = members.join(
+            allele_frequencies, on=["cellType", "geneId", "variantId"], how="left"
+        ).select(
+            cls.build_study_id(
+                project_prefix, f.col("cellType"), f.col("geneId")
+            ).alias("studyId"),
+            "credibleSetIndex",
             "variantId",
-            "chromosome",
-            "position",
-            "beta",
-            "standardError",
-            "pValueMantissa",
-            "pValueExponent",
-            "effectAlleleFrequencyFromSource",
-        ]
-        credible_set_columns = [
-            "credibleSetlog10BF",
-            "purityMeanR2",
-            "purityMinR2",
+            f.regexp_replace(f.col("chromosome"), "^chr", "").alias("chromosome"),
             "locusStart",
             "locusEnd",
-        ]
-        credible_sets = (
-            cs_variants.groupBy("studyId", "credibleSetIndex")
-            .agg(
-                f.max_by(
-                    f.struct(*lead_columns),
-                    f.struct("posteriorProbability", "variantId"),
-                ).alias("lead"),
-                *[f.first(c).alias(c) for c in credible_set_columns],
-                f.collect_list(
-                    f.struct(
-                        f.col("variantId"),
-                        f.col("posteriorProbability"),
-                        f.col("logBF"),
-                        f.col("pValueMantissa"),
-                        f.col("pValueExponent"),
-                        f.col("beta"),
-                        f.col("standardError"),
-                    )
-                ).alias("locus"),
+            f.lit(StudyType.SCEQTL.value).alias("studyType"),
+            f.lit(FinemappingMethod.SUSIE.value).alias("fineMappingMethod"),
+            "credibleSetLogBayesFactor",
+            "purityMeanR2",
+            "purityMinR2",
+            *split_pvalue_column(f.col("p").cast(t.DoubleType())),
+            f.col("beta").cast(t.DoubleType()).alias("reportedBeta"),
+            f.col("se").cast(t.DoubleType()).alias("reportedStandardError"),
+            effect_allele_frequency.alias("effectAlleleFrequency"),
+            alpha.alias("posteriorProbability"),
+            _effect("lbf_variable").cast(t.DoubleType()).alias("logBayesFactor"),
+            conditional_beta.alias("conditionalBeta"),
+            f.when(
+                alpha > 0, f.sqrt(f.greatest(conditional_variance, f.lit(0.0)))
+            ).alias("conditionalStandardError"),
+            f.col("lead_r2").cast(t.FloatType()).alias("r2Overall"),
+            f.when(
+                effect_allele_frequency.isNotNull(),
+                f.array(f.lit(CredibleSetVariantQualityCheck.EAF_FROM_SOURCE.value)),
             )
-            .select(
-                "studyId",
-                "credibleSetIndex",
-                "lead.*",
-                *credible_set_columns,
-                "locus",
-            )
+            .otherwise(f.array())
+            .alias("qualityControls"),
         )
-
-        return StudyLocus(
-            _df=credible_sets.withColumns(
-                {
-                    "studyType": f.lit(StudyType.SCEQTL.value),
-                    "finemappingMethod": f.lit(FinemappingMethod.SUSIE.value),
-                    "isTransQtl": f.lit(False),
-                }
-            ).withColumn(
-                "studyLocusId",
-                StudyLocus.assign_study_locus_id(
-                    ["studyId", "variantId", "finemappingMethod"]
-                ),
-            ),
-            _schema=StudyLocus.get_schema(),
-        ).annotate_credible_sets()
+        return CredibleSet.from_members(
+            members,
+            ["studyId", "credibleSetIndex"],
+            lead_pvalue_threshold=lead_pvalue_threshold,
+        )

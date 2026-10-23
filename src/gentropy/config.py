@@ -255,6 +255,7 @@ class FinngenMultiomeIngestionConfig(StepConfig):
     summary_stats_location_template: str = "gs://finngen-public-data-multiome/eQTL/cis_nominal/finngen_multiome_v1.eQTL.{cell_type}.cis_nominal.tsv.gz"
     study_index_output_path: str = MISSING
     credible_set_output_path: str = MISSING
+    credible_set_variant_output_path: str = MISSING
     project_prefix: str = "FINNGEN_MULTIOME_V1"
     lead_pvalue_threshold: float = 1e-3
     credset_lbf_threshold: float = 0.8685889638065036
