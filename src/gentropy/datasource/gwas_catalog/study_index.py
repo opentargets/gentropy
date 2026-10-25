@@ -606,9 +606,11 @@ class StudyIndexGWASCatalog(StudyIndex):
         sample_size_lut = (
             self.df.select(
                 "studyId",
-                f.explode_outer(f.split(f.col("initialSampleSize"), r",\s+")).alias(
-                    "samples"
-                ),
+                # Commas inside parentheses belong to the population label, e.g.
+                # "Greater Middle Eastern (Middle Eastern, North African or Persian)":
+                f.explode_outer(
+                    f.split(f.col("initialSampleSize"), r",\s+(?![^(]*\))")
+                ).alias("samples"),
             )
             # Extracting the sample size from the string:
             .withColumn(

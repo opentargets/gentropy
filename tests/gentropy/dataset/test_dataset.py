@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import numpy as np
 import pyspark.sql.functions as f
 import pytest
 from pyspark.sql import Column, SparkSession
 from pyspark.sql.types import DoubleType, IntegerType, StructField, StructType
 
+from gentropy.common.session import Session
 from gentropy.dataset.dataset import Dataset
 from gentropy.dataset.study_index import StudyIndex
 
@@ -144,3 +147,24 @@ def test_flag_duplicates_honours_order_by(spark: SparkSession) -> None:
 
     assert retained([f.col("rank").asc()]) == 1
     assert retained([f.col("rank").desc()]) == 3
+
+
+def test_from_parquet_rejects_files_without_a_required_column(
+    session: Session, tmp_path: Path
+) -> None:
+    """A NOT NULL column absent from the files raises instead of reading as nulls."""
+    path = str(tmp_path / "other")
+    session.spark.createDataFrame([(1,)], "other int").write.parquet(path)
+
+    with pytest.raises(ValueError, match=r"lacks the required columns \['value'\]"):
+        MockDataset.from_parquet(session, path)
+
+
+def test_from_parquet_reads_files_with_the_required_columns(
+    session: Session, tmp_path: Path
+) -> None:
+    """Files holding every NOT NULL column are read as before."""
+    path = str(tmp_path / "value")
+    session.spark.createDataFrame([(1,)], MockDataset.get_schema()).write.parquet(path)
+
+    assert MockDataset.from_parquet(session, path).df.collect()[0]["value"] == 1

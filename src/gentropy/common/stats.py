@@ -7,7 +7,7 @@ from math import floor, log10
 from typing import TYPE_CHECKING
 
 import numpy as np
-from pyspark.sql import Column
+from pyspark.sql import Column, Window
 from pyspark.sql import functions as f
 from pyspark.sql import types as t
 
@@ -16,6 +16,8 @@ from gentropy.common.udf import chi2_inverse_survival_function, chi2_survival_fu
 
 if TYPE_CHECKING:
     from numpy.typing import NDArray
+    from pyspark.sql import DataFrame
+
 
 ###################### PYTHON FUNCTION #######################
 
@@ -73,6 +75,61 @@ def get_logsum_column(arr: Column) -> Column:
     )
 
 
+def region_log_bayes_factors(
+    variants: DataFrame, keys: list[str], log_bayes_factor: Column
+) -> DataFrame:
+    r"""Natural log Bayes factor of each SuSiE single effect over its whole fine-mapped region.
+
+    This is the definition of `CredibleSet.logBayesFactor` for every SuSiE source. With
+    $`\operatorname{lbf}_{j}`$ the natural log Bayes factor of variant $`j`$ in the effect and a
+    uniform prior $`1/p`$ over the $`p`$ variants of the region:
+
+    ```math
+    \log\operatorname{BF} = \operatorname{LSE}_{j}(\operatorname{lbf}_{j}) - \log p
+    = m + \log\sum_{j} e^{\operatorname{lbf}_{j} - m} - \log p, \qquad m = \max_{j} \operatorname{lbf}_{j}
+    ```
+
+    It is computed with plain aggregations, one row per effect, rather than over an array of the
+    region's Bayes factors: a region holds thousands of variants, and log-sum-exp over such arrays
+    with higher-order functions is interpreted, so it was the slowest part of ingestion.
+
+    Args:
+        variants (DataFrame): One row per variant of the region and effect.
+        keys (list[str]): Columns identifying the effect, e.g. study, region and credible set index.
+        log_bayes_factor (Column): The variant's natural log Bayes factor in the effect; nulls are ignored.
+
+    Returns:
+        DataFrame: One row per effect: `keys` and `credibleSetLogBayesFactor`.
+
+    Examples:
+        >>> df = spark.createDataFrame([("cs1", 2.0), ("cs1", 0.0), ("cs1", None)], "cs string, lbf double")
+        >>> region_log_bayes_factors(df, ["cs"], f.col("lbf")).select(
+        ...     "cs", f.round("credibleSetLogBayesFactor", 6).alias("bf")
+        ... ).show()  # log((e^2 + e^0) / 2)
+        +---+--------+
+        | cs|      bf|
+        +---+--------+
+        |cs1|1.433781|
+        +---+--------+
+        <BLANKLINE>
+    """
+    lbf = f.col("_lbf")
+    maximum = f.max(lbf).over(Window.partitionBy(*keys))
+    return (
+        variants.select(*keys, log_bayes_factor.alias("_lbf"))
+        .filter(lbf.isNotNull())
+        .withColumn("_max", maximum)
+        .groupBy(*keys)
+        .agg(
+            (
+                f.first("_max")
+                + f.log(f.sum(f.exp(lbf - f.col("_max"))))
+                - f.log(f.count(lbf))
+            ).alias("credibleSetLogBayesFactor")
+        )
+    )
+
+
 def split_pvalue(pvalue: float) -> tuple[float, int]:
     """Convert a float to 10 based exponent and mantissa.
 
@@ -107,6 +164,31 @@ def split_pvalue(pvalue: float) -> tuple[float, int]:
 
 
 ##################### SPARK FUNCTION #######################
+
+
+def pvalue_at_most(mantissa: Column, exponent: Column, pvalue: float) -> Column:
+    """Whether a p-value given as mantissa and exponent is at most ``pvalue``.
+
+    The comparison is done on the base-10 components, so no p-value underflows. It is null
+    when either component is null, which a filter treats as not passing.
+
+    Args:
+        mantissa (Column): The p-value's base-10 mantissa.
+        exponent (Column): The p-value's base-10 exponent.
+        pvalue (float): The threshold, kept when equal.
+
+    Returns:
+        Column: True when the p-value is at most the threshold.
+
+    Examples:
+        >>> df = spark.createDataFrame([(1.0, -8), (5.0, -8), (5.1, -8), (None, None)], "m float, e int")
+        >>> [row.ok for row in df.select(pvalue_at_most(df.m, df.e, 5e-8).alias("ok")).collect()]
+        [True, True, False, None]
+    """
+    threshold_mantissa, threshold_exponent = split_pvalue(pvalue)
+    return (exponent < threshold_exponent) | (
+        (exponent == threshold_exponent) & (mantissa <= threshold_mantissa)
+    )
 
 
 def chi2_from_pvalue(p_value_mantissa: Column, p_value_exponent: Column) -> Column:

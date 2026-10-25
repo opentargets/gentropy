@@ -60,9 +60,6 @@ def test_schema_columns_camelcase(schema_json: str) -> None:
     Args:
         schema_json (str): schema filename
     """
-    if schema_json == "vep_json_output.json":
-        pytest.skip("VEP schema is exempt from camelCase check.")
-
     if schema_json == "summary_statistics_qc.json":
         pytest.skip(
             "Summary statistics QC schema is exempt from camelCase check for backward compatibility."

@@ -15,10 +15,10 @@ from pyspark.sql.types import StringType, StructType
 from gentropy.common.schemas import parse_spark_schema
 from gentropy.common.session import Session
 from gentropy.common.spark import pivot_df
+from gentropy.dataset.credible_set import CredibleSet
 from gentropy.dataset.dataset import Dataset
 from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
 from gentropy.dataset.study_index import StudyIndex
-from gentropy.dataset.study_locus import StudyLocus
 from gentropy.method.l2g.model import LocusToGeneModel
 
 if TYPE_CHECKING:
@@ -49,7 +49,7 @@ class L2GPrediction(Dataset):
     def from_credible_set(
         cls: type[L2GPrediction],
         session: Session,
-        credible_set: StudyLocus,
+        credible_set: CredibleSet,
         feature_matrix: L2GFeatureMatrix,
         model_path: str | None,
         features_list: list[str] | None = None,
@@ -61,7 +61,7 @@ class L2GPrediction(Dataset):
 
         Args:
             session (Session): Session object that contains the Spark session
-            credible_set (StudyLocus): Dataset containing credible sets from GWAS only
+            credible_set (CredibleSet): Dataset containing credible sets from GWAS only
             feature_matrix (L2GFeatureMatrix): Dataset containing all credible sets and their annotations
             model_path (str | None): Path to the model file. It can be either in the filesystem or the name on the Hugging Face Hub (in the form of username/repo_name).
             features_list (list[str] | None): Default list of features the model uses. Only used if the model is not downloaded from the Hub. CAUTION: This default list can differ from the actual list the model was trained on.
@@ -100,8 +100,8 @@ class L2GPrediction(Dataset):
             L2GFeatureMatrix(
                 _df=(
                     credible_set.df.filter(f.col("studyType") == "gwas")
-                    .select("studyLocusId")
-                    .join(feature_matrix._df, "studyLocusId")
+                    .select(f.col("id").alias("credibleSetId"))
+                    .join(feature_matrix._df, "credibleSetId")
                     .filter(f.col("isProteinCoding") == 1)
                 ),
             )
@@ -112,14 +112,14 @@ class L2GPrediction(Dataset):
 
     def to_disease_target_evidence(
         self: L2GPrediction,
-        study_locus: StudyLocus,
+        study_locus: CredibleSet,
         study_index: StudyIndex,
         l2g_threshold: float = 0.05,
     ) -> DataFrame:
         """Convert locus to gene predictions to disease target evidence.
 
         Args:
-            study_locus (StudyLocus): Study locus dataset
+            study_locus (CredibleSet): Study locus dataset
             study_index (StudyIndex): Study index dataset
             l2g_threshold (float): Threshold to consider a gene as a target. Defaults to 0.05.
 
@@ -150,8 +150,8 @@ class L2GPrediction(Dataset):
         return (
             self.df.filter(f.col("score") >= l2g_threshold)
             .join(
-                study_locus.df.select("studyLocusId", "studyId"),
-                on="studyLocusId",
+                study_locus.df.select(f.col("id").alias("credibleSetId"), "studyId"),
+                on="credibleSetId",
                 how="inner",
             )
             .join(
@@ -177,7 +177,7 @@ class L2GPrediction(Dataset):
                 f.explode(f.col("diseaseIds")).alias("diseaseFromSourceMappedId"),
                 f.col("score").alias("resourceScore"),
                 "curationDate",
-                "studyLocusId",
+                "credibleSetId",
                 "literature",
             )
         )
@@ -210,7 +210,7 @@ class L2GPrediction(Dataset):
         # Format and pivot the dataframe to pass them before calculating shapley values
         pdf = pivot_df(
             df=self.df.withColumn("feature", f.explode("features")).select(
-                "studyLocusId",
+                "credibleSetId",
                 "geneId",
                 "score",
                 f.col("feature.name").alias("feature_name"),
@@ -218,7 +218,7 @@ class L2GPrediction(Dataset):
             ),
             pivot_col="feature_name",
             value_col="feature_value",
-            grouping_cols=[f.col("studyLocusId"), f.col("geneId"), f.col("score")],
+            grouping_cols=[f.col("credibleSetId"), f.col("geneId"), f.col("score")],
         ).toPandas()
         pdf = pdf.rename(
             # trim the suffix that is added after pivoting the df
@@ -333,11 +333,11 @@ class L2GPrediction(Dataset):
             for col in features_list
         ]
         self.df = self.df.join(
-            feature_matrix._df.select(*features_list, "studyLocusId", "geneId"),
-            on=["studyLocusId", "geneId"],
+            feature_matrix._df.select(*features_list, "credibleSetId", "geneId"),
+            on=["credibleSetId", "geneId"],
             how="left",
         ).select(
-            "studyLocusId",
+            "credibleSetId",
             "geneId",
             "score",
             f.array(*feature_expressions).alias("features"),
