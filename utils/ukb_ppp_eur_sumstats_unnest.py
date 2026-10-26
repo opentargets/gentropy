@@ -20,13 +20,18 @@ Steps, each run separately:
         and the action, `copy` (missing there), `identical` (already there, same crc32c) or
         `conflict` (the chromosome is there with different content). Read-only.
     python utils/ukb_ppp_eur_sumstats_unnest.py apply --manifest <csv>
-        Copies the `copy` rows, per study with `gcloud storage rsync --no-clobber`, so nothing at
-        the top level is overwritten. Refuses to run when the manifest has a conflict.
+        Refuses to run when the manifest has a conflict or the nested folder no longer matches
+        it. Copies the `copy` rows, per study with `gcloud storage rsync --no-clobber`, so
+        nothing at the top level is overwritten. Never deletes.
     python utils/ukb_ppp_eur_sumstats_unnest.py verify --manifest <csv>
-        Lists the top level again: every manifest file must be there with its crc32c, and every
-        study must have one file per chromosome for all 23 chromosomes. Read-only.
-    python utils/ukb_ppp_eur_sumstats_unnest.py cleanup --manifest <csv> --yes
-        Runs verify, then deletes the nested folder. Irreversible.
+        Lists the top level again: every manifest file must be there with its size and crc32c,
+        and every study must have one file per chromosome for all 23 chromosomes. Read-only.
+    python utils/ukb_ppp_eur_sumstats_unnest.py cleanup --manifest <csv> [--yes]
+        Without --yes, a dry run: runs every check and reports what would be deleted. With
+        --yes, and only when every check passes: the nested folder must still match the manifest
+        exactly, verify must pass, and then exactly the manifest's nested objects are deleted,
+        never the folder recursively. The bucket has neither soft delete nor versioning, so this
+        cannot be undone.
 
 `--manifest` can be a local path or a gs:// URL. Requires gcloud.
 """
@@ -254,6 +259,45 @@ def manifest(path: str) -> int:
     return 1 if actions["conflict"] else 0
 
 
+def nested_differences(rows: list[dict[str, str]]) -> dict[str, list[str]]:
+    """Compare the nested folder as it is now with the manifest.
+
+    Args:
+        rows (list[dict[str, str]]): Manifest rows.
+
+    Returns:
+        dict[str, list[str]]: Nested objects not in the manifest, manifest rows no longer nested,
+            and objects whose size or crc32c changed; all empty when they match exactly.
+    """
+    now = {
+        f["url"]: (f["size"], f["crc32c"]) for f in list_partition_files(f"{NESTED}/**")
+    }
+    listed = {r["source"]: (r["size"], r["crc32c"]) for r in rows}
+    return {
+        "nested objects not in the manifest": sorted(set(now) - set(listed)),
+        "manifest objects no longer nested": sorted(set(listed) - set(now)),
+        "nested objects changed since the manifest": sorted(
+            url for url in set(now) & set(listed) if now[url] != listed[url]
+        ),
+    }
+
+
+def report(checks: dict[str, list[Any]]) -> bool:
+    """Print checks and whether they all pass.
+
+    Args:
+        checks (dict[str, list[Any]]): Check name and its failing items.
+
+    Returns:
+        bool: True when no check has a failing item.
+    """
+    for name, items in checks.items():
+        print(f"{'PASS' if not items else 'FAIL'} {name}: {len(items)}")
+        for item in items[:10]:
+            print(f"  {item}")
+    return not any(checks.values())
+
+
 def apply(path: str, parallel: int) -> int:
     """Copy the nested files missing at the top level, never overwriting.
 
@@ -267,6 +311,9 @@ def apply(path: str, parallel: int) -> int:
     rows = read_manifest(path)
     if any(r["action"] == "conflict" for r in rows):
         print("FAILED the manifest has conflicts; resolve them before copying")
+        return 1
+    if not report(nested_differences(rows)):
+        print("FAILED the nested folder changed since the manifest; rebuild it first")
         return 1
     studies = sorted({r["studyId"] for r in rows if r["action"] == "copy"})
     print(
@@ -325,7 +372,7 @@ def verify(path: str) -> int:
         r
         for r in rows
         if (key := (r["studyId"], r["chromosome"], r["file"])) in at_top
-        and at_top[key]["crc32c"] != r["crc32c"]
+        and (at_top[key]["crc32c"], at_top[key]["size"]) != (r["crc32c"], r["size"])
     ]
     files_per_chromosome = collections.Counter(
         (f["studyId"], f["chromosome"]) for f in top
@@ -337,39 +384,62 @@ def verify(path: str) -> int:
     doubled = sorted({s for (s, _), n in files_per_chromosome.items() if n > 1})
     failures: dict[str, list[Any]] = {
         "manifest files missing at the top level": missing,
-        "manifest files with a different crc32c at the top level": different,
+        "manifest files with a different size or crc32c at the top level": different,
         f"studies with fewer than {CHROMOSOMES} chromosomes": incomplete,
         "studies with a chromosome in several files": doubled,
     }
-    for name, items in failures.items():
-        print(f"{'PASS' if not items else 'FAIL'} {name}: {len(items)}")
-        for item in items[:10]:
-            print(f"  {item}")
+    ok = report(failures)
     print(f"INFO top-level studies: {len(chromosomes)}, files: {len(top)}")
-    ok = not any(failures.values())
     print("ALL CHECKS PASSED" if ok else "CHECKS FAILED")
     return 0 if ok else 1
 
 
 def cleanup(path: str, confirmed: bool) -> int:
-    """Delete the nested folder once verify passes.
+    """Delete the manifest's nested objects, only when every check passes.
+
+    Without `confirmed`, it is a dry run: the checks run and nothing is deleted.
 
     Args:
         path (str): Manifest location.
         confirmed (bool): Whether `--yes` was given.
 
     Returns:
-        int: 0 when the folder was deleted, 1 otherwise.
+        int: 0 when the checks pass (and, if confirmed, the objects were deleted), 1 otherwise.
     """
-    if not confirmed:
-        print(f"FAILED cleanup deletes {NESTED} for good: pass --yes")
+    rows = read_manifest(path)
+    print("== 1. the nested folder still matches the manifest")
+    if not report(nested_differences(rows)):
+        print("FAILED nothing deleted: the nested folder changed since the manifest")
         return 1
+    print("== 2. every nested file is at the top level, and every study is complete")
     if verify(path):
-        print(f"FAILED verify did not pass; {NESTED} is kept")
+        print("FAILED nothing deleted: verify did not pass")
         return 1
-    subprocess.run(["gcloud", "storage", "rm", "--recursive", NESTED], check=True)
-    print(f"INFO deleted {NESTED}")
-    return 0
+    urls = [r["source"] for r in rows]
+    if not all(url.startswith(f"{NESTED}/studyId=") for url in urls):
+        print(
+            f"FAILED nothing deleted: a manifest source is outside {NESTED}/studyId=*"
+        )
+        return 1
+    total = sum(int(r["size"]) for r in rows)
+    print(
+        f"INFO would delete {len(urls)} nested objects ({total / 1e9:.1f} GB), nothing else"
+    )
+    if not confirmed:
+        print(
+            "INFO dry run: nothing deleted. Pass --yes to delete; it cannot be undone."
+        )
+        return 0
+    subprocess.run(
+        ["gcloud", "storage", "rm", "-I"],
+        input="\n".join(urls) + "\n",
+        text=True,
+        check=True,
+    )
+    left = list_partition_files(f"{NESTED}/**")
+    print(f"INFO deleted {len(urls)} objects; nested partition files left: {len(left)}")
+    print("== 3. verify after the deletion")
+    return verify(path)
 
 
 def main() -> int:
@@ -382,7 +452,11 @@ def main() -> int:
     parser.add_argument("step", choices=["manifest", "apply", "verify", "cleanup"])
     parser.add_argument("--manifest", required=True, help="Local path or gs:// URL.")
     parser.add_argument("--parallel", type=int, default=16)
-    parser.add_argument("--yes", action="store_true", help="Confirm cleanup.")
+    parser.add_argument(
+        "--yes",
+        action="store_true",
+        help="Delete in cleanup; without it, cleanup is a dry run.",
+    )
     args = parser.parse_args()
     if args.step == "manifest":
         return manifest(args.manifest)
