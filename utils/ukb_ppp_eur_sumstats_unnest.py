@@ -15,7 +15,8 @@ copies every nested file that is not already at the top level, which completes e
 Steps, each run separately:
 
     python utils/ukb_ppp_eur_sumstats_unnest.py manifest --manifest <csv>
-        Lists both folders and writes one row per nested file: its destination at the top level
+        Fails unless every object under the root is a partition file, at the top level or one
+        level nested, or `_SUCCESS`. Lists both folders and writes one row per nested file: its destination at the top level
         and the action, `copy` (missing there), `identical` (already there, same crc32c) or
         `conflict` (the chromosome is there with different content). Read-only.
     python utils/ukb_ppp_eur_sumstats_unnest.py apply --manifest <csv>
@@ -58,6 +59,31 @@ FIELDS = [
     "action",
 ]
 PARTITION = re.compile(r"studyId=([^/]+)/chromosome=([^/]+)/([^/]+)$")
+# Every object under ROOT must have one of these shapes, relative to ROOT.
+EXPECTED_SHAPES = (
+    re.compile(r"_SUCCESS"),
+    re.compile(r"studyId=[^/]+/chromosome=[^/]+/part-[^/]+\.parquet"),
+    re.compile(
+        r"harmonised_summary_statistics/studyId=[^/]+/chromosome=[^/]+/part-[^/]+\.parquet"
+    ),
+)
+
+
+def unexpected_objects() -> list[str]:
+    """Objects under ROOT that are neither partition files, one level nested at most, nor _SUCCESS.
+
+    Returns:
+        list[str]: Their URLs; empty when the layout is as expected.
+    """
+    names = gcloud(
+        "storage", "objects", "list", f"{ROOT}/**", "--format=value(name)"
+    ).split()
+    prefix = ROOT.split("/", 3)[3] + "/"
+    return [
+        f"{ROOT}/{name[len(prefix) :]}"
+        for name in names
+        if not any(shape.fullmatch(name[len(prefix) :]) for shape in EXPECTED_SHAPES)
+    ]
 
 
 def gcloud(*args: str) -> str:
@@ -169,6 +195,16 @@ def manifest(path: str) -> int:
     Returns:
         int: 0 when the manifest has no conflict, 1 otherwise.
     """
+    unexpected = unexpected_objects()
+    if unexpected:
+        print(
+            f"FAILED {len(unexpected)} objects do not fit the expected layout "
+            f"(partition files at most one level nested, and _SUCCESS):"
+        )
+        for url in unexpected[:20]:
+            print(f"  {url}")
+        return 1
+    print("INFO layout: only partition files, at most one level nested, and _SUCCESS")
     nested = list_partition_files(f"{NESTED}/**")
     top = top_level_files()
     at_top = {(f["studyId"], f["chromosome"]): f for f in top}
