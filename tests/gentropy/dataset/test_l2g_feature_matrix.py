@@ -9,7 +9,7 @@ import pytest
 from pyspark.sql.types import (
     ArrayType,
     BooleanType,
-    DoubleType,
+    FloatType,
     IntegerType,
     StringType,
     StructField,
@@ -17,10 +17,10 @@ from pyspark.sql.types import (
 )
 
 from gentropy.dataset.colocalisation import Colocalisation
+from gentropy.dataset.credible_set import CredibleSetLocus
 from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
 from gentropy.dataset.study_index import StudyIndex
-from gentropy.dataset.study_locus import StudyLocus
 from gentropy.dataset.target_index import TargetIndex
 from gentropy.method.l2g.feature_factory import L2GFeatureInputLoader
 
@@ -166,7 +166,7 @@ class TestFromFeaturesList:
             ),
             _schema=L2GGoldStandard.get_schema(),
         )
-        self.sample_study_locus = StudyLocus(
+        self.sample_study_locus = CredibleSetLocus(
             _df=spark.createDataFrame(
                 [
                     (
@@ -195,7 +195,7 @@ class TestFromFeaturesList:
                 ],
                 schema=StructType(
                     [
-                        StructField("studyLocusId", StringType(), True),
+                        StructField("credibleSetId", StringType(), True),
                         StructField("variantId", StringType(), True),
                         StructField("studyId", StringType(), True),
                         StructField("chromosome", StringType(), True),
@@ -207,7 +207,7 @@ class TestFromFeaturesList:
                                     [
                                         StructField("variantId", StringType(), True),
                                         StructField(
-                                            "posteriorProbability", DoubleType(), True
+                                            "posteriorProbability", FloatType(), True
                                         ),
                                     ]
                                 )
@@ -218,7 +218,7 @@ class TestFromFeaturesList:
                     ]
                 ),
             ),
-            _schema=StudyLocus.get_schema(),
+            _schema=CredibleSetLocus.get_schema(),
         )
         self.sample_study_index = StudyIndex(
             _df=spark.createDataFrame(
@@ -236,8 +236,8 @@ class TestFromFeaturesList:
             _df=spark.createDataFrame(
                 [("1", "2", "eqtl", "X", "COLOC", 1, 0.9)],
                 [
-                    "leftStudyLocusId",
-                    "rightStudyLocusId",
+                    "leftLocusId",
+                    "rightLocusId",
                     "rightStudyType",
                     "chromosome",
                     "colocalisationMethod",
@@ -279,7 +279,7 @@ def test_fill_na(spark: SparkSession) -> None:
         _df=spark.createDataFrame(
             [
                 {
-                    "studyLocusId": "1",
+                    "credibleSetId": "1",
                     "geneId": "gene1",
                     "proteinGeneCount500kb": 3.0,
                     "geneCount500kb": 8.0,
@@ -287,7 +287,7 @@ def test_fill_na(spark: SparkSession) -> None:
                     "anotherFeature": None,
                 },
                 {
-                    "studyLocusId": "1",
+                    "credibleSetId": "1",
                     "geneId": "gene2",
                     "proteinGeneCount500kb": 4.0,
                     "geneCount500kb": 10.0,
@@ -295,7 +295,7 @@ def test_fill_na(spark: SparkSession) -> None:
                     "anotherFeature": None,
                 },
                 {
-                    "studyLocusId": "1",
+                    "credibleSetId": "1",
                     "geneId": "gene3",
                     "proteinGeneCount500kb": None,
                     "geneCount500kb": None,
@@ -303,14 +303,14 @@ def test_fill_na(spark: SparkSession) -> None:
                     "anotherFeature": None,
                 },
             ],
-            schema="studyLocusId STRING, geneId STRING, proteinGeneCount500kb DOUBLE, geneCount500kb DOUBLE, isProteinCoding DOUBLE, anotherFeature DOUBLE",
+            schema="credibleSetId STRING, geneId STRING, proteinGeneCount500kb DOUBLE, geneCount500kb DOUBLE, isProteinCoding DOUBLE, anotherFeature DOUBLE",
         ),
     )
     observed_df = sample_fm.fill_na()._df.filter(f.col("geneId") == "gene3")
     expected_df_missing_row = spark.createDataFrame(
         [
             {
-                "studyLocusId": "1",
+                "credibleSetId": "1",
                 "geneId": "gene3",
                 "proteinGeneCount500kb": 3.5,
                 "geneCount500kb": 9.0,
@@ -319,7 +319,7 @@ def test_fill_na(spark: SparkSession) -> None:
             },
         ],
     ).select(
-        "studyLocusId",
+        "credibleSetId",
         "geneId",
         "proteinGeneCount500kb",
         "geneCount500kb",
@@ -327,3 +327,75 @@ def test_fill_na(spark: SparkSession) -> None:
         "anotherFeature",
     )
     assert observed_df.collect() == expected_df_missing_row.collect()
+
+
+class TestCredibleSetLocusBuildFeatureMatrix:
+    """Collection of tests related to building feature matrix from credible set loci."""
+
+    def test_build_feature_matrix(
+        self: TestCredibleSetLocusBuildFeatureMatrix,
+        mock_credible_set_locus: CredibleSetLocus,
+        mock_colocalisation: Colocalisation,
+        mock_study_index: StudyIndex,
+    ) -> None:
+        """Test building feature matrix with the eQtlColocH4Maximum feature."""
+        features_list = ["eQtlColocH4Maximum"]
+        loader = L2GFeatureInputLoader(
+            colocalisation=mock_colocalisation,
+            study_index=mock_study_index,
+            study_locus=mock_credible_set_locus,
+        )
+        fm = mock_credible_set_locus.build_feature_matrix(features_list, loader)
+        assert isinstance(fm, L2GFeatureMatrix), (
+            "Feature matrix should be of type L2GFeatureMatrix"
+        )
+
+    def test_build_feature_matrix_append_null_false(
+        self: TestCredibleSetLocusBuildFeatureMatrix,
+        mock_credible_set_locus: CredibleSetLocus,
+        mock_colocalisation: Colocalisation,
+        mock_study_index_no_pqtl: StudyIndex,
+    ) -> None:
+        """Test building feature matrix with the eQtlColocH4Maximum feature."""
+        features_list = ["eQtlColocH4Maximum", "pQtlColocH4Maximum"]
+        loader = L2GFeatureInputLoader(
+            colocalisation=mock_colocalisation,
+            study_index=mock_study_index_no_pqtl,
+            study_locus=mock_credible_set_locus,
+        )
+
+        fm = mock_credible_set_locus.build_feature_matrix(
+            features_list, loader, append_null_features=False
+        )
+
+        assert isinstance(fm, L2GFeatureMatrix), (
+            "Feature matrix should be of type L2GFeatureMatrix"
+        )
+        assert "eQtlColocH4Maximum" in fm._df.columns
+        assert "eQtlColocH4Maximum" in fm.features_list
+        assert "pQtlColocH4Maximum" not in fm._df.columns
+        assert "pQtlColocH4Maximum" not in fm.features_list
+
+    def test_build_feature_matrix_append_null_true(
+        self: TestCredibleSetLocusBuildFeatureMatrix,
+        mock_credible_set_locus: CredibleSetLocus,
+        mock_colocalisation: Colocalisation,
+        mock_study_index_no_pqtl: StudyIndex,
+    ) -> None:
+        """Test building feature matrix with the eQtlColocH4Maximum feature."""
+        features_list = ["eQtlColocH4Maximum", "pQtlColocH4Maximum"]
+        loader = L2GFeatureInputLoader(
+            colocalisation=mock_colocalisation,
+            study_index=mock_study_index_no_pqtl,
+            study_locus=mock_credible_set_locus,
+        )
+        fm = mock_credible_set_locus.build_feature_matrix(
+            features_list, loader, append_null_features=True
+        )
+        assert isinstance(fm, L2GFeatureMatrix), (
+            "Feature matrix should be of type L2GFeatureMatrix"
+        )
+        assert "eQtlColocH4Maximum" in fm._df.columns
+        assert "eQtlColocH4Maximum" in fm.features_list
+        assert "pQtlColocH4Maximum" in fm._df.columns
+        assert "pQtlColocH4Maximum" in fm.features_list

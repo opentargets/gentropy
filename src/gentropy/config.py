@@ -47,6 +47,7 @@ class ColocalisationConfig(StepConfig):
     """Colocalisation step configuration."""
 
     credible_set_path: str = MISSING
+    credible_set_variant_path: str = MISSING
     coloc_path: str = MISSING
     colocalisation_method: str = MISSING
     restrict_right_studies: list[str] | None = None
@@ -160,6 +161,7 @@ class GWASCatalogTopHitIngestionConfig(StepConfig):
     variant_annotation_path: str = MISSING
     catalog_studies_out: str = MISSING
     catalog_associations_out: str = MISSING
+    distance: int = 500_000
     _target_: str = "gentropy.gwas_catalog_top_hits.GWASCatalogTopHitIngestionStep"
 
 
@@ -175,17 +177,6 @@ class GWASCatalogSumstatsPreprocessConfig(StepConfig):
 
 
 @dataclass
-class FoldXVariantAnnotationConfig(StepConfig):
-    """Step to ingest FoldX amino acid variation data."""
-
-    foldx_dataset_path: str = MISSING
-    plddt_threshold: float = 0.7
-    annotation_path: str = MISSING
-
-    _target_: str = "gentropy.foldx_ingestion.FoldXIngestionStep"
-
-
-@dataclass
 class EqtlCatalogueConfig(StepConfig):
     """eQTL Catalogue step configuration."""
 
@@ -194,8 +185,10 @@ class EqtlCatalogueConfig(StepConfig):
     lbf_variable_input_glob: str = MISSING
     study_index_output_path: str = MISSING
     credible_set_output_path: str = MISSING
+    credible_set_variant_output_path: str = MISSING
     lead_pvalue_threshold: float = 1e-3
     mqtl_quantification_methods_blacklist: list[str] | None = None
+    full_susie_input_glob: str | None = None
     _target_: str = "gentropy.eqtl_catalogue.EqtlCatalogueStep"
 
 
@@ -227,7 +220,7 @@ class FinngenFinemappingConfig(StepConfig):
 
     session: Any = field(
         default_factory=lambda: {
-            "start_hail": True,
+            "use_enhanced_bgzip_codec": True,
         }
     )
     finngen_susie_finemapping_snp_files: str = (
@@ -236,12 +229,45 @@ class FinngenFinemappingConfig(StepConfig):
     finngen_susie_finemapping_cs_summary_files: str = (
         "gs://finngen-public-data-r11/finemap/summary/*SUSIE.cred.summary.tsv"
     )
+    finngen_annotated_variants_path: str = MISSING
     finngen_finemapping_out: str = MISSING
+    finngen_finemapping_credible_set_variant_out: str = MISSING
     finngen_finemapping_lead_pvalue_threshold: float = 1e-5
     finngen_release_prefix: str = "FINNGEN_R11"
     _target_: str = (
         "gentropy.finngen_finemapping_ingestion.FinnGenFinemappingIngestionStep"
     )
+
+
+@dataclass
+class FinngenMultiomeIngestionConfig(StepConfig):
+    """FinnGen multiome single-cell eQTL ingestion step configuration."""
+
+    session: Any = field(
+        default_factory=lambda: {
+            "use_enhanced_bgzip_codec": True,
+        }
+    )
+    snp_files: str = (
+        "gs://finngen-public-data-multiome/eQTL/finemapping/*.SUSIE.snp.tsv.gz"
+    )
+    cs_summary_files: str = (
+        "gs://finngen-public-data-multiome/eQTL/finemapping/*.SUSIE.cred.tsv.gz"
+    )
+    nominal_files: str = (
+        "gs://finngen-public-data-multiome/eQTL/cis_nominal/*.cis_nominal.tsv.gz"
+    )
+    summary_stats_location_template: str = "gs://finngen-public-data-multiome/eQTL/cis_nominal/finngen_multiome_v1.eQTL.{cell_type}.cis_nominal.tsv.gz"
+    study_index_output_path: str = MISSING
+    credible_set_output_path: str = MISSING
+    credible_set_variant_output_path: str = MISSING
+    # Release 1 of the FinnGen multiome atlas (FinnGen R12):
+    project_prefix: str = "FINNGEN_MULTIOME_V1"
+    lead_pvalue_threshold: float = 1e-3
+    # log10(e^2) = 2 / ln(10): a Bayes factor of e^2, the threshold of the FinnGen publication.
+    credset_lbf_threshold: float = 0.8685889638065036
+    purity_min_r2_threshold: float = 0.25
+    _target_: str = "gentropy.finngen_multiome_ingestion.FinnGenMultiomeIngestionStep"
 
 
 @dataclass
@@ -381,6 +407,7 @@ class LocusToGeneTrainTestSplitConfig(StepConfig):
     train_parquet_path: str = MISSING
     test_parquet_path: str = MISSING
     test_size: float = 0.15
+    credible_set_variant_path: str | None = None
     variant_index_path: str | None = None
     gene_interactions_path: str | None = None
     predefined_test_parquet_path: str | None = None
@@ -424,6 +451,7 @@ class LocusToGeneFeatureMatrixConfig(StepConfig):
         }
     )
     credible_set_path: str = MISSING
+    credible_set_variant_path: str = MISSING
     variant_index_path: str | None = None
     colocalisation_path: str | None = None
     study_index_path: str | None = None
@@ -488,7 +516,9 @@ class PICSConfig(StepConfig):
     """PICS step configuration."""
 
     study_locus_ld_annotated_in: str = MISSING
+    study_index_path: str = MISSING
     picsed_study_locus_out: str = MISSING
+    picsed_credible_set_variant_out: str = MISSING
     _target_: str = "gentropy.pics.PICSStep"
 
 
@@ -606,76 +636,6 @@ class PanUKBBConfig(StepConfig):
 
 
 @dataclass
-class LOFIngestionConfig(StepConfig):
-    """Step configuration for the ingestion of Loss-of-Function variant data generated by OTAR2075."""
-
-    lof_curation_dataset_path: str = MISSING
-    lof_curation_variant_annotations_path: str = MISSING
-
-    _target_: str = "gentropy.lof_curation_ingestion.LOFIngestionStep"
-
-
-@dataclass
-class VariantIndexConfig(StepConfig):
-    """Variant index step configuration."""
-
-    session: Any = field(
-        default_factory=lambda: {
-            "start_hail": False,
-        }
-    )
-    vep_output_json_path: str = MISSING
-    variant_index_path: str = MISSING
-    variant_annotations_path: list[str] | None = None
-    hash_threshold: int = 300
-
-    amino_acid_change_annotations: list[str] = MISSING
-
-    _target_: str = "gentropy.variant_index.VariantIndexStep"
-
-
-@dataclass
-class ConvertToVcfStepConfig(StepConfig):
-    """Variant to VCF step configuration."""
-
-    source_paths: list[str] = MISSING
-    source_formats: list[str] = MISSING
-    output_path: str = MISSING
-    partition_size: int = 2000
-    _target_: str = "gentropy.variant_index.ConvertToVcfStep"
-
-
-@dataclass
-class IntervalE2GStepConfig(StepConfig):
-    """Interval E2G step configuration."""
-
-    target_index_path: str = MISSING
-    biosample_mapping_path: str = MISSING
-    biosample_index_path: str = MISSING
-    chromosome_contig_index_path: str = MISSING
-    interval_source: str = MISSING
-    valid_output_path: str = MISSING
-    invalid_output_path: str = MISSING
-    min_valid_score: float = 0.6
-    max_valid_score: float = 1.0
-    invalid_qc_reasons: list[str] = field(
-        default_factory=lambda: [
-            "UNRESOLVED_TARGET",
-            "UNKNOWN_BIOSAMPLE",
-            "SCORE_OUTSIDE_BOUNDS",
-            "UNKNOWN_INTERVAL_TYPE",
-            "AMBIGUOUS_SCORE",
-            "UNKNOWN_PROJECT_ID",
-            "INVALID_CHROMOSOME",
-            "INVALID_RANGE",
-            "AMBIGUOUS_INTERVAL_TYPE",
-        ]
-    )
-
-    _target_: str = "gentropy.intervals.IntervalE2GStep"
-
-
-@dataclass
 class LocusBreakerClumpingConfig(StepConfig):
     """Locus breaker clumping step configuration."""
 
@@ -707,7 +667,6 @@ class WindowBasedClumpingStepConfig(StepConfig):
     gwas_significance: float = 1e-8
     distance: int = 500_000
     collect_locus: bool = False
-    collect_locus_distance: int = 500_000
     inclusion_list_path: str | None = None
     recursive_file_lookup: bool = True
     _target_: str = "gentropy.window_based_clumping.WindowBasedClumpingStep"
@@ -741,7 +700,6 @@ class FinemapperConfig(StepConfig):
     purity_mean_r2_threshold: float = MISSING
     purity_min_r2_threshold: float = MISSING
     cs_lbf_thr: float = MISSING
-    sum_pips: float = MISSING
     susie_est_tausq: bool = MISSING
     run_carma: bool = MISSING
     carma_tau: float = MISSING
@@ -764,38 +722,42 @@ class SummaryStatisticsQCStepConfig(StepConfig):
 
 
 @dataclass
-class CredibleSetQCStepConfig(StepConfig):
-    """Credible set quality control step configuration."""
+class CredibleSetValidationStepConfig(StepConfig):
+    """Configuration of the credible set validation step.
 
-    credible_sets_path: str = MISSING
-    output_path: str = MISSING
-    p_value_threshold: float = 1e-5
-    purity_min_r2: float = 0.01
-    clump: bool = False
-    ld_index_path: str | None = None
-    study_index_path: str | None = None
-    ld_min_r2: float | None = 0.8
-    n_partitions: int | None = 200
-    _target_: str = "gentropy.credible_set_qc.CredibleSetQCStep"
+    Credible sets and their variants are read from several sources, so both are lists of paths, in
+    the same order.
+    """
+
+    credible_set_path: list[str] = MISSING
+    credible_set_variant_path: list[str] = MISSING
+    study_index_path: str = MISSING
+    target_index_path: str = MISSING
+    disease_index_path: str = MISSING
+    valid_credible_set_path: str = MISSING
+    valid_credible_set_variant_path: str = MISSING
+    invalid_credible_set_path: str = MISSING
+    invalid_credible_set_variant_path: str = MISSING
+    invalid_qc_reasons: list[str] = MISSING
+    trans_qtl_threshold: int = MISSING
+    _target_: str = "gentropy.credible_set_validation.CredibleSetValidationStep"
 
 
 @dataclass
-class StudyValidationStepConfig(StepConfig):
-    """Configuration of the study index validation step.
+class CredibleSetQCStepConfig(StepConfig):
+    """Credible set quality control step configuration."""
 
-    The study indices are read from multiple location, therefore we are expecting a list of paths.
-    """
-
-    study_index_path: list[str] = MISSING
-    target_index_path: str = MISSING
-    disease_index_path: str = MISSING
-    biosample_index_path: str = MISSING
-    valid_study_index_path: str = MISSING
-    invalid_study_index_path: str = MISSING
-    invalid_qc_reasons: list[str] = MISSING
-    deprecated_project_ids: list[str] | None = None
-    heritability_input_path: str | None = None
-    _target_: str = "gentropy.study_validation.StudyValidationStep"
+    credible_set_path: str = MISSING
+    credible_set_variant_path: str = MISSING
+    credible_set_output_path: str = MISSING
+    credible_set_variant_output_path: str = MISSING
+    p_value_threshold: float = 1e-5
+    purity_min_r2: float = 0.01
+    ld_index_path: str | None = None
+    study_index_path: str | None = None
+    ld_min_r2: float = 0.8
+    n_partitions: int | None = 200
+    _target_: str = "gentropy.credible_set_qc.CredibleSetQCStep"
 
 
 @dataclass
@@ -819,24 +781,6 @@ class LocusToGeneAssociationsStepConfig(StepConfig):
     direct_associations_output_path: str = MISSING
     indirect_associations_output_path: str = MISSING
     _target_: str = "gentropy.l2g.LocusToGeneAssociationsStep"
-
-
-@dataclass
-class StudyLocusValidationStepConfig(StepConfig):
-    """Configuration of the study index validation step.
-
-    The study locus datasets are read from multiple location, therefore we are expecting a list of paths.
-    """
-
-    study_index_path: str = MISSING
-    study_locus_path: list[str] = MISSING
-    target_index_path: str = MISSING
-    disease_index_path: str = MISSING
-    valid_study_locus_path: str = MISSING
-    invalid_study_locus_path: str = MISSING
-    invalid_qc_reasons: list[str] = MISSING
-    trans_qtl_threshold: int = MISSING
-    _target_: str = "gentropy.study_locus_validation.StudyLocusValidationStep"
 
 
 @dataclass
@@ -952,7 +896,23 @@ class GWASCatalogFineMappingManifestConfig(StepConfig):
     fine_mapping_planner_path: str = MISSING
     output_path: str = MISSING
     summary_statistics_glob: str | None = None
-    _target_: str = "gentropy.finemapping_manifest.GWASCatalogFineMappingManifestGenerator"
+    _target_: str = (
+        "gentropy.finemapping_manifest.GWASCatalogFineMappingManifestGenerator"
+    )
+
+
+@dataclass
+class BigBrainFinemappingIngestionConfig(StepConfig):
+    """BigBrain fine-mapping ingestion step configuration."""
+
+    qtl_type: str = MISSING
+    finemapping_path: str = MISSING
+    credible_set_path: str = MISSING
+    credible_set_variant_path: str = MISSING
+    study_index_path: str = MISSING
+    top_assoc_path: str | None = None
+    target_index_path: str | None = None
+    _target_: str = "gentropy.bigbrain_ingestion.BigBrainFinemappingIngestionStep"
 
 
 @dataclass
@@ -1018,13 +978,15 @@ def register_config() -> None:
         name="finngen_finemapping_ingestion",
         node=FinngenFinemappingConfig,
     )
+    cs.store(
+        group="step",
+        name="finngen_multiome_ingestion",
+        node=FinngenMultiomeIngestionConfig,
+    )
 
     cs.store(group="step", name="pics", node=PICSConfig)
     cs.store(group="step", name="gnomad_variants", node=GnomadVariantConfig)
     cs.store(group="step", name="ukb_ppp_eur_sumstat_preprocess", node=UkbPppEurConfig)
-    cs.store(group="step", name="lof_curation_ingestion", node=LOFIngestionConfig)
-    cs.store(group="step", name="variant_index", node=VariantIndexConfig)
-    cs.store(group="step", name="variant_to_vcf", node=ConvertToVcfStepConfig)
     cs.store(
         group="step", name="window_based_clumping", node=WindowBasedClumpingStepConfig
     )
@@ -1034,16 +996,6 @@ def register_config() -> None:
     )
     cs.store(
         group="step", name="locus_breaker_clumping", node=LocusBreakerClumpingConfig
-    )
-    cs.store(
-        group="step",
-        name="credible_set_validation",
-        node=StudyLocusValidationStepConfig,
-    )
-    cs.store(
-        group="step",
-        name="study_validation",
-        node=StudyValidationStepConfig,
     )
     cs.store(
         group="step",
@@ -1061,8 +1013,11 @@ def register_config() -> None:
         node=FinngenUkbMvpMetaSummaryStatisticsIngestionConfig,
     )
     cs.store(group="step", name="credible_set_qc", node=CredibleSetQCStepConfig)
-    cs.store(group="step", name="foldx_integration", node=FoldXVariantAnnotationConfig)
-    cs.store(group="step", name="interval_e2g", node=IntervalE2GStepConfig)
+    cs.store(
+        group="step",
+        name="credible_set_validation",
+        node=CredibleSetValidationStepConfig,
+    )
     cs.store(
         group="step", name="heritability_estimate", node=HeritabilityEstimateConfig
     )
@@ -1105,6 +1060,11 @@ def register_config() -> None:
         group="step",
         name="decode_summary_statistics_qc",
         node=deCODESummaryStatisticsQCConfig,
+    )
+    cs.store(
+        group="step",
+        name="bigbrain_finemapping_ingestion",
+        node=BigBrainFinemappingIngestionConfig,
     )
     cs.store(
         group="step",
