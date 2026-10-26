@@ -46,6 +46,7 @@ function source_args() {
             echo "--credible-sets=gs://ukb_ppp_eur_data/credible_set_clean/20250129" \
                 "--study-index=gs://ukb_ppp_eur_data/study_index" \
                 "--summary-statistics=gs://ukb_ppp_eur_inputs/harmonised_summary_statistics/studyId={studyId}" \
+                "--summary-statistics=gs://ukb_ppp_eur_inputs/harmonised_summary_statistics/harmonised_summary_statistics/studyId={studyId}" \
                 "--output=gs://ukb_ppp_eur_data/credible_set_migrated/20250129" \
                 "--partitions=50"
             ;;

@@ -5,7 +5,10 @@ of the inputs and outputs:
 
     python utils/susie_credible_set_migration_check.py \
         --credible-sets <old> --study-index <study index> \
-        --summary-statistics '<dir>/{studyId}' --output <migration output>
+        --summary-statistics '<dir>/{studyId}' [--summary-statistics ...] \
+        --output <migration output>
+
+Summary statistics locations are tried in order, as in the migration job.
 
 Both outputs must load as `CredibleSet` and `CredibleSetVariant` (gentropy schema validation),
 and every column of both schemas is compared with the value it should have, derived
@@ -18,6 +21,7 @@ from __future__ import annotations
 import argparse
 import math
 import sys
+from functools import reduce
 
 from pyspark.sql import Column, DataFrame, Window
 from pyspark.sql import functions as f
@@ -129,7 +133,7 @@ def main() -> int:  # noqa: C901
     parser = argparse.ArgumentParser()
     parser.add_argument("--credible-sets", required=True)
     parser.add_argument("--study-index", required=True)
-    parser.add_argument("--summary-statistics", required=True)
+    parser.add_argument("--summary-statistics", required=True, action="append")
     parser.add_argument("--output", required=True)
     args = parser.parse_args()
 
@@ -344,15 +348,47 @@ def main() -> int:  # noqa: C901
 
     # Marginals: the summary statistics row when all the study's rows for the variant agree.
     study_ids = [r.studyId for r in old.select("studyId").distinct().collect()]
-    template = args.summary_statistics
-    reader = spark.read
-    if "studyId={studyId}" in template:
-        reader = reader.option(
-            "basePath", template.split("studyId={studyId}", maxsplit=1)[0]
+    jvm = spark.sparkContext._jvm
+    conf = spark.sparkContext._jsc.hadoopConfiguration()
+
+    def exists(path: str) -> bool:
+        """Whether a path exists.
+
+        Args:
+            path (str): The path.
+
+        Returns:
+            bool: True when it exists.
+        """
+        hadoop_path = jvm.org.apache.hadoop.fs.Path(path)
+        return bool(hadoop_path.getFileSystem(conf).exists(hadoop_path))
+
+    location = {}
+    for template in args.summary_statistics:
+        for study_id in study_ids:
+            if study_id not in location and exists(template.format(studyId=study_id)):
+                location[study_id] = template
+    print(f"INFO studies with summary statistics: {len(location)} of {len(study_ids)}")
+    frames = []
+    for template in dict.fromkeys(location.values()):
+        reader = spark.read
+        if "studyId={studyId}" in template:
+            reader = reader.option(
+                "basePath", template.split("studyId={studyId}", maxsplit=1)[0]
+            )
+        frame = reader.parquet(
+            *[template.format(studyId=s) for s, t in location.items() if t == template]
+        )
+        frames.append(
+            frame.select(
+                f.col("studyId").cast("string"),
+                "variantId",
+                *[c for c in MARGINALS if c in frame.columns],
+            )
         )
     member_keys = v.select("studyId", "variantId").distinct()
     expected = expected_marginals(
-        reader.parquet(*[template.format(studyId=s) for s in study_ids]).join(
+        reduce(lambda a, b: a.unionByName(b, allowMissingColumns=True), frames).join(
             f.broadcast(member_keys), ["studyId", "variantId"], "left_semi"
         )
     ).withColumn("_found", f.lit(True))
