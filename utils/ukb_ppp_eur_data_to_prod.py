@@ -22,6 +22,11 @@ The bucket has neither soft delete nor versioning, so the delete in `move` is fi
         Stops at the first failing step, before any delete.
     python utils/ukb_ppp_eur_data_to_prod.py verify --manifest <csv>
         Read-only: step 3.
+    python utils/ukb_ppp_eur_data_to_prod.py finish --manifest <csv>
+        Completes a move whose delete was interrupted. Verify must pass; then it deletes only
+        manifest objects still outside `prod/` with the size and crc32c of the manifest, in
+        parallel batches. It refuses when a manifest object outside `prod/` has changed, and
+        never deletes objects missing from the manifest.
 
 `--manifest` can be a local path or a gs:// URL. Requires gcloud.
 """
@@ -388,6 +393,66 @@ def move(path: str, parallel: int) -> int:
     return 0 if ok and verify(path) == 0 else 1
 
 
+def finish(path: str, parallel: int) -> int:
+    """Delete the manifest objects left outside `prod/` by an interrupted move.
+
+    Args:
+        path (str): Manifest location.
+        parallel (int): Delete batches run at the same time.
+
+    Returns:
+        int: 0 when nothing of the manifest is left outside `prod/` and verify passes.
+    """
+    rows = read_manifest(path)
+    print("== 1. verify the snapshot")
+    if verify(path):
+        print("FAILED nothing deleted: verify did not pass")
+        return 1
+    print("== 2. what is left outside prod/")
+    now = {o["name"]: (o["size"], o["crc32c"]) for o in source_objects()}
+    listed = {r["name"]: (r["size"], r["crc32c"]) for r in rows}
+    remaining = sorted(n for n in listed if n in now and now[n] == listed[n])
+    changed = sorted(n for n in listed if n in now and now[n] != listed[n])
+    unlisted = sorted(set(now) - set(listed))
+    print(f"INFO manifest objects left outside prod/: {len(remaining)}")
+    print(f"INFO objects outside prod/ not in the manifest (kept): {len(unlisted)}")
+    for name in unlisted[:10]:
+        print(f"  {name}")
+    if not report({"manifest objects changed since the manifest": changed}):
+        print("FAILED nothing deleted: manifest objects changed")
+        return 1
+    if any(n.startswith("prod/") for n in remaining):
+        print("FAILED nothing deleted: a manifest object is under prod/")
+        return 1
+    print(f"== 3. delete {len(remaining)} objects in {parallel} batches")
+    batches = [remaining[i::parallel] for i in range(parallel)]
+
+    def delete(batch: list[str]) -> int:
+        """Delete one batch of objects.
+
+        Args:
+            batch (list[str]): Object names relative to the root.
+
+        Returns:
+            int: The rm exit code.
+        """
+        return subprocess.run(
+            ["gcloud", "storage", "rm", "-I"],
+            input="".join(f"{root}/{n}\n" for n in batch),
+            text=True,
+            capture_output=True,
+            check=False,  # checked below, by listing what is left
+        ).returncode
+
+    with ThreadPoolExecutor(max_workers=parallel) as pool:
+        codes = list(pool.map(delete, [b for b in batches if b]))
+    print(f"INFO rm exit codes: {sorted(set(codes))}")
+    print("== 4. after the delete")
+    left = [o["name"] for o in source_objects() if o["name"] in listed]
+    ok = report({"manifest objects still outside prod/": left})
+    return 0 if ok and verify(path) == 0 else 1
+
+
 def main() -> int:
     """Run one step.
 
@@ -395,7 +460,7 @@ def main() -> int:
         int: The step's exit code.
     """
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("step", choices=["manifest", "move", "verify"])
+    parser.add_argument("step", choices=["manifest", "move", "verify", "finish"])
     parser.add_argument("--manifest", required=True, help="Local path or gs:// URL.")
     parser.add_argument("--parallel", type=int, default=8)
     parser.add_argument(
@@ -404,6 +469,7 @@ def main() -> int:
         help="Bucket, or a test prefix, to reorganise. Defaults to %(default)s.",
     )
     args = parser.parse_args()
+    sys.stdout.reconfigure(line_buffering=True)  # type: ignore[union-attr]
     global root  # noqa: PLW0603 (one-off script: --root sets the module-wide root)
     root = args.root.rstrip("/")
     print(f"INFO root: {root}, snapshot: {root}/{SNAPSHOT}/")
@@ -411,6 +477,8 @@ def main() -> int:
         return manifest(args.manifest)
     if args.step == "move":
         return move(args.manifest, args.parallel)
+    if args.step == "finish":
+        return finish(args.manifest, args.parallel)
     return verify(args.manifest)
 
 

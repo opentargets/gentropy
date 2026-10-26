@@ -167,6 +167,82 @@ def main() -> int:  # noqa: C901
         ok = removed == expected and ((code == 0) == (expected is not None))
         failures += not ok
         print(f"{'PASS' if ok else 'FAIL'} {name}: exit {code}, deleted {removed}")
+
+    def run_finish(
+        left: list[dict[str, str]], snapshot: list[dict[str, str]]
+    ) -> tuple[int, list[str] | None]:
+        """Run finish against faked listings.
+
+        Args:
+            left (list[dict[str, str]]): Source objects still outside prod/.
+            snapshot (list[dict[str, str]]): Objects under the snapshot.
+
+        Returns:
+            tuple[int, list[str] | None]: Exit code, and the objects passed to rm, or None.
+        """
+        calls.clear()
+        state.update(copy_fails=False)
+        removed: set[str] = set()
+
+        def list_objects(glob: str) -> list[dict[str, str]]:
+            """Fake listing: objects passed to rm are gone.
+
+            Args:
+                glob (str): gs:// glob.
+
+            Returns:
+                list[dict[str, str]]: The objects.
+            """
+            if f"/{SNAP}/" in glob:
+                return list(snapshot)
+            for cmd, given in calls:
+                if cmd[:3] == ["gcloud", "storage", "rm"] and given:
+                    removed.update(u.removeprefix(f"{root}/") for u in given.split())
+            return [o for o in left if o["name"] not in removed]
+
+        move_script.list_objects = list_objects
+        with contextlib.redirect_stdout(io.StringIO()):
+            code = move_script.finish("manifest.csv", 3)
+        rm = sorted(
+            u
+            for c in calls
+            if c[0][:3] == ["gcloud", "storage", "rm"] and c[1]
+            for u in c[1].split()
+        )
+        return code, (rm or None)
+
+    half = [source[1], source[3]]
+    finish_scenarios = [
+        (
+            "finish: half deleted",
+            half,
+            copied,
+            sorted(f"{root}/{o['name']}" for o in half),
+            0,
+        ),
+        ("finish: nothing left", [], copied, None, 0),
+        (
+            "finish: a left object changed",
+            [obj("a/2", crc="B"), source[3]],
+            copied,
+            None,
+            1,
+        ),
+        ("finish: snapshot missing an object", half, copied[:-1], None, 1),
+        (
+            "finish: an unlisted object is kept",
+            [*half, obj("c/new")],
+            copied,
+            sorted(f"{root}/{o['name']}" for o in half),
+            0,  # the unlisted object is reported and kept, not deleted
+        ),
+    ]
+    for name, left, snapshot, expected, expected_code in finish_scenarios:
+        code, removed_urls = run_finish(left, snapshot)
+        ok = removed_urls == expected and code == expected_code
+        failures += not ok
+        print(f"{'PASS' if ok else 'FAIL'} {name}: exit {code}, deleted {removed_urls}")
+
     print("ALL SCENARIOS PASSED" if not failures else f"{failures} SCENARIOS FAILED")
     return 1 if failures else 0
 
