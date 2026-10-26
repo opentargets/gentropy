@@ -41,6 +41,7 @@ from __future__ import annotations
 import argparse
 import math
 import sys
+from functools import reduce
 
 from pyspark.sql import Column, DataFrame, SparkSession, Window
 from pyspark.sql import functions as f
@@ -456,7 +457,11 @@ def main() -> int:
     parser.add_argument(
         "--summary-statistics",
         required=True,
-        help="Path of one study's harmonised summary statistics, with {studyId}.",
+        action="append",
+        help=(
+            "Path of one study's harmonised summary statistics, with {studyId}. Repeat it for "
+            "several locations, in order of priority: a study is read from the first that has it."
+        ),
     )
     parser.add_argument(
         "--output",
@@ -478,30 +483,37 @@ def main() -> int:
     dropped = old_all.count() - old.count()
 
     study_ids = sorted(r.studyId for r in old.select("studyId").distinct().collect())
-    with_sumstats = existing_studies(spark, args.summary_statistics, study_ids)
-    print(
-        f"INFO studies: {len(study_ids)}, with summary statistics: {len(with_sumstats)}"
-    )
-    for study_id in sorted(set(study_ids) - set(with_sumstats))[:20]:
+    location: dict[str, str] = {}
+    for template in args.summary_statistics:
+        remaining = [s for s in study_ids if s not in location]
+        found = existing_studies(spark, template, remaining)
+        location.update(dict.fromkeys(found, template))
+        print(f"INFO summary statistics found at {template}: {len(found)} studies")
+    print(f"INFO studies: {len(study_ids)}, with summary statistics: {len(location)}")
+    for study_id in sorted(set(study_ids) - set(location))[:20]:
         print(f"INFO no summary statistics for {study_id}")
     members = old.select(
         "studyId", f.explode("locus.variantId").alias("variantId")
     ).distinct()
-    member_rows = (
-        (
-            read_summary_statistics(spark, args.summary_statistics, with_sumstats)
-            if with_sumstats
-            else spark.createDataFrame(
-                [],
-                t.StructType(
-                    [
-                        t.StructField("studyId", t.StringType()),
-                        t.StructField("variantId", t.StringType()),
-                    ]
-                    + [t.StructField(n, d) for n, d in SUMSTAT_COLUMNS.items()]
-                ),
-            )
+    empty = spark.createDataFrame(
+        [],
+        t.StructType(
+            [
+                t.StructField("studyId", t.StringType()),
+                t.StructField("variantId", t.StringType()),
+            ]
+            + [t.StructField(n, d) for n, d in SUMSTAT_COLUMNS.items()]
+        ),
+    )
+    per_location = [
+        read_summary_statistics(
+            spark, template, [s for s, where in location.items() if where == template]
         )
+        for template in args.summary_statistics
+        if template in location.values()
+    ]
+    member_rows = (
+        reduce(DataFrame.unionByName, per_location, empty)
         .join(
             f.broadcast(members) if len(study_ids) < 1000 else members,
             ["studyId", "variantId"],
