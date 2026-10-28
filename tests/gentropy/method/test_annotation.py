@@ -276,6 +276,25 @@ def test_annotate_ld_keeps_tags_at_the_threshold(spark: SparkSession) -> None:
     assert [tag for tag, _ in above["L1"][0]] == [LEAD, "1_210_C_G"]
 
 
+@pytest.mark.parametrize("r", [1.0000001, -1.0000001])
+def test_annotate_ld_clamps_r2_drifting_just_above_1(
+    spark: SparkSession, r: float
+) -> None:
+    """An r a few ulps past ±1 squares above 1 even in float32; it is stored as 1."""
+    panel = [(LEAD, [(LEAD, [("nfe", 1.0)]), ("1_210_C_G", [("nfe", r)])])]
+    loci = _annotated_loci(spark, [("L1", "NFE", LEAD)])
+
+    annotated = annotate_ld(
+        loci, _studies(spark, [("NFE", [("nfe", 1.0)])]), _ld_index(spark, panel)
+    )
+
+    [row] = annotated.df.collect()
+    assert [(tag.tagVariantId, tag.r2Overall) for tag in row.ldSet] == [
+        (LEAD, 1.0),
+        ("1_210_C_G", 1.0),
+    ]
+
+
 @pytest.mark.parametrize(
     ("structure", "major"),
     [
