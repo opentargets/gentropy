@@ -27,9 +27,14 @@ from gentropy.dataset.study_locus import (
 )
 
 if TYPE_CHECKING:
+    from pyspark.sql import Column
+
     from gentropy.dataset.ld_index import LDIndex
     from gentropy.dataset.study_index import StudyIndex
     from gentropy.dataset.summary_statistics import SummaryStatistics
+
+# How far above 1 a panel r2 may drift from rounding and still be read as 1.
+_R2_TOLERANCE = 1e-6
 
 
 def annotate_locus(
@@ -143,7 +148,8 @@ def annotate_ld(
     panel gives ``r`` for each of its populations, and the study decides
     which one counts: the population with the largest share of its samples
     (see ``major_population``). ``r2Overall`` is that population's ``r``
-    squared, or 0 when the panel has no ``r`` for it. Tags with
+    squared, or 0 when the panel has no ``r`` for it. An ``r2`` that rounding
+    lifts at most 1e-6 above 1 is read as 1. Tags with
     ``r2Overall`` at or above ``r2_threshold`` are kept.
 
     The index holds the pairs at r2 0.5 or more in at least one of its
@@ -210,23 +216,19 @@ def annotate_ld(
     schema = LDAnnotatedStudyLocus.get_schema()
     lead = f.col("leadVariantId")
     major = major_population(f.col("ldPopulationStructure"))
+
     # r2 in the major population; a tag measured without it counts as 0.
+    def r2_overall(tag: Column) -> Column:
+        r = f.get(f.filter(tag["rValues"], lambda r: r["population"] == major), 0)
+        r2 = f.coalesce(f.pow(r["r"], 2), f.lit(0.0))
+        # A panel r a few ulps past ±1 squares above 1, which PICS cannot take.
+        return f.when(r2.between(1.0, 1.0 + _R2_TOLERANCE), f.lit(1.0)).otherwise(r2)
+
     tags = f.transform(
         f.col("panelLdSet"),
         lambda tag: f.struct(
             tag["tagVariantId"].alias("tagVariantId"),
-            f.coalesce(
-                f.pow(
-                    f.get(
-                        f.filter(tag["rValues"], lambda r: r["population"] == major),
-                        0,
-                    )["r"],
-                    2,
-                ),
-                f.lit(0.0),
-            )
-            .cast(t.FloatType())
-            .alias("r2Overall"),
+            r2_overall(tag).cast(t.FloatType()).alias("r2Overall"),
         ),
     )
     kept = f.filter(

@@ -158,9 +158,7 @@ class PICS:
         plus ``OUT_OF_SAMPLE_LD``, as the LD comes from a reference panel. A
         study missing from the study index gives a null study type; such credible
         sets are dropped by the credible set validation of the platform
-        transformation stage, which also requires the study in the index. A
-        lead tied with many perfect proxies can fall outside the cut, so the lead
-        is not always a member of its own credible set.
+        transformation stage, which also requires the study in the index.
 
         A member's marginal statistics are its entry in ``locus``; a member without
         one gets null statistics and the ``NOT_IN_LOCUS`` flag. A member with an
@@ -341,10 +339,12 @@ class PICS:
         locus can have thousands of tags, and the same steps as array functions are
         evaluated interpreted and exhaust the memory on the GWAS Catalog top hits.
 
-        The members are sorted by posterior, then by variant id so equal
-        posteriors always sort the same way. A member is kept while the
-        posteriors before it sum to less than ``coverage``, so the last one kept
-        is the one that reaches it. The kept posteriors are not renormalised.
+        The members are sorted by posterior, then the lead first, then by variant
+        id so equal posteriors always sort the same way. At ``r2`` 1 the lead has
+        the largest likelihood PICS gives, so it sorts first and is always kept.
+        A member is kept while the posteriors before it sum to less than
+        ``coverage``, so the last one kept is the one that reaches it. The kept
+        posteriors are not renormalised.
 
         Args:
             loci (LDAnnotatedStudyLocus): Loci with ``locus`` and ``ldSet``.
@@ -360,7 +360,7 @@ class PICS:
             neglogpval_from_pvalue(entry["pValueMantissa"], entry["pValueExponent"]),
         ).filter(f.col(_NEGLOG_P).isNotNull())
         tags = (
-            candidates.select("id", _NEGLOG_P, f.inline("ldSet"))
+            candidates.select("id", "leadVariantId", _NEGLOG_P, f.inline("ldSet"))
             .filter(f.col(_R2) >= _MIN_R2)
             .withColumn(
                 _LIKELIHOOD,
@@ -372,10 +372,13 @@ class PICS:
             )
         )
         locus = Window.partitionBy("id")
-        ranked = locus.orderBy(f.desc(_POSTERIOR), f.asc(_VARIANT))
+        ranked = locus.orderBy(
+            f.desc(_POSTERIOR), f.desc(f.col(_VARIANT) == lead), f.asc(_VARIANT)
+        )
         members = (
             tags.select(
                 "id",
+                lead,
                 f.col(_TAG).alias(_VARIANT),
                 f.col(_R2).cast(t.FloatType()).alias(_R2_OVERALL),
                 (f.col(_LIKELIHOOD) / f.sum(_LIKELIHOOD).over(locus)).alias(_POSTERIOR),
