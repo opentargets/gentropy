@@ -40,7 +40,9 @@ class PICSStep:
         # PICS
         credible_sets, credible_set_variants = PICS().finemap(loci, study_index)
         # Writing the outputs:
-        credible_sets.df.write.mode(session.write_mode).parquet(picsed_study_locus_out)
-        credible_set_variants.df.write.mode(session.write_mode).parquet(
-            picsed_credible_set_variant_out
-        )
+        credible_sets.df.coalesce(session.output_partitions).write.mode(
+            session.write_mode
+        ).parquet(picsed_study_locus_out)
+        credible_set_variants.df.coalesce(session.output_partitions).write.mode(
+            session.write_mode
+        ).parquet(picsed_credible_set_variant_out)

@@ -51,6 +51,6 @@ class LDBasedClumpingStep:
         annotated = annotate_ld(study_locus, study_index, ld_index).persist()
         annotated.df.count()
         clumped = LDClumping(keep_clumped_loci=True).clump(annotated)
-        clumped.df.write.mode(session.write_mode).parquet(
-            clumped_study_locus_output_path
-        )
+        clumped.df.coalesce(session.output_partitions).write.mode(
+            session.write_mode
+        ).parquet(clumped_study_locus_output_path)
