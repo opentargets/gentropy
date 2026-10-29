@@ -6,7 +6,7 @@ brain meta-analysis, including the bibliographic metadata for the underlying pub
 The BigBrain dataset originates from the study:
     Réal A, Kailash BP, Dredge W et al.
     "Mapping genetic effects on splicing in ten thousand post-mortem brain samples
-    reveals novel mediators of neurological disease risk." 2025.
+    reveals novel mediators of neurological disease risk." medRxiv 2025. PubMed 41040686.
     Meta-analysis method (mmQTL): PubMed 35058635.
 
 Two sub-datasets are supported, both restricted to the EUR-ancestry release:
@@ -31,13 +31,13 @@ class BigBrainPublicationMetadata(BaseModel):
 
     !!! note "Sample size is a backfilled constant"
         BigBrain's summary statistics report no per-variant sample size or allele
-        frequency, so the study index cannot carry one. `SAMPLE_SIZE` is the single overall donor count reported
+        frequency, so the study index cannot carry one. `SAMPLE_SIZE` is the single overall sample count reported
         for the whole resource (shared by eQTL and sQTL); the README does not break
         this out by ancestry, so it is an approximation even for the EUR-only release.
     """
 
-    PUBMED_ID: str = "35058635"
-    """PubMed ID for the mmQTL meta-analysis method used to generate BigBrain."""
+    PUBMED_ID: str = "41040686"
+    """PubMed ID of the BigBrain publication (medRxiv preprint)."""
     PUB_TITLE: str = "Mapping genetic effects on splicing in ten thousand post-mortem brain samples reveals novel mediators of neurological disease risk"
     """Title of the BigBrain publication."""
     PUB_FIRST_AUTHOR: str = "Réal A, Kailash BP"
@@ -46,6 +46,8 @@ class BigBrainPublicationMetadata(BaseModel):
     """Publication date of the BigBrain study."""
     SAMPLE_SIZE: int = 10_725
     """Backfilled total sample size (10,725 samples from 4,656 donors), shared by eQTL and sQTL."""
+    N_DONORS: int = 4_656
+    """Number of donors of the whole resource, all ancestries."""
     ANCESTRY: str = "EUR"
     """Ancestry code used in study and project identifiers."""
     ANCESTRY_LABEL: str = "European"
