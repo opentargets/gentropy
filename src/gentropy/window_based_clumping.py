@@ -63,4 +63,6 @@ class WindowBasedClumpingStep:
         if collect_locus:
             study_locus = annotate_locus(study_locus, ss)
 
-        study_locus.df.write.mode(session.write_mode).parquet(study_locus_output_path)
+        study_locus.df.coalesce(session.output_partitions).write.mode(
+            session.write_mode
+        ).parquet(study_locus_output_path)

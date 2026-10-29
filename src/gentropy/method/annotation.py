@@ -217,8 +217,15 @@ def annotate_ld(
     lead = f.col("leadVariantId")
     major = major_population(f.col("ldPopulationStructure"))
 
-    # r2 in the major population; a tag measured without it counts as 0.
     def r2_overall(tag: Column) -> Column:
+        """Return the r2 of a tag in the major population: 0 for a tag measured without it.
+
+        Args:
+            tag (Column): A tag of the LD set of the panel.
+
+        Returns:
+            Column: The r2 of the tag in the major population.
+        """
         r = f.get(f.filter(tag["rValues"], lambda r: r["population"] == major), 0)
         r2 = f.coalesce(f.pow(r["r"], 2), f.lit(0.0))
         # A panel r a few ulps past ±1 squares above 1, which PICS cannot take.
@@ -244,6 +251,20 @@ def annotate_ld(
         )
     )
 
+    # The LD sets of the leads only. The leads are broadcast, so the LD index is filtered
+    # where it is read: the left join below cannot broadcast the LD index, its preserved
+    # side being the loci, and would otherwise shuffle the whole LD index.
+    leads = (
+        loci.df.select("leadVariantId", "chromosome")
+        .where(f.col("leadVariantId").isNotNull())
+        .distinct()
+    )
+    lead_ld_sets = ld_index.df.select(
+        f.col("variantId").alias("leadVariantId"),
+        "chromosome",
+        f.col("ldSet").alias("panelLdSet"),
+    ).join(f.broadcast(leads), on=["leadVariantId", "chromosome"], how="left_semi")
+
     annotated = (
         # An LDAnnotatedStudyLocus is also an AnnotatedStudyLocus: replace its ldSet.
         loci.df.drop("ldSet")
@@ -253,11 +274,7 @@ def annotate_ld(
             how="left",
         )
         .join(
-            ld_index.df.select(
-                f.col("variantId").alias("leadVariantId"),
-                "chromosome",
-                f.col("ldSet").alias("panelLdSet"),
-            ),
+            lead_ld_sets,
             on=["leadVariantId", "chromosome"],
             how="left",
         )
