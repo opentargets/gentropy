@@ -6,6 +6,8 @@ import tempfile
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from pyspark.sql import functions as f
+
 from gentropy.dataset.study_locus import AnnotatedStudyLocus
 from gentropy.locus_breaker_clumping import LocusBreakerClumpingStep
 from gentropy.window_based_clumping import WindowBasedClumpingStep
@@ -27,6 +29,37 @@ class TestClumpStep:
                 study_locus_output_path=str(clumped_study_locus_path),
             )
             assert Path(clumped_study_locus_path).exists(), "Output directory exists."
+
+    def test_window_clump_step_reads_locus_from_lead_study_folders(
+        self, session: Session
+    ) -> None:
+        """Test the loci collected from the folders of the lead studies are the loci collected from all files."""
+        sample = "tests/gentropy/data_samples/sumstats_sample"
+        statistics = session.spark.read.parquet(sample)
+        with tempfile.TemporaryDirectory() as temp_dir:
+            # Harmonised layout: one folder per study, and a study with no lead.
+            statistics.write.parquet(f"{temp_dir}/input/GCST005523")
+            statistics.withColumn("studyId", f.lit("GCST_NO_LEAD")).withColumn(
+                "pValueExponent", f.lit(-1)
+            ).write.parquet(f"{temp_dir}/input/GCST_NO_LEAD")
+            for name, path in (("folders", f"{temp_dir}/input"), ("file", sample)):
+                WindowBasedClumpingStep(
+                    session=session,
+                    summary_statistics_input_path=path,
+                    study_locus_output_path=f"{temp_dir}/{name}",
+                    collect_locus=True,
+                )
+            loci = {
+                name: sorted(
+                    (row.id, len(row.locus))
+                    for row in AnnotatedStudyLocus.from_parquet(
+                        session, f"{temp_dir}/{name}"
+                    ).df.collect()
+                )
+                for name in ("folders", "file")
+            }
+            assert loci["folders"], "Window clumping found no locus."
+            assert loci["folders"] == loci["file"]
 
     def test_locus_breaker_step_summary_stats(self, session: Session) -> None:
         """Test locus-breaker clumping step writes study loci annotated with their summary statistics."""
