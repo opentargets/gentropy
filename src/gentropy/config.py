@@ -657,11 +657,7 @@ class LocusBreakerClumpingConfig(StepConfig):
 class WindowBasedClumpingStepConfig(StepConfig):
     """Window-based clumping step configuration."""
 
-    session: Any = field(
-        default_factory=lambda: {
-            "start_hail": True,
-        }
-    )
+    session: Any = field(default_factory=dict)
     summary_statistics_input_path: str = MISSING
     study_locus_output_path: str = MISSING
     gwas_significance: float = 1e-8
