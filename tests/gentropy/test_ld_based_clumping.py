@@ -84,6 +84,7 @@ class TestLDBasedClumpingStep:
             patch(
                 "gentropy.ld_based_clumping.StudyIndex.from_parquet"
             ) as mock_study_index,
+            patch("gentropy.ld_based_clumping.keep_lead_entry") as mock_keep_lead_entry,
             patch("gentropy.ld_based_clumping.annotate_ld") as mock_annotate_ld,
             patch("gentropy.ld_based_clumping.LDClumping") as mock_ld_clumping,
         ):
@@ -104,9 +105,9 @@ class TestLDBasedClumpingStep:
 
             # LD annotation of the loci with the lead's entry of locus, persisted, feeds LD
             # clumping, which keeps and flags clumped loci:
-            mock_sl.lead_locus.assert_called_once_with()
+            mock_keep_lead_entry.assert_called_once_with(mock_sl)
             mock_annotate_ld.assert_called_once_with(
-                mock_sl.lead_locus.return_value, mock_si, mock_ld
+                mock_keep_lead_entry.return_value, mock_si, mock_ld
             )
             mock_annotate_ld.return_value.persist.assert_called_once_with()
             mock_ld_clumping.assert_called_once_with(keep_clumped_loci=True)
