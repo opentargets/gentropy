@@ -1,0 +1,41 @@
+{
+  "type": "struct",
+  "fields": [
+    {
+      "name": "diseaseId",
+      "type": "string",
+      "nullable": false,
+      "metadata": {}
+    },
+    {
+      "name": "pathwayFromSourceName",
+      "type": "string",
+      "nullable": false,
+      "metadata": {}
+    },
+    {
+      "name": "source",
+      "type": "string",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "normalisedEnrichmentScore",
+      "type": "double",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "pValue",
+      "type": "double",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "pValueAdjusted",
+      "type": "double",
+      "nullable": true,
+      "metadata": {}
+    }
+  ]
+}

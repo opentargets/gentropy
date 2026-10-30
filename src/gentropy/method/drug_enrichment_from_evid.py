@@ -9,8 +9,8 @@ from pyspark.sql import DataFrame
 from scipy.stats import chi2, fisher_exact
 
 from gentropy.common.spark import calculate_harmonic_sum
+from gentropy.dataset.credible_set import CredibleSet
 from gentropy.dataset.study_index import StudyIndex
-from gentropy.dataset.study_locus import StudyLocus
 
 
 class chemblDrugEnrichment:
@@ -24,20 +24,20 @@ class chemblDrugEnrichment:
         table_with_score: DataFrame,
         score_column: str,
         datasource_id: str,
-        study_locus: StudyLocus,
+        study_locus: CredibleSet,
         study_index: StudyIndex,
         min_score: float = 0.0,
         datatype_id: str = "GWAS",
     ) -> DataFrame:
         """Convert score from table to disease target evidence.
 
-        The table have to cosist a studyLocusId column.
+        The table have to cosist a credibleSetId column.
 
         Args:
             table_with_score (DataFrame): Table with score
             score_column (str): Column name with score
             datasource_id (str): Data source ID
-            study_locus (StudyLocus): Study locus dataset
+            study_locus (CredibleSet): Study locus dataset
             study_index (StudyIndex): Study index dataset
             min_score (float): Minimum score to keep
             datatype_id (str): Data type ID
@@ -48,8 +48,8 @@ class chemblDrugEnrichment:
         return (
             table_with_score.filter(f.col(score_column) >= min_score)
             .join(
-                study_locus.df.select("studyLocusId", "studyId"),
-                on="studyLocusId",
+                study_locus.df.select(f.col("id").alias("credibleSetId"), "studyId"),
+                on="credibleSetId",
                 how="inner",
             )
             .join(
@@ -63,7 +63,7 @@ class chemblDrugEnrichment:
                 f.col("geneId").alias("targetId"),
                 f.explode(f.col("diseaseIds")).alias("diseaseId"),
                 f.col(score_column).alias("resourceScore"),
-                "studyLocusId",
+                "credibleSetId",
             )
         )
 
@@ -358,7 +358,7 @@ class chemblDrugEnrichment:
         return pd.DataFrame(results)
 
     @staticmethod
-    def studyLocusId_based_evidence_table_vs_training_set(
+    def credibleSetId_based_evidence_table_vs_training_set(
         table_with_score: DataFrame,
         training_set: DataFrame,
         score_column: str,
@@ -368,11 +368,11 @@ class chemblDrugEnrichment:
         """Stats for stydyLocusId based evidence vs training set.
 
         Calucalte sensitivity, specificity, PPV, FDR and balanced accuracy
-        for tables with studyLocusIds that will allow to combine it with training set directly.
+        for tables with credibleSetIds that will allow to combine it with training set directly.
 
         Args:
-            table_with_score (DataFrame): Table with scores to make an evidence and studyLocusId
-            training_set (DataFrame): Training set with studyLocusId and goldStandardSet
+            table_with_score (DataFrame): Table with scores to make an evidence and credibleSetId
+            training_set (DataFrame): Training set with credibleSetId and goldStandardSet
             score_column (str): Column name with scores in table_with_score
             min_score (float): Minimum score threshold
             name_of_the_evidence (str): Name of the evidence
@@ -384,8 +384,8 @@ class chemblDrugEnrichment:
                 "significant_score",
                 f.when(f.col(score_column) >= min_score, 1).otherwise(0),
             )
-            .select("studyLocusId", "geneId", "significant_score")
-            .join(training_set, on=["studyLocusId", "geneId"], how="right")
+            .select("credibleSetId", "geneId", "significant_score")
+            .join(training_set, on=["credibleSetId", "geneId"], how="right")
             .fillna({"significant_score": 0})
         ).cache()
 

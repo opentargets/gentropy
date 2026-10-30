@@ -15,6 +15,7 @@ from gentropy.dataset.study_index import StudyIndex, StudyQualityCheck, StudyTyp
 from gentropy.method.fine_mapping.constraint import (
     HasAllowedMajorAncestry,
     HasMappedTrait,
+    HasSufficientESS,
     MethodConstraint,
     PassSumstatQC,
 )
@@ -120,3 +121,80 @@ def test_pass_sumstat_qc_edge_cases(
     si = _study_index(spark, qualityControls=quality_controls)
     constraint = PassSumstatQC(disallowed_reasons=[StudyQualityCheck.UNRESOLVED_TARGET])
     assert _constraint_value(si, constraint) is expected
+
+
+ESS_STUDY_SCHEMA = (
+    "studyId STRING, projectId STRING, studyType STRING, "
+    "qualityControls ARRAY<STRING>, nSamples INT, nCases INT, nControls INT"
+)
+
+
+def _ess_study_index(
+    spark: SparkSession,
+    quality_controls: list[str] | None,
+    n_samples: int | None,
+    n_cases: int | None,
+    n_controls: int | None,
+) -> StudyIndex:
+    """Build a single-row StudyIndex with the sample-size columns used by HasSufficientESS."""
+    data = [
+        (
+            "s1",
+            "p",
+            StudyType.GWAS.value,
+            quality_controls,
+            n_samples,
+            n_cases,
+            n_controls,
+        )
+    ]
+    return StudyIndex(_df=spark.createDataFrame(data, ESS_STUDY_SCHEMA))
+
+
+def test_has_sufficient_ess_at_exact_threshold_passes(spark: SparkSession) -> None:
+    """A sample size exactly equal to the threshold is sufficient (>=, not >)."""
+    si = _ess_study_index(
+        spark, [StudyQualityCheck.MEASUREMENT_STUDY_DESIGN.value], 1000, None, None
+    )
+    constraint = HasSufficientESS(min_ess=1000)
+    assert _constraint_value(si, constraint) is True
+
+
+@pytest.mark.parametrize(
+    ["quality_controls", "n_samples", "n_cases", "n_controls"],
+    [
+        pytest.param(
+            [StudyQualityCheck.CASE_CONTROL_STUDY_DESIGN.value],
+            200,
+            None,
+            None,
+            id="case-control design with null counts",
+        ),
+        pytest.param(
+            [StudyQualityCheck.MEASUREMENT_STUDY_DESIGN.value],
+            None,
+            None,
+            None,
+            id="measurement design with null nSamples",
+        ),
+        pytest.param(
+            [],
+            1_000_000,
+            500_000,
+            500_000,
+            id="undetermined study design",
+        ),
+        pytest.param(None, 1_000_000, None, None, id="null quality controls"),
+    ],
+)
+def test_has_sufficient_ess_fails_without_computable_sample_size(
+    spark: SparkSession,
+    quality_controls: list[str] | None,
+    n_samples: int | None,
+    n_cases: int | None,
+    n_controls: int | None,
+) -> None:
+    """HasSufficientESS must treat an uncomputable effective sample size as failing, not unknown."""
+    si = _ess_study_index(spark, quality_controls, n_samples, n_cases, n_controls)
+    constraint = HasSufficientESS(min_ess=1000)
+    assert _constraint_value(si, constraint) is False

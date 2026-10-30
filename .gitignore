@@ -12,7 +12,7 @@ src/airflow/logs/*
 site/
 .env
 .coverage*
-wandb/
+/wandb/
 hail*.log
 .python-version
 .idea

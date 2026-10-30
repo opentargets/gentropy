@@ -10,10 +10,11 @@ from typing import TYPE_CHECKING, Any, Protocol
 import pandas as pd
 from pyspark.conf import SparkConf
 from pyspark.sql import SparkSession
+from pyspark.sql import functions as f
+from pyspark.sql.types import StringType, StructField, StructType
 
 if TYPE_CHECKING:
     from pyspark.sql import DataFrame
-    from pyspark.sql.types import StructType
 
 
 class NativeFileFormat(StrEnum):
@@ -553,11 +554,15 @@ class Session:
         This codec implements:
           (1) SplittableCompressionCodec allowing parallel reading of bgzip files.
           (2) GzipCodec allowing reading of standard gzip files.
+
+        The `BGZFCodec` from the same package is registered for files with the `.bgz` extension,
+        such as the FinnGen SuSiE outputs, which the codecs above do not claim.
         """
         c = Session._append_package(c, "org.seqdoop:hadoop-bam:7.10.0")
         return c.set(
             "spark.hadoop.io.compression.codecs",
-            "org.seqdoop.hadoop_bam.util.BGZFEnhancedGzipCodec",
+            "org.seqdoop.hadoop_bam.util.BGZFEnhancedGzipCodec,"
+            "org.seqdoop.hadoop_bam.util.BGZFCodec",
         ).set("spark.gentropy.useEnhancedBgzipCodec", "true")
 
     def _setup_s3_connector(
@@ -582,7 +587,9 @@ class Session:
         """
         from gentropy.external.s3 import S3Config
 
-        if s3_configuration is not None and not isinstance(s3_configuration, (dict, str)):
+        if s3_configuration is not None and not isinstance(
+            s3_configuration, (dict, str)
+        ):
             s3_configuration = dict(s3_configuration)
 
         match s3_configuration:
@@ -632,7 +639,9 @@ class Session:
         from gentropy.external.gcs import GCSConfig
 
         # Hydra passes DictConfig (OmegaConf) objects which don't inherit from dict
-        if gcs_configuration is not None and not isinstance(gcs_configuration, (dict, str)):
+        if gcs_configuration is not None and not isinstance(
+            gcs_configuration, (dict, str)
+        ):
             gcs_configuration = dict(gcs_configuration)
 
         match gcs_configuration:
@@ -917,6 +926,10 @@ class Session:
             case "csv":
                 _header = kwargs.get("header", False)
                 header = 0 if _header else None
+                if schema is not None:
+                    return self._load_csv_from_url_with_schema(
+                        url, header=header, sep=kwargs.get("sep"), schema=schema
+                    )
                 df = pd.read_csv(url, header=header, sep=kwargs.get("sep"))
             case "json":
                 df = pd.read_json(url)
@@ -928,6 +941,72 @@ class Session:
                 samplingRatio=kwargs.get("samplingRation", 0.4),
             )
         return self.spark.createDataFrame(data=df, schema=schema, verifySchema=True)
+
+    def _load_csv_from_url_with_schema(
+        self: Session,
+        url: str,
+        header: int | None,
+        sep: str | None,
+        schema: StructType | str,
+    ) -> DataFrame:
+        """Load a CSV/TSV file from a URL and cast its columns to the schema.
+
+        pandas infers the type of each column, so a column of integers with a missing
+        value becomes float, and a string field of the schema then reads `23755361` as
+        `2.3755361E7` and the missing value as `NaN`. The file is read as text instead,
+        missing values (e.g. `NA`) become nulls, and Spark casts each column to its type
+        in the schema.
+
+        Args:
+            url (str): single URL to load data from.
+            header (int | None): Row of the header, or None if the file has no header.
+            sep (str | None): Field separator.
+            schema (StructType | str): Schema of the data, matched to the columns by position.
+
+        Returns:
+            DataFrame: Dataframe with the columns of the schema.
+
+        Raises:
+            ValueError: If a value cannot be cast to the type of its column in the schema.
+        """
+        target = (
+            schema
+            if isinstance(schema, StructType)
+            else self.spark.createDataFrame([], schema).schema
+        )
+        df = pd.read_csv(url, header=header, sep=sep, dtype=str)
+        rows = df.astype(object).where(df.notna(), None).values.tolist()
+        text = self.spark.createDataFrame(
+            data=rows,
+            schema=StructType(
+                [StructField(field.name, StringType(), True) for field in target.fields]
+            ),
+        )
+        typed = text.select(
+            *[
+                f.col(field.name).cast(field.dataType).alias(field.name)
+                for field in target.fields
+            ],
+            *[
+                f.col(field.name).alias(f"_text_{i}")
+                for i, field in enumerate(target.fields)
+            ],
+        )
+        failed = [
+            field.name
+            for i, field in enumerate(target.fields)
+            if typed.filter(
+                f.col(field.name).isNull() & f.col(f"_text_{i}").isNotNull()
+            )
+            .limit(1)
+            .count()
+            > 0
+        ]
+        if failed:
+            raise ValueError(
+                f"Values in {url} cannot be cast to the schema types of columns: {failed}"
+            )
+        return typed.select(*[field.name for field in target.fields])
 
     def list_hadoop_paths(self, path: str) -> list[str]:
         """List files matching a Hadoop-compatible filesystem path or glob pattern.

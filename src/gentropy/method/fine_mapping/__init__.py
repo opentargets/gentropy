@@ -11,6 +11,14 @@ from gentropy.method.fine_mapping.constraint_set import (
 class FineMappingConstraintRegistry:
     """Registry of constraint sets for fine-mapping methods."""
 
+    def __init__(self, min_ess: int = 1000) -> None:
+        """Initialize the fine-mapping constraint registry.
+
+        Args:
+            min_ess (int): The minimum effective sample size applied to every registered constraint set.
+        """
+        self.min_ess = min_ess
+
     @property
     def registry(self) -> dict[str, ConstraintSet]:
         """Get the registry of constraint sets for fine-mapping methods.
@@ -43,6 +51,7 @@ class FineMappingConstraintRegistry:
                     StudyQualityCheck.SUMSTATS_NOT_AVAILABLE,
                 ],
                 relative_sample_size_threshold=0.95,
+                min_ess=self.min_ess,
             ),
         }
 
