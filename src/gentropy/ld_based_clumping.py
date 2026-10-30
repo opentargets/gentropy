@@ -5,7 +5,7 @@ from __future__ import annotations
 from gentropy.common.session import Session
 from gentropy.dataset.ld_index import LDIndex
 from gentropy.dataset.study_index import StudyIndex
-from gentropy.dataset.study_locus import AnnotatedStudyLocus
+from gentropy.dataset.study_locus import AnnotatedStudyLocus, LDAnnotatedStudyLocus
 from gentropy.method.annotation import annotate_ld
 from gentropy.method.clumping.ld import LDClumping
 
@@ -44,13 +44,23 @@ class LDBasedClumpingStep:
         ld_index = LDIndex.from_parquet(session, ld_index_path)
         study_index = StudyIndex.from_parquet(session, study_index_path)
 
+        # The LD annotation and the clumping read the lead's own entry of locus only, for
+        # its p-value: they run on the loci with that entry, so the rest of locus is
+        # neither shuffled by the LD index join nor cached.
+        narrow = study_locus.lead_locus()
         # Annotating study locus with LD information, then flagging linked leads.
         # clump reads its input twice; persist so the LD index join runs once. The two
         # reads run in the same query, at the same time under adaptive execution, so the
         # cache is filled first: otherwise both reads compute the join.
-        annotated = annotate_ld(study_locus, study_index, ld_index).persist()
+        annotated = annotate_ld(narrow, study_index, ld_index).persist()
         annotated.df.count()
         clumped = LDClumping(keep_clumped_loci=True).clump(annotated)
-        clumped.df.coalesce(session.output_partitions).write.mode(
+        # The LD set and the flags of each locus are joined back to its whole locus.
+        output = LDAnnotatedStudyLocus.get_schema()
+        loci = study_locus.df.drop("qualityControls").join(
+            clumped.df.select("id", "leadVariantId", "qualityControls", "ldSet"),
+            on=["id", "leadVariantId"],
+        )
+        loci.select(*output.fieldNames()).coalesce(session.output_partitions).write.mode(
             session.write_mode
         ).parquet(clumped_study_locus_output_path)
