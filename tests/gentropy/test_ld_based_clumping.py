@@ -102,8 +102,12 @@ class TestLDBasedClumpingStep:
                 clumped_study_locus_output_path=clumped_output_path,
             )
 
-            # LD annotation, persisted, feeds LD clumping, which keeps and flags clumped loci:
-            mock_annotate_ld.assert_called_once_with(mock_sl, mock_si, mock_ld)
+            # LD annotation of the loci with the lead's entry of locus, persisted, feeds LD
+            # clumping, which keeps and flags clumped loci:
+            mock_sl.lead_locus.assert_called_once_with()
+            mock_annotate_ld.assert_called_once_with(
+                mock_sl.lead_locus.return_value, mock_si, mock_ld
+            )
             mock_annotate_ld.return_value.persist.assert_called_once_with()
             mock_ld_clumping.assert_called_once_with(keep_clumped_loci=True)
             mock_ld_clumping.return_value.clump.assert_called_once_with(
