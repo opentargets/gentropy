@@ -46,6 +46,7 @@ from gentropy.dataset.credible_set import (
     CredibleSetVariantQualityCheck,
 )
 from gentropy.dataset.study_locus import FinemappingMethod, StudyLocusQualityCheck
+from gentropy.method.annotation import keep_lead_entry
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -71,6 +72,9 @@ _MEMBERS = "members"
 
 # Temporary columns: the lead's ``-log10 p``, a tag's likelihood, the posteriors before it and its rank.
 _NEGLOG_P, _LIKELIHOOD, _PRECEDING, _RANK = "neglogP", "likelihood", "preceding", "rank"
+
+# Temporary column: the id of the study locus of a credible set.
+_STUDY_LOCUS_ID = "studyLocusId"
 
 
 def _likelihood_batch(neglog_p: pd.Series, r2: pd.Series, k: pd.Series) -> pd.Series:
@@ -165,7 +169,9 @@ class PICS:
         allele frequency from the study gets the ``EAF_FROM_SOURCE`` flag.
 
         Loci without the lead's p-value, or whose tags all fall below ``r2`` 0.5,
-        give nothing. The posteriors are persisted, as both datasets read them.
+        give nothing. The posteriors are computed from the lead's own entry of
+        ``locus`` and persisted, as both datasets read them; the rest of ``locus``
+        is read once, for the statistics of the members.
 
         Args:
             loci (LDAnnotatedStudyLocus): Loci with ``locus`` and ``ldSet``.
@@ -209,7 +215,8 @@ class PICS:
             <BLANKLINE>
         """
         posteriors = (
-            self._posteriors(loci)
+            self._posteriors(keep_lead_entry(loci))
+            .withColumn(_STUDY_LOCUS_ID, f.col("id"))
             .withColumn("fineMappingMethod", f.lit(FinemappingMethod.PICS.value))
             .withColumn("id", CredibleSet.generate_identifier(CredibleSet.ID_COLUMNS))
             .join(
@@ -217,7 +224,9 @@ class PICS:
             )
             .persist()
         )
-        return self._credible_sets(posteriors), self._credible_set_variants(posteriors)
+        return self._credible_sets(posteriors), self._credible_set_variants(
+            posteriors, loci
+        )
 
     @staticmethod
     def _credible_sets(posteriors: DataFrame) -> CredibleSet:
@@ -257,12 +266,15 @@ class PICS:
         )
 
     @staticmethod
-    def _credible_set_variants(posteriors: DataFrame) -> CredibleSetVariant:
+    def _credible_set_variants(
+        posteriors: DataFrame, loci: LDAnnotatedStudyLocus
+    ) -> CredibleSetVariant:
         """Project the members of each credible set, with their marginal statistics.
 
         Args:
-            posteriors (DataFrame): Fine-mapped loci with their credible set ``id``
-                and ``members``.
+            posteriors (DataFrame): Fine-mapped loci with their credible set ``id``,
+                the ``id`` of their study locus and ``members``.
+            loci (LDAnnotatedStudyLocus): The loci, with their whole ``locus``.
 
         Returns:
             CredibleSetVariant: One row per member of a credible set.
@@ -271,12 +283,30 @@ class PICS:
         entry = f.col("entry")
         # Each member gets its locus entry by a join, not by searching ``locus`` per member, which
         # is quadratic on summary-statistics loci. A variant listed twice in ``locus`` keeps its
-        # first entry.
+        # first entry. Only the entries of the members are exploded, found by a lookup in a map
+        # of the member ids: a summary-statistics locus holds thousands of entries.
         first = Window.partitionBy("credibleSetId", "variantId").orderBy("position")
+        ids = f.array_distinct(
+            f.transform(_MEMBERS, lambda member: member[_VARIANT])
+        )
+        member_ids = posteriors.select(
+            _STUDY_LOCUS_ID,
+            f.col("id").alias("credibleSetId"),
+            f.map_from_arrays(ids, f.array_repeat(f.lit(True), f.size(ids))).alias(
+                "memberIds"
+            ),
+        )
         entries = (
-            posteriors.select(
-                f.col("id").alias("credibleSetId"),
-                f.posexplode("locus").alias("position", "entry"),
+            loci.df.select(f.col("id").alias(_STUDY_LOCUS_ID), "locus")
+            .join(member_ids, on=_STUDY_LOCUS_ID)
+            .select(
+                "credibleSetId",
+                f.posexplode(
+                    f.filter(
+                        "locus",
+                        lambda e: f.try_element_at("memberIds", e["variantId"]).isNotNull(),
+                    )
+                ).alias("position", "entry"),
             )
             .withColumn("variantId", entry["variantId"])
             .withColumn("rank", f.row_number().over(first))
