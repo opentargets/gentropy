@@ -6,7 +6,7 @@ from gentropy.common.session import Session
 from gentropy.dataset.ld_index import LDIndex
 from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.study_locus import AnnotatedStudyLocus, LDAnnotatedStudyLocus
-from gentropy.method.annotation import annotate_ld
+from gentropy.method.annotation import annotate_ld, keep_lead_entry
 from gentropy.method.clumping.ld import LDClumping
 
 
@@ -47,7 +47,7 @@ class LDBasedClumpingStep:
         # The LD annotation and the clumping read the lead's own entry of locus only, for
         # its p-value: they run on the loci with that entry, so the rest of locus is
         # neither shuffled by the LD index join nor cached.
-        narrow = study_locus.lead_locus()
+        narrow = keep_lead_entry(study_locus)
         # Annotating study locus with LD information, then flagging linked leads.
         # clump reads its input twice; persist so the LD index join runs once. The two
         # reads run in the same query, at the same time under adaptive execution, so the
