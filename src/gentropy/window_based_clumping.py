@@ -61,6 +61,10 @@ class WindowBasedClumpingStep:
         ).clump(ss)
         # Optional locus collection:
         if collect_locus:
+            # annotate_locus reads the loci twice, for the rows and for their bounds;
+            # persist them so the summary statistics are clumped once.
+            study_locus = study_locus.persist()
+            study_locus.df.count()
             study_locus = annotate_locus(study_locus, ss)
 
         study_locus.df.coalesce(session.output_partitions).write.mode(
