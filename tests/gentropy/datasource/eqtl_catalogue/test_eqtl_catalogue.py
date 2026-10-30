@@ -152,6 +152,21 @@ class TestEqtlCatalogueFinemapping:
         assert row.conditionalStandardErrors[0] == pytest.approx(0.05)
         assert row.conditionalStandardErrors[1] == 0.0
 
+    def test__read_full_susie_from_source_drops_duplicates(
+        self: TestEqtlCatalogueFinemapping, session: Session, tmp_path: Path
+    ) -> None:
+        """A variant listed twice, with moments that differ by floating point noise, is kept once."""
+        source = session.spark.read.parquet(
+            "tests/gentropy/data_samples/QTD000001/QTS00001/QTS000001.full_susie.parquet"
+        )
+        noisy = source.withColumn("mu_1", f.col("mu_1") + f.lit(1e-10))
+        path = tmp_path / "QTD000001.full_susie.parquet"
+        source.unionByName(noisy).write.parquet(str(path))
+        data = EqtlCatalogueFinemapping.read_full_susie_from_source(
+            str(path), session=session
+        )
+        assert data.count() == 15
+
     def test__read_credible_set_from_source(
         self: TestEqtlCatalogueFinemapping,
     ) -> None:

@@ -567,7 +567,9 @@ class EqtlCatalogueFinemapping:
         SuSiE was fitted on, per standard deviation of the genotype: dividing them by the file's
         `X_column_scale_factors` gives per-allele effects, which is left to a later rescaling.
         Only the credible set members (`cs_index` set) are kept; a member of two credible sets
-        keeps the moments of both effects.
+        keeps the moments of both effects. A variant is kept once per region and trait, the key of
+        the join in `parse_susie_results`: some files (e.g. QTS000038) list a variant twice, with
+        moments that differ only by floating point noise, which would duplicate its credible sets.
 
         Args:
             full_susie_path (str | list[str]): Path(s) or glob to the `*.full_susie.parquet` files.
@@ -618,7 +620,7 @@ class EqtlCatalogueFinemapping:
                     ]
                 ).alias("conditionalStandardErrors"),
             )
-            .distinct()
+            .dropDuplicates(["molecular_trait_id", "region", "variant", "dataset_id"])
         )
 
     @classmethod
