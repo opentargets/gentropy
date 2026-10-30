@@ -2,7 +2,7 @@
 title: BigBrain brain molecular QTLs
 ---
 
-[BigBrain](https://zenodo.org/records/17226890) is a multi-cohort brain-tissue molecular-QTL
+[BigBrain](https://zenodo.org/records/17226890) ([Réal et al., 2025](https://pubmed.ncbi.nlm.nih.gov/41040686/)) is a multi-cohort brain-tissue molecular-QTL
 meta-analysis (43 tissue-cohort pairs, 10,725 samples from 4,656 donors), mapped using the
 mmQTL random-effects meta-analysis method ([Zeng et al., 2022](https://pubmed.ncbi.nlm.nih.gov/35058635/)).
 
