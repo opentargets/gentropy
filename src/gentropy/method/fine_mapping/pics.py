@@ -46,6 +46,7 @@ from gentropy.dataset.credible_set import (
     CredibleSetVariantQualityCheck,
 )
 from gentropy.dataset.study_locus import FinemappingMethod, StudyLocusQualityCheck
+from gentropy.method.annotation import keep_lead_entry
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -214,7 +215,7 @@ class PICS:
             <BLANKLINE>
         """
         posteriors = (
-            self._posteriors(loci.lead_locus())
+            self._posteriors(keep_lead_entry(loci))
             .withColumn(_STUDY_LOCUS_ID, f.col("id"))
             .withColumn("fineMappingMethod", f.lit(FinemappingMethod.PICS.value))
             .withColumn("id", CredibleSet.generate_identifier(CredibleSet.ID_COLUMNS))

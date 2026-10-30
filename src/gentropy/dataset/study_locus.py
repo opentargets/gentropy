@@ -291,37 +291,6 @@ class AnnotatedStudyLocus(StudyLocus):
         )
 
 
-    def lead_locus(self: Self) -> Self:
-        """Keep the lead's own entry of `locus` only.
-
-        The LD annotation, the LD clumping and the posteriors of PICS read the lead's
-        entry of `locus` only, for its p-value. On summary statistics `locus` holds
-        thousands of entries per locus, which these steps then neither shuffle nor cache.
-
-        Returns:
-            Self: The loci, as the same dataset type, with the lead's entry in `locus`.
-
-        Examples:
-            >>> def entry(variant, exponent):
-            ...     return (variant, 5.0, exponent, 0.3, 1000, 0.1, 0.01)
-            >>> rows = [("L1", "S1", "1", 1, 1000, "A", [], [entry("A", -8), entry("B", -7)])]
-            >>> loci = AnnotatedStudyLocus(
-            ...     spark.createDataFrame(rows, AnnotatedStudyLocus.get_schema()),
-            ...     AnnotatedStudyLocus.get_schema(),
-            ... )
-            >>> [e.variantId for e in loci.lead_locus().df.first().locus]
-            ['A']
-        """
-        lead = f.col("leadVariantId")
-        attrs = {k: v for k, v in self.__dict__.items() if k != "_df"}
-        return self.__class__(
-            _df=self._df.withColumn(
-                "locus", f.filter("locus", lambda e: e["variantId"] == lead)
-            ),
-            **attrs,
-        )
-
-
 @dataclass
 class LDAnnotatedStudyLocus(AnnotatedStudyLocus):
     """Annotated study locus whose `ldSet` holds the variants in LD with the lead.
