@@ -468,7 +468,18 @@ def main() -> int:
         required=True,
         help="Writes credible_set and credible_set_variant here.",
     )
-    parser.add_argument("--partitions", type=int, default=200)
+    parser.add_argument(
+        "--partitions",
+        type=int,
+        default=200,
+        help="Files of credible_set_variant.",
+    )
+    parser.add_argument(
+        "--credible-set-partitions",
+        type=int,
+        default=None,
+        help="Files of credible_set; defaults to a quarter of --partitions, at least 1.",
+    )
     args = parser.parse_args()
 
     spark = (
@@ -534,9 +545,8 @@ def main() -> int:
     credible_sets, variants = convert(old, study_index, sumstats)
     out_sets = f"{args.output}/credible_set"
     out_variants = f"{args.output}/credible_set_variant"
-    credible_sets.repartition(max(1, args.partitions // 4)).write.mode(
-        "overwrite"
-    ).parquet(out_sets)
+    set_partitions = args.credible_set_partitions or max(1, args.partitions // 4)
+    credible_sets.repartition(set_partitions).write.mode("overwrite").parquet(out_sets)
     variants.repartition(args.partitions).write.mode("overwrite").parquet(out_variants)
 
     failures = check(

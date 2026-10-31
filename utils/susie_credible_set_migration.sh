@@ -13,6 +13,11 @@
 # Override with environment variables: PROJECT, REGION, CLUSTER, NUM_WORKERS, WORKER_MACHINE_TYPE,
 # and RUN_TS (UTC, YYYYMMDDTHHMMSS) to reuse a snapshot of an earlier ukb_ppp_eur run.
 #
+# gwas_catalog reads credible_set_clean/20260901 and study_index, and writes
+# gs://gwas_catalog_sumstats_susie/prod/${RUN_TS}/output/: credible_set/ (4 files) and
+# credible_set_variant/ (200 files) from the job, then study/, a verified copy of the study index
+# (one file).
+#
 # ukb_ppp_eur reads the released snapshot prod/20260526T131650/ and writes a new, self-contained
 # snapshot prod/${RUN_TS}/: credible_set/ and credible_set_variant/ from the job, then study/,
 # a copy of the released study index (never overwriting, verified by name, size and crc32c).
@@ -32,6 +37,8 @@ readonly UKB_BUCKET="gs://ukb_ppp_eur_data"
 readonly UKB_RELEASED="${UKB_BUCKET}/prod/20260526T131650"
 readonly RUN_TS="${RUN_TS:-$(date -u +%Y%m%dT%H%M%S)}"
 readonly UKB_SNAPSHOT="${UKB_BUCKET}/prod/${RUN_TS}"
+readonly GWAS_BUCKET="gs://gwas_catalog_sumstats_susie"
+readonly GWAS_OUTPUT="${GWAS_BUCKET}/prod/${RUN_TS}/output"
 
 # Paths per source: credible sets (QC output), study index, one study's summary statistics
 # ({studyId} is filled in), output root, partitions of credible_set_variant.
@@ -59,11 +66,12 @@ function source_args() {
                 "--partitions=50"
             ;;
         gwas_catalog)
-            echo "--credible-sets=gs://gwas_catalog_sumstats_susie/credible_set_clean/20260901" \
-                "--study-index=gs://gwas_catalog_sumstats_susie/study_index" \
+            echo "--credible-sets=${GWAS_BUCKET}/credible_set_clean/20260901" \
+                "--study-index=${GWAS_BUCKET}/study_index" \
                 "--summary-statistics=gs://gwas_catalog_inputs/harmonised_summary_statistics/{studyId}" \
-                "--output=gs://gwas_catalog_sumstats_susie/credible_set_migrated/20260901" \
-                "--partitions=200"
+                "--output=${GWAS_OUTPUT}" \
+                "--partitions=200" \
+                "--credible-set-partitions=4"
             ;;
         *)
             echo "Unknown source: $1" >&2
@@ -98,8 +106,11 @@ function submit() {
         --cluster="${CLUSTER}" \
         -- $(source_args "$1")
     if [[ "$1" == "ukb_ppp_eur" ]]; then
-        copy_study
+        copy_study "${UKB_RELEASED}/study_index" "${UKB_SNAPSHOT}/study"
         echo "snapshot: ${UKB_SNAPSHOT}"
+    elif [[ "$1" == "gwas_catalog" ]]; then
+        copy_study "${GWAS_BUCKET}/study_index" "${GWAS_OUTPUT}/study"
+        echo "output: ${GWAS_OUTPUT}"
     fi
 }
 
@@ -107,13 +118,14 @@ function submit() {
 # every object arrived with its size and crc32c. Folder markers (names ending in /, empty
 # basename) are not copied by rsync, so they are left out of the comparison.
 function copy_study() {
+    local source="$1" target="$2"
     local listing='value(name.basename(),size,crc32c_hash)'
-    gcloud storage rsync --recursive --no-clobber "${UKB_RELEASED}/study_index" "${UKB_SNAPSHOT}/study"
-    if diff <(gcloud storage objects list "${UKB_RELEASED}/study_index/**" --format="${listing}" | grep -v $'^\t' | sort) \
-        <(gcloud storage objects list "${UKB_SNAPSHOT}/study/**" --format="${listing}" | grep -v $'^\t' | sort); then
-        echo "study/ verified: ${UKB_SNAPSHOT}/study"
+    gcloud storage rsync --recursive --no-clobber "${source}" "${target}"
+    if diff <(gcloud storage objects list "${source}/**" --format="${listing}" | grep -v $'^\t' | sort) \
+        <(gcloud storage objects list "${target}/**" --format="${listing}" | grep -v $'^\t' | sort); then
+        echo "study verified: ${target} ($(gcloud storage ls "${target}/*.parquet" | wc -l | tr -d ' ') parquet file(s))"
     else
-        echo "study/ differs from ${UKB_RELEASED}/study_index" >&2
+        echo "study differs from ${source}" >&2
         exit 1
     fi
 }
