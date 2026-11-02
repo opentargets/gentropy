@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import fields, is_dataclass
 
 import pytest
+from hydra import compose, initialize
 
 from gentropy.config import (
     BiosampleIndexConfig,
@@ -136,6 +137,23 @@ class TestBiosampleIndexConfig:
 
         for expected in expected_fields:
             assert expected in config_fields, f"Missing field: {expected}"
+
+
+@pytest.mark.parametrize(
+    "step",
+    [
+        "finngen_studies",
+        "finngen_finemapping_ingestion",
+        "finngen_multiome_ingestion",
+        "finngen_ukb_mvp_meta_summary_statistics_ingestion",
+    ],
+)
+def test_finngen_steps_start_without_hail(step: str) -> None:
+    """The FinnGen steps read their inputs with Spark only, so their session starts no hail."""
+    register_config()
+    with initialize(version_base="1.3", config_path=None):
+        config = compose(config_name="config", overrides=[f"step={step}"])
+    assert config.step.session.start_hail is False
 
 
 def test_register_config() -> None:
