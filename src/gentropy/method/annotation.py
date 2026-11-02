@@ -1,6 +1,6 @@
 """Annotate study loci with the statistics and the LD of their variants.
 
-Both functions add a column to a study locus and return it in its next state:
+Two functions add a column to a study locus and return it in its next state:
 
 * ``annotate_locus`` collects the summary statistics inside each locus into
   ``locus``, turning a ``StudyLocus`` into an ``AnnotatedStudyLocus``.
@@ -9,11 +9,14 @@ Both functions add a column to a study locus and return it in its next state:
 
 LD comes second because LD clumping needs both: ``ldSet`` to find linked leads,
 and ``locus`` for the lead's p-value.
+
+``keep_lead_entry`` reduces ``locus`` to the lead's own entry, the only entry the
+LD annotation, the LD clumping and the posteriors of PICS read.
 """
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, TypeVar
 
 from pyspark.sql import functions as f
 from pyspark.sql import types as t
@@ -35,6 +38,45 @@ if TYPE_CHECKING:
 
 # How far above 1 a panel r2 may drift from rounding and still be read as 1.
 _R2_TOLERANCE = 1e-6
+
+# A study locus state with ``locus``: annotated, or LD-annotated.
+_Loci = TypeVar("_Loci", bound=AnnotatedStudyLocus)
+
+
+def keep_lead_entry(loci: _Loci) -> _Loci:
+    """Reduce ``locus`` to the lead's own entry.
+
+    The LD annotation, the LD clumping and the posteriors of PICS read the lead's
+    entry of ``locus`` only, for its p-value. On summary statistics ``locus``
+    holds thousands of entries per locus; with the lead's entry only, these
+    steps neither shuffle nor cache them. A locus whose lead has no entry gets
+    an empty ``locus``.
+
+    Args:
+        loci (_Loci): The loci, annotated or LD-annotated.
+
+    Returns:
+        _Loci: The same loci, as the same dataset type, with the lead's entry in ``locus``.
+
+    Examples:
+        >>> def entry(variant, exponent):
+        ...     return (variant, 5.0, exponent, 0.3, 1000, 0.1, 0.01)
+        >>> rows = [("L1", "S1", "1", 1, 1000, "A", [], [entry("A", -8), entry("B", -7)])]
+        >>> loci = AnnotatedStudyLocus(
+        ...     spark.createDataFrame(rows, AnnotatedStudyLocus.get_schema()),
+        ...     AnnotatedStudyLocus.get_schema(),
+        ... )
+        >>> lead_only = keep_lead_entry(loci)
+        >>> type(lead_only).__name__, [e.variantId for e in lead_only.df.first().locus]
+        ('AnnotatedStudyLocus', ['A'])
+    """
+    lead = f.col("leadVariantId")
+    return type(loci)(
+        _df=loci.df.withColumn(
+            "locus", f.filter("locus", lambda e: e["variantId"] == lead)
+        ),
+        _schema=loci.schema,
+    )
 
 
 def annotate_locus(
