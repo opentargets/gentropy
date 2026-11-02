@@ -546,7 +546,6 @@ class FinngenUkbMvpMetaSummaryStatisticsIngestionConfig(StepConfig):
     gnomad_variant_index_path: str = MISSING
     # Outputs
     study_index_output_path: str = MISSING
-    raw_summary_statistics_output_path: str = MISSING
     harmonised_summary_statistics_output_path: str = MISSING
     harmonised_summary_statistics_qc_output_path: str = MISSING
     # Harmonisation config

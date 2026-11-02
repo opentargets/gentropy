@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from gentropy import StudyIndex
 from gentropy.common.session import Session
 from gentropy.dataset.summary_statistics import SummaryStatistics
 from gentropy.dataset.summary_statistics_qc import SummaryStatisticsQC
@@ -30,12 +29,11 @@ class FinngenUkbMvpMetaSummaryStatisticsIngestionStep:
 
     1. Prepares `FinnGenManifest` and `EFOCuration`.
     2. Builds the `StudyIndex`.
-    3. Reads the raw summary statistics paths from `StudyIndex`.
-    3. Converts **source summary statistics** from _BGZIP_ into _Parquet_.
+    3. Reads the source summary statistics listed in the `StudyIndex`, one read per distinct header.
     4. Prepares `VariantDirection` for allele flipping.
-    5. Harmonises `SummaryStatistics`.
-    6. Performs quality control on harmonised `SummaryStatistics`.
-    7. Updates `StudyIndex` with QC results.
+    5. Harmonises `SummaryStatistics` from the source summary statistics.
+    6. Performs quality control on the harmonised `SummaryStatistics`.
+    7. Writes the `StudyIndex` with the QC results.
 
     ``` mermaid
     graph TD
@@ -51,13 +49,13 @@ class FinngenUkbMvpMetaSummaryStatisticsIngestionStep:
         B2["EFOMapping"] --> C1
         end
 
-        %% --- STEP 2: Raw Summary Statistics ---
-        subgraph "Downloading summary statistics"
+        %% --- STEP 2: Source Summary Statistics ---
+        subgraph "Reading summary statistics"
         C1 --> C2["List of summary statistics paths"]
-        C2 --> C3["Raw summary statistics in parquet format"]
+        C2 --> C3["Source summary statistics, grouped by header"]
         end
 
-        %% --- STEP 3: Quality Control ---
+        %% --- STEP 3: Variant Annotations ---
         subgraph "Variant Annotations"
         G1["VariantIndex"] --> G2["VariantDirection"]
         end
@@ -70,7 +68,7 @@ class FinngenUkbMvpMetaSummaryStatisticsIngestionStep:
         D1 --> D2["Removal of not meta-analysed variants"]
         D2 --> D3["Removal of low imputation score variants"]
         D3 --> D4["Removal of low allele count variants"]
-        D4 --> E1["Harmonised summary statistics in parquet format"]
+        D4 --> E1["Harmonised summary statistics, partitioned by studyId and chromosome"]
         end
 
         %% --- STEP 5: QC ---
@@ -93,12 +91,11 @@ class FinngenUkbMvpMetaSummaryStatisticsIngestionStep:
         - [x] The `source_manifest_path` should point to a manifest that includes paths to the summary statistics files.
 
     ??? tip "Outputs"
-        This step outputs 4 artifacts:
+        This step outputs 3 artifacts:
 
-        - [x] Raw summary statistics in Parquet format.
-        - [x] Harmonised summary statistics in Parquet format.
+        - [x] Harmonised summary statistics in Parquet format, partitioned by `studyId` and `chromosome`, sorted by `position` within each partition.
         - [x] Summary statistics QC results in Parquet format.
-        - [x] Study Index in parquet format (updated with QC results).
+        - [x] Study Index in parquet format, with the QC results.
 
     """
 
@@ -111,7 +108,6 @@ class FinngenUkbMvpMetaSummaryStatisticsIngestionStep:
         gnomad_variant_index_path: str,
         # Outputs
         study_index_output_path: str,
-        raw_summary_statistics_output_path: str,
         harmonised_summary_statistics_output_path: str,
         harmonised_summary_statistics_qc_output_path: str,
         # Harmonisation config
@@ -134,7 +130,6 @@ class FinngenUkbMvpMetaSummaryStatisticsIngestionStep:
             efo_curation_path (str): Path to the EFO curation file.
             gnomad_variant_index_path (str): Path to the gnomAD variant index file.
             study_index_output_path (str): Output path for the study index.
-            raw_summary_statistics_output_path (str): Output path for raw summary statistics.
             harmonised_summary_statistics_output_path (str): Output path for harmonised summary statistics.
             harmonised_summary_statistics_qc_output_path (str): Output path for harmonised summary statistics QC results.
             perform_meta_analysis_filter (bool, optional): Whether to filter non-meta analyzed variants.
@@ -177,33 +172,21 @@ class FinngenUkbMvpMetaSummaryStatisticsIngestionStep:
             manifest=finngen_manifest, efo_mapping=efo_mapping
         )
 
-        session.logger.info("Writing study index.")
-        study_index.df.write.mode(session.write_mode).parquet(study_index_output_path)
-        session.logger.info(f"Study index written to {study_index_output_path}.")
-
-        session.logger.info("Reading summary statistics paths from manifest.")
-        # NOTE: we can rely on the study index to extract the raw summary statistics paths
-        # to make sure to only process these summary statistics which are part of the study index.
-        # this may not be accurate if the summary statistics source paths were not found in the
-        # source manifest.
+        session.logger.info("Reading summary statistics paths from study index.")
+        # NOTE: The study index lists the summary statistics paths, so only the summary
+        # statistics of the studies in the study index are read.
         source_summary_statistics_paths = study_index.get_summary_statistics_paths()
-        assert (
-            len(source_summary_statistics_paths) > 0
-        ), "No summary statistics paths found in study index."
+        assert len(source_summary_statistics_paths) > 0, (
+            "No summary statistics paths found in study index."
+        )
         session.logger.info(
             f"Found {len(source_summary_statistics_paths)} summary statistics files."
         )
-
-        session.logger.info("Converting raw summary statistics to Parquet format.")
-        FinnGenUkbMvpMetaSummaryStatistics.bgzip_to_parquet(
+        source_summary_statistics = FinnGenUkbMvpMetaSummaryStatistics.from_source_files(
             session=session,
-            summary_statistics_list=source_summary_statistics_paths,
+            summary_statistics_paths=source_summary_statistics_paths,
             datasource=finngen_manifest.meta,
-            raw_summary_statistics_output_path=raw_summary_statistics_output_path,
-            n_threads=FinnGenUkbMvpMetaSummaryStatistics.N_THREAD_OPTIMAL,
         )
-        session.logger.info("Raw summary statistics conversion completed.")
-        session.logger.info(f"Output path: {raw_summary_statistics_output_path}.")
 
         session.logger.info("Reading gnomAD variant index.")
         gnomad_variant_index = VariantIndex.from_parquet(
@@ -215,41 +198,39 @@ class FinngenUkbMvpMetaSummaryStatisticsIngestionStep:
             variant_index=gnomad_variant_index
         )
 
-        session.logger.info("Reading raw summary statistics.")
-        raw_summary_statistics = session.spark.read.parquet(
-            raw_summary_statistics_output_path
-        )
-
         session.logger.info("Harmonising summary statistics.")
         session.logger.info("Applying the following harmonisation configuration:")
         for key, value in sumstat_harmonisation_config.items():
             session.logger.info(f"  - {key}: {value}")
         harmonised_summary_statistics = FinnGenUkbMvpMetaSummaryStatistics.from_source(
-            raw_summary_statistics=raw_summary_statistics,
+            raw_summary_statistics=source_summary_statistics,
             finngen_manifest=finngen_manifest,
             variant_annotations=variant_direction,
             **sumstat_harmonisation_config,
         )
 
         session.logger.info("Writing harmonised summary statistics.")
-        harmonised_summary_statistics.df.write.mode(session.write_mode).parquet(
-            harmonised_summary_statistics_output_path
+        # One file per study and chromosome, with the variants in genomic order. The sort
+        # starts with the partition columns, so the write adds no sort of its own.
+        partitions = ["studyId", "chromosome"]
+        (
+            harmonised_summary_statistics.df.repartition(*partitions)
+            .sortWithinPartitions(*partitions, "position")
+            .write.mode(session.write_mode)
+            .partitionBy(*partitions)
+            .parquet(harmonised_summary_statistics_output_path)
         )
         session.logger.info(
             f"Harmonised summary statistics written to {harmonised_summary_statistics_output_path}."
         )
 
-        session.logger.info("Reading harmonised summary statistics for QC.")
-        harmonised_summary_statistics = SummaryStatistics.from_parquet(
-            session=session, path=harmonised_summary_statistics_output_path
-        )
         session.logger.info("Running summary statistics QC.")
         summary_statistics_qc = SummaryStatisticsQC.from_summary_statistics(
-            gwas=harmonised_summary_statistics,
+            gwas=SummaryStatistics.from_parquet(
+                session=session, path=harmonised_summary_statistics_output_path
+            ),
             pval_threshold=qc_threshold,
         )
-
-        session.logger.info("Writing summary statistics QC results.")
         summary_statistics_qc.df.repartition(1).write.mode(session.write_mode).parquet(
             harmonised_summary_statistics_qc_output_path
         )
@@ -257,14 +238,14 @@ class FinngenUkbMvpMetaSummaryStatisticsIngestionStep:
             f"Summary statistics QC results written to {harmonised_summary_statistics_qc_output_path}."
         )
 
-        session.logger.info("Adding qc to the study index.")
-        study_index = StudyIndex.from_parquet(
-            session=session, path=study_index_output_path
+        session.logger.info("Writing study index with the QC results.")
+        # The QC is read back from its output, so it is computed once.
+        study_index = study_index.annotate_sumstats_qc(
+            SummaryStatisticsQC.from_parquet(
+                session=session, path=harmonised_summary_statistics_qc_output_path
+            )
         )
-        study_index = study_index.annotate_sumstats_qc(summary_statistics_qc)
-
-        session.logger.info("Writing updated study index.")
-        study_index.df.repartition(1).write.mode("overwrite").parquet(
+        study_index.df.repartition(1).write.mode(session.write_mode).parquet(
             study_index_output_path
         )
-        session.logger.info("Updated study index with qc flags.")
+        session.logger.info(f"Study index written to {study_index_output_path}.")
