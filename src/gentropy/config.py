@@ -196,11 +196,7 @@ class EqtlCatalogueConfig(StepConfig):
 class FinngenStudiesConfig(StepConfig):
     """FinnGen study index step configuration."""
 
-    session: Any = field(
-        default_factory=lambda: {
-            "start_hail": True,
-        }
-    )
+    session: Any = field(default_factory=dict)
     finngen_study_index_out: str = MISSING
     finngen_phenotype_table_url: str = MISSING
     finngen_release_prefix: str = "FINNGEN_R11_"
