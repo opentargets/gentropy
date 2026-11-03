@@ -63,6 +63,8 @@ class EqtlGenFinemapping:
 
     PROJECT_ID = "eQTLGen"
     N_EFFECTS = 5
+    # The coverage of the 95% credible sets: the posterior probability their members hold.
+    COVERAGE = 0.95
 
     # The cell type of a file, from its folder.
     SINGLE_CELL_EQTL_FOLDER = r"finemap_([^/]+)/[^/]+$"
@@ -254,7 +256,9 @@ class EqtlGenFinemapping:
         - `locusStart` and `locusEnd` are the first and last variant tested.
 
         Credible sets with a log10 Bayes factor below `min_credible_set_log10_bayes_factor`
-        are dropped.
+        are dropped, and so are those whose members hold less than `COVERAGE` of their effect.
+        These are incomplete: when two credible sets share variants, eQTLGen lists a variant
+        under one of them only, and the other can be left with a member of 0.01 probability.
 
         Args:
             variants (DataFrame): Every variant tested, as given by `read`.
@@ -285,8 +289,7 @@ class EqtlGenFinemapping:
         study = Window.partitionBy("studyId")
         credible_set = Window.partitionBy("studyId", "credibleSetIndex")
 
-        def lbf(i: int) -> Column:
-            return f.col(f"lbf_cs_{i}")
+        lbfs = [f.col(f"lbf_cs_{i}") for i in effects]
 
         # Per effect, over every variant tested for the feature: the maximum log Bayes factor,
         # the sum of the Bayes factors scaled by it, and the number of variants.
@@ -294,31 +297,34 @@ class EqtlGenFinemapping:
             {
                 "locusStart": f.min("position").over(study),
                 "locusEnd": f.max("position").over(study),
-                **{f"_max{i}": f.max(lbf(i)).over(study) for i in effects},
+                **{f"_max{i}": f.max(lbfs[i - 1]).over(study) for i in effects},
             }
         ).withColumns(
             {
                 **{
-                    f"_sum{i}": f.sum(f.exp(lbf(i) - f.col(f"_max{i}"))).over(study)
+                    f"_sum{i}": f.sum(f.exp(lbfs[i - 1] - f.col(f"_max{i}"))).over(
+                        study
+                    )
                     for i in effects
                 },
-                **{f"_n{i}": f.count(lbf(i)).over(study) for i in effects},
+                **{f"_n{i}": f.count(lbfs[i - 1]).over(study) for i in effects},
             }
         )
 
-        def alpha(i: int) -> Column:
-            return f.exp(lbf(i) - f.col(f"_max{i}")) / f.col(f"_sum{i}")
-
-        def per_effect(column: str) -> Column:
-            return f.element_at(f.col(column), f.col("_effect"))
+        # The posterior probability of the variant in each effect:
+        alphas = [
+            f.exp(lbfs[i - 1] - f.col(f"_max{i}")) / f.col(f"_sum{i}") for i in effects
+        ]
+        # The value of an array over the effects, for the effect of the credible set:
+        effect = f.col("_effect")
 
         members = (
             with_effects.filter(f.col("variantCredibleSetIndex").isNotNull())
             .withColumnRenamed("variantCredibleSetIndex", "credibleSetIndex")
             .withColumns(
                 {
-                    "_alpha": f.array(*[alpha(i) for i in effects]),
-                    "_lbf": f.array(*[lbf(i) for i in effects]),
+                    "_alpha": f.array(*alphas),
+                    "_lbf": f.array(*lbfs),
                     "_credibleSetLbf": f.array(
                         *[
                             f.col(f"_max{i}")
@@ -328,7 +334,7 @@ class EqtlGenFinemapping:
                         ]
                     ),
                     "_mass": f.array(
-                        *[f.sum(alpha(i)).over(credible_set) for i in effects]
+                        *[f.sum(a).over(credible_set) for a in alphas]
                     ),
                 }
             )
@@ -338,9 +344,11 @@ class EqtlGenFinemapping:
             )
             .withColumns(
                 {
-                    "posteriorProbability": per_effect("_alpha"),
-                    "logBayesFactor": per_effect("_lbf"),
-                    "credibleSetLogBayesFactor": per_effect("_credibleSetLbf"),
+                    "posteriorProbability": f.element_at("_alpha", effect),
+                    "logBayesFactor": f.element_at("_lbf", effect),
+                    "credibleSetLogBayesFactor": f.element_at(
+                        "_credibleSetLbf", effect
+                    ),
                 }
             )
         )
@@ -349,6 +357,8 @@ class EqtlGenFinemapping:
                 f.col("credibleSetLogBayesFactor")
                 >= min_credible_set_log10_bayes_factor * math.log(10)
             )
+            # A small tolerance for the rounding of the source log Bayes factors:
+            .filter(f.element_at("_mass", effect) >= cls.COVERAGE - 1e-6)
             .select(
                 "*",
                 *split_pvalue_column(f.col("pValue")),

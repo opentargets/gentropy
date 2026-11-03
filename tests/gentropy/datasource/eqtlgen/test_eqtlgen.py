@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pyspark.sql.functions as f
 import pytest
-from pyspark.sql import DataFrame
+from pyspark.sql import DataFrame, SparkSession
 
 from gentropy.common.session import Session
 from gentropy.dataset.credible_set import CredibleSet, CredibleSetVariant
@@ -53,6 +53,7 @@ def coeqtl(coeqtl_variants: DataFrame) -> tuple[CredibleSet, CredibleSetVariant]
 
 
 def _posterior_sums(variants: CredibleSetVariant) -> list[float]:
+    """The sum of the posterior probabilities of each credible set."""
     return [
         r.s
         for r in variants.df.groupBy("credibleSetId")
@@ -160,6 +161,28 @@ class TestSingleCellCredibleSets:
         """The posterior probabilities of each credible set sum to at least 0.95."""
         _, variants = single_cell
         assert all(0.95 <= s <= 1.0 + 1e-6 for s in _posterior_sums(variants))
+
+
+def test_incomplete_credible_sets_are_dropped(spark: SparkSession) -> None:
+    """A credible set whose members hold less than 0.95 of its effect is dropped.
+
+    v1 and v2 are both in the effect 1, but eQTLGen lists v1 under the credible set 1 only:
+    the credible set 1 holds 0.953 of the effect, and the credible set 2 is left with v2,
+    which holds 0.047.
+    """
+    variants = spark.createDataFrame(
+        [("v1", 1, 12.0), ("v2", 2, 9.0), ("v3", None, 0.0)],
+        "variantId string, variantCredibleSetIndex int, lbf_cs_1 double",
+    ).withColumns(
+        {
+            "studyId": f.lit("S1"),
+            "position": f.lit(1),
+            "pValue": f.lit("1e-9"),
+            **{f"lbf_cs_{i}": f.lit(0.0) for i in range(2, 6)},
+        }
+    )
+    members = EqtlGenFinemapping.members(variants, 0.0)
+    assert [(r.variantId, r.credibleSetIndex) for r in members.collect()] == [("v1", 1)]
 
 
 class TestCoeqtlCredibleSets:
