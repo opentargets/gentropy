@@ -133,6 +133,29 @@ class TestFinnGenMetaIngestionStep:
         assert written.df.count() == 12
         assert written.df.filter("studyId IS NULL OR chromosome IS NULL").count() == 0
 
+    @pytest.mark.step_test
+    @patch("gentropy.finngen_ukb_mvp_meta.FinnGenMetaManifest")
+    @patch("gentropy.finngen_ukb_mvp_meta.FinnGenUkbMvpMetaSummaryStatistics")
+    def test_step_without_summary_statistics_paths(
+        self,
+        fss_mock: MagicMock,
+        manifest_mock: MagicMock,
+        session: Session,
+        tmp_path: Path,
+    ) -> None:
+        """Test that a manifest without summary statistics paths fails the step."""
+        manifest_mock.from_path.return_value.get_summary_statistics_paths = MagicMock(
+            return_value=[]
+        )
+        with pytest.raises(ValueError, match="No summary statistics paths"):
+            FinngenUkbMvpMetaSummaryStatisticsIngestionStep(
+                session=session,
+                source_manifest_path=(tmp_path / "source_manifest").as_posix(),
+                gnomad_variant_index_path=(tmp_path / "gnomad").as_posix(),
+                harmonised_summary_statistics_output_path=(tmp_path / "out").as_posix(),
+            )
+        fss_mock.from_source_files.assert_not_called()
+
 
 class TestFinnGenMetaStudyIndexStep:
     """Test suite for FinnGen UKBB MVP meta study index step."""

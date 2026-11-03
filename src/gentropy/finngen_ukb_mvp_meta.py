@@ -115,7 +115,7 @@ class FinngenUkbMvpMetaSummaryStatisticsIngestionStep:
             filter_out_ambiguous_variants (bool, optional): Whether to filter out ambiguous variants.
 
         Raises:
-            AssertionError: If no summary statistics paths are found in the manifest.
+            ValueError: If no summary statistics paths are found in the manifest.
         """
         sumstat_harmonisation_config: dict[str, Any] = {
             "perform_meta_analysis_filter": perform_meta_analysis_filter,
@@ -135,9 +135,8 @@ class FinngenUkbMvpMetaSummaryStatisticsIngestionStep:
 
         session.logger.info("Reading summary statistics paths from the manifest.")
         source_summary_statistics_paths = finngen_manifest.get_summary_statistics_paths()
-        assert len(source_summary_statistics_paths) > 0, (
-            "No summary statistics paths found in the manifest."
-        )
+        if not source_summary_statistics_paths:
+            raise ValueError("No summary statistics paths found in the manifest.")
         session.logger.info(
             f"Found {len(source_summary_statistics_paths)} summary statistics files."
         )
@@ -229,7 +228,7 @@ class FinngenUkbMvpMetaStudyIndexStep:
             study_index = study_index.annotate_sumstats_qc(
                 SummaryStatisticsQC.from_parquet(session=session, path=sumstats_qc_path)
             )
-        study_index.df.repartition(1).write.mode(session.write_mode).parquet(
+        study_index.df.coalesce(1).write.mode(session.write_mode).parquet(
             study_index_output_path
         )
         session.logger.info(f"Study index written to {study_index_output_path}.")
