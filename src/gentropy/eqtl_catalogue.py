@@ -119,6 +119,8 @@ class EqtlCatalogueStep:
         lead_pvalue_threshold: float,
         mqtl_quantification_methods_blacklist: list[str] | None = None,
         full_susie_input_glob: str | None = None,
+        summary_statistics_location: str
+        | None = "https://ftp.ebi.ac.uk/pub/databases/spot/eQTL/r8_beta/sumstats",
     ) -> None:
         """Run eQTL Catalogue ingestion step.
 
@@ -141,6 +143,10 @@ class EqtlCatalogueStep:
             full_susie_input_glob (str | None): Glob pattern to read the full SuSIE output parquet files,
                 which give the conditional statistics. Without it, they are null.
                 example of files in `gs://bucket/susie_batches/QTS*/QTD*/QTD*.full_susie.parquet`
+            summary_statistics_location (str | None): Location of the summary statistics, followed by
+                `/<study_id>/<dataset_id>` in `summarystatsLocation`. Defaults to the eQTL Catalogue FTP.
+                None, for datasets whose summary statistics are not public, leaves
+                `summarystatsLocation` null and sets `hasSumstats` to False.
 
 
         !!! note "glob patterns"
@@ -176,7 +182,11 @@ class EqtlCatalogueStep:
 
         # Transform
         processed_susie_df = EqtlCatalogueFinemapping.parse_susie_results(
-            credible_sets_df, lbf_df, studies_metadata, full_susie=full_susie_df
+            credible_sets_df,
+            lbf_df,
+            studies_metadata,
+            ss_ftp_path_template=summary_statistics_location,
+            full_susie=full_susie_df,
         ).persist()
         processed_susie_df.count()
 
