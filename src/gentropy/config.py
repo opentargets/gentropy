@@ -189,6 +189,10 @@ class EqtlCatalogueConfig(StepConfig):
     lead_pvalue_threshold: float = 1e-3
     mqtl_quantification_methods_blacklist: list[str] | None = None
     full_susie_input_glob: str | None = None
+    # null for datasets whose summary statistics are not public:
+    summary_statistics_location: str | None = (
+        "https://ftp.ebi.ac.uk/pub/databases/spot/eQTL/r8_beta/sumstats"
+    )
     _target_: str = "gentropy.eqtl_catalogue.EqtlCatalogueStep"
 
 

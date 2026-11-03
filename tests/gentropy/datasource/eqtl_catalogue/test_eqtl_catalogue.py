@@ -373,6 +373,34 @@ class TestEqtlCatalogueFinemapping:
         }
         assert processed_finemapping_df.count() == 15  # 15 credible sets
 
+    def test__parse_susie_results_summary_statistics_location(
+        self: TestEqtlCatalogueFinemapping,
+        processed_finemapping_df: DataFrame,
+        sample_eqtl_catalogue_finemapping_credible_sets: DataFrame,
+        sample_eqtl_catalogue_finemapping_lbf: DataFrame,
+        sample_eqtl_catalogue_studies_metadata: DataFrame,
+    ) -> None:
+        """The summary statistics are on the eQTL Catalogue FTP by default, and absent without a location."""
+        default = processed_finemapping_df.select(
+            "summarystatsLocation", "hasSumstats"
+        ).collect()
+        assert all(
+            r.hasSumstats
+            and r.summarystatsLocation.startswith(
+                "https://ftp.ebi.ac.uk/pub/databases/spot/eQTL/r8_beta/sumstats/QTS"
+            )
+            for r in default
+        )
+        private = EqtlCatalogueFinemapping.parse_susie_results(
+            sample_eqtl_catalogue_finemapping_credible_sets,
+            sample_eqtl_catalogue_finemapping_lbf,
+            sample_eqtl_catalogue_studies_metadata,
+            ss_ftp_path_template=None,
+        ).select("summarystatsLocation", "hasSumstats")
+        assert {(r.summarystatsLocation, r.hasSumstats) for r in private.collect()} == {
+            (None, False)
+        }
+
     def test__from_susie_results(self, processed_finemapping_df: DataFrame) -> None:
         """The sample's one credible set and its 15 variants carry the source values."""
         credible_sets, variants = EqtlCatalogueFinemapping.from_susie_results(

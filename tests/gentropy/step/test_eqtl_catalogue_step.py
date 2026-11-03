@@ -143,7 +143,11 @@ class TestEqtlCatalogueStep:
 
         # --- Transform ---
         finemapping_mock.parse_susie_results.assert_called_once_with(
-            credible_sets_mock, lbf_mock, studies_metadata_mock, full_susie=None
+            credible_sets_mock,
+            lbf_mock,
+            studies_metadata_mock,
+            ss_ftp_path_template="https://ftp.ebi.ac.uk/pub/databases/spot/eQTL/r8_beta/sumstats",
+            full_susie=None,
         )
         processed_susie_mock.persist.assert_called_once()
 
