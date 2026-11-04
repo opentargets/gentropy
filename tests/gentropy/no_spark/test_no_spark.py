@@ -105,7 +105,7 @@ class TestNoSpark:
 
     @pytest.mark.download_jars_from_web
     @pytest.mark.usefixtures("_no_spark_session")
-    def test_bgzip_from_parquet_with_codec(self, tmp_path: Path) -> None:
+    def test_meta_source_files_with_codec(self, tmp_path: Path) -> None:
         """Test bgzip codec usage on multiple tsv.gz files with different schemas.
 
         Note:
@@ -127,25 +127,28 @@ class TestNoSpark:
         # Create inputs with different schemas
         input_path_1 = "tests/gentropy/data_samples/bgzip_tests/A.tsv.gz"  # contains only chr, pos, ref, alt, snp
         input_path_2 = "tests/gentropy/data_samples/bgzip_tests/B.tsv.gz"  # contains only chr, pos, ref, alt, fg_beta,
-        output_path = (tmp_path / "output").as_posix()
 
         # Assert that test files & tbi indices exist
         for p in [input_path_1, input_path_2]:
             assert Path(p).exists(), f"Test file {p} does not exist."
             assert Path(p + ".tbi").exists(), f"Index file {p}.tbi does not exist."
-        FinnGenUkbMvpMetaSummaryStatistics.bgzip_to_parquet(
+        df = FinnGenUkbMvpMetaSummaryStatistics.from_source_files(
             session,
-            summary_statistics_list=[input_path_1, input_path_2],
+            summary_statistics_paths=[input_path_1, input_path_2],
             datasource=MetaAnalysisDataSource.FINNGEN_UKBB,
-            raw_summary_statistics_output_path=output_path,
         )
-        # Now read back the parquet files and check if schema is equal to raw schema
-        df = session.spark.read.parquet(output_path)
-        expected_schema = FinnGenUkbMvpMetaSummaryStatistics.raw_schema
-        expected_schema = expected_schema.add(
-            "studyId", t.StringType(), nullable=True
-        )  # studyId is added during bgzip_to_parquet
-        assert df.schema == expected_schema, "Schemas do not match after conversion."
+        raw_schema = FinnGenUkbMvpMetaSummaryStatistics.raw_schema
+        expected_schema = t.StructType(
+            [
+                t.StructField("studyId", t.StringType(), False),
+                *[
+                    t.StructField(c, raw_schema[c].dataType, True)
+                    for c in FinnGenUkbMvpMetaSummaryStatistics.source_columns
+                ],
+            ]
+        )
+        assert df.schema == expected_schema, "Schemas do not match after reading."
+        assert df.count() == 2
         session.spark.stop()
 
     @pytest.mark.download_jars_from_web
@@ -154,7 +157,7 @@ class TestNoSpark:
         """Test that FinnGen SuSiE `.bgz` outputs are read without Hail.
 
         Note:
-            Like `test_bgzip_from_parquet_with_codec`, this test downloads hadoop-bam from Maven
+            Like `test_meta_source_files_with_codec`, this test downloads hadoop-bam from Maven
             Central, so it needs internet access and runs separately from other tests.
         """
         ivy_cache_dir = tmp_path / "ivy_cache"

@@ -546,13 +546,9 @@ class FinngenUkbMvpMetaSummaryStatisticsIngestionConfig(StepConfig):
     )
     # Inputs
     source_manifest_path: str = MISSING
-    efo_curation_path: str = MISSING
     gnomad_variant_index_path: str = MISSING
     # Outputs
-    study_index_output_path: str = MISSING
-    raw_summary_statistics_output_path: str = MISSING
     harmonised_summary_statistics_output_path: str = MISSING
-    harmonised_summary_statistics_qc_output_path: str = MISSING
     # Harmonisation config
     perform_meta_analysis_filter: bool = True
     imputation_score_threshold: float = 0.8
@@ -565,6 +561,17 @@ class FinngenUkbMvpMetaSummaryStatisticsIngestionConfig(StepConfig):
     _target_: str = (
         "gentropy.finngen_ukb_mvp_meta.FinngenUkbMvpMetaSummaryStatisticsIngestionStep"
     )
+
+
+@dataclass
+class FinngenUkbMvpMetaStudyIndexConfig(StepConfig):
+    """FinnGen UKB meta-analysis study index step configuration."""
+
+    source_manifest_path: str = MISSING
+    efo_curation_path: str = MISSING
+    study_index_output_path: str = MISSING
+    sumstats_qc_path: str | None = None
+    _target_: str = "gentropy.finngen_ukb_mvp_meta.FinngenUkbMvpMetaStudyIndexStep"
 
 
 @dataclass
@@ -1007,6 +1014,11 @@ def register_config() -> None:
         group="step",
         name="finngen_ukb_mvp_meta_summary_statistics_ingestion",
         node=FinngenUkbMvpMetaSummaryStatisticsIngestionConfig,
+    )
+    cs.store(
+        group="step",
+        name="finngen_ukb_mvp_meta_study_index",
+        node=FinngenUkbMvpMetaStudyIndexConfig,
     )
     cs.store(group="step", name="credible_set_qc", node=CredibleSetQCStepConfig)
     cs.store(
