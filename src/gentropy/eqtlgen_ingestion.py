@@ -76,6 +76,8 @@ class EqtlGenIngestionStep:
             min_credible_set_log10_bayes_factor (float): Minimum log10 Bayes factor of a credible set.
         """
         eqtlgen_dataset = EqtlGenDataset(dataset)
+        if eqtlgen_dataset is EqtlGenDataset.COEQTL and target_index_path is None:
+            raise ValueError("The co-eQTLs need a target index to map eGene.")
         # Read twice, for the credible sets and the study index: persist, so the files are read once.
         variants = EqtlGenFinemapping.read(
             session, eqtlgen_dataset, finemapping_files
