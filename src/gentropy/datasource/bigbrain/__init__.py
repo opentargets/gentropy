@@ -1,0 +1,63 @@
+"""BigBrain brain-tissue molecular-QTL datasource module.
+
+This module provides shared constants and metadata for the BigBrain multi-cohort
+brain meta-analysis, including the bibliographic metadata for the underlying publication.
+
+The BigBrain dataset originates from the study:
+    Réal A, Kailash BP, Dredge W et al.
+    "Mapping genetic effects on splicing in ten thousand post-mortem brain samples
+    reveals novel mediators of neurological disease risk." medRxiv 2025. PubMed 41040686.
+    Meta-analysis method (mmQTL): PubMed 35058635.
+
+Two sub-datasets are supported, both restricted to the EUR-ancestry release:
+
+- **eQTL** (`BigBrain_eqtl_EUR_{gene}`): cis-eQTL associations, one study per Ensembl gene.
+- **sQTL** (`BigBrain_sqtl_EUR_{junction}`): cis-sQTL associations, one study per Leafcutter
+    intron junction.
+"""
+
+from __future__ import annotations
+
+from pydantic import BaseModel
+
+from gentropy.dataset.study_index import StudyType
+
+
+class BigBrainPublicationMetadata(BaseModel):
+    """Bibliographic and cohort metadata for the BigBrain publication.
+
+    All fields carry defaults matching the published study and are used to populate
+    the study index with consistent provenance information.
+
+    !!! note "Sample size is a backfilled constant"
+        BigBrain's summary statistics report no per-variant sample size or allele
+        frequency, so the study index cannot carry one. `SAMPLE_SIZE` is the single overall sample count reported
+        for the whole resource (shared by eQTL and sQTL); the README does not break
+        this out by ancestry, so it is an approximation even for the EUR-only release.
+    """
+
+    PUBMED_ID: str = "41040686"
+    """PubMed ID of the BigBrain publication (medRxiv preprint)."""
+    PUB_TITLE: str = "Mapping genetic effects on splicing in ten thousand post-mortem brain samples reveals novel mediators of neurological disease risk"
+    """Title of the BigBrain publication."""
+    PUB_FIRST_AUTHOR: str = "Réal A, Kailash BP"
+    """First author(s) of the BigBrain publication."""
+    PUB_DATE: str = "2025"
+    """Publication date of the BigBrain study."""
+    SAMPLE_SIZE: int = 10_725
+    """Backfilled total sample size (10,725 samples from 4,656 donors), shared by eQTL and sQTL."""
+    N_DONORS: int = 4_656
+    """Number of donors of the whole resource, all ancestries."""
+    ANCESTRY: str = "EUR"
+    """Ancestry code used in study and project identifiers."""
+    ANCESTRY_LABEL: str = "European"
+    """Ancestry label for `discoverySamples`, as expected by the LD population mapping."""
+    COHORTS: str = "BigBrain"
+    """Cohort label for the BigBrain meta-analysis (43 tissue-cohort pairs meta-analysed)."""
+    BIOSAMPLE_ID: str = "UBERON_0000955"
+    """Biosample ID for the BigBrain study - brain."""
+    SUMSTATS_LOCATION: dict[str, str] = {
+        StudyType.EQTL.value: "https://zenodo.org/records/17226890/files/BigBrain_cis_eQTL_EUR_full_assoc.tsv.gz",
+        StudyType.SQTL.value: "https://zenodo.org/records/17153730/files/BigBrain_cis_sQTL_EUR_full_assoc.tsv.gz",
+    }
+    """Source summary statistics (Zenodo) per QTL type."""

@@ -8,7 +8,7 @@ The full list of available methods can be found in the Python API [documentation
 
 ## Apply a class method
 
-Some methods are implemented as class methods. For example, the `finemap` method is a class method of the [`PICS`](../../python_api/methods/pics.md) class. This method performs fine-mapping using the PICS algorithm. These methods usually take as input one or several `Dataset`(s) and produce one or several `Dataset`(s) as output.
+Some methods are implemented as classes. For example, the `finemap` method of the [`PICS`](../../python_api/methods/pics.md) class performs fine-mapping using the PICS algorithm. These methods usually take as input one or several `Dataset`(s) and produce one or several `Dataset`(s) as output: `finemap` takes LD annotated study loci and the study index, and returns the credible sets and their variants.
 
 ```python
 --8<-- "src_snippets/howto/python_api/c_applying_methods.py:apply_class_method_pics"
@@ -16,20 +16,19 @@ Some methods are implemented as class methods. For example, the `finemap` method
 
 ## Apply a `Dataset` instance method
 
-Some methods are implemented as instance methods of the `Dataset` class. For example, the `window_based_clumping` method is an instance method of the `SummaryStatistics` class. This method performs window-based clumping on summary statistics.
+Some methods are implemented as instance methods of the `Dataset` class. For example, the `pvalue_filter` method is an instance method of the `SummaryStatistics` class. It keeps the associations at least as significant as a p-value threshold.
 
 ```python
 --8<-- "src_snippets/howto/python_api/c_applying_methods.py:apply_instance_method"
 ```
 
-!!! info "The `window_based_clumping` method is also available as a class method"
+## Apply a method class
 
-    The `window_based_clumping` method is also available as a class method of the `WindowBasedClumping` class. This method performs window-based clumping on summary statistics.
+Methods with parameters are classes: create the method once with its parameters, then apply it to datasets. For example, [`WindowClumping`](../../python_api/methods/clumping.md) clumps summary statistics into study loci.
 
-    ```python
-    # Perform window-based clumping on summary statistics
-    --8<-- "src_snippets/howto/python_api/c_applying_methods.py:apply_class_method_clumping"
-    ```
+```python
+--8<-- "src_snippets/howto/python_api/c_applying_methods.py:apply_class_method_clumping"
+```
 
 ## What's next?
 
