@@ -336,7 +336,8 @@ class EqtlCatalogueFinemapping:
         credible_sets: DataFrame,
         lbf: DataFrame,
         studies_metadata: DataFrame,
-        ss_ftp_path_template: str = "https://ftp.ebi.ac.uk/pub/databases/spot/eQTL/r8_beta/sumstats",
+        ss_ftp_path_template: str
+        | None = "https://ftp.ebi.ac.uk/pub/databases/spot/eQTL/r8_beta/sumstats",
         full_susie: DataFrame | None = None,
     ) -> DataFrame:
         """Parse the SuSIE results into a DataFrame containing the finemapping statistics and metadata about the studies.
@@ -356,7 +357,7 @@ class EqtlCatalogueFinemapping:
             credible_sets (DataFrame): DataFrame containing raw statistics of all variants in the credible sets.
             lbf (DataFrame): DataFrame containing the raw log Bayes Factors for all variants.
             studies_metadata (DataFrame): DataFrame containing the study metadata.
-            ss_ftp_path_template (str, optional): eQTL Catalogue FTP path template for summary statistics. Defaults to "https://ftp.ebi.ac.uk/pub/databases/spot/eQTL/r8_beta/sumstats".
+            ss_ftp_path_template (str | None, optional): Location of the summary statistics of the studies, followed by `/<study_id>/<dataset_id>`. Defaults to the eQTL Catalogue FTP, "https://ftp.ebi.ac.uk/pub/databases/spot/eQTL/r8_beta/sumstats". When None, as for datasets whose summary statistics are not public, `summarystatsLocation` is null and `hasSumstats` is False.
             full_susie (DataFrame | None, optional): Posterior effects, as read by `read_full_susie_from_source`. Defaults to None.
 
         Returns:
@@ -447,13 +448,17 @@ class EqtlCatalogueFinemapping:
                 f.col("tissue_id").alias("biosampleFromSourceId"),
                 EqtlCatalogueStudyIndex._identify_study_type().alias("studyType"),
                 f.col("study_label").alias("projectId"),
-                f.concat_ws(
-                    "/",
-                    f.lit(ss_ftp_path_template),
-                    f.col("study_id"),
-                    f.col("dataset_id"),
+                (
+                    f.concat_ws(
+                        "/",
+                        f.lit(ss_ftp_path_template),
+                        f.col("study_id"),
+                        f.col("dataset_id"),
+                    )
+                    if ss_ftp_path_template is not None
+                    else f.lit(None).cast("string")
                 ).alias("summarystatsLocation"),
-                f.lit(True).alias("hasSumstats"),
+                f.lit(ss_ftp_path_template is not None).alias("hasSumstats"),
                 f.col("molecular_trait_id"),
                 f.col("pmid").alias("pubmedId"),
                 f.col("condition_label").alias("condition"),
