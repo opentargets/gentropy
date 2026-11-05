@@ -407,10 +407,14 @@ class EqtlCatalogueFinemapping:
                 f.col("region"),
                 normalize_chromosome(f.col("chromosome")).alias("chromosome"),
                 f.col("position"),
-                # The region is chrN:start-end:
-                f.regexp_extract(f.col("region"), r":(\d+)-", 1)
-                .cast(IntegerType())
-                .alias("locusStart"),
+                # The region is chrN:start-end, the gene TSS +/- 1 Mb, so the start is
+                # negative for genes in the first megabase; the locus then starts at 1:
+                f.greatest(
+                    f.lit(1),
+                    f.regexp_extract(f.col("region"), r":(-?\d+)-", 1).cast(
+                        IntegerType()
+                    ),
+                ).alias("locusStart"),
                 f.regexp_extract(f.col("region"), r"-(\d+)$", 1)
                 .cast(IntegerType())
                 .alias("locusEnd"),
