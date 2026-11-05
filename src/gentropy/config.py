@@ -271,6 +271,25 @@ class FinngenMultiomeIngestionConfig(StepConfig):
 
 
 @dataclass
+class EqtlGenIngestionConfig(StepConfig):
+    """eQTLGen single-cell eQTL and co-eQTL ingestion step configuration."""
+
+    # `single_cell_eqtl` or `coeqtl`:
+    dataset: str = MISSING
+    finemapping_files: str = MISSING
+    study_index_output_path: str = MISSING
+    credible_set_output_path: str = MISSING
+    credible_set_variant_output_path: str = MISSING
+    # Needed for the co-eQTLs only, to map their gene symbols:
+    target_index_path: str | None = None
+    # The filters of the eQTLGen release 260326: pValueExponent <= -3 and a log10 Bayes factor
+    # of at least log10(e^2) = 2 / ln(10).
+    lead_pvalue_threshold: float = 1e-2
+    min_credible_set_log10_bayes_factor: float = 0.8685889638065036
+    _target_: str = "gentropy.eqtlgen_ingestion.EqtlGenIngestionStep"
+
+
+@dataclass
 class LDIndexConfig(StepConfig):
     """LD index step configuration."""
 
@@ -987,6 +1006,7 @@ def register_config() -> None:
         node=FinngenMultiomeIngestionConfig,
     )
 
+    cs.store(group="step", name="eqtlgen_ingestion", node=EqtlGenIngestionConfig)
     cs.store(group="step", name="pics", node=PICSConfig)
     cs.store(group="step", name="gnomad_variants", node=GnomadVariantConfig)
     cs.store(group="step", name="ukb_ppp_eur_sumstat_preprocess", node=UkbPppEurConfig)
