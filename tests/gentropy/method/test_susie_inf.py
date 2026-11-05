@@ -6,7 +6,7 @@ import numpy as np
 import pyspark.sql.functions as f
 
 from gentropy.common.session import Session
-from gentropy.dataset.study_locus import StudyLocus
+from gentropy.dataset.credible_set import CredibleSet, CredibleSetVariant
 from gentropy.dataset.summary_statistics import SummaryStatistics
 from gentropy.method.susie_inf import SUSIE_inf
 from gentropy.susie_finemapper import SusieFineMapperStep
@@ -55,13 +55,13 @@ class TestSUSIE_inf:
         cred = SUSIE_inf.cred_inf(susie_output["PIP"], LD=ld)
         assert cred[0] == [5]
 
-    def test_SUSIE_inf_convert_to_study_locus(
+    def test_SUSIE_inf_convert_to_credible_sets(
         self: TestSUSIE_inf,
         sample_data_for_susie_inf: list[np.ndarray],
         sample_summary_statistics: SummaryStatistics,
         session: Session,
     ) -> None:
-        """Test of SuSiE-inf credible set generator."""
+        """Test of the conversion of SuSiE-inf output to credible sets."""
         ld = sample_data_for_susie_inf[0]
         z = sample_data_for_susie_inf[1]
         susie_output = SUSIE_inf.susie_inf(
@@ -74,20 +74,22 @@ class TestSUSIE_inf:
         ).filter(f.col("z").isNotNull())
         gwas_df = gwas_df.limit(21)
 
-        L1 = SusieFineMapperStep.susie_inf_to_studylocus(
+        result = SusieFineMapperStep.susie_inf_to_credible_sets(
             susie_output=susie_output,
             session=session,
             studyId="sample_id",
-            region="sample_region",
-            variant_index=gwas_df,
+            variants=gwas_df.select("variantId", "z").toPandas(),
             cs_lbf_thr=2,
             ld_matrix=ld,
-            lead_pval_threshold=1,
+            n=100_000,
+            lead_pval_threshold=None,
             purity_mean_r2_threshold=0,
             purity_min_r2_threshold=0,
-            sum_pips=0.99,
             ld_min_r2=1,
             locusStart=1,
             locusEnd=2,
         )
-        assert isinstance(L1, StudyLocus), "L1 is not an instance of StudyLocus"
+        assert result is not None
+        credible_sets, credible_set_variants = result
+        assert isinstance(credible_sets, CredibleSet)
+        assert isinstance(credible_set_variants, CredibleSetVariant)

@@ -5,11 +5,11 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import pytest
-from pyspark.sql import DataFrame, Row, SparkSession
+from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql import functions as f
 
-from gentropy.dataset.biosample_index import BiosampleIndex
 from gentropy.dataset.study_index import (
+    ProteinQuantitativeTraitLocusStudyIndex,
     StudyAnalysisFlag,
     StudyIndex,
     StudyQualityCheck,
@@ -154,162 +154,6 @@ def test_aggregate_samples_by_ancestry__correctness(spark: SparkSession) -> None
     )
 
 
-class TestQTLValidation:
-    """A small test suite to ensure the QTL study validation works as intended."""
-
-    GENE_DATA = [
-        ("ENSG00000102021", "protein_coding"),
-        ("ENSG000001020", "lncRNA"),
-    ]
-    GENE_COLUMNS = ["id", "biotype"]
-
-    BIOSAMPLE_DATA = [("UBERON_00123", "lung"), ("CL_00321", "monocyte")]
-    BIOSAMPLE_COLUMNS = ["biosampleId", "biosampleName"]
-
-    STUDY_DATA = [
-        ("s1", "eqtl", "p", "ENSG00000102021", "UBERON_00123"),
-        # This is the only study to be flagged: QTL + Wrong gene
-        ("s2", "eqtl", "p", "cicaful", "UBERON_00123"),
-        # This is the only study to be flagged: QTL + Wrong biosample
-        ("s3", "sqtl", "p", "ENSG00000102021", "jibberish"),
-        ("s4", "gwas", "p", None, "anything"),
-        ("s5", "gwas", "p", "pocok", None),
-    ]
-    STUDY_COLUMNS = [
-        "studyId",
-        "studyType",
-        "projectId",
-        "geneId",
-        "biosampleFromSourceId",
-    ]
-
-    @pytest.fixture(autouse=True)
-    def _setup(self: TestQTLValidation, spark: SparkSession) -> None:
-        """Setup fixture."""
-
-        def create_study_index(drop_column: str | None = None) -> StudyIndex:
-            df = spark.createDataFrame(self.STUDY_DATA, self.STUDY_COLUMNS)
-            df = df.withColumn("qualityControls", f.array().cast("array<string>"))
-            if drop_column:
-                df = df.drop(drop_column)
-            return StudyIndex(_df=df, _schema=StudyIndex.get_schema())
-
-        self.study_index = create_study_index()
-        self.study_index_no_gene = create_study_index("geneId")
-        self.study_index_no_biosample_id = create_study_index("biosampleFromSourceId")
-
-        self.target_index = TargetIndex(
-            _df=spark.createDataFrame(self.GENE_DATA, self.GENE_COLUMNS),
-            _schema=TargetIndex.get_schema(),
-        )
-        self.biosample_index = BiosampleIndex(
-            _df=spark.createDataFrame(self.BIOSAMPLE_DATA, self.BIOSAMPLE_COLUMNS),
-            _schema=BiosampleIndex.get_schema(),
-        )
-
-    def test_gene_validation_type(self: TestQTLValidation) -> None:
-        """Testing if the target validation runs and returns the expected type."""
-        validated = self.study_index.validate_target(self.target_index)
-        assert isinstance(validated, StudyIndex)
-
-    def test_biosample_validation_type(self: TestQTLValidation) -> None:
-        """Testing if the biosample validation runs and returns the expected type."""
-        validated = self.study_index.validate_biosample(self.biosample_index)
-        assert isinstance(validated, StudyIndex)
-
-    @pytest.mark.parametrize(
-        ["test", "bad_study"],
-        [
-            pytest.param("gene", "s2", id="gene"),
-            pytest.param("biosample", "s3", id="biosample"),
-        ],
-    )
-    def test_qtl_validation_correctness(
-        self: TestQTLValidation, test: str, bad_study: str
-    ) -> None:
-        """Testing if the QTL validation only flags the expected studies."""
-        match test:
-            case "gene":
-                validated = self.study_index.validate_target(
-                    self.target_index
-                ).persist()
-            case "biosample":
-                validated = self.study_index.validate_biosample(
-                    self.biosample_index
-                ).persist()
-            case _:
-                raise ValueError(f"Unknown test type: {test}")
-        # Make sure there's only one flagged:
-        assert validated.df.filter(f.size("qualityControls") != 0).count() == 1
-
-        # Make sure there's only one flagged:
-        flagged_study = validated.df.filter(f.size("qualityControls") != 0).collect()[
-            0
-        ]["studyId"]
-        assert flagged_study == bad_study
-
-    @pytest.mark.parametrize(
-        ["drop", "test"],
-        [
-            pytest.param(
-                "gene",
-                "gene",
-                id="validate target, no geneId column",
-            ),
-            pytest.param(
-                "gene",
-                "biosample",
-                id="validate biosample, no geneId column",
-            ),
-            pytest.param(
-                "biosample",
-                "biosample",
-                id="validate biosample, no biosampleFromSourceId column",
-            ),
-            pytest.param(
-                "biosample",
-                "gene",
-                id="validate target, no biosampleFromSourceId column",
-            ),
-        ],
-    )
-    def test_qtl_validation_drop_relevant_column(
-        self: TestQTLValidation, drop: str, test: str
-    ) -> None:
-        """Testing what happens if an expected column is not present."""
-        match drop:
-            case "gene":
-                study_index = self.study_index_no_gene
-            case "biosample":
-                study_index = self.study_index_no_biosample_id
-            case _:
-                raise ValueError(f"Unknown drop type: {drop}")
-        match test:
-            case "gene":
-                validated = study_index.validate_target(self.target_index)
-            case "biosample":
-                validated = study_index.validate_biosample(self.biosample_index)
-            case _:
-                raise ValueError(f"Unknown test type: {test}")
-
-        # Assert type:
-        assert isinstance(validated, StudyIndex)
-
-        # Assert count:
-        assert validated.df.count() == self.study_index.df.count()
-
-    def test_qtl_validation_existing_biosample_column(self: TestQTLValidation) -> None:
-        """Testing what happens if a biosampleId column is present in study index as well as biosampleFromSourceId."""
-        # Append a biosample column filled with null to the self.study_index then validate:
-        validated = StudyIndex(
-            _df=self.study_index.df.withColumn(
-                "biosampleId", f.lit(None).cast("string")
-            ),
-            _schema=StudyIndex.get_schema(),
-        ).validate_biosample(self.biosample_index)
-        assert isinstance(validated, StudyIndex)
-
-
 class TestUniquenessValidation:
     """A small test suite to ensure the gene validation works as intended."""
 
@@ -357,156 +201,6 @@ class TestUniquenessValidation:
 
         # the right study is found:
         assert "s1" in flagged_ids
-
-
-class TestStudyTypeValidation:
-    """Testing study type validation."""
-
-    STUDY_DATA = [
-        # This study is flagged because of unexpected type:
-        ("s1", "cicaful", "p", "gene1"),
-        ("s3", "eqtl", "p", "gene1"),
-        ("s4", "gwas", "p", None),
-    ]
-    STUDY_COLUMNS = ["studyId", "studyType", "projectId", "geneId"]
-
-    @pytest.fixture(autouse=True)
-    def _setup(self: TestStudyTypeValidation, spark: SparkSession) -> None:
-        """Setup fixture."""
-        self.study_index = StudyIndex(
-            _df=spark.createDataFrame(self.STUDY_DATA, self.STUDY_COLUMNS).withColumn(
-                "qualityControls", f.array().cast("array<string>")
-            ),
-            _schema=StudyIndex.get_schema(),
-        )
-
-    def test_study_type_validation_return_type(self: TestStudyTypeValidation) -> None:
-        """Testing if the function returns the expected type."""
-        assert isinstance(self.study_index.validate_study_type(), StudyIndex)
-
-    def test_study_type_validation_correctness(self: TestStudyTypeValidation) -> None:
-        """Test if the correct study is flagged."""
-        flagged_study_ids = [
-            study["studyId"]
-            for study in self.study_index.validate_study_type()
-            .df.filter(f.size("qualityControls") > 0)
-            .collect()
-        ]
-        assert "s1" in flagged_study_ids
-        # Check if any
-        flagged_study_types = [
-            study["studyType"]
-            for study in self.study_index.validate_study_type()
-            .df.filter(f.size("qualityControls") != 0)
-            .collect()
-        ]
-        for study_type in flagged_study_types:
-            assert study_type != "gwas"
-            assert "qtl" not in study_type
-
-
-class TestDiseaseValidation:
-    """Testing the disease validation."""
-
-    DISEASE_DATA = [
-        ("EFO_old", "EFO_new"),
-        ("EFO_new", "EFO_new"),
-        ("EFO_new2", "EFO_new2"),
-    ]
-
-    DISEASE_HEADER = ["efo", "diseaseId"]
-
-    STUDY_DATA = [
-        # Old EFO mapped to new:
-        ("s1", "gwas", "p", "EFO_old"),
-        # List of EFOs some mapped, some not:
-        ("s2", "gwas", "p", "EFO_old"),
-        ("s2", "gwas", "p", "EFO_new2"),
-        ("s2", "gwas", "p", "EFO_invalid"),
-        # single EFO mapped as the same:
-        ("s3", "gwas", "p", "EFO_new2"),
-        # Invalid study:
-        ("s4", "gwas", "p", "EFO_invalid"),
-        # Invalid study - no EFO:
-        ("s5", "gwas", "p", None),
-        # Valid study, missing efo, not gwas:
-        ("s6", "eqtl", "p2", None),
-    ]
-
-    STUDY_COLUMNS = ["studyId", "studyType", "projectId", "efo"]
-
-    @pytest.fixture(autouse=True)
-    def _setup(self: TestDiseaseValidation, spark: SparkSession) -> None:
-        """Setup fixture."""
-        study_df = (
-            spark.createDataFrame(self.STUDY_DATA, self.STUDY_COLUMNS)
-            .groupBy("studyId", "studyType", "projectId")
-            .agg(f.collect_set("efo").alias("traitFromSourceMappedIds"))
-            .withColumn("qualityControls", f.array().cast("array<string>"))
-            .withColumn(
-                "backgroundTraitFromSourceMappedIds", f.array().cast("array<string>")
-            )
-        )
-        # Mock study index:
-        self.study_index = StudyIndex(
-            _df=study_df,
-            _schema=StudyIndex.get_schema(),
-        )
-
-        # Disease mapping:
-        self.disease = spark.createDataFrame(self.DISEASE_DATA, self.DISEASE_HEADER)
-
-        # Validated data:
-        self.validated = self.study_index.validate_disease(self.disease).persist()
-
-    def test_disease_validation_return_type(self: TestDiseaseValidation) -> None:
-        """Testing if the disease validation returns the right type."""
-        assert isinstance(self.validated, StudyIndex)
-
-    def test_disease_validation_right_flag(self: TestDiseaseValidation) -> None:
-        """Testing if the right studies are flagged in the validation step."""
-        # Testing flagged studies:
-        for study in self.validated.df.filter(f.size("qualityControls") > 0).collect():
-            # All flagged studies are from gwas:
-            assert study["studyType"] == "gwas"
-            # None of the flagged studies have assigned valid disease:
-            assert len(study["diseaseIds"]) == 0
-
-        # Testing unflagged studies:
-        for study in self.validated.df.filter(f.size("qualityControls") == 0).collect():
-            # If a valid study has no disease, it cannot be gwas:
-            if len(study["diseaseIds"]) == 0:
-                assert study["studyType"] != "gwas"
-
-    def test_disease_validation_disease_mapping(self: TestDiseaseValidation) -> None:
-        """Testing if old disease identifiers can be rescued."""
-        example_study_id = "s1"
-
-        test_study = self.validated.df.filter(
-            f.col("studyId") == example_study_id
-        ).collect()[0]
-
-        # Assert validation:
-        assert len(test_study["qualityControls"]) == 0
-
-        # Assert disease mapping:
-        assert test_study["traitFromSourceMappedIds"][0] != test_study["diseaseIds"][0]
-
-    def test_disease_validation_disease_removal(self: TestDiseaseValidation) -> None:
-        """Testing if not all diseases can be mapped, the study still passes QC."""
-        example_study_id = "s2"
-
-        test_study = self.validated.df.filter(
-            f.col("studyId") == example_study_id
-        ).collect()[0]
-
-        # Assert validation:
-        assert len(test_study["qualityControls"]) == 0
-
-        # Assert not all diseases could be mapped to disease index:
-        assert len(test_study["traitFromSourceMappedIds"]) > len(
-            test_study["diseaseIds"]
-        )
 
 
 class TestStudyIndexAnnotation:
@@ -729,165 +423,6 @@ class TestStudyIndexAnnotation:
         assert StudyQualityCheck.FAILED_GC_LAMBDA_CHECK.value in flags["s1"]
         assert StudyQualityCheck.SMALL_NUMBER_OF_SNPS.value in flags["s4"]
 
-    def test_validation_of_analysis_flags(
-        self: TestStudyIndexAnnotation,
-    ) -> None:
-        """Test study index validation of studies based on the analysis flags.
-
-        Test expects sample s1 and s3 to be annotated with the analysis flag 'case-case study'
-        """
-        # Craete a study index with analysis flags that contain the expected flag:
-        si_df = self.spark.createDataFrame(
-            self.STUDY_WITH_ANALYSIS_FLAGS, self.STUDY_WITH_ANALYSIS_FLAGS_SCHEMA
-        )
-        self.study_index = StudyIndex(_df=si_df)
-
-        # Annotate study index with analysis flags:
-        annotated_study_index = self.study_index.validate_analysis_flags()
-
-        # Assert that the study index is annotated correctly:
-        assert isinstance(annotated_study_index, StudyIndex), "should be a StudyIndex"
-        assert annotated_study_index.df.count() == 4, "Should have 4 rows"
-        exp_flag = StudyQualityCheck.CASE_CASE_STUDY_DESIGN.value
-        annotated = (
-            annotated_study_index.df.filter(
-                f.array_contains("qualityControls", exp_flag)
-            )
-            .select("studyId")
-            .orderBy("studyId")
-            .collect()
-        )
-        assert annotated[0][0] == "s1", "s1 Should be annotated with the flag"
-        assert annotated[1][0] == "s3", "s3 Should be annotated with the flag"
-
-
-class TestCollectHeritability:
-    """Test the collect_heritability method of StudyIndex."""
-
-    HERITABILITY_COLUMNS = [
-        "studyId",
-        "runStatus",
-        "h2",
-        "h2_se",
-        "intercept",
-        "intercept_se",
-        "mean_chisq",
-        "lambda_gc",
-    ]
-    HERITABILITY_DATA = [
-        ("s1", "success", 0.5, 0.05, 1.01, 0.01, 1.2, 1.05),
-        ("s2", "failed", 0.3, 0.03, 1.00, 0.02, 1.1, 0.99),
-    ]
-    STUDY_SCHEMA = "studyId STRING, studyType STRING, projectId STRING, qualityControls ARRAY<STRING>, sumstatQCValues ARRAY<STRUCT<QCCheckName: STRING, QCCheckValue: FLOAT>>"
-    STUDY_DATA: list[tuple[str, str, str, list[str], None]] = [
-        ("s1", "gwas", "p", [], None),
-        ("s2", "gwas", "p", [], None),
-        ("s3", "gwas", "p", [], None),
-    ]
-
-    @pytest.fixture(autouse=True)
-    def _setup(self: TestCollectHeritability, spark: SparkSession) -> None:
-        """Setup fixture."""
-        self.result = (
-            StudyIndex(
-                _df=spark.createDataFrame(self.STUDY_DATA, self.STUDY_SCHEMA),
-                _schema=StudyIndex.get_schema(),
-            )
-            .collect_heritability(
-                spark.createDataFrame(self.HERITABILITY_DATA, self.HERITABILITY_COLUMNS)
-            )
-            .persist()
-        )
-
-    @pytest.mark.parametrize(
-        ["study_id", "expected_names"],
-        [
-            pytest.param(
-                "s1",
-                {
-                    "LDSC_SNP-h2",
-                    "LDSC_SNP-h2_se",
-                    "LDSC_intercept",
-                    "LDSC_intercept_se",
-                    "LDSC_mean_chisq",
-                    "LDSC_gc_lambda",
-                },
-                id="successful run gets prefixed label names",
-            ),
-            pytest.param(
-                "s2",
-                set(),
-                id="failed run excluded from annotations",
-            ),
-            pytest.param(
-                "s3",
-                set(),
-                id="study absent from heritability_df gets no annotations",
-            ),
-        ],
-    )
-    def test_qc_check_names(
-        self: TestCollectHeritability, study_id: str, expected_names: set[str]
-    ) -> None:
-        """QCCheckNames must use prefixed labels; failed/absent studies get nothing."""
-        qc_values = (
-            self.result.df.filter(f.col("studyId") == study_id)
-            .select("sumstatQCValues")
-            .collect()[0]["sumstatQCValues"]
-        )
-        actual = (
-            {row["QCCheckName"] for row in qc_values}
-            if qc_values is not None
-            else set()
-        )
-        assert actual == expected_names
-
-
-class TestProjectIdValidation:
-    """Test study index project id validation."""
-
-    STUDY_REQUIRED_DATA: list[tuple[str, str, str, list[str]]] = [
-        ("s1", "GCST", "gwas", []),
-        ("s2", "GTEx", "gwas", []),
-    ]
-
-    STUDY_REQUIRED_SCHEMA = "studyId STRING, projectId STRING, studyType STRING, qualityControls ARRAY<STRING>"
-
-    @pytest.mark.parametrize(
-        ["project_id", "expected_data"],
-        [
-            pytest.param(
-                "GTEx",
-                [
-                    Row(studyId="s1", qualityControls=[]),
-                    Row(
-                        studyId="s2",
-                        qualityControls=[StudyQualityCheck.DEPRECATED_PROJECT.value],
-                    ),
-                ],
-                id="GTEx projectId should be flagged as deprecated",
-            ),
-        ],
-    )
-    def test_project_id_validation(
-        self, spark: SparkSession, project_id: str, expected_data: list[Row]
-    ) -> None:
-        """Test project id validation."""
-        si = StudyIndex(
-            _df=spark.createDataFrame(
-                self.STUDY_REQUIRED_DATA, self.STUDY_REQUIRED_SCHEMA
-            )
-        )
-        validated_si = si.validate_project_id(deprecated_project_ids=[project_id])
-        assert isinstance(validated_si, StudyIndex), "should be a StudyIndex"
-        assert validated_si.df.count() == 2, "Should have 2 rows"
-        assert (
-            validated_si.df.select("studyId", "qualityControls")
-            .orderBy("studyId")
-            .collect()
-            == expected_data
-        ), "Should have expected qualityControls"
-
 
 class TestValidateCaseControlSampleSize:
     """Test StudyIndex.validate_ccs.
@@ -997,3 +532,202 @@ class TestValidateCaseControlSampleSize:
             .collect()[0]["qualityControls"]
         )
         assert sorted(observed_flags) == sorted(expected_flags)
+
+
+class TestPQTLStudyIndexToStudy:
+    """Test the pQTL study index to StudyIndex transformation."""
+
+    @staticmethod
+    def _target_index(spark: SparkSession, rows: list[dict[str, Any]]) -> TargetIndex:
+        """Build a TargetIndex from partial rows, nulling every unspecified field."""
+        schema = TargetIndex.get_schema()
+        full = [{fld.name: None for fld in schema.fields} | row for row in rows]
+        return TargetIndex(_df=spark.createDataFrame(full, schema=schema))
+
+    @staticmethod
+    def _pqtl_study_index(
+        spark: SparkSession, targets: list[dict[str, str]]
+    ) -> ProteinQuantitativeTraitLocusStudyIndex:
+        """Build a single-study pQTL study index measuring the given targets."""
+        schema = ProteinQuantitativeTraitLocusStudyIndex.get_schema()
+        row = {fld.name: None for fld in schema.fields} | {
+            "studyId": "deCODE-study-1",
+            "projectId": "deCODE-proteomics-smp",
+            "studyType": "pqtl",
+            "targetsFromSource": [
+                {
+                    "proteinId": t["proteinId"],
+                    "proteinName": None,
+                    "geneId": None,
+                    "geneSymbol": t["geneSymbol"],
+                }
+                for t in targets
+            ],
+        }
+        return ProteinQuantitativeTraitLocusStudyIndex(
+            _df=spark.createDataFrame([row], schema=schema)
+        )
+
+    def test_ambiguous_symbol_resolves_without_multiplying(
+        self, spark: SparkSession
+    ) -> None:
+        """An ambiguous symbol must yield one row per target.
+
+        SIGLEC5 resolves to two gene ids and its protein O15389 to the same two, so
+        the symbol join explodes to 2 rows.
+
+        The two genes must keep distinct `tss`: symbols_lut().
+        """
+        target = self._target_index(
+            spark,
+            [
+                {
+                    "id": gene_id,
+                    "approvedSymbol": "SIGLEC5",
+                    "obsoleteSymbols": [],
+                    "genomicLocation": {
+                        "chromosome": "19",
+                        "start": tss,
+                        "end": tss + 100,
+                        "strand": 1,
+                    },
+                    "canonicalTranscript": {
+                        "id": f"t-{gene_id}",
+                        "chromosome": "19",
+                        "start": tss,
+                        "end": tss + 100,
+                        "strand": "+",
+                    },
+                    "tss": tss,
+                    "proteinIds": [{"id": "O15389", "source": "uniprot_swissprot"}],
+                }
+                for gene_id, tss in (
+                    ("ENSG00000105501", 51_645_545),
+                    ("ENSG00000268500", 51_630_401),
+                )
+            ],
+        )
+        pqtl = self._pqtl_study_index(
+            spark, [{"geneSymbol": "SIGLEC5", "proteinId": "O15389"}]
+        )
+
+        result = pqtl.to_study(target)
+
+        assert isinstance(result, StudyIndex)
+        assert result.df.count() == 2
+        assert sorted(r["geneId"] for r in result.df.collect()) == [
+            "ENSG00000105501",
+            "ENSG00000268500",
+        ]
+
+    def test_unambiguous_symbol_yields_one_row_per_target(
+        self, spark: SparkSession
+    ) -> None:
+        """The intended explosion of a multi-target aptamer is preserved."""
+        target = self._target_index(
+            spark,
+            [
+                {
+                    "id": "ENSG00000143546",
+                    "approvedSymbol": "S100A8",
+                    "obsoleteSymbols": [],
+                    "genomicLocation": {
+                        "chromosome": "1",
+                        "start": 1,
+                        "end": 2,
+                        "strand": 1,
+                    },
+                    "canonicalTranscript": {
+                        "id": "t1",
+                        "chromosome": "1",
+                        "start": 1,
+                        "end": 2,
+                        "strand": "+",
+                    },
+                    "tss": 1,
+                    "proteinIds": [{"id": "P05109", "source": "uniprot_swissprot"}],
+                },
+                {
+                    "id": "ENSG00000163220",
+                    "approvedSymbol": "S100A9",
+                    "obsoleteSymbols": [],
+                    "genomicLocation": {
+                        "chromosome": "1",
+                        "start": 3,
+                        "end": 4,
+                        "strand": 1,
+                    },
+                    "canonicalTranscript": {
+                        "id": "t2",
+                        "chromosome": "1",
+                        "start": 3,
+                        "end": 4,
+                        "strand": "+",
+                    },
+                    "tss": 3,
+                    "proteinIds": [{"id": "P06702", "source": "uniprot_swissprot"}],
+                },
+            ],
+        )
+        pqtl = self._pqtl_study_index(
+            spark,
+            [
+                {"geneSymbol": "S100A8", "proteinId": "P05109"},
+                {"geneSymbol": "S100A9", "proteinId": "P06702"},
+            ],
+        )
+
+        result = pqtl.to_study(target)
+
+        assert result.df.count() == 2
+        assert sorted(r["geneId"] for r in result.df.collect()) == [
+            "ENSG00000143546",
+            "ENSG00000163220",
+        ]
+
+    def test_unresolved_targets_are_dropped(self, spark: SparkSession) -> None:
+        """A target the reference does not resolve carries no gene mapping.
+
+        The IG aptamers pair a resolvable heavy chain with IGK@ / IGL@, whose
+        symbols and placeholder protein ids both miss. Two such targets produced
+        identical rows, making the studyId non-unique and exposing the whole study
+        to validate_unique_study_id.
+        """
+        target = self._target_index(
+            spark,
+            [
+                {
+                    "id": "ENSG00000211898",
+                    "approvedSymbol": "IGHD",
+                    "obsoleteSymbols": [],
+                    "genomicLocation": {
+                        "chromosome": "14",
+                        "start": 1,
+                        "end": 2,
+                        "strand": 1,
+                    },
+                    "canonicalTranscript": {
+                        "id": "t1",
+                        "chromosome": "14",
+                        "start": 1,
+                        "end": 2,
+                        "strand": "+",
+                    },
+                    "tss": 1,
+                    "proteinIds": [{"id": "P01880", "source": "uniprot_swissprot"}],
+                }
+            ],
+        )
+        pqtl = self._pqtl_study_index(
+            spark,
+            [
+                {"geneSymbol": "IGHD", "proteinId": "P01880"},
+                {"geneSymbol": "IGK@", "proteinId": "_NA"},
+                {"geneSymbol": "IGL@", "proteinId": "_NA"},
+            ],
+        )
+
+        result = pqtl.to_study(target)
+
+        assert result.df.count() == 1
+        assert result.df.collect()[0]["geneId"] == "ENSG00000211898"

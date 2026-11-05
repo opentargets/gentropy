@@ -10,7 +10,6 @@ from pyspark.sql import types as t
 
 from gentropy.common.genomic_region import GenomicRegion
 from gentropy.common.session import Session
-from gentropy.dataset.study_locus import StudyLocus
 from gentropy.dataset.summary_statistics import SummaryStatistics
 
 if TYPE_CHECKING:
@@ -31,15 +30,6 @@ def test_summary_statistics__pval_filter__return_type(
     pval_threshold = 5e-3
     assert isinstance(
         mock_summary_statistics.pvalue_filter(pval_threshold), SummaryStatistics
-    )
-
-
-def test_summary_statistics__window_based_clumping__return_type(
-    mock_summary_statistics: SummaryStatistics,
-) -> None:
-    """Test if the window-based clumping indeed returns study locus object."""
-    assert isinstance(
-        mock_summary_statistics.window_based_clumping(250_000), StudyLocus
     )
 
 
@@ -119,6 +109,40 @@ def test_summary_statistics__drop_variant_duplicates(
         ("s1", "v_cross"),
         ("s2", "v_cross"),
     }
+
+
+def test_summary_statistics__drop_variant_duplicates_drops_every_occurrence(
+    spark: SparkSession,
+) -> None:
+    """The policy is strict: 3 and 4 occurrence collisions are removed entirely."""
+    data = [
+        # three occurrences — all dropped
+        ("s1", "v3", "1", 100, 0.1, None, 5.0, -8, None, None),
+        ("s1", "v3", "1", 100, 0.2, None, 5.0, -8, None, None),
+        ("s1", "v3", "1", 100, 0.3, None, 5.0, -8, None, None),
+        # four occurrences — all dropped
+        ("s1", "v4", "1", 200, 0.1, None, 5.0, -8, None, None),
+        ("s1", "v4", "1", 200, 0.2, None, 5.0, -8, None, None),
+        ("s1", "v4", "1", 200, 0.3, None, 5.0, -8, None, None),
+        ("s1", "v4", "1", 200, 0.4, None, 5.0, -8, None, None),
+        # unique — kept
+        ("s1", "v1", "1", 300, 0.1, None, 5.0, -8, None, None),
+    ]
+    df = spark.createDataFrame(data, schema=SummaryStatistics.get_schema())
+    result = SummaryStatistics(_df=df).drop_variant_duplicates()
+
+    assert [r["variantId"] for r in result.df.collect()] == ["v1"]
+
+
+def test_summary_statistics__drop_variant_duplicates_preserves_columns(
+    spark: SparkSession,
+) -> None:
+    """No helper column may leak into the output schema."""
+    data = [("s1", "v1", "1", 100, 0.1, None, 5.0, -8, None, None)]
+    df = spark.createDataFrame(data, schema=SummaryStatistics.get_schema())
+    result = SummaryStatistics(_df=df).drop_variant_duplicates()
+
+    assert result.df.columns == df.columns
 
 
 def test_summary_statistics__sanity_filter_remove_inf_values(session: Session) -> None:

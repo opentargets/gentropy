@@ -6,7 +6,7 @@ from pyspark.sql import Column
 from pyspark.sql import functions as f
 
 from gentropy.dataset.colocalisation import Colocalisation
-from gentropy.dataset.study_locus_overlap import StudyLocusOverlap
+from gentropy.dataset.locus_overlap import LocusOverlap
 
 
 class ColocalisationMethodInterface(Protocol):
@@ -17,12 +17,12 @@ class ColocalisationMethodInterface(Protocol):
 
     @classmethod
     def colocalise(
-        cls, overlapping_signals: StudyLocusOverlap, **kwargs: Any
+        cls, overlapping_signals: LocusOverlap, **kwargs: Any
     ) -> Colocalisation:
         """Method to generate the colocalisation.
 
         Args:
-            overlapping_signals (StudyLocusOverlap): Overlapping study loci.
+            overlapping_signals (LocusOverlap): Overlapping study loci.
             **kwargs (Any): Additional keyword arguments to the colocalise method.
 
 
