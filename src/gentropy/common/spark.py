@@ -71,15 +71,25 @@ def convert_from_wide_to_long(
 
 
 def convert_from_long_to_wide(
-    df: DataFrame, id_vars: list[str], var_name: str, value_name: str
+    df: DataFrame,
+    id_vars: list[str],
+    var_name: str,
+    value_name: str,
+    values: list[str] | None = None,
 ) -> DataFrame:
     """Converts a dataframe from long to wide format using Spark pivot built-in function.
+
+    Without `values`, Spark runs the whole plan of `df` once just to find the distinct names in
+    `var_name`, and then again to build the wide table. Pass the names when they are known in
+    advance so the plan only runs once.
 
     Args:
         df (DataFrame): Dataframe to pivot
         id_vars (list[str]): List of fixed columns to keep
         var_name (str): Name of the column to pivot on
         value_name (str): Name of the column containing the values
+        values (list[str] | None): Names in `var_name` to turn into columns, in this order. If
+            None, every distinct name is used, sorted.
 
     Returns:
         DataFrame: Pivoted dataframe
@@ -93,8 +103,15 @@ def convert_from_long_to_wide(
         |  a|        1|        2|
         +---+---------+---------+
         <BLANKLINE>
+        >>> convert_from_long_to_wide(df, ["id"], "featureName", "featureValue", ["feature_1", "feature_2"]).show()
+        +---+---------+---------+
+        | id|feature_1|feature_2|
+        +---+---------+---------+
+        |  a|        1|        2|
+        +---+---------+---------+
+        <BLANKLINE>
     """
-    return df.groupBy(*id_vars).pivot(var_name).agg(f.first(value_name))
+    return df.groupBy(*id_vars).pivot(var_name, values).agg(f.first(value_name))
 
 
 def nullify_empty_array(column: Column) -> Column:

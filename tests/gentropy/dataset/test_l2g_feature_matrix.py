@@ -104,6 +104,23 @@ class TestFromFeaturesList:
                 f"Feature {feature} not found in feature matrix features list."
             )
 
+    def test_features_without_rows_are_null_columns(
+        self: TestFromFeaturesList,
+    ) -> None:
+        """Every requested feature is a column, sorted by name, even when it has no rows."""
+        features_list = ["geneCount500kb", "pQtlColocH4Maximum", "eQtlColocH4Maximum"]
+        loader = L2GFeatureInputLoader(
+            colocalisation=self.sample_colocalisation,
+            study_index=self.sample_study_index,
+            study_locus=self.sample_study_locus,
+            target_index=self.sample_target_index,
+        )
+        fm = L2GFeatureMatrix.from_features_list(
+            self.sample_study_locus, features_list, loader
+        )
+        assert fm.features_list == sorted(features_list)
+        assert fm._df.filter(f.col("pQtlColocH4Maximum").isNotNull()).count() == 0
+
     def test_study_locus_incorrect_feature_name(
         self: TestFromFeaturesList,
     ) -> None:
