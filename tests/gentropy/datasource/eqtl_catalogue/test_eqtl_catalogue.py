@@ -438,6 +438,26 @@ class TestEqtlCatalogueFinemapping:
         assert lead.conditionalBeta is None
         assert lead.r2Overall is None
 
+    def test__from_susie_results_negative_region_start(
+        self: TestEqtlCatalogueFinemapping,
+        sample_eqtl_catalogue_finemapping_credible_sets: DataFrame,
+        sample_eqtl_catalogue_finemapping_lbf: DataFrame,
+        sample_eqtl_catalogue_studies_metadata: DataFrame,
+    ) -> None:
+        """A region starting before the chromosome (TSS - 1 Mb < 0) starts the locus at 1."""
+        region = f.lit("chrX:-33518-1966482")
+        credible_sets, _ = EqtlCatalogueFinemapping.from_susie_results(
+            EqtlCatalogueFinemapping.parse_susie_results(
+                sample_eqtl_catalogue_finemapping_credible_sets.withColumn(
+                    "region", region
+                ),
+                sample_eqtl_catalogue_finemapping_lbf.withColumn("region", region),
+                sample_eqtl_catalogue_studies_metadata,
+            )
+        )
+        [credible_set] = credible_sets.df.collect()
+        assert (credible_set.locusStart, credible_set.locusEnd) == (1, 1966482)
+
     def test__from_susie_results_with_full_susie(
         self, processed_finemapping_with_full_susie_df: DataFrame
     ) -> None:
