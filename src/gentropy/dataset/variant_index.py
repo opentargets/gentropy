@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING
 
 import pyspark.sql.functions as f
 import pyspark.sql.types as t
-from pyspark.sql.window import Window
 
 from gentropy.common.schemas import parse_spark_schema
 from gentropy.common.spark import (
@@ -15,7 +14,6 @@ from gentropy.common.spark import (
     rename_all_columns,
     safe_array_union,
 )
-from gentropy.dataset.amino_acid_variants import AminoAcidVariants
 from gentropy.dataset.dataset import Dataset
 
 if TYPE_CHECKING:
@@ -225,33 +223,6 @@ class VariantIndex(Dataset):
             )
         )
 
-    def filter_by_variant(self: VariantIndex, df: DataFrame) -> VariantIndex:
-        """Filter variant annotation dataset by a variant dataframe.
-
-        Args:
-            df (DataFrame): A dataframe of variants.
-
-        Returns:
-            VariantIndex: A filtered variant annotation dataset.
-
-        Raises:
-            AssertionError: When the variant dataframe does not contain eiter `variantId` or `chromosome` column.
-        """
-        join_columns = ["variantId", "chromosome"]
-
-        assert all(
-            col in df.columns for col in join_columns
-        ), "The variant dataframe must contain the columns 'variantId' and 'chromosome'."
-
-        return VariantIndex(
-            _df=self._df.join(
-                f.broadcast(df.select(*join_columns).distinct()),
-                on=join_columns,
-                how="inner",
-            ),
-            _schema=self.schema,
-        )
-
     def get_distance_to_gene(
         self: VariantIndex,
         *,
@@ -285,60 +256,6 @@ class VariantIndex(Dataset):
             raise ValueError(
                 f"max_distance must be less than 500_000. Got {max_distance}."
             )
-
-    def annotate_with_amino_acid_consequences(
-        self: VariantIndex, annotation: AminoAcidVariants
-    ) -> VariantIndex:
-        """Enriching variant effect assessments with amino-acid derived predicted consequences.
-
-        Args:
-            annotation (AminoAcidVariants): amino-acid level variant consequences.
-
-        Returns:
-            VariantIndex: where amino-acid causing variants are enriched with extra annotation
-        """
-        w = Window.partitionBy("variantId").orderBy(f.size("variantEffect").desc())
-
-        return VariantIndex(
-            _df=self.df
-            # Extracting variant consequence on Uniprot and amino-acid changes from the transcripts:
-            .withColumns(
-                {
-                    "aminoAcidChange": f.filter(
-                        "transcriptConsequences",
-                        lambda vep: vep.aminoAcidChange.isNotNull(),
-                    )[0].aminoAcidChange,
-                    "uniprotAccession": f.explode_outer(
-                        f.filter(
-                            "transcriptConsequences",
-                            lambda vep: vep.aminoAcidChange.isNotNull(),
-                        )[0].uniprotAccessions
-                    ),
-                }
-            )
-            # Joining with amino-acid predictions:
-            .join(
-                annotation.df.withColumnRenamed("variantEffect", "annotations"),
-                on=["uniprotAccession", "aminoAcidChange"],
-                how="left",
-            )
-            # Merge predictors:
-            .withColumn(
-                "variantEffect",
-                f.when(
-                    f.col("annotations").isNotNull(),
-                    f.array_union("variantEffect", "annotations"),
-                ).otherwise(f.col("variantEffect")),
-            )
-            # Dropping unused columns:
-            .drop("uniprotAccession", "aminoAcidChange", "annotations")
-            # Dropping potentially exploded variant rows:
-            .distinct()
-            .withColumn("rank", f.row_number().over(w))
-            .filter(f.col("rank") == 1)
-            .drop("rank"),
-            _schema=self.get_schema(),
-        )
 
     def get_loftee(self: VariantIndex) -> DataFrame:
         """Returns a dataframe with a flag indicating whether a variant is predicted to cause loss of function in a gene. The source of this information is the LOFTEE algorithm (https://github.com/konradjk/loftee).
@@ -377,35 +294,6 @@ class VariantEffectNormaliser:
 
     The point of these operations to make the scores comparable across different variant effect assessments.
     """
-
-    @classmethod
-    def normalise_variant_effect(
-        cls: type[VariantEffectNormaliser],
-        variant_effect: Column,
-    ) -> Column:
-        """Normalise variant effect assessments. Appends a normalised score to the variant effect struct.
-
-        Args:
-            variant_effect (Column): Column containing variant effect assessments (list of structs).
-
-        Returns:
-            Column: Normalised variant effect assessments.
-        """
-        return f.transform(
-            variant_effect,
-            lambda predictor: f.struct(
-                # Extracing all existing columns:
-                predictor.method.alias("method"),
-                predictor.assessment.alias("assessment"),
-                predictor.score.alias("score"),
-                predictor.assessmentFlag.alias("assessmentFlag"),
-                predictor.targetId.alias("targetId"),
-                # Normalising the score
-                cls.resolve_predictor_methods(
-                    predictor.score, predictor.method, predictor.assessment
-                ).alias("normalisedScore"),
-            ),
-        )
 
     @classmethod
     def resolve_predictor_methods(

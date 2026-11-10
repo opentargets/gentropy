@@ -16,7 +16,6 @@ if TYPE_CHECKING:
     from pyspark.sql import DataFrame
 
 
-
 class KnownGenomicRegions(Enum):
     """Known genomic regions in the human genome in string format."""
 
@@ -156,76 +155,6 @@ class LiftOverSpark:
             t.ArrayType(t.ArrayType(t.StringType())),
         )
 
-    def convert_intervals(
-        self: LiftOverSpark,
-        df: DataFrame,
-        chrom_col: str,
-        start_col: str,
-        end_col: str,
-        filter: bool = True,
-    ) -> DataFrame:
-        """Convert genomic intervals to liftover coordinates.
-
-        Args:
-            df (DataFrame): spark Dataframe with chromosome, start and end columns.
-            chrom_col (str): Name of the chromosome column.
-            start_col (str): Name of the start column.
-            end_col (str): Name of the end column.
-            filter (bool): If True, filter is applied on the mapped data, otherwise return everything. Defaults to True.
-
-        Returns:
-            DataFrame: Liftovered intervals
-        """
-        # Lift over start coordinates, changing to 1-based coordinates:
-        start_df = (
-            df.withColumn(start_col, f.col(start_col) + 1)
-            .select(chrom_col, start_col)
-            .distinct()
-        )
-        start_df = self.convert_coordinates(
-            start_df, chrom_col, start_col
-        ).withColumnRenamed("mapped_pos", f"mapped_{start_col}")
-
-        # Lift over end coordinates:
-        end_df = df.select(chrom_col, end_col).distinct()
-        end_df = self.convert_coordinates(end_df, chrom_col, end_col).withColumnRenamed(
-            "mapped_pos", f"mapped_{end_col}"
-        )
-
-        # Join dataframe with mappings (we have to account for the +1 position shift of the start coordinates):
-        mapped_df = df.join(
-            start_df.withColumn(start_col, f.col(start_col) - 1),
-            on=[chrom_col, start_col],
-            how="left",
-        ).join(end_df, on=[chrom_col, end_col], how="left")
-
-        # The filter option allows to get all the data and filter it afterwards.
-        if filter:
-            return (
-                mapped_df
-                # Select only rows where the start is smaller than the end:
-                .filter(
-                    # Drop rows with no mappings:
-                    f.col(f"mapped_{start_col}").isNotNull()
-                    & f.col(f"mapped_{end_col}").isNotNull()
-                    # Drop rows where the start is larger than the end:
-                    & (f.col(f"mapped_{end_col}") >= f.col(f"mapped_{start_col}"))
-                    # Drop rows where the difference of the length of the regions are larger than the threshold:
-                    & (
-                        f.abs(
-                            (f.col(end_col) - f.col(start_col))
-                            - (
-                                f.col(f"mapped_{end_col}")
-                                - f.col(f"mapped_{start_col}")
-                            )
-                        )
-                        <= self.max_difference
-                    )
-                ).persist()
-            )
-        else:
-            return mapped_df.persist()
-
     def convert_coordinates(
         self: LiftOverSpark, df: DataFrame, chrom_name: str, pos_name: str
     ) -> DataFrame:
@@ -260,7 +189,6 @@ class LiftOverSpark:
         return mapped
 
 
-
 def liftover_loci(
     variant_index: Table, chain_path: str, dest_reference_genome: str
 ) -> Table:
@@ -278,6 +206,7 @@ def liftover_loci(
         This function assumes hail is initialized in Session.
     """
     import hail as hl
+
     if not hl.get_reference("GRCh37").has_liftover(
         "GRCh38"
     ):  # True when a chain file has already been registered

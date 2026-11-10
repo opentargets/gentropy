@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from collections.abc import Callable, Sequence
+from collections.abc import Sequence
 from dataclasses import dataclass
 from enum import Enum
 from functools import reduce
-from typing import TYPE_CHECKING, Any, ParamSpec, Self, TypeVar
+from typing import TYPE_CHECKING, Any, Self
 
 from pyspark.sql import DataFrame
 from pyspark.sql import functions as f
@@ -21,23 +21,6 @@ if TYPE_CHECKING:
     from pyspark.sql.types import StructType
 
     from gentropy.common.session import Session
-
-T = TypeVar("T", bound="Dataset")
-P = ParamSpec("P")
-
-
-def qc_test(func: Callable[P, T]) -> Callable[P, T]:
-    """Decorator to mark methods as quality control tests.
-
-    Args:
-        func (Callable[P, T]): Function to be decorated. The function should take any parameters and return Dataset derivative.
-
-    Returns:
-        Callable[P, T]: Decorated function.
-    """
-    setattr(func, "__is_qc_test__", True)
-
-    return func
 
 
 @dataclass
@@ -384,17 +367,3 @@ class Dataset(ABC):
                 f.struct(*uniqueness_defining_columns), {"ignoreNullFields": "false"}
             )
         )
-
-    @classmethod
-    def qc_tests(cls: type[Self]) -> list[Callable[..., Self]]:
-        """Get all quality control test methods defined in the Dataset class.
-
-        Returns:
-            list[Callable[..., Self]]: List of quality control test methods.
-        """
-        qc_methods = []
-        for attribute_name in dir(cls):
-            attribute = getattr(cls, attribute_name)
-            if callable(attribute) and getattr(attribute, "__is_qc_test__", False):
-                qc_methods.append(attribute)
-        return qc_methods

@@ -16,8 +16,6 @@ from gentropy.dataset.dataset import Dataset
 if TYPE_CHECKING:
     from pyspark.sql.types import StructType
 
-    from gentropy import Session, StudyIndex
-
 
 @dataclass
 class SummaryStatistics(Dataset):
@@ -108,37 +106,6 @@ class SummaryStatistics(Dataset):
 
         return summary_stats
 
-    def limit_to_studies(
-        self, session: Session, study_index: StudyIndex
-    ) -> SummaryStatistics:
-        """Limit summary statistics to those present in the study index.
-
-        Args:
-            session (Session): Session object.
-            study_index (StudyIndex): Study index object.
-
-        Returns:
-            SummaryStatistics: Filtered summary statistics object.
-        """
-        studies = study_index.df.select("studyId").distinct().collect()
-        study_ids = [row.studyId for row in studies]
-        session.logger.info(f"Expecting N={len(study_ids)} studies.")
-
-        count_pre = self.df.select("studyId").distinct().count()
-        session.logger.info(f"Found N={count_pre} distinct summary statistics.")
-
-        session.logger.info("Filtering summary statistics to match the study index.")
-        filtered_sumstats = self.df.filter(f.col("studyId").isin(study_ids))
-
-        count_post = filtered_sumstats.select("studyId").distinct().count()
-        session.logger.info(f"N={count_post} studies match the study index.")
-
-        if count_pre != count_post:
-            session.logger.warning(
-                f"Dropping N={count_pre - count_post} studies that are not in the study index."
-            )
-        return SummaryStatistics(_df=filtered_sumstats)
-
     def drop_variant_duplicates(self) -> SummaryStatistics:
         """Drop duplicate variants in the summary statistics dataset.
 
@@ -156,39 +123,4 @@ class SummaryStatistics(Dataset):
             )
             .filter(f.col("occurrences") == 1)
             .drop("occurrences")
-        )
-
-    def annotate_study_with_sumstat_location(self, si: StudyIndex) -> StudyIndex:
-        """Annotate the study index with the location of the summary statistics.
-
-        Summary statistics must have been read from files under ``studyId=...``
-        partition directories. Any existing location column on the study index is
-        replaced before the new locations are joined.
-
-        Args:
-            si (StudyIndex): Study index to be annotated.
-
-        Returns:
-            StudyIndex: Annotated study index.
-        """
-        pat = r"^(.*\/studyId=.*?\/).*$"
-        # NOTE: distinct() alone yields the small (studyId, location) set we
-        # broadcast; coalescing the (potentially huge) summary statistics to a
-        # single partition first would be an unnecessary bottleneck.
-        sumstat_locations = f.broadcast(
-            self.df.select(
-                "studyId",
-                f.regexp_extract(f.input_file_name(), pat, 1).alias(
-                    "summarystatsLocation"
-                ),
-            ).distinct()
-        )
-        return si.__class__(
-            _df=si.df.coalesce(1)
-            .drop("summarystatsLocation")
-            .join(sumstat_locations, on="studyId", how="left")
-            .withColumn(
-                "hasSumstats",
-                f.col("summarystatsLocation").isNotNull(),
-            )
         )
