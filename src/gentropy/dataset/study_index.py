@@ -20,7 +20,7 @@ from gentropy.common.spark import convert_from_wide_to_long, filter_array_struct
 from gentropy.dataset.dataset import Dataset, qc_test
 
 if TYPE_CHECKING:
-    from pyspark.sql import Column, DataFrame
+    from pyspark.sql import Column
     from pyspark.sql.types import StructType
 
     from gentropy.dataset.summary_statistics_qc import SummaryStatisticsQC
@@ -181,24 +181,6 @@ class StudyIndex(Dataset):
         return parse_spark_schema("study_index.json")
 
     @classmethod
-    def get_QC_column_name(cls: type[StudyIndex]) -> str:
-        """Return the name of the quality control column.
-
-        Returns:
-            str: The name of the quality control column.
-        """
-        return "qualityControls"
-
-    @classmethod
-    def get_QC_mappings(cls: type[StudyIndex]) -> dict[str, str]:
-        """Quality control flag to QC column category mappings.
-
-        Returns:
-            dict[str, str]: Mapping between flag name and QC column category value.
-        """
-        return {member.name: member.value for member in StudyQualityCheck}
-
-    @classmethod
     def aggregate_and_map_ancestries(
         cls: type[StudyIndex], discovery_samples: Column
     ) -> Column:
@@ -242,14 +224,6 @@ class StudyIndex(Dataset):
                 ),
             ),
         )
-
-    def study_type_lut(self: StudyIndex) -> DataFrame:
-        """Return a lookup table of study type.
-
-        Returns:
-            DataFrame: A dataframe containing `studyId` and `studyType` columns.
-        """
-        return self.df.select("studyId", "studyType")
 
     def is_qtl(self: StudyIndex) -> Column:
         """Return a boolean column with true values for QTL studies.

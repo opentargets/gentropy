@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import pytest
-from pyspark.sql import DataFrame, SparkSession
+from pyspark.sql import SparkSession
 from pyspark.sql import functions as f
 
 from gentropy.dataset.study_index import (
@@ -24,11 +24,6 @@ if TYPE_CHECKING:
 def test_study_index_creation(mock_study_index: StudyIndex) -> None:
     """Test study index creation with mock data."""
     assert isinstance(mock_study_index, StudyIndex)
-
-
-def test_study_index_type_lut(mock_study_index: StudyIndex) -> None:
-    """Test study index type lut."""
-    assert isinstance(mock_study_index.study_type_lut(), DataFrame)
 
 
 def test_aggregate_and_map_ancestries__correctness(spark: SparkSession) -> None:

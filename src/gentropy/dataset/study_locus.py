@@ -22,7 +22,7 @@ class StudyLocusQualityCheck(Enum):
     """Study locus quality control flags, raised by curation, clumping, LD annotation, fine-mapping and validation.
 
     `CredibleSet.qualityControls` carries the flags of the study locus it was fine-mapped from, and
-    the flags of credible set validation (`gentropy.credible_set_validation`).
+    the flags raised by credible set validation in PTS.
 
     Attributes:
         WINDOW_CLUMPED (str): Explained by a more significant variant in the same window
@@ -157,24 +157,6 @@ class StudyLocus(Dataset):
             StructType: schema for the StudyLocus dataset.
         """
         return parse_spark_schema("study_locus.json")
-
-    @classmethod
-    def get_QC_column_name(cls: type[StudyLocus]) -> str:
-        """Quality control column.
-
-        Returns:
-            str: Name of the quality control column.
-        """
-        return "qualityControls"
-
-    @classmethod
-    def get_QC_mappings(cls: type[StudyLocus]) -> dict[str, str]:
-        """Quality control flag to QC column category mappings.
-
-        Returns:
-            dict[str, str]: Mapping between flag name and QC column category value.
-        """
-        return {member.name: member.value for member in StudyLocusQualityCheck}
 
     def exclude_region(
         self: Self, region: GenomicRegion, exclude_overlap: bool = False

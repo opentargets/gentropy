@@ -7,7 +7,7 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from enum import Enum
 from functools import reduce
-from typing import TYPE_CHECKING, Any, Generic, NamedTuple, ParamSpec, Self, TypeVar
+from typing import TYPE_CHECKING, Any, ParamSpec, Self, TypeVar
 
 from pyspark.sql import DataFrame
 from pyspark.sql import functions as f
@@ -25,13 +25,6 @@ if TYPE_CHECKING:
 
 T = TypeVar("T", bound="Dataset")
 P = ParamSpec("P")
-
-
-class DatasetValidationResult(NamedTuple, Generic[T]):
-    """Dataset validation result."""
-
-    valid: T
-    invalid: T
 
 
 def qc_test(func: Callable[P, T]) -> Callable[P, T]:
@@ -145,26 +138,6 @@ class Dataset(ABC):
         raise NotImplementedError("Must be implemented in the child classes")
 
     @classmethod
-    def get_QC_column_name(cls: type[Self]) -> str | None:
-        """Abstract method to get the QC column name. Assumes None unless overriden by child classes.
-
-        Returns:
-            str | None: Column name
-        """
-        return None
-
-    @classmethod
-    def get_QC_mappings(cls: type[Self]) -> dict[str, str]:
-        """Method to get the mapping between QC flag and corresponding QC category value.
-
-        Returns empty dict unless overriden by child classes.
-
-        Returns:
-            dict[str, str]: Mapping between flag name and QC column category value.
-        """
-        return {}
-
-    @classmethod
     def read(cls, path: str | list[str], fmt: str = "parquet", **kwargs: Any) -> Self:
         """Reads dataset into a Dataset with a given schema.
 
@@ -261,55 +234,6 @@ class Dataset(ABC):
             raise SchemaValidationError(
                 f"Schema validation failed for {type(self).__name__}", discrepancies
             )
-
-    def valid_rows(
-        self: Self, invalid_flags: list[str]
-    ) -> DatasetValidationResult[Self]:
-        """Filters `Dataset` according to a list of quality control flags. Only `Dataset` classes with a QC column can be validated.
-
-        This method checks do following steps:
-        - Check if the Dataset contains a QC column.
-        - Check if the invalid_flags exist in the QC mappings flags.
-        - Filter the Dataset according to the invalid_flags and invalid parameters.
-
-        Args:
-            invalid_flags (list[str]): List of quality control flags to be excluded.
-
-        Returns:
-            DatasetValidationResult[Self]: A named tuple with valid and invalid Datasets.
-
-        Raises:
-            ValueError: If the Dataset does not contain a QC column or if the invalid_flags elements do not exist in QC mappings flags.
-        """
-        # If the invalid flags are not valid quality checks (enum) for this Dataset we raise an error:
-        invalid_reasons = []
-        for flag in invalid_flags:
-            if flag not in self.get_QC_mappings():
-                raise ValueError(
-                    f"{flag} is not a valid QC flag for {type(self).__name__} ({self.get_QC_mappings()})."
-                )
-            reason = self.get_QC_mappings()[flag]
-            invalid_reasons.append(reason)
-
-        qc_column_name = self.get_QC_column_name()
-        # If Dataset (class) does not contain QC column we raise an error:
-        if not qc_column_name:
-            raise ValueError(
-                f"{type(self).__name__} objects do not contain a QC column to filter by."
-            )
-        else:
-            column: str = qc_column_name
-            # If QC column (nullable) is not available in the dataframe we create an empty array:
-            qc = f.when(f.col(column).isNull(), f.array()).otherwise(f.col(column))
-
-        filterCondition = ~f.arrays_overlap(
-            f.array([f.lit(i) for i in invalid_reasons]), qc
-        )
-        # Returning the filtered dataset:
-        return DatasetValidationResult(
-            valid=self.filter(filterCondition),
-            invalid=self.filter(~filterCondition),
-        )
 
     def drop_infinity_values(self: Self, *cols: str) -> Self:
         """Drop infinity values from Double typed column.
