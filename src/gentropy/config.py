@@ -731,29 +731,6 @@ class CredibleSetQCStepConfig(StepConfig):
 
 
 @dataclass
-class LocusToGeneEvidenceStepConfig(StepConfig):
-    """Configuration of the locus to gene evidence step."""
-
-    locus_to_gene_predictions_path: str = MISSING
-    credible_set_path: str = MISSING
-    study_index_path: str = MISSING
-    evidence_output_path: str = MISSING
-    locus_to_gene_threshold: float = 0.05
-    _target_: str = "gentropy.l2g.LocusToGeneEvidenceStep"
-
-
-@dataclass
-class LocusToGeneAssociationsStepConfig(StepConfig):
-    """Configuration of the locus to gene association step."""
-
-    evidence_input_path: str = MISSING
-    disease_index_path: str = MISSING
-    direct_associations_output_path: str = MISSING
-    indirect_associations_output_path: str = MISSING
-    _target_: str = "gentropy.l2g.LocusToGeneAssociationsStep"
-
-
-@dataclass
 class HeritabilityEstimateConfig(StepConfig):
     """Configuration for LDSC-based heritability estimation.
 
@@ -965,16 +942,6 @@ def register_config() -> None:
     )
     cs.store(
         group="step", name="locus_breaker_clumping", node=LocusBreakerClumpingConfig
-    )
-    cs.store(
-        group="step",
-        name="locus_to_gene_evidence",
-        node=LocusToGeneEvidenceStepConfig,
-    )
-    cs.store(
-        group="step",
-        name="locus_to_gene_associations",
-        node=LocusToGeneAssociationsStepConfig,
     )
     cs.store(
         group="step",
