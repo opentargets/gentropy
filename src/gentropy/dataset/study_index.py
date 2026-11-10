@@ -270,25 +270,6 @@ class StudyIndex(Dataset):
         return self.df.hasSumstats
 
     @qc_test
-    def validate_unique_study_id(self: StudyIndex) -> StudyIndex:
-        """Validating the uniqueness of study identifiers and flagging duplicated studies.
-
-        Returns:
-            StudyIndex: with flagged duplicated studies.
-        """
-        return StudyIndex(
-            _df=self.df.withColumn(
-                "qualityControls",
-                self.update_quality_flag(
-                    f.col("qualityControls"),
-                    self.flag_duplicates(f.col("studyId")),
-                    StudyQualityCheck.DUPLICATED_STUDY,
-                ),
-            ),
-            _schema=StudyIndex.get_schema(),
-        )
-
-    @qc_test
     def validate_ccs(self: StudyIndex) -> StudyIndex:
         """Validate nCases, nControls & nSamples.
 
@@ -616,8 +597,8 @@ class ProteinQuantitativeTraitLocusStudyIndex(StudyIndex):
         )
 
         # A target the reference does not resolve carries no gene mapping, and several
-        # such targets in one study produce identical rows that validate_unique_study_id
-        # would flag, discarding the targets that did resolve. Keep the resolved rows.
+        # such targets in one study produce identical rows that study validation
+        # flags as duplicated, discarding the targets that did resolve. Keep the resolved rows.
         return StudyIndex(
             _df=non_ambiguous_df.unionByName(ambiguous_df).filter(
                 f.col("geneId").isNotNull()
