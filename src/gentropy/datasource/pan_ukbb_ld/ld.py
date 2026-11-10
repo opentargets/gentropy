@@ -9,10 +9,25 @@ import pyspark.sql.functions as f
 from hail.linalg import BlockMatrix
 
 from gentropy.common.session import Session
-from gentropy.config import PanUKBBConfig
 
 if TYPE_CHECKING:
     from pyspark.sql import DataFrame, Row
+
+# Pan-UKBB variant LD index (hail table), per population.
+PAN_UKBB_HT_PATH = "gs://panukbb-ld-matrixes/ukb-diverse-pops-public-build-38/UKBB.{POP}.ldadj.variant.b38"
+
+# Pan-UKBB LD matrix (hail block matrix), per population.
+PAN_UKBB_BM_PATH = "gs://panukbb-ld-matrixes/UKBB.{POP}.ldadj"
+
+# Pan-UKBB variant LD index with alleles aligned to the variant annotation, per population.
+PAN_UKBB_ANNOTATION_PATH = "gs://panukbb-ld-matrixes/UKBB.{POP}.aligned.parquet"
+
+# Pan-UKBB populations with an LD matrix.
+PAN_UKBB_POPULATIONS = [
+    "AFR",  # African
+    "CSA",  # Central/South Asian
+    "EUR",  # European
+]
 
 
 class PanUKBBLDMatrix:
@@ -20,10 +35,10 @@ class PanUKBBLDMatrix:
 
     def __init__(
         self,
-        pan_ukbb_ht_path: str = PanUKBBConfig().pan_ukbb_ht_path,
-        pan_ukbb_bm_path: str = PanUKBBConfig().pan_ukbb_bm_path,
-        ld_populations: list[str] = PanUKBBConfig().pan_ukbb_pops,
-        ukbb_annotation_path: str = PanUKBBConfig().ukbb_annotation_path,
+        pan_ukbb_ht_path: str = PAN_UKBB_HT_PATH,
+        pan_ukbb_bm_path: str = PAN_UKBB_BM_PATH,
+        ld_populations: list[str] = PAN_UKBB_POPULATIONS,
+        ukbb_annotation_path: str = PAN_UKBB_ANNOTATION_PATH,
     ):
         """Initialize.
 
@@ -34,7 +49,6 @@ class PanUKBBLDMatrix:
             pan_ukbb_bm_path (str): Path to hail block matrix
             ld_populations (list[str]): List of populations
             ukbb_annotation_path (str): Path to pan-ukbb variant LD index with alleles flipped to match the order in OT variant annotation
-        Default values are set in PanUKBBConfig.
         """
         self.pan_ukbb_ht_path = pan_ukbb_ht_path
         self.pan_ukbb_bm_path = pan_ukbb_bm_path
@@ -66,6 +80,15 @@ class PanUKBBLDMatrix:
         idx: list[int],
         ancestry: str,
     ) -> np.ndarray:
+        """Read the rows and columns of the population's LD matrix at the given indices.
+
+        Args:
+            idx (list[int]): Indices of the variants in the LD matrix.
+            ancestry (str): Pan-UKBB population.
+
+        Returns:
+            np.ndarray: The upper triangle of the LD matrix of the variants.
+        """
         return (
             BlockMatrix.read(self.pan_ukbb_bm_path.format(POP=ancestry))
             .filter(idx, idx)
@@ -75,6 +98,14 @@ class PanUKBBLDMatrix:
     def _get_outer_allele_order(
         self: PanUKBBLDMatrix, locus_index: DataFrame
     ) -> np.ndarray:
+        """Outer product of the allele orders, which flips the sign of r for swapped alleles.
+
+        Args:
+            locus_index (DataFrame): Variant LD index of the locus, with `alleleOrder`.
+
+        Returns:
+            np.ndarray: Sign matrix, with ones on the diagonal.
+        """
         alleleOrder = [
             row["alleleOrder"] for row in locus_index.select("alleleOrder").collect()
         ]
@@ -87,6 +118,15 @@ class PanUKBBLDMatrix:
         half_matrix: np.ndarray,
         outer_allele_order: np.ndarray,
     ) -> np.ndarray:
+        """Build the symmetric LD matrix from its upper triangle, with alleles aligned.
+
+        Args:
+            half_matrix (np.ndarray): Upper triangle of the LD matrix.
+            outer_allele_order (np.ndarray): Sign matrix of the allele orders.
+
+        Returns:
+            np.ndarray: Symmetric LD matrix, with ones on the diagonal.
+        """
         ld_matrix = (half_matrix + half_matrix.T) - np.diag(np.diag(half_matrix))
         ld_matrix = ld_matrix * outer_allele_order
         np.fill_diagonal(ld_matrix, 1)
