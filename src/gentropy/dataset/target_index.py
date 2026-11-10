@@ -32,18 +32,6 @@ class TargetIndex(Dataset):
         """
         return parse_spark_schema("target_index.json")
 
-    def filter_by_biotypes(self: TargetIndex, biotypes: list[str]) -> TargetIndex:
-        """Filter by approved biotypes.
-
-        Args:
-            biotypes (list[str]): List of Ensembl biotypes to keep.
-
-        Returns:
-            TargetIndex: Target index dataset filtered by biotypes.
-        """
-        self.df = self._df.filter(f.col("biotype").isin(biotypes))
-        return self
-
     def locations_lut(self: TargetIndex) -> DataFrame:
         """Gene location information.
 
