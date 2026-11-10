@@ -81,7 +81,7 @@ class BigBrainStudyIndex:
         (about 10% of fine-mapped junctions). A study needs a single gene, so such a
         junction is resolved with `target_index` to the one gene whose body contains
         it, or failing that the one protein-coding gene that does. Otherwise `geneId`
-        is left null and study validation excludes the study as an unresolved target.
+        is left null and study validation in PTS excludes the study as an unresolved target.
 
         Args:
             top_assoc (DataFrame): Raw `top_assoc` DataFrame with `feature`, `gene_id`,

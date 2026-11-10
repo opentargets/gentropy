@@ -109,7 +109,7 @@ class FinnGenMultiomeStudyIndex:
         which gives the study `FINNGEN_MULTIOME_V1_ge_l1_B_ENSG00000015475` of cell type `l1.B`
         and gene `ENSG00000015475`. A cell type missing from `CELL_TYPES` is logged rather than
         failing the step: its studies are written without a biosample or sample size, and
-        flagging them is left to study validation.
+        flagging them is left to study validation in PTS.
 
         Args:
             session (Session): Session object.

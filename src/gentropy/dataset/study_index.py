@@ -44,32 +44,19 @@ class StudyQualityCheck(Enum):
     """Study quality control options listing concerns on the quality of the study.
 
     Attributes:
-        UNRESOLVED_TARGET (str): Target/gene identifier could not match to reference - Labelling failing target.
-        UNRESOLVED_DISEASE (str): Disease identifier could not match to referece or retired identifier - labelling failing disease
-        UNKNOWN_STUDY_TYPE (str): Indicating the provided type of study is not supported.
-        UNKNOWN_BIOSAMPLE (str): Flagging if a biosample identifier is not found in the reference.
-        DUPLICATED_STUDY (str): Flagging if a study identifier is not unique.
         SUMSTATS_NOT_AVAILABLE (str): Flagging if harmonized summary statistics are not available or empty.
         NO_OT_CURATION (str): Flagging if a study has not been curated by Open Targets.
         FAILED_MEAN_BETA_CHECK (str): Flagging if the mean beta QC check value is not within the expected range.
         FAILED_PZ_CHECK (str): Flagging if the PZ QC check values are not within the expected range.
         FAILED_GC_LAMBDA_CHECK (str): Flagging if the GC lambda value is not within the expected range.
         SMALL_NUMBER_OF_SNPS (str): Flagging if the number of SNPs in the study is below the expected threshold.
-        CASE_CASE_STUDY_DESIGN (str): Flagging if the study design is case-case.
-        DEPRECATED_PROJECT (str): Flagging if the projectId is deprecated.
         INVALID_SAMPLE_SIZE (str): Flagging if the sample size is null or equal to zero.
         CASE_CONTROL_STUDY_DESIGN (str): Flagging if the study has non empty or zero nCases, nControls & nSamples with matching sum.
         CASE_CONTROL_SUM_NEQ_SAMPLE_SIZE (str): Flagging if the study has non empty or zero nCases, nControls & nSamples with non matching sum.
         ONE_ONLY_CASE_OR_CONTROL (str): Flagging if the study has only cases or only controls.
         MEASUREMENT_STUDY_DESIGN (str): Flagging if the study has non empty or zero nSamples with empty nCases and nControls.
-
     """
 
-    UNRESOLVED_TARGET = "Target/gene identifier could not match to reference"
-    UNRESOLVED_DISEASE = "No valid disease identifier found"
-    UNKNOWN_STUDY_TYPE = "This type of study is not supported"
-    UNKNOWN_BIOSAMPLE = "Biosample identifier was not found in the reference"
-    DUPLICATED_STUDY = "The identifier of this study is not unique"
     SUMSTATS_NOT_AVAILABLE = "Harmonized summary statistics are not available or empty"
     NO_OT_CURATION = "GWAS Catalog study has not been curated by Open Targets"
     FAILED_MEAN_BETA_CHECK = (
@@ -80,8 +67,6 @@ class StudyQualityCheck(Enum):
     SMALL_NUMBER_OF_SNPS = (
         "The number of SNPs in the study is below the expected threshold"
     )
-    CASE_CASE_STUDY_DESIGN = "Case-case study design"
-    DEPRECATED_PROJECT = "Deprecated project"
     INVALID_SAMPLE_SIZE = "Sample size is null or equal to zero"
     CASE_CONTROL_STUDY_DESIGN = (
         "Study has non empty or zero nCases, nControls & nSamples with matching sum"

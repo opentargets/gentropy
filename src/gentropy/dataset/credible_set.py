@@ -45,7 +45,7 @@ level across all sources:
     - PICS: null, as PICS gives no effect.
 
 - `rescaledAbsBeta`, `rescaledStandardError` and `rescaledDirection` are for effects rescaled to
-  one scale comparable across sources. No source fills them yet.
+  one scale comparable across sources. PTS fills them in credible set annotation.
 """
 
 from __future__ import annotations
@@ -74,37 +74,15 @@ if TYPE_CHECKING:
 class CredibleSetVariantQualityCheck(Enum):
     """How the inputs of a credible set variant were chosen.
 
+    Only the flags gentropy raises are listed. PTS credible set annotation adds its own.
+
     Attributes:
         EAF_FROM_SOURCE (str): Allele frequency reported by the study
-        EAF_FROM_GNOMAD (str): Allele frequency taken from gnomAD, as the study reported none
-        RESCALED_FROM_CONDITIONAL (str): Rescaled effect derived from the conditional effect
-        RESCALED_FROM_MARGINAL (str): Rescaled effect derived from the marginal effect
         NOT_IN_LOCUS (str): Variant has no statistics in the locus, so its marginal statistics are null
     """
 
     EAF_FROM_SOURCE = "Allele frequency reported by the study"
-    EAF_FROM_GNOMAD = "Allele frequency taken from gnomAD"
-    RESCALED_FROM_CONDITIONAL = "Rescaled effect derived from the conditional effect"
-    RESCALED_FROM_MARGINAL = "Rescaled effect derived from the marginal effect"
     NOT_IN_LOCUS = "Variant in LD with the lead has no statistics in the locus"
-
-
-class CredibleSetConfidenceClasses(Enum):
-    """Confidence of a credible set, from its fine-mapping method and quality controls: the `CredibleSet.confidence` byte, highest first.
-
-    Attributes:
-        FINEMAPPED_IN_SAMPLE_LD (int): 4, SuSiE fine-mapped credible set with in-sample LD
-        FINEMAPPED_OUT_OF_SAMPLE_LD (int): 3, SuSiE fine-mapped credible set with out-of-sample LD
-        PICSED_SUMMARY_STATS (int): 2, PICS fine-mapped credible set extracted from summary statistics
-        PICSED_TOP_HIT (int): 1, PICS fine-mapped credible set based on reported top hit
-        UNKNOWN (int): 0, unknown confidence, for credible sets which did not fit any of the above categories
-    """
-
-    FINEMAPPED_IN_SAMPLE_LD = 4
-    FINEMAPPED_OUT_OF_SAMPLE_LD = 3
-    PICSED_SUMMARY_STATS = 2
-    PICSED_TOP_HIT = 1
-    UNKNOWN = 0
 
 
 @dataclass
@@ -398,7 +376,7 @@ class CredibleSetLocus(Dataset):
     features were written for: the lead as `variantId` with its `position`, the members in `locus`,
     `confidence` and `isTransQtl`.
 
-    `confidence` is the `CredibleSet` byte, assigned by credible set validation.
+    `confidence` is the `CredibleSet` byte, assigned by credible set validation in PTS.
     `isTransQtl` is true when the credible set carries the `TRANS_QTL` quality control flag.
 
     Only the key, the lead and the study are mandatory, as in the study locus the features were
