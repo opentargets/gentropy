@@ -45,7 +45,7 @@ level across all sources:
     - PICS: null, as PICS gives no effect.
 
 - `rescaledAbsBeta`, `rescaledStandardError` and `rescaledDirection` are for effects rescaled to
-  one scale comparable across sources. PTS fills them in credible set annotation.
+  one scale comparable across sources. No source fills them yet.
 """
 
 from __future__ import annotations
@@ -74,7 +74,7 @@ if TYPE_CHECKING:
 class CredibleSetVariantQualityCheck(Enum):
     """How the inputs of a credible set variant were chosen.
 
-    Only the flags gentropy raises are listed. PTS credible set annotation adds its own.
+    Only the flags gentropy raises are listed.
 
     Attributes:
         EAF_FROM_SOURCE (str): Allele frequency reported by the study
@@ -376,7 +376,7 @@ class CredibleSetLocus(Dataset):
     features were written for: the lead as `variantId` with its `position`, the members in `locus`,
     `confidence` and `isTransQtl`.
 
-    `confidence` is the `CredibleSet` byte, assigned by credible set validation in PTS.
+    `confidence` is the `CredibleSet` confidence byte.
     `isTransQtl` is true when the credible set carries the `TRANS_QTL` quality control flag.
 
     Only the key, the lead and the study are mandatory, as in the study locus the features were

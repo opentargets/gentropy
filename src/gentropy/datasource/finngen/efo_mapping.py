@@ -87,7 +87,7 @@ class EFOMapping:
 
         NOTE: preserve all studyId entries even if they don't have EFO mappings.
         This is to avoid discrepancies between `study_index` and `credible_set` `studyId` column.
-        The rows with missing EFO mappings will be dropped by study validation in PTS.
+        The rows with missing EFO mappings will be dropped in the study_index validation step.
 
         Args:
             study_index (S): Study index table.

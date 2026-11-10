@@ -21,10 +21,9 @@ if TYPE_CHECKING:
 class StudyLocusQualityCheck(Enum):
     """Study locus quality control flags, raised by curation, clumping, LD annotation and fine-mapping.
 
-    `CredibleSet.qualityControls` carries the flags of the study locus it was fine-mapped from, and
-    the flags raised by credible set validation in PTS. Only the flags gentropy raises are listed,
-    with two exceptions it reads from the PTS output: `TRANS_QTL` (locus-to-gene) and `REPLICATED`
-    (the locus-to-gene training set).
+    `CredibleSet.qualityControls` carries the flags of the study locus it was fine-mapped from. Only
+    the flags gentropy raises are listed, with two exceptions it reads from its credible set input:
+    `TRANS_QTL` (locus-to-gene) and `REPLICATED` (the locus-to-gene training set).
 
     Attributes:
         WINDOW_CLUMPED (str): Explained by a more significant variant in the same window
@@ -37,8 +36,8 @@ class StudyLocusQualityCheck(Enum):
         INCONSISTENCY_FLAG (str): Curated top hit whose location or variants disagree
         PALINDROMIC_ALLELE_FLAG (str): Curated top hit with palindromic alleles, whose effect cannot be harmonised
         TOP_HIT (str): Study locus from curated top hit
-        TRANS_QTL (str): QTL credible set acting in trans on its measured gene, raised by PTS
-        REPLICATED (str): Lead variant is replicated in an independent study, raised by PTS
+        TRANS_QTL (str): QTL credible set acting in trans on its measured gene
+        REPLICATED (str): Lead variant is replicated in an independent study
     """
 
     WINDOW_CLUMPED = "Explained by a more significant variant in the same window"
