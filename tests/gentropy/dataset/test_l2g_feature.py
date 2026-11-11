@@ -20,6 +20,7 @@ from pyspark.sql.types import (
     StructType,
 )
 
+from gentropy.dataset.biosample_index import BiosampleIndex
 from gentropy.dataset.colocalisation import Colocalisation
 from gentropy.dataset.target_index import TargetIndex
 from gentropy.dataset.intervals import Intervals
@@ -91,7 +92,10 @@ from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.credible_set import CredibleSetLocus
 from gentropy.dataset.variant_index import VariantIndex
 from gentropy.method.l2g.feature_factory import L2GFeatureInputLoader
-from gentropy.method.biosample_enrichment import ExpressionSpecificity
+from gentropy.method.biosample_enrichment import (
+    ExpressionSpecificity,
+    SpecificityPanel,
+)
 from gentropy.method.pathway_enrichment import PathwayLibrary
 
 if TYPE_CHECKING:
@@ -165,6 +169,7 @@ def test_feature_factory_return_type(
     mock_target_index: TargetIndex,
     mock_pathway_library: PathwayLibrary,
     mock_expression_specificity: ExpressionSpecificity,
+    mock_biosample_index: BiosampleIndex,
     sample_otp_interactions: Any,
 ) -> None:
     """Test that every feature factory returns a L2GFeature dataset."""
@@ -177,6 +182,7 @@ def test_feature_factory_return_type(
         interactions=sample_otp_interactions,
         pathway_library=mock_pathway_library,
         expression_specificity=mock_expression_specificity,
+        biosample_index=mock_biosample_index,
     )
     feature_dataset = feature_class.compute(
         study_loci_to_annotate=mock_credible_set_locus,
@@ -2360,7 +2366,7 @@ def _biosample_release(spark: SparkSession, second_chromosome: str) -> dict[str,
     """Toy release of `TestEQtlColocH4MaximumEnrichedBiosampleFeature`, with gene4-gene7 on `second_chromosome`."""
     tss = {f"gene{i}": 10_000_000 * (i + 1) for i in range(30)}
     chromosomes = {
-        gene_id: second_chromosome if 4 <= i < 8 else "1"
+        gene_id: second_chromosome if 4 <= i < 8 or i >= 22 else "1"
         for i, gene_id in enumerate(tss)
     }
     genes = [
@@ -2382,12 +2388,12 @@ def _biosample_release(spark: SparkSession, second_chromosome: str) -> dict[str,
         for i in range(8)
     ] + [
         _credible_set(f"qtl{tissue}", f"eqtl{tissue}", "var0", tss["gene0"], "eqtl")
-        for tissue in "AB"
+        for tissue in ("A", "A1", "B")
     ]
     studies = [_study("study1", ["disease1"])] + [
         _study(f"eqtl{tissue}", [], study_type="eqtl")
         | {"geneId": "gene0", "biosampleId": f"UBERON_{tissue}"}
-        for tissue in "AB"
+        for tissue in ("A", "A1", "B")
     ]
     datasets = _datasets(spark, genes, variants, credible_sets, studies)
     datasets["colocalisation"] = Colocalisation(
@@ -2402,13 +2408,13 @@ def _biosample_release(spark: SparkSession, second_chromosome: str) -> dict[str,
                     "numberColocalisingVariants": 1,
                     "h4": h4,
                 }
-                for tissue, h4 in [("A", 0.6), ("B", 0.9)]
+                for tissue, h4 in [("A", 0.6), ("A1", 0.7), ("B", 0.9)]
             ],
             Colocalisation.get_schema(),
         ),
         _schema=Colocalisation.get_schema(),
     )
-    specific_genes = {"UBERON_A": range(8), "UBERON_B": range(10, 14)}
+    specific_genes = {"UBERON_A": [*range(8), 20, 25], "UBERON_B": range(10, 14)}
     datasets["expression_specificity"] = ExpressionSpecificity(
         baseline_expression=spark.createDataFrame(
             [
@@ -2418,7 +2424,31 @@ def _biosample_release(spark: SparkSession, second_chromosome: str) -> dict[str,
             ],
             "targetId string, datasourceId string, tissueBiosampleId string, "
             "celltypeBiosampleId string, specificity_score double",
-        )
+        ),
+        panels=(SpecificityPanel("source1", "tissue"),),
+    )
+    datasets["biosample_index"] = BiosampleIndex(
+        _df=spark.createDataFrame(
+            [
+                {
+                    "biosampleId": "UBERON_A",
+                    "biosampleName": "UBERON_A",
+                    "descendants": ["UBERON_A1"],
+                },
+                {
+                    "biosampleId": "UBERON_A1",
+                    "biosampleName": "UBERON_A1",
+                    "descendants": [],
+                },
+                {
+                    "biosampleId": "UBERON_B",
+                    "biosampleName": "UBERON_B",
+                    "descendants": [],
+                },
+            ],
+            BiosampleIndex.get_schema(),
+        ),
+        _schema=BiosampleIndex.get_schema(),
     )
     return datasets
 
@@ -2426,11 +2456,13 @@ def _biosample_release(spark: SparkSession, second_chromosome: str) -> dict[str,
 class TestEQtlColocH4MaximumEnrichedBiosampleFeature:
     """Test the enriched biosample colocalisation features end to end.
 
-    Thirty protein-coding genes. gene0-gene7 are each the nearest gene of one credible set of
-    study1 (disease1); gene0-gene3 are on chromosome 1 and gene4-gene7 on chromosome 2. Tissue
-    UBERON_A specifically expresses gene0-gene7, so it is enriched for disease1 with either
-    chromosome left out; tissue UBERON_B specifically expresses gene10-gene13 and is not. sl0
-    colocalises with an eQTL for gene0 in each tissue: H4 0.6 in UBERON_A and 0.9 in UBERON_B.
+    Thirty protein-coding genes, gene4-gene7 and gene22-gene29 on chromosome 2 and the rest on
+    chromosome 1. gene0-gene7 are each the nearest gene of one credible set of study1
+    (disease1). Tissue UBERON_A specifically expresses gene0-gene7, gene20 and gene25, so it is
+    enriched for disease1 with either chromosome left out; tissue UBERON_B specifically
+    expresses gene10-gene13 and is not. UBERON_A1 has no specificity data but descends from
+    UBERON_A. sl0 colocalises with an eQTL for gene0 in each tissue: H4 0.6 in UBERON_A, 0.7
+    in UBERON_A1 and 0.9 in UBERON_B.
     """
 
     @pytest.fixture()
@@ -2446,7 +2478,7 @@ class TestEQtlColocH4MaximumEnrichedBiosampleFeature:
         }
 
     def test_enriched_study_biosamples(self, datasets: dict[str, Any]) -> None:
-        """Only UBERON_A is enriched for disease1, and so for study1, with either chromosome left out."""
+        """UBERON_A is enriched for disease1, and so for study1, with either chromosome left out; its descendant UBERON_A1 counts with it."""
         biosamples = enriched_study_biosamples(
             datasets["study_locus"],
             p_value_adjusted_threshold=0.05,
@@ -2456,7 +2488,9 @@ class TestEQtlColocH4MaximumEnrichedBiosampleFeature:
         )
         assert {tuple(row) for row in biosamples.collect()} == {
             ("study1", "1", "UBERON_A"),
+            ("study1", "1", "UBERON_A1"),
             ("study1", "2", "UBERON_A"),
+            ("study1", "2", "UBERON_A1"),
         }
 
     def test_only_the_chromosomes_of_the_loci_to_annotate(
@@ -2475,10 +2509,11 @@ class TestEQtlColocH4MaximumEnrichedBiosampleFeature:
         )
         assert {tuple(row) for row in biosamples.collect()} == {
             ("study1", "1", "UBERON_A"),
+            ("study1", "1", "UBERON_A1"),
         }
 
     def test_the_chromosome_of_the_locus_is_left_out(self, spark: SparkSession) -> None:
-        """With all eight credible sets on chromosome 1, no gene is left to enrich UBERON_A."""
+        """With every gene on chromosome 1, no gene is left to test once it is held out."""
         datasets = _biosample_release(spark, second_chromosome="1")
         biosamples = enriched_study_biosamples(
             datasets["study_locus"],
@@ -2492,7 +2527,7 @@ class TestEQtlColocH4MaximumEnrichedBiosampleFeature:
     def test_feature_ignores_colocalisation_in_other_biosamples(
         self, datasets: dict[str, Any], monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        """gene0 takes the H4 of the UBERON_A eQTL, not the higher one of UBERON_B."""
+        """gene0 takes the H4 of the eQTL in UBERON_A1, a descendant of UBERON_A, not the higher one of UBERON_B."""
         for feature_class in (
             EQtlColocH4MaximumEnrichedBiosampleFeature,
             EQtlColocH4MaximumEnrichedBiosampleNeighbourhoodFeature,
@@ -2515,7 +2550,7 @@ class TestEQtlColocH4MaximumEnrichedBiosampleFeature:
                 for row in feature.df.filter(f.col("credibleSetId") == "sl0").collect()
             }
         assert values == {
-            ("eQtlColocH4MaximumEnrichedBiosample", "gene0"): pytest.approx(0.6),
+            ("eQtlColocH4MaximumEnrichedBiosample", "gene0"): pytest.approx(0.7),
             (
                 "eQtlColocH4MaximumEnrichedBiosampleNeighbourhood",
                 "gene0",

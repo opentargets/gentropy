@@ -469,6 +469,7 @@ class LocusToGeneFeatureMatrixConfig(StepConfig):
     go_path: str | None = None
     reactome_path: str | None = None
     baseline_expression_path: str | None = None
+    biosample_index_path: str | None = None
     feature_matrix_path: str = MISSING
     features_list: list[str] = field(
         default_factory=lambda: [

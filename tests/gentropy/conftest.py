@@ -30,7 +30,10 @@ from gentropy.dataset.variant_index import VariantIndex
 from gentropy.datasource.eqtl_catalogue.finemapping import EqtlCatalogueFinemapping
 from gentropy.datasource.eqtl_catalogue.study_index import EqtlCatalogueStudyIndex
 from gentropy.datasource.gwas_catalog.study_index import StudyIndexGWASCatalog
-from gentropy.method.biosample_enrichment import ExpressionSpecificity
+from gentropy.method.biosample_enrichment import (
+    ExpressionSpecificity,
+    SpecificityPanel,
+)
 from gentropy.method.pathway_enrichment import PathwayLibrary
 from utils.spark import get_spark_testing_conf
 
@@ -424,7 +427,11 @@ def mock_expression_specificity(spark: SparkSession) -> ExpressionSpecificity:
             ],
             "targetId string, datasourceId string, tissueBiosampleId string, "
             "celltypeBiosampleId string, specificity_score double",
-        )
+        ),
+        panels=(
+            SpecificityPanel("source1", "tissue"),
+            SpecificityPanel("source1", "celltype"),
+        ),
     )
 
 

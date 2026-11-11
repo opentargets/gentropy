@@ -3,17 +3,92 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
+import numpy as np
+import pandas as pd
 import pyspark.sql.functions as f
-from pyspark.sql import Window
+import scipy.sparse
+from scipy.stats import norm
 
-from gentropy.common.udf import chi2_survival_function
+from gentropy.method.pathway_enrichment import (
+    benjamini_hochberg,
+    clustered_regression,
+    gene_covariates,
+)
 
 if TYPE_CHECKING:
-    from pyspark.sql import DataFrame
+    from pyspark.sql import Column, DataFrame
 
     from gentropy.dataset.target_index import TargetIndex
+
+
+@dataclass(frozen=True)
+class SpecificityPanel:
+    """One datasource of the baseline expression table at one biosample resolution.
+
+    Attributes:
+        datasource_id (str): `datasourceId` of the rows
+        biosample_type (Literal["tissue", "celltype", "tissue_celltype"]): Rows with only a
+            tissue, only a cell type, or both (a cell type profiled within a tissue)
+    """
+
+    datasource_id: str
+    biosample_type: Literal["tissue", "celltype", "tissue_celltype"]
+
+    def rows(self: SpecificityPanel) -> Column:
+        """Condition selecting the panel's rows of the baseline expression table.
+
+        Returns:
+            Column: Boolean condition
+        """
+        tissue = f.col("tissueBiosampleId").isNotNull()
+        celltype = f.col("celltypeBiosampleId").isNotNull()
+        resolution = {
+            "tissue": tissue & ~celltype,
+            "celltype": celltype & ~tissue,
+            "tissue_celltype": tissue & celltype,
+        }[self.biosample_type]
+        return (f.col("datasourceId") == self.datasource_id) & resolution
+
+
+# The panels of the PTS biosample enrichment step (opentargets/pipeline#225).
+DEFAULT_PANELS = (
+    SpecificityPanel("gtex", "tissue"),
+    SpecificityPanel("tabula_sapiens", "tissue"),
+    SpecificityPanel("tabula_sapiens", "celltype"),
+    SpecificityPanel("DICE", "celltype"),
+)
+
+_ENRICHMENT_COLUMNS = [
+    "diseaseId",
+    "heldOutChromosome",
+    "datasourceId",
+    "tissueBiosampleId",
+    "biosampleId",
+    "beta",
+    "betaError",
+    "pValue",
+    "pValueAdjusted",
+]
+_ENRICHMENT_SCHEMA = (
+    "diseaseId string, heldOutChromosome string, datasourceId string, "
+    "tissueBiosampleId string, biosampleId string, beta double, betaError double, "
+    "pValue double, pValueAdjusted double"
+)
+
+
+@dataclass
+class _PanelDesign:
+    """What a panel's regressions need that does not depend on the disease or held-out chromosome."""
+
+    datasource_id: str
+    chromosomes: np.ndarray
+    biosamples: pd.DataFrame
+    predictors: np.ndarray
+    outcomes: scipy.sparse.csr_matrix
+    covariates: np.ndarray
+    regions: np.ndarray
 
 
 @dataclass
@@ -23,222 +98,246 @@ class ExpressionSpecificity:
     Wraps the release's `baseline_expression` table: one row per gene and biosample of a
     datasource, with the gene's `specificity_score` there. A biosample is a tissue
     (`tissueBiosampleId`, UBERON), a cell type (`celltypeBiosampleId`, CL), or a cell type
-    within a tissue, where both are set. Rows without a specificity score, which is every row
-    of the proteomics datasource, are not used.
+    within a tissue, where both are set. Only the rows of `panels` with a specificity score are
+    used.
 
     Attributes:
         baseline_expression (DataFrame): The release's `baseline_expression` table
+        panels (tuple[SpecificityPanel, ...]): Datasources and resolutions to test, by default
+            those of the PTS biosample enrichment step: GTEx tissues, Tabula Sapiens tissues and
+            cell types, and DICE cell types
     """
 
     baseline_expression: DataFrame
+    panels: tuple[SpecificityPanel, ...] = DEFAULT_PANELS
 
-    def specificity(self: ExpressionSpecificity) -> DataFrame:
-        """Specificity score of each gene in each biosample of each datasource.
+    def specificity(
+        self: ExpressionSpecificity, panel: SpecificityPanel
+    ) -> pd.DataFrame:
+        """Specificity score of every gene in every biosample of one panel.
 
-        `biosampleId` is the identifier a study would use for the biosample: the tissue or the
-        cell type when only one of them is set, and null for a cell type within a tissue.
+        `biosampleId` is the cell type for a cell type within a tissue, with the tissue in
+        `tissueBiosampleId`, as in the PTS step. When several source ids map to one gene and
+        biosample, the highest score is kept.
+
+        Args:
+            panel (SpecificityPanel): The panel to read
 
         Returns:
-            DataFrame: `datasourceId`, `tissueBiosampleId`, `celltypeBiosampleId`,
-                `biosampleId`, `geneId` and `specificityScore`
+            pd.DataFrame: `tissueBiosampleId`, `biosampleId`, `geneId` and `specificityScore`
         """
-        return self.baseline_expression.filter(
-            f.col("specificity_score").isNotNull()
-        ).select(
-            "datasourceId",
-            "tissueBiosampleId",
-            "celltypeBiosampleId",
-            f.when(
-                f.col("tissueBiosampleId").isNull()
-                | f.col("celltypeBiosampleId").isNull(),
-                f.coalesce("celltypeBiosampleId", "tissueBiosampleId"),
-            ).alias("biosampleId"),
-            f.col("targetId").alias("geneId"),
-            f.col("specificity_score").alias("specificityScore"),
+        return (
+            self.baseline_expression.filter(
+                panel.rows() & f.col("specificity_score").isNotNull()
+            )
+            .select(
+                f.when(
+                    f.col("celltypeBiosampleId").isNotNull(),
+                    f.col("tissueBiosampleId"),
+                ).alias("tissueBiosampleId"),
+                f.coalesce("celltypeBiosampleId", "tissueBiosampleId").alias(
+                    "biosampleId"
+                ),
+                f.col("targetId").alias("geneId"),
+                f.col("specificity_score").cast("double").alias("specificityScore"),
+            )
+            .groupBy("tissueBiosampleId", "biosampleId", "geneId")
+            .agg(f.max("specificityScore").alias("specificityScore"))
+            .toPandas()
+        )
+
+    def _design(
+        self: ExpressionSpecificity,
+        panel: SpecificityPanel,
+        genes: pd.DataFrame,
+        lists: pd.DataFrame,
+        disease_ids: np.ndarray,
+        region_window: int,
+    ) -> _PanelDesign | None:
+        """Genes, biosamples, specificity matrix, outcomes and covariates of one panel.
+
+        Args:
+            panel (SpecificityPanel): The panel
+            genes (pd.DataFrame): Protein-coding genes with their covariates, from
+                `gene_covariates`
+            lists (pd.DataFrame): `diseaseId` and `geneId`, the genes of each disease
+            disease_ids (np.ndarray): Sorted disease ids, the columns of the outcomes
+            region_window (int): Size, in base pairs, of the windows standard errors cluster on
+
+        Returns:
+            _PanelDesign | None: The design, or None when the panel has no scores
+        """
+        scores = self.specificity(panel)
+        universe = genes[genes["geneId"].isin(scores["geneId"])].reset_index(drop=True)
+        if universe.empty:
+            return None
+        gene_index = pd.Series(np.arange(len(universe)), index=universe["geneId"])
+        biosamples = (
+            scores[["tissueBiosampleId", "biosampleId"]]
+            .drop_duplicates()
+            .sort_values(["biosampleId", "tissueBiosampleId"], na_position="first")
+            .reset_index(drop=True)
+        )
+        scores = scores[scores["geneId"].isin(gene_index.index)].merge(
+            biosamples.reset_index(names="biosampleIndex"),
+            on=["tissueBiosampleId", "biosampleId"],
+        )
+        # A gene without a score in a biosample of the panel counts as 0, as in the PTS step.
+        predictors = np.zeros((len(universe), len(biosamples)))
+        predictors[
+            gene_index[scores["geneId"]].to_numpy(),
+            scores["biosampleIndex"].to_numpy(),
+        ] = scores["specificityScore"].to_numpy()
+        listed = lists[lists["geneId"].isin(gene_index.index)]
+        return _PanelDesign(
+            datasource_id=panel.datasource_id,
+            chromosomes=universe["chromosome"].to_numpy(),
+            biosamples=biosamples,
+            predictors=predictors,
+            outcomes=scipy.sparse.csr_matrix(
+                (
+                    np.ones(len(listed)),
+                    (
+                        gene_index[listed["geneId"]].to_numpy(),
+                        np.searchsorted(disease_ids, listed["diseaseId"].to_numpy()),
+                    ),
+                ),
+                shape=(len(universe), len(disease_ids)),
+            ),
+            covariates=np.column_stack(
+                [np.ones(len(universe)), universe["logLength"], universe["density"]]
+            ),
+            regions=(
+                universe["chromosome"].astype(str)
+                + ":"
+                + (universe["tss"] // region_window).astype(str)
+            ).to_numpy(),
         )
 
     def enrichment(
         self: ExpressionSpecificity,
         gene_lists: DataFrame,
         target_index: TargetIndex,
+        p_value_adjusted_threshold: float = 0.05,
         min_genes: int = 25,
+        held_out_chromosomes: list[str] | None = None,
+        region_window: int = 1_000_000,
+        density_window: int = 1_000_000,
     ) -> DataFrame:
         """Test every biosample for disease genes being more specifically expressed there, leaving one chromosome out at a time.
 
-        For each disease and each biosample of a datasource this is the logistic regression of
-        whether a gene is on the disease's list on the gene's specificity score in the
-        biosample, tested one-sided for a positive slope. The genes are the protein-coding
-        genes with a specificity score in the datasource; a gene without a score in a
-        biosample of its datasource counts as 0. Diseases with fewer than `min_genes` of those
-        genes are not tested in that datasource.
+        The model is the one of the PTS biosample enrichment step (opentargets/pipeline#225),
+        with the disease's gene list as the outcome. For each disease and each biosample of a
+        panel, a linear regression over the protein-coding genes with a specificity score in
+        the panel:
 
-        The test is the score test of the slope, which needs no model fit. With `n` genes, `m`
-        of them on the list, specificity scores `x` and `S` the sum of the scores of the listed
-        genes:
+        `y_g = b0 + beta * x_g + c1 * logLength_g + c2 * density_g`
 
-            Z = (S - m * mean(x)) / sqrt(m / n * (1 - m / n) * sum((x - mean(x)) ** 2))
+        - `y_g` is 1 if the gene is on the disease's list, else 0.
+        - `x_g` is the gene's specificity score in the biosample, 0 when it has none there.
+        - `logLength_g` is `log10 |end - start|` and `density_g` the number of TSSs of any
+          biotype within `density_window` of the gene's TSS, the gene's own included. Long
+          genes in gene-poor regions are more often both the nearest gene of a locus and
+          tissue specific, so that alone should not look like enrichment.
 
-        A negative slope is not evidence for the biosample, so the p-value is P(N(0, 1) > Z)
-        when Z is positive and 1 otherwise. Biosamples where every gene has the same score
-        cannot be tested and are left out.
+        Standard errors are cluster-robust over fixed `region_window` windows of the TSS, so
+        that genes picked up by one association count once. The p-value is one-sided,
+        `P(Z >= beta / SE)` under a standard normal.
 
-        Each disease is tested once per held-out chromosome, on its list without the genes of
-        that chromosome, so that a locus can be scored without its own genes or those of any
-        other credible set nearby. Every chromosome of `gene_lists` is held out in turn. Only
-        `m` and `S` change when a chromosome is held out, so they are summed once per
-        chromosome and each held-out value is the total minus that chromosome's part.
+        Each disease is tested once per held-out chromosome, with the genes of that chromosome
+        removed from the regression, so that a locus can be scored without its own genes or
+        those of any other credible set nearby. Diseases with fewer than `min_genes` listed
+        genes among the remaining genes of a panel are not tested in it.
 
         P-values are adjusted with Benjamini-Hochberg within each disease and held-out
-        chromosome over every biosample of every datasource it was tested in.
+        chromosome over every biosample of every panel the disease was tested in, leaving out
+        biosamples with no variance left after the covariates. The regressions run on the
+        driver, see `gentropy.method.pathway_enrichment.clustered_regression`.
 
         Args:
             gene_lists (DataFrame): `diseaseId`, `chromosome` and `geneId`, the genes of each
                 disease with the chromosome they are on
-            target_index (TargetIndex): Target index, used to find the protein-coding genes
-            min_genes (int): Smallest number of genes of a datasource a disease needs to be
-                tested there
+            target_index (TargetIndex): Target index, the source of gene positions and lengths
+            p_value_adjusted_threshold (float): Only biosamples with an adjusted p-value below
+                this are returned
+            min_genes (int): Smallest number of listed genes a disease needs to be tested in a
+                panel
+            held_out_chromosomes (list[str] | None): Chromosomes to hold out; all chromosomes of
+                `gene_lists` when None
+            region_window (int): Size, in base pairs, of the windows standard errors cluster on
+            density_window (int): Distance, in base pairs, from a TSS within which TSSs count
+                towards its density
 
         Returns:
             DataFrame: `diseaseId`, `heldOutChromosome`, `datasourceId`, `tissueBiosampleId`,
-                `celltypeBiosampleId`, `biosampleId`, `diseaseGeneCount` (m), `geneCount` (n),
-                `zScore`, `pValue` and `pValueAdjusted`
+                `biosampleId`, `beta`, `betaError`, `pValue` and `pValueAdjusted`, for the
+                enriched biosamples only
         """
-        biosample_cols = [
-            "datasourceId",
-            "tissueBiosampleId",
-            "celltypeBiosampleId",
-            "biosampleId",
+        spark = gene_lists.sparkSession
+        genes = gene_covariates(target_index, density_window)
+        lists = (
+            gene_lists.select("diseaseId", "geneId", "chromosome").distinct().toPandas()
+        )
+        if held_out_chromosomes is None:
+            held_out_chromosomes = sorted(lists["chromosome"].dropna().unique())
+        lists = lists[["diseaseId", "geneId"]].drop_duplicates()
+        disease_ids = np.sort(lists["diseaseId"].unique())
+        designs = [
+            design
+            for panel in self.panels
+            if (
+                design := self._design(
+                    panel, genes, lists, disease_ids, region_window
+                )
+            )
+            is not None
         ]
-        specificity = (
-            self.specificity()
-            .join(
-                target_index.df.filter(f.col("biotype") == "protein_coding").select(
-                    f.col("id").alias("geneId")
-                ),
-                "geneId",
-                "semi",
-            )
-            # One non-null key per biosample of a datasource, for joins and ordering.
-            .withColumn(
-                "biosampleKey",
-                f.concat_ws(
-                    "|",
-                    "datasourceId",
-                    f.coalesce("tissueBiosampleId", f.lit("")),
-                    f.coalesce("celltypeBiosampleId", f.lit("")),
-                ),
-            )
-        )
-        datasource_genes = specificity.select("datasourceId", "geneId").distinct()
-        biosamples = (
-            specificity.groupBy("biosampleKey", *biosample_cols)
-            .agg(
-                f.sum("specificityScore").alias("scoreSum"),
-                f.sum(f.col("specificityScore") ** 2).alias("scoreSquareSum"),
-            )
-            .join(
-                datasource_genes.groupBy("datasourceId").agg(
-                    f.count("geneId").alias("geneCount")
-                ),
-                "datasourceId",
-            )
-        )
-        disease_genes = (
-            gene_lists.select("diseaseId", "chromosome", "geneId")
-            .distinct()
-            .join(datasource_genes, "geneId")
-        )
-        held_out_chromosomes = gene_lists.select(
-            f.col("chromosome").alias("heldOutChromosome")
-        ).distinct()
-        chromosome_sizes = disease_genes.groupBy(
-            "diseaseId", "datasourceId", "chromosome"
-        ).agg(f.count("geneId").alias("chromosomeGeneCount"))
-        disease_sizes = (
-            chromosome_sizes.groupBy("diseaseId", "datasourceId")
-            .agg(f.sum("chromosomeGeneCount").alias("totalGeneCount"))
-            .crossJoin(held_out_chromosomes)
-            .join(
-                chromosome_sizes.withColumnRenamed("chromosome", "heldOutChromosome"),
-                ["diseaseId", "datasourceId", "heldOutChromosome"],
-                "left",
-            )
-            .select(
-                "diseaseId",
-                "datasourceId",
-                "heldOutChromosome",
-                (
-                    f.col("totalGeneCount")
-                    - f.coalesce(f.col("chromosomeGeneCount"), f.lit(0))
-                ).alias("diseaseGeneCount"),
-            )
-            .filter(f.col("diseaseGeneCount") >= min_genes)
-        )
-        chromosome_score_sums = (
-            disease_genes.join(disease_sizes, ["diseaseId", "datasourceId"], "semi")
-            .join(specificity, ["datasourceId", "geneId"])
-            .groupBy("diseaseId", "biosampleKey", "chromosome")
-            .agg(f.sum("specificityScore").alias("chromosomeScoreSum"))
-        )
-        total_score_sums = chromosome_score_sums.groupBy(
-            "diseaseId", "biosampleKey"
-        ).agg(f.sum("chromosomeScoreSum").alias("totalScoreSum"))
-        # Every biosample of a datasource is tested, also those where no listed gene scores.
-        tests = (
-            disease_sizes.join(biosamples, "datasourceId")
-            .join(total_score_sums, ["diseaseId", "biosampleKey"], "left")
-            .join(
-                chromosome_score_sums.withColumnRenamed(
-                    "chromosome", "heldOutChromosome"
-                ),
-                ["diseaseId", "biosampleKey", "heldOutChromosome"],
-                "left",
-            )
-            .withColumn(
-                "diseaseScoreSum",
-                f.coalesce(f.col("totalScoreSum"), f.lit(0.0))
-                - f.coalesce(f.col("chromosomeScoreSum"), f.lit(0.0)),
-            )
+        if not designs:
+            return spark.createDataFrame([], _ENRICHMENT_SCHEMA)
+        biosamples = pd.concat(
+            [d.biosamples.assign(datasourceId=d.datasource_id) for d in designs],
+            ignore_index=True,
         )
 
-        mean_score = f.col("scoreSum") / f.col("geneCount")
-        listed_fraction = f.col("diseaseGeneCount") / f.col("geneCount")
-        score_variance = (
-            listed_fraction
-            * (1 - listed_fraction)
-            * (f.col("scoreSquareSum") - f.col("scoreSum") * mean_score)
-        )
-        z_score = (
-            f.col("diseaseScoreSum") - f.col("diseaseGeneCount") * mean_score
-        ) / f.sqrt(score_variance)
-
-        by_disease = Window.partitionBy("diseaseId", "heldOutChromosome")
-        by_p_value = by_disease.orderBy(f.col("pValue").asc(), f.col("biosampleKey"))
-        # q(i) = min over j >= i of p(j) * m / j, as in `PathwayLibrary.over_representation`.
-        step_up = f.min(
-            f.col("pValue") * f.col("testCount") / f.col("pValueRank")
-        ).over(by_p_value.rowsBetween(Window.currentRow, Window.unboundedFollowing))
-        return (
-            tests.filter(score_variance > 0)
-            .withColumn("zScore", z_score)
-            .withColumn(
-                "pValue",
-                f.when(
-                    f.col("zScore") > 0,
-                    chi2_survival_function(f.col("zScore") ** 2) / 2,
-                ).otherwise(f.lit(1.0)),
+        results = []
+        for chromosome in held_out_chromosomes:
+            # diseases x biosamples of every panel, NaN where a disease is not tested.
+            fits = []
+            for design in designs:
+                kept = design.chromosomes != chromosome
+                y = design.outcomes[kept]
+                tested = np.asarray(y.sum(axis=0)).ravel() >= min_genes
+                beta = np.full((len(disease_ids), len(design.biosamples)), np.nan)
+                standard_error = np.full_like(beta, np.nan)
+                if tested.any():
+                    beta[tested], standard_error[tested] = clustered_regression(
+                        design.covariates[kept],
+                        design.predictors[kept],
+                        y[:, tested].tocsc(),
+                        np.unique(design.regions[kept], return_inverse=True)[1].ravel(),
+                    )
+                fits.append((beta, standard_error))
+            beta = np.hstack([fit[0] for fit in fits])
+            standard_error = np.hstack([fit[1] for fit in fits])
+            with np.errstate(divide="ignore", invalid="ignore"):
+                z = beta / standard_error
+            p_value = np.where(np.isfinite(z), norm.sf(z), np.nan)
+            adjusted = benjamini_hochberg(p_value)
+            diseases, columns = np.nonzero(adjusted < p_value_adjusted_threshold)
+            results.append(
+                biosamples.iloc[columns]
+                .reset_index(drop=True)
+                .assign(
+                    diseaseId=disease_ids[diseases],
+                    heldOutChromosome=chromosome,
+                    beta=beta[diseases, columns],
+                    betaError=standard_error[diseases, columns],
+                    pValue=p_value[diseases, columns],
+                    pValueAdjusted=adjusted[diseases, columns],
+                )
             )
-            .withColumn("testCount", f.count("*").over(by_disease))
-            .withColumn("pValueRank", f.row_number().over(by_p_value))
-            .withColumn("pValueAdjusted", f.least(step_up, f.lit(1.0)))
-            .select(
-                "diseaseId",
-                "heldOutChromosome",
-                *biosample_cols,
-                "diseaseGeneCount",
-                "geneCount",
-                "zScore",
-                "pValue",
-                "pValueAdjusted",
-            )
-        )
+        rows = pd.concat(results, ignore_index=True) if results else pd.DataFrame()
+        if rows.empty:
+            return spark.createDataFrame([], _ENRICHMENT_SCHEMA)
+        rows = rows[_ENRICHMENT_COLUMNS].astype(object)
+        return spark.createDataFrame(rows.where(rows.notna(), None), _ENRICHMENT_SCHEMA)
