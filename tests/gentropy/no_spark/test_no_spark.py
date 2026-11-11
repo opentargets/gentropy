@@ -9,6 +9,7 @@ from pyspark.sql import types as t
 
 from gentropy import Session
 from gentropy.common.session import SparkWriteMode
+from gentropy.datasource.finngen.finemapping import FinnGenFinemapping
 from gentropy.datasource.finngen_meta import MetaAnalysisDataSource
 from gentropy.datasource.finngen_meta.summary_statistics import (
     FinnGenUkbMvpMetaSummaryStatistics,
@@ -66,7 +67,10 @@ class TestNoSpark:
 
         expected_bgzip_conf = {
             "spark.jars.packages": "org.seqdoop:hadoop-bam:7.10.0",
-            "spark.hadoop.io.compression.codecs": "org.seqdoop.hadoop_bam.util.BGZFEnhancedGzipCodec",
+            "spark.hadoop.io.compression.codecs": (
+                "org.seqdoop.hadoop_bam.util.BGZFEnhancedGzipCodec,"
+                "org.seqdoop.hadoop_bam.util.BGZFCodec"
+            ),
             "spark.gentropy.useEnhancedBgzipCodec": "true",
         }
 
@@ -101,7 +105,7 @@ class TestNoSpark:
 
     @pytest.mark.download_jars_from_web
     @pytest.mark.usefixtures("_no_spark_session")
-    def test_bgzip_from_parquet_with_codec(self, tmp_path: Path) -> None:
+    def test_meta_source_files_with_codec(self, tmp_path: Path) -> None:
         """Test bgzip codec usage on multiple tsv.gz files with different schemas.
 
         Note:
@@ -123,23 +127,56 @@ class TestNoSpark:
         # Create inputs with different schemas
         input_path_1 = "tests/gentropy/data_samples/bgzip_tests/A.tsv.gz"  # contains only chr, pos, ref, alt, snp
         input_path_2 = "tests/gentropy/data_samples/bgzip_tests/B.tsv.gz"  # contains only chr, pos, ref, alt, fg_beta,
-        output_path = (tmp_path / "output").as_posix()
 
         # Assert that test files & tbi indices exist
         for p in [input_path_1, input_path_2]:
             assert Path(p).exists(), f"Test file {p} does not exist."
             assert Path(p + ".tbi").exists(), f"Index file {p}.tbi does not exist."
-        FinnGenUkbMvpMetaSummaryStatistics.bgzip_to_parquet(
+        df = FinnGenUkbMvpMetaSummaryStatistics.from_source_files(
             session,
-            summary_statistics_list=[input_path_1, input_path_2],
+            summary_statistics_paths=[input_path_1, input_path_2],
             datasource=MetaAnalysisDataSource.FINNGEN_UKBB,
-            raw_summary_statistics_output_path=output_path,
         )
-        # Now read back the parquet files and check if schema is equal to raw schema
-        df = session.spark.read.parquet(output_path)
-        expected_schema = FinnGenUkbMvpMetaSummaryStatistics.raw_schema
-        expected_schema = expected_schema.add(
-            "studyId", t.StringType(), nullable=True
-        )  # studyId is added during bgzip_to_parquet
-        assert df.schema == expected_schema, "Schemas do not match after conversion."
+        raw_schema = FinnGenUkbMvpMetaSummaryStatistics.raw_schema
+        expected_schema = t.StructType(
+            [
+                t.StructField("studyId", t.StringType(), False),
+                *[
+                    t.StructField(c, raw_schema[c].dataType, True)
+                    for c in FinnGenUkbMvpMetaSummaryStatistics.source_columns
+                ],
+            ]
+        )
+        assert df.schema == expected_schema, "Schemas do not match after reading."
+        assert df.count() == 2
+        session.spark.stop()
+
+    @pytest.mark.download_jars_from_web
+    @pytest.mark.usefixtures("_no_spark_session")
+    def test_finngen_finemapping_from_block_gzipped_files(self, tmp_path: Path) -> None:
+        """Test that FinnGen SuSiE `.bgz` outputs are read without Hail.
+
+        Note:
+            Like `test_meta_source_files_with_codec`, this test downloads hadoop-bam from Maven
+            Central, so it needs internet access and runs separately from other tests.
+        """
+        ivy_cache_dir = tmp_path / "ivy_cache"
+        ivy_cache_dir.mkdir(parents=True, exist_ok=True)
+        conf = self.ex_conf.copy()
+        conf["spark.jars.ivy"] = ivy_cache_dir.as_posix()
+        session = Session(
+            spark_uri="local[1]",
+            extended_spark_conf=conf,
+            use_enhanced_bgzip_codec=True,
+            dynamic_allocation=False,
+        )
+        credible_sets, variants = FinnGenFinemapping.from_finngen_susie_finemapping(
+            spark=session.spark,
+            finngen_susie_finemapping_snp_files="tests/gentropy/data_samples/finngen_R9_AB1_EBV.SUSIE.snp.bgz",
+            finngen_susie_finemapping_cs_summary_files="tests/gentropy/data_samples/finngen_credset_summary_sample.tsv.bgz",
+            finngen_annotated_variants_path="tests/gentropy/data_samples/finngen_annotated_variants_sample.tsv",
+            finngen_release_prefix="FINNGEN_R11",
+        )
+        assert credible_sets.df.count() == 1
+        assert variants.df.count() == 4
         session.spark.stop()

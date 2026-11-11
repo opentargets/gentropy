@@ -14,7 +14,7 @@ import pyspark.sql.types as t
 from pyspark.ml import Pipeline
 from pyspark.ml.feature import MinMaxScaler, VectorAssembler
 from pyspark.ml.functions import vector_to_array
-from pyspark.sql import Column, Row, Window
+from pyspark.sql import Column, Window
 
 if TYPE_CHECKING:
     from pyspark.sql import DataFrame, WindowSpec
@@ -135,25 +135,6 @@ def get_top_ranked_in_window(df: DataFrame, w: WindowSpec) -> DataFrame:
         .filter(f.col("row_number") == 1)
         .drop("row_number")
     )
-
-
-def get_record_with_minimum_value(
-    df: DataFrame,
-    grouping_col: Column | str | list[Column | str],
-    sorting_col: str,
-) -> DataFrame:
-    """Returns the record with the minimum value of the sorting column within each group of the grouping column.
-
-    Args:
-        df (DataFrame): The DataFrame to be processed.
-        grouping_col (Column | str | list[Column | str]): The column(s) to group the DataFrame by.
-        sorting_col (str): The column name to sort the DataFrame by.
-
-    Returns:
-        DataFrame: The DataFrame with the record with the minimum value of the sorting column within each group of the grouping column.
-    """
-    w = Window.partitionBy(grouping_col).orderBy(sorting_col)
-    return get_top_ranked_in_window(df, w)
 
 
 def get_record_with_maximum_value(
@@ -417,32 +398,6 @@ def pivot_df(
             ],
         )
     )
-
-
-def get_value_from_row(row: Row, column: str) -> Any:
-    """Extract index value from a row if exists.
-
-    Args:
-        row (Row): One row from a dataframe
-        column (str): column label we want to extract.
-
-    Returns:
-        Any: value of the column in the row
-
-    Raises:
-        ValueError: if the column is not in the row
-
-    Examples:
-        >>> get_value_from_row(Row(geneName="AR", chromosome="X"), "chromosome")
-        'X'
-        >>> get_value_from_row(Row(geneName="AR", chromosome="X"), "disease")
-        Traceback (most recent call last):
-        ...
-        ValueError: Column disease not found in row Row(geneName='AR', chromosome='X')
-    """
-    if column not in row:
-        raise ValueError(f"Column {column} not found in row {row}")
-    return row[column]
 
 
 def enforce_schema(
