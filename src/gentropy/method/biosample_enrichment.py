@@ -52,12 +52,13 @@ class SpecificityPanel:
         return (f.col("datasourceId") == self.datasource_id) & resolution
 
 
-# The panels of the PTS biosample enrichment step (opentargets/pipeline#225).
+# The panels of the PTS biosample enrichment step (opentargets/pipeline#225), the CELLEX
+# specificity panels of the LDSC cell type analysis.
 DEFAULT_PANELS = (
     SpecificityPanel("gtex", "tissue"),
     SpecificityPanel("tabula_sapiens", "tissue"),
     SpecificityPanel("tabula_sapiens", "celltype"),
-    SpecificityPanel("DICE", "celltype"),
+    SpecificityPanel("tabula_sapiens", "tissue_celltype"),
 )
 
 _ENRICHMENT_COLUMNS = [
@@ -104,8 +105,8 @@ class ExpressionSpecificity:
     Attributes:
         baseline_expression (DataFrame): The release's `baseline_expression` table
         panels (tuple[SpecificityPanel, ...]): Datasources and resolutions to test, by default
-            those of the PTS biosample enrichment step: GTEx tissues, Tabula Sapiens tissues and
-            cell types, and DICE cell types
+            those of the PTS biosample enrichment step and the LDSC cell type analysis: GTEx
+            tissues, and Tabula Sapiens tissues, cell types and cell types within a tissue
     """
 
     baseline_expression: DataFrame

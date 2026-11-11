@@ -1214,7 +1214,8 @@ def enriched_study_biosamples(
         panels are tested, whether or not a QTL study uses them, so the adjusted p-values do
         not depend on which QTL studies exist.
     3. A biosample counts as enriched for a disease below the adjusted p-value threshold in
-        any panel, and for a study when it is enriched for any of the study's diseases. Its
+        any panel, and for a study when it is enriched for any of the study's diseases. A cell
+        type within a tissue counts as its cell type, as the PTS step reports it. Its
         descendants in the biosample index count as enriched with it, since a QTL study is
         often of a finer tissue or cell type than the specificity data resolve.
     4. This holds per held-out chromosome, and a credible set on that chromosome only uses
