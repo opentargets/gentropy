@@ -88,7 +88,7 @@ from gentropy.dataset.l2g_features.intervals import (
     e2g_interval_feature_wide_logic,
 )
 from gentropy.dataset.study_index import StudyIndex
-from gentropy.dataset.study_locus import StudyLocus
+from gentropy.dataset.credible_set import CredibleSetLocus
 from gentropy.dataset.variant_index import VariantIndex
 from gentropy.method.l2g.feature_factory import L2GFeatureInputLoader
 from gentropy.method.biosample_enrichment import ExpressionSpecificity
@@ -100,19 +100,19 @@ if TYPE_CHECKING:
 
 def test_extract_maximum_coloc_probability_per_region_and_gene(
     mock_colocalisation: Colocalisation,
-    mock_study_locus: StudyLocus,
+    mock_credible_set_locus: CredibleSetLocus,
     mock_study_index: StudyIndex,
     filter_by_colocalisation_method: str | None = None,
 ) -> None:
-    """Test extracting maximum coloc probability per region and gene returns a dataframe with the correct columns: studyLocusId, geneId, h4."""
+    """Test extracting maximum coloc probability per region and gene returns a dataframe with the correct columns: credibleSetId, geneId, h4."""
     filter_by_colocalisation_method = filter_by_colocalisation_method or "Coloc"
     res_df = extract_maximum_coloc_probability_per_region_and_gene(
         mock_colocalisation,
-        mock_study_locus,
+        mock_credible_set_locus,
         mock_study_index,
         filter_by_colocalisation_method=filter_by_colocalisation_method,
     )
-    expected_cols = ["studyLocusId", "geneId", "h4"]
+    expected_cols = ["credibleSetId", "geneId", "h4"]
     for col in expected_cols:
         assert col in res_df.columns, f"Column {col} not found in result DataFrame."
 
@@ -158,7 +158,7 @@ def test_extract_maximum_coloc_probability_per_region_and_gene(
 )
 def test_feature_factory_return_type(
     feature_class: Any,
-    mock_study_locus: StudyLocus,
+    mock_credible_set_locus: CredibleSetLocus,
     mock_colocalisation: Colocalisation,
     mock_study_index: StudyIndex,
     mock_variant_index: VariantIndex,
@@ -172,14 +172,14 @@ def test_feature_factory_return_type(
         colocalisation=mock_colocalisation,
         study_index=mock_study_index,
         variant_index=mock_variant_index,
-        study_locus=mock_study_locus,
+        study_locus=mock_credible_set_locus,
         target_index=mock_target_index,
         interactions=sample_otp_interactions,
         pathway_library=mock_pathway_library,
         expression_specificity=mock_expression_specificity,
     )
     feature_dataset = feature_class.compute(
-        study_loci_to_annotate=mock_study_locus,
+        study_loci_to_annotate=mock_credible_set_locus,
         feature_dependency=loader.get_dependency_by_type(
             feature_class.feature_dependency_type
         ),
@@ -319,7 +319,7 @@ class TestCommonColocalisationFeatureLogic:
     ) -> None:
         """Test the common logic of the colocalisation features.
 
-        The test data associates studyLocusId1 with gene1 based on the colocalisation with studyLocusId2 and studyLocusId3.
+        The test data associates credibleSetId1 with gene1 based on the colocalisation with credibleSetId2 and credibleSetId3.
         The H4 value of number 2 is higher, therefore the feature value should be based on that.
         """
         feature_name = "eQtlColocH4Maximum"
@@ -336,17 +336,17 @@ class TestCommonColocalisationFeatureLogic:
         expected_df = spark.createDataFrame(
             [
                 {
-                    "studyLocusId": "1",
+                    "credibleSetId": "1",
                     "geneId": "gene1",
                     "eQtlColocH4Maximum": 0.81,
                 },
                 {
-                    "studyLocusId": "1",
+                    "credibleSetId": "1",
                     "geneId": "gene2",
                     "eQtlColocH4Maximum": 0.9,
                 },
             ],
-        ).select("studyLocusId", "geneId", "eQtlColocH4Maximum")
+        ).select("credibleSetId", "geneId", "eQtlColocH4Maximum")
         assert observed_df.collect() == expected_df.collect(), (
             "The feature values are not as expected."
         )
@@ -361,12 +361,12 @@ class TestCommonColocalisationFeatureLogic:
         local_features = spark.createDataFrame(
             [
                 {
-                    "studyLocusId": "1",
+                    "credibleSetId": "1",
                     "geneId": "gene1",
                     "eQtlColocH4Maximum": 0.81,
                 },
                 {
-                    "studyLocusId": "1",
+                    "credibleSetId": "1",
                     "geneId": "gene2",
                     "eQtlColocH4Maximum": 0.9,
                 },
@@ -378,10 +378,10 @@ class TestCommonColocalisationFeatureLogic:
             variant_index=sample_variant_index,
             target_index=sample_target_index,
             study_locus=self.sample_study_locus,
-        ).select("studyLocusId", "geneId", "eQtlColocH4Maximum")
+        ).select("credibleSetId", "geneId", "eQtlColocH4Maximum")
         expected_df = spark.createDataFrame(
-            [{"geneId": "gene3", "studyLocusId": "1", "eQtlColocH4Maximum": 0.0}]
-        ).select("studyLocusId", "geneId", "eQtlColocH4Maximum")
+            [{"geneId": "gene3", "credibleSetId": "1", "eQtlColocH4Maximum": 0.0}]
+        ).select("credibleSetId", "geneId", "eQtlColocH4Maximum")
         assert observed_df.collect() == expected_df.collect(), (
             "The feature values are not as expected."
         )
@@ -410,17 +410,17 @@ class TestCommonColocalisationFeatureLogic:
         expected_df = spark.createDataFrame(
             [
                 {
-                    "studyLocusId": "1",
+                    "credibleSetId": "1",
                     "geneId": "gene1",
                     "eQtlColocH4MaximumNeighbourhood": 1.0,  # 0.81 / 0.81
                 },
                 {
-                    "studyLocusId": "1",
+                    "credibleSetId": "1",
                     "geneId": "gene3",
                     "eQtlColocH4MaximumNeighbourhood": 0.0,  # 0.0 (no coloc with gene3) /0.81
                 },
             ],
-        ).select("geneId", "studyLocusId", "eQtlColocH4MaximumNeighbourhood")
+        ).select("geneId", "credibleSetId", "eQtlColocH4MaximumNeighbourhood")
         assert observed_df.collect() == expected_df.collect(), (
             "The expected and observed dataframes do not match."
         )
@@ -432,26 +432,26 @@ class TestCommonColocalisationFeatureLogic:
         self.colocalisation_metric = "h4"
         self.qtl_type = ["eqtl"]
 
-        self.sample_study_loci_to_annotate = StudyLocus(
+        self.sample_study_loci_to_annotate = CredibleSetLocus(
             _df=spark.createDataFrame(
                 [
                     {
-                        "studyLocusId": "1",
+                        "credibleSetId": "1",
                         "variantId": "var1",
                         "studyId": "study1",  # this is a GWAS
                         "chromosome": "1",
                     },
                 ]
             ),
-            _schema=StudyLocus.get_schema(),
+            _schema=CredibleSetLocus.get_schema(),
         )
 
         self.sample_colocalisation = Colocalisation(
             _df=spark.createDataFrame(
                 [
                     {
-                        "leftStudyLocusId": "1",
-                        "rightStudyLocusId": "2",
+                        "leftLocusId": "1",
+                        "rightLocusId": "2",
                         "chromosome": "1",
                         "colocalisationMethod": "COLOC",
                         "numberColocalisingVariants": 1,
@@ -459,8 +459,8 @@ class TestCommonColocalisationFeatureLogic:
                         "rightStudyType": "eqtl",
                     },
                     {
-                        "leftStudyLocusId": "1",
-                        "rightStudyLocusId": "3",  # qtl linked to the same gene as studyLocusId 2 with a lower score
+                        "leftLocusId": "1",
+                        "rightLocusId": "3",  # qtl linked to the same gene as credibleSetId 2 with a lower score
                         "chromosome": "1",
                         "colocalisationMethod": "COLOC",
                         "numberColocalisingVariants": 1,
@@ -468,8 +468,8 @@ class TestCommonColocalisationFeatureLogic:
                         "rightStudyType": "eqtl",
                     },
                     {
-                        "leftStudyLocusId": "1",
-                        "rightStudyLocusId": "4",  # qtl linked to a diff gene and with the highest score
+                        "leftLocusId": "1",
+                        "rightLocusId": "4",  # qtl linked to a diff gene and with the highest score
                         "chromosome": "1",
                         "colocalisationMethod": "COLOC",
                         "numberColocalisingVariants": 1,
@@ -481,32 +481,32 @@ class TestCommonColocalisationFeatureLogic:
             ),
             _schema=Colocalisation.get_schema(),
         )
-        self.sample_study_locus = StudyLocus(
+        self.sample_study_locus = CredibleSetLocus(
             _df=spark.createDataFrame(
                 [
                     {
-                        "studyLocusId": "1",
+                        "credibleSetId": "1",
                         "variantId": "var1",
                         "studyId": "study1",  # this is a GWAS
                         "chromosome": "1",
                         "isTransQtl": False,
                     },
                     {
-                        "studyLocusId": "2",
+                        "credibleSetId": "2",
                         "variantId": "var1",
                         "studyId": "study2",  # this is a QTL (same gene)
                         "chromosome": "1",
                         "isTransQtl": False,
                     },
                     {
-                        "studyLocusId": "3",
+                        "credibleSetId": "3",
                         "variantId": "var1",
                         "studyId": "study3",  # this is another QTL (same gene)
                         "chromosome": "1",
                         "isTransQtl": False,
                     },
                     {
-                        "studyLocusId": "4",
+                        "credibleSetId": "4",
                         "variantId": "var1",
                         "studyId": "study4",  # this is another QTL (diff gene)
                         "chromosome": "1",
@@ -514,7 +514,7 @@ class TestCommonColocalisationFeatureLogic:
                     },
                 ]
             ),
-            _schema=StudyLocus.get_schema(),
+            _schema=CredibleSetLocus.get_schema(),
         )
         self.sample_studies = StudyIndex(
             _df=spark.createDataFrame(
@@ -563,12 +563,12 @@ class TestCommonDistanceFeatureLogic:
                 "distanceSentinelTss",
                 [
                     {
-                        "studyLocusId": "1",
+                        "credibleSetId": "1",
                         "geneId": "gene1",
                         "distanceSentinelTss": 0.0,
                     },
                     {
-                        "studyLocusId": "1",
+                        "credibleSetId": "1",
                         "geneId": "gene2",
                         "distanceSentinelTss": 0.92,
                     },
@@ -577,8 +577,8 @@ class TestCommonDistanceFeatureLogic:
             (
                 "distanceTssMean",
                 [
-                    {"studyLocusId": "1", "geneId": "gene1", "distanceTssMean": 0.52},
-                    {"studyLocusId": "1", "geneId": "gene2", "distanceTssMean": 0.63},
+                    {"credibleSetId": "1", "geneId": "gene1", "distanceTssMean": 0.52},
+                    {"credibleSetId": "1", "geneId": "gene2", "distanceTssMean": 0.63},
                 ],
             ),
         ],
@@ -608,7 +608,7 @@ class TestCommonDistanceFeatureLogic:
         )
         expected_df = (
             spark.createDataFrame(expected_data)
-            .select("studyLocusId", "geneId", feature_name)
+            .select("credibleSetId", "geneId", feature_name)
             .orderBy(feature_name)
         )
         assert observed_df.collect() == expected_df.collect(), (
@@ -638,7 +638,7 @@ class TestCommonDistanceFeatureLogic:
                 ["gene1", "1", 0.0],  # (10-10)/0.91
                 ["gene2", "1", 1.0],
             ),  # 0.91/0.91
-            ["geneId", "studyLocusId", feature_name],
+            ["geneId", "credibleSetId", feature_name],
         ).orderBy(feature_name)
         assert observed_df.collect() == expected_df.collect(), (
             "Output doesn't meet the expectation."
@@ -652,11 +652,11 @@ class TestCommonDistanceFeatureLogic:
     ) -> None:
         """Set up testing fixtures."""
         self.distance_type = "distanceFromTss"
-        self.sample_study_locus = StudyLocus(
+        self.sample_study_locus = CredibleSetLocus(
             _df=spark.createDataFrame(
                 [
                     {
-                        "studyLocusId": "1",
+                        "credibleSetId": "1",
                         "variantId": "lead1",
                         "studyId": "study1",
                         "locus": [
@@ -672,9 +672,9 @@ class TestCommonDistanceFeatureLogic:
                         "chromosome": "1",
                     },
                 ],
-                StudyLocus.get_schema(),
+                CredibleSetLocus.get_schema(),
             ),
-            _schema=StudyLocus.get_schema(),
+            _schema=CredibleSetLocus.get_schema(),
         )
         self.sample_variant_index = VariantIndex(
             _df=spark.createDataFrame(
@@ -763,11 +763,11 @@ class TestE2GIntervalFeatures:
     @pytest.fixture(autouse=True)
     def _setup(self, spark: SparkSession) -> None:
         """Set up test fixtures."""
-        self.sample_study_locus = StudyLocus(
+        self.sample_study_locus = CredibleSetLocus(
             _df=spark.createDataFrame(
                 [
                     {
-                        "studyLocusId": "SL_1",
+                        "credibleSetId": "SL_1",
                         "variantId": "1_1000001_A_C",
                         "studyId": "study1",
                         "locus": [
@@ -780,9 +780,9 @@ class TestE2GIntervalFeatures:
                         "chromosome": "1",
                     },
                 ],
-                StudyLocus.get_schema(),
+                CredibleSetLocus.get_schema(),
             ),
-            _schema=StudyLocus.get_schema(),
+            _schema=CredibleSetLocus.get_schema(),
         )
 
         # --- Intervals fixture built to your schema (score: double; resourceScore: array[struct] or None) ---
@@ -873,7 +873,7 @@ class TestE2GIntervalFeatures:
 
         observed = (
             wide.select(
-                "studyLocusId",
+                "credibleSetId",
                 "geneId",
                 f.round("e2gMean", 4).alias("e2gMean"),
                 f.round("e2gMeanNeighbourhood", 4).alias("e2gMeanNeighbourhood"),
@@ -892,7 +892,7 @@ class TestE2GIntervalFeatures:
             ("SL_1", "geneB", 0.12, 0.25),
         ]
         assert [
-            (r["studyLocusId"], r["geneId"], r["e2gMean"], r["e2gMeanNeighbourhood"])
+            (r["credibleSetId"], r["geneId"], r["e2gMean"], r["e2gMeanNeighbourhood"])
             for r in observed
         ] == expected
 
@@ -909,7 +909,7 @@ class TestE2GIntervalFeatures:
 
         observed = (
             wide.select(
-                "studyLocusId",
+                "credibleSetId",
                 "geneId",
                 f.round("e2gMean", 4).alias("e2gMean"),
                 f.round("e2gMeanNeighbourhood", 4).alias("e2gMeanNeighbourhood"),
@@ -928,7 +928,7 @@ class TestE2GIntervalFeatures:
             ("SL_1", "geneB", 0.12, 0.25),
         ]
         assert [
-            (r["studyLocusId"], r["geneId"], r["e2gMean"], r["e2gMeanNeighbourhood"])
+            (r["credibleSetId"], r["geneId"], r["e2gMean"], r["e2gMeanNeighbourhood"])
             for r in observed
         ] == expected
 
@@ -943,17 +943,17 @@ class TestCommonVepFeatureLogic:
                 "vepMean",
                 [
                     {
-                        "studyLocusId": "1",
+                        "credibleSetId": "1",
                         "geneId": "gene3",
                         "vepMean": "0.00",
                     },
                     {
-                        "studyLocusId": "1",
+                        "credibleSetId": "1",
                         "geneId": "gene1",
                         "vepMean": "0.33",
                     },
                     {
-                        "studyLocusId": "1",
+                        "credibleSetId": "1",
                         "geneId": "gene2",
                         "vepMean": "0.50",
                     },
@@ -963,17 +963,17 @@ class TestCommonVepFeatureLogic:
                 "vepMaximum",
                 [
                     {
-                        "studyLocusId": "1",
+                        "credibleSetId": "1",
                         "geneId": "gene3",
                         "vepMaximum": "0.00",
                     },
                     {
-                        "studyLocusId": "1",
+                        "credibleSetId": "1",
                         "geneId": "gene1",
                         "vepMaximum": "0.66",
                     },
                     {
-                        "studyLocusId": "1",
+                        "credibleSetId": "1",
                         "geneId": "gene2",
                         "vepMaximum": "1.00",
                     },
@@ -1003,7 +1003,7 @@ class TestCommonVepFeatureLogic:
         expected_df = (
             spark.createDataFrame(expected_data)
             .orderBy(feature_name)
-            .select("studyLocusId", "geneId", feature_name)
+            .select("credibleSetId", "geneId", feature_name)
         )
         assert observed_df.collect() == expected_df.collect(), (
             f"Expected and observed dataframes are not equal for feature {feature_name}."
@@ -1034,10 +1034,10 @@ class TestCommonVepFeatureLogic:
                         ["1", "gene1", 1.0],  # 0.66/0.66
                         ["1", "gene3", 0.0],  # 0/0.66
                     ),
-                    ["studyLocusId", "geneId", feature_name],
+                    ["credibleSetId", "geneId", feature_name],
                 )
                 .orderBy(feature_name)
-                .select("studyLocusId", "geneId", feature_name)
+                .select("credibleSetId", "geneId", feature_name)
             )
             assert observed_df.collect() == expected_df.collect(), (
                 "Output doesn't meet the expectation."
@@ -1046,11 +1046,11 @@ class TestCommonVepFeatureLogic:
     @pytest.fixture(autouse=True)
     def _setup(self: TestCommonVepFeatureLogic, spark: SparkSession) -> None:
         """Set up testing fixtures."""
-        self.sample_study_locus = StudyLocus(
+        self.sample_study_locus = CredibleSetLocus(
             _df=spark.createDataFrame(
                 [
                     {
-                        "studyLocusId": "1",
+                        "credibleSetId": "1",
                         "variantId": "var1",
                         "studyId": "study1",
                         "locus": [
@@ -1062,9 +1062,9 @@ class TestCommonVepFeatureLogic:
                         "chromosome": "1",
                     },
                 ],
-                StudyLocus.get_schema(),
+                CredibleSetLocus.get_schema(),
             ),
-            _schema=StudyLocus.get_schema(),
+            _schema=CredibleSetLocus.get_schema(),
         )
 
 
@@ -1077,9 +1077,9 @@ class TestCommonGeneCountFeatureLogic:
             (
                 "geneCount",
                 [
-                    {"studyLocusId": "1", "geneId": "gene1", "geneCount": 3},
-                    {"studyLocusId": "1", "geneId": "gene2", "geneCount": 3},
-                    {"studyLocusId": "1", "geneId": "gene3", "geneCount": 3},
+                    {"credibleSetId": "1", "geneId": "gene1", "geneCount": 3},
+                    {"credibleSetId": "1", "geneId": "gene2", "geneCount": 3},
+                    {"credibleSetId": "1", "geneId": "gene3", "geneCount": 3},
                 ],
                 False,  # Test case for all genes
             ),
@@ -1087,12 +1087,12 @@ class TestCommonGeneCountFeatureLogic:
                 "geneCountProteinCoding",
                 [
                     {
-                        "studyLocusId": "1",
+                        "credibleSetId": "1",
                         "geneId": "gene1",
                         "geneCountProteinCoding": 2,
                     },
                     {
-                        "studyLocusId": "1",
+                        "credibleSetId": "1",
                         "geneId": "gene2",
                         "geneCountProteinCoding": 2,
                     },
@@ -1115,11 +1115,11 @@ class TestCommonGeneCountFeatureLogic:
             feature_name=feature_name,
             genomic_window=500000,
             protein_coding_only=protein_coding_only,
-        ).orderBy("studyLocusId", "geneId")
+        ).orderBy("credibleSetId", "geneId")
         expected_df = (
             spark.createDataFrame(expected_data)
-            .select("studyLocusId", "geneId", feature_name)
-            .orderBy("studyLocusId", "geneId")
+            .select("credibleSetId", "geneId", feature_name)
+            .orderBy("credibleSetId", "geneId")
         )
 
         assert observed_df.collect() == expected_df.collect(), (
@@ -1129,20 +1129,20 @@ class TestCommonGeneCountFeatureLogic:
     @pytest.fixture(autouse=True)
     def _setup(self: TestCommonGeneCountFeatureLogic, spark: SparkSession) -> None:
         """Set up testing fixtures."""
-        self.sample_study_locus = StudyLocus(
+        self.sample_study_locus = CredibleSetLocus(
             _df=spark.createDataFrame(
                 [
                     {
-                        "studyLocusId": "1",
+                        "credibleSetId": "1",
                         "variantId": "var1",
                         "studyId": "study1",
                         "chromosome": "1",
                         "position": 1000000,
                     },
                 ],
-                StudyLocus.get_schema(),
+                CredibleSetLocus.get_schema(),
             ),
-            _schema=StudyLocus.get_schema(),
+            _schema=CredibleSetLocus.get_schema(),
         )
         self.sample_target_index = TargetIndex(
             _df=spark.createDataFrame(
@@ -1186,8 +1186,8 @@ class TestCommonProteinCodingFeatureLogic:
         [
             (
                 [
-                    {"studyLocusId": "1", "geneId": "gene1", "isProteinCoding": 1.0},
-                    {"studyLocusId": "1", "geneId": "gene2", "isProteinCoding": 0.0},
+                    {"credibleSetId": "1", "geneId": "gene1", "isProteinCoding": 1.0},
+                    {"credibleSetId": "1", "geneId": "gene2", "isProteinCoding": 0.0},
                 ]
             ),
         ],
@@ -1204,14 +1204,14 @@ class TestCommonProteinCodingFeatureLogic:
                 variant_index=self.sample_variant_index,
                 feature_name="isProteinCoding",
             )
-            .select("studyLocusId", "geneId", "isProteinCoding")
-            .orderBy("studyLocusId", "geneId")
+            .select("credibleSetId", "geneId", "isProteinCoding")
+            .orderBy("credibleSetId", "geneId")
         )
 
         expected_df = (
             spark.createDataFrame(expected_data)
-            .select("studyLocusId", "geneId", "isProteinCoding")
-            .orderBy("studyLocusId", "geneId")
+            .select("credibleSetId", "geneId", "isProteinCoding")
+            .orderBy("credibleSetId", "geneId")
         )
         assert observed_df.collect() == expected_df.collect(), (
             "Expected and observed DataFrames do not match."
@@ -1225,11 +1225,11 @@ class TestCommonProteinCodingFeatureLogic:
     ) -> None:
         """Set up sample data for the test."""
         # Sample study locus data
-        self.sample_study_locus = StudyLocus(
+        self.sample_study_locus = CredibleSetLocus(
             _df=spark.createDataFrame(
                 [
                     {
-                        "studyLocusId": "1",
+                        "credibleSetId": "1",
                         "variantId": "var1",
                         "studyId": "study1",
                         "chromosome": "1",
@@ -1241,9 +1241,9 @@ class TestCommonProteinCodingFeatureLogic:
                         ],
                     },
                 ],
-                StudyLocus.get_schema(),
+                CredibleSetLocus.get_schema(),
             ),
-            _schema=StudyLocus.get_schema(),
+            _schema=CredibleSetLocus.get_schema(),
         )
         self.sample_variant_index = VariantIndex(
             _df=spark.createDataFrame(
@@ -1303,14 +1303,15 @@ class TestCredibleSetConfidenceFeatureLogic:
         sample_variant_index_schema: StructType,
     ) -> None:
         """Set up testing fixtures."""
-        self.sample_study_locus = StudyLocus(
+        self.sample_study_locus = CredibleSetLocus(
             _df=spark.createDataFrame(
                 [
                     {
-                        "studyLocusId": "1",
+                        "credibleSetId": "1",
                         "variantId": "lead1",
                         "studyId": "study1",
-                        "confidence": "PICS fine-mapped credible set based on reported top hit",
+                        # PICS fine-mapped credible set based on reported top hit
+                        "confidence": 1,
                         "chromosome": "1",
                         "locus": [
                             {
@@ -1319,9 +1320,9 @@ class TestCredibleSetConfidenceFeatureLogic:
                         ],
                     },
                 ],
-                StudyLocus.get_schema(),
+                CredibleSetLocus.get_schema(),
             ),
-            _schema=StudyLocus.get_schema(),
+            _schema=CredibleSetLocus.get_schema(),
         )
         self.sample_variant_index = VariantIndex(
             _df=spark.createDataFrame(
@@ -1372,14 +1373,14 @@ class TestTransPQtlColocH4Feature:
         )
 
         observed = feature.df.select(
-            "studyLocusId",
+            "credibleSetId",
             "geneId",
             "featureName",
             "featureValue",
         ).collect()
         assert len(observed) == 1, "Exactly one gene-locus pair expected"
         row = observed[0].asDict()
-        assert row["studyLocusId"] == "1"
+        assert row["credibleSetId"] == "1"
         assert row["geneId"] == "gene1"
         assert row["featureName"] == "transPQtlColocH4Maximum"
         # gene1↔geneX (string 0.9) → geneX trans-pQTL h4=0.85
@@ -1396,18 +1397,18 @@ class TestTransPQtlColocH4Feature:
             TransPQtlColocH4MaximumFeature,
         )
 
-        study_locus_cis_only = StudyLocus(
+        study_locus_cis_only = CredibleSetLocus(
             _df=spark.createDataFrame(
                 [
                     {
-                        "studyLocusId": "1",
+                        "credibleSetId": "1",
                         "variantId": "var1",
                         "studyId": "study1",
                         "chromosome": "1",
                         "isTransQtl": False,
                     },
                     {
-                        "studyLocusId": "5",
+                        "credibleSetId": "5",
                         "variantId": "var1",
                         "studyId": "study5",
                         "chromosome": "1",
@@ -1415,7 +1416,7 @@ class TestTransPQtlColocH4Feature:
                     },
                 ]
             ).withColumn("position", f.lit(None).cast("integer")),
-            _schema=StudyLocus.get_schema(),
+            _schema=CredibleSetLocus.get_schema(),
         )
 
         feature = TransPQtlColocH4MaximumFeature.compute(
@@ -1501,26 +1502,26 @@ class TestTransPQtlColocH4Feature:
     @pytest.fixture(autouse=True)
     def _setup(self: TestTransPQtlColocH4Feature, spark: SparkSession) -> None:
         """Set up test fixtures."""
-        self.sample_study_loci_to_annotate = StudyLocus(
+        self.sample_study_loci_to_annotate = CredibleSetLocus(
             _df=spark.createDataFrame(
                 [
                     {
-                        "studyLocusId": "1",
+                        "credibleSetId": "1",
                         "variantId": "var1",
                         "studyId": "study1",
                         "chromosome": "1",
                     },
                 ]
             ),
-            _schema=StudyLocus.get_schema(),
+            _schema=CredibleSetLocus.get_schema(),
         )
 
         self.sample_colocalisation = Colocalisation(
             _df=spark.createDataFrame(
                 [
                     {
-                        "leftStudyLocusId": "1",  # GWAS locus coloc with cis-pQTL for gene1
-                        "rightStudyLocusId": "2",
+                        "leftLocusId": "1",  # GWAS locus coloc with cis-pQTL for gene1
+                        "rightLocusId": "2",
                         "chromosome": "1",
                         "colocalisationMethod": "COLOC",
                         "numberColocalisingVariants": 1,
@@ -1529,8 +1530,8 @@ class TestTransPQtlColocH4Feature:
                         "rightStudyType": "pqtl",
                     },
                     {
-                        "leftStudyLocusId": "1",  # GWAS locus coloc with trans-pQTL for geneX
-                        "rightStudyLocusId": "5",
+                        "leftLocusId": "1",  # GWAS locus coloc with trans-pQTL for geneX
+                        "rightLocusId": "5",
                         "chromosome": "1",
                         "colocalisationMethod": "COLOC",
                         "numberColocalisingVariants": 1,
@@ -1539,8 +1540,8 @@ class TestTransPQtlColocH4Feature:
                         "rightStudyType": "pqtl",
                     },
                     {
-                        "leftStudyLocusId": "1",  # trans-pQTL for geneY: interaction scoring below threshold
-                        "rightStudyLocusId": "6",
+                        "leftLocusId": "1",  # trans-pQTL for geneY: interaction scoring below threshold
+                        "rightLocusId": "6",
                         "chromosome": "1",
                         "colocalisationMethod": "COLOC",
                         "numberColocalisingVariants": 1,
@@ -1554,32 +1555,32 @@ class TestTransPQtlColocH4Feature:
             _schema=Colocalisation.get_schema(),
         )
 
-        self.sample_study_locus = StudyLocus(
+        self.sample_study_locus = CredibleSetLocus(
             _df=spark.createDataFrame(
                 [
                     {
-                        "studyLocusId": "1",
+                        "credibleSetId": "1",
                         "variantId": "var1",
                         "studyId": "study1",
                         "chromosome": "1",
                         "isTransQtl": False,
                     },
                     {
-                        "studyLocusId": "2",
+                        "credibleSetId": "2",
                         "variantId": "var1",
                         "studyId": "study2",
                         "chromosome": "1",
                         "isTransQtl": False,
                     },
                     {
-                        "studyLocusId": "5",
+                        "credibleSetId": "5",
                         "variantId": "var1",
                         "studyId": "study5",
                         "chromosome": "1",
                         "isTransQtl": True,  # trans-pQTL measured on geneX
                     },
                     {
-                        "studyLocusId": "6",
+                        "credibleSetId": "6",
                         "variantId": "var1",
                         "studyId": "study6",
                         "chromosome": "1",
@@ -1588,9 +1589,9 @@ class TestTransPQtlColocH4Feature:
                 ]
             ).withColumn(
                 "position",
-                f.when(f.col("studyLocusId") == "1", f.lit(1_000_000).cast("integer")),
+                f.when(f.col("credibleSetId") == "1", f.lit(1_000_000).cast("integer")),
             ),
-            _schema=StudyLocus.get_schema(),
+            _schema=CredibleSetLocus.get_schema(),
         )
 
         self.sample_studies = StudyIndex(
@@ -1777,26 +1778,26 @@ class TestTransPQtlColocH4MaximumNeighbourhoodFeature:
         self: TestTransPQtlColocH4MaximumNeighbourhoodFeature, spark: SparkSession
     ) -> None:
         """Set up test fixtures."""
-        self.sample_study_loci_to_annotate = StudyLocus(
+        self.sample_study_loci_to_annotate = CredibleSetLocus(
             _df=spark.createDataFrame(
                 [
                     {
-                        "studyLocusId": "1",
+                        "credibleSetId": "1",
                         "variantId": "var1",
                         "studyId": "study1",
                         "chromosome": "1",
                     },
                 ]
             ),
-            _schema=StudyLocus.get_schema(),
+            _schema=CredibleSetLocus.get_schema(),
         )
 
         self.sample_colocalisation = Colocalisation(
             _df=spark.createDataFrame(
                 [
                     {
-                        "leftStudyLocusId": "1",
-                        "rightStudyLocusId": "2",
+                        "leftLocusId": "1",
+                        "rightLocusId": "2",
                         "chromosome": "1",
                         "colocalisationMethod": "COLOC",
                         "numberColocalisingVariants": 1,
@@ -1805,8 +1806,8 @@ class TestTransPQtlColocH4MaximumNeighbourhoodFeature:
                         "rightStudyType": "pqtl",
                     },
                     {
-                        "leftStudyLocusId": "1",  # trans-pQTL for geneX (STRING interaction with gene1)
-                        "rightStudyLocusId": "5",
+                        "leftLocusId": "1",  # trans-pQTL for geneX (STRING interaction with gene1)
+                        "rightLocusId": "5",
                         "chromosome": "1",
                         "colocalisationMethod": "COLOC",
                         "numberColocalisingVariants": 1,
@@ -1815,8 +1816,8 @@ class TestTransPQtlColocH4MaximumNeighbourhoodFeature:
                         "rightStudyType": "pqtl",
                     },
                     {
-                        "leftStudyLocusId": "1",  # trans-pQTL for geneY (IntAct interaction with gene1)
-                        "rightStudyLocusId": "6",
+                        "leftLocusId": "1",  # trans-pQTL for geneY (IntAct interaction with gene1)
+                        "rightLocusId": "6",
                         "chromosome": "1",
                         "colocalisationMethod": "COLOC",
                         "numberColocalisingVariants": 1,
@@ -1830,32 +1831,32 @@ class TestTransPQtlColocH4MaximumNeighbourhoodFeature:
             _schema=Colocalisation.get_schema(),
         )
 
-        self.sample_study_locus = StudyLocus(
+        self.sample_study_locus = CredibleSetLocus(
             _df=spark.createDataFrame(
                 [
                     {
-                        "studyLocusId": "1",
+                        "credibleSetId": "1",
                         "variantId": "var1",
                         "studyId": "study1",
                         "chromosome": "1",
                         "isTransQtl": False,
                     },
                     {
-                        "studyLocusId": "2",
+                        "credibleSetId": "2",
                         "variantId": "var1",
                         "studyId": "study2",
                         "chromosome": "1",
                         "isTransQtl": False,
                     },
                     {
-                        "studyLocusId": "5",
+                        "credibleSetId": "5",
                         "variantId": "var1",
                         "studyId": "study5",
                         "chromosome": "1",
                         "isTransQtl": True,
                     },
                     {
-                        "studyLocusId": "6",
+                        "credibleSetId": "6",
                         "variantId": "var1",
                         "studyId": "study6",
                         "chromosome": "1",
@@ -1864,9 +1865,9 @@ class TestTransPQtlColocH4MaximumNeighbourhoodFeature:
                 ]
             ).withColumn(
                 "position",
-                f.when(f.col("studyLocusId") == "1", f.lit(1_000_000).cast("integer")),
+                f.when(f.col("credibleSetId") == "1", f.lit(1_000_000).cast("integer")),
             ),
-            _schema=StudyLocus.get_schema(),
+            _schema=CredibleSetLocus.get_schema(),
         )
 
         self.sample_studies = StudyIndex(
@@ -2043,7 +2044,7 @@ def _credible_set(
 ) -> dict[str, Any]:
     """Single-variant credible set."""
     return {
-        "studyLocusId": study_locus_id,
+        "credibleSetId": study_locus_id,
         "studyId": study_id,
         "studyType": study_type,
         "variantId": variant_id,
@@ -2070,9 +2071,9 @@ def _datasets(
             _df=spark.createDataFrame(variants, VariantIndex.get_schema()),
             _schema=VariantIndex.get_schema(),
         ),
-        "study_locus": StudyLocus(
-            _df=spark.createDataFrame(credible_sets, StudyLocus.get_schema()),
-            _schema=StudyLocus.get_schema(),
+        "study_locus": CredibleSetLocus(
+            _df=spark.createDataFrame(credible_sets, CredibleSetLocus.get_schema()),
+            _schema=CredibleSetLocus.get_schema(),
         ),
         "study_index": StudyIndex(
             _df=spark.createDataFrame(studies, StudyIndex.get_schema()),
@@ -2158,29 +2159,30 @@ def test_prioritised_disease_genes(spark: SparkSession) -> None:
 
 
 def _pathway_release(spark: SparkSession, second_chromosome: str) -> dict[str, Any]:
-    """Toy release of `TestPathwayEnrichmentFeature`, with gene4-gene7 on `second_chromosome`."""
-    tss = {f"gene{i}": 10_000_000 * (i + 1) for i in range(20)}
-    tss["gene8"] = tss["gene0"] + 100_000
+    """Toy release of `TestPathwayEnrichmentFeature`, with gene20-gene39 on `second_chromosome`."""
+    tss = {f"gene{i}": 10_000_000 * (i + 1) for i in range(40)}
+    tss["neighbour"] = tss["gene0"] + 100_000
     chromosomes = {
-        gene_id: second_chromosome if 4 <= i < 8 else "1"
+        gene_id: second_chromosome if 20 <= i < 40 else "1"
         for i, gene_id in enumerate(tss)
     }
     genes = [
         _gene(
             gene_id,
             position,
-            ["R-HSA-2"] if i < 8 else ["R-HSA-1"],
+            ["R-HSA-2"] if i % 20 < 8 and i < 40 else ["R-HSA-3"],
             chromosome=chromosomes[gene_id],
         )
         for i, (gene_id, position) in enumerate(tss.items())
     ]
+    lead_genes = [*range(6), *range(20, 26)]
     variants = [
         _variant(
             f"var{i}",
-            [(f"gene{i}", 0, 0.1)] + ([("gene8", 100_000, 0.1)] if i == 0 else []),
+            [(f"gene{i}", 0, 0.1)] + ([("neighbour", 100_000, 0.1)] if i == 0 else []),
             chromosome=chromosomes[f"gene{i}"],
         )
-        for i in range(8)
+        for i in lead_genes
     ]
     credible_sets = [
         _credible_set(
@@ -2190,7 +2192,7 @@ def _pathway_release(spark: SparkSession, second_chromosome: str) -> dict[str, A
             tss[f"gene{i}"],
             chromosome=chromosomes[f"gene{i}"],
         )
-        for i in range(8)
+        for i in lead_genes
     ]
     return _datasets(
         spark, genes, variants, credible_sets, [_study("study1", ["disease1"])]
@@ -2200,12 +2202,13 @@ def _pathway_release(spark: SparkSession, second_chromosome: str) -> dict[str, A
 class TestPathwayEnrichmentFeature:
     """Test the pathway enrichment features end to end.
 
-    Twenty protein-coding genes, all in Reactome pathway R-HSA-1 through its child R-HSA-2 or
-    directly. gene0-gene7 are in R-HSA-2 and are each the nearest gene of one credible set of
-    study1 (disease1); gene0-gene3 are on chromosome 1 and gene4-gene7 on chromosome 2. With
-    chromosome 1 left out R-HSA-2 is enriched for disease1 through gene4-gene7: k = n = 4,
-    K = 8 of N = 20, p = 70/4,845, adjusted over two pathways 0.029. R-HSA-1 holds every gene
-    and is not. gene8 sits 100 kb from gene0, inside the window of sl0.
+    Forty protein-coding genes 10 Mb apart, each its own region, gene0-gene19 on chromosome 1
+    and gene20-gene39 on chromosome 2, plus `neighbour`, 100 kb from gene0. Every gene is in
+    Reactome R-HSA-1 through one child: R-HSA-2 for gene0-gene7 and gene20-gene27, R-HSA-3 for
+    the others. gene0-gene5 and gene20-gene25 are the nearest genes of the credible sets of
+    study1 (disease1). With either chromosome left out, disease1 lists 6 of the 8 R-HSA-2 genes
+    left and none of the others, so R-HSA-2 is enriched; R-HSA-3 is depleted and R-HSA-1, which
+    holds every gene, cannot be tested.
     """
 
     @pytest.fixture()
@@ -2217,7 +2220,7 @@ class TestPathwayEnrichmentFeature:
     def _scores(df: Any, feature_name: str, study_locus_id: str) -> dict[str, float]:
         return {
             row["geneId"]: float(row[feature_name])
-            for row in df.filter(f.col("studyLocusId") == study_locus_id).collect()
+            for row in df.filter(f.col("credibleSetId") == study_locus_id).collect()
         }
 
     @staticmethod
@@ -2233,7 +2236,7 @@ class TestPathwayEnrichmentFeature:
     def test_score_is_the_fraction_of_enriched_pathways(
         self, datasets: dict[str, Any], mock_pathway_library: PathwayLibrary
     ) -> None:
-        """gene0 is in R-HSA-1 and R-HSA-2, one of them enriched; gene8 is in R-HSA-1 only."""
+        """gene0 is in R-HSA-1 and R-HSA-2, one of them enriched; neighbour is in R-HSA-1 and R-HSA-3, neither enriched."""
         df = common_pathway_enrichment_feature_logic(
             datasets["study_locus"],
             "pathwayEnrichment500kb",
@@ -2243,29 +2246,29 @@ class TestPathwayEnrichmentFeature:
         )
         assert self._scores(df, "pathwayEnrichment500kb", "sl0") == {
             "gene0": pytest.approx(0.5),
-            "gene8": pytest.approx(0.0),
+            "neighbour": pytest.approx(0.0),
         }
 
     def test_diseases_with_too_few_genes_are_not_tested(
         self, datasets: dict[str, Any], mock_pathway_library: PathwayLibrary
     ) -> None:
-        """disease1 has four genes once a chromosome is left out, so a minimum of five leaves every gene at 0."""
+        """disease1 has six genes once a chromosome is left out, so a minimum of seven leaves every gene at 0."""
         df = common_pathway_enrichment_feature_logic(
             datasets["study_locus"],
             "pathwayEnrichment500kb",
             pathway_library=mock_pathway_library,
             **datasets,
-            **self._parameters(min_disease_genes=5),
+            **self._parameters(min_disease_genes=7),
         )
         assert self._scores(df, "pathwayEnrichment500kb", "sl0") == {
             "gene0": pytest.approx(0.0),
-            "gene8": pytest.approx(0.0),
+            "neighbour": pytest.approx(0.0),
         }
 
     def test_the_chromosome_of_the_locus_is_left_out(
         self, spark: SparkSession, mock_pathway_library: PathwayLibrary
     ) -> None:
-        """With all eight credible sets on chromosome 1, sl0's own chromosome holds every disease gene."""
+        """With every gene on chromosome 1, leaving sl0's own chromosome out leaves no gene to test."""
         datasets = _pathway_release(spark, second_chromosome="1")
         df = common_pathway_enrichment_feature_logic(
             datasets["study_locus"],
@@ -2276,16 +2279,16 @@ class TestPathwayEnrichmentFeature:
         )
         assert self._scores(df, "pathwayEnrichment500kb", "sl0") == {
             "gene0": pytest.approx(0.0),
-            "gene8": pytest.approx(0.0),
+            "neighbour": pytest.approx(0.0),
         }
 
     def test_scores_only_the_chromosomes_of_the_loci_to_annotate(
         self, datasets: dict[str, Any], mock_pathway_library: PathwayLibrary
     ) -> None:
         """Annotating sl0 alone scores chromosome 1 only, and gives sl0 the scores it gets among all loci."""
-        sl0 = StudyLocus(
-            _df=datasets["study_locus"].df.filter(f.col("studyLocusId") == "sl0"),
-            _schema=StudyLocus.get_schema(),
+        sl0 = CredibleSetLocus(
+            _df=datasets["study_locus"].df.filter(f.col("credibleSetId") == "sl0"),
+            _schema=CredibleSetLocus.get_schema(),
         )
         scores = disease_set_pathway_scores(
             sl0,
@@ -2327,7 +2330,7 @@ class TestPathwayEnrichmentFeature:
         )
         assert self._scores(df, "pathwayEnrichment500kbNeighbourhood", "sl0") == {
             "gene0": pytest.approx(1.0),
-            "gene8": pytest.approx(0.0),
+            "neighbour": pytest.approx(0.0),
         }
 
     def test_feature_classes_use_the_release_tables(
@@ -2346,11 +2349,11 @@ class TestPathwayEnrichmentFeature:
                 ),
             )
             values = {
-                (row["studyLocusId"], row["geneId"]): row["featureValue"]
+                (row["credibleSetId"], row["geneId"]): row["featureValue"]
                 for row in feature.df.collect()
             }
             assert values[("sl0", "gene0")] == 0.0
-            assert len(values) == 9
+            assert len(values) == 13
 
 
 def _biosample_release(spark: SparkSession, second_chromosome: str) -> dict[str, Any]:
@@ -2391,8 +2394,8 @@ def _biosample_release(spark: SparkSession, second_chromosome: str) -> dict[str,
         _df=spark.createDataFrame(
             [
                 {
-                    "leftStudyLocusId": "sl0",
-                    "rightStudyLocusId": f"qtl{tissue}",
+                    "leftLocusId": "sl0",
+                    "rightLocusId": f"qtl{tissue}",
                     "rightStudyType": "eqtl",
                     "chromosome": "1",
                     "colocalisationMethod": "COLOC",
@@ -2439,7 +2442,7 @@ class TestEQtlColocH4MaximumEnrichedBiosampleFeature:
     def _scores(df: Any, feature_name: str, study_locus_id: str) -> dict[str, float]:
         return {
             row["geneId"]: float(row[feature_name])
-            for row in df.filter(f.col("studyLocusId") == study_locus_id).collect()
+            for row in df.filter(f.col("credibleSetId") == study_locus_id).collect()
         }
 
     def test_enriched_study_biosamples(self, datasets: dict[str, Any]) -> None:
@@ -2461,9 +2464,9 @@ class TestEQtlColocH4MaximumEnrichedBiosampleFeature:
     ) -> None:
         """Annotating sl0 alone returns study1 on chromosome 1 only."""
         biosamples = enriched_study_biosamples(
-            StudyLocus(
-                _df=datasets["study_locus"].df.filter(f.col("studyLocusId") == "sl0"),
-                _schema=StudyLocus.get_schema(),
+            CredibleSetLocus(
+                _df=datasets["study_locus"].df.filter(f.col("credibleSetId") == "sl0"),
+                _schema=CredibleSetLocus.get_schema(),
             ),
             p_value_adjusted_threshold=0.05,
             min_disease_genes=4,
@@ -2509,7 +2512,7 @@ class TestEQtlColocH4MaximumEnrichedBiosampleFeature:
             )
             values |= {
                 (row["featureName"], row["geneId"]): row["featureValue"]
-                for row in feature.df.filter(f.col("studyLocusId") == "sl0").collect()
+                for row in feature.df.filter(f.col("credibleSetId") == "sl0").collect()
             }
         assert values == {
             ("eQtlColocH4MaximumEnrichedBiosample", "gene0"): pytest.approx(0.6),

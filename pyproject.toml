@@ -12,7 +12,6 @@ dependencies = [
   "hail>=0.2.136",
   "scipy (>=1.11.4, <1.18.0)",
   "hydra-core (>=1.3.2, <1.4.0)",
-  "pyliftover (>=0.4.1, <0.5.0)",
   "numpy>=2.3.0",
   "omegaconf (>=2.3.0, <2.4.0)",
   "scikit-learn (>=1.6.1, <1.10.0)",
@@ -21,13 +20,12 @@ dependencies = [
   "shap>=0.50.0",
   "matplotlib (>=3.10.0, <3.11.0)",
   "google-cloud-storage (>=2.14.0, <3.4.0)",
-  "pydantic (>=2.0.0, <3.0.0)",
+  "pydantic (>=2.12.4, <3.0.0)",
   "xgboost>=3.0.4 ; platform_machine == 'aarch64' or platform_machine == 'arm64'",
   "xgboost-cpu>=3.0.4 ; (platform_machine == 'amd64' and sys_platform != 'darwin') or (platform_machine == 'x86_64' and sys_platform != 'darwin')",
   "xgboost>=3.0.4 ; platform_machine == 'x86_64' and sys_platform == 'darwin'",
   "huggingface-hub>=0.27.1",
   "wandb (>=0.19.4, <0.26.0)",
-  "pydantic>=2.12.4",
 ]
 classifiers = [
   "Programming Language :: Python :: 3.11",
@@ -118,7 +116,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.deptry]
-extend_exclude = ["src/conftest.py", "src/utils"]
+extend_exclude = ["src/conftest.py", "src/utils", "utils"]
 
 [tool.deptry.per_rule_ignores]
 DEP001 = ["gentropy"]

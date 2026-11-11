@@ -9,6 +9,7 @@ import pytest
 from pyspark.sql import SparkSession
 
 from gentropy.common.session import Session
+from gentropy.dataset.credible_set import CredibleSet
 from gentropy.dataset.effector_gene_list import EffectorGeneList
 from gentropy.dataset.interactions import Interactions
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
@@ -28,7 +29,7 @@ class TestLabel:
                 ("sl2", "ENSG_C", ["EFO_2", "EFO_3"]),  # positive (EGL match on EFO_2)
                 ("sl3", "ENSG_D", ["EFO_3"]),  # dropped (locus has no positive)
             ],
-            ["studyLocusId", "geneId", "diseaseIds"],
+            ["credibleSetId", "geneId", "diseaseIds"],
         )
         egl = EffectorGeneList(
             _df=spark.createDataFrame(
@@ -37,7 +38,7 @@ class TestLabel:
             )
         )
         result = {
-            (r["studyLocusId"], r["geneId"], r["GSP"])
+            (r["credibleSetId"], r["geneId"], r["GSP"])
             for r in TrainingSetStep._label(feature_matrix, egl).collect()
         }
         assert result == {
@@ -50,7 +51,7 @@ class TestLabel:
         """A gene present in the EGL but for a different disease is not a positive."""
         feature_matrix = spark.createDataFrame(
             [("sl1", "ENSG_A", ["EFO_2"])],
-            ["studyLocusId", "geneId", "diseaseIds"],
+            ["credibleSetId", "geneId", "diseaseIds"],
         )
         egl = EffectorGeneList(
             _df=spark.createDataFrame(
@@ -75,10 +76,10 @@ class TestCapPositivesPerLocus:
                 ("sl2", "g5", 1),
                 ("sl2", "g6", 1),  # sl2 has 3 positives -> dropped
             ],
-            ["studyLocusId", "geneId", "GSP"],
+            ["credibleSetId", "geneId", "GSP"],
         )
         result = {
-            r["studyLocusId"]
+            r["credibleSetId"]
             for r in TrainingSetStep._cap_positives_per_locus(labelled, 2).collect()
         }
         assert result == {"sl1"}
@@ -91,10 +92,10 @@ class TestCapPositivesPerLocus:
                 ("sl1", "g2", 0),
                 ("sl2", "g3", 0),  # positives already removed -> dropped
             ],
-            ["studyLocusId", "geneId", "GSP"],
+            ["credibleSetId", "geneId", "GSP"],
         )
         result = {
-            r["studyLocusId"]
+            r["credibleSetId"]
             for r in TrainingSetStep._cap_positives_per_locus(labelled, 2).collect()
         }
         assert result == {"sl1"}
@@ -120,7 +121,7 @@ class TestDropInteractingNegatives:
                 ("sl1", "ENSG_PARTNER", 0),  # interacts with ENSG_POS -> removed
                 ("sl1", "ENSG_OTHER", 0),  # no interaction -> kept
             ],
-            ["studyLocusId", "geneId", "GSP"],
+            ["credibleSetId", "geneId", "GSP"],
         )
         pairs = [("ENSG_POS", "ENSG_PARTNER"), ("ENSG_POS", "ENSG_POS2")]
         if positive_column == "targetB":
@@ -135,7 +136,7 @@ class TestDropInteractingNegatives:
             session, interaction_path
         ).high_confidence("string", 0.75)
         result = {
-            (r["studyLocusId"], r["geneId"])
+            (r["credibleSetId"], r["geneId"])
             for r in TrainingSetStep._drop_interacting_negatives(
                 labelled, interactions
             ).collect()
@@ -150,7 +151,7 @@ class TestDeduplicate:
     """Test deduplication of credible sets with identical positive profiles."""
 
     COLUMNS = [
-        "studyLocusId",
+        "credibleSetId",
         "geneId",
         "diseaseIds",
         "variantId",
@@ -168,11 +169,11 @@ class TestDeduplicate:
     def _kept(self, spark: SparkSession, rows: list[tuple[Any, ...]]) -> set[str]:
         labelled = spark.createDataFrame(rows, self.COLUMNS)
         return {
-            r["studyLocusId"] for r in TrainingSetStep._deduplicate(labelled).collect()
+            r["credibleSetId"] for r in TrainingSetStep._deduplicate(labelled).collect()
         }
 
     def test_dedup(self, spark: SparkSession) -> None:
-        """Loci whose positives share a profile collapse to the smallest studyLocusId.
+        """Loci whose positives share a profile collapse to the smallest credibleSetId.
 
         Colocalisation is compared at 2 dp, VEP exactly.
         """
@@ -250,10 +251,27 @@ class TestTrainingSetStep:
         }
         spark.createDataFrame(
             [
-                ("sl1", "v1", "s1", replicated),
-                ("sl2", "v2", "s1", []),  # not replicated -> dropped
+                (
+                    id,
+                    "1",
+                    1,
+                    100,
+                    "s1",
+                    "gwas",
+                    lead,
+                    "SuSiE",
+                    None,
+                    None,
+                    None,
+                    None,
+                    qc,
+                )
+                for id, lead, qc in [
+                    ("sl1", "v1", replicated),
+                    ("sl2", "v2", []),  # not replicated -> dropped
+                ]
             ],
-            ["studyLocusId", "variantId", "studyId", "qualityControls"],
+            CredibleSet.get_schema(),
         ).write.parquet(paths["cs"])
         spark.createDataFrame(
             [("s1", "p1", "gwas", ["EFO_1"])],
@@ -265,7 +283,7 @@ class TestTrainingSetStep:
                 ("sl1", "gB", 0, 1),
                 ("sl2", "gA", 1000, 1),
             ],
-            ["studyLocusId", "geneId", "distanceSentinelFootprint", "isProteinCoding"],
+            ["credibleSetId", "geneId", "distanceSentinelFootprint", "isProteinCoding"],
         ).write.parquet(paths["fm"])
         spark.createDataFrame(
             [("EFO_1", "gA")], ["diseaseId", "targetId"]
@@ -281,6 +299,6 @@ class TestTrainingSetStep:
         )
         gold_standard = L2GGoldStandard.from_parquet(session, paths["out"])
         assert {
-            (r["studyLocusId"], r["geneId"], r["goldStandardSet"])
+            (r["credibleSetId"], r["geneId"], r["goldStandardSet"])
             for r in gold_standard.df.collect()
         } == {("sl1", "gA", "positive"), ("sl1", "gB", "negative")}

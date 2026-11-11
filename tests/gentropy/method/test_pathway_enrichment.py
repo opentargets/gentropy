@@ -1,13 +1,15 @@
-"""Test the pathway library and its over-representation test."""
+"""Test the pathway library and its enrichment regression."""
 
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+import numpy as np
 import pytest
-from scipy.stats import hypergeom
+import scipy.sparse
 
 from gentropy.dataset.target_index import TargetIndex
+from gentropy.method import pathway_enrichment
 from gentropy.method.pathway_enrichment import PathwayLibrary
 
 if TYPE_CHECKING:
@@ -112,104 +114,147 @@ class TestPathwayLibrary:
         assert pathways == {"GO:0000001", "GO:0000002", "GO:0000003"}
 
 
-class TestOverRepresentation:
-    """Test the hypergeometric test.
+def test_regression_matches_a_direct_fit(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Slopes and region-clustered standard errors equal those of each full model fitted alone.
 
-    Ten library genes in four pathways: PA holds G1-G4, PB G5-G8, PC G9-G10 and PD G1 and G5.
-    disease1 has G1-G3 and G11, which no pathway contains, on chromosome 1 and G4 on chromosome
-    2; disease2 has G9 only. Holding out chromosome 2 leaves disease1 with G1-G3.
+    The covariates include a constant column, which adds no direction, and one pathway has no
+    member, so it has no slope. A small block size makes the pathways run in several blocks.
+    """
+    rng = np.random.default_rng(0)
+    n_genes, n_pathways, n_units = 300, 7, 4
+    covariates = np.column_stack(
+        [
+            np.ones(n_genes),
+            rng.normal(size=n_genes),
+            rng.poisson(5, n_genes),
+            np.full(n_genes, 3.0),
+        ]
+    )
+    membership = (rng.random((n_genes, n_pathways)) < 0.2).astype(float)
+    membership[:, -1] = 0.0
+    outcomes = (rng.random((n_genes, n_units)) < 0.1).astype(float)
+    regions = rng.integers(0, 40, n_genes)
+    monkeypatch.setattr(pathway_enrichment, "_BLOCK_BYTES", 8 * n_genes * 3)
+
+    beta, standard_error = pathway_enrichment._pathway_regression(
+        covariates,
+        scipy.sparse.csc_matrix(membership),
+        scipy.sparse.csc_matrix(outcomes),
+        regions,
+    )
+
+    assert np.isnan(beta[:, -1]).all() and np.isnan(standard_error[:, -1]).all()
+    for unit in range(n_units):
+        for pathway in range(n_pathways - 1):
+            design = np.column_stack([covariates[:, :3], membership[:, pathway]])
+            coefficients = np.linalg.lstsq(design, outcomes[:, unit], rcond=None)[0]
+            residuals = outcomes[:, unit] - design @ coefficients
+            bread = np.linalg.inv(design.T @ design)
+            scores = [
+                design[regions == region].T @ residuals[regions == region]
+                for region in np.unique(regions)
+            ]
+            variance = bread @ sum(np.outer(score, score) for score in scores) @ bread
+            assert beta[unit, pathway] == pytest.approx(coefficients[-1])
+            assert standard_error[unit, pathway] == pytest.approx(
+                np.sqrt(variance[-1, -1])
+            )
+
+
+def test_benjamini_hochberg_ignores_missing_p_values() -> None:
+    """Each row is adjusted over its own finite p-values only."""
+    adjusted = pathway_enrichment._benjamini_hochberg(
+        np.array([[0.01, 0.04, np.nan, 0.03], [0.5, np.nan, np.nan, np.nan]])
+    )
+    np.testing.assert_allclose(
+        adjusted, [[0.03, 0.04, np.nan, 0.04], [0.5, np.nan, np.nan, np.nan]]
+    )
+
+
+class TestRegression:
+    """Test the enrichment regression on a toy release.
+
+    Forty protein-coding genes, 10 Mb apart so that each is its own region: gene0-gene19 on
+    chromosome 1 and gene20-gene39 on chromosome 2, all of the same length. PA holds gene0-gene7
+    and gene20-gene27, PB the other genes, so every gene is in one pathway. disease1 lists six
+    PA genes on each chromosome; disease2 lists three genes on chromosome 1 only.
     """
 
     @pytest.fixture()
-    def gene_lists(self, spark: SparkSession) -> tuple[DataFrame, DataFrame]:
-        """Gene sets and disease gene lists."""
-        members = {
-            "PA": ["G1", "G2", "G3", "G4"],
-            "PB": ["G5", "G6", "G7", "G8"],
-            "PC": ["G9", "G10"],
-            "PD": ["G1", "G5"],
-        }
+    def inputs(self, spark: SparkSession) -> tuple[DataFrame, DataFrame, TargetIndex]:
+        """Gene lists, gene sets and target index."""
+        genes = [f"gene{i}" for i in range(40)]
+        target_index = TargetIndex(
+            _df=spark.createDataFrame(
+                [
+                    {
+                        "id": gene,
+                        "biotype": "protein_coding",
+                        "genomicLocation": {
+                            "chromosome": "1" if i < 20 else "2",
+                            "start": 10_000_000 * (i + 1),
+                            "end": 10_000_000 * (i + 1) + 999,
+                        },
+                        "tss": 10_000_000 * (i + 1),
+                    }
+                    for i, gene in enumerate(genes)
+                ],
+                TargetIndex.get_schema(),
+            ),
+            _schema=TargetIndex.get_schema(),
+        )
         gene_sets = spark.createDataFrame(
-            [(pathway, gene) for pathway, genes in members.items() for gene in genes],
+            [("PA" if i % 20 < 8 else "PB", gene) for i, gene in enumerate(genes)],
             "pathwayId string, geneId string",
         )
         gene_lists = spark.createDataFrame(
             [
-                ("disease1", "1", "G1"),
-                ("disease1", "1", "G2"),
-                ("disease1", "1", "G3"),
-                ("disease1", "1", "G11"),
-                ("disease1", "2", "G4"),
-                ("disease2", "1", "G9"),
-            ],
+                ("disease1", "1" if i < 20 else "2", f"gene{i}")
+                for i in [*range(6), *range(20, 26)]
+            ]
+            + [("disease2", "1", f"gene{i}") for i in (0, 10, 15)],
             "diseaseId string, chromosome string, geneId string",
         )
-        return gene_lists, gene_sets
+        return gene_lists, gene_sets, target_index
 
-    @pytest.fixture()
-    def results(
-        self, gene_lists: tuple[DataFrame, DataFrame]
-    ) -> dict[str, dict[str, Any]]:
-        """Test results of disease1 by pathway, with diseases of two or more genes tested."""
-        rows = PathwayLibrary.over_representation(*gene_lists, min_genes=2).collect()
-        assert {(row["diseaseId"], row["heldOutChromosome"]) for row in rows} == {
-            ("disease1", "2")
-        }
-        return {row["pathwayId"]: row.asDict() for row in rows}
-
-    def test_only_overlapping_pathways_are_returned(
-        self, results: dict[str, dict[str, Any]]
+    def test_enriched_pathways_per_held_out_chromosome(
+        self, inputs: tuple[DataFrame, DataFrame, TargetIndex]
     ) -> None:
-        """PB and PC share no gene with disease1."""
-        assert set(results) == {"PA", "PD"}
+        """PA is enriched for disease1 whichever chromosome is held out; PB is depleted.
 
-    def test_counts_exclude_genes_outside_the_library(
-        self, results: dict[str, dict[str, Any]]
-    ) -> None:
-        """G11 is in no pathway and G4 is held out, so disease1 counts three genes."""
+        On the 20 remaining genes, disease1 lists 6 of the 8 PA genes and none of the others:
+        beta = 0.75 and, each gene being its own region, SE = sqrt(0.54) / 4.8.
+        """
+        rows = PathwayLibrary.regression(*inputs, min_genes=4).collect()
         assert {
-            key: results["PA"][key]
-            for key in ("overlap", "pathwaySize", "diseaseGeneCount", "backgroundSize")
+            (r["diseaseId"], r["heldOutChromosome"], r["pathwayId"]) for r in rows
         } == {
-            "overlap": 3,
-            "pathwaySize": 4,
-            "diseaseGeneCount": 3,
-            "backgroundSize": 10,
+            ("disease1", "1", "PA"),
+            ("disease1", "2", "PA"),
+        }
+        for row in rows:
+            assert row["beta"] == pytest.approx(0.75)
+            assert row["betaError"] == pytest.approx(np.sqrt(0.54) / 4.8)
+            assert row["pValueAdjusted"] == pytest.approx(min(2 * row["pValue"], 1.0))
+
+    def test_diseases_with_too_few_genes_left_are_not_tested(
+        self, inputs: tuple[DataFrame, DataFrame, TargetIndex]
+    ) -> None:
+        """With a minimum of three genes, disease2 is tested only when chromosome 2 is held out."""
+        rows = PathwayLibrary.regression(
+            *inputs, min_genes=3, p_value_adjusted_threshold=1.01
+        ).collect()
+        assert {(r["diseaseId"], r["heldOutChromosome"]) for r in rows} == {
+            ("disease1", "1"),
+            ("disease1", "2"),
+            ("disease2", "2"),
         }
 
-    def test_genes_of_the_held_out_chromosome_are_left_out(
-        self, gene_lists: tuple[DataFrame, DataFrame]
+    def test_only_the_requested_chromosomes_are_held_out(
+        self, inputs: tuple[DataFrame, DataFrame, TargetIndex]
     ) -> None:
-        """Holding out chromosome 1 leaves disease1 with G4 alone, and disease2 with nothing."""
-        counts = {
-            (row["diseaseId"], row["heldOutChromosome"], row["pathwayId"]): (
-                row["overlap"],
-                row["diseaseGeneCount"],
-            )
-            for row in PathwayLibrary.over_representation(
-                *gene_lists, min_genes=1
-            ).collect()
-        }
-        assert counts == {
-            ("disease1", "1", "PA"): (1, 1),
-            ("disease1", "2", "PA"): (3, 3),
-            ("disease1", "2", "PD"): (1, 3),
-            ("disease2", "2", "PC"): (1, 1),
-        }
-
-    def test_p_values_are_the_hypergeometric_upper_tail(
-        self, results: dict[str, dict[str, Any]]
-    ) -> None:
-        """P(X >= k) with N = 10 library genes and n = 3 disease genes."""
-        assert results["PA"]["pValue"] == pytest.approx(hypergeom.sf(2, 10, 4, 3))
-        assert results["PD"]["pValue"] == pytest.approx(hypergeom.sf(0, 10, 2, 3))
-
-    def test_adjustment_counts_every_pathway_of_the_library(
-        self, results: dict[str, dict[str, Any]]
-    ) -> None:
-        """Benjamini-Hochberg over m = 4 pathways, although only two are returned."""
-        p_a, p_d = results["PA"]["pValue"], results["PD"]["pValue"]
-        assert results["PA"]["pValueAdjusted"] == pytest.approx(
-            min(p_a * 4 / 1, p_d * 4 / 2, 1.0)
-        )
-        assert results["PD"]["pValueAdjusted"] == pytest.approx(min(p_d * 4 / 2, 1.0))
+        """Holding out chromosome 2 only returns its results."""
+        rows = PathwayLibrary.regression(
+            *inputs, min_genes=4, held_out_chromosomes=["2"]
+        ).collect()
+        assert {r["heldOutChromosome"] for r in rows} == {"2"}
