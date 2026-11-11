@@ -8,6 +8,7 @@ import pyspark.sql.functions as f
 from pyspark.sql import Window
 
 from gentropy.common.spark import convert_from_wide_to_long
+from gentropy.dataset.credible_set import CredibleSetLocus
 from gentropy.dataset.l2g_features.distance import (
     common_neighbourhood_distance_feature_logic,
 )
@@ -15,7 +16,6 @@ from gentropy.dataset.l2g_features.l2g_feature import L2GFeature
 from gentropy.dataset.l2g_features.vep import common_vep_feature_logic
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
 from gentropy.dataset.study_index import StudyIndex
-from gentropy.dataset.study_locus import StudyLocus
 from gentropy.dataset.target_index import TargetIndex
 from gentropy.dataset.variant_index import VariantIndex
 from gentropy.method.pathway_enrichment import PathwayLibrary
@@ -25,7 +25,7 @@ if TYPE_CHECKING:
 
 
 def prioritised_disease_genes(
-    study_locus: StudyLocus,
+    study_locus: CredibleSetLocus,
     study_index: StudyIndex,
     variant_index: VariantIndex,
     target_index: TargetIndex,
@@ -42,7 +42,7 @@ def prioritised_disease_genes(
     the gene is on, so that the lists can leave a chromosome out.
 
     Args:
-        study_locus (StudyLocus): Credible sets; only the GWAS ones are used
+        study_locus (CredibleSetLocus): Credible sets; only the GWAS ones are used
         study_index (StudyIndex): Study index, used to resolve a study to its diseases
         variant_index (VariantIndex): Variant index, the source of distances and consequences
         target_index (TargetIndex): Target index, used to find the protein-coding genes
@@ -62,7 +62,7 @@ def prioritised_disease_genes(
             target_index=target_index,
         )
         .filter(f.col("distanceSentinelTssNeighbourhood") == 1.0)
-        .select("studyLocusId", "geneId")
+        .select("credibleSetId", "geneId")
     )
     coding_variant_genes = (
         common_vep_feature_logic(
@@ -71,13 +71,13 @@ def prioritised_disease_genes(
             feature_name="vepMaximum",
         )
         .filter(f.col("vepMaximum") >= vep_score_threshold)
-        .select("studyLocusId", "geneId")
+        .select("credibleSetId", "geneId")
     )
     return (
         nearest_genes.unionByName(coding_variant_genes)
         .join(
-            gwas_credible_sets.df.select("studyLocusId", "studyId", "chromosome"),
-            "studyLocusId",
+            gwas_credible_sets.df.select("credibleSetId", "studyId", "chromosome"),
+            "credibleSetId",
             "inner",
         )
         .join(
@@ -119,11 +119,11 @@ _last_scores: dict[str, Any] = {}
 
 
 def disease_set_pathway_scores(
-    study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+    study_loci_to_annotate: CredibleSetLocus | L2GGoldStandard,
     *,
     pathway_library: PathwayLibrary,
     study_index: StudyIndex,
-    study_locus: StudyLocus,
+    study_locus: CredibleSetLocus,
     target_index: TargetIndex,
     variant_index: VariantIndex,
     p_value_adjusted_threshold: float,
@@ -145,11 +145,11 @@ def disease_set_pathway_scores(
     `common_pathway_enrichment_feature_logic` for the arguments.
 
     Args:
-        study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci
+        study_loci_to_annotate (CredibleSetLocus | L2GGoldStandard): The dataset containing study loci
             that will be used for annotation
         pathway_library (PathwayLibrary): GO and Reactome tables of the release
         study_index (StudyIndex): Study index, used to resolve a study to its diseases
-        study_locus (StudyLocus): Credible sets, the source of the disease gene lists
+        study_locus (CredibleSetLocus): Credible sets, the source of the disease gene lists
         target_index (TargetIndex): Target index, used for gene annotations
         variant_index (VariantIndex): Variant index, used to prioritise genes at each credible set
         p_value_adjusted_threshold (float): Largest adjusted p-value, exclusive, for a pathway
@@ -217,10 +217,10 @@ def disease_set_pathway_scores(
 
     # Only the disease sets and chromosomes of the loci to annotate are ever looked up.
     disease_set_chromosomes = (
-        study_locus.df.select("studyLocusId", "studyId", "chromosome")
+        study_locus.df.select("credibleSetId", "studyId", "chromosome")
         .join(
-            study_loci_to_annotate.df.select("studyLocusId").distinct(),
-            "studyLocusId",
+            study_loci_to_annotate.df.select("credibleSetId").distinct(),
+            "credibleSetId",
             "semi",
         )
         .join(gwas_disease_sets(study_index), "studyId", "inner")
@@ -260,12 +260,12 @@ def disease_set_pathway_scores(
 
 
 def common_pathway_enrichment_feature_logic(
-    study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+    study_loci_to_annotate: CredibleSetLocus | L2GGoldStandard,
     feature_name: str,
     *,
     pathway_library: PathwayLibrary,
     study_index: StudyIndex,
-    study_locus: StudyLocus,
+    study_locus: CredibleSetLocus,
     target_index: TargetIndex,
     variant_index: VariantIndex,
     p_value_adjusted_threshold: float,
@@ -305,12 +305,12 @@ def common_pathway_enrichment_feature_logic(
     annotated with it.
 
     Args:
-        study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci
+        study_loci_to_annotate (CredibleSetLocus | L2GGoldStandard): The dataset containing study loci
             that will be used for annotation
         feature_name (str): The name of the feature
         pathway_library (PathwayLibrary): GO and Reactome tables of the release
         study_index (StudyIndex): Study index, used to resolve a study to its diseases
-        study_locus (StudyLocus): Credible sets, the source of the disease gene lists and of
+        study_locus (CredibleSetLocus): Credible sets, the source of the disease gene lists and of
             the position of the study locus
         target_index (TargetIndex): Target index, used for gene annotations and positions
         variant_index (VariantIndex): Variant index, used to prioritise genes at each credible
@@ -342,10 +342,10 @@ def common_pathway_enrichment_feature_logic(
     )
 
     genes_in_window = (
-        study_locus.df.select("studyLocusId", "studyId", "chromosome", "position")
+        study_locus.df.select("credibleSetId", "studyId", "chromosome", "position")
         .join(
-            study_loci_to_annotate.df.select("studyLocusId").distinct(),
-            "studyLocusId",
+            study_loci_to_annotate.df.select("credibleSetId").distinct(),
+            "credibleSetId",
             "semi",
         )
         .join(
@@ -358,14 +358,14 @@ def common_pathway_enrichment_feature_logic(
             & (f.abs(f.col("tss") - f.col("position")) <= genomic_window),
             how="inner",
         )
-        .select("studyLocusId", "studyId", "chromosome", "geneId")
+        .select("credibleSetId", "studyId", "chromosome", "geneId")
     )
 
     return (
         genes_in_window.join(disease_sets, "studyId", "left")
         .join(scores, ["diseaseSet", "chromosome", "geneId"], "left")
         .select(
-            "studyLocusId",
+            "credibleSetId",
             "geneId",
             f.coalesce(f.col("score"), f.lit(0.0)).alias(feature_name),
         )
@@ -374,7 +374,7 @@ def common_pathway_enrichment_feature_logic(
 
 
 def common_neighbourhood_pathway_enrichment_feature_logic(
-    study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+    study_loci_to_annotate: CredibleSetLocus | L2GGoldStandard,
     feature_name: str,
     **kwargs: Any,
 ) -> DataFrame:
@@ -385,7 +385,7 @@ def common_neighbourhood_pathway_enrichment_feature_logic(
     divides each gene's score by the largest score at the locus.
 
     Args:
-        study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci
+        study_loci_to_annotate (CredibleSetLocus | L2GGoldStandard): The dataset containing study loci
             that will be used for annotation
         feature_name (str): The name of the neighbourhood feature, ending in "Neighbourhood"
         **kwargs (Any): Arguments of `common_pathway_enrichment_feature_logic`
@@ -397,7 +397,7 @@ def common_neighbourhood_pathway_enrichment_feature_logic(
     local_scores = common_pathway_enrichment_feature_logic(
         study_loci_to_annotate, local_feature_name, **kwargs
     )
-    regional_max = f.max(local_feature_name).over(Window.partitionBy("studyLocusId"))
+    regional_max = f.max(local_feature_name).over(Window.partitionBy("credibleSetId"))
     return (
         local_scores.withColumn("regionalMax", regional_max)
         .withColumn(
@@ -417,7 +417,7 @@ class PathwayEnrichmentFeature(L2GFeature):
     feature_dependency_type = [
         PathwayLibrary,
         StudyIndex,
-        StudyLocus,
+        CredibleSetLocus,
         TargetIndex,
         VariantIndex,
     ]
@@ -428,13 +428,13 @@ class PathwayEnrichmentFeature(L2GFeature):
     @classmethod
     def compute(
         cls: type[PathwayEnrichmentFeature],
-        study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+        study_loci_to_annotate: CredibleSetLocus | L2GGoldStandard,
         feature_dependency: dict[str, Any],
     ) -> PathwayEnrichmentFeature:
         """Computes the feature.
 
         Args:
-            study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
+            study_loci_to_annotate (CredibleSetLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
             feature_dependency (dict[str, Any]): Pathway library, studies, credible sets, genes and variants
 
         Returns:
@@ -449,7 +449,7 @@ class PathwayEnrichmentFeature(L2GFeature):
                     genomic_window=cls.genomic_window,
                     **feature_dependency,
                 ),
-                id_vars=("studyLocusId", "geneId"),
+                id_vars=("credibleSetId", "geneId"),
                 var_name="featureName",
                 value_name="featureValue",
             ),
@@ -463,7 +463,7 @@ class PathwayEnrichmentNeighbourhoodFeature(L2GFeature):
     feature_dependency_type = [
         PathwayLibrary,
         StudyIndex,
-        StudyLocus,
+        CredibleSetLocus,
         TargetIndex,
         VariantIndex,
     ]
@@ -474,13 +474,13 @@ class PathwayEnrichmentNeighbourhoodFeature(L2GFeature):
     @classmethod
     def compute(
         cls: type[PathwayEnrichmentNeighbourhoodFeature],
-        study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+        study_loci_to_annotate: CredibleSetLocus | L2GGoldStandard,
         feature_dependency: dict[str, Any],
     ) -> PathwayEnrichmentNeighbourhoodFeature:
         """Computes the feature.
 
         Args:
-            study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
+            study_loci_to_annotate (CredibleSetLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
             feature_dependency (dict[str, Any]): Pathway library, studies, credible sets, genes and variants
 
         Returns:
@@ -495,7 +495,7 @@ class PathwayEnrichmentNeighbourhoodFeature(L2GFeature):
                     genomic_window=cls.genomic_window,
                     **feature_dependency,
                 ),
-                id_vars=("studyLocusId", "geneId"),
+                id_vars=("credibleSetId", "geneId"),
                 var_name="featureName",
                 value_name="featureValue",
             ),

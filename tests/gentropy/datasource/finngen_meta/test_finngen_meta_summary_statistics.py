@@ -1,5 +1,6 @@
 """Tests for finngen meta summary statistics dataset."""
 
+import gzip
 from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock, patch
@@ -274,25 +275,81 @@ class TestFinnGenUkbMvpMetaSummaryStatistics:
         )
         return mock_manifest
 
-    def test_bgzip_from_parquet(self, tmp_path: Path, session: Session) -> None:
-        """Test bgzip from parquet conversion.
+    @staticmethod
+    def _write_source_file(path: Path, header: list[str], rows: list[list[str]]) -> str:
+        """Write a gzipped, tab-separated summary statistics file."""
+        content = "\n".join("\t".join(line) for line in [header, *rows]) + "\n"
+        path.write_bytes(gzip.compress(content.encode()))
+        return path.as_posix()
 
-        Note:
-            Test that includes the usage of enhanced bgzip codec would require to set up
-            the ivy_cache in advance, which can be slow, as the dependencies need to be downloaded.
-            Therefore, here we just test that the KeyError is raised when the setting is not enabled.
-        """
-        input_path = "tests/gentropy/data_samples/*_meta_out.tsv.gz"
-        output_path = tmp_path / "output"
-        with pytest.raises(KeyError) as e:
-            FinnGenUkbMvpMetaSummaryStatistics.bgzip_to_parquet(
-                session,
-                summary_statistics_list=[input_path],
-                datasource=MetaAnalysisDataSource.FINNGEN_UKBB_MVP,
-                raw_summary_statistics_output_path=output_path.as_posix(),
+    def test_read_header(self, tmp_path: Path, session: Session) -> None:
+        """Test that the header is read from the first line of a gzipped file."""
+        path = self._write_source_file(
+            tmp_path / "A_meta_out.tsv.gz", ["#CHR", "POS", "REF"], [["1", "1", "A"]]
+        )
+        assert FinnGenUkbMvpMetaSummaryStatistics.read_header(session, path) == [
+            "#CHR",
+            "POS",
+            "REF",
+        ]
+
+    def test_read_header_empty_file(self, tmp_path: Path, session: Session) -> None:
+        """Test that an empty file is rejected."""
+        path = tmp_path / "A_meta_out.tsv.gz"
+        path.write_bytes(gzip.compress(b""))
+        with pytest.raises(ValueError, match="empty"):
+            FinnGenUkbMvpMetaSummaryStatistics.read_header(session, path.as_posix())
+
+    def test_from_source_files(self, tmp_path: Path, session: Session) -> None:
+        """Test that files with different headers are read into the source columns."""
+        columns = FinnGenUkbMvpMetaSummaryStatistics.source_columns
+        # Every source column, in the order of the full header.
+        full = self._write_source_file(
+            tmp_path / "FULL_meta_out.tsv.gz",
+            ["SNP", *columns],
+            [
+                ["1:100:A:G", "1", "100", "A", "G", *["0.5"] * (len(columns) - 4)],
+                ["1:200:A:G", "1", "200", "A", "G", *["NA"] * (len(columns) - 4)],
+            ],
+        )
+        # Without the MVP_AFR, MVP_HIS and ukbb columns.
+        partial_columns = [
+            c for c in columns if not c.startswith(("MVP_AFR", "MVP_HIS", "ukbb"))
+        ]
+        partial = self._write_source_file(
+            tmp_path / "PARTIAL_meta_out.tsv.gz",
+            partial_columns,
+            [["2", "300", "C", "T", *["0.25"] * (len(partial_columns) - 4)]],
+        )
+
+        df = FinnGenUkbMvpMetaSummaryStatistics.from_source_files(
+            session,
+            [full, partial],
+            MetaAnalysisDataSource.FINNGEN_UKBB_MVP,
+        )
+
+        assert df.columns == ["studyId", *columns]
+        for c in columns:
+            assert (
+                df.schema[c].dataType
+                == FinnGenUkbMvpMetaSummaryStatistics.raw_schema[c].dataType
+            ), f"{c} has the wrong type"
+        rows = {row["POS"]: row for row in df.collect()}
+        assert sorted(rows) == [100, 200, 300]
+        assert rows[100]["studyId"] == "FINNGEN_R12_UKB_MVP_META_FULL"
+        assert rows[100]["ukbb_af_alt"] == 0.5
+        assert rows[200]["ukbb_af_alt"] is None, "NA is not read as null"
+        assert rows[300]["studyId"] == "FINNGEN_R12_UKB_MVP_META_PARTIAL"
+        assert rows[300]["MVP_EUR_r2"] == 0.25
+        assert rows[300]["ukbb_af_alt"] is None, "a missing column is not null"
+        assert rows[300]["MVP_HIS_r2"] is None, "a missing column is not null"
+
+    def test_from_source_files_without_paths(self, session: Session) -> None:
+        """Test that an empty list of paths is rejected."""
+        with pytest.raises(ValueError, match="No summary statistics paths"):
+            FinnGenUkbMvpMetaSummaryStatistics.from_source_files(
+                session, [], MetaAnalysisDataSource.FINNGEN_UKBB_MVP
             )
-
-        assert "use_enhanced_bgzip_codec" in str(e.value)
 
     @pytest.mark.parametrize(
         ["params"],

@@ -1,0 +1,5 @@
+trait	region	cs	cs_log10bf	cs_avg_r2	cs_min_r2	low_purity	cs_size
+integrated_gex_batch1_5.fgid.qc.predicted.celltype.l1.B.mean.inv.SAIGE	ENSG00000015475	1	27.1480701139174	1	1	FALSE	1
+integrated_gex_batch1_5.fgid.qc.predicted.celltype.l1.B.mean.inv.SAIGE	ENSG00000015475	2	0.20737666592376	0.00290876706197257	1.22618147658106e-09	TRUE	4807
+integrated_gex_batch1_5.fgid.qc.predicted.celltype.l1.B.mean.inv.SAIGE	ENSG00000025708	1	3.80447781205948	0.681392130765678	0.129474255451592	TRUE	15
+integrated_gex_batch1_5.fgid.qc.predicted.celltype.l1.B.mean.inv.SAIGE	ENSG00000025770	1	7.26614762685149	0.999870862147707	0.999156786305632	FALSE	14

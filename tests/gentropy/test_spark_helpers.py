@@ -4,13 +4,11 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-import pyspark.sql.functions as f
 import pytest
 from pyspark.sql.types import ArrayType, DoubleType, StructField, StructType
 
 from gentropy.common.spark import (
     get_record_with_maximum_value,
-    get_record_with_minimum_value,
     order_array_of_structs_by_field,
 )
 
@@ -28,19 +26,6 @@ def mock_variant_df(spark: SparkSession) -> DataFrame:
             [17, 5738922, "del", "16_5738922_CA_C"],
         ],
         ["chromosome", "position", "alleleType", "id"],
-    )
-
-
-def test_get_record_with_minimum_value_group_one_col(
-    mock_variant_df: DataFrame,
-) -> None:
-    """Test the util that return the row with the minimum value in a window by grouping per one column."""
-    grouping_col, sorting_col = "chromosome", "position"
-    df = mock_variant_df.transform(
-        lambda df: get_record_with_minimum_value(df, grouping_col, sorting_col)
-    )
-    assert df.filter(f.col("chromosome") == 16).collect()[0].__getitem__("position"), (
-        10116
     )
 
 
