@@ -55,9 +55,9 @@ class StudyIndexGWASCatalogParser:
             ...    spark.createDataFrame(data, ['studyId', 'ancestry', 'sampleSize'])
             ...    .groupBy('studyId')
             ...    .agg(
-            ...        f.collect_set(
+            ...        f.array_sort(f.collect_set(
             ...            f.struct('ancestry', 'sampleSize')
-            ...        ).alias('discoverySampleSize')
+            ...        )).alias('discoverySampleSize')
             ...    )
             ...    .orderBy('studyId')
             ...    .withColumn('discoverySampleSize', StudyIndexGWASCatalogParser._parse_discovery_samples(f.col('discoverySampleSize')))
@@ -244,7 +244,8 @@ class StudyIndexGWASCatalogParser:
         return StudyIndexGWASCatalog(
             _df=catalog_studies.select(
                 f.coalesce(
-                    f.col("STUDY ACCESSION"), f.monotonically_increasing_id()
+                    f.col("STUDY ACCESSION"),
+                    f.monotonically_increasing_id().cast(t.StringType()),
                 ).alias("studyId"),
                 f.lit("GCST").alias("projectId"),
                 f.lit("gwas").alias("studyType"),

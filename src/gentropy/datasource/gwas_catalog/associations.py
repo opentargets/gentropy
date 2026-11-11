@@ -102,8 +102,8 @@ class GWASCatalogCuratedAssociationsParser:
         """
         split = f.split(pvalue, "E")
         return PValComponents(
-            mantissa=split.getItem(0).cast("float").alias("pValueMantissa"),
-            exponent=f.coalesce(split.getItem(1).cast("integer"), f.lit(1)).alias(
+            mantissa=f.get(split, 0).try_cast("float").alias("pValueMantissa"),
+            exponent=f.coalesce(f.get(split, 1).try_cast("integer"), f.lit(1)).alias(
                 "pValueExponent"
             ),
         )
@@ -1037,7 +1037,7 @@ class GWASCatalogCuratedAssociationsParser:
                         (f.col("effectType") == "beta")
                         & (~f.col("isAllelePalindromic")),
                         GWASCatalogCuratedAssociationsParser._harmonise_beta(
-                            f.col("OR or BETA"),
+                            f.col("OR or BETA").try_cast(DoubleType()),
                             f.col("95% CI (TEXT)"),
                             f.col("needsFlipping"),
                         ),
@@ -1047,7 +1047,7 @@ class GWASCatalogCuratedAssociationsParser:
                         (f.col("effectType") == "odds_ratio")
                         & (~f.col("isAllelePalindromic")),
                         GWASCatalogCuratedAssociationsParser._harmonise_odds_ratio(
-                            f.col("OR or BETA"),
+                            f.col("OR or BETA").try_cast(DoubleType()),
                             f.col("needsFlipping"),
                         ),
                     ),
@@ -1062,10 +1062,10 @@ class GWASCatalogCuratedAssociationsParser:
                     standard_error=f.lit(None).alias("standardError"),
                     ci_lower=f.regexp_extract(
                         "95% CI (TEXT)", r"\[(\d+\.*\d*)-\d+\.*\d*\]", 1
-                    ).cast(FloatType()),
+                    ).try_cast(FloatType()),
                     ci_upper=f.regexp_extract(
                         "95% CI (TEXT)", r"\[\d+\.*\d*-(\d+\.*\d*)\]", 1
-                    ).cast(FloatType()),
+                    ).try_cast(FloatType()),
                     mantissa=pval_components.mantissa,
                     exponent=pval_components.exponent,
                 ),

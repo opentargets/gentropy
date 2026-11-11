@@ -530,6 +530,8 @@ def pvalue_from_neglogpval(p_value: Column) -> PValComponents:
         +--------+--------------+--------------+
         <BLANKLINE>
     """
+    # Parsed first: ceil of a string casts it to a bigint, which fails for a decimal under ANSI.
+    p_value = p_value.try_cast(t.DoubleType())
     exponent: Column = f.ceil(p_value)
     mantissa: Column = f.pow(f.lit(10), (exponent - p_value))
 
@@ -777,4 +779,4 @@ def effective_sample_size(n_cases: Column, n_controls: Column) -> Column:
     """
     n_cases = n_cases.cast("double")
     n_controls = n_controls.cast("double")
-    return ((4 * n_cases * n_controls) / (n_cases + n_controls)).cast("integer")
+    return f.try_divide(4 * n_cases * n_controls, n_cases + n_controls).cast("integer")

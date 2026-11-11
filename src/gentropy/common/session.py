@@ -963,7 +963,7 @@ class Session:
         )
         typed = text.select(
             *[
-                f.col(field.name).cast(field.dataType).alias(field.name)
+                f.col(field.name).try_cast(field.dataType).alias(field.name)
                 for field in target.fields
             ],
             *[

@@ -359,9 +359,12 @@ class deCODESummaryStatistics:
                 ),
                 f.col("sampleSize").alias("sampleSize"),
                 f.col("neglogPval").alias("neglogPval"),
+                # Cast back to float: under ANSI type coercion, 1 - a float is a double.
                 infer_allele_frequency_from_maf(
                     f.col("minorAlleleFrequency"), f.col("eur_af")
-                ).alias("effectAlleleFrequencyFromSource"),
+                )
+                .cast(t.FloatType())
+                .alias("effectAlleleFrequencyFromSource"),
                 f.col("standardError").alias("standardError"),
             )
             .select(
