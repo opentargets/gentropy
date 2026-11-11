@@ -31,7 +31,7 @@ class EqtlGenIngestionStep:
 
       A1 --> R["every variant tested per feature; effects turned to the alternative allele"]
       R --> M["members of each SusieRss_CS credible set: posterior probability and Bayes factor of its single effect over every variant tested"]
-      M --> F["keep credible sets with log10 Bayes factor >= min_credible_set_log10_bayes_factor"]
+      M --> F["keep credible sets with log10 Bayes factor >= min_credible_set_log10_bayes_factor and members holding >= 0.95 of their effect"]
       F --> CS["CredibleSet.from_members: lead variant, drop leads with p above lead_pvalue_threshold"]
       CS --> O2
       CS --> O3
