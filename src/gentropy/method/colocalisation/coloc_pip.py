@@ -9,7 +9,7 @@ from pyspark.sql import functions as f
 from pyspark.sql import types as t
 
 from gentropy.dataset.colocalisation import Colocalisation
-from gentropy.dataset.study_locus_overlap import StudyLocusOverlap
+from gentropy.dataset.locus_overlap import LocusOverlap
 from gentropy.method.colocalisation.model import ColocalisationMethodInterface
 
 if TYPE_CHECKING:
@@ -38,13 +38,13 @@ class ColocPIP(ColocalisationMethodInterface):
     @classmethod
     def colocalise(
         cls: type[ColocPIP],
-        overlapping_signals: StudyLocusOverlap,
+        overlapping_signals: LocusOverlap,
         **kwargs: Any,
     ) -> Colocalisation:
         """Calculate approximate bayesian colocalisation based on overlapping signals with PIPs.
 
         Args:
-            overlapping_signals (StudyLocusOverlap): overlapping peaks
+            overlapping_signals (LocusOverlap): overlapping peaks
             **kwargs (Any): Additional parameters passed to the colocalise method.
 
         Keyword Args:
@@ -80,8 +80,8 @@ class ColocPIP(ColocalisationMethodInterface):
                 #   S1 = sum(pip1), S2 = sum(pip2), B = sum(pip1 * pip2)
                 .groupBy(
                     "chromosome",
-                    "leftStudyLocusId",
-                    "rightStudyLocusId",
+                    "leftLocusId",
+                    "rightLocusId",
                     "rightStudyType",
                 )
                 .agg(
@@ -108,7 +108,7 @@ class ColocPIP(ColocalisationMethodInterface):
                 .withColumn("colocalisationMethod", f.lit(cls.METHOD_NAME))
                 .join(
                     overlapping_signals.calculate_beta_ratio(),
-                    on=["leftStudyLocusId", "rightStudyLocusId", "chromosome"],
+                    on=["leftLocusId", "rightLocusId", "chromosome"],
                     how="left",
                 )
             ),

@@ -1,0 +1,95 @@
+{
+  "type": "struct",
+  "fields": [
+    {
+      "name": "credibleSetId",
+      "type": "string",
+      "nullable": false,
+      "metadata": {}
+    },
+    {
+      "name": "studyId",
+      "type": "string",
+      "nullable": false,
+      "metadata": {}
+    },
+    {
+      "name": "studyType",
+      "type": "string",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "chromosome",
+      "type": "string",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "position",
+      "type": "integer",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "variantId",
+      "type": "string",
+      "nullable": false,
+      "metadata": {}
+    },
+    {
+      "name": "fineMappingMethod",
+      "type": "string",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "confidence",
+      "type": "byte",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "qualityControls",
+      "type": {
+        "type": "array",
+        "elementType": "string",
+        "containsNull": false
+      },
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "isTransQtl",
+      "type": "boolean",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "locus",
+      "type": {
+        "type": "array",
+        "containsNull": false,
+        "elementType": {
+          "type": "struct",
+          "fields": [
+            {
+              "name": "variantId",
+              "type": "string",
+              "nullable": true,
+              "metadata": {}
+            },
+            {
+              "name": "posteriorProbability",
+              "type": "float",
+              "nullable": true,
+              "metadata": {}
+            }
+          ]
+        }
+      },
+      "nullable": true,
+      "metadata": {}
+    }
+  ]
+}

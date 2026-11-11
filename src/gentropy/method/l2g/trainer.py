@@ -549,12 +549,12 @@ class LocusToGeneTrainer:
         # Locus-level resolution stats
         locus_proba = pd.DataFrame(
             {
-                "studyLocusId": fold_val_df["studyLocusId"].values,
+                "credibleSetId": fold_val_df["credibleSetId"].values,
                 "prob": y_pred_proba[:, 1],
             }
         )
-        genes_above = locus_proba[locus_proba["prob"] >= 0.5].groupby("studyLocusId").size()
-        all_loci = locus_proba["studyLocusId"].unique()
+        genes_above = locus_proba[locus_proba["prob"] >= 0.5].groupby("credibleSetId").size()
+        all_loci = locus_proba["credibleSetId"].unique()
         metrics["n_loci"] = int(len(all_loci))
         metrics["n_loci_one_gene_above"] = int((genes_above == 1).sum())
         metrics["n_loci_no_gene_above"] = int(len(all_loci) - len(genes_above))
@@ -654,12 +654,12 @@ class LocusToGeneTrainer:
 
         locus_proba = pd.DataFrame(
             {
-                "studyLocusId": self.test_df["studyLocusId"].values,
+                "credibleSetId": self.test_df["credibleSetId"].values,
                 "prob": y_pred_proba[:, 1],
             }
         )
-        genes_above = locus_proba[locus_proba["prob"] >= 0.5].groupby("studyLocusId").size()
-        all_loci = locus_proba["studyLocusId"].unique()
+        genes_above = locus_proba[locus_proba["prob"] >= 0.5].groupby("credibleSetId").size()
+        all_loci = locus_proba["credibleSetId"].unique()
         metrics["n_loci"] = int(len(all_loci))
         metrics["n_loci_one_gene_above"] = int((genes_above == 1).sum())
         metrics["n_loci_no_gene_above"] = int(len(all_loci) - len(genes_above))
@@ -901,8 +901,8 @@ class LocusToGeneTrainer:
 
         Strategy:
         1. Split positives by geneId groups
-        2. Further split by studyLocusId within each gene group
-        3. Augment splits with corresponding negatives based on studyLocusId
+        2. Further split by credibleSetId within each gene group
+        3. Augment splits with corresponding negatives based on credibleSetId
 
         Args:
             data_df (pd.DataFrame): Input dataframe with goldStandardSet column (1=positive, 0=negative)
@@ -927,21 +927,21 @@ class LocusToGeneTrainer:
             random_state=random_state,
         )
 
-        # 2: Split by studyLocusId within each gene group
+        # 2: Split by credibleSetId within each gene group
         train_study_loci = set()
         test_study_loci = set()
         train_gene_positives = positives[positives["geneId"].isin(genes_train)]
-        train_study_loci.update(train_gene_positives["studyLocusId"].unique())
+        train_study_loci.update(train_gene_positives["credibleSetId"].unique())
 
         test_gene_positives = positives[positives["geneId"].isin(genes_test)]
-        test_study_loci.update(test_gene_positives["studyLocusId"].unique())
+        test_study_loci.update(test_gene_positives["credibleSetId"].unique())
 
         # If we have overlapping loci, we assign them to train set after controlling that the overlap is not too large
         overlapping_loci = train_study_loci.intersection(test_study_loci)
         if overlapping_loci:
             test_study_loci = test_study_loci - overlapping_loci
             test_gene_positives = test_gene_positives[
-                ~test_gene_positives["studyLocusId"].isin(overlapping_loci)
+                ~test_gene_positives["credibleSetId"].isin(overlapping_loci)
             ]
         if len(overlapping_loci) / len(test_study_loci) > 0.1:
             logging.warning(
@@ -950,8 +950,8 @@ class LocusToGeneTrainer:
             )
 
         # Final positive splits
-        train_positives = positives[positives["studyLocusId"].isin(train_study_loci)]
-        test_positives = positives[positives["studyLocusId"].isin(test_study_loci)]
+        train_positives = positives[positives["credibleSetId"].isin(train_study_loci)]
+        test_positives = positives[positives["credibleSetId"].isin(test_study_loci)]
 
         if verbose:
             logging.info("Total samples: %d", len(data_df))
@@ -959,8 +959,8 @@ class LocusToGeneTrainer:
             logging.info("Negatives: %d", len(negatives))
             logging.info("Unique genes in positives: %d", positives["geneId"].nunique())
             logging.info(
-                "Unique studyLocusIds in positives: %d",
-                positives["studyLocusId"].nunique(),
+                "Unique credibleSetIds in positives: %d",
+                positives["credibleSetId"].nunique(),
             )
             logging.info("\nGene-level split:")
             logging.info("Genes in train: %d", len(genes_train))
@@ -972,8 +972,8 @@ class LocusToGeneTrainer:
             logging.info("Positive samples in test: %d", len(test_positives))
 
         # 3: Expand splits by bringing negatives to the loci
-        train_negatives = negatives[negatives["studyLocusId"].isin(train_study_loci)]
-        test_negatives = negatives[negatives["studyLocusId"].isin(test_study_loci)]
+        train_negatives = negatives[negatives["credibleSetId"].isin(train_study_loci)]
+        test_negatives = negatives[negatives["credibleSetId"].isin(test_study_loci)]
 
         # 4: Final splits
         train_df = pd.concat([train_positives, train_negatives], ignore_index=True)
@@ -981,12 +981,12 @@ class LocusToGeneTrainer:
 
         train_genes = set(train_df["geneId"].unique())
         test_genes = set(test_df["geneId"].unique())
-        train_loci = set(train_df["studyLocusId"].unique())
-        test_loci = set(test_df["studyLocusId"].unique())
+        train_loci = set(train_df["credibleSetId"].unique())
+        test_loci = set(test_df["credibleSetId"].unique())
         loci_overlap = train_loci.intersection(test_loci)
         if loci_overlap:
             logging.warning(
-                "Data leakage detected! Overlapping studyLocusIds between splits."
+                "Data leakage detected! Overlapping credibleSetIds between splits."
             )
         if verbose:
             gene_overlap = train_genes.intersection(test_genes)

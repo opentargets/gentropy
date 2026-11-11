@@ -1,6 +1,6 @@
 """Step to build the L2G training set from the Effector Gene List.
 
-The training set labels the ``(studyLocusId, geneId)`` rows of the L2G feature matrix for
+The training set labels the ``(credibleSetId, geneId)`` rows of the L2G feature matrix for
 the credible sets holding at least one Effector Gene List (EGL) gene: a gene is a positive
 when it is an EGL effector for a disease of the credible set's study, and every other gene
 of those credible sets is a negative. Credible sets without an EGL gene are left out.
@@ -9,7 +9,7 @@ A series of optional, parametrised filters then clean the labels to reduce noise
 leakage:
 
 * replication filter — keep only the credible sets carrying the ``REPLICATED`` quality
-  control flag raised by ``StudyLocus.qc_replication``;
+  control flag raised by credible set validation;
 * maximum positives per locus — drop loci with more than ``max_gsp_per_locus`` positives;
 * protein-protein interaction filter — drop negatives that interact (STRING) with a
   positive gene in the same locus;
@@ -27,11 +27,12 @@ import pyspark.sql.functions as f
 from pyspark.sql import DataFrame, Window
 
 from gentropy.common.session import Session
+from gentropy.dataset.credible_set import CredibleSet
 from gentropy.dataset.effector_gene_list import EffectorGeneList
 from gentropy.dataset.interactions import Interactions
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
 from gentropy.dataset.study_index import StudyIndex
-from gentropy.dataset.study_locus import StudyLocus, StudyLocusQualityCheck
+from gentropy.dataset.study_locus import StudyLocusQualityCheck
 
 # Positive features that, with the sentinel variant, gene and diseases, define a credible
 # set's profile for deduplication. The colocalisation features are rounded before comparison.
@@ -72,8 +73,8 @@ class TrainingSetStep:
         Args:
             session (Session): Session object that contains the Spark session.
             feature_matrix_path (str): Path to the L2G feature matrix parquet.
-            credible_set_path (str): Path to the validated credible set (StudyLocus) dataset,
-                the output of ``StudyLocusValidationStep``, which raises the ``REPLICATED`` flag.
+            credible_set_path (str): Path to the validated credible set (CredibleSet) dataset,
+                the output of credible set validation, which raises the ``REPLICATED`` flag.
             study_index_path (str): Path to the study index dataset.
             effector_gene_list_path (str): Path to the Effector Gene List parquet produced by
                 ``EffectorGeneListStep`` (columns ``diseaseId``, ``targetId``).
@@ -82,7 +83,7 @@ class TrainingSetStep:
                 given, negatives interacting with a positive gene in the same locus are dropped.
                 Defaults to None (filter skipped).
             apply_replication_filter (bool): Keep only the credible sets flagged as ``REPLICATED``
-                by ``StudyLocus.qc_replication``. Defaults to True.
+                by credible set validation. Defaults to True.
             max_gsp_per_locus (int): Maximum number of positives allowed per credible set; loci
                 exceeding it are dropped. Defaults to 2.
             interaction_source (str): ``sourceDatabase`` value to keep from the interaction dataset.
@@ -94,21 +95,25 @@ class TrainingSetStep:
             apply_deduplication (bool): Collapse credible sets sharing identical positive feature
                 profiles. Defaults to True.
         """
-        credible_set = StudyLocus.from_parquet(session, credible_set_path).df
+        credible_set = CredibleSet.from_parquet(session, credible_set_path).df
         if apply_replication_filter:
             credible_set = credible_set.filter(
                 f.array_contains(
                     "qualityControls", StudyLocusQualityCheck.REPLICATED.value
                 )
             )
-        loci = credible_set.select("studyLocusId", "studyId", "variantId").join(
+        loci = credible_set.select(
+            f.col("id").alias("credibleSetId"),
+            "studyId",
+            f.col("leadVariantId").alias("variantId"),
+        ).join(
             StudyIndex.from_parquet(session, study_index_path).df.select(
                 "studyId", "diseaseIds"
             ),
             on="studyId",
         )
         feature_matrix = session.load_data(feature_matrix_path, "parquet").join(
-            loci, on="studyLocusId"
+            loci, on="credibleSetId"
         )
         effector_gene_list = EffectorGeneList.from_parquet(
             session, effector_gene_list_path
@@ -139,7 +144,7 @@ class TrainingSetStep:
 
         L2GGoldStandard(
             _df=labelled.select(
-                "studyLocusId",
+                "credibleSetId",
                 "variantId",
                 "studyId",
                 "geneId",
@@ -158,7 +163,7 @@ class TrainingSetStep:
     ) -> DataFrame:
         """Keep the loci holding an EGL gene and flag the EGL genes with ``GSP``.
 
-        A ``(studyLocusId, geneId)`` row is a positive when the gene is an EGL effector for any
+        A ``(credibleSetId, geneId)`` row is a positive when the gene is an EGL effector for any
         disease of the credible set's study.
 
         Args:
@@ -170,7 +175,7 @@ class TrainingSetStep:
         """
         positives = (
             feature_matrix.select(
-                "studyLocusId", "geneId", f.explode("diseaseIds").alias("diseaseId")
+                "credibleSetId", "geneId", f.explode("diseaseIds").alias("diseaseId")
             )
             .join(
                 effector_gene_list.df.select(
@@ -179,12 +184,12 @@ class TrainingSetStep:
                 on=["diseaseId", "geneId"],
                 how="semi",
             )
-            .select("studyLocusId", "geneId", f.lit(1).alias("GSP"))
+            .select("credibleSetId", "geneId", f.lit(1).alias("GSP"))
             .distinct()
         )
         return (
-            feature_matrix.join(positives, on="studyLocusId", how="semi")
-            .join(positives, on=["studyLocusId", "geneId"], how="left")
+            feature_matrix.join(positives, on="credibleSetId", how="semi")
+            .join(positives, on=["credibleSetId", "geneId"], how="left")
             .fillna(0, subset=["GSP"])
         )
 
@@ -203,7 +208,7 @@ class TrainingSetStep:
         """
         return (
             labelled.withColumn(
-                "nPositives", f.sum("GSP").over(Window.partitionBy("studyLocusId"))
+                "nPositives", f.sum("GSP").over(Window.partitionBy("credibleSetId"))
             )
             .filter(f.col("nPositives").between(1, max_gsp_per_locus))
             .drop("nPositives")
@@ -229,11 +234,11 @@ class TrainingSetStep:
             labelled.filter(f.col("GSP") == 1)
             .join(interactions.df, f.col("geneId") == f.col("targetA"))
             .select(
-                "studyLocusId", f.col("targetB").alias("geneId"), f.lit(0).alias("GSP")
+                "credibleSetId", f.col("targetB").alias("geneId"), f.lit(0).alias("GSP")
             )
         )
         return labelled.join(
-            negative_partners, on=["studyLocusId", "geneId", "GSP"], how="anti"
+            negative_partners, on=["credibleSetId", "geneId", "GSP"], how="anti"
         )
 
     @staticmethod
@@ -242,7 +247,7 @@ class TrainingSetStep:
 
         A credible set's profile is its sorted disease set with the sorted list of its positives'
         gene, sentinel variant and features, with colocalisation rounded to 2 dp. Of the credible
-        sets sharing a profile, the one with the smallest ``studyLocusId`` is kept.
+        sets sharing a profile, the one with the smallest ``credibleSetId`` is kept.
 
         Args:
             labelled (DataFrame): Labelled feature matrix including ``variantId``.
@@ -261,12 +266,12 @@ class TrainingSetStep:
         )
         kept = (
             labelled.filter(f.col("GSP") == 1)
-            .groupBy("studyLocusId")
+            .groupBy("credibleSetId")
             .agg(
                 f.array_sort(f.first("diseaseIds")).alias("diseaseIds"),
                 f.array_sort(f.collect_list(positive_profile)).alias("profile"),
             )
             .groupBy("diseaseIds", "profile")
-            .agg(f.min("studyLocusId").alias("studyLocusId"))
+            .agg(f.min("credibleSetId").alias("credibleSetId"))
         )
-        return labelled.join(kept, on="studyLocusId", how="semi")
+        return labelled.join(kept, on="credibleSetId", how="semi")

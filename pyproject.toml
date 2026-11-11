@@ -118,7 +118,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.deptry]
-extend_exclude = ["src/conftest.py", "src/utils"]
+extend_exclude = ["src/conftest.py", "src/utils", "utils"]
 
 [tool.deptry.per_rule_ignores]
 DEP001 = ["gentropy"]
