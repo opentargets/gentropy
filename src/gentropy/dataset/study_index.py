@@ -17,10 +17,10 @@ from pyspark.sql.window import Window
 from gentropy.assets import data
 from gentropy.common.schemas import parse_spark_schema
 from gentropy.common.spark import convert_from_wide_to_long, filter_array_struct
-from gentropy.dataset.dataset import Dataset, qc_test
+from gentropy.dataset.dataset import Dataset
 
 if TYPE_CHECKING:
-    from pyspark.sql import Column, DataFrame
+    from pyspark.sql import Column
     from pyspark.sql.types import StructType
 
     from gentropy.dataset.summary_statistics_qc import SummaryStatisticsQC
@@ -44,32 +44,19 @@ class StudyQualityCheck(Enum):
     """Study quality control options listing concerns on the quality of the study.
 
     Attributes:
-        UNRESOLVED_TARGET (str): Target/gene identifier could not match to reference - Labelling failing target.
-        UNRESOLVED_DISEASE (str): Disease identifier could not match to referece or retired identifier - labelling failing disease
-        UNKNOWN_STUDY_TYPE (str): Indicating the provided type of study is not supported.
-        UNKNOWN_BIOSAMPLE (str): Flagging if a biosample identifier is not found in the reference.
-        DUPLICATED_STUDY (str): Flagging if a study identifier is not unique.
         SUMSTATS_NOT_AVAILABLE (str): Flagging if harmonized summary statistics are not available or empty.
         NO_OT_CURATION (str): Flagging if a study has not been curated by Open Targets.
         FAILED_MEAN_BETA_CHECK (str): Flagging if the mean beta QC check value is not within the expected range.
         FAILED_PZ_CHECK (str): Flagging if the PZ QC check values are not within the expected range.
         FAILED_GC_LAMBDA_CHECK (str): Flagging if the GC lambda value is not within the expected range.
         SMALL_NUMBER_OF_SNPS (str): Flagging if the number of SNPs in the study is below the expected threshold.
-        CASE_CASE_STUDY_DESIGN (str): Flagging if the study design is case-case.
-        DEPRECATED_PROJECT (str): Flagging if the projectId is deprecated.
         INVALID_SAMPLE_SIZE (str): Flagging if the sample size is null or equal to zero.
         CASE_CONTROL_STUDY_DESIGN (str): Flagging if the study has non empty or zero nCases, nControls & nSamples with matching sum.
         CASE_CONTROL_SUM_NEQ_SAMPLE_SIZE (str): Flagging if the study has non empty or zero nCases, nControls & nSamples with non matching sum.
         ONE_ONLY_CASE_OR_CONTROL (str): Flagging if the study has only cases or only controls.
         MEASUREMENT_STUDY_DESIGN (str): Flagging if the study has non empty or zero nSamples with empty nCases and nControls.
-
     """
 
-    UNRESOLVED_TARGET = "Target/gene identifier could not match to reference"
-    UNRESOLVED_DISEASE = "No valid disease identifier found"
-    UNKNOWN_STUDY_TYPE = "This type of study is not supported"
-    UNKNOWN_BIOSAMPLE = "Biosample identifier was not found in the reference"
-    DUPLICATED_STUDY = "The identifier of this study is not unique"
     SUMSTATS_NOT_AVAILABLE = "Harmonized summary statistics are not available or empty"
     NO_OT_CURATION = "GWAS Catalog study has not been curated by Open Targets"
     FAILED_MEAN_BETA_CHECK = (
@@ -80,8 +67,6 @@ class StudyQualityCheck(Enum):
     SMALL_NUMBER_OF_SNPS = (
         "The number of SNPs in the study is below the expected threshold"
     )
-    CASE_CASE_STUDY_DESIGN = "Case-case study design"
-    DEPRECATED_PROJECT = "Deprecated project"
     INVALID_SAMPLE_SIZE = "Sample size is null or equal to zero"
     CASE_CONTROL_STUDY_DESIGN = (
         "Study has non empty or zero nCases, nControls & nSamples with matching sum"
@@ -181,24 +166,6 @@ class StudyIndex(Dataset):
         return parse_spark_schema("study_index.json")
 
     @classmethod
-    def get_QC_column_name(cls: type[StudyIndex]) -> str:
-        """Return the name of the quality control column.
-
-        Returns:
-            str: The name of the quality control column.
-        """
-        return "qualityControls"
-
-    @classmethod
-    def get_QC_mappings(cls: type[StudyIndex]) -> dict[str, str]:
-        """Quality control flag to QC column category mappings.
-
-        Returns:
-            dict[str, str]: Mapping between flag name and QC column category value.
-        """
-        return {member.name: member.value for member in StudyQualityCheck}
-
-    @classmethod
     def aggregate_and_map_ancestries(
         cls: type[StudyIndex], discovery_samples: Column
     ) -> Column:
@@ -243,50 +210,6 @@ class StudyIndex(Dataset):
             ),
         )
 
-    def study_type_lut(self: StudyIndex) -> DataFrame:
-        """Return a lookup table of study type.
-
-        Returns:
-            DataFrame: A dataframe containing `studyId` and `studyType` columns.
-        """
-        return self.df.select("studyId", "studyType")
-
-    def is_qtl(self: StudyIndex) -> Column:
-        """Return a boolean column with true values for QTL studies.
-
-        Returns:
-            Column: True if the study is a QTL study.
-        """
-        return self.df.studyType.endswith("qtl")
-
-    def is_gwas(self: StudyIndex) -> Column:
-        """Return a boolean column with true values for GWAS studies.
-
-        Returns:
-            Column: True if the study is a GWAS study.
-        """
-        return self.df.studyType == "gwas"
-
-    def has_mapped_trait(self: StudyIndex) -> Column:
-        """Return a boolean column indicating if a study has mapped disease.
-
-        Returns:
-            Column: True if the study has mapped disease.
-        """
-        return f.size(self.df.traitFromSourceMappedIds) > 0
-
-    def is_quality_flagged(self: StudyIndex) -> Column:
-        """Return a boolean column indicating if a study is flagged due to quality issues.
-
-        Returns:
-            Column: True if the study is flagged.
-        """
-        # Testing for the presence of the qualityControls column:
-        if "qualityControls" not in self.df.columns:
-            return f.lit(False)
-        else:
-            return f.size(self.df["qualityControls"]) != 0
-
     def has_summarystats(self: StudyIndex) -> Column:
         """Return a boolean column indicating if a study has harmonized summary statistics.
 
@@ -295,26 +218,6 @@ class StudyIndex(Dataset):
         """
         return self.df.hasSumstats
 
-    @qc_test
-    def validate_unique_study_id(self: StudyIndex) -> StudyIndex:
-        """Validating the uniqueness of study identifiers and flagging duplicated studies.
-
-        Returns:
-            StudyIndex: with flagged duplicated studies.
-        """
-        return StudyIndex(
-            _df=self.df.withColumn(
-                "qualityControls",
-                self.update_quality_flag(
-                    f.col("qualityControls"),
-                    self.flag_duplicates(f.col("studyId")),
-                    StudyQualityCheck.DUPLICATED_STUDY,
-                ),
-            ),
-            _schema=StudyIndex.get_schema(),
-        )
-
-    @qc_test
     def validate_ccs(self: StudyIndex) -> StudyIndex:
         """Validate nCases, nControls & nSamples.
 
@@ -381,7 +284,6 @@ class StudyIndex(Dataset):
 
         return StudyIndex(_df=validated_df, _schema=StudyIndex.get_schema())
 
-    @qc_test
     def annotate_sumstats_qc(
         self: StudyIndex,
         sumstats_qc: SummaryStatisticsQC,
@@ -642,8 +544,8 @@ class ProteinQuantitativeTraitLocusStudyIndex(StudyIndex):
         )
 
         # A target the reference does not resolve carries no gene mapping, and several
-        # such targets in one study produce identical rows that validate_unique_study_id
-        # would flag, discarding the targets that did resolve. Keep the resolved rows.
+        # such targets in one study produce identical rows that study validation
+        # flags as duplicated, discarding the targets that did resolve. Keep the resolved rows.
         return StudyIndex(
             _df=non_ambiguous_df.unionByName(ambiguous_df).filter(
                 f.col("geneId").isNotNull()

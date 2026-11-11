@@ -116,17 +116,6 @@ class deCODESummaryStatisticsQCConfig(StepConfig):
 
 
 @dataclass
-class BiosampleIndexConfig(StepConfig):
-    """Biosample index step configuration."""
-
-    cell_ontology_input_path: str = MISSING
-    uberon_input_path: str = MISSING
-    efo_input_path: str = MISSING
-    biosample_index_path: str = MISSING
-    _target_: str = "gentropy.biosample_index.BiosampleIndexStep"
-
-
-@dataclass
 class GWASCatalogStudyCurationConfig(StepConfig):
     """GWAS Catalog study curation step configuration."""
 
@@ -640,28 +629,6 @@ class GnomadVariantConfig(StepConfig):
 
 
 @dataclass
-class PanUKBBConfig(StepConfig):
-    """Pan UKB variant ingestion step configuration."""
-
-    session: Any = field(
-        default_factory=lambda: {
-            "start_hail": True,
-        }
-    )
-    pan_ukbb_ht_path: str = "gs://panukbb-ld-matrixes/ukb-diverse-pops-public-build-38/UKBB.{POP}.ldadj.variant.b38"
-    pan_ukbb_bm_path: str = "gs://panukbb-ld-matrixes/UKBB.{POP}.ldadj"
-    ukbb_annotation_path: str = "gs://panukbb-ld-matrixes/UKBB.{POP}.aligned.parquet"
-    pan_ukbb_pops: list[str] = field(
-        default_factory=lambda: [
-            "AFR",  # African
-            "CSA",  # Central/South Asian
-            "EUR",  # European
-        ]
-    )
-    _target_: str = "gentropy.pan_ukb_ingestion.PanUKBBVariantIndexStep"
-
-
-@dataclass
 class LocusBreakerClumpingConfig(StepConfig):
     """Locus breaker clumping step configuration."""
 
@@ -744,28 +711,6 @@ class SummaryStatisticsQCStepConfig(StepConfig):
 
 
 @dataclass
-class CredibleSetValidationStepConfig(StepConfig):
-    """Configuration of the credible set validation step.
-
-    Credible sets and their variants are read from several sources, so both are lists of paths, in
-    the same order.
-    """
-
-    credible_set_path: list[str] = MISSING
-    credible_set_variant_path: list[str] = MISSING
-    study_index_path: str = MISSING
-    target_index_path: str = MISSING
-    disease_index_path: str = MISSING
-    valid_credible_set_path: str = MISSING
-    valid_credible_set_variant_path: str = MISSING
-    invalid_credible_set_path: str = MISSING
-    invalid_credible_set_variant_path: str = MISSING
-    invalid_qc_reasons: list[str] = MISSING
-    trans_qtl_threshold: int = MISSING
-    _target_: str = "gentropy.credible_set_validation.CredibleSetValidationStep"
-
-
-@dataclass
 class CredibleSetQCStepConfig(StepConfig):
     """Credible set quality control step configuration."""
 
@@ -780,29 +725,6 @@ class CredibleSetQCStepConfig(StepConfig):
     ld_min_r2: float = 0.8
     n_partitions: int | None = 200
     _target_: str = "gentropy.credible_set_qc.CredibleSetQCStep"
-
-
-@dataclass
-class LocusToGeneEvidenceStepConfig(StepConfig):
-    """Configuration of the locus to gene evidence step."""
-
-    locus_to_gene_predictions_path: str = MISSING
-    credible_set_path: str = MISSING
-    study_index_path: str = MISSING
-    evidence_output_path: str = MISSING
-    locus_to_gene_threshold: float = 0.05
-    _target_: str = "gentropy.l2g.LocusToGeneEvidenceStep"
-
-
-@dataclass
-class LocusToGeneAssociationsStepConfig(StepConfig):
-    """Configuration of the locus to gene association step."""
-
-    evidence_input_path: str = MISSING
-    disease_index_path: str = MISSING
-    direct_associations_output_path: str = MISSING
-    indirect_associations_output_path: str = MISSING
-    _target_: str = "gentropy.l2g.LocusToGeneAssociationsStep"
 
 
 @dataclass
@@ -954,7 +876,6 @@ def register_config() -> None:
     cs.store(group="step/session", name="base_session", node=SessionConfig)
     cs.store(group="step", name="colocalisation", node=ColocalisationConfig)
     cs.store(group="step", name="eqtl_catalogue", node=EqtlCatalogueConfig)
-    cs.store(group="step", name="biosample_index", node=BiosampleIndexConfig)
     cs.store(
         group="step",
         name="gwas_catalog_study_curation",
@@ -1022,16 +943,6 @@ def register_config() -> None:
     )
     cs.store(
         group="step",
-        name="locus_to_gene_evidence",
-        node=LocusToGeneEvidenceStepConfig,
-    )
-    cs.store(
-        group="step",
-        name="locus_to_gene_associations",
-        node=LocusToGeneAssociationsStepConfig,
-    )
-    cs.store(
-        group="step",
         name="finngen_ukb_mvp_meta_summary_statistics_ingestion",
         node=FinngenUkbMvpMetaSummaryStatisticsIngestionConfig,
     )
@@ -1041,11 +952,6 @@ def register_config() -> None:
         node=FinngenUkbMvpMetaStudyIndexConfig,
     )
     cs.store(group="step", name="credible_set_qc", node=CredibleSetQCStepConfig)
-    cs.store(
-        group="step",
-        name="credible_set_validation",
-        node=CredibleSetValidationStepConfig,
-    )
     cs.store(
         group="step", name="heritability_estimate", node=HeritabilityEstimateConfig
     )

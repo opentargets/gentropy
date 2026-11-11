@@ -9,7 +9,7 @@ A series of optional, parametrised filters then clean the labels to reduce noise
 leakage:
 
 * replication filter — keep only the credible sets carrying the ``REPLICATED`` quality
-  control flag raised by credible set validation;
+  control flag;
 * maximum positives per locus — drop loci with more than ``max_gsp_per_locus`` positives;
 * protein-protein interaction filter — drop negatives that interact (STRING) with a
   positive gene in the same locus;
@@ -73,8 +73,8 @@ class TrainingSetStep:
         Args:
             session (Session): Session object that contains the Spark session.
             feature_matrix_path (str): Path to the L2G feature matrix parquet.
-            credible_set_path (str): Path to the validated credible set (CredibleSet) dataset,
-                the output of credible set validation, which raises the ``REPLICATED`` flag.
+            credible_set_path (str): Path to the credible set (CredibleSet) dataset, carrying the
+                ``REPLICATED`` flag.
             study_index_path (str): Path to the study index dataset.
             effector_gene_list_path (str): Path to the Effector Gene List parquet produced by
                 ``EffectorGeneListStep`` (columns ``diseaseId``, ``targetId``).
@@ -82,8 +82,8 @@ class TrainingSetStep:
             interaction_path (str | None): Path to the platform ``interaction`` dataset. When
                 given, negatives interacting with a positive gene in the same locus are dropped.
                 Defaults to None (filter skipped).
-            apply_replication_filter (bool): Keep only the credible sets flagged as ``REPLICATED``
-                by credible set validation. Defaults to True.
+            apply_replication_filter (bool): Keep only the credible sets flagged as ``REPLICATED``.
+                Defaults to True.
             max_gsp_per_locus (int): Maximum number of positives allowed per credible set; loci
                 exceeding it are dropped. Defaults to 2.
             interaction_source (str): ``sourceDatabase`` value to keep from the interaction dataset.

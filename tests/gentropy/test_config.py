@@ -8,7 +8,6 @@ import pytest
 from hydra import compose, initialize
 
 from gentropy.config import (
-    BiosampleIndexConfig,
     ColocalisationConfig,
     Config,
     SessionConfig,
@@ -107,32 +106,6 @@ class TestColocalisationConfig:
             "credible_set_path",
             "coloc_path",
             "colocalisation_method",
-        }
-
-        for expected in expected_fields:
-            assert expected in config_fields, f"Missing field: {expected}"
-
-
-class TestBiosampleIndexConfig:
-    """Test BiosampleIndexConfig."""
-
-    def test_biosample_index_config_is_dataclass(self) -> None:
-        """Test that BiosampleIndexConfig is a dataclass."""
-        assert is_dataclass(BiosampleIndexConfig)
-
-    def test_biosample_index_config_inherits_from_step_config(self) -> None:
-        """Test that BiosampleIndexConfig inherits from StepConfig."""
-        assert issubclass(BiosampleIndexConfig, StepConfig)
-
-    def test_biosample_index_config_has_required_fields(self) -> None:
-        """Test that BiosampleIndexConfig has expected fields."""
-        config_fields = {f.name for f in fields(BiosampleIndexConfig)}
-
-        expected_fields = {
-            "cell_ontology_input_path",
-            "uberon_input_path",
-            "efo_input_path",
-            "biosample_index_path",
         }
 
         for expected in expected_fields:

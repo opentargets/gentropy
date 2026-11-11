@@ -3,16 +3,15 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from collections.abc import Callable, Sequence
+from collections.abc import Sequence
 from dataclasses import dataclass
 from enum import Enum
 from functools import reduce
-from typing import TYPE_CHECKING, Any, Generic, NamedTuple, ParamSpec, Self, TypeVar
+from typing import TYPE_CHECKING, Any, Self
 
 from pyspark.sql import DataFrame
 from pyspark.sql import functions as f
 from pyspark.sql import types as t
-from pyspark.sql.window import Window
 
 from gentropy.common.schemas import SchemaValidationError, compare_struct_schemas
 from gentropy.common.session import Session
@@ -22,30 +21,6 @@ if TYPE_CHECKING:
     from pyspark.sql.types import StructType
 
     from gentropy.common.session import Session
-
-T = TypeVar("T", bound="Dataset")
-P = ParamSpec("P")
-
-
-class DatasetValidationResult(NamedTuple, Generic[T]):
-    """Dataset validation result."""
-
-    valid: T
-    invalid: T
-
-
-def qc_test(func: Callable[P, T]) -> Callable[P, T]:
-    """Decorator to mark methods as quality control tests.
-
-    Args:
-        func (Callable[P, T]): Function to be decorated. The function should take any parameters and return Dataset derivative.
-
-    Returns:
-        Callable[P, T]: Decorated function.
-    """
-    setattr(func, "__is_qc_test__", True)
-
-    return func
 
 
 @dataclass
@@ -145,26 +120,6 @@ class Dataset(ABC):
         raise NotImplementedError("Must be implemented in the child classes")
 
     @classmethod
-    def get_QC_column_name(cls: type[Self]) -> str | None:
-        """Abstract method to get the QC column name. Assumes None unless overriden by child classes.
-
-        Returns:
-            str | None: Column name
-        """
-        return None
-
-    @classmethod
-    def get_QC_mappings(cls: type[Self]) -> dict[str, str]:
-        """Method to get the mapping between QC flag and corresponding QC category value.
-
-        Returns empty dict unless overriden by child classes.
-
-        Returns:
-            dict[str, str]: Mapping between flag name and QC column category value.
-        """
-        return {}
-
-    @classmethod
     def read(cls, path: str | list[str], fmt: str = "parquet", **kwargs: Any) -> Self:
         """Reads dataset into a Dataset with a given schema.
 
@@ -261,55 +216,6 @@ class Dataset(ABC):
             raise SchemaValidationError(
                 f"Schema validation failed for {type(self).__name__}", discrepancies
             )
-
-    def valid_rows(
-        self: Self, invalid_flags: list[str]
-    ) -> DatasetValidationResult[Self]:
-        """Filters `Dataset` according to a list of quality control flags. Only `Dataset` classes with a QC column can be validated.
-
-        This method checks do following steps:
-        - Check if the Dataset contains a QC column.
-        - Check if the invalid_flags exist in the QC mappings flags.
-        - Filter the Dataset according to the invalid_flags and invalid parameters.
-
-        Args:
-            invalid_flags (list[str]): List of quality control flags to be excluded.
-
-        Returns:
-            DatasetValidationResult[Self]: A named tuple with valid and invalid Datasets.
-
-        Raises:
-            ValueError: If the Dataset does not contain a QC column or if the invalid_flags elements do not exist in QC mappings flags.
-        """
-        # If the invalid flags are not valid quality checks (enum) for this Dataset we raise an error:
-        invalid_reasons = []
-        for flag in invalid_flags:
-            if flag not in self.get_QC_mappings():
-                raise ValueError(
-                    f"{flag} is not a valid QC flag for {type(self).__name__} ({self.get_QC_mappings()})."
-                )
-            reason = self.get_QC_mappings()[flag]
-            invalid_reasons.append(reason)
-
-        qc_column_name = self.get_QC_column_name()
-        # If Dataset (class) does not contain QC column we raise an error:
-        if not qc_column_name:
-            raise ValueError(
-                f"{type(self).__name__} objects do not contain a QC column to filter by."
-            )
-        else:
-            column: str = qc_column_name
-            # If QC column (nullable) is not available in the dataframe we create an empty array:
-            qc = f.when(f.col(column).isNull(), f.array()).otherwise(f.col(column))
-
-        filterCondition = ~f.arrays_overlap(
-            f.array([f.lit(i) for i in invalid_reasons]), qc
-        )
-        # Returning the filtered dataset:
-        return DatasetValidationResult(
-            valid=self.filter(filterCondition),
-            invalid=self.filter(~filterCondition),
-        )
 
     def drop_infinity_values(self: Self, *cols: str) -> Self:
         """Drop infinity values from Double typed column.
@@ -435,53 +341,6 @@ class Dataset(ABC):
         ).otherwise(qc)
 
     @staticmethod
-    def flag_duplicates(
-        test_column: Column, order_by: list[Column] | None = None
-    ) -> Column:
-        """Return True for rows, where the value was already seen in column.
-
-        This implementation allows keeping the first occurrence of the value.
-
-        The ordering decides which occurrence is kept, so callers that care which row survives
-        should pass `order_by` with columns from the data itself, for example the size of the
-        credible set. The default, `monotonically_increasing_id()`, only replaces the unseeded
-        `rand()` that was used before: it is a stable function of the physical row layout rather
-        than a random draw, but that layout is not guaranteed across runs, so the default picks an
-        arbitrary row and should not be relied on for reproducibility.
-
-        Args:
-            test_column (Column): Column to check for duplicates
-            order_by (list[Column] | None): Ordering deciding which duplicate is kept, the first
-                row of each group being the one that is not flagged. Defaults to
-                `monotonically_increasing_id()`.
-
-        Returns:
-            Column: Column with a boolean flag for duplicates
-
-        Examples:
-            >>> df = spark.createDataFrame(
-            ...     [("sl1", ["v1", "v2", "v3"]), ("sl1", ["v1"]), ("sl2", ["v4", "v5"])],
-            ...     "studyLocusId string, locus array<string>",
-            ... )
-            >>> duplicate = Dataset.flag_duplicates(
-            ...     f.col("studyLocusId"), [f.size("locus").asc()]
-            ... )
-            >>> df.withColumn("isDuplicate", duplicate).orderBy("studyLocusId", f.size("locus")).show()
-            +------------+------------+-----------+
-            |studyLocusId|       locus|isDuplicate|
-            +------------+------------+-----------+
-            |         sl1|        [v1]|      false|
-            |         sl1|[v1, v2, v3]|       true|
-            |         sl2|    [v4, v5]|      false|
-            +------------+------------+-----------+
-            <BLANKLINE>
-        """
-        ordering = order_by if order_by else [f.monotonically_increasing_id()]
-        return (
-            f.row_number().over(Window.partitionBy(test_column).orderBy(*ordering)) > 1
-        )
-
-    @staticmethod
     def generate_identifier(uniqueness_defining_columns: Sequence[str]) -> Column:
         """Hashes the provided columns to generate a unique identifier.
 
@@ -508,17 +367,3 @@ class Dataset(ABC):
                 f.struct(*uniqueness_defining_columns), {"ignoreNullFields": "false"}
             )
         )
-
-    @classmethod
-    def qc_tests(cls: type[Self]) -> list[Callable[..., Self]]:
-        """Get all quality control test methods defined in the Dataset class.
-
-        Returns:
-            list[Callable[..., Self]]: List of quality control test methods.
-        """
-        qc_methods = []
-        for attribute_name in dir(cls):
-            attribute = getattr(cls, attribute_name)
-            if callable(attribute) and getattr(attribute, "__is_qc_test__", False):
-                qc_methods.append(attribute)
-        return qc_methods
