@@ -6,12 +6,10 @@ title: spark
 
 :::gentropy.common.spark.nullify_empty_array
 :::gentropy.common.spark.get_top_ranked_in_window
-:::gentropy.common.spark.get_record_with_minimum_value
 :::gentropy.common.spark.get_record_with_maximum_value
 :::gentropy.common.spark.normalise_column
 :::gentropy.common.spark.string2camelcase
 :::gentropy.common.spark.column2camel_case
-:::gentropy.common.spark.get_value_from_row
 :::gentropy.common.spark.safe_array_union
 :::gentropy.common.spark.sort_array_struct_by_columns
 :::gentropy.common.spark.extract_column_name

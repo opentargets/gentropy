@@ -108,7 +108,7 @@ def test_has_allowed_major_ancestry_at_exact_threshold(spark: SparkSession) -> N
         pytest.param([], True, id="empty quality control list passes"),
         pytest.param(None, False, id="null quality control list is disallowed"),
         pytest.param(
-            [StudyQualityCheck.UNRESOLVED_TARGET.value],
+            [StudyQualityCheck.FAILED_PZ_CHECK.value],
             False,
             id="disallowed reason present fails",
         ),
@@ -119,7 +119,7 @@ def test_pass_sumstat_qc_edge_cases(
 ) -> None:
     """PassSumstatQC must treat a null qualityControls array as failing, not unknown."""
     si = _study_index(spark, qualityControls=quality_controls)
-    constraint = PassSumstatQC(disallowed_reasons=[StudyQualityCheck.UNRESOLVED_TARGET])
+    constraint = PassSumstatQC(disallowed_reasons=[StudyQualityCheck.FAILED_PZ_CHECK])
     assert _constraint_value(si, constraint) is expected
 
 

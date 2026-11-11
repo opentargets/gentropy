@@ -46,21 +46,6 @@ if TYPE_CHECKING:
 import logging
 
 
-def reset_wandb_env() -> None:
-    """Reset Wandb environment variables except for project, entity and API key.
-
-    This is necessary to log multiple runs in the same sweep without overwriting. More context here: https://github.com/wandb/wandb/issues/5119
-    """
-    exclude = {
-        "WANDB_PROJECT",
-        "WANDB_ENTITY",
-        "WANDB_API_KEY",
-    }
-    for key in list(os.environ.keys()):
-        if key.startswith("WANDB_") and key not in exclude:
-            del os.environ[key]
-
-
 @dataclass
 class LocusToGeneTrainer:
     """Modelling of what is the most likely causal gene associated with a given locus."""

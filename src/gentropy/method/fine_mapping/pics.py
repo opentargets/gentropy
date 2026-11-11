@@ -160,9 +160,7 @@ class PICS:
         The credible set is led by the lead of the study locus, carries the study
         type from the study index and the quality controls of the study locus,
         plus ``OUT_OF_SAMPLE_LD``, as the LD comes from a reference panel. A
-        study missing from the study index gives a null study type; such credible
-        sets are dropped by the credible set validation of the platform
-        transformation stage, which also requires the study in the index.
+        study missing from the study index gives a null study type.
 
         A member's marginal statistics are its entry in ``locus``; a member without
         one gets null statistics and the ``NOT_IN_LOCUS`` flag. A member with an

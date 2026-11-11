@@ -40,7 +40,3 @@ This section contains information about the data source harmonisation tools avai
 ## Gene annotation
 
 1. [Open Targets Platform Target Dataset](open_targets/_open_targets.md) (derived from Ensembl)
-
-## Biological samples
-
-1. [Uberon and Cell Ontology](biosample_ontologies/_biosample_ontologies.md)

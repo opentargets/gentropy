@@ -724,27 +724,6 @@ class Session:
         return c
 
     @staticmethod
-    def _append_repository(c: SparkConf, repository: str) -> SparkConf:
-        """Append a Maven repository URL to the existing spark.jars.repositories configuration.
-
-        Ivy consults these repositories in addition to Maven Central when resolving
-        packages declared via ``spark.jars.packages``.
-
-        Args:
-            c (SparkConf): Existing Spark configuration.
-            repository (str): Maven repository URL to add (e.g. ``https://maven.google.com``).
-
-        Returns:
-            SparkConf: Adjusted spark configuration with the repository appended to
-                ``spark.jars.repositories``.
-        """
-        existing = c.get("spark.jars.repositories", "")
-        if repository not in existing:
-            new_repos = f"{existing},{repository}" if existing else repository
-            return c.set("spark.jars.repositories", new_repos)
-        return c
-
-    @staticmethod
     def _append_to_executor_classpath(c: SparkConf, jar: str) -> SparkConf:
         """Append a jar to the existing driver and executor classpath.
 
