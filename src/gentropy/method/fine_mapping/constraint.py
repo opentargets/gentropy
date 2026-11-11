@@ -153,11 +153,11 @@ class PassSumstatQC(MethodConstraint):
     """Class representing the constraint for the MultiSuSiE method.
 
     Examples:
-        >>> data = [("s1", "p", "gwas", []), ("s2", "p", "gwas", [StudyQualityCheck.UNRESOLVED_TARGET.value]), ("s3", "p", "gwas", None)]
+        >>> data = [("s1", "p", "gwas", []), ("s2", "p", "gwas", [StudyQualityCheck.FAILED_PZ_CHECK.value]), ("s3", "p", "gwas", None)]
         >>> schema = "studyId STRING, projectId STRING, studyType STRING, qualityControls ARRAY<STRING>"
         >>> from gentropy.dataset.study_index import StudyIndex
         >>> si = StudyIndex(_df=spark.createDataFrame(data, schema))
-        >>> constraint = PassSumstatQC(disallowed_reasons=[StudyQualityCheck.UNRESOLVED_TARGET])
+        >>> constraint = PassSumstatQC(disallowed_reasons=[StudyQualityCheck.FAILED_PZ_CHECK])
         >>> si.df.select("studyId", constraint.expression.alias("passSumstatQC")).orderBy("studyId").show(truncate=False)
         +-------+-------------+
         |studyId|passSumstatQC|

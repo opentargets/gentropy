@@ -20,13 +20,3 @@ def test_target_index_location_lut(mock_target_index: TargetIndex) -> None:
 def test_target_index_symbols_lut(mock_target_index: TargetIndex) -> None:
     """Test target index symbols lut."""
     assert isinstance(mock_target_index.symbols_lut(), DataFrame)
-
-
-def test_target_index_filter_by_biotypes(mock_target_index: TargetIndex) -> None:
-    """Test target index filter by biotypes."""
-    assert isinstance(
-        mock_target_index.filter_by_biotypes(
-            biotypes=["protein_coding", "3prime_overlapping_ncRNA", "antisense"]
-        ),
-        TargetIndex,
-    )
