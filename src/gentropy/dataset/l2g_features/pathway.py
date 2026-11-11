@@ -135,7 +135,7 @@ def disease_set_pathway_scores(
     """Fraction of each gene's pathways that are enriched for each set of study diseases.
 
     The enrichment leaves out the chromosome the gene is on, see
-    `PathwayLibrary.over_representation`, and only that result is scored for the gene.
+    `PathwayLibrary.regression`, and only that result is scored for the gene.
 
     Scores are only built for the disease sets and chromosomes of the loci to annotate, since a
     locus only scores genes on its own chromosome. Without this every disease set would be
@@ -156,7 +156,7 @@ def disease_set_pathway_scores(
             to count as enriched
         min_pathway_size (int): Smallest number of member genes a tested pathway may have
         max_pathway_size (int): Largest number of member genes a tested pathway may have
-        min_disease_genes (int): Smallest number of library genes a disease needs to be tested
+        min_disease_genes (int): Smallest number of listed genes a disease needs to be tested
         vep_score_threshold (float): Smallest `vepMaximum` that prioritises a gene
 
     Returns:
@@ -192,29 +192,6 @@ def disease_set_pathway_scores(
     pathways_per_gene = gene_sets.groupBy("geneId").agg(
         f.count("pathwayId").alias("pathwaysPerGene")
     )
-    enriched_pathways = (
-        PathwayLibrary.over_representation(
-            prioritised_disease_genes(
-                study_locus,
-                study_index,
-                variant_index,
-                target_index,
-                vep_score_threshold=vep_score_threshold,
-            ),
-            gene_sets,
-            min_genes=min_disease_genes,
-        )
-        .filter(f.col("pValueAdjusted") < p_value_adjusted_threshold)
-        .select(
-            "diseaseId", f.col("heldOutChromosome").alias("chromosome"), "pathwayId"
-        )
-    )
-    # A gene is only scored with the enrichment that left its own chromosome out.
-    gene_chromosomes = target_index.df.select(
-        f.col("id").alias("geneId"),
-        f.col("genomicLocation.chromosome").alias("chromosome"),
-    )
-
     # Only the disease sets and chromosomes of the loci to annotate are ever looked up.
     disease_set_chromosomes = (
         study_locus.df.select("credibleSetId", "studyId", "chromosome")
@@ -227,6 +204,29 @@ def disease_set_pathway_scores(
         .select("diseaseSet", "chromosome")
         .distinct()
     )
+    enriched_pathways = PathwayLibrary.regression(
+        prioritised_disease_genes(
+            study_locus,
+            study_index,
+            variant_index,
+            target_index,
+            vep_score_threshold=vep_score_threshold,
+        ),
+        gene_sets,
+        target_index,
+        p_value_adjusted_threshold=p_value_adjusted_threshold,
+        min_genes=min_disease_genes,
+        held_out_chromosomes=sorted(
+            row["chromosome"]
+            for row in disease_set_chromosomes.select("chromosome").distinct().collect()
+        ),
+    ).select("diseaseId", f.col("heldOutChromosome").alias("chromosome"), "pathwayId")
+    # A gene is only scored with the enrichment that left its own chromosome out.
+    gene_chromosomes = target_index.df.select(
+        f.col("id").alias("geneId"),
+        f.col("genomicLocation.chromosome").alias("chromosome"),
+    )
+
     enriched_pathways_per_gene = (
         disease_set_chromosomes.select(
             "diseaseSet", "chromosome", f.explode("diseaseSet").alias("diseaseId")
@@ -281,14 +281,15 @@ def common_pathway_enrichment_feature_logic(
 
     1. At every GWAS credible set the nearest gene and the genes hit by a coding variant are
         prioritised, see `prioritised_disease_genes`, and pooled per disease.
-    2. For each chromosome, the genes on it are left out of every list, so that a locus is
+    2. For each chromosome, the genes on it are left out of the test, so that a locus is
         scored without its own genes or those of other credible sets nearby (leave one
         chromosome out).
     3. Every GO biological process and Reactome pathway of `pathway_library` with
         `min_pathway_size` to `max_pathway_size` protein-coding members is tested for
-        over-representation among each disease's genes, against the genes of the library, see
-        `PathwayLibrary.over_representation`. Diseases with fewer than `min_disease_genes`
-        genes in the library are not tested.
+        enrichment among each disease's genes by a linear regression over protein-coding
+        genes, adjusted for gene length, TSS density and the number of pathways of the gene,
+        with standard errors clustered by 1 Mb region, see `PathwayLibrary.regression`.
+        Diseases with fewer than `min_disease_genes` listed genes are not tested.
     4. A pathway counts as enriched for a disease below the adjusted p-value threshold, for
         the chromosome left out.
 
@@ -320,7 +321,7 @@ def common_pathway_enrichment_feature_logic(
         genomic_window (int): Distance up and downstream of the study locus to collect genes from
         min_pathway_size (int): Smallest number of member genes a tested pathway may have
         max_pathway_size (int): Largest number of member genes a tested pathway may have
-        min_disease_genes (int): Smallest number of library genes a disease needs to be tested
+        min_disease_genes (int): Smallest number of listed genes a disease needs to be tested
         vep_score_threshold (float): Smallest `vepMaximum` that prioritises a gene
 
     Returns:

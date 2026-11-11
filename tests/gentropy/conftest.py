@@ -381,7 +381,7 @@ def mock_pathway_library(spark: SparkSession) -> PathwayLibrary:
     GO: GO:0000002 is a GO:0000001 and GO:0000003 is part of GO:0000002, so GO:0000003 has two
     ancestors. GO:0000004 only regulates GO:0000002, GO:0000005 is obsolete and GO:0000009 is a
     cellular component. GO:0000003 also goes by the alternative identifier GO:0000033.
-    Reactome: R-HSA-2 is a child of R-HSA-1.
+    Reactome: R-HSA-2 and R-HSA-3 are children of R-HSA-1.
     """
     go = spark.createDataFrame(
         [
@@ -404,7 +404,7 @@ def mock_pathway_library(spark: SparkSession) -> PathwayLibrary:
         "partOf array<string>, regulates array<string>, isObsolete boolean",
     )
     reactome = spark.createDataFrame(
-        [("R-HSA-1", []), ("R-HSA-2", ["R-HSA-1"])],
+        [("R-HSA-1", []), ("R-HSA-2", ["R-HSA-1"]), ("R-HSA-3", ["R-HSA-1"])],
         "id string, ancestors array<string>",
     )
     return PathwayLibrary(go=go, reactome=reactome)
