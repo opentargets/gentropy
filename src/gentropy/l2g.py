@@ -15,7 +15,6 @@ from xgboost import XGBClassifier
 
 from gentropy.common.schemas import compare_struct_schemas
 from gentropy.common.session import Session
-from gentropy.common.spark import calculate_harmonic_sum
 from gentropy.dataset.colocalisation import Colocalisation
 from gentropy.dataset.credible_set import CredibleSet, CredibleSetVariant
 from gentropy.dataset.intervals import Intervals
@@ -882,110 +881,6 @@ class LocusToGeneStep:
                     repo_id=self.hf_hub_repo_id,
                     commit_message=self.hf_model_commit_message,
                 )
-
-
-class LocusToGeneEvidenceStep:
-    """Locus to gene evidence step."""
-
-    def __init__(
-        self,
-        session: Session,
-        locus_to_gene_predictions_path: str,
-        credible_set_path: str,
-        study_index_path: str,
-        evidence_output_path: str,
-        locus_to_gene_threshold: float,
-    ) -> None:
-        """Initialise the step and generate disease/target evidence.
-
-        Args:
-            session (Session): Session object that contains the Spark session
-            locus_to_gene_predictions_path (str): Path to the L2G predictions dataset
-            credible_set_path (str): Path to the credible set dataset
-            study_index_path (str): Path to the study index dataset
-            evidence_output_path (str): Path to the L2G evidence output dataset. The output format is ndjson gzipped.
-            locus_to_gene_threshold (float, optional): Threshold to consider a gene as a target. Defaults to 0.05.
-        """
-        # Reading the predictions
-        locus_to_gene_prediction = L2GPrediction.from_parquet(
-            session, locus_to_gene_predictions_path
-        )
-        # Reading the credible set
-        credible_sets = CredibleSet.from_parquet(session, credible_set_path)
-
-        # Reading the study index
-        study_index = StudyIndex.from_parquet(session, study_index_path)
-
-        # Generate evidence and save file:
-        (
-            locus_to_gene_prediction.to_disease_target_evidence(
-                credible_sets, study_index, locus_to_gene_threshold
-            )
-            .coalesce(session.output_partitions)
-            .write.mode(session.write_mode)
-            .parquet(evidence_output_path)
-        )
-
-
-class LocusToGeneAssociationsStep:
-    """Locus to gene associations step."""
-
-    def __init__(
-        self,
-        session: Session,
-        evidence_input_path: str,
-        disease_index_path: str,
-        direct_associations_output_path: str,
-        indirect_associations_output_path: str,
-    ) -> None:
-        """Create direct and indirect association datasets.
-
-        Args:
-            session (Session): Session object that contains the Spark session
-            evidence_input_path (str): Path to the L2G evidence input dataset
-            disease_index_path (str): Path to disease index file
-            direct_associations_output_path (str): Path to the direct associations output dataset
-            indirect_associations_output_path (str): Path to the indirect associations output dataset
-        """
-        # Read in the disease index
-        disease_index = session.spark.read.parquet(disease_index_path).select(
-            f.col("id").alias("diseaseId"),
-            f.explode("ancestors").alias("ancestorDiseaseId"),
-        )
-
-        # Read in the L2G evidence
-        disease_target_evidence = session.spark.read.json(evidence_input_path).select(
-            f.col("targetFromSourceId").alias("targetId"),
-            f.col("diseaseFromSourceMappedId").alias("diseaseId"),
-            f.col("resourceScore"),
-        )
-
-        # Generate direct assocations and save file
-        (
-            disease_target_evidence.groupBy("targetId", "diseaseId")
-            .agg(f.collect_set("resourceScore").alias("scores"))
-            .select(
-                "targetId",
-                "diseaseId",
-                calculate_harmonic_sum(f.col("scores")).alias("harmonicSum"),
-            )
-            .write.mode(session.write_mode)
-            .parquet(direct_associations_output_path)
-        )
-
-        # Generate indirect assocations and save file
-        (
-            disease_target_evidence.join(disease_index, on="diseaseId", how="inner")
-            .groupBy("targetId", "ancestorDiseaseId")
-            .agg(f.collect_set("resourceScore").alias("scores"))
-            .select(
-                "targetId",
-                "ancestorDiseaseId",
-                calculate_harmonic_sum(f.col("scores")).alias("harmonicSum"),
-            )
-            .write.mode(session.write_mode)
-            .parquet(indirect_associations_output_path)
-        )
 
 
 class LocusToGeneModelTuningStep:

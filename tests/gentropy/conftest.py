@@ -12,7 +12,6 @@ import pandas as pd
 import pytest
 from pyspark.sql import DataFrame, SparkSession
 
-from gentropy.common.genomic_region import LiftOverSpark
 from gentropy.common.session import Session
 from gentropy.dataset.biosample_index import BiosampleIndex
 from gentropy.dataset.colocalisation import Colocalisation
@@ -796,12 +795,6 @@ def mock_biosample_index(spark: SparkSession) -> BiosampleIndex:
     )
 
     return BiosampleIndex(_df=data_spec.build(), _schema=bi_schema)
-
-
-@pytest.fixture()
-def liftover_chain_37_to_38(spark: SparkSession) -> LiftOverSpark:
-    """Sample liftover chain file."""
-    return LiftOverSpark("tests/gentropy/data_samples/grch37_to_grch38.over.chain")
 
 
 @pytest.fixture()

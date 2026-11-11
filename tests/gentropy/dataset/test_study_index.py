@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import pytest
-from pyspark.sql import DataFrame, SparkSession
+from pyspark.sql import SparkSession
 from pyspark.sql import functions as f
 
 from gentropy.dataset.study_index import (
@@ -24,11 +24,6 @@ if TYPE_CHECKING:
 def test_study_index_creation(mock_study_index: StudyIndex) -> None:
     """Test study index creation with mock data."""
     assert isinstance(mock_study_index, StudyIndex)
-
-
-def test_study_index_type_lut(mock_study_index: StudyIndex) -> None:
-    """Test study index type lut."""
-    assert isinstance(mock_study_index.study_type_lut(), DataFrame)
 
 
 def test_aggregate_and_map_ancestries__correctness(spark: SparkSession) -> None:
@@ -152,55 +147,6 @@ def test_aggregate_samples_by_ancestry__correctness(spark: SparkSession) -> None
         )
         == 300.0
     )
-
-
-class TestUniquenessValidation:
-    """A small test suite to ensure the gene validation works as intended."""
-
-    STUDY_DATA = [
-        # This is the only study to be flagged:
-        ("s1", "eqtl", "p"),
-        ("s1", "eqtl", "p"),  # Duplicate -> one should be flagged
-        ("s3", "gwas", "p"),
-        ("s4", "gwas", "p"),
-    ]
-    STUDY_COLUMNS = ["studyId", "studyType", "projectId"]
-
-    @pytest.fixture(autouse=True)
-    def _setup(self: TestUniquenessValidation, spark: SparkSession) -> None:
-        """Setup fixture."""
-        self.study_index = StudyIndex(
-            _df=spark.createDataFrame(self.STUDY_DATA, self.STUDY_COLUMNS).withColumn(
-                "qualityControls", f.array().cast("array<string>")
-            ),
-            _schema=StudyIndex.get_schema(),
-        )
-
-    def test_uniqueness_return_type(self: TestUniquenessValidation) -> None:
-        """Testing if the function returns the right type."""
-        assert isinstance(self.study_index.validate_unique_study_id(), StudyIndex)
-
-    def test_uniqueness_correct_data(self: TestUniquenessValidation) -> None:
-        """Testing if the function returns the right type."""
-        validated = self.study_index.validate_unique_study_id().persist()
-
-        # We have only one flagged study:
-        assert validated.df.filter(f.size(f.col("qualityControls")) > 0).count() == 1
-
-        # The flagged study identifiers are found more than once:
-        flagged_ids = {
-            study["studyId"]: study["count"]
-            for study in validated.df.filter(f.size(f.col("qualityControls")) > 0)
-            .groupBy("studyId")
-            .count()
-            .collect()
-        }
-
-        for _, count in flagged_ids.items():
-            assert count == 1
-
-        # the right study is found:
-        assert "s1" in flagged_ids
 
 
 class TestStudyIndexAnnotation:
@@ -691,7 +637,7 @@ class TestPQTLStudyIndexToStudy:
         The IG aptamers pair a resolvable heavy chain with IGK@ / IGL@, whose
         symbols and placeholder protein ids both miss. Two such targets produced
         identical rows, making the studyId non-unique and exposing the whole study
-        to validate_unique_study_id.
+        to the study validation duplicate check.
         """
         target = self._target_index(
             spark,
