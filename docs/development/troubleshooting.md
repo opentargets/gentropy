@@ -16,7 +16,7 @@ To add new dependencies or update existing ones, you need to update the `pyproje
 
 ## Java
 
-Officially, PySpark requires Java version 8, or 11, 17. To support hail (gentropy dependency) it is recommended to use Java 11.
+PySpark 4 requires Java 17 or 21, and so does hail (gentropy dependency). Java 21 is recommended, as Dataproc 3.0 runs it.
 
 ### setting Java with sdkman
 

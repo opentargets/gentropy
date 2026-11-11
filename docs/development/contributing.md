@@ -20,7 +20,7 @@ Check that you have the `make` utility installed, and if not (which is unlikely)
 
 !!! note "Java support"
 
-    Check that you have `java` installed. To be able to use all features including hail support use java 11 (for handling multiple java versions, consider using [`sdkman`](https://sdkman.io/)).
+    Check that you have `java` 17 or 21 installed; 21 is recommended, as Dataproc runs it (for handling multiple java versions, consider using [`sdkman`](https://sdkman.io/)).
 
 ## Environment configuration
 
