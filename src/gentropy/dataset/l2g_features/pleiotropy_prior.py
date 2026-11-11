@@ -15,6 +15,7 @@ from pyspark.sql import DataFrame, Window
 
 from gentropy.common.genomic_region import GenomicRegion, KnownGenomicRegions
 from gentropy.common.spark import convert_from_wide_to_long
+from gentropy.dataset.credible_set import CredibleSetLocus
 from gentropy.dataset.l2g_features.distance import (
     DistanceSentinelTssNeighbourhoodFeature,
 )
@@ -22,7 +23,6 @@ from gentropy.dataset.l2g_features.l2g_feature import L2GFeature
 from gentropy.dataset.l2g_features.other import is_protein_coding_feature_logic
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
 from gentropy.dataset.study_index import StudyIndex
-from gentropy.dataset.study_locus import StudyLocus
 from gentropy.dataset.target_index import TargetIndex
 from gentropy.dataset.variant_index import VariantIndex
 from gentropy.method.pleiotropy_prior import PleiotropyPrior
@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 
 
 def nearest_gene_diseases(
-    study_locus: StudyLocus,
+    study_locus: CredibleSetLocus,
     study_index: StudyIndex,
     variant_index: VariantIndex,
     target_index: TargetIndex,
@@ -44,7 +44,7 @@ def nearest_gene_diseases(
     `diseaseIds` field of the study index, used as mapped, with no expansion to ancestors.
 
     Args:
-        study_locus (StudyLocus): Credible sets
+        study_locus (CredibleSetLocus): Credible sets
         study_index (StudyIndex): Study index, used to resolve a study to its diseases
         variant_index (VariantIndex): Variant index, the source of the distances to genes
         target_index (TargetIndex): Target index, used to keep protein-coding genes
@@ -62,15 +62,15 @@ def nearest_gene_diseases(
             },
         )
         .df.filter(f.col("featureValue") == 1.0)
-        .select("studyLocusId", "geneId")
+        .select("credibleSetId", "geneId")
     )
     diseases = study_index.df.select(
         "studyId", f.explode("diseaseIds").alias("diseaseId")
     )
     return (
         nearest.join(
-            gwas_credible_sets.df.select("studyLocusId", "studyId"),
-            "studyLocusId",
+            gwas_credible_sets.df.select("credibleSetId", "studyId"),
+            "credibleSetId",
             "inner",
         )
         .join(diseases, "studyId", "inner")
@@ -80,7 +80,7 @@ def nearest_gene_diseases(
 
 
 def nearest_gene_disease_counts(
-    study_locus: StudyLocus,
+    study_locus: CredibleSetLocus,
     study_index: StudyIndex,
     variant_index: VariantIndex,
     target_index: TargetIndex,
@@ -97,7 +97,7 @@ def nearest_gene_disease_counts(
     the EFO hierarchy or by therapeutic area would temper that.
 
     Args:
-        study_locus (StudyLocus): Credible sets
+        study_locus (CredibleSetLocus): Credible sets
         study_index (StudyIndex): Study index, used to resolve a study to its diseases
         variant_index (VariantIndex): Variant index, the source of the distances to genes
         target_index (TargetIndex): Target index, used to keep protein-coding genes
@@ -517,7 +517,7 @@ class PleiotropyPriorInputs:
 
     def scores(
         self: PleiotropyPriorInputs,
-        study_locus: StudyLocus,
+        study_locus: CredibleSetLocus,
         study_index: StudyIndex,
         variant_index: VariantIndex,
         target_index: TargetIndex,
@@ -525,7 +525,7 @@ class PleiotropyPriorInputs:
         """Return the prior of every background gene, fitted on the first call and reused after.
 
         Args:
-            study_locus (StudyLocus): All credible sets of the release, the source of the target
+            study_locus (CredibleSetLocus): All credible sets of the release, the source of the target
             study_index (StudyIndex): Study index, used to resolve a study to its diseases
             variant_index (VariantIndex): Variant index, the source of the distances to genes
             target_index (TargetIndex): Target index
@@ -630,7 +630,7 @@ class PleiotropyPriorInputs:
 
     def _fit(
         self: PleiotropyPriorInputs,
-        study_locus: StudyLocus,
+        study_locus: CredibleSetLocus,
         study_index: StudyIndex,
         variant_index: VariantIndex,
         target_index: TargetIndex,
@@ -638,7 +638,7 @@ class PleiotropyPriorInputs:
         """Collect the target, features and covariates, fit the prior on the driver.
 
         Args:
-            study_locus (StudyLocus): All credible sets of the release
+            study_locus (CredibleSetLocus): All credible sets of the release
             study_index (StudyIndex): Study index
             variant_index (VariantIndex): Variant index
             target_index (TargetIndex): Target index
@@ -694,7 +694,7 @@ class PleiotropyPriorInputs:
 
     def approx_pops_scores(
         self: PleiotropyPriorInputs,
-        study_locus: StudyLocus,
+        study_locus: CredibleSetLocus,
         study_index: StudyIndex,
         variant_index: VariantIndex,
         target_index: TargetIndex,
@@ -702,7 +702,7 @@ class PleiotropyPriorInputs:
         """Return the approxPops score of every gene for every disease, fitted once and reused.
 
         Args:
-            study_locus (StudyLocus): All credible sets of the release, the source of the labels
+            study_locus (CredibleSetLocus): All credible sets of the release, the source of the labels
             study_index (StudyIndex): Study index, used to resolve a study to its diseases
             variant_index (VariantIndex): Variant index, the source of the distances to genes
             target_index (TargetIndex): Target index
@@ -718,7 +718,7 @@ class PleiotropyPriorInputs:
 
     def _fit_approx_pops(
         self: PleiotropyPriorInputs,
-        study_locus: StudyLocus,
+        study_locus: CredibleSetLocus,
         study_index: StudyIndex,
         variant_index: VariantIndex,
         target_index: TargetIndex,
@@ -726,7 +726,7 @@ class PleiotropyPriorInputs:
         """Fit approxPops on the driver.
 
         Args:
-            study_locus (StudyLocus): All credible sets of the release
+            study_locus (CredibleSetLocus): All credible sets of the release
             study_index (StudyIndex): Study index
             variant_index (VariantIndex): Variant index
             target_index (TargetIndex): Target index
@@ -816,7 +816,7 @@ class PleiotropyPriorInputs:
 
 
 def protein_coding_genes_in_window(
-    study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+    study_loci_to_annotate: CredibleSetLocus | L2GGoldStandard,
     variant_index: VariantIndex,
     genomic_window: int,
 ) -> DataFrame:
@@ -828,13 +828,13 @@ def protein_coding_genes_in_window(
     covers every row the model sees, and its neighbourhood version is scaled over the same genes.
 
     Args:
-        study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci
+        study_loci_to_annotate (CredibleSetLocus | L2GGoldStandard): The dataset containing study loci
             that will be used for annotation
         variant_index (VariantIndex): Variant index, the source of the distances to genes
         genomic_window (int): Largest distance between a variant and a gene footprint
 
     Returns:
-        DataFrame: Distinct `studyLocusId` and `geneId` pairs
+        DataFrame: Distinct `credibleSetId` and `geneId` pairs
     """
     return (
         is_protein_coding_feature_logic(
@@ -844,7 +844,7 @@ def protein_coding_genes_in_window(
             genomic_window=genomic_window,
         )
         .filter(f.col("isProteinCoding") == 1.0)
-        .select("studyLocusId", "geneId")
+        .select("credibleSetId", "geneId")
         .distinct()
     )
 
@@ -858,14 +858,14 @@ def min_max_within_locus(
     or where every gene scores the same, gives 1 to all of them.
 
     Args:
-        local_scores (DataFrame): `studyLocusId`, `geneId` and the local feature
+        local_scores (DataFrame): `credibleSetId`, `geneId` and the local feature
         local_feature_name (str): Name of the local feature column
         feature_name (str): Name of the rescaled feature
 
     Returns:
-        DataFrame: `studyLocusId`, `geneId` and the rescaled feature
+        DataFrame: `credibleSetId`, `geneId` and the rescaled feature
     """
-    locus = Window.partitionBy("studyLocusId")
+    locus = Window.partitionBy("credibleSetId")
     return (
         local_scores.withColumn("regionalMin", f.min(local_feature_name).over(locus))
         .withColumn("regionalMax", f.max(local_feature_name).over(locus))
@@ -882,11 +882,11 @@ def min_max_within_locus(
 
 
 def common_pleiotropy_prior_feature_logic(
-    study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+    study_loci_to_annotate: CredibleSetLocus | L2GGoldStandard,
     feature_name: str,
     *,
     pleiotropy_prior_inputs: PleiotropyPriorInputs,
-    study_locus: StudyLocus,
+    study_locus: CredibleSetLocus,
     study_index: StudyIndex,
     variant_index: VariantIndex,
     target_index: TargetIndex,
@@ -901,11 +901,11 @@ def common_pleiotropy_prior_feature_logic(
     prior of an average gene because the target is centred.
 
     Args:
-        study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci
+        study_loci_to_annotate (CredibleSetLocus | L2GGoldStandard): The dataset containing study loci
             that will be used for annotation
         feature_name (str): The name of the feature
         pleiotropy_prior_inputs (PleiotropyPriorInputs): Gene data the prior is fitted on
-        study_locus (StudyLocus): All credible sets, the source of the target
+        study_locus (CredibleSetLocus): All credible sets, the source of the target
         study_index (StudyIndex): Study index, used to resolve a study to its diseases
         variant_index (VariantIndex): Variant index, the source of the distances to genes
         target_index (TargetIndex): Target index
@@ -913,7 +913,7 @@ def common_pleiotropy_prior_feature_logic(
             footprint
 
     Returns:
-        DataFrame: Feature dataset with one row per study locus and scored gene in its window
+        DataFrame: Feature dataset with one row per credible set and scored gene in its window
     """
     scores = pleiotropy_prior_inputs.scores(
         study_locus, study_index, variant_index, target_index
@@ -926,11 +926,11 @@ def common_pleiotropy_prior_feature_logic(
         ),
         "geneId",
         "inner",
-    ).select("studyLocusId", "geneId", feature_name)
+    ).select("credibleSetId", "geneId", feature_name)
 
 
 def common_neighbourhood_pleiotropy_prior_feature_logic(
-    study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+    study_loci_to_annotate: CredibleSetLocus | L2GGoldStandard,
     feature_name: str,
     **kwargs: Any,
 ) -> DataFrame:
@@ -943,13 +943,13 @@ def common_neighbourhood_pleiotropy_prior_feature_logic(
     gene, or where every gene scores the same, gives 1 to all of them.
 
     Args:
-        study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci
+        study_loci_to_annotate (CredibleSetLocus | L2GGoldStandard): The dataset containing study loci
             that will be used for annotation
         feature_name (str): The name of the neighbourhood feature, ending in "Neighbourhood"
         **kwargs (Any): Arguments of `common_pleiotropy_prior_feature_logic`
 
     Returns:
-        DataFrame: Feature dataset with one row per study locus and scored gene in its window
+        DataFrame: Feature dataset with one row per credible set and scored gene in its window
     """
     local_feature_name = feature_name.replace("Neighbourhood", "")
     local_scores = common_pleiotropy_prior_feature_logic(
@@ -959,11 +959,11 @@ def common_neighbourhood_pleiotropy_prior_feature_logic(
 
 
 def common_approx_pops_feature_logic(
-    study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+    study_loci_to_annotate: CredibleSetLocus | L2GGoldStandard,
     feature_name: str,
     *,
     pleiotropy_prior_inputs: PleiotropyPriorInputs,
-    study_locus: StudyLocus,
+    study_locus: CredibleSetLocus,
     study_index: StudyIndex,
     variant_index: VariantIndex,
     target_index: TargetIndex,
@@ -978,12 +978,12 @@ def common_approx_pops_feature_logic(
     have no score.
 
     Args:
-        study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci
+        study_loci_to_annotate (CredibleSetLocus | L2GGoldStandard): The dataset containing study loci
             that will be used for annotation
         feature_name (str): The name of the feature
         pleiotropy_prior_inputs (PleiotropyPriorInputs): Gene data the scores are fitted on
-        study_locus (StudyLocus): All credible sets, the source of the labels and of the
-            study of the study locus
+        study_locus (CredibleSetLocus): All credible sets, the source of the labels and of the
+            study of the credible set
         study_index (StudyIndex): Study index, used to resolve a study to its diseases
         variant_index (VariantIndex): Variant index, the source of the distances to genes
         target_index (TargetIndex): Target index
@@ -991,12 +991,12 @@ def common_approx_pops_feature_logic(
             footprint
 
     Returns:
-        DataFrame: Feature dataset with one row per study locus and scored gene in its window
+        DataFrame: Feature dataset with one row per credible set and scored gene in its window
     """
     scores = pleiotropy_prior_inputs.approx_pops_scores(
         study_locus, study_index, variant_index, target_index
     )
-    study_diseases = study_locus.df.select("studyLocusId", "studyId").join(
+    study_diseases = study_locus.df.select("credibleSetId", "studyId").join(
         study_index.df.select("studyId", f.explode("diseaseIds").alias("diseaseId")),
         "studyId",
         "inner",
@@ -1005,28 +1005,28 @@ def common_approx_pops_feature_logic(
         protein_coding_genes_in_window(
             study_loci_to_annotate, variant_index, genomic_window
         )
-        .join(study_diseases, "studyLocusId", "inner")
+        .join(study_diseases, "credibleSetId", "inner")
         .join(scores, ["geneId", "diseaseId"], "inner")
-        .groupBy("studyLocusId", "geneId")
+        .groupBy("credibleSetId", "geneId")
         .agg(f.max("approxPops").alias(feature_name))
     )
 
 
 def common_neighbourhood_approx_pops_feature_logic(
-    study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+    study_loci_to_annotate: CredibleSetLocus | L2GGoldStandard,
     feature_name: str,
     **kwargs: Any,
 ) -> DataFrame:
     """Rescale the approxPops score of a gene between the lowest and highest at the same locus.
 
     Args:
-        study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci
+        study_loci_to_annotate (CredibleSetLocus | L2GGoldStandard): The dataset containing study loci
             that will be used for annotation
         feature_name (str): The name of the neighbourhood feature, ending in "Neighbourhood"
         **kwargs (Any): Arguments of `common_approx_pops_feature_logic`
 
     Returns:
-        DataFrame: Feature dataset with one row per study locus and scored gene in its window
+        DataFrame: Feature dataset with one row per credible set and scored gene in its window
     """
     local_feature_name = feature_name.replace("Neighbourhood", "")
     local_scores = common_approx_pops_feature_logic(
@@ -1040,7 +1040,7 @@ class PredictedPleiotropyPriorFeature(L2GFeature):
 
     feature_dependency_type = [
         PleiotropyPriorInputs,
-        StudyLocus,
+        CredibleSetLocus,
         StudyIndex,
         VariantIndex,
         TargetIndex,
@@ -1051,13 +1051,13 @@ class PredictedPleiotropyPriorFeature(L2GFeature):
     @classmethod
     def compute(
         cls: type[PredictedPleiotropyPriorFeature],
-        study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+        study_loci_to_annotate: CredibleSetLocus | L2GGoldStandard,
         feature_dependency: dict[str, Any],
     ) -> PredictedPleiotropyPriorFeature:
         """Computes the feature.
 
         Args:
-            study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
+            study_loci_to_annotate (CredibleSetLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
             feature_dependency (dict[str, Any]): The gene data of the prior, the credible sets, studies, variants and genes
 
         Returns:
@@ -1071,7 +1071,7 @@ class PredictedPleiotropyPriorFeature(L2GFeature):
                     genomic_window=cls.genomic_window,
                     **feature_dependency,
                 ),
-                id_vars=("studyLocusId", "geneId"),
+                id_vars=("credibleSetId", "geneId"),
                 var_name="featureName",
                 value_name="featureValue",
             ),
@@ -1084,7 +1084,7 @@ class PredictedPleiotropyPriorNeighbourhoodFeature(L2GFeature):
 
     feature_dependency_type = [
         PleiotropyPriorInputs,
-        StudyLocus,
+        CredibleSetLocus,
         StudyIndex,
         VariantIndex,
         TargetIndex,
@@ -1095,13 +1095,13 @@ class PredictedPleiotropyPriorNeighbourhoodFeature(L2GFeature):
     @classmethod
     def compute(
         cls: type[PredictedPleiotropyPriorNeighbourhoodFeature],
-        study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+        study_loci_to_annotate: CredibleSetLocus | L2GGoldStandard,
         feature_dependency: dict[str, Any],
     ) -> PredictedPleiotropyPriorNeighbourhoodFeature:
         """Computes the feature.
 
         Args:
-            study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
+            study_loci_to_annotate (CredibleSetLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
             feature_dependency (dict[str, Any]): The gene data of the prior, the credible sets, studies, variants and genes
 
         Returns:
@@ -1115,7 +1115,7 @@ class PredictedPleiotropyPriorNeighbourhoodFeature(L2GFeature):
                     genomic_window=cls.genomic_window,
                     **feature_dependency,
                 ),
-                id_vars=("studyLocusId", "geneId"),
+                id_vars=("credibleSetId", "geneId"),
                 var_name="featureName",
                 value_name="featureValue",
             ),
@@ -1128,7 +1128,7 @@ class ApproxPopsFeature(L2GFeature):
 
     feature_dependency_type = [
         PleiotropyPriorInputs,
-        StudyLocus,
+        CredibleSetLocus,
         StudyIndex,
         VariantIndex,
         TargetIndex,
@@ -1139,13 +1139,13 @@ class ApproxPopsFeature(L2GFeature):
     @classmethod
     def compute(
         cls: type[ApproxPopsFeature],
-        study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+        study_loci_to_annotate: CredibleSetLocus | L2GGoldStandard,
         feature_dependency: dict[str, Any],
     ) -> ApproxPopsFeature:
         """Computes the feature.
 
         Args:
-            study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
+            study_loci_to_annotate (CredibleSetLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
             feature_dependency (dict[str, Any]): The gene data of the prior, the credible sets, studies, variants and genes
 
         Returns:
@@ -1159,7 +1159,7 @@ class ApproxPopsFeature(L2GFeature):
                     genomic_window=cls.genomic_window,
                     **feature_dependency,
                 ),
-                id_vars=("studyLocusId", "geneId"),
+                id_vars=("credibleSetId", "geneId"),
                 var_name="featureName",
                 value_name="featureValue",
             ),
@@ -1172,7 +1172,7 @@ class ApproxPopsNeighbourhoodFeature(L2GFeature):
 
     feature_dependency_type = [
         PleiotropyPriorInputs,
-        StudyLocus,
+        CredibleSetLocus,
         StudyIndex,
         VariantIndex,
         TargetIndex,
@@ -1183,13 +1183,13 @@ class ApproxPopsNeighbourhoodFeature(L2GFeature):
     @classmethod
     def compute(
         cls: type[ApproxPopsNeighbourhoodFeature],
-        study_loci_to_annotate: StudyLocus | L2GGoldStandard,
+        study_loci_to_annotate: CredibleSetLocus | L2GGoldStandard,
         feature_dependency: dict[str, Any],
     ) -> ApproxPopsNeighbourhoodFeature:
         """Computes the feature.
 
         Args:
-            study_loci_to_annotate (StudyLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
+            study_loci_to_annotate (CredibleSetLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
             feature_dependency (dict[str, Any]): The gene data of the prior, the credible sets, studies, variants and genes
 
         Returns:
@@ -1203,7 +1203,7 @@ class ApproxPopsNeighbourhoodFeature(L2GFeature):
                     genomic_window=cls.genomic_window,
                     **feature_dependency,
                 ),
-                id_vars=("studyLocusId", "geneId"),
+                id_vars=("credibleSetId", "geneId"),
                 var_name="featureName",
                 value_name="featureValue",
             ),

@@ -19,6 +19,7 @@ from pyspark.sql.types import (
     StructType,
 )
 
+from gentropy.dataset.credible_set import CredibleSetLocus
 from gentropy.dataset.l2g_features.l2g_feature import L2GFeature
 from gentropy.dataset.l2g_features.pleiotropy_prior import (
     ApproxPopsFeature,
@@ -30,7 +31,6 @@ from gentropy.dataset.l2g_features.pleiotropy_prior import (
     nearest_gene_disease_counts,
 )
 from gentropy.dataset.study_index import StudyIndex
-from gentropy.dataset.study_locus import StudyLocus
 from gentropy.dataset.target_index import TargetIndex
 from gentropy.dataset.variant_index import VariantIndex
 from gentropy.method.l2g.feature_factory import FeatureFactory, L2GFeatureInputLoader
@@ -74,20 +74,20 @@ def _target_index(spark: SparkSession, genes: list[tuple[Any, ...]]) -> TargetIn
 
 def _credible_sets(
     spark: SparkSession, rows: list[tuple[str, str, str, list[str]]]
-) -> StudyLocus:
-    """Credible sets from (studyLocusId, lead variantId, studyId, locus variantIds) tuples."""
-    return StudyLocus(
+) -> CredibleSetLocus:
+    """Credible sets from (credibleSetId, lead variantId, studyId, locus variantIds) tuples."""
+    return CredibleSetLocus(
         _df=spark.createDataFrame(
             [
                 (sl, lead, study, [(v, 0.5) for v in locus])
                 for sl, lead, study, locus in rows
             ],
-            "studyLocusId string, variantId string, studyId string, "
-            "locus array<struct<variantId: string, posteriorProbability: double>>",
+            "credibleSetId string, variantId string, studyId string, "
+            "locus array<struct<variantId: string, posteriorProbability: float>>",
         )
         .withColumn("chromosome", f.lit("1"))
         .withColumn("position", f.lit(2000)),
-        _schema=StudyLocus.get_schema(),
+        _schema=CredibleSetLocus.get_schema(),
     )
 
 
@@ -118,7 +118,7 @@ def _scores(feature: L2GFeature, study_locus_id: str) -> dict[str, float]:
     """Feature values of one credible set, by gene."""
     return {
         row["geneId"]: float(row["featureValue"])
-        for row in feature.df.filter(f.col("studyLocusId") == study_locus_id).collect()
+        for row in feature.df.filter(f.col("credibleSetId") == study_locus_id).collect()
     }
 
 
@@ -199,9 +199,11 @@ class TestPleiotropyPriorTarget:
         )
 
     @pytest.fixture()
-    def study_locus(self: TestPleiotropyPriorTarget, spark: SparkSession) -> StudyLocus:
+    def study_locus(
+        self: TestPleiotropyPriorTarget, spark: SparkSession
+    ) -> CredibleSetLocus:
         """One credible set per study."""
-        return StudyLocus(
+        return CredibleSetLocus(
             _df=spark.createDataFrame(
                 [
                     ("cs1", "s1", "v1", "gwas"),
@@ -209,14 +211,14 @@ class TestPleiotropyPriorTarget:
                     ("cs3", "s3", "v2", "gwas"),
                     ("cs4", "s4", "v2", "eqtl"),
                 ],
-                "studyLocusId string, studyId string, variantId string, studyType string",
+                "credibleSetId string, studyId string, variantId string, studyType string",
             ).withColumn("chromosome", f.lit("1")),
-            _schema=StudyLocus.get_schema(),
+            _schema=CredibleSetLocus.get_schema(),
         )
 
     def test_nearest_gene_disease_counts(
         self: TestPleiotropyPriorTarget,
-        study_locus: StudyLocus,
+        study_locus: CredibleSetLocus,
         study_index: StudyIndex,
         variant_index: VariantIndex,
         target_index: TargetIndex,
@@ -743,21 +745,21 @@ class TestPleiotropyPriorEndToEnd:
                 ),
                 lambda_grid=[0.1, 1.0, 10.0],
             ),
-            "study_locus": StudyLocus(
+            "study_locus": CredibleSetLocus(
                 _df=spark.createDataFrame(
                     credible_sets,
-                    "studyLocusId string, studyId string, variantId string, "
+                    "credibleSetId string, studyId string, variantId string, "
                     "chromosome string, position integer, studyType string",
                 ).withColumn(
                     "locus",
                     f.array(
                         f.struct(
                             f.col("variantId").alias("variantId"),
-                            f.lit(1.0).alias("posteriorProbability"),
+                            f.lit(1.0).cast("float").alias("posteriorProbability"),
                         )
                     ),
                 ),
-                _schema=StudyLocus.get_schema(),
+                _schema=CredibleSetLocus.get_schema(),
             ),
             "study_index": StudyIndex(
                 _df=spark.createDataFrame(
@@ -799,13 +801,13 @@ class TestPleiotropyPriorEndToEnd:
         neighbourhood_rows = neighbourhood.df.toPandas()
         # The variant index links each lead variant to two genes, its own and a neighbour.
         assert len(local_rows) == len(neighbourhood_rows)
-        assert (local_rows.groupby("studyLocusId").size() == 2).all()
+        assert (local_rows.groupby("credibleSetId").size() == 2).all()
         assert local_rows["geneId"].nunique() == 36
         assert np.isfinite(local_rows["featureValue"]).all()
         assert (local_rows["featureValue"] != 0).any()
         assert neighbourhood_rows["featureValue"].between(0.0, 1.0).all()
         assert (
-            neighbourhood_rows.groupby("studyLocusId")["featureValue"].max() == 1.0
+            neighbourhood_rows.groupby("credibleSetId")["featureValue"].max() == 1.0
         ).all()
 
     def test_feature_factory_builds_approx_pops(
