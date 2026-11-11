@@ -62,9 +62,7 @@ make create-dev-cluster REF=dev
 
 `REF` - remote branch available at the [gentropy repository](https://github.com/opentargets/gentropy)
 
-During cluster [initialization actions](https://cloud.google.com/dataproc/docs/concepts/configuring-clusters/init-actions#important_considerations_and_guidelines) the `utils/install_dependencies_on_cluster.sh` script is run, that installs `gentropy` package from the remote repository by using VCS support, hence it does not require the **gentropy package whl artifact** to be prepared in the Google Cloud Storage before the make command can be run.
-
-Check details how to make a package installable by VCS in [pip documentation](https://pip.pypa.io/en/stable/topics/vcs-support/).
+During cluster [initialization actions](https://cloud.google.com/dataproc/docs/concepts/configuring-clusters/init-actions#important_considerations_and_guidelines) the `utils/install_dependencies_on_cluster.sh` script is run. It fetches the requested **REF** from the remote repository and installs `gentropy` with its locked dependencies into the Python environment Dataproc runs PySpark jobs with, keeping the image's own `pyspark`. It does not require the **gentropy package whl artifact** to be prepared in the Google Cloud Storage before the make command can be run.
 
 !!! note "How `create-dev-cluster` works"
 
