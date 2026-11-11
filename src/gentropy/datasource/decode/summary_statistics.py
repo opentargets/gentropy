@@ -274,13 +274,15 @@ class deCODESummaryStatistics:
                 f.col("originalVariantId"),
                 f.col("variantId"),
                 f.col("direction"),
-                f.filter(
-                    # NFE is the closest population-specific gnomAD frequency available.
-                    # TODO: consider using icelandic EAF https://www.ebi.ac.uk/ena/browser/view/PRJEB15197
-                    f.col("originalAlleleFrequencies"),
-                    lambda x: x.getField("populationName") == "nfe_adj",
+                f.get(
+                    f.filter(
+                        # NFE is the closest population-specific gnomAD frequency available.
+                        # TODO: consider using icelandic EAF https://www.ebi.ac.uk/ena/browser/view/PRJEB15197
+                        f.col("originalAlleleFrequencies"),
+                        lambda x: x.getField("populationName") == "nfe_adj",
+                    ),
+                    0,
                 )
-                .getItem(0)
                 .getField("alleleFrequency")
                 .cast(t.FloatType())
                 .alias("eur_af"),

@@ -275,7 +275,7 @@ class FinnGenUkbMvpMetaSummaryStatistics:
                             if c in header
                             else f.lit(None)
                         )
-                        .cast(cls.raw_schema[c].dataType)
+                        .try_cast(cls.raw_schema[c].dataType)
                         .alias(c)
                         for c in cls.source_columns
                     ],

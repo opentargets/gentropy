@@ -409,7 +409,9 @@ class PICS:
                 lead,
                 f.col(_TAG).alias(_VARIANT),
                 f.col(_R2).cast(t.FloatType()).alias(_R2_OVERALL),
-                (f.col(_LIKELIHOOD) / f.sum(_LIKELIHOOD).over(locus)).alias(_POSTERIOR),
+                f.try_divide(f.col(_LIKELIHOOD), f.sum(_LIKELIHOOD).over(locus)).alias(
+                    _POSTERIOR
+                ),
             )
             .withColumns(
                 {

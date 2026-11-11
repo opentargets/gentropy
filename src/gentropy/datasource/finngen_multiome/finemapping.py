@@ -175,7 +175,7 @@ class FinnGenMultiomeFinemapping:
             .option("delimiter", "\t")
             .option("header", True)
             .csv(snp_files)
-            .withColumn("position", f.col("position").cast(t.IntegerType()))
+            .withColumn("position", f.col("position").try_cast(t.IntegerType()))
             .filter(f.col("position").isNotNull())
         )
 
@@ -323,7 +323,7 @@ class FinnGenMultiomeFinemapping:
         # Read twice, to select the allele frequencies and to join them: persist, so the
         # SuSiE outputs are read once.
         members = (
-            snps.withColumn("credibleSetIndex", f.col("cs").cast(t.IntegerType()))
+            snps.withColumn("credibleSetIndex", f.col("cs").try_cast(t.IntegerType()))
             .filter(f.col("credibleSetIndex") > 0)
             .join(credible_sets, on=keys)
             .join(region_statistics, on=keys)
@@ -342,8 +342,8 @@ class FinnGenMultiomeFinemapping:
         )
         effect_allele_frequency = f.col("effectAlleleFrequencyFromSource")
         alpha = _effect("alpha").cast(t.DoubleType())
-        mean = _effect("mean").cast(t.DoubleType())
-        sd = _effect("sd").cast(t.DoubleType())
+        mean = _effect("mean").try_cast(t.DoubleType())
+        sd = _effect("sd").try_cast(t.DoubleType())
         # FinnGen reports the effect weighted by alpha; dividing by it gives the conditional
         # moments. Clamped at 0, as the variance can come out slightly negative in floating point:
         conditional_beta = f.when(alpha > 0, mean / alpha)
@@ -364,9 +364,9 @@ class FinnGenMultiomeFinemapping:
             "credibleSetLogBayesFactor",
             "purityMeanR2",
             "purityMinR2",
-            *split_pvalue_column(f.col("p").cast(t.DoubleType())),
-            f.col("beta").cast(t.DoubleType()).alias("reportedBeta"),
-            f.col("se").cast(t.DoubleType()).alias("reportedStandardError"),
+            *split_pvalue_column(f.col("p").try_cast(t.DoubleType())),
+            f.col("beta").try_cast(t.DoubleType()).alias("reportedBeta"),
+            f.col("se").try_cast(t.DoubleType()).alias("reportedStandardError"),
             effect_allele_frequency.alias("effectAlleleFrequency"),
             alpha.alias("posteriorProbability"),
             _effect("lbf_variable").cast(t.DoubleType()).alias("logBayesFactor"),
@@ -374,7 +374,7 @@ class FinnGenMultiomeFinemapping:
             f.when(
                 alpha > 0, f.sqrt(f.greatest(conditional_variance, f.lit(0.0)))
             ).alias("conditionalStandardError"),
-            f.col("lead_r2").cast(t.FloatType()).alias("r2Overall"),
+            f.col("lead_r2").try_cast(t.FloatType()).alias("r2Overall"),
             f.when(
                 effect_allele_frequency.isNotNull(),
                 f.array(f.lit(CredibleSetVariantQualityCheck.EAF_FROM_SOURCE.value)),

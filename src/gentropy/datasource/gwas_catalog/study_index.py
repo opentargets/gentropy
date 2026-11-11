@@ -512,7 +512,7 @@ class StudyIndexGWASCatalog(StudyIndex):
                     f.struct(
                         f.col("broadAncestralCategory").alias("ancestry"),
                         f.col("numberOfIndividuals")
-                        .cast(t.IntegerType())
+                        .try_cast(t.IntegerType())
                         .alias("sampleSize"),
                     )
                 )
@@ -560,7 +560,7 @@ class StudyIndexGWASCatalog(StudyIndex):
             .pivot("ancestryFlag")
             .agg(
                 # Summarizing sample sizes for all ancestries:
-                f.sum(f.col("numberOfIndividuals"))
+                f.sum(f.col("numberOfIndividuals").try_cast(t.IntegerType()))
             )
             # Do arithmetics to make sure we have the right proportion of european in the set:
             .withColumn(
@@ -618,7 +618,7 @@ class StudyIndexGWASCatalog(StudyIndex):
                 "sampleSize",
                 f.regexp_extract(
                     f.regexp_replace(f.col("samples"), ",", ""), r"[0-9,]+", 0
-                ).cast(t.IntegerType()),
+                ).try_cast(t.IntegerType()),
             )
             .select(
                 "studyId",

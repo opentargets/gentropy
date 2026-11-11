@@ -204,7 +204,7 @@ class StudyIndex(Dataset):
             aggregated_counts,
             lambda ld_population: f.struct(
                 ld_population.ancestry.alias("ldPopulation"),
-                (ld_population.sampleSize / total_sample_count).alias(
+                f.try_divide(ld_population.sampleSize, total_sample_count).alias(
                     "relativeSampleSize"
                 ),
             ),
