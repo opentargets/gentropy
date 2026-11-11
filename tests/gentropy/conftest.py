@@ -30,6 +30,10 @@ from gentropy.dataset.variant_index import VariantIndex
 from gentropy.datasource.eqtl_catalogue.finemapping import EqtlCatalogueFinemapping
 from gentropy.datasource.eqtl_catalogue.study_index import EqtlCatalogueStudyIndex
 from gentropy.datasource.gwas_catalog.study_index import StudyIndexGWASCatalog
+from gentropy.method.biosample_enrichment import (
+    ExpressionSpecificity,
+    SpecificityPanel,
+)
 from gentropy.method.pathway_enrichment import PathwayLibrary
 from utils.spark import get_spark_testing_conf
 
@@ -408,6 +412,27 @@ def mock_pathway_library(spark: SparkSession) -> PathwayLibrary:
         "id string, ancestors array<string>",
     )
     return PathwayLibrary(go=go, reactome=reactome)
+
+
+@pytest.fixture()
+def mock_expression_specificity(spark: SparkSession) -> ExpressionSpecificity:
+    """Mock baseline expression table of a platform release: two genes in a tissue and a cell type."""
+    return ExpressionSpecificity(
+        baseline_expression=spark.createDataFrame(
+            [
+                ("gene1", "source1", "UBERON_0000001", None, 0.9),
+                ("gene2", "source1", "UBERON_0000001", None, 0.0),
+                ("gene1", "source1", None, "CL_0000001", 0.0),
+                ("gene2", "source1", None, "CL_0000001", 0.4),
+            ],
+            "targetId string, datasourceId string, tissueBiosampleId string, "
+            "celltypeBiosampleId string, specificity_score double",
+        ),
+        panels=(
+            SpecificityPanel("source1", "tissue"),
+            SpecificityPanel("source1", "celltype"),
+        ),
+    )
 
 
 @pytest.fixture()

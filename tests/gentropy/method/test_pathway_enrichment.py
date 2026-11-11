@@ -136,7 +136,7 @@ def test_regression_matches_a_direct_fit(monkeypatch: pytest.MonkeyPatch) -> Non
     regions = rng.integers(0, 40, n_genes)
     monkeypatch.setattr(pathway_enrichment, "_BLOCK_BYTES", 8 * n_genes * 3)
 
-    beta, standard_error = pathway_enrichment._pathway_regression(
+    beta, standard_error = pathway_enrichment.clustered_regression(
         covariates,
         scipy.sparse.csc_matrix(membership),
         scipy.sparse.csc_matrix(outcomes),
@@ -163,7 +163,7 @@ def test_regression_matches_a_direct_fit(monkeypatch: pytest.MonkeyPatch) -> Non
 
 def test_benjamini_hochberg_ignores_missing_p_values() -> None:
     """Each row is adjusted over its own finite p-values only."""
-    adjusted = pathway_enrichment._benjamini_hochberg(
+    adjusted = pathway_enrichment.benjamini_hochberg(
         np.array([[0.01, 0.04, np.nan, 0.03], [0.5, np.nan, np.nan, np.nan]])
     )
     np.testing.assert_allclose(

@@ -265,7 +265,7 @@ class PathwayLibrary:
             tested = np.asarray(y.sum(axis=0)).ravel() >= min_genes
             if not tested.any():
                 continue
-            beta, standard_error = _pathway_regression(
+            beta, standard_error = clustered_regression(
                 covariates[kept],
                 membership[kept],
                 y[:, tested].tocsc(),
@@ -274,7 +274,7 @@ class PathwayLibrary:
             with np.errstate(divide="ignore", invalid="ignore"):
                 z = beta / standard_error
             p_value = np.where(np.isfinite(z), norm.sf(z), np.nan)
-            adjusted = _benjamini_hochberg(p_value)
+            adjusted = benjamini_hochberg(p_value)
             units, pathways = np.nonzero(adjusted < p_value_adjusted_threshold)
             results.append(
                 pd.DataFrame(
@@ -348,17 +348,19 @@ def gene_covariates(target_index: TargetIndex, density_window: int) -> pd.DataFr
 _BLOCK_BYTES = 2**28
 
 
-def _pathway_regression(
+def clustered_regression(
     covariates: np.ndarray,
-    membership: scipy.sparse.csc_matrix,
+    membership: scipy.sparse.csc_matrix | np.ndarray,
     outcomes: scipy.sparse.csc_matrix,
     regions: np.ndarray,
 ) -> tuple[np.ndarray, np.ndarray]:
-    """Slope of every outcome on every pathway, with standard errors clustered by region.
+    """Slope of every outcome on every predictor, with standard errors clustered by region.
 
-    The covariates are projected out of each pathway's membership once, which gives the slope
-    of the full model (Frisch-Waugh-Lovell). The cluster-robust variance of a slope is
-    `sum_c (sum_{g in c} xr_g e_g)^2 / sxx^2`, where `xr` is the projected membership, `e` the
+    A predictor is a pathway's membership here, and a biosample's specificity scores in
+    `ExpressionSpecificity.enrichment`. The covariates are projected out of each predictor
+    once, which gives the slope of the full model (Frisch-Waugh-Lovell). The cluster-robust
+    variance of a slope is
+    `sum_c (sum_{g in c} xr_g e_g)^2 / sxx^2`, where `xr` is the projected predictor, `e` the
     residual of the full model and `sxx = sum_g xr_g^2`. The per-region sum is
     `Y_c - D_c - beta * B_c` with `Y_c = sum_{g in c} y_g xr_g`, `D_c = sum_{g in c} xr_g
     (Q Q^T y)_g` and `B_c = sum_{g in c} xr_g^2`. Squaring and summing it over the regions
@@ -368,13 +370,14 @@ def _pathway_regression(
 
     Args:
         covariates (np.ndarray): genes x covariates, the intercept included
-        membership (scipy.sparse.csc_matrix): genes x pathways, 1 for members
+        membership (scipy.sparse.csc_matrix | np.ndarray): genes x predictors, such as 1 for
+            the members of each pathway
         outcomes (scipy.sparse.csc_matrix): genes x diseases, 1 for listed genes
         regions (np.ndarray): Region index of each gene, from 0
 
     Returns:
-        tuple[np.ndarray, np.ndarray]: Slopes and standard errors, diseases x pathways, NaN for
-            pathways with no variance left after the covariates
+        tuple[np.ndarray, np.ndarray]: Slopes and standard errors, diseases x predictors, NaN
+            for predictors with no variance left after the covariates
     """
     n_genes, n_pathways = membership.shape
     n_units = outcomes.shape[1]
@@ -403,7 +406,8 @@ def _pathway_regression(
     block = max(1, _BLOCK_BYTES // (8 * max(n_genes, len(pair_keys), n_regions)))
     for start in range(0, n_pathways, block):
         stop = min(start + block, n_pathways)
-        x = membership[:, start:stop].toarray()
+        x = membership[:, start:stop]
+        x = x.toarray() if scipy.sparse.issparse(x) else np.asarray(x, dtype=float)
         xr = x - basis @ (basis.T @ x)
         sxx = (xr**2).sum(axis=0)
         # A pathway the covariates explain leaves rounding noise, not zero: treat it as none.
@@ -472,7 +476,7 @@ def _orthonormal_basis(covariates: np.ndarray) -> np.ndarray:
     return left[:, singular_values > singular_values[0] * 1e-10]
 
 
-def _benjamini_hochberg(p_value: np.ndarray) -> np.ndarray:
+def benjamini_hochberg(p_value: np.ndarray) -> np.ndarray:
     """Benjamini-Hochberg adjusted p-values along each row, ignoring NaN.
 
     Args:
