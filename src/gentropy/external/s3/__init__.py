@@ -41,10 +41,10 @@ class S3Config(ExternalConfig):
     """
 
     _HADOOP_CONNECTOR_PKG: ClassVar[str] = (
-        "org.apache.hadoop:hadoop-aws:3.3.6,com.amazonaws:aws-java-sdk-bundle:1.12.367"
+        "org.apache.hadoop:hadoop-aws:3.4.2,software.amazon.awssdk:bundle:2.29.52"
     )
-    """Connector for AWS S3 compatible storage.
-        See https://mvnrepository.com/artifact/org.apache.hadoop/hadoop-aws/3.3.6"""
+    """Connector for AWS S3 compatible storage, matching the Hadoop 3.4.2 that pyspark 4.1 bundles.
+        See https://mvnrepository.com/artifact/org.apache.hadoop/hadoop-aws/3.4.2"""
 
     bucket_name: str
     """Name of the bucket, without s3:// or s3a:// prefix."""
