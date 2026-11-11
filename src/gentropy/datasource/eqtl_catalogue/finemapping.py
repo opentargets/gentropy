@@ -336,7 +336,8 @@ class EqtlCatalogueFinemapping:
         credible_sets: DataFrame,
         lbf: DataFrame,
         studies_metadata: DataFrame,
-        ss_ftp_path_template: str = "https://ftp.ebi.ac.uk/pub/databases/spot/eQTL/r8_beta/sumstats",
+        ss_ftp_path_template: str
+        | None = "https://ftp.ebi.ac.uk/pub/databases/spot/eQTL/r8_beta/sumstats",
         full_susie: DataFrame | None = None,
     ) -> DataFrame:
         """Parse the SuSIE results into a DataFrame containing the finemapping statistics and metadata about the studies.
@@ -356,7 +357,7 @@ class EqtlCatalogueFinemapping:
             credible_sets (DataFrame): DataFrame containing raw statistics of all variants in the credible sets.
             lbf (DataFrame): DataFrame containing the raw log Bayes Factors for all variants.
             studies_metadata (DataFrame): DataFrame containing the study metadata.
-            ss_ftp_path_template (str, optional): eQTL Catalogue FTP path template for summary statistics. Defaults to "https://ftp.ebi.ac.uk/pub/databases/spot/eQTL/r8_beta/sumstats".
+            ss_ftp_path_template (str | None, optional): Location of the summary statistics of the studies, followed by `/<study_id>/<dataset_id>`. Defaults to the eQTL Catalogue FTP, "https://ftp.ebi.ac.uk/pub/databases/spot/eQTL/r8_beta/sumstats". When None, as for datasets whose summary statistics are not public, `summarystatsLocation` is null and `hasSumstats` is False.
             full_susie (DataFrame | None, optional): Posterior effects, as read by `read_full_susie_from_source`. Defaults to None.
 
         Returns:
@@ -406,10 +407,14 @@ class EqtlCatalogueFinemapping:
                 f.col("region"),
                 normalize_chromosome(f.col("chromosome")).alias("chromosome"),
                 f.col("position"),
-                # The region is chrN:start-end:
-                f.regexp_extract(f.col("region"), r":(\d+)-", 1)
-                .cast(IntegerType())
-                .alias("locusStart"),
+                # The region is chrN:start-end, the gene TSS +/- 1 Mb, so the start is
+                # negative for genes in the first megabase; the locus then starts at 1:
+                f.greatest(
+                    f.lit(1),
+                    f.regexp_extract(f.col("region"), r":(-?\d+)-", 1).cast(
+                        IntegerType()
+                    ),
+                ).alias("locusStart"),
                 f.regexp_extract(f.col("region"), r"-(\d+)$", 1)
                 .cast(IntegerType())
                 .alias("locusEnd"),
@@ -447,13 +452,17 @@ class EqtlCatalogueFinemapping:
                 f.col("tissue_id").alias("biosampleFromSourceId"),
                 EqtlCatalogueStudyIndex._identify_study_type().alias("studyType"),
                 f.col("study_label").alias("projectId"),
-                f.concat_ws(
-                    "/",
-                    f.lit(ss_ftp_path_template),
-                    f.col("study_id"),
-                    f.col("dataset_id"),
+                (
+                    f.concat_ws(
+                        "/",
+                        f.lit(ss_ftp_path_template),
+                        f.col("study_id"),
+                        f.col("dataset_id"),
+                    )
+                    if ss_ftp_path_template is not None
+                    else f.lit(None).cast("string")
                 ).alias("summarystatsLocation"),
-                f.lit(True).alias("hasSumstats"),
+                f.lit(ss_ftp_path_template is not None).alias("hasSumstats"),
                 f.col("molecular_trait_id"),
                 f.col("pmid").alias("pubmedId"),
                 f.col("condition_label").alias("condition"),
@@ -567,7 +576,9 @@ class EqtlCatalogueFinemapping:
         SuSiE was fitted on, per standard deviation of the genotype: dividing them by the file's
         `X_column_scale_factors` gives per-allele effects, which is left to a later rescaling.
         Only the credible set members (`cs_index` set) are kept; a member of two credible sets
-        keeps the moments of both effects.
+        keeps the moments of both effects. A variant is kept once per region and trait, the key of
+        the join in `parse_susie_results`: some files (e.g. QTS000038) list a variant twice, with
+        moments that differ only by floating point noise, which would duplicate its credible sets.
 
         Args:
             full_susie_path (str | list[str]): Path(s) or glob to the `*.full_susie.parquet` files.
@@ -618,7 +629,7 @@ class EqtlCatalogueFinemapping:
                     ]
                 ).alias("conditionalStandardErrors"),
             )
-            .distinct()
+            .dropDuplicates(["molecular_trait_id", "region", "variant", "dataset_id"])
         )
 
     @classmethod

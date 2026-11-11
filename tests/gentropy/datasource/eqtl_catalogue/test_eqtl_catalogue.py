@@ -152,6 +152,21 @@ class TestEqtlCatalogueFinemapping:
         assert row.conditionalStandardErrors[0] == pytest.approx(0.05)
         assert row.conditionalStandardErrors[1] == 0.0
 
+    def test__read_full_susie_from_source_drops_duplicates(
+        self: TestEqtlCatalogueFinemapping, session: Session, tmp_path: Path
+    ) -> None:
+        """A variant listed twice, with moments that differ by floating point noise, is kept once."""
+        source = session.spark.read.parquet(
+            "tests/gentropy/data_samples/QTD000001/QTS00001/QTS000001.full_susie.parquet"
+        )
+        noisy = source.withColumn("mu_1", f.col("mu_1") + f.lit(1e-10))
+        path = tmp_path / "QTD000001.full_susie.parquet"
+        source.unionByName(noisy).write.parquet(str(path))
+        data = EqtlCatalogueFinemapping.read_full_susie_from_source(
+            str(path), session=session
+        )
+        assert data.count() == 15
+
     def test__read_credible_set_from_source(
         self: TestEqtlCatalogueFinemapping,
     ) -> None:
@@ -358,6 +373,34 @@ class TestEqtlCatalogueFinemapping:
         }
         assert processed_finemapping_df.count() == 15  # 15 credible sets
 
+    def test__parse_susie_results_summary_statistics_location(
+        self: TestEqtlCatalogueFinemapping,
+        processed_finemapping_df: DataFrame,
+        sample_eqtl_catalogue_finemapping_credible_sets: DataFrame,
+        sample_eqtl_catalogue_finemapping_lbf: DataFrame,
+        sample_eqtl_catalogue_studies_metadata: DataFrame,
+    ) -> None:
+        """The summary statistics are on the eQTL Catalogue FTP by default, and absent without a location."""
+        default = processed_finemapping_df.select(
+            "summarystatsLocation", "hasSumstats"
+        ).collect()
+        assert all(
+            r.hasSumstats
+            and r.summarystatsLocation.startswith(
+                "https://ftp.ebi.ac.uk/pub/databases/spot/eQTL/r8_beta/sumstats/QTS"
+            )
+            for r in default
+        )
+        private = EqtlCatalogueFinemapping.parse_susie_results(
+            sample_eqtl_catalogue_finemapping_credible_sets,
+            sample_eqtl_catalogue_finemapping_lbf,
+            sample_eqtl_catalogue_studies_metadata,
+            ss_ftp_path_template=None,
+        ).select("summarystatsLocation", "hasSumstats")
+        assert {(r.summarystatsLocation, r.hasSumstats) for r in private.collect()} == {
+            (None, False)
+        }
+
     def test__from_susie_results(self, processed_finemapping_df: DataFrame) -> None:
         """The sample's one credible set and its 15 variants carry the source values."""
         credible_sets, variants = EqtlCatalogueFinemapping.from_susie_results(
@@ -394,6 +437,26 @@ class TestEqtlCatalogueFinemapping:
         assert lead.effectAlleleFrequency is None
         assert lead.conditionalBeta is None
         assert lead.r2Overall is None
+
+    def test__from_susie_results_negative_region_start(
+        self: TestEqtlCatalogueFinemapping,
+        sample_eqtl_catalogue_finemapping_credible_sets: DataFrame,
+        sample_eqtl_catalogue_finemapping_lbf: DataFrame,
+        sample_eqtl_catalogue_studies_metadata: DataFrame,
+    ) -> None:
+        """A region starting before the chromosome (TSS - 1 Mb < 0) starts the locus at 1."""
+        region = f.lit("chrX:-33518-1966482")
+        credible_sets, _ = EqtlCatalogueFinemapping.from_susie_results(
+            EqtlCatalogueFinemapping.parse_susie_results(
+                sample_eqtl_catalogue_finemapping_credible_sets.withColumn(
+                    "region", region
+                ),
+                sample_eqtl_catalogue_finemapping_lbf.withColumn("region", region),
+                sample_eqtl_catalogue_studies_metadata,
+            )
+        )
+        [credible_set] = credible_sets.df.collect()
+        assert (credible_set.locusStart, credible_set.locusEnd) == (1, 1966482)
 
     def test__from_susie_results_with_full_susie(
         self, processed_finemapping_with_full_susie_df: DataFrame

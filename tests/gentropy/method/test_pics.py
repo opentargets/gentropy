@@ -150,13 +150,17 @@ def test_variants_are_kept_until_coverage_is_reached(spark: SparkSession) -> Non
     assert [v for v, _ in _members(PICS(coverage=0.95), loci)] == [LEAD, "tag"]
 
 
-def test_equal_posteriors_are_ordered_by_variant(spark: SparkSession) -> None:
-    """Perfect proxies tie with the lead; the cut keeps the first by variant id."""
-    loci = _loci(spark, [("1_200_C_G", 1.0), (LEAD, 1.0), ("1_050_G_C", 1.0)])
+def test_the_lead_comes_first_among_equal_posteriors(spark: SparkSession) -> None:
+    """Perfect proxies tie with the lead; the lead is kept first, then by variant id.
+
+    Both proxies sort before the lead by variant id, so ordering by variant id
+    alone would cut the lead from its own credible set.
+    """
+    loci = _loci(spark, [("1_060_C_G", 1.0), (LEAD, 1.0), ("1_050_G_C", 1.0)])
 
     members = _members(PICS(coverage=0.5), loci)
 
-    assert [v for v, _ in members] == ["1_050_G_C", LEAD]
+    assert [v for v, _ in members] == [LEAD, "1_050_G_C"]
     assert [pp for _, pp in members] == pytest.approx([1 / 3, 1 / 3])
 
 

@@ -237,7 +237,10 @@ class GWASCatalogCuratedAssociationsParser:
             ).alias("riskAllele"),
         )
 
-        # Subset of variant annotation required for GWAS Catalog annotations:
+        # Subset of variant annotation required for GWAS Catalog annotations. The allele
+        # frequencies are only used for `maxMaf`, so they are not kept, and the positions of
+        # the associations are broadcast, so the variant index is filtered where it is read
+        # instead of shuffled:
         va_subset = variant_index.df.select(
             "variantId",
             "chromosome",
@@ -252,10 +255,13 @@ class GWASCatalogCuratedAssociationsParser:
             f.col("rsIds").alias("rsIdsGnomad"),
             "referenceAllele",
             "alternateAllele",
-            "alleleFrequencies",
             variant_index.max_maf().alias("maxMaf"),
         ).join(
-            gwas_associations_subset.select("chromosome", "ensemblPosition").distinct(),
+            f.broadcast(
+                gwas_associations_subset.select(
+                    "chromosome", "ensemblPosition"
+                ).distinct()
+            ),
             on=["chromosome", "ensemblPosition"],
             how="inner",
         )

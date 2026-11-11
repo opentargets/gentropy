@@ -1,6 +1,6 @@
 """Annotate study loci with the statistics and the LD of their variants.
 
-Both functions add a column to a study locus and return it in its next state:
+Two functions add a column to a study locus and return it in its next state:
 
 * ``annotate_locus`` collects the summary statistics inside each locus into
   ``locus``, turning a ``StudyLocus`` into an ``AnnotatedStudyLocus``.
@@ -9,11 +9,14 @@ Both functions add a column to a study locus and return it in its next state:
 
 LD comes second because LD clumping needs both: ``ldSet`` to find linked leads,
 and ``locus`` for the lead's p-value.
+
+``keep_lead_entry`` reduces ``locus`` to the lead's own entry, the only entry the
+LD annotation, the LD clumping and the posteriors of PICS read.
 """
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, TypeVar
 
 from pyspark.sql import functions as f
 from pyspark.sql import types as t
@@ -27,9 +30,53 @@ from gentropy.dataset.study_locus import (
 )
 
 if TYPE_CHECKING:
+    from pyspark.sql import Column
+
     from gentropy.dataset.ld_index import LDIndex
     from gentropy.dataset.study_index import StudyIndex
     from gentropy.dataset.summary_statistics import SummaryStatistics
+
+# How far above 1 a panel r2 may drift from rounding and still be read as 1.
+_R2_TOLERANCE = 1e-6
+
+# A study locus state with ``locus``: annotated, or LD-annotated.
+_Loci = TypeVar("_Loci", bound=AnnotatedStudyLocus)
+
+
+def keep_lead_entry(loci: _Loci) -> _Loci:
+    """Reduce ``locus`` to the lead's own entry.
+
+    The LD annotation, the LD clumping and the posteriors of PICS read the lead's
+    entry of ``locus`` only, for its p-value. On summary statistics ``locus``
+    holds thousands of entries per locus; with the lead's entry only, these
+    steps neither shuffle nor cache them. A locus whose lead has no entry gets
+    an empty ``locus``.
+
+    Args:
+        loci (_Loci): The loci, annotated or LD-annotated.
+
+    Returns:
+        _Loci: The same loci, as the same dataset type, with the lead's entry in ``locus``.
+
+    Examples:
+        >>> def entry(variant, exponent):
+        ...     return (variant, 5.0, exponent, 0.3, 1000, 0.1, 0.01)
+        >>> rows = [("L1", "S1", "1", 1, 1000, "A", [], [entry("A", -8), entry("B", -7)])]
+        >>> loci = AnnotatedStudyLocus(
+        ...     spark.createDataFrame(rows, AnnotatedStudyLocus.get_schema()),
+        ...     AnnotatedStudyLocus.get_schema(),
+        ... )
+        >>> lead_only = keep_lead_entry(loci)
+        >>> type(lead_only).__name__, [e.variantId for e in lead_only.df.first().locus]
+        ('AnnotatedStudyLocus', ['A'])
+    """
+    lead = f.col("leadVariantId")
+    return type(loci)(
+        _df=loci.df.withColumn(
+            "locus", f.filter("locus", lambda e: e["variantId"] == lead)
+        ),
+        _schema=loci.schema,
+    )
 
 
 def annotate_locus(
@@ -143,7 +190,8 @@ def annotate_ld(
     panel gives ``r`` for each of its populations, and the study decides
     which one counts: the population with the largest share of its samples
     (see ``major_population``). ``r2Overall`` is that population's ``r``
-    squared, or 0 when the panel has no ``r`` for it. Tags with
+    squared, or 0 when the panel has no ``r`` for it. An ``r2`` that rounding
+    lifts at most 1e-6 above 1 is read as 1. Tags with
     ``r2Overall`` at or above ``r2_threshold`` are kept.
 
     The index holds the pairs at r2 0.5 or more in at least one of its
@@ -210,23 +258,26 @@ def annotate_ld(
     schema = LDAnnotatedStudyLocus.get_schema()
     lead = f.col("leadVariantId")
     major = major_population(f.col("ldPopulationStructure"))
-    # r2 in the major population; a tag measured without it counts as 0.
+
+    def r2_overall(tag: Column) -> Column:
+        """Return the r2 of a tag in the major population: 0 for a tag measured without it.
+
+        Args:
+            tag (Column): A tag of the LD set of the panel.
+
+        Returns:
+            Column: The r2 of the tag in the major population.
+        """
+        r = f.get(f.filter(tag["rValues"], lambda r: r["population"] == major), 0)
+        r2 = f.coalesce(f.pow(r["r"], 2), f.lit(0.0))
+        # A panel r a few ulps past ±1 squares above 1, which PICS cannot take.
+        return f.when(r2.between(1.0, 1.0 + _R2_TOLERANCE), f.lit(1.0)).otherwise(r2)
+
     tags = f.transform(
         f.col("panelLdSet"),
         lambda tag: f.struct(
             tag["tagVariantId"].alias("tagVariantId"),
-            f.coalesce(
-                f.pow(
-                    f.get(
-                        f.filter(tag["rValues"], lambda r: r["population"] == major),
-                        0,
-                    )["r"],
-                    2,
-                ),
-                f.lit(0.0),
-            )
-            .cast(t.FloatType())
-            .alias("r2Overall"),
+            r2_overall(tag).cast(t.FloatType()).alias("r2Overall"),
         ),
     )
     kept = f.filter(
@@ -242,6 +293,20 @@ def annotate_ld(
         )
     )
 
+    # The LD sets of the leads only. The leads are broadcast, so the LD index is filtered
+    # where it is read: the left join below cannot broadcast the LD index, its preserved
+    # side being the loci, and would otherwise shuffle the whole LD index.
+    leads = (
+        loci.df.select("leadVariantId", "chromosome")
+        .where(f.col("leadVariantId").isNotNull())
+        .distinct()
+    )
+    lead_ld_sets = ld_index.df.select(
+        f.col("variantId").alias("leadVariantId"),
+        "chromosome",
+        f.col("ldSet").alias("panelLdSet"),
+    ).join(f.broadcast(leads), on=["leadVariantId", "chromosome"], how="left_semi")
+
     annotated = (
         # An LDAnnotatedStudyLocus is also an AnnotatedStudyLocus: replace its ldSet.
         loci.df.drop("ldSet")
@@ -251,11 +316,7 @@ def annotate_ld(
             how="left",
         )
         .join(
-            ld_index.df.select(
-                f.col("variantId").alias("leadVariantId"),
-                "chromosome",
-                f.col("ldSet").alias("panelLdSet"),
-            ),
+            lead_ld_sets,
             on=["leadVariantId", "chromosome"],
             how="left",
         )

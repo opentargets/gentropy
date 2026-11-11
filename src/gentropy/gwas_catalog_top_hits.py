@@ -55,11 +55,15 @@ class GWASCatalogTopHitIngestionStep:
         ).persist()
 
         # Transform
+        # The associations mapped to the variant index are the source of both outputs, so
+        # they are persisted: otherwise the mapping, a join with the variant index, runs once
+        # per output.
+        mapped_associations = GWASCatalogCuratedAssociationsParser.from_source(
+            catalog_associations, gnomad_variants
+        ).persist()
         study_index, associations = GWASCatalogStudySplitter.split(
             StudyIndexGWASCatalogParser.from_source(catalog_studies, ancestry_lut),
-            GWASCatalogCuratedAssociationsParser.from_source(
-                catalog_associations, gnomad_variants
-            ),
+            mapped_associations,
         )
         # Load
         (
@@ -67,7 +71,8 @@ class GWASCatalogTopHitIngestionStep:
             # Flag all studies without sumstats
             .add_no_sumstats_flag()
             # Save dataset:
-            .df.write.mode(session.write_mode)
+            .df.coalesce(session.output_partitions)
+            .write.mode(session.write_mode)
             .parquet(catalog_studies_out)
         )
 
@@ -76,6 +81,7 @@ class GWASCatalogTopHitIngestionStep:
                 GWASCatalogCuratedAssociationsParser.to_study_locus(associations),
                 distance,
             )
-            .df.write.mode(session.write_mode)
+            .df.coalesce(session.output_partitions)
+            .write.mode(session.write_mode)
             .parquet(catalog_associations_out)
         )

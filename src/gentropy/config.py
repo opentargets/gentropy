@@ -116,17 +116,6 @@ class deCODESummaryStatisticsQCConfig(StepConfig):
 
 
 @dataclass
-class BiosampleIndexConfig(StepConfig):
-    """Biosample index step configuration."""
-
-    cell_ontology_input_path: str = MISSING
-    uberon_input_path: str = MISSING
-    efo_input_path: str = MISSING
-    biosample_index_path: str = MISSING
-    _target_: str = "gentropy.biosample_index.BiosampleIndexStep"
-
-
-@dataclass
 class GWASCatalogStudyCurationConfig(StepConfig):
     """GWAS Catalog study curation step configuration."""
 
@@ -189,6 +178,10 @@ class EqtlCatalogueConfig(StepConfig):
     lead_pvalue_threshold: float = 1e-3
     mqtl_quantification_methods_blacklist: list[str] | None = None
     full_susie_input_glob: str | None = None
+    # null for datasets whose summary statistics are not public:
+    summary_statistics_location: str | None = (
+        "https://ftp.ebi.ac.uk/pub/databases/spot/eQTL/r8_beta/sumstats"
+    )
     _target_: str = "gentropy.eqtl_catalogue.EqtlCatalogueStep"
 
 
@@ -196,11 +189,7 @@ class EqtlCatalogueConfig(StepConfig):
 class FinngenStudiesConfig(StepConfig):
     """FinnGen study index step configuration."""
 
-    session: Any = field(
-        default_factory=lambda: {
-            "start_hail": True,
-        }
-    )
+    session: Any = field(default_factory=dict)
     finngen_study_index_out: str = MISSING
     finngen_phenotype_table_url: str = MISSING
     finngen_release_prefix: str = "FINNGEN_R11_"
@@ -268,6 +257,25 @@ class FinngenMultiomeIngestionConfig(StepConfig):
     credset_lbf_threshold: float = 0.8685889638065036
     purity_min_r2_threshold: float = 0.25
     _target_: str = "gentropy.finngen_multiome_ingestion.FinnGenMultiomeIngestionStep"
+
+
+@dataclass
+class EqtlGenIngestionConfig(StepConfig):
+    """eQTLGen single-cell eQTL and co-eQTL ingestion step configuration."""
+
+    # `single_cell_eqtl` or `coeqtl`:
+    dataset: str = MISSING
+    finemapping_files: str = MISSING
+    study_index_output_path: str = MISSING
+    credible_set_output_path: str = MISSING
+    credible_set_variant_output_path: str = MISSING
+    # Needed for the co-eQTLs only, to map their gene symbols:
+    target_index_path: str | None = None
+    # The filters of the eQTLGen release 260326: pValueExponent <= -3 and a log10 Bayes factor
+    # of at least log10(e^2) = 2 / ln(10).
+    lead_pvalue_threshold: float = 1e-2
+    min_credible_set_log10_bayes_factor: float = 0.8685889638065036
+    _target_: str = "gentropy.eqtlgen_ingestion.EqtlGenIngestionStep"
 
 
 @dataclass
@@ -546,13 +554,9 @@ class FinngenUkbMvpMetaSummaryStatisticsIngestionConfig(StepConfig):
     )
     # Inputs
     source_manifest_path: str = MISSING
-    efo_curation_path: str = MISSING
     gnomad_variant_index_path: str = MISSING
     # Outputs
-    study_index_output_path: str = MISSING
-    raw_summary_statistics_output_path: str = MISSING
     harmonised_summary_statistics_output_path: str = MISSING
-    harmonised_summary_statistics_qc_output_path: str = MISSING
     # Harmonisation config
     perform_meta_analysis_filter: bool = True
     imputation_score_threshold: float = 0.8
@@ -565,6 +569,17 @@ class FinngenUkbMvpMetaSummaryStatisticsIngestionConfig(StepConfig):
     _target_: str = (
         "gentropy.finngen_ukb_mvp_meta.FinngenUkbMvpMetaSummaryStatisticsIngestionStep"
     )
+
+
+@dataclass
+class FinngenUkbMvpMetaStudyIndexConfig(StepConfig):
+    """FinnGen UKB meta-analysis study index step configuration."""
+
+    source_manifest_path: str = MISSING
+    efo_curation_path: str = MISSING
+    study_index_output_path: str = MISSING
+    sumstats_qc_path: str | None = None
+    _target_: str = "gentropy.finngen_ukb_mvp_meta.FinngenUkbMvpMetaStudyIndexStep"
 
 
 @dataclass
@@ -614,28 +629,6 @@ class GnomadVariantConfig(StepConfig):
 
 
 @dataclass
-class PanUKBBConfig(StepConfig):
-    """Pan UKB variant ingestion step configuration."""
-
-    session: Any = field(
-        default_factory=lambda: {
-            "start_hail": True,
-        }
-    )
-    pan_ukbb_ht_path: str = "gs://panukbb-ld-matrixes/ukb-diverse-pops-public-build-38/UKBB.{POP}.ldadj.variant.b38"
-    pan_ukbb_bm_path: str = "gs://panukbb-ld-matrixes/UKBB.{POP}.ldadj"
-    ukbb_annotation_path: str = "gs://panukbb-ld-matrixes/UKBB.{POP}.aligned.parquet"
-    pan_ukbb_pops: list[str] = field(
-        default_factory=lambda: [
-            "AFR",  # African
-            "CSA",  # Central/South Asian
-            "EUR",  # European
-        ]
-    )
-    _target_: str = "gentropy.pan_ukb_ingestion.PanUKBBVariantIndexStep"
-
-
-@dataclass
 class LocusBreakerClumpingConfig(StepConfig):
     """Locus breaker clumping step configuration."""
 
@@ -657,11 +650,7 @@ class LocusBreakerClumpingConfig(StepConfig):
 class WindowBasedClumpingStepConfig(StepConfig):
     """Window-based clumping step configuration."""
 
-    session: Any = field(
-        default_factory=lambda: {
-            "start_hail": True,
-        }
-    )
+    session: Any = field(default_factory=dict)
     summary_statistics_input_path: str = MISSING
     study_locus_output_path: str = MISSING
     gwas_significance: float = 1e-8
@@ -722,28 +711,6 @@ class SummaryStatisticsQCStepConfig(StepConfig):
 
 
 @dataclass
-class CredibleSetValidationStepConfig(StepConfig):
-    """Configuration of the credible set validation step.
-
-    Credible sets and their variants are read from several sources, so both are lists of paths, in
-    the same order.
-    """
-
-    credible_set_path: list[str] = MISSING
-    credible_set_variant_path: list[str] = MISSING
-    study_index_path: str = MISSING
-    target_index_path: str = MISSING
-    disease_index_path: str = MISSING
-    valid_credible_set_path: str = MISSING
-    valid_credible_set_variant_path: str = MISSING
-    invalid_credible_set_path: str = MISSING
-    invalid_credible_set_variant_path: str = MISSING
-    invalid_qc_reasons: list[str] = MISSING
-    trans_qtl_threshold: int = MISSING
-    _target_: str = "gentropy.credible_set_validation.CredibleSetValidationStep"
-
-
-@dataclass
 class CredibleSetQCStepConfig(StepConfig):
     """Credible set quality control step configuration."""
 
@@ -758,29 +725,6 @@ class CredibleSetQCStepConfig(StepConfig):
     ld_min_r2: float = 0.8
     n_partitions: int | None = 200
     _target_: str = "gentropy.credible_set_qc.CredibleSetQCStep"
-
-
-@dataclass
-class LocusToGeneEvidenceStepConfig(StepConfig):
-    """Configuration of the locus to gene evidence step."""
-
-    locus_to_gene_predictions_path: str = MISSING
-    credible_set_path: str = MISSING
-    study_index_path: str = MISSING
-    evidence_output_path: str = MISSING
-    locus_to_gene_threshold: float = 0.05
-    _target_: str = "gentropy.l2g.LocusToGeneEvidenceStep"
-
-
-@dataclass
-class LocusToGeneAssociationsStepConfig(StepConfig):
-    """Configuration of the locus to gene association step."""
-
-    evidence_input_path: str = MISSING
-    disease_index_path: str = MISSING
-    direct_associations_output_path: str = MISSING
-    indirect_associations_output_path: str = MISSING
-    _target_: str = "gentropy.l2g.LocusToGeneAssociationsStep"
 
 
 @dataclass
@@ -932,7 +876,6 @@ def register_config() -> None:
     cs.store(group="step/session", name="base_session", node=SessionConfig)
     cs.store(group="step", name="colocalisation", node=ColocalisationConfig)
     cs.store(group="step", name="eqtl_catalogue", node=EqtlCatalogueConfig)
-    cs.store(group="step", name="biosample_index", node=BiosampleIndexConfig)
     cs.store(
         group="step",
         name="gwas_catalog_study_curation",
@@ -984,6 +927,7 @@ def register_config() -> None:
         node=FinngenMultiomeIngestionConfig,
     )
 
+    cs.store(group="step", name="eqtlgen_ingestion", node=EqtlGenIngestionConfig)
     cs.store(group="step", name="pics", node=PICSConfig)
     cs.store(group="step", name="gnomad_variants", node=GnomadVariantConfig)
     cs.store(group="step", name="ukb_ppp_eur_sumstat_preprocess", node=UkbPppEurConfig)
@@ -999,25 +943,15 @@ def register_config() -> None:
     )
     cs.store(
         group="step",
-        name="locus_to_gene_evidence",
-        node=LocusToGeneEvidenceStepConfig,
-    )
-    cs.store(
-        group="step",
-        name="locus_to_gene_associations",
-        node=LocusToGeneAssociationsStepConfig,
-    )
-    cs.store(
-        group="step",
         name="finngen_ukb_mvp_meta_summary_statistics_ingestion",
         node=FinngenUkbMvpMetaSummaryStatisticsIngestionConfig,
     )
-    cs.store(group="step", name="credible_set_qc", node=CredibleSetQCStepConfig)
     cs.store(
         group="step",
-        name="credible_set_validation",
-        node=CredibleSetValidationStepConfig,
+        name="finngen_ukb_mvp_meta_study_index",
+        node=FinngenUkbMvpMetaStudyIndexConfig,
     )
+    cs.store(group="step", name="credible_set_qc", node=CredibleSetQCStepConfig)
     cs.store(
         group="step", name="heritability_estimate", node=HeritabilityEstimateConfig
     )

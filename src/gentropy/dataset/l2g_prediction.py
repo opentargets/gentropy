@@ -9,8 +9,7 @@ from typing import TYPE_CHECKING
 import pyspark.sql.functions as f
 import shap
 from pydantic import SecretStr
-from pyspark.sql import DataFrame
-from pyspark.sql.types import StringType, StructType
+from pyspark.sql.types import StructType
 
 from gentropy.common.schemas import parse_spark_schema
 from gentropy.common.session import Session
@@ -18,7 +17,6 @@ from gentropy.common.spark import pivot_df
 from gentropy.dataset.credible_set import CredibleSet
 from gentropy.dataset.dataset import Dataset
 from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
-from gentropy.dataset.study_index import StudyIndex
 from gentropy.method.l2g.model import LocusToGeneModel
 
 if TYPE_CHECKING:
@@ -109,78 +107,6 @@ class L2GPrediction(Dataset):
             .select_features(l2g_model.features_list)
         )
         return l2g_model.predict(fm, session)
-
-    def to_disease_target_evidence(
-        self: L2GPrediction,
-        study_locus: CredibleSet,
-        study_index: StudyIndex,
-        l2g_threshold: float = 0.05,
-    ) -> DataFrame:
-        """Convert locus to gene predictions to disease target evidence.
-
-        Args:
-            study_locus (CredibleSet): Study locus dataset
-            study_index (StudyIndex): Study index dataset
-            l2g_threshold (float): Threshold to consider a gene as a target. Defaults to 0.05.
-
-        Returns:
-            DataFrame: Disease target evidence
-
-        Raises:
-            ValueError: if `diseaseIds` column is missing.
-        """
-        datasource_id = "gwas_credible_sets"
-        datatype_id = "genetic_association"
-
-        # A set of optional columns need to be in the input datasets:
-        if "diseaseIds" not in study_index.df.columns:
-            raise ValueError(
-                "DiseaseIds column has to be in the study index to generate disase/target evidence."
-            )
-
-        # `pubmedId` and `publicationDate` are optional columns in the study index, so we need to make sure they're there:
-        for optional_column in ["publicationDate", "pubmedId"]:
-            if optional_column not in study_index.df.columns:
-                study_index = StudyIndex(
-                    study_index.df.withColumn(
-                        optional_column, f.lit(None).cast(StringType())
-                    )
-                )
-
-        return (
-            self.df.filter(f.col("score") >= l2g_threshold)
-            .join(
-                study_locus.df.select(f.col("id").alias("credibleSetId"), "studyId"),
-                on="credibleSetId",
-                how="inner",
-            )
-            .join(
-                study_index.df.select(
-                    "studyId",
-                    "diseaseIds",
-                    f.when(
-                        f.col("publicationDate").rlike(r"\d{4}-\d{2}-\d{2}"),
-                        f.col("publicationDate"),
-                    ).alias("curationDate"),
-                    # Only store pubmed id if provided from source:
-                    f.when(
-                        f.col("pubmedId").isNotNull(), f.array(f.col("pubmedId"))
-                    ).alias("literature"),
-                ),
-                on="studyId",
-                how="inner",
-            )
-            .select(
-                f.lit(datatype_id).alias("datatypeId"),
-                f.lit(datasource_id).alias("datasourceId"),
-                f.col("geneId").alias("targetFromSourceId"),
-                f.explode(f.col("diseaseIds")).alias("diseaseFromSourceMappedId"),
-                f.col("score").alias("resourceScore"),
-                "curationDate",
-                "credibleSetId",
-                "literature",
-            )
-        )
 
     def explain(
         self: L2GPrediction, feature_matrix: L2GFeatureMatrix | None = None

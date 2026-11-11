@@ -215,12 +215,14 @@ class BigBrainStudyIndex:
             .withColumn(
                 "studyId",
                 f.concat_ws(
-                    "_", f.lit("BigBrain"), f.lit(qtl_type), f.lit(pub.ANCESTRY), f.col("feature")
+                    "_",
+                    f.lit("BigBrain"),
+                    f.lit(qtl_type),
+                    f.lit(pub.ANCESTRY),
+                    f.col("feature"),
                 ),
             )
-            .withColumn(
-                "projectId", f.lit("BigBrain")
-            )
+            .withColumn("projectId", f.lit("BigBrain"))
             .withColumn("studyType", f.lit(qtl_type))
             .withColumn("biosampleFromSourceId", f.lit(pub.BIOSAMPLE_ID))
             .withColumn("pubmedId", f.lit(pub.PUBMED_ID))
@@ -229,7 +231,9 @@ class BigBrainStudyIndex:
             .withColumn("publicationTitle", f.lit(pub.PUB_TITLE))
             .withColumn(
                 "initialSampleSize",
-                f.lit(f"{pub.SAMPLE_SIZE:,} donors ({pub.ANCESTRY})"),
+                f.lit(
+                    f"{pub.SAMPLE_SIZE:,} samples from {pub.N_DONORS:,} donors (all ancestries)"
+                ),
             )
             .withColumn("nSamples", f.lit(pub.SAMPLE_SIZE))
             .withColumn(

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, PropertyMock, patch
 
 import pytest
 
@@ -73,6 +73,50 @@ class TestFinnGenFinemappingIngestionStepIntegration:
             "6_2898066_G_T",
             "6_2912516_CCA_C",
         ]
+
+    @pytest.mark.step_test
+    @patch(
+        "gentropy.finngen_finemapping_ingestion.FinnGenFinemapping.from_finngen_susie_finemapping"
+    )
+    def test_output_files(
+        self,
+        mock_from_finngen_susie_finemapping: MagicMock,
+        session: Session,
+        tmp_path: Path,
+    ) -> None:
+        """Credible sets are written to one file, their variants to `output_partitions` files."""
+        credible_set_path = tmp_path / "credible_set"
+        credible_set_variant_path = tmp_path / "credible_set_variant"
+        credible_sets = MagicMock(name="credible_sets")
+        credible_sets.df = session.spark.createDataFrame(
+            [(f"cs{i}", f"1_{i}_A_T") for i in range(8)],
+            "id string, leadVariantId string",
+        ).repartition(4)
+        credible_set_variants = MagicMock(name="credible_set_variants")
+        credible_set_variants.df = session.spark.createDataFrame(
+            [(f"cs{i}", f"1_{i}_A_T") for i in range(8)],
+            "credibleSetId string, variantId string",
+        ).repartition(4)
+        mock_from_finngen_susie_finemapping.return_value = (
+            credible_sets,
+            credible_set_variants,
+        )
+
+        with patch.object(
+            Session, "output_partitions", new_callable=PropertyMock, return_value=2
+        ):
+            FinnGenFinemappingIngestionStep(
+                session=session,
+                finngen_annotated_variants_path="gs://bucket/annotations.gz",
+                finngen_finemapping_out=str(credible_set_path),
+                finngen_finemapping_credible_set_variant_out=str(
+                    credible_set_variant_path
+                ),
+                finngen_release_prefix="FINNGEN_R12",
+            )
+
+        assert len(list(credible_set_path.glob("part-*.parquet"))) == 1
+        assert len(list(credible_set_variant_path.glob("part-*.parquet"))) == 2
 
     @pytest.mark.step_test
     @patch(

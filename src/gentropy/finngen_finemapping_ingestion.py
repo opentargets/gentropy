@@ -31,8 +31,8 @@ class FinnGenFinemappingIngestionStep(FinnGenFinemapping):
         Args:
             session (Session): Session object, with `use_enhanced_bgzip_codec` to read the block gzipped inputs.
             finngen_annotated_variants_path (str): FinnGen annotated variants file of the same release, for the allele frequencies.
-            finngen_finemapping_out (str): Output path for the credible sets.
-            finngen_finemapping_credible_set_variant_out (str): Output path for the credible set variants.
+            finngen_finemapping_out (str): Output path for the credible sets, written to one file.
+            finngen_finemapping_credible_set_variant_out (str): Output path for the credible set variants, written to at most `session.output_partitions` files.
             finngen_susie_finemapping_snp_files(str): Path to the FinnGen SuSIE finemapping results.
             finngen_susie_finemapping_cs_summary_files (str): FinnGen SuSIE summaries for CS filters(LBF>2).
             finngen_finemapping_lead_pvalue_threshold (float): Credible sets whose lead p-value is above it are dropped.
@@ -51,7 +51,10 @@ class FinnGenFinemappingIngestionStep(FinnGenFinemapping):
                 lead_pvalue_threshold=finngen_finemapping_lead_pvalue_threshold,
             )
         )
-        credible_sets.df.write.mode(session.write_mode).parquet(finngen_finemapping_out)
-        credible_set_variants.df.write.mode(session.write_mode).parquet(
-            finngen_finemapping_credible_set_variant_out
+        # A release has about 20k credible sets, a few MB: one file.
+        credible_sets.df.coalesce(1).write.mode(session.write_mode).parquet(
+            finngen_finemapping_out
         )
+        credible_set_variants.df.coalesce(session.output_partitions).write.mode(
+            session.write_mode
+        ).parquet(finngen_finemapping_credible_set_variant_out)
