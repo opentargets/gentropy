@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import numpy as np
 import pyspark.sql.functions as f
 import pytest
-from pyspark.sql import Column, SparkSession
+from pyspark.sql import SparkSession
 from pyspark.sql.types import DoubleType, IntegerType, StructField, StructType
 
+from gentropy.common.session import Session
 from gentropy.dataset.dataset import Dataset
 from gentropy.dataset.study_index import StudyIndex
 
@@ -101,46 +104,22 @@ def test_process_class_params(spark: SparkSession) -> None:
     )
 
 
-def test_flag_duplicates_retains_one_row_per_key(spark: SparkSession) -> None:
-    """Without a caller-supplied ordering, exactly one row per key is left unflagged.
+def test_from_parquet_rejects_files_without_a_required_column(
+    session: Session, tmp_path: Path
+) -> None:
+    """A NOT NULL column absent from the files raises instead of reading as nulls."""
+    path = str(tmp_path / "other")
+    session.spark.createDataFrame([(1,)], "other int").write.parquet(path)
 
-    Which row that is depends on the physical layout of the data and is not guaranteed across
-    runs, so only the count is asserted here. Callers that need a defined survivor pass
-    `order_by`, covered by `test_flag_duplicates_honours_order_by`.
-    """
-    df = spark.createDataFrame(
-        [("id1", "a"), ("id1", "b"), ("id1", "c"), ("id2", "d")],
-        ["key", "payload"],
-    )
-
-    retained = (
-        df.withColumn("isDuplicate", Dataset.flag_duplicates(f.col("key")))
-        .filter(~f.col("isDuplicate"))
-        .collect()
-    )
-
-    assert {row["key"] for row in retained} == {"id1", "id2"}
-    assert len(retained) == 2, "one row per key should be retained"
+    with pytest.raises(ValueError, match=r"lacks the required columns \['value'\]"):
+        MockDataset.from_parquet(session, path)
 
 
-def test_flag_duplicates_honours_order_by(spark: SparkSession) -> None:
-    """The caller-supplied ordering decides which duplicate is retained."""
-    df = spark.createDataFrame(
-        [("id1", 1), ("id1", 3), ("id1", 2)],
-        ["key", "rank"],
-    )
+def test_from_parquet_reads_files_with_the_required_columns(
+    session: Session, tmp_path: Path
+) -> None:
+    """Files holding every NOT NULL column are read as before."""
+    path = str(tmp_path / "value")
+    session.spark.createDataFrame([(1,)], MockDataset.get_schema()).write.parquet(path)
 
-    def retained(order_by: list[Column]) -> int:
-        """The `rank` of the row that is not flagged as a duplicate."""
-        rows = (
-            df.withColumn(
-                "isDuplicate", Dataset.flag_duplicates(f.col("key"), order_by=order_by)
-            )
-            .filter(~f.col("isDuplicate"))
-            .collect()
-        )
-        assert len(rows) == 1
-        return rows[0]["rank"]
-
-    assert retained([f.col("rank").asc()]) == 1
-    assert retained([f.col("rank").desc()]) == 3
+    assert MockDataset.from_parquet(session, path).df.collect()[0]["value"] == 1

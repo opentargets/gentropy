@@ -10,14 +10,11 @@ from pyspark.sql import Window
 
 from gentropy.common.genomic_region import GenomicRegion
 from gentropy.common.schemas import parse_spark_schema
-from gentropy.common.stats import split_pvalue
-from gentropy.config import LocusBreakerClumpingConfig, WindowBasedClumpingStepConfig
+from gentropy.common.stats import pvalue_at_most
 from gentropy.dataset.dataset import Dataset
 
 if TYPE_CHECKING:
     from pyspark.sql.types import StructType
-
-    from gentropy import Session, StudyIndex, StudyLocus
 
 
 @dataclass
@@ -45,79 +42,10 @@ class SummaryStatistics(Dataset):
         Returns:
             SummaryStatistics: summary statistics object containing single point associations with p-values at least as significant as the provided threshold.
         """
-        # Converting p-value to mantissa and exponent:
-        (mantissa, exponent) = split_pvalue(pvalue)
-
-        # Applying filter:
         df = self._df.filter(
-            (f.col("pValueExponent") < exponent)
-            | (
-                (f.col("pValueExponent") == exponent)
-                & (f.col("pValueMantissa") <= mantissa)
-            )
+            pvalue_at_most(f.col("pValueMantissa"), f.col("pValueExponent"), pvalue)
         )
         return SummaryStatistics(_df=df, _schema=self._schema)
-
-    def window_based_clumping(
-        self: SummaryStatistics,
-        distance: int = WindowBasedClumpingStepConfig().distance,
-        gwas_significance: float = WindowBasedClumpingStepConfig().gwas_significance,
-    ) -> StudyLocus:
-        """Generate study-locus from summary statistics using window-based clumping.
-
-        For more info, see [`WindowBasedClumping`][gentropy.method.window_based_clumping.WindowBasedClumping]
-
-        Args:
-            distance (int): Distance in base pairs to be used for clumping. Defaults to 500_000.
-            gwas_significance (float, optional): GWAS significance threshold. Defaults to 5e-8.
-
-        Returns:
-            StudyLocus: Clumped study-locus optionally containing variants based on window.
-            Check WindowBasedClumpingStepConfig object for default values.
-        """
-        from gentropy.method.window_based_clumping import WindowBasedClumping
-
-        return (
-            WindowBasedClumping.clump(
-                # Before clumping, we filter the summary statistics by p-value:
-                self.pvalue_filter(gwas_significance),
-                distance=distance,
-                # After applying the clumping, we filter the clumped loci by the flag:
-            )
-            .valid_rows(["WINDOW_CLUMPED"])
-            .valid
-        )
-
-    def locus_breaker_clumping(
-        self: SummaryStatistics,
-        baseline_pvalue_cutoff: float = LocusBreakerClumpingConfig.lbc_baseline_pvalue,
-        distance_cutoff: int = LocusBreakerClumpingConfig.lbc_distance_cutoff,
-        pvalue_cutoff: float = LocusBreakerClumpingConfig.lbc_pvalue_threshold,
-        flanking_distance: int = LocusBreakerClumpingConfig.lbc_flanking_distance,
-    ) -> StudyLocus:
-        """Generate study-locus from summary statistics using locus-breaker clumping method with locus boundaries.
-
-        For more info, see [`locus_breaker`][gentropy.method.locus_breaker_clumping.LocusBreakerClumping]
-
-        Args:
-            baseline_pvalue_cutoff (float, optional): Baseline significance we consider for the locus.
-            distance_cutoff (int, optional): Distance in base pairs to be used for clumping.
-            pvalue_cutoff (float, optional): GWAS significance threshold.
-            flanking_distance (int, optional): Flank distance in base pairs to be used for clumping.
-
-        Returns:
-            StudyLocus: Clumped study-locus optionally containing variants based on window.
-            Check LocusBreakerClumpingConfig object for default values.
-        """
-        from gentropy.method.locus_breaker_clumping import LocusBreakerClumping
-
-        return LocusBreakerClumping.locus_breaker(
-            self,
-            baseline_pvalue_cutoff,
-            distance_cutoff,
-            pvalue_cutoff,
-            flanking_distance,
-        )
 
     def exclude_region(
         self: SummaryStatistics, region: GenomicRegion
@@ -178,37 +106,6 @@ class SummaryStatistics(Dataset):
 
         return summary_stats
 
-    def limit_to_studies(
-        self, session: Session, study_index: StudyIndex
-    ) -> SummaryStatistics:
-        """Limit summary statistics to those present in the study index.
-
-        Args:
-            session (Session): Session object.
-            study_index (StudyIndex): Study index object.
-
-        Returns:
-            SummaryStatistics: Filtered summary statistics object.
-        """
-        studies = study_index.df.select("studyId").distinct().collect()
-        study_ids = [row.studyId for row in studies]
-        session.logger.info(f"Expecting N={len(study_ids)} studies.")
-
-        count_pre = self.df.select("studyId").distinct().count()
-        session.logger.info(f"Found N={count_pre} distinct summary statistics.")
-
-        session.logger.info("Filtering summary statistics to match the study index.")
-        filtered_sumstats = self.df.filter(f.col("studyId").isin(study_ids))
-
-        count_post = filtered_sumstats.select("studyId").distinct().count()
-        session.logger.info(f"N={count_post} studies match the study index.")
-
-        if count_pre != count_post:
-            session.logger.warning(
-                f"Dropping N={count_pre - count_post} studies that are not in the study index."
-            )
-        return SummaryStatistics(_df=filtered_sumstats)
-
     def drop_variant_duplicates(self) -> SummaryStatistics:
         """Drop duplicate variants in the summary statistics dataset.
 
@@ -226,39 +123,4 @@ class SummaryStatistics(Dataset):
             )
             .filter(f.col("occurrences") == 1)
             .drop("occurrences")
-        )
-
-    def annotate_study_with_sumstat_location(self, si: StudyIndex) -> StudyIndex:
-        """Annotate the study index with the location of the summary statistics.
-
-        Summary statistics must have been read from files under ``studyId=...``
-        partition directories. Any existing location column on the study index is
-        replaced before the new locations are joined.
-
-        Args:
-            si (StudyIndex): Study index to be annotated.
-
-        Returns:
-            StudyIndex: Annotated study index.
-        """
-        pat = r"^(.*\/studyId=.*?\/).*$"
-        # NOTE: distinct() alone yields the small (studyId, location) set we
-        # broadcast; coalescing the (potentially huge) summary statistics to a
-        # single partition first would be an unnecessary bottleneck.
-        sumstat_locations = f.broadcast(
-            self.df.select(
-                "studyId",
-                f.regexp_extract(f.input_file_name(), pat, 1).alias(
-                    "summarystatsLocation"
-                ),
-            ).distinct()
-        )
-        return si.__class__(
-            _df=si.df.coalesce(1)
-            .drop("summarystatsLocation")
-            .join(sumstat_locations, on="studyId", how="left")
-            .withColumn(
-                "hasSumstats",
-                f.col("summarystatsLocation").isNotNull(),
-            )
         )

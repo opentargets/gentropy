@@ -107,6 +107,21 @@ class FinnGenMetaManifest:
             self.has_summary_statistics.alias("hasSumstats"),
         )
 
+    def get_summary_statistics_paths(self) -> list[str]:
+        """Get the summary statistics paths of the studies of the manifest.
+
+        Returns:
+            list[str]: Summary statistics paths, one per study with a location.
+        """
+        paths = (
+            self.df.filter(
+                f.col("hasSumstats") & f.col("summarystatsLocation").isNotNull()
+            )
+            .select("summarystatsLocation")
+            .collect()
+        )
+        return [row["summarystatsLocation"] for row in paths]
+
     @classmethod
     def from_path(cls, session: Session, manifest_path: str) -> FinnGenMetaManifest:
         """Load the FinnGen meta-analysis manifest from a specified path.
