@@ -16,7 +16,7 @@ dependencies = [
   "omegaconf (>=2.3.0, <2.4.0)",
   "scikit-learn (>=1.6.1, <1.10.0)",
   "pandas[gcp,parquet] (>=2.2.3, <2.4.0)",
-  "skops (>=0.13.0, <0.15.0)",
+  "skops (>=0.13.0, <0.16.0)",
   "shap>=0.50.0",
   "matplotlib (>=3.10.0, <3.11.0)",
   "google-cloud-storage (>=2.14.0, <3.4.0)",
@@ -52,7 +52,7 @@ docs = [
   "mkdocs-awesome-pages-plugin >=2.9.2, <3.0.0",
   "mkdocs-exclude >=1.0.2, <1.1.0",
   "mkdocs-git-committers-plugin-2 >=2.2.3, <2.6.0",
-  "lxml >=5.1.0, <6.1.0",
+  "lxml >=5.1.0, <6.2.0",
   "pymdown-extensions >=10.7, <10.17",
   "markdown-katex>=202406.1035",
 ]
@@ -67,18 +67,18 @@ test = [
 
 dev = [
   "ipython >=8.19.0, <9.9.0",
-  "pydoclint >=0.3.8,<0.9.0",
+  "pydoclint >=0.3.8,<0.10.0",
   "ipykernel >=6.28.0, <7.4.0",
   "prettier >=0.0.7, <0.1.0",
   "deptry >=0.22.0, <0.25.0",
   "yamllint >=1.33.0, <1.39.0",
-  "pre-commit >=4.0.0, <4.6.0",
+  "pre-commit >=4.0.0, <4.7.0",
   "mypy >=1.13, <2.4",
   "pep8-naming >=0.14.1, <0.16.0",
   "interrogate >=1.7.0, <1.8.0",
   "isort >=5.13.2, <7.1.0",
   "darglint >=1.8.1, <1.9.0",
-  "ruff >=0.8.1, <0.16.0",
+  "ruff >=0.8.1, <0.17.0",
 ]
 [tool.semantic_release]
 logging_use_named_masks = true
