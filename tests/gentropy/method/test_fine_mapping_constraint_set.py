@@ -7,7 +7,7 @@ from pyspark.sql import Row, SparkSession
 
 from gentropy.common.types import LDPopulation
 from gentropy.dataset.fine_mapping import FineMappingPlanner, FineMappingRoute
-from gentropy.dataset.study_index import StudyIndex, StudyType
+from gentropy.dataset.study_index import StudyIndex, StudyQualityCheck, StudyType
 from gentropy.method.fine_mapping.constraint_set import MultiSuSiEConstraintSet
 
 STUDY_REQUIRED_SCHEMA = (
@@ -36,7 +36,9 @@ def _study_row(
         "p",
         study_type,
         has_sumstats,
-        quality_controls or [],
+        [StudyQualityCheck.MEASUREMENT_STUDY_DESIGN.value]
+        if quality_controls is None
+        else quality_controls,
         analysis_flags or [],
         ld_population_structure,
         trait_ids,
@@ -49,6 +51,7 @@ def _study_row(
 def _constraint_set(
     allowed_ancestries: list[LDPopulation] | None = None,
     relative_sample_size_threshold: float = 0.5,
+    min_ess: int = 1000,
 ) -> MultiSuSiEConstraintSet:
     """Build a MultiSuSiEConstraintSet with permissive defaults (nothing disallowed)."""
     return MultiSuSiEConstraintSet(
@@ -56,6 +59,7 @@ def _constraint_set(
         relative_sample_size_threshold=relative_sample_size_threshold,
         disallowed_reasons=[],
         disallowed_flags=[],
+        min_ess=min_ess,
     )
 
 
@@ -113,7 +117,7 @@ def test_resolve_same_ancestry_keeps_only_higher_n_eff_as_representative(
 ) -> None:
     """Among two studies sharing trait and major ancestry, only the higher-n_eff one is representative."""
     rows = [
-        _study_row("small", ["EFO_1"], [(LDPopulation.NFE.value, 1.0)], n_samples=100),
+        _study_row("small", ["EFO_1"], [(LDPopulation.NFE.value, 1.0)], n_samples=1000),
         _study_row(
             "large", ["EFO_1"], [(LDPopulation.NFE.value, 1.0)], n_samples=10_000
         ),
@@ -139,7 +143,7 @@ def test_resolve_ineligible_study_is_never_representative(
             has_sumstats=False,
         ),
         _study_row(
-            "eligible", ["EFO_1"], [(LDPopulation.NFE.value, 1.0)], n_samples=100
+            "eligible", ["EFO_1"], [(LDPopulation.NFE.value, 1.0)], n_samples=1000
         ),
     ]
     result = _resolve(spark, rows)
@@ -160,9 +164,14 @@ def test_resolve_case_control_uses_effective_sample_size(spark: SparkSession) ->
             n_samples=10_000,
             n_cases=5_000,
             n_controls=5_000,
+            quality_controls=[StudyQualityCheck.CASE_CONTROL_STUDY_DESIGN.value],
         ),
         _study_row(
-            "measurement", ["EFO_1"], [(LDPopulation.NFE.value, 1.0)], n_samples=8_000
+            "measurement",
+            ["EFO_1"],
+            [(LDPopulation.NFE.value, 1.0)],
+            n_samples=8_000,
+            quality_controls=[StudyQualityCheck.MEASUREMENT_STUDY_DESIGN.value],
         ),
     ]
     result = _resolve(spark, rows)
@@ -186,11 +195,65 @@ def test_resolve_undetermined_study_design_is_never_representative(
             n_samples=10_000,
             n_cases=5_000,
             n_controls=None,
+            quality_controls=[],
         ),
     ]
     result = _resolve(spark, rows)
     row = result.df.collect()[0]
     assert _constraint_flag(row, "representativeStudy") is False
+    assert _constraint_flag(row, "hasSufficientESS") is False
+
+
+@pytest.mark.parametrize(
+    ["n_samples", "expected"],
+    [
+        pytest.param(999, False, id="just below threshold"),
+        pytest.param(1000, True, id="at threshold"),
+        pytest.param(1001, True, id="just above threshold"),
+    ],
+)
+def test_resolve_has_sufficient_ess_boundary(
+    spark: SparkSession, n_samples: int, expected: bool
+) -> None:
+    """A measurement study's sample size is compared inclusively (>=) against the minimum ESS."""
+    rows = [
+        _study_row(
+            "s1", ["EFO_1"], [(LDPopulation.NFE.value, 1.0)], n_samples=n_samples
+        )
+    ]
+    result = _resolve(spark, rows)
+    row = result.df.collect()[0]
+    assert _constraint_flag(row, "hasSufficientESS") is expected
+
+
+def test_resolve_sub_threshold_study_is_never_representative(
+    spark: SparkSession,
+) -> None:
+    """A study below the minimum effective sample size is never marked representativeStudy, even as the sole study for its trait/ancestry group."""
+    rows = [_study_row("s1", ["EFO_1"], [(LDPopulation.NFE.value, 1.0)], n_samples=500)]
+    result = _resolve(spark, rows)
+    row = result.df.collect()[0]
+    assert _constraint_flag(row, "hasSufficientESS") is False
+    assert _constraint_flag(row, "representativeStudy") is False
+    assert row["runId"] is None
+
+
+def test_resolve_min_ess_is_configurable(spark: SparkSession) -> None:
+    """A study below the default minimum ESS becomes eligible when the constraint set is configured with a lower threshold."""
+    si = StudyIndex(
+        _df=spark.createDataFrame(
+            [
+                _study_row(
+                    "s1", ["EFO_1"], [(LDPopulation.NFE.value, 1.0)], n_samples=500
+                )
+            ],
+            STUDY_REQUIRED_SCHEMA,
+        )
+    )
+    result = _constraint_set(min_ess=100).resolve(si)
+    row = result.df.collect()[0]
+    assert _constraint_flag(row, "hasSufficientESS") is True
+    assert _constraint_flag(row, "representativeStudy") is True
 
 
 def test_resolve_different_traits_are_independent(spark: SparkSession) -> None:
@@ -277,3 +340,33 @@ def test_resolve_raises_when_study_count_invariant_is_broken(
 
     with pytest.raises(ValueError, match="distinct studies"):
         constraint_set.resolve(si)
+
+
+def test_resolve_derives_study_design_when_not_stored(spark: SparkSession) -> None:
+    """Production study indexes do not store the study design in qualityControls - resolve() must derive it from the sample-size columns so HasSufficientESS can compute an effective sample size and the study can become representative."""
+    rows = [
+        # Consistent case-control study; no design flags stored.
+        _study_row(
+            "cc",
+            ["EFO_1"],
+            [(LDPopulation.NFE.value, 1.0)],
+            n_samples=20_000,
+            n_cases=10_000,
+            n_controls=10_000,
+            quality_controls=[],
+        ),
+        # Measurement study; no design flags stored.
+        _study_row(
+            "meas",
+            ["EFO_2"],
+            [(LDPopulation.NFE.value, 1.0)],
+            n_samples=20_000,
+            quality_controls=[],
+        ),
+    ]
+    result = _resolve(spark, rows)
+    rows_by_id = {r["studyId"]: r for r in result.df.collect()}
+    assert _constraint_flag(rows_by_id["cc"], "hasSufficientESS") is True
+    assert _constraint_flag(rows_by_id["cc"], "representativeStudy") is True
+    assert _constraint_flag(rows_by_id["meas"], "hasSufficientESS") is True
+    assert _constraint_flag(rows_by_id["meas"], "representativeStudy") is True

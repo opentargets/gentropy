@@ -288,12 +288,9 @@ class deCODESummaryStatistics:
             # NOTE: repartition("chromosome") produces very uneven partitions,
             # Spark attempts then to fall back to `dynamic partitioning` algorithm
             # which fails after N failures.
-            .persist()
             .alias("vd")
         )
 
-        # Estimate output partitions from the number of studies.
-        n_sumstats = decode_study_index.df.count()
         # Pre-filtering on alleles based on configuration.
         sumstats = raw_summary_statistics
         if config.remove_monomorphic_alleles:
@@ -378,14 +375,10 @@ class deCODESummaryStatistics:
                 f.col("effectAlleleFrequencyFromSource"),
                 f.col("standardError"),
             )
-            # Approximate number of partitions = 10 * number of studies.
-            # repartitionByRange establishes the partitioning order, so no
-            # separate .sort() is required (a pre-sort would add a wasted shuffle).
-            .repartitionByRange(n_sumstats * 10, "studyId", "chromosome", "position")
-            # Materialise the flipping join once. sanity_filter() runs
-            # drop_variant_duplicates() (a self-aggregation), which would
-            # otherwise recompute the entire sumstats x VariantDirection join.
-            .persist()
+            # Hash-cluster by studyId. This satisfies the distribution
+            # drop_variant_duplicates requires, and the write step establishes the
+            # output ordering.
+            .repartition("studyId")
         )
 
         si = decode_study_index.df.withColumn(
@@ -410,12 +403,10 @@ class deCODESummaryStatistics:
                 "studyId", f.coalesce(f.col("updatedStudyId"), f.col("studyId"))
             )
             .drop("updatedStudyId")
-            .persist()
         )
-        # vd_slice and flipped are no longer needed once harmonised is registered
-        # for caching.
-        vd_slice.unpersist()
-        flipped.unpersist()
+        # Each stage here is consumed once, so the job streams through. EFM protects
+        # shuffle files; cache blocks live on autoscaled workers and are recomputed
+        # when those decommission.
 
         pqtl_si = ProteinQuantitativeTraitLocusStudyIndex(
             _df=si.drop("studyId")

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from pyspark.sql import Column
 from pyspark.sql import functions as f
+from pyspark.sql import types as t
 
 from gentropy import StudyIndex
 from gentropy.datasource.finngen.efo_mapping import EFOMapping
@@ -69,6 +70,8 @@ class FinnGenMetaStudyIndex:
             f.col("nSamples"),
             f.col("nCases"),
             f.col("nControls"),
+            # No quality controls yet: `StudyIndex.annotate_sumstats_qc` adds to them.
+            f.array().cast(t.ArrayType(t.StringType())).alias("qualityControls"),
             # Add constant columns
             *[
                 value.alias(key)

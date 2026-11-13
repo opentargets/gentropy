@@ -5,7 +5,14 @@ from typing import Any
 import numpy as np
 import pandas as pd
 from pyspark.sql import DataFrame
-from pyspark.sql.functions import array_contains, col, when
+from pyspark.sql.functions import (
+    array,
+    arrays_overlap,
+    col,
+    collect_list,
+    lit,
+    when,
+)
 from pyspark.sql.types import DoubleType, StringType, StructField, StructType
 from scipy.stats import chi2
 
@@ -81,20 +88,14 @@ class FineMappingSimulations:
         cred_sets = None
         iteration = 0
         column_list = [
-            "credibleSetIndex",
-            "studyLocusId",
+            "id",
             "studyId",
-            "region",
-            "exploded_locus",
-            "variantId",
             "chromosome",
-            "position",
-            "credibleSetlog10BF",
+            "leadVariantId",
+            "logBayesFactor",
             "purityMeanR2",
             "purityMinR2",
-            "zScore",
-            "pValueMantissa",
-            "pValueExponent",
+            "members",
             "is_in_X",
             "is_in_lead",
         ]
@@ -138,8 +139,7 @@ class FineMappingSimulations:
                     carma_time_limit=600,
                     imputed_r2_threshold=0.9,
                     ld_score_threshold=5,
-                    sum_pips=0.99,
-                    lead_pval_threshold=1,
+                    lead_pval_threshold=None,
                     purity_mean_r2_threshold=0,
                     purity_min_r2_threshold=0,
                     cs_lbf_thr=2,
@@ -148,26 +148,25 @@ class FineMappingSimulations:
                     locusEnd=2,
                 )
 
-                if CS_sim is not None:
-                    cs_sl = CS_sim["study_locus"]
-                    cred_set = cs_sl.df
-
+                if CS_sim is not None and CS_sim["credible_set"] is not None:
+                    members = (
+                        CS_sim["credible_set_variant"]
+                        .df.groupBy("credibleSetId")
+                        .agg(collect_list("variantId").alias("members"))
+                    )
                     X = ld_index_pd["variantId"][x_cycle["indexes"]].tolist()
 
-                    cred_set = cred_set.withColumn(
-                        "exploded_locus", col("locus.variantId")
-                    )
-                    # Create a condition for each element in X
-                    conditions = [array_contains(col("exploded_locus"), x) for x in X]
-                    # Combine the conditions using the | operator
-                    combined_condition = conditions[0]
-                    for condition in conditions[1:]:
-                        combined_condition = combined_condition | condition
-                    # Create a new column that is True if any condition is True and False otherwise
-                    cred_set = cred_set.withColumn("is_in_X", combined_condition)
-
-                    cred_set = cred_set.withColumn(
-                        "is_in_lead", when(col("variantId").isin(X), 1).otherwise(0)
+                    cred_set = (
+                        CS_sim["credible_set"]
+                        .df.join(members, col("id") == col("credibleSetId"))
+                        .withColumn(
+                            "is_in_X",
+                            arrays_overlap(col("members"), array(*(lit(x) for x in X))),
+                        )
+                        .withColumn(
+                            "is_in_lead",
+                            when(col("leadVariantId").isin(X), 1).otherwise(0),
+                        )
                     )
 
                     cred_set = cred_set.toPandas()

@@ -6,10 +6,6 @@ from dataclasses import dataclass, field
 from math import sqrt
 from typing import TYPE_CHECKING
 
-import numpy as np
-from pyspark.sql import functions as f
-from pyspark.sql import types as t
-
 from gentropy.common.schemas import parse_spark_schema
 from gentropy.dataset.dataset import Dataset
 
@@ -51,59 +47,3 @@ class PairwiseLD(Dataset):
             StructType: The schema of the dataset.
         """
         return parse_spark_schema("pairwise_ld.json")
-
-    def overlap_with_locus(self: PairwiseLD, locus_variants: list[str]) -> PairwiseLD:
-        """Subset pairwise LD table with locus.
-
-        Args:
-            locus_variants (list[str]): List of variants found in the locus.
-
-        Returns:
-            PairwiseLD: _description_
-        """
-        return PairwiseLD(
-            _df=(
-                self.df.filter(
-                    f.col("variantIdI").isin(locus_variants)
-                    & f.col("variantIdJ").isin(locus_variants)
-                )
-            ),
-            _schema=PairwiseLD.get_schema(),
-        )
-
-    def r_to_numpy_matrix(self) -> np.ndarray:
-        """Convert pairwise LD to a numpy square matrix.
-
-        Returns:
-            np.ndarray: 2D square matrix with r values.
-        """
-        return np.array(
-            self.df.select(
-                f.split("variantIdI", "_")[1].cast(t.IntegerType()).alias("position_i"),
-                f.split("variantIdJ", "_")[1].cast(t.IntegerType()).alias("position_j"),
-                "r",
-            )
-            .orderBy(f.col("position_i").asc(), f.col("position_j").asc())
-            .select("r")
-            .collect()
-        ).reshape(self.dimension)
-
-    def get_variant_list(self) -> list[str]:
-        """Return a list of unique variants from the dataset.
-
-        Returns:
-            list[str]: list of variant identifiers sorted by position.
-        """
-        return [
-            row["variantId"]
-            for row in (
-                self.df.select(
-                    f.col("variantIdI").alias("variantId"),
-                    f.split(f.col("variantIdI"), "_")[1]
-                    .cast(t.IntegerType())
-                    .alias("position"),
-                )
-                .orderBy(f.col("position").asc())
-                .collect()
-            )
-        ]

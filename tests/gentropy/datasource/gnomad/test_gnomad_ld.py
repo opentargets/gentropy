@@ -2,17 +2,12 @@
 
 from __future__ import annotations
 
-from math import sqrt
-from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock, patch
 
-import hail as hl
 import pytest
-from pyspark.sql import DataFrame, Row, SparkSession
-from pyspark.sql import functions as f
+from pyspark.sql import Row, SparkSession
 
-from gentropy import Session
 from gentropy.datasource.gnomad.ld import GnomADLDMatrix
 
 
@@ -73,138 +68,6 @@ def test_resolve_variant_indices(
     assert (
         observed_df.orderBy(observed_df["r"].desc()).collect() == expected_df.collect()
     )
-
-
-class TestGnomADLDMatrixVariants:
-    """Test the resolved LD variant sets."""
-
-    def test_get_ld_slice_type(self: TestGnomADLDMatrixVariants) -> None:
-        """Testing if ld_slice has the right type."""
-        assert isinstance(self.ld_slice, DataFrame)
-
-    def test_get_ld_empty_slice_type(self: TestGnomADLDMatrixVariants) -> None:
-        """Testing if ld_empty_slice is None."""
-        assert self.ld_empty_slice is None
-
-    def test_get_ld_variants__square(
-        self: TestGnomADLDMatrixVariants,
-    ) -> None:
-        """Testing if the function returns a square matrix."""
-        if self.ld_slice is not None:
-            assert sqrt(self.ld_slice.count()) == int(sqrt(self.ld_slice.count()))
-
-    @pytest.fixture(autouse=True)
-    def _setup(
-        self: TestGnomADLDMatrixVariants, session: Session, tmp_path: Path
-    ) -> None:
-        """Prepares fixtures for the test."""
-        hl.init(sc=session.spark.sparkContext, log="/dev/null", idempotent=True)
-
-        ld_test_population = "test-pop"
-        liftover_path = str(tmp_path / "mock_liftover.ht")
-        ld_index_path = str(tmp_path / "example_test-pop.ht")
-
-        # Create a mock liftover table that maps 1:1 and ensure LD index is keyed
-        ht = hl.read_table("tests/gentropy/data_samples/example_test-pop.ht")
-        ht = ht.key_by("locus", "alleles")
-        ht.write(ld_index_path, overwrite=True)
-
-        ht_lo = ht.annotate(
-            original_locus=ht.locus,
-            original_alleles=ht.alleles,
-            locus_1=ht.locus,
-            alleles_1=ht.alleles,
-        )
-        ht_lo.write(liftover_path, overwrite=True)
-
-        gnomad_ld_matrix = GnomADLDMatrix(
-            ld_matrix_template="tests/gentropy/data_samples/example_{POP}.bm",
-            ld_index_raw_template=str(tmp_path) + "/example_{POP}.ht",
-            liftover_ht_path=liftover_path,
-        )
-        self.ld_slice = gnomad_ld_matrix.get_ld_variants(
-            gnomad_ancestry=ld_test_population,
-            chromosome="1",
-            start=10025,
-            end=10075,
-        )
-        self.ld_empty_slice = gnomad_ld_matrix.get_ld_variants(
-            gnomad_ancestry=ld_test_population,
-            chromosome="1",
-            start=0,
-            end=1,
-        )
-
-
-class TestGnomADLDMatrixSlice:
-    """Test GnomAD LD methods."""
-
-    def test_get_ld_matrix_slice__diagonal(self: TestGnomADLDMatrixSlice) -> None:
-        """Test LD matrix slice."""
-        assert (
-            self.matrix_slice.filter(f.col("idx_i") == f.col("idx_j"))
-            .select("r")
-            .distinct()
-            .collect()[0]["r"]
-            == 1.0
-        ), "The matrix does not have ones in the diagonal."
-
-    def test_get_ld_matrix_slice__count(self: TestGnomADLDMatrixSlice) -> None:
-        """Test LD matrix slice."""
-        # As the slicing of the matrix is inclusive, the total number of rows are calculated as follows:
-        included_indices = self.slice_end_index - self.slice_start_index + 1
-        expected_pariwise_count = included_indices**2
-
-        assert self.matrix_slice.count() == expected_pariwise_count, (
-            "The matrix is not complete."
-        )
-
-    def test_get_ld_matrix_slice__type(self: TestGnomADLDMatrixSlice) -> None:
-        """Test LD matrix slice."""
-        assert isinstance(self.matrix_slice, DataFrame), (
-            "The returned data is not a dataframe."
-        )
-
-    def test_get_ld_matrix_slice__symmetry(
-        self: TestGnomADLDMatrixSlice,
-    ) -> None:
-        """Test LD matrix slice."""
-        # Testing square matrix completeness and symmetry:
-        compared = self.matrix_slice.join(
-            (
-                self.matrix_slice.select(
-                    f.col("idx_i").alias("idx_j"),
-                    f.col("idx_j").alias("idx_i"),
-                    f.col("r").alias("r_sym"),
-                )
-            ),
-            on=["idx_i", "idx_j"],
-            how="inner",
-        )
-
-        assert compared.count() == self.matrix_slice.count(), (
-            "The matrix is not complete."
-        )
-        assert (
-            compared.filter(f.col("r") == f.col("r_sym")).count() == compared.count()
-        ), "The matrix is not symmetric."
-
-    @pytest.fixture(autouse=True)
-    def _setup(self: TestGnomADLDMatrixSlice, session: Session) -> None:
-        """Prepares fixtures for the test."""
-        hl.init(sc=session.spark.sparkContext, log="/dev/null", idempotent=True)
-        gnomad_ld_matrix = GnomADLDMatrix(
-            ld_matrix_template="tests/gentropy/data_samples/example_{POP}.bm"
-        )
-        test_ld_population: str = "test-pop"
-        self.slice_start_index: int = 1
-        self.slice_end_index: int = 2
-
-        self.matrix_slice = gnomad_ld_matrix.get_ld_matrix_slice(
-            gnomad_ancestry=test_ld_population,
-            start_index=self.slice_start_index,
-            end_index=self.slice_end_index,
-        )
 
 
 class TestGnomADLDMatrixGetLocusBoundaries:
