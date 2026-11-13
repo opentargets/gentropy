@@ -436,7 +436,7 @@ class TestEqtlCatalogueFinemapping:
         assert lead.sampleSize is None
         assert lead.posteriorProbability == pytest.approx(0.1104114)
         assert lead.logBayesFactor == pytest.approx(36.6787648)
-        # The sample is on chrX, where the allele count is not over 2 x sample_size:
+        # The sample is on chrX, outside the autosomes, so the frequency is null:
         assert lead.effectAlleleFrequency is None
         assert lead.conditionalBeta is None
         assert lead.r2Overall is None
@@ -465,9 +465,8 @@ class TestEqtlCatalogueFinemapping:
             )
         )
         rows = {row.variantId: row for row in variants.df.collect()}
-        # ac = 54 of 2 x 84 alleles:
+        # ac / (2 x sample_size), with ac = 54 and 78 of 2 x 84 alleles:
         assert rows["1_149481619_T_C"].effectAlleleFrequency == pytest.approx(54 / 168)
-        # ac = 78, where ALT is the major allele (maf = 0.428571):
         assert rows["1_149510855_A_G"].effectAlleleFrequency == pytest.approx(78 / 168)
         assert rows["1_149481619_T_C"].sampleSize is None
 
