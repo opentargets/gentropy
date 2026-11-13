@@ -9,6 +9,7 @@ import pyspark.sql.functions as f
 from pyspark.sql import Column, DataFrame, Window
 from pyspark.sql.types import (
     DoubleType,
+    FloatType,
     IntegerType,
     StringType,
     StructField,
@@ -235,6 +236,57 @@ class EqtlCatalogueFinemapping:
         )
 
     @classmethod
+    def _effect_allele_frequency(
+        cls: type[EqtlCatalogueFinemapping],
+        allele_count: Column,
+        sample_size: Column,
+        chromosome: Column,
+    ) -> Column:
+        """Compute the effect allele frequency from the ALT allele count and the dataset sample size.
+
+        The effect allele is the ALT allele and `ac` its count. The credible set files do not carry
+        the number of alleles `an`, which is 2 x `sample_size` unless some genotypes are missing,
+        where the frequency comes out slightly low. The frequency is null outside the autosomes, as
+        datasets count the alleles of chrX differently (some count each male once).
+
+        Args:
+            allele_count (Column): ALT allele count (`ac`).
+            sample_size (Column): Sample size of the dataset.
+            chromosome (Column): Normalised chromosome.
+
+        Returns:
+            Column: The effect allele frequency.
+
+        Examples:
+            >>> df = spark.createDataFrame(
+            ...     [(54, 84, "1"), (130, 84, "22"), (54, 84, "X"), (None, 84, "1")],
+            ...     "ac int, sample_size int, chromosome string",
+            ... )
+            >>> df.select(
+            ...     "chromosome",
+            ...     f.round(
+            ...         EqtlCatalogueFinemapping._effect_allele_frequency(
+            ...             f.col("ac"), f.col("sample_size"), f.col("chromosome")
+            ...         ),
+            ...         4,
+            ...     ).alias("effectAlleleFrequency"),
+            ... ).show()
+            +----------+---------------------+
+            |chromosome|effectAlleleFrequency|
+            +----------+---------------------+
+            |         1|               0.3214|
+            |        22|               0.7738|
+            |         X|                 NULL|
+            |         1|                 NULL|
+            +----------+---------------------+
+            <BLANKLINE>
+        """
+        autosomes = [str(i) for i in range(1, 23)]
+        return f.when(
+            chromosome.isin(autosomes), allele_count / (2 * sample_size)
+        ).cast(FloatType())
+
+    @classmethod
     def _extract_credible_set_index(
         cls: type[EqtlCatalogueFinemapping], cs_id: Column
     ) -> Column:
@@ -423,6 +475,11 @@ class EqtlCatalogueFinemapping:
                 f.col("pip").alias("posteriorProbability"),
                 *split_pvalue_column(f.col("pvalue")),
                 f.col("sample_size").alias("nSamples"),
+                cls._effect_allele_frequency(
+                    f.col("ac"),
+                    f.col("sample_size"),
+                    normalize_chromosome(f.col("chromosome")),
+                ).alias("effectAlleleFrequency"),
                 f.col("beta"),
                 f.col("se").alias("standardError"),
                 f.element_at("conditionalBetas", f.col("credibleSetIndex")).alias(
@@ -482,9 +539,10 @@ class EqtlCatalogueFinemapping:
         member with the highest posterior probability, ties broken by variant id. The reported
         statistics are the marginal ones the study reported, and the conditional ones the SuSiE
         posterior of the credible set's own effect, unscaled (see `read_full_susie_from_source`);
-        the rescaled statistics are null. So are `r2Overall`, the allele frequency, which the
-        source only gives as a minor allele frequency, and the sample size, as the source gives no
-        per-variant sample size of the marginal test.
+        the rescaled statistics are null. So are `r2Overall`, and the sample size, as the source
+        gives no per-variant sample size of the marginal test. The effect allele frequency is the
+        ALT allele count over twice the dataset sample size, on the autosomes only (see
+        `_effect_allele_frequency`).
 
         Args:
             processed_finemapping_df (DataFrame): DataFrame containing the processed SuSIE results.
@@ -550,6 +608,7 @@ class EqtlCatalogueFinemapping:
                 "cs_min_r2",
                 "region",
                 "gene_id",
+                "ac",
                 # Adding dataset id based on the input file name:
                 cls._extract_dataset_id_from_file_path(f.input_file_name()),
                 # Parsing credible set index from the cs_id:
