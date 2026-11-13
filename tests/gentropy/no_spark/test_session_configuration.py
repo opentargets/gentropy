@@ -8,13 +8,14 @@ _build_config / _setup_s3_connector / _setup_gcs_connector in isolation.
 from __future__ import annotations
 
 from collections.abc import Generator
+from pathlib import Path
 from unittest import mock
 from unittest.mock import MagicMock
 
 import pytest
 from pyspark.sql import SparkSession
 
-from gentropy.common.session import Session
+from gentropy.common.session import Session, runtime_hadoop_version
 from gentropy.external.gcs import GCSAuthType, GCSConfig
 from gentropy.external.s3 import S3Config
 
@@ -123,7 +124,9 @@ class TestS3ConnectorConfiguration:
         )
         assert conf.get("spark.hadoop.fs.s3a.access.key") == "test-access-key"
         assert conf.get("spark.hadoop.fs.s3a.secret.key") == "test-secret-key"
-        assert S3Config._HADOOP_CONNECTOR_PKG in conf.get("spark.jars.packages", "")
+        assert S3Config.hadoop_connector_package(runtime_hadoop_version()) in conf.get(
+            "spark.jars.packages", ""
+        )
 
     @pytest.mark.usefixtures("_no_spark_session")
     def test_s3_connector_from_file(self) -> None:
@@ -142,7 +145,9 @@ class TestS3ConnectorConfiguration:
         )
         assert conf.get("spark.hadoop.fs.s3a.access.key") == "my_access_key"
         assert conf.get("spark.hadoop.fs.s3a.secret.key") == "my_secret_access"
-        assert S3Config._HADOOP_CONNECTOR_PKG in conf.get("spark.jars.packages", "")
+        assert S3Config.hadoop_connector_package(runtime_hadoop_version()) in conf.get(
+            "spark.jars.packages", ""
+        )
 
     @pytest.mark.usefixtures("_no_spark_session")
     def test_s3_connector_from_env(self, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -167,7 +172,9 @@ class TestS3ConnectorConfiguration:
         )
         assert conf.get("spark.hadoop.fs.s3a.access.key") == "env-access-key"
         assert conf.get("spark.hadoop.fs.s3a.secret.key") == "env-secret-key"
-        assert S3Config._HADOOP_CONNECTOR_PKG in conf.get("spark.jars.packages", "")
+        assert S3Config.hadoop_connector_package(runtime_hadoop_version()) in conf.get(
+            "spark.jars.packages", ""
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -256,3 +263,59 @@ class TestGCSConnectorConfiguration:
             == "billing-project"
         )
         assert GCSConfig._HADOOP_CONNECTOR_JAR in conf.get("spark.jars", "")
+
+
+# ---------------------------------------------------------------------------
+# Runtime Hadoop version
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.no_shared_spark
+class TestRuntimeHadoopVersion:
+    """The S3A connector is chosen for the Hadoop the JVM runs."""
+
+    def test_version_of_the_hadoop_pyspark_bundles(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
+        """Without a running JVM, the version is that of pyspark's Hadoop client jar."""
+        monkeypatch.delenv("PYSPARK_GATEWAY_PORT", raising=False)
+        (tmp_path / "jars").mkdir()
+        (tmp_path / "jars" / "hadoop-client-api-3.4.2.jar").touch()
+        monkeypatch.setattr(
+            "gentropy.common.session._find_spark_home", lambda: str(tmp_path)
+        )
+        assert runtime_hadoop_version() == "3.4.2"
+
+    def test_version_of_the_running_jvm(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """A JVM started by spark-submit, as on Dataproc, reports its own Hadoop."""
+        monkeypatch.setenv("PYSPARK_GATEWAY_PORT", "12345")
+        jvm = MagicMock()
+        jvm.org.apache.hadoop.util.VersionInfo.getVersion.return_value = "3.5.0"
+        with (
+            mock.patch("gentropy.common.session.SparkContext._ensure_initialized"),
+            mock.patch("gentropy.common.session.SparkContext._jvm", jvm, create=True),
+        ):
+            assert runtime_hadoop_version() == "3.5.0"
+
+    def test_connector_package_follows_the_hadoop_version(self) -> None:
+        """hadoop-aws matches Hadoop, and brings the AWS SDK bundle it was built with."""
+        assert (
+            S3Config.hadoop_connector_package("3.5.0")
+            == "org.apache.hadoop:hadoop-aws:3.5.0"
+        )
+
+    @pytest.mark.usefixtures("_no_spark_session")
+    def test_warns_when_the_jvm_already_runs(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Packages set after spark-submit started the JVM are not downloaded."""
+        monkeypatch.setattr(
+            "gentropy.common.session.runtime_hadoop_version", lambda: "3.5.0"
+        )
+        monkeypatch.setenv("PYSPARK_GATEWAY_PORT", "12345")
+        with pytest.warns(UserWarning, match="org.apache.hadoop:hadoop-aws:3.5.0"):
+            _create_session_no_spark(
+                add_s3_connector=True,
+                s3_configuration=_S3_DICT_CONFIG,
+                dynamic_allocation=False,
+            )

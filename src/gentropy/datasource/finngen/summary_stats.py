@@ -55,7 +55,7 @@ class FinnGenSummaryStats:
             .option("delimiter", "\t")
             .csv(raw_file, header=True)
             # Drop rows which don't have proper position.
-            .filter(f.col("pos").cast(t.IntegerType()).isNotNull())
+            .filter(f.col("pos").try_cast(t.IntegerType()).isNotNull())
             .select(
                 # From the full path, extracts just the filename, and converts to upper case to get the study ID.
                 f.upper(
@@ -72,17 +72,17 @@ class FinnGenSummaryStats:
                     f.col("alt"),
                 ).alias("variantId"),
                 f.col("#chrom").alias("chromosome"),
-                f.col("pos").cast(t.IntegerType()).alias("position"),
+                f.col("pos").try_cast(t.IntegerType()).alias("position"),
                 # Parse p-value into mantissa and exponent.
-                *split_pvalue_column(f.col("pval")),
+                *split_pvalue_column(f.col("pval").try_cast(t.DoubleType())),
                 # Add beta, standard error, and allele frequency information.
-                f.col("beta").cast("double"),
-                f.col("sebeta").cast("double").alias("standardError"),
-                f.col("af_alt").cast("float").alias("effectAlleleFrequencyFromSource"),
+                f.col("beta").try_cast("double"),
+                f.col("sebeta").try_cast("double").alias("standardError"),
+                f.col("af_alt").try_cast("float").alias("effectAlleleFrequencyFromSource"),
             )
             # Calculating the confidence intervals.
             .filter(
-                f.col("pos").cast(t.IntegerType()).isNotNull() & (f.col("beta") != 0)
+                f.col("pos").try_cast(t.IntegerType()).isNotNull() & (f.col("beta") != 0)
             )
             # Average ~20Mb partitions with 30 partitions per study
             .repartitionByRange(30, "chromosome", "position")

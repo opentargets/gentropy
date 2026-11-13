@@ -173,7 +173,7 @@ class FinnGenMetaManifest:
             columns += [*cls.mvp_ancestry_columns]
 
         column_map = [
-            f.col(col).cast(t.IntegerType()).alias(col)
+            f.col(col).try_cast(t.IntegerType()).alias(col)
             if "n_cases" in col or "n_controls" in col
             else f.col(col).cast(t.StringType()).alias(col)
             for col in columns

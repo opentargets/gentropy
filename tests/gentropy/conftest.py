@@ -126,12 +126,12 @@ def mock_study_index_data(spark: SparkSession) -> DataFrame:
         )
         .withColumnSpec(
             "discoverySamples",
-            expr='array(named_struct("sampleSize", cast(rand() as string), "ancestry", cast(rand() as string)))',
+            expr='array(named_struct("sampleSize", cast(rand() * 10000 as int), "ancestry", cast(rand() as string)))',
             percentNulls=0.1,
         )
         .withColumnSpec(
             "replicationSamples",
-            expr='array(named_struct("sampleSize", cast(rand() as string), "ancestry", cast(rand() as string)))',
+            expr='array(named_struct("sampleSize", cast(rand() * 10000 as int), "ancestry", cast(rand() as string)))',
             percentNulls=0.1,
         )
         .withColumnSpec(
@@ -186,12 +186,12 @@ def mock_study_index_data_no_pqtl(spark: SparkSession) -> DataFrame:
         )
         .withColumnSpec(
             "discoverySamples",
-            expr='array(named_struct("sampleSize", cast(rand() as string), "ancestry", cast(rand() as string)))',
+            expr='array(named_struct("sampleSize", cast(rand() * 10000 as int), "ancestry", cast(rand() as string)))',
             percentNulls=0.1,
         )
         .withColumnSpec(
             "replicationSamples",
-            expr='array(named_struct("sampleSize", cast(rand() as string), "ancestry", cast(rand() as string)))',
+            expr='array(named_struct("sampleSize", cast(rand() * 10000 as int), "ancestry", cast(rand() as string)))',
             percentNulls=0.1,
         )
         .withColumnSpec(

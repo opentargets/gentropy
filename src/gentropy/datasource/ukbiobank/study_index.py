@@ -76,10 +76,10 @@ class UKBiobankStudyIndex:
                         "publicationJournal"
                     ),
                     f.col("n_total").cast("string").alias("initialSampleSize"),
-                    f.col("n_cases").cast("integer").alias("nCases"),
+                    f.col("n_cases").try_cast("integer").alias("nCases"),
                     f.array(
                         f.struct(
-                            f.col("n_total").cast("integer").alias("sampleSize"),
+                            f.col("n_total").try_cast("integer").alias("sampleSize"),
                             f.concat(f.lit("European="), f.col("n_total")).alias(
                                 "ancestry"
                             ),
@@ -94,7 +94,7 @@ class UKBiobankStudyIndex:
                         f.col("traitFromSource").contains(":"),
                         f.concat(
                             f.initcap(
-                                f.split(f.col("traitFromSource"), ": ").getItem(1)
+                                f.get(f.split(f.col("traitFromSource"), ": "), 1)
                             ),
                             f.lit(" | "),
                             f.lower(f.split(f.col("traitFromSource"), ": ").getItem(0)),

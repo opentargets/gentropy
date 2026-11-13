@@ -214,7 +214,7 @@ class FinnGenFinemapping:
             .option("delimiter", "\t")
             .csv(finngen_susie_finemapping_snp_files, header=True)
             # Drop rows which don't have proper position.
-            .filter(f.col("position").cast(t.IntegerType()).isNotNull())
+            .filter(f.col("position").try_cast(t.IntegerType()).isNotNull())
             .withColumn(
                 "studyId",
                 f.concat_ws("_", f.lit(finngen_release_prefix), f.col("trait")),
@@ -229,7 +229,7 @@ class FinnGenFinemapping:
                     "studyId"
                 ),
                 f.col("region"),
-                f.col("cs").cast(t.IntegerType()).alias("credibleSetIndex"),
+                f.col("cs").try_cast(t.IntegerType()).alias("credibleSetIndex"),
                 f.col("cs_log10bf"),
                 f.col("cs_avg_r2").alias("purityMeanR2"),
                 f.col("cs_min_r2").alias("purityMinR2"),
@@ -254,8 +254,8 @@ class FinnGenFinemapping:
         # Read twice, to select the allele frequencies and to join them: persist, so the
         # SuSiE outputs are read once.
         members = (
-            snps.filter(f.col("cs").cast(t.IntegerType()) > 0)
-            .withColumn("credibleSetIndex", f.col("cs").cast(t.IntegerType()))
+            snps.filter(f.col("cs").try_cast(t.IntegerType()) > 0)
+            .withColumn("credibleSetIndex", f.col("cs").try_cast(t.IntegerType()))
             .join(credible_sets, on=["studyId", "region", "credibleSetIndex"])
             .join(region_bayes_factors, on=["studyId", "region", "credibleSetIndex"])
             .persist()
@@ -263,15 +263,15 @@ class FinnGenFinemapping:
         allele_frequencies = (
             spark.read.option("delimiter", "\t")
             .csv(finngen_annotated_variants_path, header=True)
-            .select(f.col("#variant").alias("v"), f.col("AF").cast(t.FloatType()))
+            .select(f.col("#variant").alias("v"), f.col("AF").try_cast(t.FloatType()))
             # Only the frequencies of the members are needed. Spark broadcasts the members
             # when they are few enough, and shuffles them otherwise:
             .join(members.select("v").distinct(), on="v")
         )
         effect_allele_frequency = f.col("AF")
         alpha = _effect("alpha").cast(t.DoubleType())
-        mean = _effect("mean").cast(t.DoubleType())
-        sd = _effect("sd").cast(t.DoubleType())
+        mean = _effect("mean").try_cast(t.DoubleType())
+        sd = _effect("sd").try_cast(t.DoubleType())
         # FinnGen reports the effect weighted by alpha; dividing by it gives the conditional
         # moments. Clamped at 0, as the variance can come out slightly negative in floating point:
         conditional_beta = f.when(alpha > 0, mean / alpha)
@@ -282,20 +282,20 @@ class FinnGenFinemapping:
             "credibleSetIndex",
             f.regexp_replace(f.col("v"), ":", "_").alias("variantId"),
             f.regexp_replace(f.col("chromosome"), "^chr", "").alias("chromosome"),
-            f.split(f.split("region", ":")[1], "-")[0]
-            .cast(t.IntegerType())
+            f.get(f.split(f.get(f.split("region", ":"), 1), "-"), 0)
+            .try_cast(t.IntegerType())
             .alias("locusStart"),
-            f.split(f.split("region", ":")[1], "-")[1]
-            .cast(t.IntegerType())
+            f.get(f.split(f.get(f.split("region", ":"), 1), "-"), 1)
+            .try_cast(t.IntegerType())
             .alias("locusEnd"),
             f.lit("gwas").alias("studyType"),
             f.lit(FinemappingMethod.SUSIE.value).alias("fineMappingMethod"),
             "credibleSetLogBayesFactor",
             "purityMeanR2",
             "purityMinR2",
-            *split_pvalue_column(f.col("p").cast(t.DoubleType())),
-            f.col("beta").cast(t.DoubleType()).alias("reportedBeta"),
-            f.col("se").cast(t.DoubleType()).alias("reportedStandardError"),
+            *split_pvalue_column(f.col("p").try_cast(t.DoubleType())),
+            f.col("beta").try_cast(t.DoubleType()).alias("reportedBeta"),
+            f.col("se").try_cast(t.DoubleType()).alias("reportedStandardError"),
             effect_allele_frequency.alias("effectAlleleFrequency"),
             _effect("alpha").alias("posteriorProbability"),
             _effect("lbf_variable").alias("logBayesFactor"),
@@ -303,7 +303,7 @@ class FinnGenFinemapping:
             f.when(
                 alpha > 0, f.sqrt(f.greatest(conditional_variance, f.lit(0.0)))
             ).alias("conditionalStandardError"),
-            f.col("lead_r2").cast(t.FloatType()).alias("r2Overall"),
+            f.col("lead_r2").try_cast(t.FloatType()).alias("r2Overall"),
             f.when(
                 effect_allele_frequency.isNotNull(),
                 f.array(f.lit(CredibleSetVariantQualityCheck.EAF_FROM_SOURCE.value)),

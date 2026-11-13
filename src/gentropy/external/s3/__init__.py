@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import os
-from typing import ClassVar
 
 from pydantic import SecretStr
 
@@ -40,12 +39,6 @@ class S3Config(ExternalConfig):
     my-secret-access-key
     """
 
-    _HADOOP_CONNECTOR_PKG: ClassVar[str] = (
-        "org.apache.hadoop:hadoop-aws:3.3.6,com.amazonaws:aws-java-sdk-bundle:1.12.367"
-    )
-    """Connector for AWS S3 compatible storage.
-        See https://mvnrepository.com/artifact/org.apache.hadoop/hadoop-aws/3.3.6"""
-
     bucket_name: str
     """Name of the bucket, without s3:// or s3a:// prefix."""
     s3_host_port: int
@@ -56,6 +49,25 @@ class S3Config(ExternalConfig):
     """Access key ID for S3 authentication."""
     secret_access_key: SecretStr
     """Secret access key for S3 authentication."""
+
+    @staticmethod
+    def hadoop_connector_package(hadoop_version: str) -> str:
+        """Maven coordinate of the connector for S3 compatible storage.
+
+        hadoop-aws has to match the Hadoop of the JVM, and brings the AWS SDK bundle it was built
+        with. See https://mvnrepository.com/artifact/org.apache.hadoop/hadoop-aws
+
+        Args:
+            hadoop_version (str): Version of the Hadoop the JVM runs.
+
+        Returns:
+            str: Maven coordinate of hadoop-aws for that version.
+
+        Examples:
+            >>> S3Config.hadoop_connector_package("3.5.0")
+            'org.apache.hadoop:hadoop-aws:3.5.0'
+        """
+        return f"org.apache.hadoop:hadoop-aws:{hadoop_version}"
 
     @classmethod
     def from_env(cls) -> S3Config:

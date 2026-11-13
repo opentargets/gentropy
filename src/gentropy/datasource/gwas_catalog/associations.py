@@ -102,8 +102,8 @@ class GWASCatalogCuratedAssociationsParser:
         """
         split = f.split(pvalue, "E")
         return PValComponents(
-            mantissa=split.getItem(0).cast("float").alias("pValueMantissa"),
-            exponent=f.coalesce(split.getItem(1).cast("integer"), f.lit(1)).alias(
+            mantissa=f.get(split, 0).try_cast("float").alias("pValueMantissa"),
+            exponent=f.coalesce(f.get(split, 1).try_cast("integer"), f.lit(1)).alias(
                 "pValueExponent"
             ),
         )
@@ -179,7 +179,7 @@ class GWASCatalogCuratedAssociationsParser:
             <BLANKLINE>
         """
         # GWAS Catalog to risk allele mapping
-        return f.split(f.split(risk_allele, "; ").getItem(0), "-").getItem(1)
+        return f.get(f.split(f.get(f.split(risk_allele, "; "), 0), "-"), 1)
 
     @staticmethod
     def _collect_rsids(
@@ -225,7 +225,7 @@ class GWASCatalogCuratedAssociationsParser:
             "rowId",
             f.col("CHR_ID").alias("chromosome"),
             # The positions from GWAS Catalog are from ensembl that causes discrepancy for indels:
-            f.col("CHR_POS").cast(IntegerType()).alias("ensemblPosition"),
+            f.col("CHR_POS").try_cast(IntegerType()).alias("ensemblPosition"),
             # List of all SNPs associated with the variant
             GWASCatalogCuratedAssociationsParser._collect_rsids(
                 f.split(f.col("SNPS"), "; ").getItem(0),
@@ -1037,7 +1037,7 @@ class GWASCatalogCuratedAssociationsParser:
                         (f.col("effectType") == "beta")
                         & (~f.col("isAllelePalindromic")),
                         GWASCatalogCuratedAssociationsParser._harmonise_beta(
-                            f.col("OR or BETA"),
+                            f.col("OR or BETA").try_cast(DoubleType()),
                             f.col("95% CI (TEXT)"),
                             f.col("needsFlipping"),
                         ),
@@ -1047,7 +1047,7 @@ class GWASCatalogCuratedAssociationsParser:
                         (f.col("effectType") == "odds_ratio")
                         & (~f.col("isAllelePalindromic")),
                         GWASCatalogCuratedAssociationsParser._harmonise_odds_ratio(
-                            f.col("OR or BETA"),
+                            f.col("OR or BETA").try_cast(DoubleType()),
                             f.col("needsFlipping"),
                         ),
                     ),
@@ -1062,10 +1062,10 @@ class GWASCatalogCuratedAssociationsParser:
                     standard_error=f.lit(None).alias("standardError"),
                     ci_lower=f.regexp_extract(
                         "95% CI (TEXT)", r"\[(\d+\.*\d*)-\d+\.*\d*\]", 1
-                    ).cast(FloatType()),
+                    ).try_cast(FloatType()),
                     ci_upper=f.regexp_extract(
                         "95% CI (TEXT)", r"\[\d+\.*\d*-(\d+\.*\d*)\]", 1
-                    ).cast(FloatType()),
+                    ).try_cast(FloatType()),
                     mantissa=pval_components.mantissa,
                     exponent=pval_components.exponent,
                 ),
@@ -1119,7 +1119,7 @@ class GWASCatalogCuratedAssociationsParser:
                     "qualityControls": GWASCatalogCuratedAssociationsParser._qc_all(
                         qc=f.array().alias("qualityControls"),
                         chromosome=f.col("CHR_ID"),
-                        position=f.col("CHR_POS").cast(IntegerType()),
+                        position=f.col("CHR_POS").try_cast(IntegerType()),
                         reference_allele=f.col("referenceAllele"),
                         alternate_allele=f.col("alternateAllele"),
                         strongest_snp_risk_allele=f.col("STRONGEST SNP-RISK ALLELE"),

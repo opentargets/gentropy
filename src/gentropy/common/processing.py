@@ -104,7 +104,8 @@ def extract_position(variant_id: Column) -> Column:
         <BLANKLINE>
 
     """
-    return f.regexp_extract(variant_id, r"^.*_(\d+)_.*$", 1)
+    # Null rather than an empty string when there is no position, which ANSI cannot cast to int.
+    return f.nullif(f.regexp_extract(variant_id, r"^.*_(\d+)_.*$", 1), f.lit(""))
 
 
 def normalize_chromosome(chromosome: Column) -> Column:

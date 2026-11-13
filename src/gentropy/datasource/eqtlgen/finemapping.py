@@ -126,13 +126,13 @@ class EqtlGenFinemapping:
         """
         return [
             normalize_chromosome(f.col("snp_chromosome")).alias("chromosome"),
-            f.col("snp_position").cast(t.IntegerType()).alias("position"),
+            f.col("snp_position").try_cast(t.IntegerType()).alias("position"),
             f.regexp_replace(f.col("snp_id"), ":", "_").alias("variantId"),
             f.col("p_value").alias("pValue"),
-            f.col("n_samples").cast(t.IntegerType()).alias("sampleSize"),
-            f.col("SusieRss_CS").cast(t.IntegerType()).alias("variantCredibleSetIndex"),
+            f.col("n_samples").try_cast(t.IntegerType()).alias("sampleSize"),
+            f.col("SusieRss_CS").try_cast(t.IntegerType()).alias("variantCredibleSetIndex"),
             *[
-                f.col(f"lbf_cs_{i}").cast(t.DoubleType()).alias(f"lbf_cs_{i}")
+                f.col(f"lbf_cs_{i}").try_cast(t.DoubleType()).alias(f"lbf_cs_{i}")
                 for i in range(1, cls.N_EFFECTS + 1)
             ],
         ]
@@ -158,8 +158,8 @@ class EqtlGenFinemapping:
             f.col("ENSG").alias("geneId"),
             f.col("feature_id").alias("traitFromSource"),
             *cls._variant_columns(),
-            (-f.col("beta").cast(t.DoubleType())).alias("reportedBeta"),
-            f.col("beta_se").cast(t.DoubleType()).alias("reportedStandardError"),
+            (-f.col("beta").try_cast(t.DoubleType())).alias("reportedBeta"),
+            f.col("beta_se").try_cast(t.DoubleType()).alias("reportedStandardError"),
         ).withColumn(
             "studyId",
             f.concat_ws(
@@ -207,8 +207,8 @@ class EqtlGenFinemapping:
             normalize_chromosome(f.col("feature_chromosome")).alias(
                 "featureChromosome"
             ),
-            f.col("feature_start").cast(t.IntegerType()).alias("featureStart"),
-            f.col("feature_end").cast(t.IntegerType()).alias("featureEnd"),
+            f.col("feature_start").try_cast(t.IntegerType()).alias("featureStart"),
+            f.col("feature_end").try_cast(t.IntegerType()).alias("featureEnd"),
             *cls._variant_columns(),
         )
 

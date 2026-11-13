@@ -274,13 +274,15 @@ class deCODESummaryStatistics:
                 f.col("originalVariantId"),
                 f.col("variantId"),
                 f.col("direction"),
-                f.filter(
-                    # NFE is the closest population-specific gnomAD frequency available.
-                    # TODO: consider using icelandic EAF https://www.ebi.ac.uk/ena/browser/view/PRJEB15197
-                    f.col("originalAlleleFrequencies"),
-                    lambda x: x.getField("populationName") == "nfe_adj",
+                f.get(
+                    f.filter(
+                        # NFE is the closest population-specific gnomAD frequency available.
+                        # TODO: consider using icelandic EAF https://www.ebi.ac.uk/ena/browser/view/PRJEB15197
+                        f.col("originalAlleleFrequencies"),
+                        lambda x: x.getField("populationName") == "nfe_adj",
+                    ),
+                    0,
                 )
-                .getItem(0)
                 .getField("alleleFrequency")
                 .cast(t.FloatType())
                 .alias("eur_af"),
@@ -359,9 +361,12 @@ class deCODESummaryStatistics:
                 ),
                 f.col("sampleSize").alias("sampleSize"),
                 f.col("neglogPval").alias("neglogPval"),
+                # Cast back to float: under ANSI type coercion, 1 - a float is a double.
                 infer_allele_frequency_from_maf(
                     f.col("minorAlleleFrequency"), f.col("eur_af")
-                ).alias("effectAlleleFrequencyFromSource"),
+                )
+                .cast(t.FloatType())
+                .alias("effectAlleleFrequencyFromSource"),
                 f.col("standardError").alias("standardError"),
             )
             .select(

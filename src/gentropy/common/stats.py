@@ -292,7 +292,8 @@ def ci(
 
     # Compute missing standard error:
     standard_error = f.when(
-        standard_error.isNull(), f.abs(beta) / f.abs(zscore_from_pvalue(pvalue, beta))
+        standard_error.isNull(),
+        f.try_divide(f.abs(beta), f.abs(zscore_from_pvalue(pvalue, beta))),
     ).otherwise(standard_error)
 
     # Calculate upper and lower confidence interval:
@@ -530,6 +531,8 @@ def pvalue_from_neglogpval(p_value: Column) -> PValComponents:
         +--------+--------------+--------------+
         <BLANKLINE>
     """
+    # Parsed first: ceil of a string casts it to a bigint, which fails for a decimal under ANSI.
+    p_value = p_value.try_cast(t.DoubleType())
     exponent: Column = f.ceil(p_value)
     mantissa: Column = f.pow(f.lit(10), (exponent - p_value))
 
@@ -567,24 +570,29 @@ def split_pvalue_column(pv: Column) -> PValComponents:
         pv == f.lit("0"), f.lit(sys.float_info.min).cast(t.StringType())
     ).otherwise(pv)
 
+    # Parsed with try_cast: a value that is not a number (e.g. "NA") gives nulls, as in Spark 3,
+    # where ANSI raises.
+    pv_number = pv.try_cast(t.DoubleType())
+    pv_parts = f.split(f.upper(pv), "E")
+
     # Get exponent:
     exponent = f.when(
         f.upper(pv).contains("E"),
-        f.split(f.upper(pv), "E").getItem(1),
-    ).otherwise(f.floor(f.log10(pv)))
+        f.get(pv_parts, 1).try_cast(t.DoubleType()),
+    ).otherwise(f.floor(f.log10(pv_number)))
 
     # Get mantissa:
     mantissa = f.when(
         f.upper(pv).contains("E"),
-        f.split(f.upper(pv), "E").getItem(0),
-    ).otherwise(pv / (10**exponent))
+        f.get(pv_parts, 0).try_cast(t.DoubleType()),
+    ).otherwise(f.try_divide(pv_number, f.pow(f.lit(10), exponent)))
 
     # Round value:
     mantissa = f.round(mantissa, 3)
 
     return PValComponents(
-        mantissa=mantissa.cast(t.FloatType()).alias("pValueMantissa"),
-        exponent=exponent.cast(t.IntegerType()).alias("pValueExponent"),
+        mantissa=mantissa.try_cast(t.FloatType()).alias("pValueMantissa"),
+        exponent=exponent.try_cast(t.IntegerType()).alias("pValueExponent"),
     )
 
 
@@ -627,7 +635,8 @@ def stderr_from_chi2_and_effect_size(chi2_col: Column, beta: Column) -> Column:
         <BLANKLINE>
 
     """
-    return (f.abs(beta) / f.sqrt(chi2_col)).alias("standardError")
+    # Null for a chi2 of zero (p-value of 1), as Spark 3 gave: ANSI raises on division by zero.
+    return f.try_divide(f.abs(beta), f.sqrt(chi2_col)).alias("standardError")
 
 
 def stderr_from_ci(
@@ -777,4 +786,4 @@ def effective_sample_size(n_cases: Column, n_controls: Column) -> Column:
     """
     n_cases = n_cases.cast("double")
     n_controls = n_controls.cast("double")
-    return ((4 * n_cases * n_controls) / (n_cases + n_controls)).cast("integer")
+    return f.try_divide(4 * n_cases * n_controls, n_cases + n_controls).cast("integer")

@@ -791,7 +791,7 @@ class CARMA:
                                     chosen_index
                                 ]
 
-                                test_S = set_gamma[i][int(chosen_index), :]
+                                test_S = set_gamma[i][chosen_index.item(), :]
 
                                 modi_Sigma = Sigma.copy()
                                 if np.size(test_S) > 1:
