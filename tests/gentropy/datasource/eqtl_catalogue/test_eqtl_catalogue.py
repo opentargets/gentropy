@@ -190,6 +190,7 @@ class TestEqtlCatalogueFinemapping:
             "cs_min_r2",
             "region",
             "gene_id",
+            "ac",
             "dataset_id",
             "credibleSetIndex",
         }
@@ -352,6 +353,7 @@ class TestEqtlCatalogueFinemapping:
             "pValueMantissa",
             "pValueExponent",
             "nSamples",
+            "effectAlleleFrequency",
             "beta",
             "standardError",
             "conditionalBeta",
@@ -434,9 +436,39 @@ class TestEqtlCatalogueFinemapping:
         assert lead.sampleSize is None
         assert lead.posteriorProbability == pytest.approx(0.1104114)
         assert lead.logBayesFactor == pytest.approx(36.6787648)
+        # The sample is on chrX, outside the autosomes, so the frequency is null:
         assert lead.effectAlleleFrequency is None
         assert lead.conditionalBeta is None
         assert lead.r2Overall is None
+
+    def test__from_susie_results_effect_allele_frequency_on_autosomes(
+        self: TestEqtlCatalogueFinemapping,
+        sample_eqtl_catalogue_finemapping_credible_sets: DataFrame,
+        sample_eqtl_catalogue_finemapping_lbf: DataFrame,
+        sample_eqtl_catalogue_studies_metadata: DataFrame,
+    ) -> None:
+        """On an autosome, the effect allele frequency is the ALT allele count over 2 x sample_size."""
+
+        def on_chromosome_1(df: DataFrame) -> DataFrame:
+            """Move the sample's chrX variants to chromosome 1."""
+            return df.withColumn(
+                "variant", f.regexp_replace("variant", "^chrX_", "chr1_")
+            )
+
+        _, variants = EqtlCatalogueFinemapping.from_susie_results(
+            EqtlCatalogueFinemapping.parse_susie_results(
+                on_chromosome_1(
+                    sample_eqtl_catalogue_finemapping_credible_sets
+                ).withColumn("chromosome", f.lit("1")),
+                on_chromosome_1(sample_eqtl_catalogue_finemapping_lbf),
+                sample_eqtl_catalogue_studies_metadata,
+            )
+        )
+        rows = {row.variantId: row for row in variants.df.collect()}
+        # ac / (2 x sample_size), with ac = 54 and 78 of 2 x 84 alleles:
+        assert rows["1_149481619_T_C"].effectAlleleFrequency == pytest.approx(54 / 168)
+        assert rows["1_149510855_A_G"].effectAlleleFrequency == pytest.approx(78 / 168)
+        assert rows["1_149481619_T_C"].sampleSize is None
 
     def test__from_susie_results_negative_region_start(
         self: TestEqtlCatalogueFinemapping,
