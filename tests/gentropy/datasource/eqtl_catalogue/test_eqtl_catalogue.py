@@ -459,7 +459,7 @@ class TestEqtlCatalogueFinemapping:
             EqtlCatalogueFinemapping.parse_susie_results(
                 on_chromosome_1(
                     sample_eqtl_catalogue_finemapping_credible_sets
-                ).withColumn("chromosome", f.lit("1")),
+                ).withColumn("chromosome", f.lit("chr1")),
                 on_chromosome_1(sample_eqtl_catalogue_finemapping_lbf),
                 sample_eqtl_catalogue_studies_metadata,
             )

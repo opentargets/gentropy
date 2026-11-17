@@ -454,10 +454,11 @@ class EqtlCatalogueFinemapping:
                 on=["molecular_trait_id", "region", "dataset_id", "credibleSetIndex"],
                 how="left",
             )
+            .withColumn("chromosome", normalize_chromosome(f.col("chromosome")))
             .select(
                 f.regexp_replace(f.col("variant"), r"chr", "").alias("variantId"),
                 f.col("region"),
-                normalize_chromosome(f.col("chromosome")).alias("chromosome"),
+                f.col("chromosome"),
                 f.col("position"),
                 # The region is chrN:start-end, the gene TSS +/- 1 Mb, so the start is
                 # negative for genes in the first megabase; the locus then starts at 1:
@@ -478,7 +479,7 @@ class EqtlCatalogueFinemapping:
                 cls._effect_allele_frequency(
                     f.col("ac"),
                     f.col("sample_size"),
-                    normalize_chromosome(f.col("chromosome")),
+                    f.col("chromosome"),
                 ).alias("effectAlleleFrequency"),
                 f.col("beta"),
                 f.col("se").alias("standardError"),
