@@ -42,8 +42,8 @@ class SleMapFinemapping:
     `variant_id` is `chr<chromosome>_<position>_<reference>_<alternative>` on GRCh38.
 
     `conditional_beta` and `conditional_sd` of the memberships are the posterior mean and
-    standard deviation of the effect given the variant is causal, on the scale of the
-    standardised genotype and expression, unlike `beta`. They are not used.
+    standard deviation of the effect given that the variant is the causal one of the single
+    effect, per standard deviation of genotype and expression, unlike the per-allele `beta`.
 
     An example row of the components (`all_components.tsv`):
 
@@ -244,7 +244,10 @@ class SleMapFinemapping:
         - `purityMinR2`, `purityMeanR2`: `purity_min_r2` and `purity_mean_r2`.
         - `locusStart`, `locusEnd`: `analyzed_start` and `analyzed_end`, the window of the
           variants tested for the gene.
-        - `conditionalBeta`, `conditionalStandardError`, `r2Overall` are left empty.
+        - `conditionalBeta`, `conditionalStandardError`: `conditional_beta` and `conditional_sd`,
+          on SuSiE's scale, per standard deviation of genotype and expression (see the
+          `gentropy.dataset.credible_set` module), not rescaled.
+        - `r2Overall` is left empty: SLE-map gives no LD with the lead.
 
         Args:
             session (Session): Session object.
@@ -298,6 +301,8 @@ class SleMapFinemapping:
                 f.col("nSamples").alias("sampleSize"),
                 f.col("component_pip").alias("posteriorProbability"),
                 f.col("component_logbf").alias("logBayesFactor"),
+                f.col("conditional_beta").alias("conditionalBeta"),
+                f.col("conditional_sd").alias("conditionalStandardError"),
                 f.when(
                     effect_allele_frequency.isNotNull(),
                     f.array(

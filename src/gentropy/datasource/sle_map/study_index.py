@@ -63,8 +63,10 @@ class SleMapStudyIndex:
         "projectId": SleMapFinemapping.PROJECT_ID,
         "studyType": StudyType.SCEQTL.value,
         "hasSumstats": False,
-        "publicationDate": "2026-09-18",
-        "publicationJournal": "Preprint",
+        "publicationTitle": "Single-cell multi-ancestry regulatory map of systemic lupus erythematosus",
+        "publicationFirstAuthor": "Jang H",
+        "publicationDate": "2026-09-21",
+        "publicationJournal": "bioRxiv",
     }
 
     @classmethod

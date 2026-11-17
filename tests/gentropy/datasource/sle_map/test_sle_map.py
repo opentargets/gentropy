@@ -112,7 +112,10 @@ class TestCredibleSets:
             r.qualityControls == [CredibleSetVariantQualityCheck.EAF_FROM_SOURCE.value]
             for r in rows
         )
-        assert all(r.conditionalBeta is None for r in rows)
+        assert all(
+            r.conditionalBeta is not None and r.conditionalStandardError > 0
+            for r in rows
+        )
         assert all(r.reportedBeta is not None and r.pValueExponent < 0 for r in rows)
 
 

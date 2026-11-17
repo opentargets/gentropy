@@ -40,6 +40,8 @@ level across all sources:
     - FinnGen: per allele, recovered from the published `mean` and `sd` by dividing out `alpha`;
     - SuSiE-inf: per standard deviation of genotype and phenotype, as it is fitted on z-scores;
     - eQTL Catalogue: per standard deviation of genotype, and only with `full_susie_input_glob`;
+    - SLE-map: per standard deviation of genotype and expression, as SLE-map fits SuSiE on
+      standardised genotypes and expression;
     - BigBrain: per standard deviation, and summed over all single effects of the feature, a
       documented exception: use its sign for the direction of effect only;
     - PICS: null, as PICS gives no effect.

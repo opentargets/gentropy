@@ -46,6 +46,8 @@ class SleMapIngestionStep:
     - The credible sets are the 95% credible sets of SuSiE reported by SLE-map, with the region
       log Bayes factor computed by SLE-map over every variant tested for the gene.
     - The effect allele is the alternative allele of `variantId`.
+    - The conditional effects are SuSiE's own, per standard deviation of genotype and
+      expression; the marginal effects are per allele.
     - SLE-map gives the ancestries of the whole cohort only, so each study's sample size is split
       over them in proportion, for its LD population structure.
     """
