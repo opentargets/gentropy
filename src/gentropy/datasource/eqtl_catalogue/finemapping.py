@@ -247,7 +247,10 @@ class EqtlCatalogueFinemapping:
         The effect allele is the ALT allele and `ac` its count. The credible set files do not carry
         the number of alleles `an`, which is 2 x `sample_size` unless some genotypes are missing,
         where the frequency comes out slightly low. The frequency is null outside the autosomes, as
-        datasets count the alleles of chrX differently (some count each male once).
+        datasets count the alleles of chrX differently (some count each male once). It is also null
+        when `ac` reaches 2 x `sample_size`: the metadata then undercounts the genotyped samples
+        (e.g. INTERVAL_RNA_WGS, 2,892 in the metadata for up to 2,917 genotyped), and the frequency
+        would be 1 or above.
 
         Args:
             allele_count (Column): ALT allele count (`ac`).
@@ -259,7 +262,14 @@ class EqtlCatalogueFinemapping:
 
         Examples:
             >>> df = spark.createDataFrame(
-            ...     [(54, 84, "1"), (130, 84, "22"), (54, 84, "X"), (None, 84, "1")],
+            ...     [
+            ...         (54, 84, "1"),
+            ...         (130, 84, "22"),
+            ...         (168, 84, "1"),
+            ...         (170, 84, "1"),
+            ...         (54, 84, "X"),
+            ...         (None, 84, "1"),
+            ...     ],
             ...     "ac int, sample_size int, chromosome string",
             ... )
             >>> df.select(
@@ -276,6 +286,8 @@ class EqtlCatalogueFinemapping:
             +----------+---------------------+
             |         1|               0.3214|
             |        22|               0.7738|
+            |         1|                 NULL|
+            |         1|                 NULL|
             |         X|                 NULL|
             |         1|                 NULL|
             +----------+---------------------+
@@ -283,7 +295,8 @@ class EqtlCatalogueFinemapping:
         """
         autosomes = [str(i) for i in range(1, 23)]
         return f.when(
-            chromosome.isin(autosomes), allele_count / (2 * sample_size)
+            chromosome.isin(autosomes) & (allele_count < 2 * sample_size),
+            allele_count / (2 * sample_size),
         ).cast(FloatType())
 
     @classmethod
@@ -542,8 +555,8 @@ class EqtlCatalogueFinemapping:
         posterior of the credible set's own effect, unscaled (see `read_full_susie_from_source`);
         the rescaled statistics are null. So are `r2Overall`, and the sample size, as the source
         gives no per-variant sample size of the marginal test. The effect allele frequency is the
-        ALT allele count over twice the dataset sample size, on the autosomes only (see
-        `_effect_allele_frequency`).
+        ALT allele count over twice the dataset sample size, on the autosomes only, and null where
+        the count reaches twice the sample size (see `_effect_allele_frequency`).
 
         Args:
             processed_finemapping_df (DataFrame): DataFrame containing the processed SuSIE results.
