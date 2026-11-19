@@ -31,7 +31,12 @@ Plus the GRCh38 lifted Hail variant tables under `ukb-diverse-pops-public-build-
 
 - **Only AFR, CSA, EUR are mirrored.** Pan-UKBB also publishes AMR, EAS and MID (AWS,
   `pan-ukb-us-east-1/ld_release`). (MR `PLAN.md` item 2 says Pan-UKB is AWS-only; that is out of
-  date for these three.)
+  date for these three.) Production reads the GCS copy: gentropy's `LDMatrixInterface` /
+  SuSiE defaults point at `gs://panukbb-ld-matrixes`, orchestration (checked
+  `~/pipeline/orchestration`) never overrides `ld_matrix_paths` and has no S3 support
+  (`utils/path.py`: "s3:// (currently not implemented)"), and the copy was made under
+  opentargets/issues#3455 ("Migrate pan-UKBB LD matrixes from AWS to GCP", closed 2024-10-01).
+  This is not yet confirmed from a job log.
 - Block matrices are **upper-triangular and banded**: blockSize 4096, 0.36% of blocks stored, band
   median 21 blocks (max 37) in EUR. 21 × 4096 variants spans a median **10.1 Mb** (p10 8.8,
   p90 12.2). Pairs up to ~10 Mb apart are stored. This is the same radius as TwoSampleMR's
@@ -81,8 +86,13 @@ rValues[population, r]]`). Then `LDAnnotator`, PICS and clumping do not change. 
    - **Decide:** store index populations as Pan-UKBB labels (`EUR`…) and translate in
      `LDAnnotator`, or as study labels. Recommend Pan-UKBB labels plus translation: it is
      honest about the source, and FIN is then explicitly "EUR panel".
-   - **FIN is lost** (no Finnish panel). FinnGen studies would use EUR LD. Acceptable for r² ≥ 0.5
-     tagging, but quantify by comparing the gnomAD fin and Pan-UKBB EUR r for shared pairs.
+   - **FIN is lost** (no Finnish panel), but little depends on it. FinnGen R12 studies (2,336, all
+     `fin`-major) are ingested as FinnGen's own SuSiE credible sets (`finngen_gwas_ingestion` DAG:
+     `finngen_studies` + `finngen_finemapping_ingestion`), so they never touch the LD index. No
+     GCST study in 26.06 has a `fin` population. The **only** consumer is the FinnGen R12 + MVP +
+     UKBB meta DAG (`finngen_ukb_mvp_meta`: window clumping → `ld_based_clumping` → PICS): in run
+     20261102T181409, **13 of 330** studies are `fin`-major (317 `nfe`). Those 13 would move to
+     the EUR panel. Check them by comparing gnomAD fin and Pan-UKBB EUR r for shared pairs.
 3. **Populations to build.** Phase 1: EUR, AFR, CSA (already on GCS). Phase 2: copy EAS, AMR, MID
    from AWS. EAS ~2.7k still beats gnomAD's ~0.8k, but **check AWS egress cost** (several TiB).
    Until then, EAS/AMR studies either fall back to gnomAD eas/amr or are flagged as unresolved
@@ -142,12 +152,17 @@ How each method selects instruments:
 
 What our data shows:
 
-- Pure window clumping on the v2 exposure table (861,343 IV rows, 19,847 exposures, median 6
-  IVs) keeps **100%** at 0.5 Mb (confirming the upstream contract), **85.7%** at 1 Mb and
-  **50.6%** at 10 Mb.
+- **Distance-only bound (not a TwoSampleMR run, no LD used):** `scripts/window.py` re-clumps
+  the existing v2 exposure table (861,343 IV rows, 19,847 exposures, median 6 IVs) per exposure
+  and chromosome, greedily by |β/SE|, dropping any IV within w bp of a stronger kept IV. It keeps
+  **100%** at 0.5 Mb (confirming the upstream contract), **85.7%** at 1 Mb and **50.6%** at
+  10 Mb. 50.6% is what TwoSampleMR would keep _if_ every same-exposure pair within 10 Mb looked
+  linked, i.e. the "it is just a 10 Mb window" hypothesis taken literally.
 - With n = 503, the r² of two unlinked variants is ~χ²₁/503 and exceeds 0.001 about 48% of the
-  time. So TwoSampleMR with 1000G sits somewhere between "keep" and "10 Mb window", and is
-  probably close to the window. With Pan-UKBB EUR (n ~420k, noise ~2×10⁻⁶), r² < 0.001 becomes a
+  time. Against our set (which has no pairs < 500 kb, so clumping can only remove), a weaker IV
+  with k stronger neighbours within 10 Mb survives by chance with probability ~0.52^k. So the true
+  1000G retention from LD lies between 50.6% and 100%, nearer 50.6% for dense exposures. Variants
+  absent from 1000G are dropped on top of that, which can push it below 50.6%. With Pan-UKBB EUR (n ~420k, noise ~2×10⁻⁶), r² < 0.001 becomes a
   real independence threshold.
 - Only **677,919 distinct same-exposure IV pairs** lie within 10 Mb (73k within 1 Mb), across
   235,068 distinct IV variants. The r for all of them can be pulled from the Pan-UKBB block
