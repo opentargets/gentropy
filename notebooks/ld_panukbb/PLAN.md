@@ -29,9 +29,19 @@ partitioned by chromosome, schema `assets/schemas/ld_index.json`).
 
 Plus the GRCh38 lifted Hail variant tables under `ukb-diverse-pops-public-build-38/`.
 
-- **Only AFR, CSA, EUR are mirrored.** Pan-UKBB also publishes AMR, EAS and MID (AWS,
-  `pan-ukb-us-east-1/ld_release`). (MR `PLAN.md` item 2 says Pan-UKB is AWS-only; that is out of
-  date for these three.) Production reads the GCS copy: gentropy's `LDMatrixInterface` /
+The other three populations are only on public S3 (`s3://pan-ukb-us-east-1/ld_release/`, readable
+anonymously over HTTPS). Each has `UKBB.{POP}.ldadj.bm` and `UKBB.{POP}.ldadj.variant.b38.ht`.
+Sizes are estimated from block counts at EUR's ~119 MiB/block:
+
+| Pop | Variants (BM rows) | Stored blocks | ≈ size  |
+| --- | ------------------ | ------------- | ------- |
+| AMR | 11,713,690         | 31,903        | 3.6 TiB |
+| EAS | 10,225,280         | 24,892        | 2.8 TiB |
+| MID | 14,127,512         | 45,296        | 5.2 TiB |
+
+- **Only AFR, CSA, EUR are mirrored on GCS.** (MR `PLAN.md` item 2 says Pan-UKB is AWS-only;
+  that is out of date for these three.) Dataproc clusters can read AWS, and the LD index is a
+  one-off build, so AMR/EAS/MID are read from S3 directly (decision 3). Production reads the GCS copy: gentropy's `LDMatrixInterface` /
   SuSiE defaults point at `gs://panukbb-ld-matrixes`, orchestration (checked
   `~/pipeline/orchestration`) never overrides `ld_matrix_paths` and has no S3 support
   (`utils/path.py`: "s3:// (currently not implemented)"), and the copy was made under
@@ -42,15 +52,33 @@ Plus the GRCh38 lifted Hail variant tables under `ukb-diverse-pops-public-build-
   p90 12.2). Pairs up to ~10 Mb apart are stored. This is the same radius as TwoSampleMR's
   `clump_kb = 10000`. The gnomAD index's p99 pair distance is 533 kb.
 - For scale: gnomAD v2.1.1 nfe is 14.2M variants / 555 GiB, afr 1.6 TiB. **Scanning Pan-UKBB is
-  ~10× more I/O** than the current build (32.5 TiB vs ~3 TiB).
+  ~10–15× more I/O** than the current build: 32.5 TiB on GCS + ~11.6 TiB on S3, vs ~3 TiB.
+  FinnGen adds 186 GiB of text.
 - The aligned index (`alleleOrder` = −1 where Pan-UKBB ref/alt is flipped vs the OT variant index)
   was built ad hoc in Oct 2024 by `PanUKBBLDMatrix.align_ld_index_alleles`. There is no step for
   it: `PanUKBBConfig._target_` points to `gentropy.pan_ukb_ingestion.PanUKBBVariantIndexStep`,
   which does not exist, and the config is not registered with Hydra. Only 2,093 EUR rows are
   flipped. It contains a handful of `*_alt` contigs (e.g. `22_KI270879v1_alt`) that need dropping.
-- Sample sizes (approx., to confirm from the Pan-UKBB docs): Pan-UKBB EUR ~420k, CSA ~8.9k,
-  AFR ~6.6k, EAS ~2.7k, MID ~1.6k, AMR ~1k, against gnomAD v2 genomes nfe ~7.7k, afr ~4.4k,
-  fin ~1.7k, eas ~0.8k, amr ~0.4k. r² noise between unlinked variants is ~1/n.
+- Panel sizes (null r² ≈ 1/N, the expected r² between unlinked variants):
+
+  | Ancestry       | Pan-UKBB             | gnomAD v2 genomes  | Other                            |
+  | -------------- | -------------------- | ------------------ | -------------------------------- |
+  | European       | EUR 420,531 (2.4e-6) | NFE 7,718 (1.3e-4) | 1000G EUR 503 (2.0e-3)           |
+  | Finnish        | (within EUR)         | FIN 1,738 (5.8e-4) | **FinnGen R12 520,210 (1.9e-6)** |
+  | Ashkenazi      | (within EUR/MID)     | ASJ 145 (6.9e-3)   | —                                |
+  | African        | AFR 6,636 (1.5e-4)   | AFR 4,359 (2.3e-4) | 1000G AFR 661                    |
+  | East Asian     | EAS 2,709 (3.7e-4)   | EAS 780 (1.3e-3)   | 1000G EAS 504                    |
+  | Admixed Amer.  | AMR 980 (1.0e-3)     | AMR 424 (2.4e-3)   | 1000G AMR 347                    |
+  | South Asian    | CSA 8,876 (1.1e-4)   | —                  | 1000G SAS 489                    |
+  | Middle Eastern | MID 1,599 (6.3e-4)   | —                  | —                                |
+
+  Pan-UKBB is larger than gnomAD v2 for every population it has.
+
+- **FinnGen R12 LD** (`gs://finngen-public-data-r12/ld_matrix/`, 186 GiB): long bgzipped/tabix
+  TSV per chromosome (1–22, X), columns `#chr pos variant1 variant2 r r2`. It holds all pairs
+  within **3 Mb** with r² > 0.01, in both directions, from PLINK 2 `--r-unphased`. IDs are
+  already GRCh38 (`chr22_10557967_C_T`), so OT IDs come from dropping `chr`, with no liftover.
+  r is rounded to 4 dp. The 3 Mb window (vs 10 Mb in Pan-UKBB) does not matter at r² ≥ 0.5.
 - Matrices are `ldadj`: as I understand it, r is computed on covariate-adjusted genotypes.
   **Check** this is acceptable for PICS/clumping. It should be (it is what SuSiE already uses).
 
@@ -90,24 +118,47 @@ rValues[population, r]]`). Then `LDAnnotator`, PICS and clumping do not change. 
      the South Asian ones get CSA only by accident.
    - Add `csa` and `mid` to `LD_Population`; remap South/Central Asian → `csa` and Middle
      Eastern → `mid` in the GWAS map. Keep `nfe`, `afr`, `eas` and `amr` as they are.
-   - One shared map, study label → Pan-UKBB panel: nfe/fin/asj/est/nwe/seu → EUR, afr → AFR,
-     csa → CSA, eas → EAS, amr → AMR, mid → MID. Used by `LDAnnotator`, `LDMatrixInterface`,
-     SuSiE and LDSC. This removes the `eas → csa` hack.
-   - **Decide:** store index populations as Pan-UKBB labels (`EUR`…) and translate in
-     `LDAnnotator`, or as study labels. Recommend Pan-UKBB labels plus translation: it is
-     honest about the source, and FIN is then explicitly "EUR panel".
-   - **FIN is lost** (no Finnish panel), but little depends on it. FinnGen R12 studies (2,336, all
-     `fin`-major) are ingested as FinnGen's own SuSiE credible sets (`finngen_gwas_ingestion` DAG:
-     `finngen_studies` + `finngen_finemapping_ingestion`), so they never touch the LD index. No
-     GCST study in 26.06 has a `fin` population. The **only** consumer is the FinnGen R12 + MVP +
-     UKBB meta DAG (`finngen_ukb_mvp_meta`: window clumping → `ld_based_clumping` → PICS): in run
-     20261102T181409, **13 of 330** studies are `fin`-major (317 `nfe`). Those 13 would move to
-     the EUR panel. Check them by comparing gnomAD fin and Pan-UKBB EUR r for shared pairs.
-3. **Populations to build.** Phase 1: EUR, AFR, CSA (already on GCS). Phase 2: copy EAS, AMR, MID
-   from AWS. EAS ~2.7k still beats gnomAD's ~0.8k, but **check AWS egress cost** (several TiB).
-   Until then, EAS/AMR studies either fall back to gnomAD eas/amr or are flagged as unresolved
-   LD (to decide). A **hybrid index** (Pan-UKBB pops plus gnomAD eas/amr/fin) is the lowest-risk
-   transition and fits the existing `rValues[population]` schema.
+   - One shared map, study label → LD source (decision 3). Used by `LDAnnotator`,
+     `LDMatrixInterface`, SuSiE and LDSC. This removes the `eas → csa` hack.
+   - Store the index's `rValues.population` as the **study labels** (`nfe`, `fin`, `csa`…), so
+     `LDAnnotator`'s join on the major population stays a plain equality. The source of each
+     label is fixed by the map below and recorded in the step config and docs.
+   - FIN usage, for scale: FinnGen R12 studies (2,336, all `fin`-major) come in as FinnGen's own
+     SuSiE credible sets (`finngen_gwas_ingestion`: `finngen_studies` +
+     `finngen_finemapping_ingestion`) and never touch the LD index. No GCST study in 26.06 has a
+     `fin` population. The current consumer is the FinnGen R12 + MVP + UKBB meta DAG
+     (`finngen_ukb_mvp_meta`: window clumping → `ld_based_clumping` → PICS): **13 of 330** studies
+     in run 20261102T181409 are `fin`-major. Small, but FinnGen's panel is the best available
+     and cheap to ingest.
+3. **Sources (decided 2026-11-19): Pan-UKBB everywhere, except FinnGen for Finnish and gnomAD
+   for Ashkenazi.**
+
+   | Study label                      | LD source         | Location                                       |
+   | -------------------------------- | ----------------- | ---------------------------------------------- |
+   | `nfe` (+ `est`, `nwe`, `seu`)    | Pan-UKBB EUR      | GCS                                            |
+   | `afr`                            | Pan-UKBB AFR      | GCS                                            |
+   | `csa` (new: South/Central Asian) | Pan-UKBB CSA      | GCS                                            |
+   | `eas`                            | Pan-UKBB EAS      | S3                                             |
+   | `amr`                            | Pan-UKBB AMR      | S3                                             |
+   | `mid` (new: Middle Eastern)      | Pan-UKBB MID      | S3                                             |
+   | `fin`                            | FinnGen R12       | `gs://finngen-public-data-r12/ld_matrix`       |
+   | `asj`                            | gnomAD v2.1.1 ASJ | `gs://gcp-public-data--gnomad` (existing code) |
+
+   - **Read S3 directly from Dataproc** for the one-off build (`s3a://pan-ukb-us-east-1/...`,
+     anonymous credentials provider; gentropy already ships `hadoop-aws` via
+     `external/s3`). Pan-UKB is in the AWS Open Data registry, so egress is probably covered.
+     Confirm, and budget for a slower cross-cloud read (~11.6 TiB). This covers the index
+     only. SuSiE reads per locus at run time, so giving it EAS/AMR/MID would still mean
+     copying them to `gs://panukbb-ld-matrixes` (separate decision).
+   - **ASJ — query before building.** No study in 26.06 has `asj` (or `est`/`nwe`/`seu`) in its
+     `ldPopulationStructure`. The GWAS map has no Ashkenazi label, and the current index does not
+     even include asj (`LDIndexConfig.ld_populations` = afr, amr, eas, fin, nfe). N = 145
+     (null r² 6.9e-3) is also too noisy to be useful. Suggest dropping `asj` (and the unused
+     `est`/`nwe`/`seu` labels, or mapping them to EUR) unless a datasource needs it. If kept, it
+     reuses `GnomADLDMatrix` for that one population (~free).
+   - Oceanian / Aboriginal Australian (32 `eas`-major studies) have no panel anywhere and stay on
+     `eas`.
+
 4. **Allele alignment** must become a real step, rerun against the current variant index. It
    should drop non-canonical contigs and apply `alleleOrder` to the sign of r. Sign only matters for the
    stored r, not r², but the index stores r.
@@ -119,15 +170,30 @@ rValues[population, r]]`). Then `LDAnnotator`, PICS and clumping do not change. 
 
 1. **Alignment step.** New `PanUKBBLDIndexAlignmentStep` (or fix `PanUKBBConfig._target_`):
    `align_ld_index_alleles` per pop against the current variant index, filter to chr 1–22, X.
+   Run it for all six pops: AMR/EAS/MID from the S3 `UKBB.{POP}.ldadj.variant.b38.ht`.
    Register the config. Add tests on a tiny Hail table fixture.
 2. **`PanUKBBLDMatrix.as_ld_index(min_r2)`**, mirroring `GnomADLDMatrix.as_ld_index`:
    `BlockMatrix.read(...).entries(keyed=False)` → filter `|r| ≥ √min_r2` → join `i`/`j` to the
    aligned index → apply `alleleOrder_i × alleleOrder_j` → require same chromosome → symmetrise
    (the matrix is upper-triangular, like gnomAD, so reuse `_transpose_ld_matrix`) → aggregate
-   with `_aggregate_ld_index_across_populations` (move it to a shared helper).
-3. **Step/config:** extend `LDIndexConfig` with `ld_source: "gnomad" | "pan_ukbb"`, or add
-   `PanUKBBLDIndexConfig` + `cs.store(name="pan_ukbb_ld_index")`. Prefer a separate step: the
-   inputs differ completely. Update `docs/python_api/`.
+   with `_aggregate_ld_index_across_populations` (move it to a shared helper). Emit the
+   unaggregated `(variantIdI, variantIdJ, r, chromosome, population)` frame per source, so the
+   three sources can be unioned before a single aggregation.
+   2b. **`FinnGenLDMatrix` (new, `datasource/finngen/ld.py`)**: read
+   `finngen_r12_chr*_ld.tsv.gz` with Spark CSV (tab, header `#chr`). Keep `r2 ≥ min_r2`, strip
+   `chr` from both IDs, and label `population = "fin"`. Files already hold both directions, so
+   **do not** transpose. Add the diagonal (self, r = 1) for every variant that appears, to match
+   the other sources. Check that `r`'s sign is relative to the alt allele of the ID as written
+   (PLINK 2 `--r-unphased` uses the alt dosage). Re-key any FinnGen IDs that differ from the OT
+   variant index by allele order, as for Pan-UKBB. bgzip is not splittable by default, so chr2
+   (16 GiB) is one task. That is acceptable for a one-off; otherwise use a BGZF-aware reader.
+   2c. **gnomAD ASJ** (only if kept, decision 3): `GnomADLDMatrix(ld_populations=["asj"])`, with
+   the cross-chromosome fix (step 7).
+3. **Step/config:** a new `LDIndexStep` composition, e.g. `ld_index` with per-source config
+   blocks (`pan_ukbb: {populations, bm_path, aligned_index_path}`, `finngen: {path}`,
+   `gnomad: {populations}`), which unions the per-source frames and aggregates once. Keep the
+   gnomAD-only path available for comparison runs. Cluster config needs the S3A anonymous
+   credentials provider for `s3a://pan-ukb-us-east-1`. Update `docs/python_api/`.
 4. **Population map refactor** (decision 2). Update `LD_Population`, the GWAS map, and
    `LDAnnotator._get_major_population` / `_calculate_r2_major` for translation. Remove the SuSiE
    `eas → csa` hack. Update `test_ld.py`, `test_study_index.py` and the doctests.
@@ -138,7 +204,9 @@ rValues[population, r]]`). Then `LDAnnotator`, PICS and clumping do not change. 
    with Spark) instead of materialising every entry as a row.
 6. **Validate** (chr22, then genome-wide):
    - r(gnomAD nfe) vs r(Pan-UKBB EUR) for shared pairs. Expect agreement, with Pan-UKBB tighter.
-     Also fin vs EUR.
+     Also gnomAD fin vs FinnGen R12, and gnomAD eas vs Pan-UKBB EAS.
+   - Sign check: for pairs present in both FinnGen and Pan-UKBB EUR, `sign(r)` should mostly
+     agree. A systematic flip means an allele-order bug.
    - Index size (pairs per variant) and pair-distance distribution vs gnomAD.
    - Downstream rerun of `ld_based_clumping` / PICS on the GWAS Catalog sumstats loci. Count the
      changes in `UNRESOLVED_LD` ("Variant not found in LD reference", 387k loci today) and in the
@@ -146,8 +214,11 @@ rValues[population, r]]`). Then `LDAnnotator`, PICS and clumping do not change. 
      size distribution.
 7. **Fix the gnomAD cross-chromosome tag bug** while there (same-chromosome filter in
    `_resolve_variant_indices`).
-8. Orchestration: new output path (e.g. `gs://…/ld_index/pan_ukbb_v1`), point the PICS/clumping
-   configs at it, and run the release comparison.
+8. Orchestration: new output path (e.g. `gs://…/ld_index/pan_ukbb_v1`). The index path is
+   passed explicitly as `{gnomad}/v2.1.1/ld_index` in `gwas_catalog_sumstats_pics`,
+   `gwas_catalog_top_hits`, `decode_ingestion` (twice), `decode_smp_finemapping` and
+   `finngen_ukb_mvp_meta`. Repoint those and run the release comparison. Studies need the
+   regenerated study index (new `csa`/`mid` labels) before the new index is useful.
 
 ## MR thread: our IV clumping vs TwoSampleMR
 
@@ -202,10 +273,11 @@ needs a chr22 1000G EUR reference and plink. Arm C on chr22 needs the chr22 benc
 
 ## Open questions
 
-- AWS egress for EAS/AMR/MID: who pays, and is it worth it given small panels?
-- Hybrid vs Pan-UKBB-only index for the first release?
-- Does OT orchestration pin the LD index path (`gs://gnomad_data_2/ld_index/v2.1.1`) anywhere
-  besides gentropy configs? Check the orchestration repo.
+- Confirm S3 reads from Dataproc carry no egress charge (AWS Open Data) and that `s3a://`
+  BlockMatrix reads in Hail work with anonymous credentials. Try a chr22 slice of EAS first.
+- ASJ: keep via gnomAD or drop (no study uses it today)?
+- Copy EAS/AMR/MID to GCS as well, so SuSiE can use them (and the `eas → csa` hack can go for
+  fine-mapping too)?
 - Confirm the "ldadj" definition and the exact per-population N from the Pan-UKBB LD release
   notes.
 
