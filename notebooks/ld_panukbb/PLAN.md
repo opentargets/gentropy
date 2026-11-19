@@ -78,6 +78,16 @@ rValues[population, r]]`). Then `LDAnnotator`, PICS and clumping do not change. 
    SAS/MID LD. SuSiE also hard-codes `eas → csa` as a "temporary solution"
    (`susie_finemapper.py`), and `LDMatrixInterface.ancestry_map` and `ldsc._infer_ld_ancestry`
    each hold their own map. Proposal:
+   - **Size of the problem (26.06 GCST, `scripts/eas.py`).** Of 148,491 GCST studies, 22,726 have
+     `eas` as the major population. In 4,587 of them, East Asian is not the main ancestry inside the
+     `eas` bucket: 3,373 are South Asian, 799 Central Asian, 383 Middle Eastern and 32 Oceanian.
+     All of them get gnomAD v2 East Asian LD (n ~0.8k) in clumping and PICS. Because sample sizes
+     are summed per _mapped_ label, pooling also makes some multi-ancestry studies `eas`-major
+     that would otherwise be European. Remapping South/Central Asian → `csa` and Middle Eastern →
+     `mid` changes the major population of **6,055** studies: eas→csa 4,049, eas→nfe 1,669,
+     eas→mid 330, eas→afr/amr 7. That includes **972 MR exposures** (1,498 are `eas`-major today).
+     SuSiE's `eas → csa` hack then gives the ~18k genuinely East Asian studies South Asian LD;
+     the South Asian ones get CSA only by accident.
    - Add `csa` and `mid` to `LD_Population`; remap South/Central Asian → `csa` and Middle
      Eastern → `mid` in the GWAS map. Keep `nfe`, `afr`, `eas` and `amr` as they are.
    - One shared map, study label → Pan-UKBB panel: nfe/fin/asj/est/nwe/seu → EUR, afr → AFR,
@@ -212,3 +222,5 @@ local data dir (`/Users/dc16/data/mendelian_randomisation/inputs_v2_26.06`).
   cross-chromosome tags, and compare IV coverage with Pan-UKBB EUR.
 - `iv.py`: same-exposure IV pair counts by distance.
 - `window.py`: greedy window clumping of the exposure table by |z|.
+- `eas.py`: GCST studies affected by mapping South/Central Asian and Middle Eastern to `eas`
+  (26.06 study table), and the major-population changes under a `csa`/`mid` remap.
