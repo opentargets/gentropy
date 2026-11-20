@@ -1,0 +1,29 @@
+{
+  "type": "struct",
+  "fields": [
+    {
+      "name": "sourceDatabase",
+      "type": "string",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "targetA",
+      "type": "string",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "targetB",
+      "type": "string",
+      "nullable": true,
+      "metadata": {}
+    },
+    {
+      "name": "scoring",
+      "type": "double",
+      "nullable": true,
+      "metadata": {}
+    }
+  ]
+}

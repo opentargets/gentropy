@@ -10,7 +10,7 @@ from pydantic import BaseModel
 
 from gentropy.common.stats import get_logsum_column
 from gentropy.dataset.colocalisation import Colocalisation
-from gentropy.dataset.study_locus_overlap import StudyLocusOverlap
+from gentropy.dataset.locus_overlap import LocusOverlap
 from gentropy.method.colocalisation.model import ColocalisationMethodInterface
 
 if TYPE_CHECKING:
@@ -59,13 +59,13 @@ class Coloc(ColocalisationMethodInterface):
     @classmethod
     def colocalise(
         cls: type[Coloc],
-        overlapping_signals: StudyLocusOverlap,
+        overlapping_signals: LocusOverlap,
         **kwargs: Any,
     ) -> Colocalisation:
         """Calculate bayesian colocalisation based on overlapping signals.
 
         Args:
-            overlapping_signals (StudyLocusOverlap): overlapping peaks
+            overlapping_signals (LocusOverlap): overlapping peaks
             **kwargs (Any): Additional parameters passed to the colocalise method.
 
         Keyword Args:
@@ -107,14 +107,12 @@ class Coloc(ColocalisationMethodInterface):
                 # Group by overlapping peak and generating dense vectors of log_BF:
                 .groupBy(
                     "chromosome",
-                    "leftStudyLocusId",
-                    "rightStudyLocusId",
+                    "leftLocusId",
+                    "rightLocusId",
                     "rightStudyType",
                 )
                 .agg(
-                    f.sum(
-                        f.when(f.col("tagVariantSource") == "both", 1).otherwise(0)
-                    )
+                    f.sum(f.when(f.col("tagVariantSource") == "both", 1).otherwise(0))
                     .cast(t.LongType())
                     .alias("numberColocalisingVariants"),
                     f.collect_list(f.col("left_logBF")).alias("left_logBF"),
@@ -160,8 +158,14 @@ class Coloc(ColocalisationMethodInterface):
                             # arrays_zip keys struct fields by input column name
                             lambda row: f.when(
                                 (row["tagVariantSourceList"] == "both")
-                                & (row["left_posteriorProbability"] > config.posterior_cutoff)
-                                & (row["right_posteriorProbability"] > config.posterior_cutoff),
+                                & (
+                                    row["left_posteriorProbability"]
+                                    > config.posterior_cutoff
+                                )
+                                & (
+                                    row["right_posteriorProbability"]
+                                    > config.posterior_cutoff
+                                ),
                                 1.0,
                             ).otherwise(0.0),
                         ),
@@ -235,7 +239,7 @@ class Coloc(ColocalisationMethodInterface):
                 .withColumn("colocalisationMethod", f.lit(cls.METHOD_NAME))
                 .join(
                     overlapping_signals.calculate_beta_ratio(),
-                    on=["leftStudyLocusId", "rightStudyLocusId", "chromosome"],
+                    on=["leftLocusId", "rightLocusId", "chromosome"],
                     how="left",
                 )
             ),

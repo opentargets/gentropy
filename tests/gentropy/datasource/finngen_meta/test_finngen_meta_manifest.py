@@ -439,3 +439,16 @@ class TestFinnGenMetaManifest:
             manifest.df.select("summarystatsLocation", "hasSumstats").collect()
             == expected_study_df.collect()
         ), "data does not match expected"
+
+    def test_get_summary_statistics_paths(self, session: Session) -> None:
+        """Test that the summary statistics paths are read from the manifest."""
+        manifest = FinnGenMetaManifest.from_path(
+            session, "tests/gentropy/data_samples/finngen_ukbb_mvp_meta_manifest.tsv"
+        )
+        prefix = "gs://finngen-public-data-r12/meta_analysis/mvp_ukbb/summary_stats"
+        assert sorted(manifest.get_summary_statistics_paths()) == [
+            f"{prefix}/AB1_BACT_INTEST_OTH_meta_out.tsv.gz",
+            f"{prefix}/AB1_CANDIDIASIS_meta_out.tsv.gz",
+            f"{prefix}/AB1_INTESTINAL_INFECTIONS_meta_out.tsv.gz",
+            f"{prefix}/AB1_OTHER_SUPERF_MYCOSIS_meta_out.tsv.gz",
+        ]

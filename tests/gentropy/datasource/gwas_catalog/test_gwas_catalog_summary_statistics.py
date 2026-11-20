@@ -13,6 +13,8 @@ from gentropy.datasource.gwas_catalog.summary_statistics import (
 )
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from pyspark.sql import SparkSession
     from pytest import FixtureRequest
 
@@ -154,3 +156,34 @@ class TestGWASCatalogSummaryStatistics:
             return rows[0]["standardError"]
 
         assert get_stderr(position) == pytest.approx(expStdErr, abs=1e-5)
+
+    def test_chromosome_normalised(
+        self: TestGWASCatalogSummaryStatistics,
+        spark: SparkSession,
+        tmp_path: Path,
+    ) -> None:
+        """Test that numeric sex chromosomes are coded as X and Y in the chromosome and the variant id."""
+        sumstats_path = tmp_path / "GCST02.h.tsv"
+        sumstats_path.write_text(
+            "\n".join(
+                [
+                    "chromosome\tbase_pair_location\teffect_allele\tother_allele\tbeta\tstandard_error\tp_value",
+                    "1\t100\tA\tG\t0.1\t0.01\t0.001",
+                    "23\t200\tA\tG\t0.1\t0.01\t0.001",
+                    "24\t23359151\tA\tG\t0.1\t0.01\t0.001",
+                ]
+            )
+        )
+        sumstat = GWASCatalogSummaryStatistics.from_gwas_harmonized_summary_stats(
+            spark, str(sumstats_path)
+        )
+
+        observed = {
+            (row["chromosome"], row["variantId"])
+            for row in sumstat.df.select("chromosome", "variantId").collect()
+        }
+        assert observed == {
+            ("1", "1_100_G_A"),
+            ("X", "X_200_G_A"),
+            ("Y", "Y_23359151_G_A"),
+        }

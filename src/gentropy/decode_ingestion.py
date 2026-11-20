@@ -300,21 +300,8 @@ class deCODESummaryStatisticsHarmonisationStep:
         gvd = VariantDirection.from_parquet(session, variant_direction_path)
         rss = session.spark.read.parquet(raw_summary_statistics_path)
         hss, pqtl_si = deCODESummaryStatistics.from_source(rss, gvd, _pqtl_si, config)
-
-        # Repartition by studyId immediately before the write so each Spark
-        # partition writes exactly one studyId directory. Without this, the
-        # sanity_filter shuffle upstream leaves rows for a given studyId spread
-        # across every task, and partitionBy("studyId") emits one small file
-        # per (task, studyId) pair — potentially millions of tiny files, and
-        # each task holds many open output buffers simultaneously (OOM risk on
-        # primary workers under EFM). See 2026-07-03 failure investigation.
-        # sortWithinPartitions (not a global sort) then orders each per-study
-        # file by genomic position so downstream readers can skip row groups
-        # on position range queries without paying for a full shuffle.
         (
-            hss.df.repartition("studyId")
-            .sortWithinPartitions("chromosome", "position", "variantId")
-            .write.mode(session.write_mode)
+            hss.df.write.mode(session.write_mode)
             .partitionBy("studyId")
             .option("maxRecordsPerFile", 50_000_000)
             .parquet(harmonised_summary_statistics_path)

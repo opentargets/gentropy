@@ -5,9 +5,9 @@ from __future__ import annotations
 from dataclasses import fields, is_dataclass
 
 import pytest
+from hydra import compose, initialize
 
 from gentropy.config import (
-    BiosampleIndexConfig,
     ColocalisationConfig,
     Config,
     SessionConfig,
@@ -112,30 +112,21 @@ class TestColocalisationConfig:
             assert expected in config_fields, f"Missing field: {expected}"
 
 
-class TestBiosampleIndexConfig:
-    """Test BiosampleIndexConfig."""
-
-    def test_biosample_index_config_is_dataclass(self) -> None:
-        """Test that BiosampleIndexConfig is a dataclass."""
-        assert is_dataclass(BiosampleIndexConfig)
-
-    def test_biosample_index_config_inherits_from_step_config(self) -> None:
-        """Test that BiosampleIndexConfig inherits from StepConfig."""
-        assert issubclass(BiosampleIndexConfig, StepConfig)
-
-    def test_biosample_index_config_has_required_fields(self) -> None:
-        """Test that BiosampleIndexConfig has expected fields."""
-        config_fields = {f.name for f in fields(BiosampleIndexConfig)}
-
-        expected_fields = {
-            "cell_ontology_input_path",
-            "uberon_input_path",
-            "efo_input_path",
-            "biosample_index_path",
-        }
-
-        for expected in expected_fields:
-            assert expected in config_fields, f"Missing field: {expected}"
+@pytest.mark.parametrize(
+    "step",
+    [
+        "finngen_studies",
+        "finngen_finemapping_ingestion",
+        "finngen_multiome_ingestion",
+        "finngen_ukb_mvp_meta_summary_statistics_ingestion",
+    ],
+)
+def test_finngen_steps_start_without_hail(step: str) -> None:
+    """The FinnGen steps read their inputs with Spark only, so their session starts no hail."""
+    register_config()
+    with initialize(version_base="1.3", config_path=None):
+        config = compose(config_name="config", overrides=[f"step={step}"])
+    assert config.step.session.start_hail is False
 
 
 def test_register_config() -> None:

@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING, Any
 import pyspark.sql.functions as f
 import pytest
 
-from gentropy.datasource.gwas_catalog.associations import StudyLocusGWASCatalog
 from gentropy.datasource.gwas_catalog.study_index import StudyIndexGWASCatalog
 from gentropy.datasource.gwas_catalog.study_splitter import GWASCatalogStudySplitter
 
@@ -16,16 +15,28 @@ if TYPE_CHECKING:
 
 
 def test_gwas_catalog_splitter_split(
-    mock_study_index_gwas_catalog: StudyIndexGWASCatalog,
-    mock_study_locus_gwas_catalog: StudyLocusGWASCatalog,
+    spark: SparkSession, mock_study_index_gwas_catalog: StudyIndexGWASCatalog
 ) -> None:
-    """Test GWASCatalogStudyIndex, GWASCatalogAssociations creation with mock data."""
-    d1, d2 = GWASCatalogStudySplitter.split(
-        mock_study_index_gwas_catalog, mock_study_locus_gwas_catalog
+    """A study whose associations describe two traits is split, and so are its associations."""
+    study_id = mock_study_index_gwas_catalog.df.first().studyId
+    associations = spark.createDataFrame(
+        [
+            ("varA", study_id, "Endometrial cancer|no_pvalue_text|EFO_1001512"),
+            ("varB", study_id, "Uterine carcinoma|no_pvalue_text|EFO_0002919"),
+        ],
+        "variantId string, studyId string, subStudyDescription string",
     )
 
-    assert isinstance(d1, StudyIndexGWASCatalog)
-    assert isinstance(d2, StudyLocusGWASCatalog)
+    studies, split = GWASCatalogStudySplitter.split(
+        mock_study_index_gwas_catalog, associations
+    )
+
+    assert isinstance(studies, StudyIndexGWASCatalog)
+    assert "subStudyDescription" not in split.columns
+    assert sorted((row.variantId, row.studyId) for row in split.collect()) == [
+        ("varA", study_id),
+        ("varB", f"{study_id}_2"),
+    ]
 
 
 @pytest.mark.parametrize(

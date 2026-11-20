@@ -6,8 +6,3 @@ title: genomic_region
 
 :::gentropy.common.genomic_region.KnownGenomicRegions
 :::gentropy.common.genomic_region.GenomicRegion
-
-## LiftOver
-
-:::gentropy.common.genomic_region.LiftOverSpark
-:::gentropy.common.genomic_region.liftover_loci

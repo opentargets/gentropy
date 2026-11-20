@@ -53,6 +53,9 @@ class TestFineMappingPlanGeneratorStepOrchestration:
         # Study index read with the correct path.
         study_index.from_parquet.assert_called_once_with(session, input_path)
 
+        # The registry is configured with the step's default minimum ESS.
+        constraint_registry.assert_called_once_with(min_ess=1000)
+
         # resolve() called with the study index for every registered constraint set.
         constraint_set_instance.resolve.assert_called_once_with(study_index)
 
@@ -70,3 +73,25 @@ class TestFineMappingPlanGeneratorStepOrchestration:
         write_chain.write.mode.return_value.partitionBy.return_value.parquet.assert_called_once_with(
             output_path
         )
+
+    @pytest.mark.step_test
+    @patch("gentropy.finemapping_planner.FineMappingConstraintRegistry")
+    @patch("gentropy.finemapping_planner.StudyIndex")
+    def test_step_forwards_min_ess_to_registry(
+        self,
+        study_index: MagicMock,
+        constraint_registry: MagicMock,
+        session: Session,
+    ) -> None:
+        """Test that a configured minimum ESS is forwarded to the constraint registry."""
+        study_index.from_parquet = MagicMock(return_value=study_index)
+        constraint_registry.return_value.registry = {"MultiSuSiE": MagicMock()}
+
+        FineMappingPlanGeneratorStep(
+            session,
+            input_path="input_study_index_path",
+            output_path="output_fine_mapping_plan_path",
+            min_ess=5000,
+        )
+
+        constraint_registry.assert_called_once_with(min_ess=5000)

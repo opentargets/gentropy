@@ -8,7 +8,7 @@ from pyspark.sql import functions as f
 from pyspark.sql import types as t
 
 from gentropy.dataset.colocalisation import Colocalisation
-from gentropy.dataset.study_locus_overlap import StudyLocusOverlap
+from gentropy.dataset.locus_overlap import LocusOverlap
 from gentropy.method.colocalisation.coloc_pip import ColocPIP, _ColocPIPConfig
 from gentropy.method.colocalisation.ecaviar import ECaviar
 from gentropy.method.colocalisation.model import ColocalisationMethodInterface
@@ -26,7 +26,7 @@ class ColocPIPECaviar(ColocalisationMethodInterface):
     @classmethod
     def colocalise(
         cls: type[ColocPIPECaviar],
-        overlapping_signals: StudyLocusOverlap,
+        overlapping_signals: LocusOverlap,
         **kwargs: Any,
     ) -> Colocalisation:
         """Colocalise using colocPIP and eCAVIAR metrics in a single fused pass.
@@ -37,7 +37,7 @@ class ColocPIPECaviar(ColocalisationMethodInterface):
         re-shuffled the overlaps several times.
 
         Args:
-            overlapping_signals (StudyLocusOverlap): overlapping peaks
+            overlapping_signals (LocusOverlap): overlapping peaks
             **kwargs (Any): Additional parameters passed to the colocalise method.
 
         Keyword Args:
@@ -71,8 +71,8 @@ class ColocPIPECaviar(ColocalisationMethodInterface):
             .select("*", "statistics.*")
             .groupBy(
                 "chromosome",
-                "leftStudyLocusId",
-                "rightStudyLocusId",
+                "leftLocusId",
+                "rightLocusId",
                 "rightStudyType",
             )
             .agg(
@@ -117,8 +117,8 @@ class ColocPIPECaviar(ColocalisationMethodInterface):
 
         return Colocalisation(
             _df=aggregated.select(
-                "leftStudyLocusId",
-                "rightStudyLocusId",
+                "leftLocusId",
+                "rightLocusId",
                 "rightStudyType",
                 "chromosome",
                 "colocalisationMethod",

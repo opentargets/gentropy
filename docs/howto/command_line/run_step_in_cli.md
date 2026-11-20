@@ -4,25 +4,18 @@ Title: Run step in CLI
 
 ## Run step in CLI
 
-To run a step in the command line interface (CLI), you need to know the step's name. To list what steps are avaiable in your current environment, simply run `gentropy` with no arguments. This will list all the steps:
+To run a step in the command line interface (CLI), you need to know the step's name. To list the steps available in your current environment, run `gentropy` with no arguments. It prints every registered step, for example:
 
 ```
 You must specify 'step', e.g, step=<OPTION>
 Available options:
-        clump
+        bigbrain_finemapping_ingestion
         colocalisation
-        eqtl_catalogue
-        finngen_studies
-        finngen_sumstat_preprocess
-        gwas_catalog_ingestion
-        gwas_catalog_sumstat_preprocess
-        ld_index
-        locus_to_gene
-        overlaps
-        pics
-        ukbiobank
-        variant_annotation
-        variant_index
+        credible_set_qc
+        ...
+        susie_finemapping
+        training_set
+        window_based_clumping
 
 Set the environment variable HYDRA_FULL_ERROR=1 for a complete stack trace.
 ```
@@ -33,7 +26,7 @@ As indicated, you can run a step by specifying the step's name with the `step` a
 gentropy step=gwas_catalog_sumstat_preprocess
 ```
 
-In most occassions, some mandatory values will be required to run the step. For example, the `gwas_catalog_sumstat_preprocess` step requires the `step.raw_sumstats_path` and `step.out_sumstats_path` argument to be specified. You can complete the necessary arguments by adding them to the command line:
+In most cases, some mandatory values will be required to run the step. For example, the `gwas_catalog_sumstat_preprocess` step requires the `step.raw_sumstats_path` and `step.out_sumstats_path` argument to be specified. You can complete the necessary arguments by adding them to the command line:
 
 ```bash
 gentropy step=gwas_catalog_sumstat_preprocess step.raw_sumstats_path=/path/to/raw_sumstats step.out_sumstats_path=/path/to/out_sumstats

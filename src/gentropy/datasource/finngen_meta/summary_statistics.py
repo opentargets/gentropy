@@ -9,7 +9,7 @@ if TYPE_CHECKING:
 
     from gentropy.common.session import Session
 
-from concurrent.futures import ThreadPoolExecutor
+from functools import reduce
 
 from pyspark.sql import DataFrame
 from pyspark.sql import functions as f
@@ -24,9 +24,6 @@ from gentropy.datasource.finngen_meta import FinnGenMetaManifest, MetaAnalysisDa
 
 class FinnGenUkbMvpMetaSummaryStatistics:
     """FinnGen meta summary statistics ingestion and harmonisation."""
-
-    N_THREAD_MAX = 32
-    N_THREAD_OPTIMAL = 10
 
     @staticmethod
     def extract_study_phenotype_from_path(file_path: Column) -> Column:
@@ -146,157 +143,145 @@ class FinnGenUkbMvpMetaSummaryStatistics:
         ]
     )
 
-    @classmethod
-    def bgzip_to_parquet(
-        cls,
-        session: Session,
-        summary_statistics_list: list[str],
-        datasource: MetaAnalysisDataSource,
-        raw_summary_statistics_output_path: str,
-        n_threads: int = 10,
-    ) -> None:
-        """Convert gzipped summary statistics to Parquet format.
+    # The columns of the source files that `from_source` reads.
+    source_columns = [
+        "#CHR",
+        "POS",
+        "REF",
+        "ALT",
+        "fg_af_alt",
+        "MVP_EUR_r2",
+        "MVP_EUR_af_alt",
+        "MVP_AFR_r2",
+        "MVP_AFR_af_alt",
+        "MVP_HIS_r2",
+        "MVP_HIS_af_alt",
+        "ukbb_af_alt",
+        "all_inv_var_meta_mlogp",
+        "all_inv_var_meta_beta",
+        "all_inv_var_meta_sebeta",
+    ]
 
-        This is a pre-step that needs to be performed once to convert the block gzipped to parquet format. This step
-        should be run before the actual harmonisation step is performed and the output Parquet files can be used as input
-        for the `from_source` method.
+    @staticmethod
+    def read_header(session: Session, path: str) -> list[str]:
+        """Read the column names of a summary statistics file from its first line.
+
+        The file is opened with the Hadoop FileSystem of the session, so the path can be
+        local or on an object store, and a compressed file is decompressed with the codec
+        of its extension. Only the first line is read.
 
         Args:
             session (Session): Session object.
-            summary_statistics_list (list[str]): List of paths where summary statistics files are located.
-            datasource (MetaAnalysisDataSource): Data source, can be FinnGenMetaDataSource.FINNGEN_UKBB_MVP.
-            raw_summary_statistics_output_path (str): Output path for the Parquet files.
-            n_threads (int): Maximum number of threads to use for ThreadPoolExecutor (default is 10).
+            path (str): Path to the summary statistics file.
 
-        The output requires a single path that will be populated with Parquet files partitioned by `studyId` extracted
-        from the input file names.
-
-        !!! note "Block gzipped input files"
-
-            Since the individual summary statistics files are **block gzipped** we use the enhanced bgzip codec for efficient reading.
-
-        !!! note "Reading multiple files with divergent schemas"
-
-            Since the schema for individual summary statistics **is not strictly the same we have to enforce the schema**.
-
-            **_enforcing schema_**
-            using the `enforceSchema` option in `spark.read.csv` **does not map columns that exist in the file provided schema**,
-            but rather aligns columns positionally, which breaks the column order per individual file.
-
-            **_inferring schema_**
-            Attempting to use the `inferSchema` option in `spark.read.csv` while reading multiple files in bulk drops columns, due
-            to the random sampling of files to infer the schema. (Files chosen to infer the schema may not contain entire superset of column space.)
-
-            **_manual schema enforcement_**
-            The only way to keep the columns in order and use full column superset is to loop over the files with `inferSchema` and manually
-            add missing columns with null values casted to expected type. The looping can be parallelized using a **thread pool** (ThreadPoolExecutor)
-            with `n_threads` as the maximum load of jobs to spark cluster.
-
-        ??? warning "Performance considerations"
-            This function requires a _Session_ with `use_enhanced_bgzip_codec` to be set to True. This function is strongly encouraged to be used in
-            a distributed environment.
+        Returns:
+            list[str]: Column names, in the order of the file.
 
         Raises:
-            KeyError: If `use_enhanced_bgzip_codec` is set to False in the Session configuration.
+            ValueError: If the file is empty.
+
+        Examples:
+            >>> FinnGenUkbMvpMetaSummaryStatistics.read_header(  # doctest: +SKIP
+            ...     session, "gs://bucket/summary_stats/AB1_meta_out.tsv.gz"
+            ... )
+            ['#CHR', 'POS', 'REF', 'ALT', 'SNP', 'fg_beta', ...]
         """
-        if len(summary_statistics_list) == 0:
-            session.logger.warning("No summary statistics paths found to process.")
-            return
-        if not session.use_enhanced_bgzip_codec:
-            session.logger.error(
-                "The use_enhanced_bgzip_codec is set to False. This will lead to inefficient reading of block gzipped files."
-            )
-            raise KeyError(
-                "Please set `use_enhanced_bgzip_codec` to True in the Session configuration."
-            )
-
-        # Handle n_threads limits and warnings
-        if not isinstance(n_threads, int) or n_threads < 1:
-            session.logger.warning(
-                f"Invalid n_threads value: {n_threads}. Falling back to 10 threads."
-            )
-            n_threads = FinnGenUkbMvpMetaSummaryStatistics.N_THREAD_OPTIMAL
-        if n_threads < FinnGenUkbMvpMetaSummaryStatistics.N_THREAD_OPTIMAL:
-            session.logger.warning(
-                f"Using low n_threads value: {n_threads}. This may lead to sub-optimal performance."
-            )
-        if n_threads > FinnGenUkbMvpMetaSummaryStatistics.N_THREAD_MAX:
-            session.logger.warning(
-                f"Using high n_threads value: {n_threads}, this may lead to overloading spark driver. Limiting to 32."
-            )
-            n_threads = FinnGenUkbMvpMetaSummaryStatistics.N_THREAD_MAX
-
-        def process_one(
-            input_path: str, session: Session, output_path: str
-        ) -> DataFrame:
-            """Function to process one finngen-ukbb-mvp summary statistics file to schema superset.
-
-            Args:
-                input_path (str): Input path to the gzipped summary statistics file.
-                session (Session): Session object.
-                output_path (str): Output path for the Parquet files.
-
-            Returns:
-                DataFrame: Processed dataframe.
-            """
-            df = session.spark.read.csv(
-                input_path,
-                header=True,
-                inferSchema=True,
-                sep="\t",
-                enforceSchema=False,
-            )
-            # Apply schema enforcement by selecting columns in the expected order with proper types
-            # NOTE: Here we only add missing columns with null values casted to expected type
-            for c in cls.raw_schema.names:
-                if c not in df.columns:
-                    df = df.withColumn(c, f.lit(None).cast(cls.raw_schema[c].dataType))
-
-            # Replace all NA with nulls and cast to the expected type
-            # NOTE: Here we apply the transformation on full schema set (including added missing columns)
-            # NOTE: If we do not transform the `NA` to nulls, we will still have divergent schemas, as `NA` forces the column to StringType
-            for field in cls.raw_schema.fields:
-                df = df.withColumn(
-                    field.name,
-                    f.when(f.col(field.name) == "NA", f.lit(None))
-                    .otherwise(f.col(field.name))
-                    .cast(field.dataType),
-                )
-            # Add studyId based on the input path
-            df = (
-                df.withColumn(
-                    "studyId",
-                    f.concat_ws(
-                        "_",
-                        f.lit(datasource.value),
-                        f.lit(
-                            cls.extract_study_phenotype_from_path(f.input_file_name())
-                        ),
-                    ),
-                    # Optimal partition size is ~ 100MB, assuming the total size of the dataset is 2Tb
-                    # we can have up to 60 partitions per study (330 studies)
-                )
-                .orderBy("studyId", "#CHR", "POS")
-                .repartition(60, "#CHR", "POS")
-            )
-            # Write out the processed dataframe to Parquet
-            # NOTE: Write is done per studyId partition from the thread pool to
-            # make sure we do not need to collect all data after the thread execution.
-            df.write.mode("append").partitionBy("studyId").parquet(output_path)
-            return df
-
-        session.logger.info(
-            f"Converting gzipped summary statistics from {summary_statistics_list} to Parquet at {raw_summary_statistics_output_path}."
+        sc = session.spark.sparkContext
+        jvm = sc._jvm
+        conf = sc._jsc.hadoopConfiguration()
+        jpath = jvm.org.apache.hadoop.fs.Path(path)
+        stream = jpath.getFileSystem(conf).open(jpath)
+        codec = jvm.org.apache.hadoop.io.compress.CompressionCodecFactory(
+            conf
+        ).getCodec(jpath)
+        if codec is not None:
+            stream = codec.createInputStream(stream)
+        reader = jvm.java.io.BufferedReader(
+            jvm.java.io.InputStreamReader(stream, "UTF-8")
         )
-        with ThreadPoolExecutor(max_workers=n_threads) as pool:
-            pool.map(
-                lambda path: process_one(
-                    path,
-                    session=session,
-                    output_path=raw_summary_statistics_output_path,
-                ),
-                summary_statistics_list,
+        try:
+            line = reader.readLine()
+        finally:
+            reader.close()
+        if line is None:
+            raise ValueError(f"Summary statistics file is empty: {path}")
+        return line.split("\t")
+
+    @classmethod
+    def from_source_files(
+        cls,
+        session: Session,
+        summary_statistics_paths: list[str],
+        datasource: MetaAnalysisDataSource,
+    ) -> DataFrame:
+        """Read the source summary statistics files into the columns `from_source` reads.
+
+        The files of one meta-analysis have different columns: a cohort that a phenotype
+        was not analysed in has no columns in its file. The header of each file is read
+        first, and the files with the same header are read together, as tab-separated
+        text with the column names of that header. The `source_columns` are then cast to
+        the types of `raw_schema`, with `NA` read as null, and the `source_columns` a
+        header lacks are null. `studyId` is the meta-analysis prefix and the phenotype of
+        the file name.
+
+        The files are block gzipped, so they are split across tasks when the session sets
+        `use_enhanced_bgzip_codec`. Without it, each file is read by a single task.
+
+        Args:
+            session (Session): Session object.
+            summary_statistics_paths (list[str]): Paths of the summary statistics files.
+            datasource (MetaAnalysisDataSource): Meta-analysis of the files.
+
+        Returns:
+            DataFrame: `studyId` and the `source_columns`, one row per variant of a file.
+
+        Raises:
+            ValueError: If no path is given.
+
+        Examples:
+            >>> df = FinnGenUkbMvpMetaSummaryStatistics.from_source_files(  # doctest: +SKIP
+            ...     session,
+            ...     ["gs://bucket/summary_stats/AB1_meta_out.tsv.gz"],
+            ...     MetaAnalysisDataSource.FINNGEN_UKBB_MVP,
+            ... )
+        """
+        if not summary_statistics_paths:
+            raise ValueError("No summary statistics paths to read.")
+        if not session.use_enhanced_bgzip_codec:
+            session.logger.warning(
+                "use_enhanced_bgzip_codec is False: each summary statistics file is read by a single task."
             )
+        groups: dict[tuple[str, ...], list[str]] = {}
+        for path in summary_statistics_paths:
+            groups.setdefault(tuple(cls.read_header(session, path)), []).append(path)
+        session.logger.info(
+            f"Reading {len(summary_statistics_paths)} summary statistics files with {len(groups)} distinct headers."
+        )
+        study_id = f.concat_ws(
+            "_",
+            f.lit(datasource.value),
+            cls.extract_study_phenotype_from_path(f.input_file_name()),
+        ).alias("studyId")
+        frames = []
+        for header, paths in groups.items():
+            text = t.StructType([t.StructField(c, t.StringType()) for c in header])
+            df = session.spark.read.csv(paths, schema=text, header=True, sep="\t")
+            frames.append(
+                df.select(
+                    study_id,
+                    *[
+                        (
+                            f.when(f.col(c) == "NA", f.lit(None)).otherwise(f.col(c))
+                            if c in header
+                            else f.lit(None)
+                        )
+                        .cast(cls.raw_schema[c].dataType)
+                        .alias(c)
+                        for c in cls.source_columns
+                    ],
+                )
+            )
+        return reduce(DataFrame.unionByName, frames)
 
     @classmethod
     def from_source(
@@ -340,7 +325,7 @@ class FinnGenUkbMvpMetaSummaryStatistics:
             3. keep all variants not found in gnomAD as is (cannot determine strand or alignment) - we assume these are correct.
 
         ??? note "Important considerations"
-            * The input summary statistics are expected to be already parquet formatted and partitioned by `studyId`.
+            * The input summary statistics hold `studyId` and the `source_columns`, as read by `from_source_files`.
             * Both `perform_allele_count_filter` and `perform_allele_frequency_filter` are redundant, if both
             are set to True, only `perform_allele_count_filter` will be applied.
             * Threshold value for Min Allele Count >= 20 means that with a MAF of 1e-4 we would expect to see

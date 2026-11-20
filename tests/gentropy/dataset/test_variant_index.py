@@ -159,17 +159,3 @@ class TestVariantIndex:
         observed = mock_variant_index.get_distance_to_gene(distance_type=distance_type)
         for col in expected_cols:
             assert col in observed.columns, f"Column {col} not in {observed.columns}"
-
-    def test_get_loftee(
-        self: TestVariantIndex, mock_variant_index: VariantIndex
-    ) -> None:
-        """Assert that the function returns a df with the requested columns."""
-        expected_cols = [
-            "variantId",
-            "targetId",
-            "lofteePrediction",
-            "isHighQualityPlof",
-        ]
-        observed = mock_variant_index.get_loftee()
-        for col in expected_cols:
-            assert col in observed.columns, f"Column {col} not in {observed.columns}"

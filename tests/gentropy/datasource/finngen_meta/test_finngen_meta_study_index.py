@@ -7,6 +7,7 @@ from pyspark.sql import Row
 from pyspark.sql import types as t
 
 from gentropy import Session
+from gentropy.dataset.summary_statistics_qc import SummaryStatisticsQC
 from gentropy.datasource.finngen.efo_mapping import EFOMapping
 from gentropy.datasource.finngen_meta import FinnGenMetaManifest, MetaAnalysisDataSource
 from gentropy.datasource.finngen_meta.study_index import FinnGenMetaStudyIndex
@@ -128,3 +129,42 @@ class TestFinnGenMetaStudyIndex:
         )
         assert row["publicationDate"] == "2024-11-01"
         assert set(row["cohorts"]) == {"MVP", "FinnGen", "pan-UKBB-EUR"}
+        assert row["qualityControls"] == []
+
+    @pytest.mark.parametrize(
+        ("n_variants", "expected_quality_controls"),
+        [
+            pytest.param(11_597_970, [], id="passes the QC"),
+            pytest.param(
+                1_000_000,
+                ["The number of SNPs in the study is below the expected threshold"],
+                id="too few variants",
+            ),
+        ],
+    )
+    def test_annotate_sumstats_qc(
+        self,
+        session: Session,
+        n_variants: int,
+        expected_quality_controls: list[str],
+    ) -> None:
+        """Test that the built study index can be annotated with the summary statistics QC."""
+        study_index = FinnGenMetaStudyIndex.from_finngen_manifest(
+            self.manifest_mock, self.efo_mapping_mock
+        )
+        qc = SummaryStatisticsQC(
+            _df=session.spark.createDataFrame(
+                [("A", 0.0, 0.0, 0.0, 1.0, n_variants, 10)],
+                SummaryStatisticsQC.get_schema(),
+            )
+        )
+        row = study_index.annotate_sumstats_qc(qc).df.collect()[0]
+        assert {v["QCCheckName"] for v in row["sumstatQCValues"]} == {
+            "mean_beta",
+            "mean_diff_pz",
+            "se_diff_pz",
+            "gc_lambda",
+            "n_variants",
+            "n_variants_sig",
+        }
+        assert row["qualityControls"] == expected_quality_controls

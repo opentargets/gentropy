@@ -7,7 +7,7 @@ import pyspark.sql.functions as f
 import pyspark.sql.types as t
 
 from gentropy.common.types import VariantPopulation
-from gentropy.config import GnomadVariantConfig, VariantIndexConfig
+from gentropy.config import GnomadVariantConfig
 from gentropy.dataset.variant_index import VariantIndex
 
 
@@ -20,7 +20,7 @@ class GnomADVariantFrequencies:
         gnomad_variant_populations: list[
             VariantPopulation | str
         ] = GnomadVariantConfig().gnomad_variant_populations,
-        hash_threshold: int = VariantIndexConfig().hash_threshold,
+        hash_threshold: int = VariantIndex.id_threshold,
     ):
         """Initialize.
 
@@ -129,7 +129,7 @@ class GnomADVariantRsIds:
     def __init__(
         self: GnomADVariantRsIds,
         gnomad_genomes_path: str = GnomadVariantConfig().gnomad_genomes_path,
-        hash_threshold: int = VariantIndexConfig().hash_threshold,
+        hash_threshold: int = VariantIndex.id_threshold,
     ):
         """Initialize.
 

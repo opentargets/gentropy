@@ -15,6 +15,9 @@ This section contains information about the data source harmonisation tools avai
 1. [GTEx (eQTL catalogue)](eqtl_catalogue/_eqtl_catalogue.md)
 2. [UKB PPP (EUR)](ukb_ppp_eur/_ukb_ppp_eur.md)
 3. [deCODE proteomics](deCODE/_decode.md)
+4. [BigBrain (brain eQTL/sQTL)](bigbrain/_bigbrain.md)
+5. [eQTLGen single-cell (sc-eQTL/co-eQTL)](eqtlgen/_eqtlgen.md)
+6. [SLE-map (sc-eQTL)](sle_map/_sle_map.md)
 
 ## Protein complexes
 
@@ -22,13 +25,10 @@ This section contains information about the data source harmonisation tools avai
 
 ## Interaction / Interval-based Experiments
 
-1. [Intervals](intervals/_intervals.md)-based datasets, informing about the relationships between genetic elements and their functional implications.
-
 ## Variant annotation/validation
 
 1. [GnomAD](gnomad/_gnomad.md) v4.1
 2. GWAS catalog's [harmonisation pipeline](https://www.ebi.ac.uk/gwas/docs/methods/summary-statistics#_harmonised_summary_statistics_data)
-3. Ensembl's [Variant Effect Predictor](https://www.ensembl.org/info/docs/tools/vep/index.html)
 
 ## Linkage disequilibrium
 
@@ -41,7 +41,3 @@ This section contains information about the data source harmonisation tools avai
 ## Gene annotation
 
 1. [Open Targets Platform Target Dataset](open_targets/_open_targets.md) (derived from Ensembl)
-
-## Biological samples
-
-1. [Uberon and Cell Ontology](biosample_ontologies/_biosample_ontologies.md)
