@@ -17,6 +17,7 @@ This section contains information about the data source harmonisation tools avai
 3. [deCODE proteomics](deCODE/_decode.md)
 4. [BigBrain (brain eQTL/sQTL)](bigbrain/_bigbrain.md)
 5. [eQTLGen single-cell (sc-eQTL/co-eQTL)](eqtlgen/_eqtlgen.md)
+6. [SLE-map (sc-eQTL)](sle_map/_sle_map.md)
 
 ## Protein complexes
 
