@@ -21,6 +21,7 @@ class SleMapIngestionStep:
         A1[all_memberships.tsv]
         A2[all_components.tsv]
         A3[all_diagnostics.tsv]
+        A4[donor_counts_by_cell_type_and_ancestry.tsv]
       end
 
       subgraph OUTPUTS
@@ -36,7 +37,8 @@ class SleMapIngestionStep:
       M --> CS["CredibleSet.from_members: lead variant, drop leads with p above lead_pvalue_threshold"]
       CS --> O2
       CS --> O3
-      A3 --> SI["one study per cell type and gene with credible sets; sample size split over the cohort ancestries"]
+      A3 --> SI["one study per cell type and gene with credible sets; donors of the cell type by ancestry"]
+      A4 --> SI
       CS --> SI
       SI --> O1
     ```
@@ -48,8 +50,8 @@ class SleMapIngestionStep:
     - The effect allele is the alternative allele of `variantId`.
     - The conditional effects are SuSiE's own, per standard deviation of genotype and
       expression; the marginal effects are per allele.
-    - SLE-map gives the ancestries of the whole cohort only, so each study's sample size is split
-      over them in proportion, for its LD population structure.
+    - The ancestries of a study are those of the donors of its cell type, for its LD population
+      structure; a gene fitted on fewer donors has its sample size split over them in proportion.
     """
 
     def __init__(
@@ -58,6 +60,7 @@ class SleMapIngestionStep:
         memberships_path: str,
         components_path: str,
         diagnostics_path: str,
+        donor_counts_path: str,
         study_index_output_path: str,
         credible_set_output_path: str,
         credible_set_variant_output_path: str,
@@ -71,6 +74,7 @@ class SleMapIngestionStep:
             memberships_path (str): Path to `all_memberships.tsv`.
             components_path (str): Path to `all_components.tsv`.
             diagnostics_path (str): Path to `all_diagnostics.tsv`.
+            donor_counts_path (str): Path to `donor_counts_by_cell_type_and_ancestry.tsv`.
             study_index_output_path (str): Output path for the study index.
             credible_set_output_path (str): Output path for the credible sets.
             credible_set_variant_output_path (str): Output path for the credible set variants.
@@ -92,7 +96,9 @@ class SleMapIngestionStep:
             session.write_mode
         ).parquet(credible_set_variant_output_path)
         (
-            SleMapStudyIndex.from_source(session, diagnostics_path, credible_sets)
+            SleMapStudyIndex.from_source(
+                session, diagnostics_path, donor_counts_path, credible_sets
+            )
             .df.coalesce(1)
             .write.mode(session.write_mode)
             .parquet(study_index_output_path)

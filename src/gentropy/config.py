@@ -285,6 +285,7 @@ class SleMapIngestionConfig(StepConfig):
     memberships_path: str = MISSING
     components_path: str = MISSING
     diagnostics_path: str = MISSING
+    donor_counts_path: str = MISSING
     study_index_output_path: str = MISSING
     credible_set_output_path: str = MISSING
     credible_set_variant_output_path: str = MISSING

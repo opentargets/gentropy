@@ -27,6 +27,7 @@ DATA = "tests/gentropy/data_samples/sle_map"
 MEMBERSHIPS = f"{DATA}/all_memberships.tsv"
 COMPONENTS = f"{DATA}/all_components.tsv"
 DIAGNOSTICS = f"{DATA}/all_diagnostics.tsv"
+DONOR_COUNTS = f"{DATA}/donor_counts_by_cell_type_and_ancestry.tsv"
 
 
 @pytest.fixture()
@@ -126,7 +127,9 @@ class TestStudyIndex:
         self, session: Session, sle_map: tuple[CredibleSet, CredibleSetVariant]
     ) -> None:
         """One study per cell type and gene with credible sets, with its biosample and sample size."""
-        studies = SleMapStudyIndex.from_source(session, DIAGNOSTICS, sle_map[0])
+        studies = SleMapStudyIndex.from_source(
+            session, DIAGNOSTICS, DONOR_COUNTS, sle_map[0]
+        )
         rows = {r.studyId: r for r in studies.df.collect()}
         assert set(rows) == {
             "SLEmap_sceqtl_Allcells_ENSG00000180902",
@@ -139,18 +142,42 @@ class TestStudyIndex:
             211,
         )
         assert "biosampleId" not in studies.df.columns
-        assert sum(s.sampleSize for s in row.discoverySamples) == 211
+        assert [(s.sampleSize, s.ancestry) for s in row.discoverySamples] == [
+            (73, "African"),
+            (4, "Admixed American"),
+            (19, "East Asian"),
+            (60, "European"),
+            (49, "South Asian"),
+            (6, "NR"),
+        ]
         assert sum(p.relativeSampleSize for p in row.ldPopulationStructure) == (
             pytest.approx(1.0)
         )
         assert (row.projectId, row.studyType) == ("OTAR2064", "sceqtl")
 
-    def test_split_by_ancestry(self) -> None:
-        """Every sample size of the cohort is split into parts summing to it."""
+    def test_split_by_ancestry(self, session: Session) -> None:
+        """Every sample size up to a cell type's donors is split into parts summing to it."""
+        donors = SleMapStudyIndex.read_donor_counts(session, DONOR_COUNTS)["Allcells"]
         assert all(
-            sum(size for size, _ in SleMapStudyIndex.split_by_ancestry(n)) == n
+            sum(size for size, _ in SleMapStudyIndex.split_by_ancestry(n, donors)) == n
             for n in range(1, 282)
         )
+
+    def test_missing_donor_counts(
+        self,
+        session: Session,
+        sle_map: tuple[CredibleSet, CredibleSetVariant],
+        tmp_path: Path,
+    ) -> None:
+        """A cell type without donor counts fails the study index."""
+        donor_counts = tmp_path / "donor_counts.tsv"
+        donor_counts.write_text(
+            "cell_type\tancestry\tdonor_count\nAllcells\tAFR\t281\n"
+        )
+        with pytest.raises(ValueError, match="Classical_Monocytes"):
+            SleMapStudyIndex.from_source(
+                session, DIAGNOSTICS, str(donor_counts), sle_map[0]
+            )
 
 
 @pytest.mark.step_test
@@ -161,6 +188,7 @@ def test_sle_map_ingestion_step(session: Session, tmp_path: Path) -> None:
         memberships_path=MEMBERSHIPS,
         components_path=COMPONENTS,
         diagnostics_path=DIAGNOSTICS,
+        donor_counts_path=DONOR_COUNTS,
         study_index_output_path=str(tmp_path / "study"),
         credible_set_output_path=str(tmp_path / "credible_set"),
         credible_set_variant_output_path=str(tmp_path / "credible_set_variant"),
