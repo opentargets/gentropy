@@ -340,12 +340,14 @@ class MultiSuSiEConstraintSet(ConstraintSet):
             df.withColumn("id", f.monotonically_increasing_id())
             .withColumn(
                 "runId",
+                # A string, as the final runId is: under ANSI type coercion, a union of
+                # a bigint and a string column is a bigint, which no studyId casts to.
                 f.when(
                     f.col("hasOtherAncestryCounterpart"),
-                    f.first("id").over(
-                        Window().partitionBy("traitSet").orderBy("majorAncestry")
-                    ),
-                ).otherwise(f.lit(None)),
+                    f.first("id")
+                    .over(Window().partitionBy("traitSet").orderBy("majorAncestry"))
+                    .cast("string"),
+                ).otherwise(f.lit(None).cast("string")),
             )
             # Persisted because both branches below filter this same dataframe -
             # without persisting, each filter would recompute the full upstream

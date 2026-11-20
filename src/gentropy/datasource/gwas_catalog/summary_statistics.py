@@ -93,7 +93,7 @@ class GWASCatalogSummaryStatistics(SummaryStatistics):
             f.col("hm_pos")
             if "hm_pos" in sumstats_df.columns
             else f.col("base_pair_location")
-        ).cast(t.IntegerType())
+        ).try_cast(t.IntegerType())
         ref_allele = (
             f.col("hm_other_allele")
             if "hm_other_allele" in sumstats_df.columns
@@ -117,10 +117,10 @@ class GWASCatalogSummaryStatistics(SummaryStatistics):
             f.col("effect_allele_frequency")
             if "effect_allele_frequency" in sumstats_df.columns
             else f.lit(None)
-        ).cast(t.FloatType())
+        ).try_cast(t.FloatType())
 
         # Do we have sample size? This expression captures 99.7% of sample size columns.
-        sample_size = (f.col("n") if "n" in sumstats_df.columns else f.lit(None)).cast(
+        sample_size = (f.col("n") if "n" in sumstats_df.columns else f.lit(None)).try_cast(
             t.IntegerType()
         )
 
@@ -132,7 +132,7 @@ class GWASCatalogSummaryStatistics(SummaryStatistics):
             if "beta" in sumstats_df.columns
             # If no column, create one:
             else f.lit(None)
-        ).cast(t.DoubleType())
+        ).try_cast(t.DoubleType())
 
         # We might have odds ratio or hazard ratio, which are basically the same:
         odds_ratio_expression = (
@@ -144,22 +144,22 @@ class GWASCatalogSummaryStatistics(SummaryStatistics):
             if "hazard_ratio" in sumstats_df.columns
             # If no column, create one:
             else f.lit(None)
-        ).cast(t.DoubleType())
+        ).try_cast(t.DoubleType())
 
         # Does the file have standard error column?
         standard_error = (
             f.col("standard_error")
             if "standard_error" in sumstats_df.columns
             else f.lit(None)
-        ).cast(t.DoubleType())
+        ).try_cast(t.DoubleType())
 
         ci_upper = (
             f.col("ci_upper") if "ci_upper" in sumstats_df.columns else f.lit(None)
-        ).cast(t.DoubleType())
+        ).try_cast(t.DoubleType())
 
         ci_lower = (
             f.col("ci_lower") if "ci_lower" in sumstats_df.columns else f.lit(None)
-        ).cast(t.DoubleType())
+        ).try_cast(t.DoubleType())
 
         # Processing columns of interest:
         processed_sumstats_df = (

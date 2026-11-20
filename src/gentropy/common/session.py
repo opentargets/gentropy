@@ -3,12 +3,16 @@
 from __future__ import annotations
 
 import os
+import re
+import warnings
 from enum import StrEnum
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Protocol
 
 import pandas as pd
+from pyspark import SparkContext
 from pyspark.conf import SparkConf
+from pyspark.find_spark_home import _find_spark_home
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as f
 from pyspark.sql.types import StringType, StructField, StructType
@@ -59,6 +63,39 @@ class SparkWriteMode(StrEnum):
             case _:
                 raise ValueError("Incorrect writeMode specified to Session object.")
 
+
+
+def runtime_hadoop_version() -> str:
+    """Version of the Hadoop the Spark JVM of this process runs, or will run.
+
+    A JVM started by spark-submit before Python, as in a Dataproc job, reports its own Hadoop,
+    which on Dataproc is the image's. Otherwise pyspark starts the JVM with the Hadoop client it
+    bundles, whose version is in the name of its jar. Asking a JVM in that case would start it
+    early, without the configuration of the session.
+
+    Returns:
+        str: Hadoop version, e.g. `3.5.0`.
+
+    Raises:
+        ValueError: If neither a running JVM nor the Hadoop client jar of pyspark gives a version.
+    """
+    if "PYSPARK_GATEWAY_PORT" in os.environ:
+        SparkContext._ensure_initialized()
+        version = str(SparkContext._jvm.org.apache.hadoop.util.VersionInfo.getVersion())
+    else:
+        jars = Path(_find_spark_home()) / "jars"
+        version = next(
+            (
+                match.group(1)
+                for jar in sorted(jars.glob("hadoop-client-api-*.jar"))
+                if (match := re.fullmatch(r"hadoop-client-api-(.+)\.jar", jar.name))
+            ),
+            "",
+        )
+    # Vendor builds may append to the release, e.g. 3.5.0-dataproc.
+    if not (release := re.match(r"\d+\.\d+\.\d+", version)):
+        raise ValueError(f"Cannot tell the Hadoop version of the Spark JVM: {version!r}")
+    return release.group(0)
 
 class Session:
     """This class provides a wrapper around SparkSession object with custom parameters.
@@ -611,7 +648,16 @@ class Session:
         for key, value in data.items():
             c = c.set(key, value)
 
-        c = self._append_package(c, S3Config._HADOOP_CONNECTOR_PKG)
+        package = S3Config.hadoop_connector_package(runtime_hadoop_version())
+        if "PYSPARK_GATEWAY_PORT" in os.environ:
+            # spark-submit resolved spark.jars.packages before Python started: one set now is not
+            # downloaded, so the connector has to be on the classpath or passed at submit.
+            warnings.warn(
+                f"The Spark JVM is already running, so {package} cannot be added from the "
+                "session: pass it at submit, e.g. as the spark.jars.packages property.",
+                stacklevel=2,
+            )
+        c = self._append_package(c, package)
         self._s3_configuration = dict(conf)
         return c
 
@@ -963,7 +1009,7 @@ class Session:
         )
         typed = text.select(
             *[
-                f.col(field.name).cast(field.dataType).alias(field.name)
+                f.col(field.name).try_cast(field.dataType).alias(field.name)
                 for field in target.fields
             ],
             *[

@@ -296,8 +296,8 @@ class HeritabilityEstimateStep:
                 ),
             )
             .withColumn("variant_parts", F.split(F.col("variantId"), "_"))
-            .withColumn("ref", F.col("variant_parts").getItem(2))
-            .withColumn("alt", F.col("variant_parts").getItem(3))
+            .withColumn("ref", F.get(F.col("variant_parts"), 2))
+            .withColumn("alt", F.get(F.col("variant_parts"), 3))
             .drop("variant_parts", "nSamples", "nCases", "nControls")
             .filter(F.col(beta_col).isNotNull())
             .filter(F.col(se_col).isNotNull())
@@ -347,9 +347,9 @@ class HeritabilityEstimateStep:
 
         return (
             ld_df.select(chrom_col, pos_col, "ref", "alt", "L2")
-            .withColumn(pos_col, F.col(pos_col).cast("int"))
+            .withColumn(pos_col, F.col(pos_col).try_cast("int"))
             .withColumn(chrom_col, F.col(chrom_col).cast("string"))
-            .withColumn("L2", F.col("L2").cast("double"))
+            .withColumn("L2", F.col("L2").try_cast("double"))
             .filter(F.col("L2").isNotNull())
             .dropDuplicates([chrom_col, pos_col, "ref", "alt"])
         )
