@@ -43,6 +43,40 @@ def test_annotate_discovery_sample_sizes(
         pytest.param(
             "5,000 European ancestry individuals", (0, 0, 5_000), id="quantitative"
         ),
+        pytest.param(
+            "21,839 European, African, Central/South Asian, East Asian or Hispanic cases, "
+            "1,237,201 European, African, Central/South Asian, East Asian or Hispanic controls",
+            (21_839, 1_237_201, 1_259_040),
+            id="comma-separated population list",
+        ),
+        pytest.param(
+            "1 Native American ancestry case, 1 Native American ancestry control, "
+            "14 Asian ancestry cases, 11 Asian ancestry controls",
+            (15, 12, 27),
+            id="singular case and control",
+        ),
+        pytest.param(
+            "1,728 British ancestry cases,192,399 British ancestry controls",
+            (1_728, 192_399, 194_127),
+            id="missing space after comma",
+        ),
+        pytest.param(
+            "at least 34,241 schizophrenia cases, up to 135,458 major depression cases, "
+            "100 controls",
+            (169_699, 100, 169_799),
+            id="qualifier before the count",
+        ),
+        pytest.param(
+            "3,331 European ancestry individuals, unknown ancestry individuals "
+            "(see Iwaki et al, 2019)",
+            (0, 0, 3_331),
+            id="citation year is not a count",
+        ),
+        pytest.param(
+            "284 European ancestry case-parent trios",
+            (0, 0, 284),
+            id="case-parent trios are not cases",
+        ),
     ],
 )
 def test_annotate_discovery_sample_sizes_values(

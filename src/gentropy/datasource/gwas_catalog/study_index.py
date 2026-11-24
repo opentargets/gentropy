@@ -598,18 +598,30 @@ class StudyIndexGWASCatalog(StudyIndex):
     ) -> StudyIndexGWASCatalog:
         """Extract the sample size of the discovery stage of the study as annotated in the GWAS Catalog.
 
+        The initial sample size is a comma-separated list of sample groups, each led by its count,
+        e.g. "1,000 European, African or Asian cases, 2,000 European, African or Asian controls".
+        A comma separates two groups only when the text up to the next comma holds a count. Commas
+        inside parentheses, like "(see Iwaki et al, 2019)", never separate groups. A comma is a
+        thousands separator when it sits between digits with no whitespace after it.
+
+        Groups labelled "case(s)" count towards nCases and groups labelled "control(s)" towards nControls.
+        Family designs such as "case-parent trios" are neither.
+
         For some studies that measure quantitative traits, nCases and nControls can't be extracted. Therefore, we assume these are 0.
 
         Returns:
             StudyIndexGWASCatalog: object with columns `nCases`, `nControls`, and `nSamples` per `studyId` correctly extracted.
         """
+        is_case = f.col("samples").rlike(r"(?i)\bcases?\b(?!-)")
+        is_control = f.col("samples").rlike(r"(?i)\bcontrols?\b(?!-)")
         sample_size_lut = (
             self.df.select(
                 "studyId",
-                # Commas inside parentheses belong to the population label, e.g.
-                # "Greater Middle Eastern (Middle Eastern, North African or Persian)":
                 f.explode_outer(
-                    f.split(f.col("initialSampleSize"), r",\s+(?![^(]*\))")
+                    f.split(
+                        f.col("initialSampleSize"),
+                        r"(?:(?<!\d),\s*|,\s+)(?=[^,]*\d)(?![^(]*\))",
+                    )
                 ).alias("samples"),
             )
             # Extracting the sample size from the string:
@@ -622,10 +634,9 @@ class StudyIndexGWASCatalog(StudyIndex):
             .select(
                 "studyId",
                 "sampleSize",
-                f.when(f.col("samples").contains("cases"), f.col("sampleSize"))
-                .otherwise(f.lit(0))
-                .alias("nCases"),
-                f.when(f.col("samples").contains("controls"), f.col("sampleSize"))
+                f.when(is_case, f.col("sampleSize")).otherwise(f.lit(0)).alias("nCases"),
+                # "535 cases, controls" holds one count, which goes to the cases:
+                f.when(~is_case & is_control, f.col("sampleSize"))
                 .otherwise(f.lit(0))
                 .alias("nControls"),
             )
