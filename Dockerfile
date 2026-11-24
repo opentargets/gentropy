@@ -56,6 +56,14 @@ COPY --from=amazoncorretto:11.0.28-al2023-headless /etc/pki/ca-trust/extracted/j
 # Copy harmonisation script
 COPY --chmod=0755 utils/harmonise_sumstats.sh harmonise-sumstats.sh
 
+# GCS connector jar, so sessions with add_gcs_connector=true need no internet access
+ARG GCS_CONNECTOR_VERSION=3.1.17
+ARG GCS_CONNECTOR_SHA256=423b95c346bcd09b257cb18106448d02b8911901f384724985e6be042e03022d
+ENV GCS_CONNECTOR_JAR=/opt/gcs-connector/gcs-connector-${GCS_CONNECTOR_VERSION}-shaded.jar
+RUN mkdir -p /opt/gcs-connector \
+    && curl -fsSL -o "${GCS_CONNECTOR_JAR}" "https://storage.googleapis.com/hadoop-lib/gcs/gcs-connector-${GCS_CONNECTOR_VERSION}.jar" \
+    && echo "${GCS_CONNECTOR_SHA256}  ${GCS_CONNECTOR_JAR}" | sha256sum -c -
+
 # # Configure PATH to use the virtual environment's binaries
 ENV PATH="/app/.venv/bin:$PATH"
 

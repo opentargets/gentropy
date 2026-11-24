@@ -40,6 +40,8 @@ level across all sources:
     - FinnGen: per allele, recovered from the published `mean` and `sd` by dividing out `alpha`;
     - SuSiE-inf: per standard deviation of genotype and phenotype, as it is fitted on z-scores;
     - eQTL Catalogue: per standard deviation of genotype, and only with `full_susie_input_glob`;
+    - SLE-map: per standard deviation of genotype and phenotype, as SuSiE-inf: about 0.87 times
+      the marginal z-score over the square root of the sample size for strong members;
     - BigBrain: per standard deviation, and summed over all single effects of the feature, a
       documented exception: use its sign for the direction of effect only;
     - PICS: null, as PICS gives no effect.
@@ -221,6 +223,16 @@ class CredibleSet(Dataset):
         def projected(
             df: DataFrame, schema: StructType, renamed: dict[str, str]
         ) -> DataFrame:
+            """Select the columns of `schema` from `df`, null or empty where `df` lacks them.
+
+            Args:
+                df (DataFrame): The members.
+                schema (StructType): The schema to project on.
+                renamed (dict[str, str]): Column of `df` to take for a schema field of another name.
+
+            Returns:
+                DataFrame: `df` on `schema`.
+            """
             columns = []
             for field in schema.fields:
                 source = renamed.get(field.name, field.name)

@@ -205,6 +205,20 @@ class TestGCSConnectorConfiguration:
         assert GCSConfig._HADOOP_CONNECTOR_JAR in conf.get("spark.jars", "")
 
     @pytest.mark.usefixtures("_no_spark_session")
+    def test_gcs_connector_jar_from_env(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """GCS_CONNECTOR_JAR replaces the GitHub release jar in spark.jars."""
+        monkeypatch.setenv("GCS_CONNECTOR_JAR", "/opt/gcs-connector/connector.jar")
+        session = _create_session_no_spark(
+            add_gcs_connector=True,
+            gcs_configuration={"project_id": "my-gcp-project"},
+            dynamic_allocation=False,
+        )
+        jars = _conf_dict(session, add_gcs=True).get("spark.jars", "")
+
+        assert "/opt/gcs-connector/connector.jar" in jars
+        assert GCSConfig._HADOOP_CONNECTOR_JAR not in jars
+
+    @pytest.mark.usefixtures("_no_spark_session")
     def test_gcs_service_account_keyfile_connector(self) -> None:
         """Optional GCS config keys are set when SERVICE_ACCOUNT_JSON_KEYFILE auth is used.
 

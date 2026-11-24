@@ -683,7 +683,7 @@ class Session:
 
         for key, value in options.items():
             c = c.set(key, value)
-        c = self._append_jar(c, GCSConfig._HADOOP_CONNECTOR_JAR)
+        c = self._append_jar(c, conf.connector_jar)
         self._gcs_configuration = dict(conf)
         return c
 

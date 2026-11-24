@@ -353,6 +353,7 @@ class TestdeCODEStudyIndexFromManifest:
         )
         row = result.df.select(
             "pubmedId",
+            "publicationDate",
             "publicationJournal",
             "biosampleFromSourceId",
             "studyType",
@@ -360,6 +361,7 @@ class TestdeCODEStudyIndexFromManifest:
             "initialSampleSize",
         ).collect()[0]
         assert row.pubmedId == "37794188"
+        assert row.publicationDate == "2023-10-04"
         assert row.publicationJournal == "Nature"
         assert row.biosampleFromSourceId == "UBERON_0001969"
         assert row.studyType == "pqtl"

@@ -6,7 +6,7 @@ import os
 from enum import StrEnum
 from typing import ClassVar
 
-from pydantic import model_validator
+from pydantic import Field, model_validator
 
 from gentropy.external import ExternalConfig
 
@@ -93,6 +93,14 @@ class GCSConfig(ExternalConfig):
         Note that the shaded version is recommended to avoid dependency conflicts.
     """
 
+    connector_jar: str = Field(
+        default_factory=lambda: os.getenv(
+            "GCS_CONNECTOR_JAR", GCSConfig._HADOOP_CONNECTOR_JAR
+        )
+    )
+    """Path or URL of the GCS connector jar added to ``spark.jars``. Defaults to the
+    ``GCS_CONNECTOR_JAR`` environment variable, falling back to the GitHub release jar."""
+
     project_id: str | None = None
     """Google Cloud Project ID. Required only for list-buckets and create-bucket operations,
     and used as the billing project fallback when requester pays is active."""
@@ -147,6 +155,7 @@ class GCSConfig(ExternalConfig):
             GCS_REQUESTER_PAYS: Requester-pays mode (default: DISABLED).
             GCS_REQUESTER_PAYS_PROJECT_ID: Billing project for requester-pays requests.
             GCS_REQUESTER_PAYS_BUCKETS: Comma-separated list of buckets subject to requester pays.
+            GCS_CONNECTOR_JAR: Path or URL of the GCS connector jar (default: GitHub release jar).
 
         Returns:
             GCSConfig: GCS configuration instance.
