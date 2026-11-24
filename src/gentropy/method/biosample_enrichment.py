@@ -11,11 +11,7 @@ import pyspark.sql.functions as f
 import scipy.sparse
 from scipy.stats import norm
 
-from gentropy.method.pathway_enrichment import (
-    benjamini_hochberg,
-    clustered_regression,
-    gene_covariates,
-)
+from gentropy.method.pathway_enrichment import benjamini_hochberg
 
 if TYPE_CHECKING:
     from pyspark.sql import Column, DataFrame
@@ -160,7 +156,7 @@ class ExpressionSpecificity:
         Args:
             panel (SpecificityPanel): The panel
             genes (pd.DataFrame): Protein-coding genes with their covariates, from
-                `gene_covariates`
+                `_gene_covariates`
             lists (pd.DataFrame): `diseaseId` and `geneId`, the genes of each disease
             disease_ids (np.ndarray): Sorted disease ids, the columns of the outcomes
             region_window (int): Size, in base pairs, of the windows standard errors cluster on
@@ -253,7 +249,7 @@ class ExpressionSpecificity:
         P-values are adjusted with Benjamini-Hochberg within each disease and held-out
         chromosome over every biosample of every panel the disease was tested in, leaving out
         biosamples with no variance left after the covariates. The regressions run on the
-        driver, see `gentropy.method.pathway_enrichment.clustered_regression`.
+        driver, see `_clustered_regression`.
 
         Args:
             gene_lists (DataFrame): `diseaseId`, `chromosome` and `geneId`, the genes of each
@@ -275,7 +271,7 @@ class ExpressionSpecificity:
                 enriched biosamples only
         """
         spark = gene_lists.sparkSession
-        genes = gene_covariates(target_index, density_window)
+        genes = _gene_covariates(target_index, density_window)
         lists = (
             gene_lists.select("diseaseId", "geneId", "chromosome").distinct().toPandas()
         )
@@ -286,11 +282,7 @@ class ExpressionSpecificity:
         designs = [
             design
             for panel in self.panels
-            if (
-                design := self._design(
-                    panel, genes, lists, disease_ids, region_window
-                )
-            )
+            if (design := self._design(panel, genes, lists, disease_ids, region_window))
             is not None
         ]
         if not designs:
@@ -311,7 +303,7 @@ class ExpressionSpecificity:
                 beta = np.full((len(disease_ids), len(design.biosamples)), np.nan)
                 standard_error = np.full_like(beta, np.nan)
                 if tested.any():
-                    beta[tested], standard_error[tested] = clustered_regression(
+                    beta[tested], standard_error[tested] = _clustered_regression(
                         design.covariates[kept],
                         design.predictors[kept],
                         y[:, tested].tocsc(),
@@ -342,3 +334,177 @@ class ExpressionSpecificity:
             return spark.createDataFrame([], _ENRICHMENT_SCHEMA)
         rows = rows[_ENRICHMENT_COLUMNS].astype(object)
         return spark.createDataFrame(rows.where(rows.notna(), None), _ENRICHMENT_SCHEMA)
+
+
+def _gene_covariates(target_index: TargetIndex, density_window: int) -> pd.DataFrame:
+    """Position, log length and TSS density of every protein-coding gene with a usable location.
+
+    Args:
+        target_index (TargetIndex): Target index
+        density_window (int): Distance, in base pairs, from a TSS within which TSSs count
+
+    Returns:
+        pd.DataFrame: `geneId`, `chromosome`, `tss`, `logLength` and `density`, one row per
+            protein-coding gene, sorted by `geneId`. `density` counts the TSSs of genes of any
+            biotype, the gene's own included.
+    """
+    genes = (
+        target_index.df.select(
+            f.col("id").alias("geneId"),
+            "biotype",
+            "tss",
+            f.col("genomicLocation.chromosome").alias("chromosome"),
+            f.abs(f.col("genomicLocation.end") - f.col("genomicLocation.start")).alias(
+                "length"
+            ),
+        )
+        .filter(f.col("tss").isNotNull() & f.col("chromosome").isNotNull())
+        .toPandas()
+    )
+    tss = genes["tss"].to_numpy(dtype=np.int64)
+    density = np.empty(len(genes), dtype=np.int64)
+    for rows in genes.groupby("chromosome").indices.values():
+        ordered = np.sort(tss[rows])
+        density[rows] = np.searchsorted(
+            ordered, tss[rows] + density_window, side="right"
+        ) - np.searchsorted(ordered, tss[rows] - density_window, side="left")
+    genes["density"] = density
+    coding = genes[(genes["biotype"] == "protein_coding") & (genes["length"] > 0)]
+    return (
+        coding.assign(
+            tss=lambda df: df["tss"].astype(np.int64),
+            logLength=lambda df: np.log10(df["length"]),
+        )
+        .sort_values("geneId")
+        .reset_index(drop=True)[["geneId", "chromosome", "tss", "logLength", "density"]]
+    )
+
+
+# Memory for one block of predictors: the largest genes x predictors or (disease, region) x
+# predictors array of a block stays below it.
+_BLOCK_BYTES = 2**28
+
+
+def _clustered_regression(
+    covariates: np.ndarray,
+    membership: scipy.sparse.csc_matrix | np.ndarray,
+    outcomes: scipy.sparse.csc_matrix,
+    regions: np.ndarray,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Slope of every outcome on every predictor, with standard errors clustered by region.
+
+    A predictor is a biosample's specificity scores. The covariates are projected out of each
+    predictor once, which gives the slope of the full model (Frisch-Waugh-Lovell). The
+    cluster-robust variance of a slope is `sum_c (sum_{g in c} xr_g e_g)^2 / sxx^2`, where `xr` is the projected predictor, `e` the
+    residual of the full model and `sxx = sum_g xr_g^2`. The per-region sum is
+    `Y_c - D_c - beta * B_c` with `Y_c = sum_{g in c} y_g xr_g`, `D_c = sum_{g in c} xr_g
+    (Q Q^T y)_g` and `B_c = sum_{g in c} xr_g^2`. Squaring and summing it over the regions
+    splits into terms that depend on the outcome only through `Q^T y`, computed for all
+    outcomes at once, and terms in `Y_c`, which is zero outside the regions holding an
+    outcome's genes and so is only computed there.
+
+    Args:
+        covariates (np.ndarray): genes x covariates, the intercept included
+        membership (scipy.sparse.csc_matrix | np.ndarray): genes x predictors
+        outcomes (scipy.sparse.csc_matrix): genes x diseases, 1 for listed genes
+        regions (np.ndarray): Region index of each gene, from 0
+
+    Returns:
+        tuple[np.ndarray, np.ndarray]: Slopes and standard errors, diseases x predictors, NaN
+            for predictors with no variance left after the covariates
+    """
+    n_genes, n_pathways = membership.shape
+    n_units = outcomes.shape[1]
+    basis = _orthonormal_basis(covariates)
+    projected_outcomes = np.asarray((outcomes.T @ basis).T)
+    order = np.argsort(regions, kind="stable")
+    starts = np.flatnonzero(np.r_[True, np.diff(regions[order]) != 0])
+    n_regions = len(starts)
+
+    # One row per disease and region holding at least one of the disease's genes.
+    hits = outcomes.tocoo()
+    pair_keys, pair_rows = np.unique(
+        hits.col.astype(np.int64) * n_regions + regions[hits.row], return_inverse=True
+    )
+    pair_units, pair_regions = pair_keys // n_regions, pair_keys % n_regions
+    pair_genes = scipy.sparse.csr_matrix(
+        (hits.data, (pair_rows.ravel(), hits.row)), shape=(len(pair_keys), n_genes)
+    )
+    unit_pairs = scipy.sparse.csr_matrix(
+        (np.ones(len(pair_keys)), (pair_units, np.arange(len(pair_keys)))),
+        shape=(n_units, len(pair_keys)),
+    )
+
+    beta = np.full((n_units, n_pathways), np.nan)
+    standard_error = np.full((n_units, n_pathways), np.nan)
+    block = max(1, _BLOCK_BYTES // (8 * max(n_genes, len(pair_keys), n_regions)))
+    for start in range(0, n_pathways, block):
+        stop = min(start + block, n_pathways)
+        x = membership[:, start:stop]
+        x = x.toarray() if scipy.sparse.issparse(x) else np.asarray(x, dtype=float)
+        xr = x - basis @ (basis.T @ x)
+        sxx = (xr**2).sum(axis=0)
+        # A pathway the covariates explain leaves rounding noise, not zero: treat it as none.
+        valid = sxx > 1e-10 * (x**2).sum(axis=0)
+        safe_sxx = np.where(valid, sxx, 1.0)
+
+        region_xx = np.add.reduceat((xr**2)[order], starts, axis=0)
+        region_xq = np.stack(
+            [
+                np.add.reduceat((xr * basis[:, [i]])[order], starts, axis=0)
+                for i in range(basis.shape[1])
+            ],
+            axis=2,
+        )
+        slope = np.asarray(outcomes.T @ xr) / safe_sxx
+        # Terms that depend on the outcome only through its projection on the covariates.
+        d_squared = np.einsum(
+            "iu,pij,ju->up",
+            projected_outcomes,
+            np.einsum("cpi,cpj->pij", region_xq, region_xq),
+            projected_outcomes,
+            optimize=True,
+        )
+        d_b = projected_outcomes.T @ np.einsum("cpi,cp->ip", region_xq, region_xx)
+        b_squared = (region_xx**2).sum(axis=0)
+        # Terms in Y_c, over the regions that hold the disease's genes only.
+        y_c = np.asarray(pair_genes @ xr)
+        d_c = np.zeros_like(y_c)
+        for i in range(basis.shape[1]):
+            d_c += (
+                projected_outcomes[i, pair_units][:, None]
+                * region_xq[pair_regions, :, i]
+            )
+        y_squared = np.asarray(unit_pairs @ y_c**2)
+        y_d = np.asarray(unit_pairs @ (y_c * d_c))
+        y_b = np.asarray(unit_pairs @ (y_c * region_xx[pair_regions]))
+
+        noise = (
+            y_squared
+            + d_squared
+            + slope**2 * b_squared
+            - 2 * y_d
+            - 2 * slope * y_b
+            + 2 * slope * d_b
+        )
+        beta[:, start:stop] = np.where(valid, slope, np.nan)
+        standard_error[:, start:stop] = np.where(
+            valid, np.sqrt(np.maximum(noise, 0.0)) / safe_sxx, np.nan
+        )
+    return beta, standard_error
+
+
+def _orthonormal_basis(covariates: np.ndarray) -> np.ndarray:
+    """Orthonormal basis of the column space of the covariates.
+
+    A covariate that is constant, or a combination of the others, adds no direction, which a
+    plain QR decomposition would not notice.
+
+    Args:
+        covariates (np.ndarray): genes x covariates
+
+    Returns:
+        np.ndarray: genes x rank
+    """
+    left, singular_values, _ = np.linalg.svd(covariates, full_matrices=False)
+    return left[:, singular_values > singular_values[0] * 1e-10]

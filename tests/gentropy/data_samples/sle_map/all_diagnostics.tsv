@@ -1,0 +1,5 @@
+cell_type	gene	status	n_samples	n_variants_sumstats	n_variants_geno	n_common	n_cs	converged	niter	kriging_max_logLR	kriging_n_flagged	kriging_status	estimate_residual_variance_used	residual_variance_fallback	n_input_sumstats	n_valid_sumstats	n_input_genotypes	n_nonmonomorphic	n_intersection	n_covariate_samples	n_genotype_samples	n_covariates	region_start	region_end	message
+CM_CD8_T_cells	ENSG00000105193	ok	148	3286	3286	3286	0	TRUE	4	2.55453465390576	0	completed	TRUE	FALSE	3286	3286	25528	19295	3286	148	148	10	38436676	40435146	estimate_residual_variance=TRUE
+Classical_Monocytes	ENSG00000100902	ok	211	3772	3772	3772	1	TRUE	3	-0.46067415851488	0	completed	TRUE	FALSE	3772	3772	24113	21440	3772	211	211	25	34279175	36277991	estimate_residual_variance=TRUE
+Allcells	ENSG00000180902	ok	281	3274	3274	3274	2	TRUE	9	-0.957644726919675	0	completed	TRUE	FALSE	3274	3274	19829	19563	3274	281	281	30	240735690	242147753	estimate_residual_variance=TRUE
+Classical_Monocytes	ENSG00000213625	ok	211	3988	3988	3988	2	TRUE	5	2.19760584470584	0	completed	TRUE	FALSE	3988	3988	22634	19558	3988	211	211	25	64420927	66420163	estimate_residual_variance=TRUE

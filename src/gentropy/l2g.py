@@ -20,6 +20,7 @@ from gentropy.dataset.colocalisation import Colocalisation
 from gentropy.dataset.credible_set import CredibleSet, CredibleSetVariant
 from gentropy.dataset.intervals import Intervals
 from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
+from gentropy.dataset.l2g_features.pathway import PathwayEnrichmentScores
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
 from gentropy.dataset.l2g_prediction import L2GPrediction
 from gentropy.dataset.locus_overlap import LocusOverlap
@@ -72,6 +73,10 @@ class LocusToGeneFeatureMatrixStep:
         biosample_index_path: str | None = None,
         feature_matrix_path: str,
         append_null_features: bool = False,
+        pathway_p_value_adjusted_threshold: float = 0.05,
+        pathway_min_pathway_size: int = 5,
+        pathway_max_pathway_size: int = 4000,
+        pathway_min_disease_genes: int = 25,
     ) -> None:
         """Initialise the step and run the logic based on mode.
 
@@ -97,6 +102,17 @@ class LocusToGeneFeatureMatrixStep:
                 biosample
             feature_matrix_path (str): Path to the L2G feature matrix output dataset
             append_null_features (bool): Whether to append null features to the feature matrix. Defaults to False.
+            pathway_p_value_adjusted_threshold (float): Largest adjusted p-value, exclusive, for a
+                pathway to count as enriched in the pathway features
+            pathway_min_pathway_size (int): Smallest number of protein-coding member genes a
+                pathway needs to enter the pathway features
+            pathway_max_pathway_size (int): Largest number of protein-coding member genes a
+                pathway may have to enter the pathway features
+            pathway_min_disease_genes (int): Smallest number of prioritised genes a disease needs,
+                over all chromosomes, to be tested for pathway enrichment
+
+        Raises:
+            ValueError: If a requested feature is missing one of its inputs
         """
         credible_set = CredibleSet.from_parquet(
             session, credible_set_path, recursiveFileLookup=True
@@ -192,6 +208,7 @@ class LocusToGeneFeatureMatrixStep:
         pathway_features = {
             "pathwayEnrichment500kb",
             "pathwayEnrichment500kbNeighbourhood",
+            "pathwayCount",
         }
         if pathway_features.intersection(features_list) and (
             pathway_library is None
@@ -226,6 +243,29 @@ class LocusToGeneFeatureMatrixStep:
                 "`target_index_path`, `study_index_path` and `variant_index_path`."
             )
 
+        study_loci_to_annotate = credible_set.filter(f.col("studyType") == "gwas")
+        # The enrichment is shared by every pathway feature, so it is computed once here.
+        pathway_scores = (
+            PathwayEnrichmentScores.from_release(
+                study_loci_to_annotate,
+                pathway_library=pathway_library,
+                study_index=studies,
+                study_locus=credible_set,
+                target_index=target_index,
+                variant_index=variant_index,
+                p_value_adjusted_threshold=pathway_p_value_adjusted_threshold,
+                min_pathway_size=pathway_min_pathway_size,
+                max_pathway_size=pathway_max_pathway_size,
+                min_disease_genes=pathway_min_disease_genes,
+            )
+            if pathway_features.intersection(features_list)
+            and pathway_library is not None
+            and studies is not None
+            and target_index is not None
+            and variant_index is not None
+            else None
+        )
+
         features_input_loader = L2GFeatureInputLoader(
             variant_index=variant_index,
             colocalisation=coloc,
@@ -234,12 +274,12 @@ class LocusToGeneFeatureMatrixStep:
             target_index=target_index,
             intervals=intervals,
             interactions=interactions,
-            pathway_library=pathway_library,
+            pathway_scores=pathway_scores,
             expression_specificity=expression_specificity,
             biosample_index=biosample_index,
         )
 
-        fm = credible_set.filter(f.col("studyType") == "gwas").build_feature_matrix(
+        fm = study_loci_to_annotate.build_feature_matrix(
             features_list,
             features_input_loader,
             append_null_features=append_null_features,
@@ -259,9 +299,13 @@ class LocusToGeneFeatureMatrixStep:
                 target_index_df, on="geneId", how="inner"
             )
 
-        fm._df.coalesce(session.output_partitions).write.mode(
-            session.write_mode
-        ).parquet(feature_matrix_path)
+        try:
+            fm._df.coalesce(session.output_partitions).write.mode(
+                session.write_mode
+            ).parquet(feature_matrix_path)
+        finally:
+            if pathway_scores is not None:
+                pathway_scores.unpersist()
 
 
 class LocusToGeneTrainTestSplitStep:

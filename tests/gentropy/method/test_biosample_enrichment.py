@@ -6,9 +6,11 @@ from typing import TYPE_CHECKING, Any
 
 import numpy as np
 import pytest
+import scipy.sparse
 from scipy.stats import norm
 
 from gentropy.dataset.target_index import TargetIndex
+from gentropy.method import biosample_enrichment
 from gentropy.method.biosample_enrichment import (
     ExpressionSpecificity,
     SpecificityPanel,
@@ -315,3 +317,53 @@ class TestExpressionSpecificity:
             self._results(expression_specificity, gene_lists, target_index, min_genes=9)
             == {}
         )
+
+
+def test_clustered_regression_matches_a_direct_fit(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Slopes and region-clustered standard errors equal those of each full model fitted alone.
+
+    The covariates include a constant column, which adds no direction, and one predictor is
+    zero everywhere, so it has no slope. A small block size makes the predictors run in several
+    blocks.
+    """
+    rng = np.random.default_rng(0)
+    n_genes, n_predictors, n_units = 300, 7, 4
+    covariates = np.column_stack(
+        [
+            np.ones(n_genes),
+            rng.normal(size=n_genes),
+            rng.poisson(5, n_genes),
+            np.full(n_genes, 3.0),
+        ]
+    )
+    predictors = (rng.random((n_genes, n_predictors)) < 0.2).astype(float)
+    predictors[:, -1] = 0.0
+    outcomes = (rng.random((n_genes, n_units)) < 0.1).astype(float)
+    regions = rng.integers(0, 40, n_genes)
+    monkeypatch.setattr(biosample_enrichment, "_BLOCK_BYTES", 8 * n_genes * 3)
+
+    beta, standard_error = biosample_enrichment._clustered_regression(
+        covariates,
+        scipy.sparse.csc_matrix(predictors),
+        scipy.sparse.csc_matrix(outcomes),
+        regions,
+    )
+
+    assert np.isnan(beta[:, -1]).all() and np.isnan(standard_error[:, -1]).all()
+    for unit in range(n_units):
+        for predictor in range(n_predictors - 1):
+            design = np.column_stack([covariates[:, :3], predictors[:, predictor]])
+            coefficients = np.linalg.lstsq(design, outcomes[:, unit], rcond=None)[0]
+            residuals = outcomes[:, unit] - design @ coefficients
+            bread = np.linalg.inv(design.T @ design)
+            scores = [
+                design[regions == region].T @ residuals[regions == region]
+                for region in np.unique(regions)
+            ]
+            variance = bread @ sum(np.outer(score, score) for score in scores) @ bread
+            assert beta[unit, predictor] == pytest.approx(coefficients[-1])
+            assert standard_error[unit, predictor] == pytest.approx(
+                np.sqrt(variance[-1, -1])
+            )

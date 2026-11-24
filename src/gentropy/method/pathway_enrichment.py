@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 import pyspark.sql.functions as f
 import scipy.sparse
-from pyspark.sql import Window
+from scipy.special import expit
 from scipy.stats import norm
 
 if TYPE_CHECKING:
@@ -100,6 +100,11 @@ class PathwayLibrary:
     ) -> DataFrame:
         """Protein-coding members of every pathway whose size falls within the limits.
 
+        Pathways with exactly the same members are collapsed into one, keeping the lowest
+        `pathwayId`, across GO and Reactome alike. Propagation makes such copies common: a
+        parent term whose only annotated child is one term gets exactly that child's genes.
+        Kept, every copy would count again in a gene's score and be tested again.
+
         Args:
             target_index (TargetIndex): Target index, the source of the annotations
             min_size (int): Smallest number of member genes a pathway may have
@@ -111,6 +116,7 @@ class PathwayLibrary:
         genes = target_index.df.filter(f.col("biotype") == "protein_coding").select(
             f.col("id").alias("geneId"), "go", "pathways"
         )
+        # Deduplicated straight after each propagation: a gene's terms share most ancestors.
         go_sets = (
             genes.select("geneId", f.explode("go").alias("annotation"))
             .filter(
@@ -122,73 +128,82 @@ class PathwayLibrary:
             )
             .select("geneId", f.col("annotation.id").alias("termId"))
             .join(self.go_term_ancestors(), "termId", "inner")
-        )
-        reactome_sets = genes.select(
-            "geneId", f.explode("pathways.pathwayId").alias("termId")
-        ).join(
-            self.reactome.select(
-                f.col("id").alias("termId"),
-                f.explode(
-                    f.array_union(
-                        f.array(f.col("id")),
-                        f.coalesce(f.col("ancestors"), f.array().cast("array<string>")),
-                    )
-                ).alias("pathwayId"),
-            ),
-            "termId",
-            "inner",
-        )
-        pathway_size = f.count("geneId").over(Window.partitionBy("pathwayId"))
-        return (
-            go_sets.select("pathwayId", "geneId")
-            .unionByName(reactome_sets.select("pathwayId", "geneId"))
+            .select("pathwayId", "geneId")
             .distinct()
-            .withColumn("pathwaySize", pathway_size)
-            .filter(f.col("pathwaySize").between(min_size, max_size))
-            .drop("pathwaySize")
         )
+        reactome_sets = (
+            genes.select("geneId", f.explode("pathways.pathwayId").alias("termId"))
+            .join(
+                self.reactome.select(
+                    f.col("id").alias("termId"),
+                    f.explode(
+                        f.array_union(
+                            f.array(f.col("id")),
+                            f.coalesce(
+                                f.col("ancestors"), f.array().cast("array<string>")
+                            ),
+                        )
+                    ).alias("pathwayId"),
+                ),
+                "termId",
+                "inner",
+            )
+            .select("pathwayId", "geneId")
+            .distinct()
+        )
+        # GO and Reactome identifiers never coincide, so the union needs no deduplication.
+        members = go_sets.unionByName(reactome_sets)
+        kept_pathways = (
+            members.groupBy("pathwayId")
+            .agg(f.array_sort(f.collect_list("geneId")).alias("members"))
+            .filter(f.size("members").between(min_size, max_size))
+            .groupBy("members")
+            .agg(f.min("pathwayId").alias("pathwayId"))
+            .select("pathwayId")
+        )
+        return members.join(kept_pathways, "pathwayId", "semi")
 
     @staticmethod
-    def regression(
+    def score_test(
         gene_lists: DataFrame,
         gene_sets: DataFrame,
         target_index: TargetIndex,
         p_value_adjusted_threshold: float = 0.05,
         min_genes: int = 25,
         held_out_chromosomes: list[str] | None = None,
-        region_window: int = 1_000_000,
         density_window: int = 1_000_000,
+        saddlepoint_z: float = 2.0,
     ) -> DataFrame:
         """Test every pathway for enrichment among the genes of each disease, leaving one chromosome out at a time.
 
-        For each disease and pathway, a linear regression over protein-coding genes:
+        For each disease, a logistic model of whether a protein-coding gene is on the disease's
+        list is fitted on covariates only:
 
-        `y_g = b0 + beta * x_g + c1 * logLength_g + c2 * density_g + c3 * log(1 + nPathways_g)`
+        `logit P(y_g = 1) = b0 + c1 * logLength_g + c2 * logDensity_g + c3 * log(1 + nPathways_g)`
 
-        - `y_g` is 1 if the gene is on the disease's list, else 0.
-        - `x_g` is 1 if the gene is a member of the pathway, else 0.
-        - `logLength_g` is `log10 |end - start|`, `density_g` the number of TSSs of any biotype
-          within `density_window` of the gene's TSS, the gene's own included, and `nPathways_g`
-          the number of pathways of `gene_sets` the gene belongs to. Long genes in gene-poor
-          regions are more often the nearest gene of a locus, and genes in many pathways are
-          better studied, so neither alone should look like enrichment.
+        - `logLength_g` is `log10 |end - start|`, `logDensity_g` the log of one plus the number of
+          protein-coding TSSs within `density_window` of the gene's TSS, the gene's own included,
+          and `nPathways_g` the number of pathways of `gene_sets` the gene belongs to. Long genes
+          in gene-poor regions are more often the nearest gene of a locus, and genes in many
+          pathways are better studied, so neither alone should look like enrichment.
 
-        Standard errors are cluster-robust over fixed `region_window` windows of the TSS, so
-        that genes picked up by one association count once. The p-value is one-sided,
-        `P(Z >= beta / SE)` under a standard normal, and is adjusted with Benjamini-Hochberg
-        within each disease and held-out chromosome over every pathway with variance left after
-        the covariates.
+        Each pathway is then tested by the score test for adding its membership to that model,
+        which needs no refit per pathway: the score is `sum_g x_g (y_g - mu_g)` and its variance
+        the efficient information `x'Wx - x'WZ (Z'WZ)^-1 Z'Wx`. The p-value is one-sided, from the
+        normal approximation, or from the saddlepoint approximation (Lugannani-Rice) of the exact
+        distribution of the score where `|z| > saddlepoint_z`, which stays accurate when only a
+        few genes of a small pathway are listed. Genes are treated as independent, as SAIGE and
+        regenie do for rare binary traits. P-values are adjusted with Benjamini-Hochberg within
+        each disease and held-out chromosome over every pathway with information left after the
+        covariates.
 
         Each disease is tested once per held-out chromosome, with the genes of that chromosome
-        removed from the regression. A locus is then scored with the results that left its own
-        chromosome out, so neither its genes nor those of any other credible set nearby take
-        part in the test. Diseases with fewer than `min_genes` listed genes among the remaining
-        genes are not tested.
+        removed. A locus is then scored with the results that left its own chromosome out, so
+        neither its genes nor those of any other credible set nearby take part in the test.
+        Diseases with fewer than `min_genes` listed genes, counted over all chromosomes, are not
+        tested, so a disease is tested on every held-out chromosome or on none.
 
-        The regressions run on the driver. Covariates are projected out once per held-out
-        chromosome and reused for every disease and pathway (Frisch-Waugh-Lovell), and the
-        cluster-robust variance is expanded so that only the clusters holding a disease's genes
-        are visited per disease.
+        The tests run on the driver.
 
         Args:
             gene_lists (DataFrame): `diseaseId`, `chromosome` and `geneId`, the genes of each
@@ -200,13 +215,13 @@ class PathwayLibrary:
             min_genes (int): Smallest number of listed genes a disease needs to be tested
             held_out_chromosomes (list[str] | None): Chromosomes to hold out; all chromosomes of
                 `gene_lists` when None
-            region_window (int): Size, in base pairs, of the windows standard errors cluster on
-            density_window (int): Distance, in base pairs, from a TSS within which TSSs count
-                towards its density
+            density_window (int): Distance, in base pairs, from a TSS within which protein-coding
+                TSSs count towards its density
+            saddlepoint_z (float): Absolute z-score above which the saddlepoint p-value is used
 
         Returns:
-            DataFrame: `diseaseId`, `heldOutChromosome`, `pathwayId`, `beta`, `betaError`,
-                `pValue` and `pValueAdjusted`, for the enriched pathways only
+            DataFrame: `diseaseId`, `heldOutChromosome`, `pathwayId`, `zScore`, `pValue` and
+                `pValueAdjusted`, for the enriched pathways only
         """
         spark = gene_lists.sparkSession
         genes = gene_covariates(target_index, density_window)
@@ -229,15 +244,10 @@ class PathwayLibrary:
             [
                 np.ones(len(genes)),
                 genes["logLength"],
-                genes["density"],
+                genes["logDensity"],
                 np.log1p(np.asarray(membership.sum(axis=1)).ravel()),
             ]
         )
-        regions = (
-            genes["chromosome"].astype(str)
-            + ":"
-            + (genes["tss"] // region_window).astype(str)
-        ).to_numpy()
 
         lists = (
             gene_lists.select("diseaseId", "geneId", "chromosome").distinct().toPandas()
@@ -247,7 +257,7 @@ class PathwayLibrary:
         lists = lists[lists["geneId"].isin(gene_index.index)][["diseaseId", "geneId"]]
         lists = lists.drop_duplicates()
         disease_ids = np.sort(lists["diseaseId"].unique())
-        outcomes = scipy.sparse.csr_matrix(
+        outcomes = scipy.sparse.csc_matrix(
             (
                 np.ones(len(lists)),
                 (
@@ -257,41 +267,37 @@ class PathwayLibrary:
             ),
             shape=(len(genes), len(disease_ids)),
         )
+        tested = np.flatnonzero(np.asarray(outcomes.sum(axis=0)).ravel() >= min_genes)
 
         results = []
-        for chromosome in held_out_chromosomes:
+        for chromosome in held_out_chromosomes if len(tested) else []:
             kept = (genes["chromosome"] != chromosome).to_numpy()
-            y = outcomes[kept]
-            tested = np.asarray(y.sum(axis=0)).ravel() >= min_genes
-            if not tested.any():
+            if not kept.any():
                 continue
-            beta, standard_error = clustered_regression(
-                covariates[kept],
-                membership[kept],
-                y[:, tested].tocsc(),
-                np.unique(regions[kept], return_inverse=True)[1].ravel(),
-            )
-            with np.errstate(divide="ignore", invalid="ignore"):
-                z = beta / standard_error
-            p_value = np.where(np.isfinite(z), norm.sf(z), np.nan)
-            adjusted = benjamini_hochberg(p_value)
-            units, pathways = np.nonzero(adjusted < p_value_adjusted_threshold)
-            results.append(
-                pd.DataFrame(
-                    {
-                        "diseaseId": disease_ids[tested][units],
-                        "heldOutChromosome": chromosome,
-                        "pathwayId": pathway_ids[pathways],
-                        "beta": beta[units, pathways],
-                        "betaError": standard_error[units, pathways],
-                        "pValue": p_value[units, pathways],
-                        "pValueAdjusted": adjusted[units, pathways],
-                    }
+            z_kept, x_kept = covariates[kept], membership[kept]
+            y_kept = outcomes[kept]
+            for disease in tested:
+                y = y_kept[:, disease].toarray().ravel()
+                if not 0 < y.sum() < len(y):
+                    continue
+                z_score, p_value = _score_test(z_kept, x_kept, y, saddlepoint_z)
+                adjusted = benjamini_hochberg(p_value[None, :])[0]
+                (enriched,) = np.nonzero(adjusted < p_value_adjusted_threshold)
+                results.append(
+                    pd.DataFrame(
+                        {
+                            "diseaseId": disease_ids[disease],
+                            "heldOutChromosome": chromosome,
+                            "pathwayId": pathway_ids[enriched],
+                            "zScore": z_score[enriched],
+                            "pValue": p_value[enriched],
+                            "pValueAdjusted": adjusted[enriched],
+                        }
+                    )
                 )
-            )
         schema = (
-            "diseaseId string, heldOutChromosome string, pathwayId string, beta double, "
-            "betaError double, pValue double, pValueAdjusted double"
+            "diseaseId string, heldOutChromosome string, pathwayId string, zScore double, "
+            "pValue double, pValueAdjusted double"
         )
         rows = pd.concat(results) if results else pd.DataFrame()
         if rows.empty:
@@ -300,28 +306,33 @@ class PathwayLibrary:
 
 
 def gene_covariates(target_index: TargetIndex, density_window: int) -> pd.DataFrame:
-    """Position, log length and TSS density of every protein-coding gene with a usable location.
+    """Position, log length and log protein-coding TSS density of every protein-coding gene.
 
     Args:
         target_index (TargetIndex): Target index
         density_window (int): Distance, in base pairs, from a TSS within which TSSs count
 
     Returns:
-        pd.DataFrame: `geneId`, `chromosome`, `tss`, `logLength` and `density`, one row per
-            protein-coding gene, sorted by `geneId`. `density` counts the TSSs of genes of any
-            biotype, the gene's own included.
+        pd.DataFrame: `geneId`, `chromosome`, `tss`, `logLength` and `logDensity`, one row per
+            protein-coding gene with a usable location, sorted by `geneId`. `logDensity` is the
+            log of one plus the number of protein-coding TSSs within `density_window`, the gene's
+            own included: only protein-coding genes compete to be a locus's nearest gene.
     """
     genes = (
-        target_index.df.select(
+        target_index.df.filter(f.col("biotype") == "protein_coding")
+        .select(
             f.col("id").alias("geneId"),
-            "biotype",
             "tss",
             f.col("genomicLocation.chromosome").alias("chromosome"),
             f.abs(f.col("genomicLocation.end") - f.col("genomicLocation.start")).alias(
                 "length"
             ),
         )
-        .filter(f.col("tss").isNotNull() & f.col("chromosome").isNotNull())
+        .filter(
+            f.col("tss").isNotNull()
+            & f.col("chromosome").isNotNull()
+            & (f.col("length") > 0)
+        )
         .toPandas()
     )
     tss = genes["tss"].to_numpy(dtype=np.int64)
@@ -331,149 +342,168 @@ def gene_covariates(target_index: TargetIndex, density_window: int) -> pd.DataFr
         density[rows] = np.searchsorted(
             ordered, tss[rows] + density_window, side="right"
         ) - np.searchsorted(ordered, tss[rows] - density_window, side="left")
-    genes["density"] = density
-    coding = genes[(genes["biotype"] == "protein_coding") & (genes["length"] > 0)]
     return (
-        coding.assign(
-            tss=lambda df: df["tss"].astype(np.int64),
-            logLength=lambda df: np.log10(df["length"]),
+        genes.assign(
+            tss=tss,
+            logLength=np.log10(genes["length"]),
+            logDensity=np.log1p(density),
         )
         .sort_values("geneId")
-        .reset_index(drop=True)[["geneId", "chromosome", "tss", "logLength", "density"]]
+        .reset_index(drop=True)[["geneId", "chromosome", "tss", "logLength", "logDensity"]]
     )
 
 
-# Memory for one block of pathways: the largest genes x pathways or (disease, region) x
-# pathways array of a block stays below it.
-_BLOCK_BYTES = 2**28
+# Pathways whose saddlepoint is solved together: bounds the genes x pathways block in memory.
+_SADDLEPOINT_BLOCK = 400
 
 
-def clustered_regression(
-    covariates: np.ndarray,
-    membership: scipy.sparse.csc_matrix | np.ndarray,
-    outcomes: scipy.sparse.csc_matrix,
-    regions: np.ndarray,
-) -> tuple[np.ndarray, np.ndarray]:
-    """Slope of every outcome on every predictor, with standard errors clustered by region.
-
-    A predictor is a pathway's membership here, and a biosample's specificity scores in
-    `ExpressionSpecificity.enrichment`. The covariates are projected out of each predictor
-    once, which gives the slope of the full model (Frisch-Waugh-Lovell). The cluster-robust
-    variance of a slope is
-    `sum_c (sum_{g in c} xr_g e_g)^2 / sxx^2`, where `xr` is the projected predictor, `e` the
-    residual of the full model and `sxx = sum_g xr_g^2`. The per-region sum is
-    `Y_c - D_c - beta * B_c` with `Y_c = sum_{g in c} y_g xr_g`, `D_c = sum_{g in c} xr_g
-    (Q Q^T y)_g` and `B_c = sum_{g in c} xr_g^2`. Squaring and summing it over the regions
-    splits into terms that depend on the outcome only through `Q^T y`, computed for all
-    outcomes at once, and terms in `Y_c`, which is zero outside the regions holding an
-    outcome's genes and so is only computed there.
+def _logistic_fit(
+    covariates: np.ndarray, outcome: np.ndarray, iterations: int = 25
+) -> np.ndarray:
+    """Fitted probabilities of a logistic regression, by iteratively reweighted least squares.
 
     Args:
         covariates (np.ndarray): genes x covariates, the intercept included
-        membership (scipy.sparse.csc_matrix | np.ndarray): genes x predictors, such as 1 for
-            the members of each pathway
-        outcomes (scipy.sparse.csc_matrix): genes x diseases, 1 for listed genes
-        regions (np.ndarray): Region index of each gene, from 0
+        outcome (np.ndarray): 0/1 per gene, with both values present
+        iterations (int): Largest number of Newton steps
 
     Returns:
-        tuple[np.ndarray, np.ndarray]: Slopes and standard errors, diseases x predictors, NaN
-            for predictors with no variance left after the covariates
+        np.ndarray: Fitted probability per gene
     """
-    n_genes, n_pathways = membership.shape
-    n_units = outcomes.shape[1]
-    basis = _orthonormal_basis(covariates)
-    projected_outcomes = np.asarray((outcomes.T @ basis).T)
-    order = np.argsort(regions, kind="stable")
-    starts = np.flatnonzero(np.r_[True, np.diff(regions[order]) != 0])
-    n_regions = len(starts)
-
-    # One row per disease and region holding at least one of the disease's genes.
-    hits = outcomes.tocoo()
-    pair_keys, pair_rows = np.unique(
-        hits.col.astype(np.int64) * n_regions + regions[hits.row], return_inverse=True
-    )
-    pair_units, pair_regions = pair_keys // n_regions, pair_keys % n_regions
-    pair_genes = scipy.sparse.csr_matrix(
-        (hits.data, (pair_rows.ravel(), hits.row)), shape=(len(pair_keys), n_genes)
-    )
-    unit_pairs = scipy.sparse.csr_matrix(
-        (np.ones(len(pair_keys)), (pair_units, np.arange(len(pair_keys)))),
-        shape=(n_units, len(pair_keys)),
-    )
-
-    beta = np.full((n_units, n_pathways), np.nan)
-    standard_error = np.full((n_units, n_pathways), np.nan)
-    block = max(1, _BLOCK_BYTES // (8 * max(n_genes, len(pair_keys), n_regions)))
-    for start in range(0, n_pathways, block):
-        stop = min(start + block, n_pathways)
-        x = membership[:, start:stop]
-        x = x.toarray() if scipy.sparse.issparse(x) else np.asarray(x, dtype=float)
-        xr = x - basis @ (basis.T @ x)
-        sxx = (xr**2).sum(axis=0)
-        # A pathway the covariates explain leaves rounding noise, not zero: treat it as none.
-        valid = sxx > 1e-10 * (x**2).sum(axis=0)
-        safe_sxx = np.where(valid, sxx, 1.0)
-
-        region_xx = np.add.reduceat((xr**2)[order], starts, axis=0)
-        region_xq = np.stack(
-            [
-                np.add.reduceat((xr * basis[:, [i]])[order], starts, axis=0)
-                for i in range(basis.shape[1])
-            ],
-            axis=2,
-        )
-        slope = np.asarray(outcomes.T @ xr) / safe_sxx
-        # Terms that depend on the outcome only through its projection on the covariates.
-        d_squared = np.einsum(
-            "iu,pij,ju->up",
-            projected_outcomes,
-            np.einsum("cpi,cpj->pij", region_xq, region_xq),
-            projected_outcomes,
-            optimize=True,
-        )
-        d_b = projected_outcomes.T @ np.einsum("cpi,cp->ip", region_xq, region_xx)
-        b_squared = (region_xx**2).sum(axis=0)
-        # Terms in Y_c, over the regions that hold the disease's genes only.
-        y_c = np.asarray(pair_genes @ xr)
-        d_c = np.zeros_like(y_c)
-        for i in range(basis.shape[1]):
-            d_c += (
-                projected_outcomes[i, pair_units][:, None]
-                * region_xq[pair_regions, :, i]
-            )
-        y_squared = np.asarray(unit_pairs @ y_c**2)
-        y_d = np.asarray(unit_pairs @ (y_c * d_c))
-        y_b = np.asarray(unit_pairs @ (y_c * region_xx[pair_regions]))
-
-        noise = (
-            y_squared
-            + d_squared
-            + slope**2 * b_squared
-            - 2 * y_d
-            - 2 * slope * y_b
-            + 2 * slope * d_b
-        )
-        beta[:, start:stop] = np.where(valid, slope, np.nan)
-        standard_error[:, start:stop] = np.where(
-            valid, np.sqrt(np.maximum(noise, 0.0)) / safe_sxx, np.nan
-        )
-    return beta, standard_error
+    coefficients = np.zeros(covariates.shape[1])
+    rate = outcome.mean()
+    coefficients[0] = np.log(rate / (1 - rate))
+    for _ in range(iterations):
+        fitted = expit(covariates @ coefficients)
+        weight = fitted * (1 - fitted)
+        step = np.linalg.lstsq(
+            covariates.T @ (covariates * weight[:, None]),
+            covariates.T @ (outcome - fitted),
+            rcond=None,
+        )[0]
+        coefficients += step
+        if np.abs(step).max() < 1e-8:
+            break
+    return expit(covariates @ coefficients)
 
 
-def _orthonormal_basis(covariates: np.ndarray) -> np.ndarray:
-    """Orthonormal basis of the column space of the covariates.
+def _score_test(
+    covariates: np.ndarray,
+    membership: scipy.sparse.csc_matrix,
+    outcome: np.ndarray,
+    saddlepoint_z: float,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Score test of every pathway's membership added to a covariates-only logistic model.
 
-    A covariate that is constant, or a combination of the others, adds no direction, which a
-    plain QR decomposition would not notice.
+    With `Z` the covariates, `mu` the fitted probabilities and `W = diag(mu (1 - mu))`, the
+    membership `x` is adjusted to `x~ = x - Z (Z'WZ)^-1 Z'W x`. The score `x~'(y - mu)` equals
+    `x'(y - mu)`, since `Z'(y - mu)` is zero at the fit, and its variance is `x~'W x~`.
 
     Args:
-        covariates (np.ndarray): genes x covariates
+        covariates (np.ndarray): genes x covariates, the intercept included
+        membership (scipy.sparse.csc_matrix): genes x pathways, 1 for members
+        outcome (np.ndarray): 0/1 per gene
+        saddlepoint_z (float): Absolute z-score above which the saddlepoint p-value is used
 
     Returns:
-        np.ndarray: genes x rank
+        tuple[np.ndarray, np.ndarray]: z-score and one-sided p-value per pathway, NaN for
+            pathways with no information left after the covariates
     """
-    left, singular_values, _ = np.linalg.svd(covariates, full_matrices=False)
-    return left[:, singular_values > singular_values[0] * 1e-10]
+    fitted = _logistic_fit(covariates, outcome)
+    weight = fitted * (1 - fitted)
+    weighted_covariates = covariates * weight[:, None]
+    cross = np.asarray((membership.T @ weighted_covariates).T)
+    projection = np.linalg.pinv(covariates.T @ weighted_covariates) @ cross
+    score = np.asarray(membership.T @ (outcome - fitted)).ravel()
+    information = np.asarray(membership.T @ weight).ravel()
+    variance = information - np.einsum("kp,kp->p", cross, projection)
+    valid = variance > 1e-10 * np.maximum(information, 1e-300)
+    z_score = np.where(valid, score / np.sqrt(np.where(valid, variance, 1.0)), np.nan)
+    p_value = norm.sf(z_score)
+
+    tail = np.flatnonzero(valid & (np.abs(z_score) > saddlepoint_z))
+    for block in np.array_split(tail, max(1, -(-len(tail) // _SADDLEPOINT_BLOCK))):
+        if len(block) == 0:
+            continue
+        members = membership[:, block]
+        column = np.repeat(np.arange(len(block)), np.diff(members.indptr))
+        covariate_part = covariates @ projection[:, block]
+        member_part = covariate_part[members.indices, column]
+        # Non-members contribute -covariate_part each: many small terms, taken as normal.
+        rest_variance = np.maximum(
+            np.einsum("gp,g,gp->p", covariate_part, weight, covariate_part)
+            - np.bincount(column, member_part**2 * weight[members.indices], len(block)),
+            0.0,
+        )
+        p_saddle = _saddlepoint_upper(
+            score[block],
+            1.0 - member_part,
+            fitted[members.indices],
+            column,
+            rest_variance,
+        )
+        p_value[block] = np.where(
+            np.isfinite(p_saddle), np.clip(p_saddle, 0.0, 1.0), p_value[block]
+        )
+    return z_score, np.where(valid, p_value, np.nan)
+
+
+def _saddlepoint_upper(
+    score: np.ndarray,
+    coefficient: np.ndarray,
+    probability: np.ndarray,
+    column: np.ndarray,
+    rest_variance: np.ndarray,
+) -> np.ndarray:
+    """Upper-tail probability of `S = sum_g a_g (y_g - mu_g)` by the Lugannani-Rice saddlepoint.
+
+    The member genes' terms, `y_g ~ Bernoulli(mu_g)`, enter the cumulant generating function
+    exactly; the other genes' terms are folded into a normal with variance `rest_variance`.
+    Solved for all pathways together with Newton steps.
+
+    Args:
+        score (np.ndarray): Observed score per pathway
+        coefficient (np.ndarray): `a_g` of each member gene, pathway by pathway
+        probability (np.ndarray): `mu_g` of each member gene, aligned with `coefficient`
+        column (np.ndarray): Pathway of each member gene, aligned with `coefficient`
+        rest_variance (np.ndarray): Variance of the non-member part per pathway
+
+    Returns:
+        np.ndarray: `P(S >= score)` per pathway
+    """
+    n = len(score)
+
+    def cumulants(t: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+        exponent = t[column] * coefficient
+        tilted = probability * np.exp(exponent)
+        denominator = 1 - probability + tilted
+        shifted = tilted / denominator
+        k0 = (
+            np.bincount(column, np.log(denominator) - exponent * probability, n)
+            + 0.5 * rest_variance * t**2
+        )
+        k1 = (
+            np.bincount(column, coefficient * (shifted - probability), n)
+            + rest_variance * t
+        )
+        k2 = (
+            np.bincount(column, coefficient**2 * shifted * (1 - shifted), n)
+            + rest_variance
+        )
+        return k0, k1, k2
+
+    t = score / np.maximum(cumulants(np.zeros(n))[2], 1e-300)
+    for _ in range(50):
+        _, k1, k2 = cumulants(t)
+        step = np.clip((k1 - score) / np.maximum(k2, 1e-300), -5.0, 5.0)
+        t -= step
+        if np.nanmax(np.abs(step)) < 1e-10:
+            break
+    k0, _, k2 = cumulants(t)
+    w = np.sign(t) * np.sqrt(np.maximum(2 * (t * score - k0), 0.0))
+    v = t * np.sqrt(k2)
+    with np.errstate(divide="ignore", invalid="ignore"):
+        return norm.sf(w) + norm.pdf(w) * (1 / v - 1 / w)
 
 
 def benjamini_hochberg(p_value: np.ndarray) -> np.ndarray:

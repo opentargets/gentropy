@@ -52,6 +52,7 @@ from gentropy.dataset.l2g_features.intervals import (
     E2gMeanNeighbourhoodFeature,
 )
 from gentropy.dataset.l2g_features.pathway import (
+    PathwayCountFeature,
     PathwayEnrichmentFeature,
     PathwayEnrichmentNeighbourhoodFeature,
 )
@@ -150,6 +151,7 @@ class FeatureFactory:
         "e2gMeanNeighbourhood": E2gMeanNeighbourhoodFeature,
         "pathwayEnrichment500kb": PathwayEnrichmentFeature,
         "pathwayEnrichment500kbNeighbourhood": PathwayEnrichmentNeighbourhoodFeature,
+        "pathwayCount": PathwayCountFeature,
         "geneCount500kb": GeneCountFeature,
         "proteinGeneCount500kb": ProteinGeneCountFeature,
         "isProteinCoding": ProteinCodingFeature,
