@@ -162,7 +162,9 @@ class PathwayEnrichmentScores:
         3. Every GO biological process and Reactome pathway of `pathway_library` with
             `min_pathway_size` to `max_pathway_size` protein-coding members, one per distinct
             gene set (see `PathwayLibrary.gene_sets`), is tested for enrichment among each
-            disease's genes, see `PathwayLibrary.regression`. Diseases with fewer than
+            disease's genes by a logistic score test adjusted for gene length, protein-coding
+            TSS density and the gene's number of pathways, see `PathwayLibrary.score_test`.
+            Diseases with fewer than
             `min_disease_genes` listed genes on all chromosomes together are not tested.
         4. A pathway counts as enriched for a disease below the adjusted p-value threshold, for
             the chromosome left out.
@@ -218,7 +220,7 @@ class PathwayEnrichmentScores:
             .select("diseaseSet", "chromosome")
             .distinct()
         )
-        enriched_pathways = PathwayLibrary.regression(
+        enriched_pathways = PathwayLibrary.score_test(
             prioritised_disease_genes(
                 study_locus,
                 study_index,
@@ -338,6 +340,10 @@ def common_pathway_enrichment_feature_logic(
     `PathwayEnrichmentScores.from_release`. A gene that sits in ten pathways of which three are
     enriched scores 0.3; a gene in the window that no enriched pathway contains, or that is in
     no pathway at all, scores 0. `pathwayCount` tells the two apart.
+
+    The test adjusts for annotation depth, so this score carries only the disease-specific part;
+    `pathwayCount` carries the generic one. The two are meant to be used together, though either
+    can be requested alone.
 
     Args:
         study_loci_to_annotate (CredibleSetLocus | L2GGoldStandard): The study loci that will be

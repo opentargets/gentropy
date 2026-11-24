@@ -1,4 +1,4 @@
-"""Test the pathway library and its enrichment regression."""
+"""Test the pathway library and its enrichment score test."""
 
 from __future__ import annotations
 
@@ -7,6 +7,8 @@ from typing import TYPE_CHECKING, Any
 import numpy as np
 import pytest
 import scipy.sparse
+from scipy.special import expit
+from scipy.stats import binom, norm
 
 from gentropy.dataset.target_index import TargetIndex
 from gentropy.method import pathway_enrichment
@@ -158,14 +160,14 @@ class TestPathwayLibrary:
         }
 
 
-def test_regression_matches_a_direct_fit(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Slopes and region-clustered standard errors equal those of each full model fitted alone.
+def test_score_test_matches_a_direct_computation() -> None:
+    """Score and efficient information equal a dense computation from the fitted model.
 
     The covariates include a constant column, which adds no direction, and one pathway has no
-    member, so it has no slope. A small block size makes the pathways run in several blocks.
+    member, so it cannot be tested.
     """
     rng = np.random.default_rng(0)
-    n_genes, n_pathways, n_units = 300, 7, 4
+    n_genes, n_pathways = 400, 6
     covariates = np.column_stack(
         [
             np.ones(n_genes),
@@ -176,33 +178,110 @@ def test_regression_matches_a_direct_fit(monkeypatch: pytest.MonkeyPatch) -> Non
     )
     membership = (rng.random((n_genes, n_pathways)) < 0.2).astype(float)
     membership[:, -1] = 0.0
-    outcomes = (rng.random((n_genes, n_units)) < 0.1).astype(float)
-    regions = rng.integers(0, 40, n_genes)
-    monkeypatch.setattr(pathway_enrichment, "_BLOCK_BYTES", 8 * n_genes * 3)
+    outcome = (rng.random(n_genes) < expit(-2 + 0.5 * covariates[:, 1])).astype(float)
 
-    beta, standard_error = pathway_enrichment._pathway_regression(
-        covariates,
-        scipy.sparse.csc_matrix(membership),
-        scipy.sparse.csc_matrix(outcomes),
-        regions,
+    z_score, p_value = pathway_enrichment._score_test(
+        covariates, scipy.sparse.csc_matrix(membership), outcome, saddlepoint_z=np.inf
     )
 
-    assert np.isnan(beta[:, -1]).all() and np.isnan(standard_error[:, -1]).all()
-    for unit in range(n_units):
-        for pathway in range(n_pathways - 1):
-            design = np.column_stack([covariates[:, :3], membership[:, pathway]])
-            coefficients = np.linalg.lstsq(design, outcomes[:, unit], rcond=None)[0]
-            residuals = outcomes[:, unit] - design @ coefficients
-            bread = np.linalg.inv(design.T @ design)
-            scores = [
-                design[regions == region].T @ residuals[regions == region]
-                for region in np.unique(regions)
-            ]
-            variance = bread @ sum(np.outer(score, score) for score in scores) @ bread
-            assert beta[unit, pathway] == pytest.approx(coefficients[-1])
-            assert standard_error[unit, pathway] == pytest.approx(
-                np.sqrt(variance[-1, -1])
-            )
+    fitted = pathway_enrichment._logistic_fit(covariates, outcome)
+    np.testing.assert_allclose(covariates.T @ (outcome - fitted), 0.0, atol=1e-6)
+    weight = np.diag(fitted * (1 - fitted))
+    adjusted = membership - covariates @ np.linalg.pinv(
+        covariates.T @ weight @ covariates
+    ) @ (covariates.T @ weight @ membership)
+    expected = (adjusted.T @ (outcome - fitted))[:-1] / np.sqrt(
+        np.diag(adjusted.T @ weight @ adjusted)[:-1]
+    )
+    np.testing.assert_allclose(z_score[:-1], expected, rtol=1e-6)
+    np.testing.assert_allclose(p_value[:-1], norm.sf(expected), rtol=1e-6)
+    assert np.isnan(z_score[-1]) and np.isnan(p_value[-1])
+
+
+def test_saddlepoint_matches_the_exact_tail() -> None:
+    """A 5-gene pathway with every member listed, as in a small, rare overlap.
+
+    With an intercept only, every gene has the same probability p and the score is
+    `(1 - m) K_in - m K_out - E`, with `K_in ~ Bin(5, p)` and `K_out ~ Bin(n - 5, p)`
+    independent and `m = 5 / n`, so its upper tail can be summed exactly. The normal
+    approximation is far off; the saddlepoint is not.
+    """
+    n_genes, size, listed = 2000, 5, 30
+    outcome = np.zeros(n_genes)
+    outcome[:listed] = 1.0
+    membership = np.zeros((n_genes, 1))
+    membership[:size, 0] = 1.0
+    covariates = np.ones((n_genes, 1))
+
+    _, p_normal = pathway_enrichment._score_test(
+        covariates, scipy.sparse.csc_matrix(membership), outcome, saddlepoint_z=np.inf
+    )
+    _, p_saddle = pathway_enrichment._score_test(
+        covariates, scipy.sparse.csc_matrix(membership), outcome, saddlepoint_z=2.0
+    )
+
+    rate, share = outcome.mean(), size / n_genes
+    observed = (1 - share) * size - share * (listed - size)
+    k_in = np.arange(size + 1)
+    k_out = np.arange(n_genes - size + 1)
+    statistic = (1 - share) * k_in[:, None] - share * k_out[None, :]
+    probability = (
+        binom.pmf(k_in, size, rate)[:, None]
+        * binom.pmf(k_out, n_genes - size, rate)[None, :]
+    )
+    exact = probability[statistic >= observed - 1e-9].sum()
+
+    # Within a factor of two: the score is discrete and no continuity correction is applied.
+    assert exact / 2 < p_saddle[0] < exact * 2
+    assert p_normal[0] < exact / 100
+
+
+def test_score_test_is_calibrated_on_random_lists() -> None:
+    """Random lists drawn from the covariates alone: about 5% of tests below 0.05."""
+    rng = np.random.default_rng(1)
+    n_genes, n_pathways = 3000, 300
+    covariates = np.column_stack([np.ones(n_genes), rng.normal(size=n_genes)])
+    sizes = rng.integers(5, 200, n_pathways)
+    membership = np.zeros((n_genes, n_pathways))
+    for pathway, size in enumerate(sizes):
+        membership[rng.choice(n_genes, size, replace=False), pathway] = 1.0
+    sparse_membership = scipy.sparse.csc_matrix(membership)
+    p_values = []
+    for _ in range(20):
+        outcome = (rng.random(n_genes) < expit(-3 + covariates[:, 1])).astype(float)
+        p_values.append(
+            pathway_enrichment._score_test(
+                covariates, sparse_membership, outcome, saddlepoint_z=2.0
+            )[1]
+        )
+    share = np.nanmean(np.array(p_values) < 0.05)
+    assert 0.03 < share < 0.07
+
+
+def test_gene_covariates_count_protein_coding_tss_only(spark: SparkSession) -> None:
+    """A lncRNA next to g1 counts towards no gene's density."""
+    rows = [
+        {
+            "id": gene_id,
+            "biotype": biotype,
+            "genomicLocation": {"chromosome": "1", "start": tss, "end": tss + 999},
+            "tss": tss,
+        }
+        for gene_id, biotype, tss in [
+            ("g1", "protein_coding", 1_000_000),
+            ("g2", "protein_coding", 1_500_000),
+            ("g3", "lncRNA", 1_100_000),
+            ("g4", "protein_coding", 5_000_000),
+        ]
+    ]
+    target_index = TargetIndex(
+        _df=spark.createDataFrame(rows, TargetIndex.get_schema()),
+        _schema=TargetIndex.get_schema(),
+    )
+    genes = pathway_enrichment.gene_covariates(target_index, 1_000_000)
+    assert genes["geneId"].tolist() == ["g1", "g2", "g4"]
+    np.testing.assert_allclose(genes["logDensity"], np.log1p([2, 2, 1]))
+    np.testing.assert_allclose(genes["logLength"], np.log10(999))
 
 
 def test_benjamini_hochberg_ignores_missing_p_values() -> None:
@@ -215,13 +294,13 @@ def test_benjamini_hochberg_ignores_missing_p_values() -> None:
     )
 
 
-class TestRegression:
-    """Test the enrichment regression on a toy release.
+class TestScoreTest:
+    """Test the enrichment score test on a toy release.
 
-    Forty protein-coding genes, 10 Mb apart so that each is its own region: gene0-gene19 on
-    chromosome 1 and gene20-gene39 on chromosome 2, all of the same length. PA holds gene0-gene7
-    and gene20-gene27, PB the other genes, so every gene is in one pathway. disease1 lists six
-    PA genes on each chromosome; disease2 lists three genes on chromosome 1 only.
+    Forty protein-coding genes, 10 Mb apart: gene0-gene19 on chromosome 1 and gene20-gene39 on
+    chromosome 2, all of the same length. PA holds gene0-gene7 and gene20-gene27, PB the other
+    genes, so every gene is in one pathway. disease1 lists six PA genes on each chromosome;
+    disease2 lists three genes on chromosome 1 only.
     """
 
     @pytest.fixture()
@@ -266,10 +345,9 @@ class TestRegression:
     ) -> None:
         """PA is enriched for disease1 whichever chromosome is held out; PB is depleted.
 
-        On the 20 remaining genes, disease1 lists 6 of the 8 PA genes and none of the others:
-        beta = 0.75 and, each gene being its own region, SE = sqrt(0.54) / 4.8.
+        On the 20 remaining genes, disease1 lists 6 of the 8 PA genes and none of the others.
         """
-        rows = PathwayLibrary.regression(*inputs, min_genes=4).collect()
+        rows = PathwayLibrary.score_test(*inputs, min_genes=4).collect()
         assert {
             (r["diseaseId"], r["heldOutChromosome"], r["pathwayId"]) for r in rows
         } == {
@@ -277,15 +355,14 @@ class TestRegression:
             ("disease1", "2", "PA"),
         }
         for row in rows:
-            assert row["beta"] == pytest.approx(0.75)
-            assert row["betaError"] == pytest.approx(np.sqrt(0.54) / 4.8)
+            assert row["zScore"] > 0
             assert row["pValueAdjusted"] == pytest.approx(min(2 * row["pValue"], 1.0))
 
     def test_minimum_genes_counts_every_chromosome(
         self, inputs: tuple[DataFrame, DataFrame, TargetIndex]
     ) -> None:
         """disease1 lists six genes per held-out chromosome but twelve in all, so a minimum of seven still tests it on both; disease2, with three, is not tested."""
-        rows = PathwayLibrary.regression(
+        rows = PathwayLibrary.score_test(
             *inputs, min_genes=7, p_value_adjusted_threshold=1.01
         ).collect()
         assert {(r["diseaseId"], r["heldOutChromosome"]) for r in rows} == {
@@ -297,7 +374,7 @@ class TestRegression:
         self, inputs: tuple[DataFrame, DataFrame, TargetIndex]
     ) -> None:
         """Holding out chromosome 2 only returns its results."""
-        rows = PathwayLibrary.regression(
+        rows = PathwayLibrary.score_test(
             *inputs, min_genes=4, held_out_chromosomes=["2"]
         ).collect()
         assert {r["heldOutChromosome"] for r in rows} == {"2"}
