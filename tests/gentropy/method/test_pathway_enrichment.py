@@ -284,16 +284,6 @@ def test_gene_covariates_count_protein_coding_tss_only(spark: SparkSession) -> N
     np.testing.assert_allclose(genes["logLength"], np.log10(999))
 
 
-def test_benjamini_hochberg_ignores_missing_p_values() -> None:
-    """Each row is adjusted over its own finite p-values only."""
-    adjusted = pathway_enrichment._benjamini_hochberg(
-        np.array([[0.01, 0.04, np.nan, 0.03], [0.5, np.nan, np.nan, np.nan]])
-    )
-    np.testing.assert_allclose(
-        adjusted, [[0.03, 0.04, np.nan, 0.04], [0.5, np.nan, np.nan, np.nan]]
-    )
-
-
 class TestScoreTest:
     """Test the enrichment score test on a toy release.
 

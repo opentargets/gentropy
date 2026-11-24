@@ -486,6 +486,8 @@ class LocusToGeneFeatureMatrixConfig(StepConfig):
     gene_interactions_path: str | None = None
     go_path: str | None = None
     reactome_path: str | None = None
+    baseline_expression_path: str | None = None
+    biosample_index_path: str | None = None
     feature_matrix_path: str = MISSING
     features_list: list[str] = field(
         default_factory=lambda: [
@@ -538,6 +540,8 @@ class LocusToGeneFeatureMatrixConfig(StepConfig):
     pathway_min_pathway_size: int = 5
     pathway_max_pathway_size: int = 4000
     pathway_min_disease_genes: int = 25
+    biosample_p_value_adjusted_threshold: float = 0.01
+    biosample_min_disease_genes: int = 25
     _target_: str = "gentropy.l2g.LocusToGeneFeatureMatrixStep"
 
 

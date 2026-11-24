@@ -12,6 +12,8 @@ import scipy.sparse
 from scipy.special import expit
 from scipy.stats import norm
 
+from gentropy.common.stats import benjamini_hochberg
+
 if TYPE_CHECKING:
     from pyspark.sql import DataFrame
 
@@ -281,7 +283,7 @@ class PathwayLibrary:
                 if not 0 < y.sum() < len(y):
                     continue
                 z_score, p_value = _score_test(z_kept, x_kept, y, saddlepoint_z)
-                adjusted = _benjamini_hochberg(p_value[None, :])[0]
+                adjusted = benjamini_hochberg(p_value[None, :])[0]
                 (enriched,) = np.nonzero(adjusted < p_value_adjusted_threshold)
                 results.append(
                     pd.DataFrame(
@@ -504,25 +506,3 @@ def _saddlepoint_upper(
     v = t * np.sqrt(k2)
     with np.errstate(divide="ignore", invalid="ignore"):
         return norm.sf(w) + norm.pdf(w) * (1 / v - 1 / w)
-
-
-def _benjamini_hochberg(p_value: np.ndarray) -> np.ndarray:
-    """Benjamini-Hochberg adjusted p-values along each row, ignoring NaN.
-
-    Args:
-        p_value (np.ndarray): units x tests
-
-    Returns:
-        np.ndarray: Adjusted p-values of the same shape, NaN where `p_value` is NaN
-    """
-    finite = np.isfinite(p_value)
-    tests = finite.sum(axis=1, keepdims=True)
-    order = np.argsort(np.where(finite, p_value, np.inf), axis=1)
-    ranked = np.take_along_axis(p_value, order, axis=1)
-    rank = np.arange(1, p_value.shape[1] + 1)[None, :]
-    with np.errstate(invalid="ignore"):
-        step = np.where(np.isfinite(ranked), ranked * tests / rank, np.inf)
-    step = np.minimum(np.minimum.accumulate(step[:, ::-1], axis=1)[:, ::-1], 1.0)
-    adjusted = np.empty_like(step)
-    np.put_along_axis(adjusted, order, step, axis=1)
-    return np.where(finite, adjusted, np.nan)
