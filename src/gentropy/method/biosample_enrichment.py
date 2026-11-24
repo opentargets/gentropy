@@ -49,12 +49,14 @@ class SpecificityPanel:
 
 
 # The panels of the PTS biosample enrichment step (opentargets/pipeline#225), the CELLEX
-# specificity panels of the LDSC cell type analysis.
+# specificity panels of the LDSC cell type analysis, without its cell types within a tissue:
+# those are reported by cell type alone, so a cell type enriched through its tissue's signal
+# (ambient hepatocyte RNA in the liver, for instance) would admit that cell type's QTLs from
+# every tissue. The pan-tissue cell type panel covers the same cell types.
 DEFAULT_PANELS = (
     SpecificityPanel("gtex", "tissue"),
     SpecificityPanel("tabula_sapiens", "tissue"),
     SpecificityPanel("tabula_sapiens", "celltype"),
-    SpecificityPanel("tabula_sapiens", "tissue_celltype"),
 )
 
 _ENRICHMENT_COLUMNS = [
@@ -101,8 +103,8 @@ class ExpressionSpecificity:
     Attributes:
         baseline_expression (DataFrame): The release's `baseline_expression` table
         panels (tuple[SpecificityPanel, ...]): Datasources and resolutions to test, by default
-            those of the PTS biosample enrichment step and the LDSC cell type analysis: GTEx
-            tissues, and Tabula Sapiens tissues, cell types and cell types within a tissue
+            GTEx tissues, and Tabula Sapiens tissues and cell types, as in the PTS biosample
+            enrichment step without its cell types within a tissue
     """
 
     baseline_expression: DataFrame
