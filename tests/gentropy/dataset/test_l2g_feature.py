@@ -2491,7 +2491,12 @@ def _biosample_release(spark: SparkSession, second_chromosome: str) -> dict[str,
         ),
         _schema=Colocalisation.get_schema(),
     )
-    specific_genes = {"UBERON_A": [*range(8), 20, 25], "UBERON_B": range(10, 14)}
+    specific_genes = {
+        "UBERON_A": [*range(8), 20, 25],
+        "UBERON_B": range(10, 14),
+        "UBERON_C": range(14, 18),
+        "UBERON_D": [18, 19, 21, 26],
+    }
     datasets["expression_specificity"] = ExpressionSpecificity(
         baseline_expression=spark.createDataFrame(
             [
@@ -2578,8 +2583,8 @@ class TestEQtlColocH4MaximumEnrichedBiosampleFeature:
     Thirty protein-coding genes, gene4-gene7 and gene22-gene29 on chromosome 2 and the rest on
     chromosome 1. gene0-gene7 are each the nearest gene of one credible set of study1
     (disease1). Tissue UBERON_A specifically expresses gene0-gene7, gene20 and gene25, so it is
-    enriched for disease1 with either chromosome left out; tissue UBERON_B specifically
-    expresses gene10-gene13 and is not. UBERON_A1, its child UBERON_A11 and grandchild
+    enriched for disease1 with either chromosome left out; tissues UBERON_B, UBERON_C and
+    UBERON_D specifically express other genes and are not. UBERON_A1, its child UBERON_A11 and grandchild
     UBERON_A111 have no specificity data and descend from UBERON_A, one, two and three levels
     down. sl0 colocalises with an eQTL for gene0 in each tissue: H4 0.6 in UBERON_A, 0.7
     in UBERON_A1 and 0.9 in UBERON_B.

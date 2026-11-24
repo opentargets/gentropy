@@ -51,8 +51,8 @@ class TestExpressionSpecificity:
 
     TSSs are 300 kb apart and gene lengths vary, so TSS density and length differ between genes.
     Panel source1 has tissues UBERON_A, where the disease's genes score high, UBERON_B, with
-    random scores, and UBERON_C, where every gene scores 0. Panel source2 has one cell type,
-    CL_A, with random scores. disease1 lists g0-g7, the lncRNA and g30-g31.
+    random scores, and UBERON_C, where every gene scores 0. Panel source2 has two cell types,
+    CL_A and CL_B, with random scores. disease1 lists g0-g7, the lncRNA and g30-g31.
     """
 
     n_genes = 40
@@ -66,6 +66,7 @@ class TestExpressionSpecificity:
         "UBERON_B": rng.random(40),
         "UBERON_C": np.zeros(40),
         "CL_A": rng.random(40),
+        "CL_B": rng.random(40),
     }
 
     @pytest.fixture()
@@ -130,20 +131,22 @@ class TestExpressionSpecificity:
 
     def _expected(self, biosample: str, kept: np.ndarray) -> tuple[float, float]:
         """Slope and clustered standard error computed independently over the kept genes."""
-        # TSS density counts every biotype, so the lncRNA at 2 kb on chromosome 1 too.
+        # TSS density counts protein-coding genes only, so not the lncRNA at 2 kb.
         density = np.array(
             [
                 np.sum(
                     (self.chromosomes == self.chromosomes[i])
                     & (np.abs(self.tss - self.tss[i]) <= 1_000_000)
                 )
-                + int(
-                    self.chromosomes[i] == "1" and abs(2_000 - self.tss[i]) <= 1_000_000
-                )
                 for i in range(self.n_genes)
             ]
         )
-        covariates = np.column_stack([np.log10(self.lengths), density])
+        # Breadth is the mean score over the biosamples of the biosample's own panel.
+        panel = [b for b in self.scores if b[:2] == biosample[:2]]
+        breadth = np.mean([self.scores[b] for b in panel], axis=0)
+        covariates = np.column_stack(
+            [np.log10(self.lengths), np.log1p(density), breadth]
+        )
         regions = np.char.add(
             np.char.add(self.chromosomes, ":"), (self.tss // 1_000_000).astype(str)
         )
@@ -228,7 +231,7 @@ class TestExpressionSpecificity:
         """Holding out chromosome 2 regresses over g0-g29; the lncRNA is not in the universe."""
         results = self._results(expression_specificity, gene_lists, target_index)
         kept = self.chromosomes != "2"
-        for biosample in ("UBERON_A", "UBERON_B", "CL_A"):
+        for biosample in ("UBERON_A", "UBERON_B", "CL_A", "CL_B"):
             beta, standard_error = self._expected(biosample, kept)
             row = results[("2", biosample)]
             assert row["beta"] == pytest.approx(beta)
@@ -243,9 +246,9 @@ class TestExpressionSpecificity:
         gene_lists: DataFrame,
         target_index: TargetIndex,
     ) -> None:
-        """UBERON_C has no variance, so three biosamples of two panels share one adjustment."""
+        """UBERON_C has no variance, so four biosamples of two panels share one adjustment."""
         results = self._results(expression_specificity, gene_lists, target_index)
-        biosamples = ["CL_A", "UBERON_A", "UBERON_B"]
+        biosamples = ["CL_A", "CL_B", "UBERON_A", "UBERON_B"]
         assert {key for key in results if key[0] == "2"} == {
             ("2", biosample) for biosample in biosamples
         }

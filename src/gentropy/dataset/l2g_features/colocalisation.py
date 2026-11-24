@@ -1221,8 +1221,9 @@ class EnrichedStudyBiosamples:
             prioritised, see `prioritised_disease_genes`, and pooled per disease, leaving one
             chromosome out at a time.
         2. Every biosample of the specificity panels is tested for the disease's genes being more
-            specifically expressed there, by a linear regression adjusted for gene length and TSS
-            density, see `ExpressionSpecificity.enrichment`. Diseases with fewer than
+            specifically expressed there, by a linear regression adjusted for gene length,
+            protein-coding TSS density and the gene's specificity breadth in the panel, see
+            `ExpressionSpecificity.enrichment`. Diseases with fewer than
             `min_disease_genes` genes in a panel are not tested in it. All biosamples of the
             panels are tested, whether or not a QTL study uses them, so the adjusted p-values do
             not depend on which QTL studies exist.
