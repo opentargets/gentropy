@@ -2510,11 +2510,25 @@ def _biosample_release(spark: SparkSession, second_chromosome: str) -> dict[str,
                 {
                     "biosampleId": "UBERON_A",
                     "biosampleName": "UBERON_A",
-                    "descendants": ["UBERON_A1"],
+                    "children": ["UBERON_A1"],
+                    "descendants": ["UBERON_A1", "UBERON_A11", "UBERON_A111"],
                 },
                 {
                     "biosampleId": "UBERON_A1",
                     "biosampleName": "UBERON_A1",
+                    "children": ["UBERON_A11"],
+                    "descendants": ["UBERON_A11", "UBERON_A111"],
+                },
+                {
+                    "biosampleId": "UBERON_A11",
+                    "biosampleName": "UBERON_A11",
+                    "children": ["UBERON_A111"],
+                    "descendants": ["UBERON_A111"],
+                },
+                {
+                    "biosampleId": "UBERON_A111",
+                    "biosampleName": "UBERON_A111",
+                    "children": [],
                     "descendants": [],
                 },
                 {
@@ -2565,8 +2579,9 @@ class TestEQtlColocH4MaximumEnrichedBiosampleFeature:
     chromosome 1. gene0-gene7 are each the nearest gene of one credible set of study1
     (disease1). Tissue UBERON_A specifically expresses gene0-gene7, gene20 and gene25, so it is
     enriched for disease1 with either chromosome left out; tissue UBERON_B specifically
-    expresses gene10-gene13 and is not. UBERON_A1 has no specificity data but descends from
-    UBERON_A. sl0 colocalises with an eQTL for gene0 in each tissue: H4 0.6 in UBERON_A, 0.7
+    expresses gene10-gene13 and is not. UBERON_A1, its child UBERON_A11 and grandchild
+    UBERON_A111 have no specificity data and descend from UBERON_A, one, two and three levels
+    down. sl0 colocalises with an eQTL for gene0 in each tissue: H4 0.6 in UBERON_A, 0.7
     in UBERON_A1 and 0.9 in UBERON_B.
     """
 
@@ -2583,7 +2598,7 @@ class TestEQtlColocH4MaximumEnrichedBiosampleFeature:
         }
 
     def test_enriched_study_biosamples(self, datasets: dict[str, Any]) -> None:
-        """UBERON_A is enriched for disease1, and so for study1, with either chromosome left out; its descendant UBERON_A1 counts with it."""
+        """UBERON_A is enriched for disease1, and so for study1, with either chromosome left out; its descendants down to two levels count with it."""
         biosamples = EnrichedStudyBiosamples.from_release(
             datasets["study_locus"],
             min_disease_genes=4,
@@ -2592,8 +2607,10 @@ class TestEQtlColocH4MaximumEnrichedBiosampleFeature:
         assert {tuple(row) for row in biosamples.collect()} == {
             ("study1", "1", "UBERON_A"),
             ("study1", "1", "UBERON_A1"),
+            ("study1", "1", "UBERON_A11"),
             ("study1", "2", "UBERON_A"),
             ("study1", "2", "UBERON_A1"),
+            ("study1", "2", "UBERON_A11"),
         }
 
     def test_only_the_chromosomes_of_the_loci_to_annotate(
@@ -2611,6 +2628,7 @@ class TestEQtlColocH4MaximumEnrichedBiosampleFeature:
         assert {tuple(row) for row in biosamples.collect()} == {
             ("study1", "1", "UBERON_A"),
             ("study1", "1", "UBERON_A1"),
+            ("study1", "1", "UBERON_A11"),
         }
 
     def test_the_chromosome_of_the_locus_is_left_out(self, spark: SparkSession) -> None:

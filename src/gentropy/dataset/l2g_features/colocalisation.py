@@ -1213,6 +1213,7 @@ class EnrichedStudyBiosamples:
         p_value_adjusted_threshold: float = 0.01,
         min_disease_genes: int = 25,
         vep_score_threshold: float = 0.66,
+        descendant_levels: int = 2,
     ) -> EnrichedStudyBiosamples:
         """Find the biosamples whose specifically expressed genes are enriched for the diseases of each study.
 
@@ -1227,8 +1228,11 @@ class EnrichedStudyBiosamples:
             not depend on which QTL studies exist.
         3. A biosample counts as enriched for a disease below the adjusted p-value threshold in
             any panel, and for a study when it is enriched for any of the study's diseases. Its
-            descendants in the biosample index count as enriched with it, since a QTL study is
-            often of a finer tissue or cell type than the specificity data resolve.
+            descendants in the biosample index, down to `descendant_levels` levels, count as
+            enriched with it, since a QTL study is often of a finer tissue or cell type than the
+            specificity data resolve (T helper subsets sit two levels below the profiled CD4 T
+            cell). Deeper descendants are not used, so a broad term such as T cell or neuron
+            does not admit every cell type under it. Ancestors are not used.
         4. This holds per held-out chromosome, and a credible set on that chromosome only uses
             those biosamples, so that neither its own genes nor those of any other credible set
             nearby select them.
@@ -1251,10 +1255,12 @@ class EnrichedStudyBiosamples:
             min_disease_genes (int): Smallest number of genes of a panel a disease needs to be
                 tested there
             vep_score_threshold (float): Smallest `vepMaximum` that prioritises a gene
+            descendant_levels (int): Number of levels of `children` in the biosample index that
+                count as enriched with an enriched biosample
 
         Returns:
             EnrichedStudyBiosamples: Cached `studyId`, `chromosome` and `biosampleId`, one row per
-                study, held-out chromosome and enriched biosample or descendant of one
+                study, held-out chromosome and enriched biosample or close descendant of one
         """
         study_chromosomes = (
             study_locus.df.select("credibleSetId", "studyId", "chromosome")
@@ -1294,26 +1300,31 @@ class EnrichedStudyBiosamples:
             )
             .distinct()
         )
-        biosample_descendants = biosample_index.df.select(
-            "biosampleId",
-            f.explode(
-                f.array_union(
-                    f.array(f.col("biosampleId")),
-                    f.coalesce(f.col("descendants"), f.array().cast("array<string>")),
-                )
-            ).alias("qtlBiosampleId"),
+        children = biosample_index.df.select(
+            f.col("biosampleId").alias("qtlBiosampleId"),
+            f.explode("children").alias("childId"),
         )
+        # Each enriched biosample matches itself, even when missing from the index, and its
+        # descendants down to `descendant_levels` levels.
+        level = enriched_biosamples.select(
+            "biosampleId", f.col("biosampleId").alias("qtlBiosampleId")
+        ).distinct()
+        relatives = level
+        for _ in range(descendant_levels):
+            level = (
+                level.join(children, "qtlBiosampleId", "inner")
+                .select("biosampleId", f.col("childId").alias("qtlBiosampleId"))
+                .distinct()
+            )
+            relatives = relatives.unionByName(level)
         biosamples = (
             study_index.df.filter(f.col("studyType") == "gwas")
             .select("studyId", f.explode("diseaseIds").alias("diseaseId"))
             .join(study_chromosomes, "studyId", "inner")
             .join(enriched_biosamples, ["diseaseId", "chromosome"], "inner")
-            .join(biosample_descendants, "biosampleId", "left")
-            # A biosample missing from the index still matches itself.
+            .join(relatives, "biosampleId", "inner")
             .select(
-                "studyId",
-                "chromosome",
-                f.coalesce("qtlBiosampleId", "biosampleId").alias("biosampleId"),
+                "studyId", "chromosome", f.col("qtlBiosampleId").alias("biosampleId")
             )
             .distinct()
             .cache()
