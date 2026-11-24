@@ -42,8 +42,8 @@ class BigBrainPublicationMetadata(BaseModel):
     """Title of the BigBrain publication."""
     PUB_FIRST_AUTHOR: str = "Réal A, Kailash BP"
     """First author(s) of the BigBrain publication."""
-    PUB_DATE: str = "2025"
-    """Publication date of the BigBrain study."""
+    PUB_DATE: str = "2025-11-10"
+    """Publication date of the BigBrain study (PubMed electronic publication, YYYY-MM-DD)."""
     SAMPLE_SIZE: int = 10_725
     """Backfilled total sample size (10,725 samples from 4,656 donors), shared by eQTL and sQTL."""
     N_DONORS: int = 4_656

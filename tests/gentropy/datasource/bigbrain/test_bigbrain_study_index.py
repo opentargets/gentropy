@@ -100,6 +100,7 @@ class TestBigBrainStudyIndex:
             row.initialSampleSize == "10,725 samples from 4,656 donors (all ancestries)"
         )
         assert row.pubmedId == "41040686"
+        assert row.publicationDate == "2025-11-10"
         assert row.cohorts == ["BigBrain"]
         assert row.biosampleFromSourceId == "UBERON_0000955"
 
