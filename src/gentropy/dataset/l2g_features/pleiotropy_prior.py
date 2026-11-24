@@ -248,7 +248,9 @@ class GeneData:
         genes (pd.DataFrame): Output of `gene_covariates`, sorted by `geneId`
         matrix (scipy.sparse.csc_array): `genes x features` matrix, not standardised
         feature_ids (list[str]): Identifier of every column of `matrix`
-        feature_blocks (list[str]): Block of every column of `matrix`
+        feature_blocks (list[str]): Block of every column of `matrix`: its source, with the
+            expression level and specificity of a source apart
+        feature_sources (list[str]): Source of every column of `matrix`
         covariates (np.ndarray): `genes x covariates` positional covariates and source
             coverage flags
         covariate_names (list[str]): Name of every column of `covariates`
@@ -260,6 +262,7 @@ class GeneData:
     matrix: scipy.sparse.csc_array
     feature_ids: list[str]
     feature_blocks: list[str]
+    feature_sources: list[str]
     covariates: np.ndarray
     covariate_names: list[str]
     out_of_fit: np.ndarray
@@ -278,13 +281,16 @@ class GeneData:
         ):
             raise ValueError("Gene data attributes disagree on the number of genes.")
         if not (
-            self.matrix.shape[1] == len(self.feature_ids) == len(self.feature_blocks)
+            self.matrix.shape[1]
+            == len(self.feature_ids)
+            == len(self.feature_blocks)
+            == len(self.feature_sources)
         ):
             raise ValueError("Gene data attributes disagree on the number of features.")
 
 
 class PleiotropyPriorInputs:
-    """Open Targets gene data the predicted pleiotropy prior is fitted on, and the fitted prior.
+    """Open Targets gene data the predicted pleiotropy prior and approxPops are fitted on.
 
     The prior is one number per protein-coding gene saying how much the gene looks like the
     genes GWAS credible sets point to. It follows the polygenic priority score (PoPS; Weeks et
@@ -298,18 +304,23 @@ class PleiotropyPriorInputs:
     | ---------------- | ------------------------------------------ | ------------------------------------------------ |
     | GO               | `target.go[].id`, all evidence codes      | membership of each term                          |
     | Reactome         | `target.pathways[].pathwayId`              | membership of each pathway                       |
-    | PPI              | `interaction`, STRING >= 0.7, IntAct >= 0.45 by default | first-degree neighbours of each hub gene |
+    | PPI              | `interaction`, STRING >= 0.7, IntAct >= 0.5 by default | first-degree neighbours of each hub gene |
     | Mouse phenotypes | `mouse_phenotype`                          | membership of each phenotype term                |
     | Expression       | `baseline_expression`                      | level and within-source specificity per context |
-    | Constraint       | `target.constraint`                        | LoF oe, oeUpper, score; missense oe, score; synonymous score |
+    | Constraint       | `target.constraint`                        | LoF oeUpper (LOEUF); missense oe, score; synonymous score |
     | Essentiality     | `target_essentiality.isEssential`          | 0/1                                              |
 
     Binary blocks keep terms with `min_term_size` to `max_term_size` (10 to 2,000 by default)
     member genes, counted among protein-coding genes. After standardisation a member of an
     `m`-gene term out of `n` genes gets `sqrt((n - m) / m)`, about 45 at `m = 10` and 3.6 at
     `m = 1,400`, so the smallest terms kept carry the largest values and the lower cutoff
-    matters more than the upper one. Missing constraint values take the mean of the genes that
-    have one. Every column is standardised across all genes, those kept out of the fit
+    matters more than the upper one. The observed/expected ratios (LOEUF and missense oe) are
+    capped at 2: above it sit tiny genes with a handful of expected variants, whose ratios
+    gnomAD flags as unreliable and which would otherwise lead the top principal components.
+    The LoF point estimate and pLI-like score are left out, LOEUF being the recommended LoF
+    metric. Missing constraint values take the mean of the genes that have one, which is 0 after
+    standardisation, so they add nothing to the kernel; the constraint coverage flag marks the
+    genes with a LOEUF. Every column is standardised across all genes, those kept out of the fit
     included, and columns without variance are dropped; there is no block weighting and no
     feature selection.
 
@@ -333,23 +344,24 @@ class PleiotropyPriorInputs:
     Before the components are taken, every feature is weighted by `1 / sqrt(block size)`, so
     each block (GO, Reactome, PPI, mouse phenotypes, expression level and specificity per
     source, constraint, essentiality) carries the same total variance; otherwise the 12,000 PPI
-    columns would dominate. As for the prior, the genes kept out of the fit are scored but do
-    not enter it; for approxPops the features are standardised over the fitted genes only.
+    columns would dominate. With `approx_pops_group_expression_by_source`, the level and
+    specificity of a source form one block, so expression has four blocks rather than eight.
+    As for the prior, the genes kept out of the fit are scored but do not enter it; for
+    approxPops the features are standardised over the fitted genes only.
 
-    Each fit runs once, the first time a feature asks for it, and is kept for the other feature
-    of the same run; the gene features are collected once for both. The fits run on the Spark
-    driver: the kernel over about 20,000 genes takes 3.2 GB and each fold holds a copy of its
-    training block and its eigenvectors on top, so peak memory is about 12 GB.
+    The fits run on the Spark driver, from
+    [`PleiotropyPriorScores.from_release`][gentropy.dataset.l2g_features.pleiotropy_prior.PleiotropyPriorScores.from_release]:
+    the kernel over about 20,000 genes takes 1.6 GB in single precision, and each fold holds a
+    copy of its training block and its eigenvectors on top.
     """
 
     CONSTRAINT_FEATURES = (
-        ("lof", "oe"),
         ("lof", "oeUpper"),
-        ("lof", "score"),
         ("mis", "oe"),
         ("mis", "score"),
         ("syn", "score"),
     )
+    CONSTRAINT_CAPS = {("lof", "oeUpper"): 2.0, ("mis", "oe"): 2.0}
 
     def __init__(
         self: PleiotropyPriorInputs,
@@ -362,9 +374,10 @@ class PleiotropyPriorInputs:
         min_term_size: int = 10,
         max_term_size: int = 2_000,
         string_min_score: float = 0.7,
-        intact_min_score: float = 0.45,
+        intact_min_score: float = 0.5,
         approx_pops_min_genes: int = 100,
         approx_pops_components: int = 100,
+        approx_pops_group_expression_by_source: bool = False,
     ) -> None:
         """Hold the gene data of a release.
 
@@ -384,6 +397,9 @@ class PleiotropyPriorInputs:
                 approxPops score
             approx_pops_components (int): Number of principal components of the gene features
                 approxPops regresses on
+            approx_pops_group_expression_by_source (bool): Whether the expression level and
+                specificity of a source form one block of the approxPops weighting, rather than
+                two
         """
         self.interactions = interactions
         self.mouse_phenotype = mouse_phenotype
@@ -396,9 +412,9 @@ class PleiotropyPriorInputs:
         self.intact_min_score = intact_min_score
         self.approx_pops_min_genes = approx_pops_min_genes
         self.approx_pops_components = approx_pops_components
-        self._scores: DataFrame | None = None
-        self._approx_pops: DataFrame | None = None
-        self._gene_data: GeneData | None = None
+        self.approx_pops_group_expression_by_source = (
+            approx_pops_group_expression_by_source
+        )
 
     def gene_features(
         self: PleiotropyPriorInputs, genes: DataFrame, target_index: TargetIndex
@@ -414,8 +430,8 @@ class PleiotropyPriorInputs:
         gives it no feature column.
 
         Returns:
-            tuple[DataFrame, DataFrame]: Features as `geneId`, `featureId`, `block`, `value`
-                rows, and coverage as distinct `geneId`, `source` pairs
+            tuple[DataFrame, DataFrame]: Features as `geneId`, `featureId`, `source`, `block`,
+                `value` rows, and coverage as distinct `geneId`, `source` pairs
         """
         background = genes.select("geneId")
         targets = target_index.df.withColumnRenamed("id", "geneId").join(
@@ -453,6 +469,7 @@ class PleiotropyPriorInputs:
             .select(
                 "geneId",
                 f.concat_ws(":", "source", "term").alias("featureId"),
+                "source",
                 f.col("source").alias("block"),
                 f.lit(1.0).alias("value"),
             )
@@ -464,11 +481,12 @@ class PleiotropyPriorInputs:
         essentiality = self.target_essentiality.select(
             f.col("targetId").alias("geneId"),
             f.lit(f"{essentiality_source}:isEssential").alias("featureId"),
+            f.lit(essentiality_source).alias("source"),
             f.lit(essentiality_source).alias("block"),
             f.col("isEssential").cast("double").alias("value"),
         ).join(background, "geneId", "semi")
 
-        columns = ["geneId", "featureId", "block", "value"]
+        columns = ["geneId", "featureId", "source", "block", "value"]
         features = (
             binary.unionByName(expression.select(*columns))
             .unionByName(constraint)
@@ -478,7 +496,12 @@ class PleiotropyPriorInputs:
             memberships.select("geneId", "source")
             .unionByName(expression.select("geneId", "source"))
             .unionByName(
-                targets.filter(f.size("constraint") > 0).select(
+                targets.select("geneId", f.explode("constraint").alias("constraint"))
+                .filter(
+                    (f.col("constraint.constraintType") == "lof")
+                    & f.col("constraint.oeUpper").isNotNull()
+                )
+                .select(
                     "geneId", f.lit(GeneFeatureSource.CONSTRAINT.value).alias("source")
                 )
             )
@@ -590,14 +613,14 @@ class PleiotropyPriorInputs:
     def _constraint(
         self: PleiotropyPriorInputs, targets: DataFrame, background: DataFrame
     ) -> DataFrame:
-        """Constraint metrics of every background gene, missing values set to the mean.
+        """Constraint metrics of every background gene, capped, missing values set to the mean.
 
         Args:
             targets (DataFrame): Target index rows of the background genes, `id` as `geneId`
             background (DataFrame): Background genes, with a `geneId` column
 
         Returns:
-            DataFrame: `geneId`, `featureId`, `block` and `value`
+            DataFrame: `geneId`, `featureId`, `source`, `block` and `value`
         """
         source = GeneFeatureSource.CONSTRAINT.value
         constraints = targets.select(
@@ -609,7 +632,18 @@ class PleiotropyPriorInputs:
                 constraints.filter(f.col("constraintType") == constraint_type).select(
                     "geneId",
                     f.lit(f"{source}:{constraint_type}:{field}").alias("featureId"),
-                    f.col(field).cast("double").alias("observed"),
+                    # `least` skips nulls, so a missing value must stay null explicitly.
+                    (
+                        f.when(
+                            f.col(field).isNotNull(),
+                            f.least(
+                                f.col(field).cast("double"),
+                                f.lit(self.CONSTRAINT_CAPS[(constraint_type, field)]),
+                            ),
+                        )
+                        if (constraint_type, field) in self.CONSTRAINT_CAPS
+                        else f.col(field).cast("double")
+                    ).alias("observed"),
                 )
                 for constraint_type, field in self.CONSTRAINT_FEATURES
             ],
@@ -633,6 +667,7 @@ class PleiotropyPriorInputs:
             .select(
                 "geneId",
                 "featureId",
+                f.lit(source).alias("source"),
                 f.lit(source).alias("block"),
                 f.coalesce(
                     f.col("observed"),
@@ -641,31 +676,7 @@ class PleiotropyPriorInputs:
             )
         )
 
-    def scores(
-        self: PleiotropyPriorInputs,
-        study_locus: CredibleSetLocus,
-        study_index: StudyIndex,
-        variant_index: VariantIndex,
-        target_index: TargetIndex,
-    ) -> DataFrame:
-        """Return the prior of every background gene, fitted on the first call and reused after.
-
-        Args:
-            study_locus (CredibleSetLocus): All credible sets of the release, the source of the target
-            study_index (StudyIndex): Study index, used to resolve a study to its diseases
-            variant_index (VariantIndex): Variant index, the source of the distances to genes
-            target_index (TargetIndex): Target index
-
-        Returns:
-            DataFrame: `geneId` and `predictedPleiotropyPrior`
-        """
-        if self._scores is None:
-            self._scores = self._fit(
-                study_locus, study_index, variant_index, target_index
-            )
-        return self._scores
-
-    def _load_gene_data(
+    def load_gene_data(
         self: PleiotropyPriorInputs, target_index: TargetIndex
     ) -> GeneData:
         """Collect the background genes, their covariates and their features on the driver.
@@ -676,8 +687,6 @@ class PleiotropyPriorInputs:
         Returns:
             GeneData: Genes, covariates and the sparse feature matrix, in the same gene order
         """
-        if self._gene_data is not None:
-            return self._gene_data
         spark = target_index.df.sparkSession
         with arrow_transfers(spark):
             genes = (
@@ -695,7 +704,7 @@ class PleiotropyPriorInputs:
                 spark.createDataFrame(genes[["geneId"]]), target_index
             )
             columns = (
-                features.select("featureId", "block")
+                features.select("featureId", "source", "block")
                 .distinct()
                 .toPandas()
                 .sort_values("featureId")
@@ -744,27 +753,29 @@ class PleiotropyPriorInputs:
             )
             | genes["chromosome"].isin(UNFITTED_CHROMOSOMES)
         ).to_numpy()
-        self._gene_data = GeneData(
+        return GeneData(
             genes=genes,
             matrix=matrix,
             feature_ids=columns["featureId"].tolist(),
             feature_blocks=columns["block"].tolist(),
+            feature_sources=columns["source"].tolist(),
             covariates=covariates,
             covariate_names=["logGeneLength", "logNeighbouringGenes", *flags.columns],
             out_of_fit=out_of_fit,
         )
-        return self._gene_data
 
-    def _fit(
+    def fit_prior(
         self: PleiotropyPriorInputs,
+        data: GeneData,
         study_locus: CredibleSetLocus,
         study_index: StudyIndex,
         variant_index: VariantIndex,
         target_index: TargetIndex,
     ) -> DataFrame:
-        """Collect the target, features and covariates, fit the prior on the driver.
+        """Fit the predicted pleiotropy prior on the driver.
 
         Args:
+            data (GeneData): Gene data, from `load_gene_data`
             study_locus (CredibleSetLocus): All credible sets of the release
             study_index (StudyIndex): Study index
             variant_index (VariantIndex): Variant index
@@ -774,7 +785,6 @@ class PleiotropyPriorInputs:
             DataFrame: `geneId` and `predictedPleiotropyPrior`
         """
         spark = study_locus.df.sparkSession
-        data = self._load_gene_data(target_index)
         with arrow_transfers(spark):
             counts = (
                 nearest_gene_disease_counts(
@@ -824,32 +834,9 @@ class PleiotropyPriorInputs:
                 schema="geneId string, predictedPleiotropyPrior double",
             )
 
-    def approx_pops_scores(
+    def fit_approx_pops(
         self: PleiotropyPriorInputs,
-        study_locus: CredibleSetLocus,
-        study_index: StudyIndex,
-        variant_index: VariantIndex,
-        target_index: TargetIndex,
-    ) -> DataFrame:
-        """Return the approxPops score of every gene for every disease, fitted once and reused.
-
-        Args:
-            study_locus (CredibleSetLocus): All credible sets of the release, the source of the labels
-            study_index (StudyIndex): Study index, used to resolve a study to its diseases
-            variant_index (VariantIndex): Variant index, the source of the distances to genes
-            target_index (TargetIndex): Target index
-
-        Returns:
-            DataFrame: `geneId`, `diseaseId` and `approxPops`
-        """
-        if self._approx_pops is None:
-            self._approx_pops = self._fit_approx_pops(
-                study_locus, study_index, variant_index, target_index
-            )
-        return self._approx_pops
-
-    def _fit_approx_pops(
-        self: PleiotropyPriorInputs,
+        data: GeneData,
         study_locus: CredibleSetLocus,
         study_index: StudyIndex,
         variant_index: VariantIndex,
@@ -858,6 +845,7 @@ class PleiotropyPriorInputs:
         """Fit approxPops on the driver.
 
         Args:
+            data (GeneData): Gene data, from `load_gene_data`
             study_locus (CredibleSetLocus): All credible sets of the release
             study_index (StudyIndex): Study index
             variant_index (VariantIndex): Variant index
@@ -871,7 +859,6 @@ class PleiotropyPriorInputs:
         empty = spark.createDataFrame(
             [], "geneId string, diseaseId string, approxPops double"
         )
-        data = self._load_gene_data(target_index)
         fitted = ~data.out_of_fit
         # Fitted genes first, so that the kernel splits into contiguous blocks.
         order = np.concatenate([np.flatnonzero(fitted), np.flatnonzero(~fitted)])
@@ -904,7 +891,11 @@ class PleiotropyPriorInputs:
         matrix = data.matrix[order]
         reference_rows = np.arange(len(order)) < n_fit
         varying = PleiotropyPrior.varying_columns(matrix, reference_rows)
-        blocks = pd.Series(data.feature_blocks)
+        blocks = pd.Series(
+            data.feature_sources
+            if self.approx_pops_group_expression_by_source
+            else data.feature_blocks
+        )
         block_size = blocks.map(blocks[varying].value_counts()).fillna(1)
         kernel, n_features = PleiotropyPrior.accumulate_kernel(
             matrix,
@@ -978,6 +969,73 @@ class PleiotropyPriorInputs:
         )
 
 
+@dataclass
+class PleiotropyPriorScores:
+    """Fitted gene priors the pleiotropy prior features join to their genes.
+
+    Attributes:
+        prior (DataFrame | None): `geneId` and `predictedPleiotropyPrior`; None when not fitted
+        approx_pops (DataFrame | None): `geneId`, `diseaseId` and `approxPops`; None when not
+            fitted
+    """
+
+    prior: DataFrame | None = None
+    approx_pops: DataFrame | None = None
+
+    @classmethod
+    def from_release(
+        cls: type[PleiotropyPriorScores],
+        inputs: PleiotropyPriorInputs,
+        features_list: list[str],
+        *,
+        study_locus: CredibleSetLocus,
+        study_index: StudyIndex,
+        variant_index: VariantIndex,
+        target_index: TargetIndex,
+    ) -> PleiotropyPriorScores:
+        """Fit the priors the requested features need, collecting the gene data once.
+
+        Args:
+            inputs (PleiotropyPriorInputs): Gene data and settings of the fits
+            features_list (list[str]): Requested L2G features
+            study_locus (CredibleSetLocus): All credible sets of the release, the source of the
+                targets and labels
+            study_index (StudyIndex): Study index, used to resolve a study to its diseases
+            variant_index (VariantIndex): Variant index, the source of the distances to genes
+            target_index (TargetIndex): Target index
+
+        Returns:
+            PleiotropyPriorScores: The fitted priors, None for those no requested feature needs
+        """
+        requested = set(features_list)
+        needs_prior = bool(
+            requested
+            & {
+                PredictedPleiotropyPriorFeature.feature_name,
+                PredictedPleiotropyPriorNeighbourhoodFeature.feature_name,
+            }
+        )
+        needs_approx_pops = bool(
+            requested
+            & {
+                ApproxPopsFeature.feature_name,
+                ApproxPopsNeighbourhoodFeature.feature_name,
+            }
+        )
+        if not (needs_prior or needs_approx_pops):
+            return cls()
+        data = inputs.load_gene_data(target_index)
+        fit_arguments = (study_locus, study_index, variant_index, target_index)
+        return cls(
+            prior=inputs.fit_prior(data, *fit_arguments) if needs_prior else None,
+            approx_pops=(
+                inputs.fit_approx_pops(data, *fit_arguments)
+                if needs_approx_pops
+                else None
+            ),
+        )
+
+
 def protein_coding_genes_in_window(
     study_loci_to_annotate: CredibleSetLocus | L2GGoldStandard,
     variant_index: VariantIndex,
@@ -1048,11 +1106,8 @@ def common_pleiotropy_prior_feature_logic(
     study_loci_to_annotate: CredibleSetLocus | L2GGoldStandard,
     feature_name: str,
     *,
-    pleiotropy_prior_inputs: PleiotropyPriorInputs,
-    study_locus: CredibleSetLocus,
-    study_index: StudyIndex,
+    pleiotropy_prior_scores: PleiotropyPriorScores,
     variant_index: VariantIndex,
-    target_index: TargetIndex,
     genomic_window: int,
 ) -> DataFrame:
     """Attach the predicted pleiotropy prior to every protein-coding gene of a credible set.
@@ -1068,20 +1123,20 @@ def common_pleiotropy_prior_feature_logic(
         study_loci_to_annotate (CredibleSetLocus | L2GGoldStandard): The dataset containing study loci
             that will be used for annotation
         feature_name (str): The name of the feature
-        pleiotropy_prior_inputs (PleiotropyPriorInputs): Gene data the prior is fitted on
-        study_locus (CredibleSetLocus): All credible sets, the source of the target
-        study_index (StudyIndex): Study index, used to resolve a study to its diseases
+        pleiotropy_prior_scores (PleiotropyPriorScores): Fitted priors
         variant_index (VariantIndex): Variant index, the source of the distances to genes
-        target_index (TargetIndex): Target index
         genomic_window (int): Largest distance between a credible-set variant and a gene
             footprint
 
     Returns:
         DataFrame: Feature dataset with one row per credible set and scored gene in its window
+
+    Raises:
+        ValueError: If the predicted pleiotropy prior was not fitted
     """
-    scores = pleiotropy_prior_inputs.scores(
-        study_locus, study_index, variant_index, target_index
-    )
+    scores = pleiotropy_prior_scores.prior
+    if scores is None:
+        raise ValueError("The predicted pleiotropy prior was not fitted.")
     average = scores.agg(f.mean("predictedPleiotropyPrior").alias("averagePrior"))
     return (
         protein_coding_genes_in_window(
@@ -1130,11 +1185,9 @@ def common_approx_pops_feature_logic(
     study_loci_to_annotate: CredibleSetLocus | L2GGoldStandard,
     feature_name: str,
     *,
-    pleiotropy_prior_inputs: PleiotropyPriorInputs,
-    study_locus: CredibleSetLocus,
+    pleiotropy_prior_scores: PleiotropyPriorScores,
     study_index: StudyIndex,
     variant_index: VariantIndex,
-    target_index: TargetIndex,
     genomic_window: int,
 ) -> DataFrame:
     """Attach to every protein-coding gene of a credible set its approxPops score for the study.
@@ -1151,20 +1204,21 @@ def common_approx_pops_feature_logic(
         study_loci_to_annotate (CredibleSetLocus | L2GGoldStandard): The dataset containing study loci
             that will be used for annotation
         feature_name (str): The name of the feature
-        pleiotropy_prior_inputs (PleiotropyPriorInputs): Gene data the scores are fitted on
-        study_locus (CredibleSetLocus): All credible sets, the source of the labels
+        pleiotropy_prior_scores (PleiotropyPriorScores): Fitted priors
         study_index (StudyIndex): Study index, used to resolve a study to its diseases
         variant_index (VariantIndex): Variant index, the source of the distances to genes
-        target_index (TargetIndex): Target index
         genomic_window (int): Largest distance between a credible-set variant and a gene
             footprint
 
     Returns:
         DataFrame: Feature dataset with one row per credible set and scored gene in its window
+
+    Raises:
+        ValueError: If approxPops was not fitted
     """
-    scores = pleiotropy_prior_inputs.approx_pops_scores(
-        study_locus, study_index, variant_index, target_index
-    )
+    scores = pleiotropy_prior_scores.approx_pops
+    if scores is None:
+        raise ValueError("approxPops was not fitted.")
     study_diseases = (
         study_loci_to_annotate.df.select("credibleSetId", "studyId")
         .join(
@@ -1214,13 +1268,7 @@ def common_neighbourhood_approx_pops_feature_logic(
 class PredictedPleiotropyPriorFeature(L2GFeature):
     """How much a gene looks, by its Open Targets gene data, like the nearest genes of GWAS loci."""
 
-    feature_dependency_type = [
-        PleiotropyPriorInputs,
-        CredibleSetLocus,
-        StudyIndex,
-        VariantIndex,
-        TargetIndex,
-    ]
+    feature_dependency_type = [PleiotropyPriorScores, VariantIndex]
     feature_name = "predictedPleiotropyPrior"
     genomic_window: int = GENE_FOOTPRINT_WINDOW
 
@@ -1234,7 +1282,7 @@ class PredictedPleiotropyPriorFeature(L2GFeature):
 
         Args:
             study_loci_to_annotate (CredibleSetLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
-            feature_dependency (dict[str, Any]): The gene data of the prior, the credible sets, studies, variants and genes
+            feature_dependency (dict[str, Any]): The fitted priors and the variant index
 
         Returns:
             PredictedPleiotropyPriorFeature: Feature dataset
@@ -1258,13 +1306,7 @@ class PredictedPleiotropyPriorFeature(L2GFeature):
 class PredictedPleiotropyPriorNeighbourhoodFeature(L2GFeature):
     """Predicted pleiotropy prior of a gene rescaled between the lowest and highest at the locus."""
 
-    feature_dependency_type = [
-        PleiotropyPriorInputs,
-        CredibleSetLocus,
-        StudyIndex,
-        VariantIndex,
-        TargetIndex,
-    ]
+    feature_dependency_type = [PleiotropyPriorScores, VariantIndex]
     feature_name = "predictedPleiotropyPriorNeighbourhood"
     genomic_window: int = GENE_FOOTPRINT_WINDOW
 
@@ -1278,7 +1320,7 @@ class PredictedPleiotropyPriorNeighbourhoodFeature(L2GFeature):
 
         Args:
             study_loci_to_annotate (CredibleSetLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
-            feature_dependency (dict[str, Any]): The gene data of the prior, the credible sets, studies, variants and genes
+            feature_dependency (dict[str, Any]): The fitted priors and the variant index
 
         Returns:
             PredictedPleiotropyPriorNeighbourhoodFeature: Feature dataset
@@ -1302,13 +1344,7 @@ class PredictedPleiotropyPriorNeighbourhoodFeature(L2GFeature):
 class ApproxPopsFeature(L2GFeature):
     """How much a gene looks, by its Open Targets gene data, like the nearest genes of the study's disease."""
 
-    feature_dependency_type = [
-        PleiotropyPriorInputs,
-        CredibleSetLocus,
-        StudyIndex,
-        VariantIndex,
-        TargetIndex,
-    ]
+    feature_dependency_type = [PleiotropyPriorScores, StudyIndex, VariantIndex]
     feature_name = "approxPops"
     genomic_window: int = GENE_FOOTPRINT_WINDOW
 
@@ -1322,7 +1358,7 @@ class ApproxPopsFeature(L2GFeature):
 
         Args:
             study_loci_to_annotate (CredibleSetLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
-            feature_dependency (dict[str, Any]): The gene data of the prior, the credible sets, studies, variants and genes
+            feature_dependency (dict[str, Any]): The fitted priors, the study index and the variant index
 
         Returns:
             ApproxPopsFeature: Feature dataset
@@ -1346,13 +1382,7 @@ class ApproxPopsFeature(L2GFeature):
 class ApproxPopsNeighbourhoodFeature(L2GFeature):
     """approxPops score of a gene rescaled between the lowest and highest at the locus."""
 
-    feature_dependency_type = [
-        PleiotropyPriorInputs,
-        CredibleSetLocus,
-        StudyIndex,
-        VariantIndex,
-        TargetIndex,
-    ]
+    feature_dependency_type = [PleiotropyPriorScores, StudyIndex, VariantIndex]
     feature_name = "approxPopsNeighbourhood"
     genomic_window: int = GENE_FOOTPRINT_WINDOW
 
@@ -1366,7 +1396,7 @@ class ApproxPopsNeighbourhoodFeature(L2GFeature):
 
         Args:
             study_loci_to_annotate (CredibleSetLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
-            feature_dependency (dict[str, Any]): The gene data of the prior, the credible sets, studies, variants and genes
+            feature_dependency (dict[str, Any]): The fitted priors, the study index and the variant index
 
         Returns:
             ApproxPopsNeighbourhoodFeature: Feature dataset

@@ -36,7 +36,7 @@ class ApproxPopsFit:
 
     Attributes:
         scores (np.ndarray): `genes x diseases` leave-one-out scores, z-scored within each
-            disease, for the diseases that pass the AUC filter
+            disease and clipped to `[-cap, cap]`, for the diseases that pass the AUC filter
         held_out_scores (np.ndarray): `held-out genes x diseases` scores of the genes kept out
             of the fit, on the same scale as `scores`; no rows when none were given
         kept (np.ndarray): Which of the input diseases pass the filter
@@ -460,6 +460,18 @@ class PleiotropyPrior:
         )
 
     @staticmethod
+    def z_cap(n_genes: int) -> float:
+        """Bound the approxPops z-scores are clipped to, `sqrt(2 ln n)`.
+
+        Args:
+            n_genes (int): Number of fitted genes
+
+        Returns:
+            float: The bound
+        """
+        return float(np.sqrt(2 * np.log(n_genes)))
+
+    @staticmethod
     def auc_with_lower_bound(
         scores: np.ndarray, labels: np.ndarray
     ) -> tuple[np.ndarray, np.ndarray]:
@@ -535,6 +547,13 @@ class PleiotropyPrior:
         the genes kept out of the fit take the same mean and standard deviation. A disease
         whose scores do not vary is dropped.
 
+        The z-scores are finally clipped to `[-c, c]` with `c = sqrt(2 ln n)`, about 4.45 for
+        20,000 genes: roughly the largest value `n` normal draws reach, so a disease whose
+        scores are close to normal is barely touched and only an excess tail is cut. Without
+        it, a disease with a heavy tail would win the maximum over a study's diseases by its
+        shape rather than its fit, and a single extreme gene would squeeze the other genes of
+        its locus towards 0 in the within-locus scaling.
+
         Args:
             eigenvalues (np.ndarray): Eigenvalues `s` of the top components
             eigenvectors (np.ndarray): `genes x k` eigenvectors `U`
@@ -569,15 +588,22 @@ class PleiotropyPrior:
         mean = loo.mean(axis=0)
         sd = loo.std(axis=0)
         kept = (lower > 0.5) & cls.non_constant(mean, sd)
-        scores = (loo[:, kept] - mean[kept]) / sd[kept]
+        cap = cls.z_cap(n)
+        scores = np.clip((loo[:, kept] - mean[kept]) / sd[kept], -cap, cap)
         if held_out_kernel is None:
             held_out_scores = np.zeros((0, int(kept.sum())))
         else:
             coefficients = eigenvectors @ (projected / (s[:, None] + penalty))
-            held_out_scores = (
-                np.asarray(held_out_kernel, dtype=np.float64) @ coefficients[:, kept]
-                - mean[kept]
-            ) / sd[kept]
+            held_out_scores = np.clip(
+                (
+                    np.asarray(held_out_kernel, dtype=np.float64)
+                    @ coefficients[:, kept]
+                    - mean[kept]
+                )
+                / sd[kept],
+                -cap,
+                cap,
+            )
         return ApproxPopsFit(
             scores=scores,
             held_out_scores=held_out_scores,

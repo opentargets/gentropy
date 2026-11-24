@@ -330,22 +330,28 @@ class TestApproxPops:
                 for g in range(60)
             ]
         )
-        expected = (refitted - refitted.mean()) / refitted.std()
+        cap = PleiotropyPrior.z_cap(60)
+        expected = np.clip((refitted - refitted.mean()) / refitted.std(), -cap, cap)
         np.testing.assert_allclose(fit.scores[:, 0], expected, atol=1e-4)
 
     def test_noise_disease_is_dropped_and_scores_are_standardised(
         self: TestApproxPops, toy: dict[str, np.ndarray]
     ) -> None:
-        """Only the predictable disease passes the AUC filter, and its scores are z-scores."""
+        """Only the predictable disease passes the AUC filter; its z-scores are clipped."""
         fit = PleiotropyPrior.approx_pops(
             toy["eigenvalues"], toy["eigenvectors"], toy["labels"]
         )
         assert fit.kept.tolist() == [True, False]
         assert fit.scores.shape == (60, 1)
         assert fit.auc_lower_bound[1] <= 0.5
-        np.testing.assert_allclose(fit.scores.mean(axis=0), 0.0, atol=1e-10)
-        np.testing.assert_allclose(fit.scores.std(axis=0), 1.0)
+        assert np.abs(fit.scores).max() <= PleiotropyPrior.z_cap(60)
+        unclipped = np.abs(fit.scores) < PleiotropyPrior.z_cap(60)
+        assert unclipped.mean() > 0.9
         assert fit.held_out_scores.shape == (0, 1)
+
+    def test_z_cap(self: TestApproxPops) -> None:
+        """The cap is sqrt(2 ln n), about 4.45 for 20,000 genes."""
+        assert PleiotropyPrior.z_cap(20_000) == pytest.approx(4.45, abs=0.01)
 
     def test_genes_out_of_the_fit_get_the_fitted_ridge_prediction(
         self: TestApproxPops, toy: dict[str, np.ndarray]
@@ -376,9 +382,10 @@ class TestApproxPops:
                 for g in range(60)
             ]
         )
+        cap = PleiotropyPrior.z_cap(60)
         np.testing.assert_allclose(
             fit.held_out_scores[:, 0],
-            (in_sample - refitted_loo.mean()) / refitted_loo.std(),
+            np.clip((in_sample - refitted_loo.mean()) / refitted_loo.std(), -cap, cap),
             atol=1e-4,
         )
 

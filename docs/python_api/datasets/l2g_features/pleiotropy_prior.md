@@ -12,6 +12,7 @@ title: Predicted pleiotropy prior features
 ## Gene prior
 
 ::: gentropy.dataset.l2g_features.pleiotropy_prior.PleiotropyPriorInputs
+::: gentropy.dataset.l2g_features.pleiotropy_prior.PleiotropyPriorScores
 ::: gentropy.dataset.l2g_features.pleiotropy_prior.GeneData
 ::: gentropy.dataset.l2g_features.pleiotropy_prior.GeneFeatureSource
 ::: gentropy.dataset.l2g_features.pleiotropy_prior.nearest_gene_diseases

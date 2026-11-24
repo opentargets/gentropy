@@ -22,7 +22,10 @@ from gentropy.dataset.intervals import Intervals
 from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
 from gentropy.dataset.l2g_features.colocalisation import EnrichedStudyBiosamples
 from gentropy.dataset.l2g_features.pathway import PathwayEnrichmentScores
-from gentropy.dataset.l2g_features.pleiotropy_prior import PleiotropyPriorInputs
+from gentropy.dataset.l2g_features.pleiotropy_prior import (
+    PleiotropyPriorInputs,
+    PleiotropyPriorScores,
+)
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
 from gentropy.dataset.l2g_prediction import L2GPrediction
 from gentropy.dataset.locus_overlap import LocusOverlap
@@ -87,9 +90,10 @@ class LocusToGeneFeatureMatrixStep:
         pleiotropy_prior_min_term_size: int = 10,
         pleiotropy_prior_max_term_size: int = 2_000,
         pleiotropy_prior_string_min_score: float = 0.7,
-        pleiotropy_prior_intact_min_score: float = 0.45,
+        pleiotropy_prior_intact_min_score: float = 0.5,
         approx_pops_min_genes: int = 100,
         approx_pops_components: int = 100,
+        approx_pops_group_expression_by_source: bool = False,
     ) -> None:
         """Initialise the step and run the logic based on mode.
 
@@ -147,6 +151,8 @@ class LocusToGeneFeatureMatrixStep:
                 approxPops score
             approx_pops_components (int): Number of principal components of the gene features
                 approxPops regresses on
+            approx_pops_group_expression_by_source (bool): Whether the expression level and
+                specificity of a source form one block of the approxPops weighting
 
         Raises:
             ValueError: If a requested feature is missing one of its inputs
@@ -252,6 +258,7 @@ class LocusToGeneFeatureMatrixStep:
                 intact_min_score=pleiotropy_prior_intact_min_score,
                 approx_pops_min_genes=approx_pops_min_genes,
                 approx_pops_components=approx_pops_components,
+                approx_pops_group_expression_by_source=approx_pops_group_expression_by_source,
             )
 
         trans_pqtl_features = {
@@ -288,7 +295,7 @@ class LocusToGeneFeatureMatrixStep:
             )
 
         pleiotropy_prior_features = FeatureFactory.features_depending_on(
-            PleiotropyPriorInputs
+            PleiotropyPriorScores
         )
         if pleiotropy_prior_features.intersection(features_list) and (
             pleiotropy_prior_inputs is None
@@ -370,6 +377,24 @@ class LocusToGeneFeatureMatrixStep:
             else None
         )
 
+        # Both priors are fitted once here, and only those a requested feature needs.
+        pleiotropy_prior_scores = (
+            PleiotropyPriorScores.from_release(
+                pleiotropy_prior_inputs,
+                features_list,
+                study_locus=credible_set,
+                study_index=studies,
+                variant_index=variant_index,
+                target_index=target_index,
+            )
+            if pleiotropy_prior_features.intersection(features_list)
+            and pleiotropy_prior_inputs is not None
+            and studies is not None
+            and variant_index is not None
+            and target_index is not None
+            else None
+        )
+
         features_input_loader = L2GFeatureInputLoader(
             variant_index=variant_index,
             colocalisation=coloc,
@@ -380,7 +405,7 @@ class LocusToGeneFeatureMatrixStep:
             interactions=interactions,
             pathway_scores=pathway_scores,
             enriched_biosamples=enriched_biosamples,
-            pleiotropy_prior_inputs=pleiotropy_prior_inputs,
+            pleiotropy_prior_scores=pleiotropy_prior_scores,
         )
 
         fm = study_loci_to_annotate.build_feature_matrix(
