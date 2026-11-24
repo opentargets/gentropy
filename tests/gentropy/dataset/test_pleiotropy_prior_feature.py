@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import math
 from typing import Any
 
@@ -65,7 +66,12 @@ def _target_index(spark: SparkSession, genes: list[tuple[Any, ...]]) -> TargetIn
         ).select(
             "id",
             "biotype",
-            f.struct("chromosome", "start", "end").alias("genomicLocation"),
+            f.struct(
+                "chromosome",
+                "start",
+                "end",
+                f.lit(1).cast("integer").alias("strand"),
+            ).alias("genomicLocation"),
             "tss",
         ),
         _schema=TargetIndex.get_schema(),
@@ -111,6 +117,17 @@ def _variants(
             VARIANT_SCHEMA,
         ),
         _schema=VariantIndex.get_schema(),
+    )
+
+
+def _unfitted_inputs(spark: SparkSession) -> PleiotropyPriorInputs:
+    """Inputs with empty gene data, for tests that set the fitted scores directly."""
+    empty = spark.createDataFrame([], "x int")
+    return PleiotropyPriorInputs(
+        interactions=empty,
+        mouse_phenotype=empty,
+        baseline_expression=empty,
+        target_essentiality=empty,
     )
 
 
@@ -257,9 +274,9 @@ class TestPleiotropyPriorTarget:
 class TestPleiotropyPriorFeatureLogic:
     """Test how the gene prior becomes features, with the prior fixed in advance.
 
-    The scores cover gene1 (0.6), gene2 (-0.2), gene3 (-0.4), gene5 (2.0) and gene7 (0.1).
-    The lead variant of sl1 reaches genes 1 to 6: gene4 is protein coding but has no score,
-    gene5 has a non-coding biotype, and gene6 is more than 500 kb away. gene7 is reached only
+    The scores cover gene1 (0.6), gene2 (-0.2), gene3 (-0.4), gene5 (2.0) and gene7 (0.1),
+    mean 0.42. The lead variant of sl1 reaches genes 1 to 6: gene4 is protein coding but has no
+    score, gene5 has a non-coding biotype, and gene6 is more than 500 kb away. gene7 is reached only
     through the second variant of sl1. sl2 only reaches gene3.
     """
 
@@ -268,7 +285,7 @@ class TestPleiotropyPriorFeatureLogic:
         self: TestPleiotropyPriorFeatureLogic, spark: SparkSession
     ) -> dict[str, Any]:
         """Fitted scores, two credible sets and the genes around their variants."""
-        inputs = PleiotropyPriorInputs(*[spark.createDataFrame([], "x int")] * 4)
+        inputs = _unfitted_inputs(spark)
         inputs._scores = spark.createDataFrame(
             [
                 ("gene1", 0.6),
@@ -310,7 +327,7 @@ class TestPleiotropyPriorFeatureLogic:
     def test_local_feature_is_the_gene_score(
         self: TestPleiotropyPriorFeatureLogic, dependencies: dict[str, Any]
     ) -> None:
-        """One row per credible set and scored protein-coding gene in the window."""
+        """One row per credible set and protein-coding gene in the window; unscored at the mean."""
         feature = PredictedPleiotropyPriorFeature.compute(
             study_loci_to_annotate=dependencies["study_locus"],
             feature_dependency=dependencies,
@@ -319,15 +336,16 @@ class TestPleiotropyPriorFeatureLogic:
             "gene1": pytest.approx(0.6),
             "gene2": pytest.approx(-0.2),
             "gene3": pytest.approx(-0.4),
+            "gene4": pytest.approx(0.42),
             "gene7": pytest.approx(0.1),
         }
         assert _scores(feature, "sl2") == {"gene3": pytest.approx(-0.4)}
-        assert feature.df.count() == 5
+        assert feature.df.count() == 6
 
     def test_neighbourhood_is_scaled_between_the_locus_minimum_and_maximum(
         self: TestPleiotropyPriorFeatureLogic, dependencies: dict[str, Any]
     ) -> None:
-        """The best gene at a locus gets 1, the worst 0, and a lone gene 1."""
+        """The best gene at a locus gets 1, the worst 0, a lone gene 1, an unscored one the mean."""
         feature = PredictedPleiotropyPriorNeighbourhoodFeature.compute(
             study_loci_to_annotate=dependencies["study_locus"],
             feature_dependency=dependencies,
@@ -336,6 +354,7 @@ class TestPleiotropyPriorFeatureLogic:
             "gene1": pytest.approx(1.0),
             "gene2": pytest.approx(0.2),
             "gene3": pytest.approx(0.0),
+            "gene4": pytest.approx(0.82),
             "gene7": pytest.approx(0.5),
         }
         assert _scores(feature, "sl2") == {"gene3": pytest.approx(1.0)}
@@ -349,7 +368,7 @@ class TestApproxPopsFeatureLogic:
 
     sl1 belongs to study1, mapped to d1 and d2; sl2 to study2, mapped to d9, which has no
     scores. gene1 scores 0.5 for d1 and 1.5 for d2, gene2 -1.0 for d1, and gene3 2.0 only for
-    d3, a disease of neither study.
+    d3, a disease of neither study, so at sl1 gene3 is unscored and takes the average, 0.
     """
 
     @pytest.fixture()
@@ -357,7 +376,7 @@ class TestApproxPopsFeatureLogic:
         self: TestApproxPopsFeatureLogic, spark: SparkSession
     ) -> dict[str, Any]:
         """Fitted scores, two credible sets, their studies and the genes around their variants."""
-        inputs = PleiotropyPriorInputs(*[spark.createDataFrame([], "x int")] * 4)
+        inputs = _unfitted_inputs(spark)
         inputs._approx_pops = spark.createDataFrame(
             [
                 ("gene1", "d1", 0.5),
@@ -415,6 +434,7 @@ class TestApproxPopsFeatureLogic:
         assert _scores(feature, "sl1") == {
             "gene1": pytest.approx(1.5),
             "gene2": pytest.approx(-1.0),
+            "gene3": pytest.approx(0.0),
         }
         assert _scores(feature, "sl2") == {}
 
@@ -429,22 +449,8 @@ class TestApproxPopsFeatureLogic:
         assert _scores(feature, "sl1") == {
             "gene1": pytest.approx(1.0),
             "gene2": pytest.approx(0.0),
+            "gene3": pytest.approx(0.4),
         }
-
-
-def test_feature_block() -> None:
-    """Expression level and specificity are blocks of their own; other features go by source."""
-    assert PleiotropyPriorInputs.feature_block("gtex:level:UBERON_1|") == "gtex:level"
-    assert (
-        PleiotropyPriorInputs.feature_block("pride:specificity:UBERON_1|")
-        == "pride:specificity"
-    )
-    assert PleiotropyPriorInputs.feature_block("go:GO:0001") == "go"
-    assert PleiotropyPriorInputs.feature_block("constraint:lof:oe") == "constraint"
-    assert (
-        PleiotropyPriorInputs.feature_block("essentiality:isEssential")
-        == "essentiality"
-    )
 
 
 def _annotated_target_index(
@@ -470,6 +476,8 @@ def _gene(
     }
 
 
+Built = tuple[dict[tuple[str, str], float], set[tuple[str, str]], dict[str, str]]
+
 INTERACTION_SCHEMA = (
     "sourceDatabase string, targetA string, targetB string, scoring double"
 )
@@ -490,10 +498,8 @@ class TestPleiotropyPriorGeneFeatures:
     """
 
     @pytest.fixture()
-    def built(
-        self: TestPleiotropyPriorGeneFeatures, spark: SparkSession
-    ) -> tuple[dict[tuple[str, str], float], set[tuple[str, str]]]:
-        """Features as (gene, feature) -> value and coverage as (gene, source) pairs."""
+    def built(self: TestPleiotropyPriorGeneFeatures, spark: SparkSession) -> Built:
+        """Features as (gene, feature) -> value, coverage as (gene, source), blocks by feature."""
         genes = [f"g{i:02d}" for i in range(12)]
         rows = []
         for i, gene in enumerate(genes):
@@ -541,6 +547,7 @@ class TestPleiotropyPriorGeneFeatures:
                 ("g00", "gtex", "T1", None, 1.0),
                 ("g00", "gtex", "T1", None, 3.0),
                 ("g00", "gtex", "T2", None, -5.0),
+                ("g00", "gtex", "T3", None, None),
                 ("g00", "other_source", "T1", None, 9.0),
             ],
             EXPRESSION_SCHEMA,
@@ -549,25 +556,27 @@ class TestPleiotropyPriorGeneFeatures:
             [("g00", True), ("g01", False)], ESSENTIALITY_SCHEMA
         )
         inputs = PleiotropyPriorInputs(
-            interactions, mouse_phenotype, baseline_expression, target_essentiality
+            interactions=interactions,
+            mouse_phenotype=mouse_phenotype,
+            baseline_expression=baseline_expression,
+            target_essentiality=target_essentiality,
         )
         features, coverage = inputs.gene_features(
             gene_covariates(target_index), target_index
         )
+        rows = features.collect()
         return (
-            {
-                (row["geneId"], row["featureId"]): row["value"]
-                for row in features.collect()
-            },
+            {(row["geneId"], row["featureId"]): row["value"] for row in rows},
             {(row["geneId"], row["source"]) for row in coverage.collect()},
+            {row["featureId"]: row["block"] for row in rows},
         )
 
     def test_binary_blocks_keep_terms_within_the_size_window(
         self: TestPleiotropyPriorGeneFeatures,
-        built: tuple[dict[tuple[str, str], float], set[tuple[str, str]]],
+        built: Built,
     ) -> None:
         """Terms with 10 to 2,000 protein-coding genes are kept, smaller ones dropped."""
-        features, _ = built
+        features, _, _ = built
         binary = {
             feature_id
             for _, feature_id in features
@@ -586,10 +595,10 @@ class TestPleiotropyPriorGeneFeatures:
 
     def test_interaction_thresholds(
         self: TestPleiotropyPriorGeneFeatures,
-        built: tuple[dict[tuple[str, str], float], set[tuple[str, str]]],
+        built: Built,
     ) -> None:
         """Only STRING >= 0.7 and IntAct >= 0.45 edges between distinct genes count."""
-        _, coverage = built
+        _, coverage, _ = built
         # g11's IntAct edge passes; its weak STRING and its Reactome edge do not matter.
         assert ("g11", "ppi") in coverage
         assert {gene for gene, source in coverage if source == "ppi"} == {
@@ -598,27 +607,41 @@ class TestPleiotropyPriorGeneFeatures:
 
     def test_expression_level_and_specificity(
         self: TestPleiotropyPriorGeneFeatures,
-        built: tuple[dict[tuple[str, str], float], set[tuple[str, str]]],
+        built: Built,
     ) -> None:
-        """Repeats are averaged, negative medians floor at 0, specificity is a z-score."""
-        features, coverage = built
+        """Repeats are averaged, negative medians floor at 0, missing ones are left out."""
+        features, coverage, _ = built
         assert features[("g00", "gtex:level:T1|")] == pytest.approx(
             (math.log(2) + math.log(4)) / 2
         )
         assert features[("g00", "gtex:level:T2|")] == pytest.approx(0.0)
         assert features[("g00", "gtex:specificity:T1|")] == pytest.approx(1.0)
         assert features[("g00", "gtex:specificity:T2|")] == pytest.approx(-1.0)
+        assert ("g00", "gtex:level:T3|") not in features
         assert not any(
             feature_id.startswith("other_source") for _, feature_id in features
         )
-        assert ("g00", "expression:gtex") in coverage
+        assert ("g00", "gtex") in coverage
+
+    def test_blocks(
+        self: TestPleiotropyPriorGeneFeatures,
+        built: Built,
+    ) -> None:
+        """Expression level and specificity are blocks of their own; others go by source."""
+        _, _, blocks = built
+        assert blocks["gtex:level:T1|"] == "gtex:level"
+        assert blocks["gtex:specificity:T1|"] == "gtex:specificity"
+        assert blocks["go:GO:big"] == "go"
+        assert blocks["mouse_phenotype:MP:1"] == "mouse_phenotype"
+        assert blocks["constraint:lof:oe"] == "constraint"
+        assert blocks["essentiality:isEssential"] == "essentiality"
 
     def test_constraint_is_imputed_with_the_mean(
         self: TestPleiotropyPriorGeneFeatures,
-        built: tuple[dict[tuple[str, str], float], set[tuple[str, str]]],
+        built: Built,
     ) -> None:
         """Every gene gets every constraint feature, missing values at the mean."""
-        features, coverage = built
+        features, coverage, _ = built
         assert features[("g00", "constraint:lof:oe")] == pytest.approx(0.2)
         assert features[("g05", "constraint:lof:oe")] == pytest.approx(0.3)
         assert sum(feature == "constraint:lof:oe" for _, feature in features) == 12
@@ -629,10 +652,10 @@ class TestPleiotropyPriorGeneFeatures:
 
     def test_essentiality(
         self: TestPleiotropyPriorGeneFeatures,
-        built: tuple[dict[tuple[str, str], float], set[tuple[str, str]]],
+        built: Built,
     ) -> None:
         """Essentiality is 0/1 for the genes the dataset covers."""
-        features, coverage = built
+        features, coverage, _ = built
         assert features[("g00", "essentiality:isEssential")] == 1.0
         assert features[("g01", "essentiality:isEssential")] == 0.0
         assert {gene for gene, source in coverage if source == "essentiality"} == {
@@ -644,12 +667,12 @@ class TestPleiotropyPriorGeneFeatures:
 class TestPleiotropyPriorEndToEnd:
     """Fit the prior from toy Open Targets gene data through the feature factory.
 
-    Twelve genes 200 kb apart on each of chromosomes 1, 2 and 6, those on chromosome 6 inside
-    the MHC. Every gene is the nearest gene of one credible set, whose study carries zero to
-    three diseases.
+    Twelve genes 200 kb apart on each of chromosomes 1, 2, 6 and X, those on chromosome 6 inside
+    the MHC; the genes on 6 and X are scored but kept out of the fits. Every gene is the nearest
+    gene of one credible set, whose study carries zero to three diseases.
     """
 
-    CHROMOSOMES = {"1": 1_000_000, "2": 1_000_000, "6": 29_000_000}
+    CHROMOSOMES = {"1": 1_000_000, "2": 1_000_000, "6": 29_000_000, "X": 1_000_000}
     GENES_PER_CHROMOSOME = 12
 
     @pytest.fixture()
@@ -723,15 +746,15 @@ class TestPleiotropyPriorEndToEnd:
 
         return {
             "pleiotropy_prior_inputs": PleiotropyPriorInputs(
-                spark.createDataFrame(
+                interactions=spark.createDataFrame(
                     [("string", gene_ids[0], gene, 0.9) for gene in members(12)],
                     INTERACTION_SCHEMA,
                 ),
-                spark.createDataFrame(
+                mouse_phenotype=spark.createDataFrame(
                     [(gene, f"MP:{t}") for t in range(3) for gene in members(11)],
                     MOUSE_SCHEMA,
                 ),
-                spark.createDataFrame(
+                baseline_expression=spark.createDataFrame(
                     [
                         (gene, "gtex", f"T{t}", None, float(rng.gamma(2.0)))
                         for gene in gene_ids
@@ -739,7 +762,7 @@ class TestPleiotropyPriorEndToEnd:
                     ],
                     EXPRESSION_SCHEMA,
                 ),
-                spark.createDataFrame(
+                target_essentiality=spark.createDataFrame(
                     [(gene, bool(rng.integers(0, 2))) for gene in gene_ids[::2]],
                     ESSENTIALITY_SCHEMA,
                 ),
@@ -802,7 +825,7 @@ class TestPleiotropyPriorEndToEnd:
         # The variant index links each lead variant to two genes, its own and a neighbour.
         assert len(local_rows) == len(neighbourhood_rows)
         assert (local_rows.groupby("credibleSetId").size() == 2).all()
-        assert local_rows["geneId"].nunique() == 36
+        assert local_rows["geneId"].nunique() == 48
         assert np.isfinite(local_rows["featureValue"]).all()
         assert (local_rows["featureValue"] != 0).any()
         assert neighbourhood_rows["featureValue"].between(0.0, 1.0).all()
@@ -814,7 +837,7 @@ class TestPleiotropyPriorEndToEnd:
         self: TestPleiotropyPriorEndToEnd,
         release: dict[str, Any],
     ) -> None:
-        """Every non-MHC gene is scored for each kept disease, and both features are built.
+        """Every gene is scored for each kept disease, and both features are built.
 
         The study of each credible set is remapped to one disease, dGO, when its nearest gene is
         annotated with GO:0, so that the gene features predict that disease.
@@ -855,12 +878,38 @@ class TestPleiotropyPriorEndToEnd:
             release["variant_index"],
             release["target_index"],
         ).toPandas()
-        # Genes on chromosome 6 sit in the MHC and get no score.
+        # Genes in the MHC and on X are kept out of the fit but still scored.
         assert set(scores["diseaseId"]) == {"dGO"}
-        assert not scores["geneId"].str.startswith("chr6_").any()
-        assert (scores.groupby("diseaseId").size() == 24).all()
+        assert scores["geneId"].str.startswith("chr6_").any()
+        assert scores["geneId"].str.startswith("chrX_").any()
+        assert (scores.groupby("diseaseId").size() == 48).all()
         local_rows = local.df.toPandas()
         neighbourhood_rows = neighbourhood.df.toPandas()
         assert len(local_rows) == len(neighbourhood_rows)
         assert np.isfinite(local_rows["featureValue"]).all()
         assert neighbourhood_rows["featureValue"].between(0.0, 1.0).all()
+
+    def test_genes_in_the_mhc_and_on_x_are_kept_out_of_the_fit(
+        self: TestPleiotropyPriorEndToEnd, release: dict[str, Any]
+    ) -> None:
+        """The fit mask leaves out chromosome 6 (all in the MHC here) and X."""
+        data = release["pleiotropy_prior_inputs"]._load_gene_data(
+            release["target_index"]
+        )
+        out_of_fit = set(data.genes.loc[data.out_of_fit, "chromosome"])
+        assert out_of_fit == {"6", "X"}
+        assert data.out_of_fit.sum() == 24
+
+    def test_approx_pops_is_empty_without_a_qualifying_disease(
+        self: TestPleiotropyPriorEndToEnd,
+        release: dict[str, Any],
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        """No disease with enough nearest genes leaves the features empty, with a warning."""
+        release["pleiotropy_prior_inputs"].approx_pops_min_genes = 1_000
+        with caplog.at_level(logging.WARNING):
+            (local,) = FeatureFactory(
+                release["study_locus"], ["approxPops"]
+            ).generate_features(L2GFeatureInputLoader(**release))
+        assert local.df.count() == 0
+        assert "no disease has 1000 or more nearest genes" in caplog.text

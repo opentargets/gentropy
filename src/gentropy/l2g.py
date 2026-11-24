@@ -35,7 +35,7 @@ from gentropy.external.hf_hub import (
 )
 from gentropy.external.wandb import WandbCredentials
 from gentropy.method.biosample_enrichment import ExpressionSpecificity
-from gentropy.method.l2g.feature_factory import L2GFeatureInputLoader
+from gentropy.method.l2g.feature_factory import FeatureFactory, L2GFeatureInputLoader
 from gentropy.method.l2g.model import LocusToGeneModel
 from gentropy.method.l2g.trainer import LocusToGeneTrainer
 from gentropy.method.pathway_enrichment import PathwayLibrary
@@ -83,6 +83,13 @@ class LocusToGeneFeatureMatrixStep:
         pathway_min_disease_genes: int = 25,
         biosample_p_value_adjusted_threshold: float = 0.01,
         biosample_min_disease_genes: int = 25,
+        pleiotropy_prior_lambda_grid: list[float] | None = None,
+        pleiotropy_prior_min_term_size: int = 10,
+        pleiotropy_prior_max_term_size: int = 2_000,
+        pleiotropy_prior_string_min_score: float = 0.7,
+        pleiotropy_prior_intact_min_score: float = 0.45,
+        approx_pops_min_genes: int = 100,
+        approx_pops_components: int = 100,
     ) -> None:
         """Initialise the step and run the logic based on mode.
 
@@ -126,6 +133,20 @@ class LocusToGeneFeatureMatrixStep:
                 features
             biosample_min_disease_genes (int): Smallest number of prioritised genes a disease
                 needs in a specificity panel to be tested for biosample enrichment there
+            pleiotropy_prior_lambda_grid (list[float] | None): Ridge penalties searched by both
+                pleiotropy prior fits. Defaults to `10^-2` to `10^10` in steps of `10^0.5`.
+            pleiotropy_prior_min_term_size (int): Fewest protein-coding member genes a GO
+                term, Reactome pathway, mouse phenotype or interaction hub needs to become a
+                gene feature of the pleiotropy prior
+            pleiotropy_prior_max_term_size (int): Most protein-coding member genes it may have
+            pleiotropy_prior_string_min_score (float): Lowest STRING score of an interaction
+                in the pleiotropy prior's interaction features
+            pleiotropy_prior_intact_min_score (float): Lowest IntAct score of an interaction
+                in the pleiotropy prior's interaction features
+            approx_pops_min_genes (int): Fewest nearest genes a disease needs to get an
+                approxPops score
+            approx_pops_components (int): Number of principal components of the gene features
+                approxPops regresses on
 
         Raises:
             ValueError: If a requested feature is missing one of its inputs
@@ -214,16 +235,23 @@ class LocusToGeneFeatureMatrixStep:
             and target_essentiality_path
         ):
             pleiotropy_prior_inputs = PleiotropyPriorInputs(
-                interactions,
-                session.load_data(
+                interactions=interactions,
+                mouse_phenotype=session.load_data(
                     mouse_phenotype_path, "parquet", recursiveFileLookup=True
                 ),
-                session.load_data(
+                baseline_expression=session.load_data(
                     baseline_expression_path, "parquet", recursiveFileLookup=True
                 ),
-                session.load_data(
+                target_essentiality=session.load_data(
                     target_essentiality_path, "parquet", recursiveFileLookup=True
                 ),
+                lambda_grid=pleiotropy_prior_lambda_grid,
+                min_term_size=pleiotropy_prior_min_term_size,
+                max_term_size=pleiotropy_prior_max_term_size,
+                string_min_score=pleiotropy_prior_string_min_score,
+                intact_min_score=pleiotropy_prior_intact_min_score,
+                approx_pops_min_genes=approx_pops_min_genes,
+                approx_pops_components=approx_pops_components,
             )
 
         trans_pqtl_features = {
@@ -259,12 +287,9 @@ class LocusToGeneFeatureMatrixStep:
                 "`study_index_path` and `variant_index_path`."
             )
 
-        pleiotropy_prior_features = {
-            "predictedPleiotropyPrior",
-            "predictedPleiotropyPriorNeighbourhood",
-            "approxPops",
-            "approxPopsNeighbourhood",
-        }
+        pleiotropy_prior_features = FeatureFactory.features_depending_on(
+            PleiotropyPriorInputs
+        )
         if pleiotropy_prior_features.intersection(features_list) and (
             pleiotropy_prior_inputs is None
             or studies is None

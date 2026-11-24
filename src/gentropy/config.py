@@ -544,6 +544,13 @@ class LocusToGeneFeatureMatrixConfig(StepConfig):
     pathway_min_disease_genes: int = 25
     biosample_p_value_adjusted_threshold: float = 0.01
     biosample_min_disease_genes: int = 25
+    pleiotropy_prior_lambda_grid: list[float] | None = None
+    pleiotropy_prior_min_term_size: int = 10
+    pleiotropy_prior_max_term_size: int = 2_000
+    pleiotropy_prior_string_min_score: float = 0.7
+    pleiotropy_prior_intact_min_score: float = 0.45
+    approx_pops_min_genes: int = 100
+    approx_pops_components: int = 100
     _target_: str = "gentropy.l2g.LocusToGeneFeatureMatrixStep"
 
 

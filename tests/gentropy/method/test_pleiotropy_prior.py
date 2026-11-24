@@ -5,6 +5,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 import scipy.sparse
+from sklearn.kernel_ridge import KernelRidge
 from sklearn.linear_model import Ridge
 from sklearn.metrics import roc_auc_score
 
@@ -16,7 +17,7 @@ def toy_genes() -> dict[str, np.ndarray]:
     """Fifty genes on three chromosomes with twenty features, two covariates and a target."""
     rng = np.random.default_rng(42)
     n_genes, n_features = 50, 20
-    features = PleiotropyPrior.standardise(rng.normal(size=(n_genes, n_features)))
+    features, _ = PleiotropyPrior.standardise(rng.normal(size=(n_genes, n_features)))
     covariates = rng.normal(size=(n_genes, 2))
     y = features[:, :3] @ np.array([1.0, -0.5, 0.25]) + rng.normal(size=n_genes)
     chromosomes = np.array(["1"] * 20 + ["2"] * 18 + ["3"] * 12)
@@ -55,6 +56,45 @@ class TestPleiotropyPrior:
             atol=1e-5,
         )
         assert fit.lambdas == {"1": penalty, "2": penalty, "3": penalty}
+        assert set(fit.held_out_correlation) == {"1", "2", "3"}
+
+    @pytest.mark.parametrize("adjusted", [False, True])
+    def test_kernel_ridge_equals_sklearn_kernel_ridge(
+        self: TestPleiotropyPrior, toy_genes: dict[str, np.ndarray], adjusted: bool
+    ) -> None:
+        """The dual solve on the precomputed kernel matches sklearn's KernelRidge.
+
+        With `adjusted`, the covariates are projected out within the fold and one gene of the
+        training chromosomes is kept out of the fit.
+        """
+        penalty = 3.0
+        kernel, chromosomes = toy_genes["kernel"], toy_genes["chromosomes"]
+        covariates = toy_genes["covariates"] if adjusted else None
+        fit_mask = np.ones(50, dtype=bool)
+        if adjusted:
+            fit_mask[30] = False
+        fit = PleiotropyPrior.loco_kernel_ridge(
+            kernel,
+            toy_genes["y"],
+            chromosomes,
+            covariates=covariates,
+            fit_mask=fit_mask,
+            lambdas=[penalty],
+        )
+        held_out = chromosomes == "1"
+        train = ~held_out & fit_mask
+        target = PleiotropyPrior.residualise(
+            toy_genes["y"][train], None if covariates is None else covariates[train]
+        )
+        reference = KernelRidge(alpha=penalty, kernel="precomputed").fit(
+            kernel[np.ix_(train, train)], target
+        )
+        np.testing.assert_allclose(
+            fit.scores[held_out],
+            reference.predict(kernel[np.ix_(held_out, train)]),
+            rtol=1e-4,
+            atol=1e-5,
+        )
 
     def test_score_does_not_depend_on_own_target(
         self: TestPleiotropyPrior, toy_genes: dict[str, np.ndarray]
@@ -127,12 +167,41 @@ class TestPleiotropyPrior:
         np.testing.assert_allclose(observed, expected, rtol=1e-8)
         assert int(np.argmin(observed)) == int(np.argmin(expected))
 
+    def test_generalised_cross_validation_of_several_targets(
+        self: TestPleiotropyPrior, toy_genes: dict[str, np.ndarray]
+    ) -> None:
+        """Several targets at once give the same criterion as one target at a time."""
+        eigenvalues, eigenvectors = np.linalg.eigh(toy_genes["kernel"])
+        targets = PleiotropyPrior.residualise(
+            np.column_stack([toy_genes["y"], toy_genes["covariates"][:, 0]]), None
+        )
+        lambdas = np.logspace(-2, 4, 7)
+        outside = np.array([0.5, 2.0])
+        together = PleiotropyPrior.generalised_cross_validation(
+            eigenvalues,
+            eigenvectors.T @ targets,
+            lambdas,
+            n_samples=60,
+            outside=outside,
+        )
+        for column in range(2):
+            np.testing.assert_allclose(
+                together[:, column],
+                PleiotropyPrior.generalised_cross_validation(
+                    eigenvalues,
+                    eigenvectors.T @ targets[:, column],
+                    lambdas,
+                    n_samples=60,
+                    outside=outside[column],
+                ),
+            )
+
     def test_generalised_cross_validation_picks_known_minimum(
         self: TestPleiotropyPrior,
     ) -> None:
         """Pure noise is best fitted with the largest penalty, a clean signal with a small one."""
         rng = np.random.default_rng(0)
-        features = PleiotropyPrior.standardise(rng.normal(size=(200, 5)))
+        features, _ = PleiotropyPrior.standardise(rng.normal(size=(200, 5)))
         kernel = features @ features.T
         eigenvalues, eigenvectors = np.linalg.eigh(kernel)
         lambdas = np.logspace(-2, 6, 17)
@@ -164,11 +233,43 @@ class TestPleiotropyPrior:
         rng = np.random.default_rng(1)
         features = rng.normal(size=(30, 23))
         features[:, 4] = 7.0
-        chunks = [features[:, :10], features[:, 10:20], features[:, 20:]]
-        kernel, n_features = PleiotropyPrior.accumulate_kernel(chunks)
-        standardised = PleiotropyPrior.standardise(features)
+        kernel, n_features = PleiotropyPrior.accumulate_kernel(features, chunk_size=10)
+        standardised, keep = PleiotropyPrior.standardise(features)
         np.testing.assert_allclose(kernel, standardised @ standardised.T, atol=1e-10)
         assert n_features == 22
+        assert not keep[4]
+
+    def test_kernel_standardised_on_reference_rows(
+        self: TestPleiotropyPrior,
+    ) -> None:
+        """Means and standard deviations come from the reference rows and apply to every row."""
+        rng = np.random.default_rng(3)
+        features = rng.normal(size=(30, 8))
+        reference = np.arange(30) < 25
+        kernel, _ = PleiotropyPrior.accumulate_kernel(
+            features, reference_rows=reference, chunk_size=3
+        )
+        expected = (features - features[reference].mean(axis=0)) / features[
+            reference
+        ].std(axis=0)
+        np.testing.assert_allclose(kernel, expected @ expected.T, atol=1e-10)
+
+    def test_repeated_float_column_is_constant(self: TestPleiotropyPrior) -> None:
+        """A column of a repeated float is dropped although its sd is not exactly 0."""
+        features = np.column_stack([np.full(20_107, 0.1), np.arange(20_107.0)])
+        assert features[:, 0].std() > 0
+        standardised, keep = PleiotropyPrior.standardise(features)
+        assert keep.tolist() == [False, True]
+        assert standardised.shape == (20_107, 1)
+        assert PleiotropyPrior.varying_columns(features).tolist() == [False, True]
+
+    def test_column_weights_must_match_the_columns(
+        self: TestPleiotropyPrior,
+    ) -> None:
+        """A weight vector of the wrong length is refused."""
+        features = np.random.default_rng(4).normal(size=(10, 5))
+        with pytest.raises(ValueError, match="column weights"):
+            PleiotropyPrior.accumulate_kernel(features, column_weights=np.ones(6))
 
     def test_column_chunks_of_sparse_matrix(self: TestPleiotropyPrior) -> None:
         """A sparse matrix comes back as dense column chunks that add up to the whole."""
@@ -187,7 +288,7 @@ class TestApproxPops:
     def toy(self: TestApproxPops) -> dict[str, np.ndarray]:
         """Sixty genes, ten features, a predictable disease and a disease of pure noise."""
         rng = np.random.default_rng(7)
-        features = PleiotropyPrior.standardise(rng.normal(size=(60, 10)))
+        features, _ = PleiotropyPrior.standardise(rng.normal(size=(60, 10)))
         signal = features[:, :2] @ np.array([1.0, 1.0]) + 0.5 * rng.normal(size=60)
         labels = np.zeros((60, 2))
         labels[np.argsort(-signal)[:20], 0] = 1.0
@@ -244,6 +345,51 @@ class TestApproxPops:
         assert fit.auc_lower_bound[1] <= 0.5
         np.testing.assert_allclose(fit.scores.mean(axis=0), 0.0, atol=1e-10)
         np.testing.assert_allclose(fit.scores.std(axis=0), 1.0)
+        assert fit.held_out_scores.shape == (0, 1)
+
+    def test_genes_out_of_the_fit_get_the_fitted_ridge_prediction(
+        self: TestApproxPops, toy: dict[str, np.ndarray]
+    ) -> None:
+        """Scored through their kernel rows, the fitted genes get their in-sample fit back."""
+        penalty = 2.0
+        kernel = toy["features"] @ toy["features"].T
+        fit = PleiotropyPrior.approx_pops(
+            toy["eigenvalues"],
+            toy["eigenvectors"],
+            toy["labels"],
+            lambdas=[penalty],
+            held_out_kernel=kernel[:7],
+        )
+        components = toy["eigenvectors"] * np.sqrt(toy["eigenvalues"])
+        residual = PleiotropyPrior.residualise(toy["labels"][:, 0], None)
+        in_sample = (
+            Ridge(alpha=penalty, fit_intercept=False)
+            .fit(components, residual)
+            .predict(components[:7])
+        )
+        # Held-out scores take the mean and sd of the leave-one-out scores of the fitted genes.
+        refitted_loo = np.array(
+            [
+                Ridge(alpha=penalty, fit_intercept=False)
+                .fit(np.delete(components, g, axis=0), np.delete(residual, g))
+                .predict(components[[g]])[0]
+                for g in range(60)
+            ]
+        )
+        np.testing.assert_allclose(
+            fit.held_out_scores[:, 0],
+            (in_sample - refitted_loo.mean()) / refitted_loo.std(),
+            atol=1e-4,
+        )
+
+    def test_auc_is_nan_without_both_labels(self: TestApproxPops) -> None:
+        """A column with no positive gene has no AUC rather than a division error."""
+        labels = np.zeros((10, 1))
+        auc, lower = PleiotropyPrior.auc_with_lower_bound(
+            np.arange(10.0)[:, None], labels
+        )
+        assert np.isnan(auc[0])
+        assert np.isnan(lower[0])
 
     def test_auc_matches_sklearn(self: TestApproxPops) -> None:
         """The rank AUC equals scikit-learn's, ties included."""
@@ -262,10 +408,9 @@ class TestApproxPops:
         matrix[:, 2] = 3.0
         weights = np.array([1.0, 2.0, 5.0, 0.5, 1.0, 3.0])
         kernel, n_features = PleiotropyPrior.accumulate_kernel(
-            PleiotropyPrior.column_chunks(scipy.sparse.csc_array(matrix), chunk_size=4),
-            column_weights=weights,
+            scipy.sparse.csc_array(matrix), column_weights=weights, chunk_size=4
         )
         keep = [0, 1, 3, 4, 5]
-        weighted = PleiotropyPrior.standardise(matrix) * weights[keep]
+        weighted = PleiotropyPrior.standardise(matrix)[0] * weights[keep]
         np.testing.assert_allclose(kernel, weighted @ weighted.T)
         assert n_features == 5
