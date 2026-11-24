@@ -12,7 +12,12 @@ import pytest
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as f
 
-from gentropy.common.stats import get_logsum, get_logsum_column, split_pvalue
+from gentropy.common.stats import (
+    benjamini_hochberg,
+    get_logsum,
+    get_logsum_column,
+    split_pvalue,
+)
 
 
 class TestStats:
@@ -94,3 +99,13 @@ def test_get_logsum_column_matches_get_logsum(spark: SparkSession) -> None:
         assert np.isclose(observed[i], expected, atol=1e-12), (
             f"mismatch for {a}: {observed[i]} vs {expected}"
         )
+
+
+def test_benjamini_hochberg_ignores_missing_p_values() -> None:
+    """Each row is adjusted over its own finite p-values only."""
+    adjusted = benjamini_hochberg(
+        np.array([[0.01, 0.04, np.nan, 0.03], [0.5, np.nan, np.nan, np.nan]])
+    )
+    np.testing.assert_allclose(
+        adjusted, [[0.03, 0.04, np.nan, 0.04], [0.5, np.nan, np.nan, np.nan]]
+    )

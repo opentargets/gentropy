@@ -43,6 +43,32 @@ def get_logsum(arr: NDArray[np.float64]) -> float:
     return float(result)
 
 
+def benjamini_hochberg(p_value: NDArray[np.float64]) -> NDArray[np.float64]:
+    """Benjamini-Hochberg adjusted p-values along each row, ignoring NaN.
+
+    Args:
+        p_value (NDArray[np.float64]): units x tests
+
+    Returns:
+        NDArray[np.float64]: Adjusted p-values of the same shape, NaN where `p_value` is NaN
+
+    Examples:
+        >>> benjamini_hochberg(np.array([[0.01, 0.04, np.nan, 0.03]])).round(2).tolist()
+        [[0.03, 0.04, nan, 0.04]]
+    """
+    finite = np.isfinite(p_value)
+    tests = finite.sum(axis=1, keepdims=True)
+    order = np.argsort(np.where(finite, p_value, np.inf), axis=1)
+    ranked = np.take_along_axis(p_value, order, axis=1)
+    rank = np.arange(1, p_value.shape[1] + 1)[None, :]
+    with np.errstate(invalid="ignore"):
+        step = np.where(np.isfinite(ranked), ranked * tests / rank, np.inf)
+    step = np.minimum(np.minimum.accumulate(step[:, ::-1], axis=1)[:, ::-1], 1.0)
+    adjusted = np.empty_like(step)
+    np.put_along_axis(adjusted, order, step, axis=1)
+    return np.where(finite, adjusted, np.nan)
+
+
 def get_logsum_column(arr: Column) -> Column:
     """Native Spark column logsumexp, matching :func:`get_logsum`.
 

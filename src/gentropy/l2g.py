@@ -20,6 +20,7 @@ from gentropy.dataset.colocalisation import Colocalisation
 from gentropy.dataset.credible_set import CredibleSet, CredibleSetVariant
 from gentropy.dataset.intervals import Intervals
 from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
+from gentropy.dataset.l2g_features.colocalisation import EnrichedStudyBiosamples
 from gentropy.dataset.l2g_features.pathway import PathwayEnrichmentScores
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
 from gentropy.dataset.l2g_prediction import L2GPrediction
@@ -77,6 +78,8 @@ class LocusToGeneFeatureMatrixStep:
         pathway_min_pathway_size: int = 5,
         pathway_max_pathway_size: int = 4000,
         pathway_min_disease_genes: int = 25,
+        biosample_p_value_adjusted_threshold: float = 0.05,
+        biosample_min_disease_genes: int = 25,
     ) -> None:
         """Initialise the step and run the logic based on mode.
 
@@ -110,6 +113,11 @@ class LocusToGeneFeatureMatrixStep:
                 pathway may have to enter the pathway features
             pathway_min_disease_genes (int): Smallest number of prioritised genes a disease needs,
                 over all chromosomes, to be tested for pathway enrichment
+            biosample_p_value_adjusted_threshold (float): Largest adjusted p-value, exclusive,
+                for a biosample to count as enriched in the enriched biosample colocalisation
+                features
+            biosample_min_disease_genes (int): Smallest number of prioritised genes a disease
+                needs in a specificity panel to be tested for biosample enrichment there
 
         Raises:
             ValueError: If a requested feature is missing one of its inputs
@@ -266,6 +274,28 @@ class LocusToGeneFeatureMatrixStep:
             else None
         )
 
+        # The enrichment is shared by both enriched biosample features, so it is computed once.
+        enriched_biosamples = (
+            EnrichedStudyBiosamples.from_release(
+                study_loci_to_annotate,
+                expression_specificity=expression_specificity,
+                biosample_index=biosample_index,
+                study_index=studies,
+                study_locus=credible_set,
+                target_index=target_index,
+                variant_index=variant_index,
+                p_value_adjusted_threshold=biosample_p_value_adjusted_threshold,
+                min_disease_genes=biosample_min_disease_genes,
+            )
+            if enriched_biosample_features.intersection(features_list)
+            and expression_specificity is not None
+            and biosample_index is not None
+            and studies is not None
+            and target_index is not None
+            and variant_index is not None
+            else None
+        )
+
         features_input_loader = L2GFeatureInputLoader(
             variant_index=variant_index,
             colocalisation=coloc,
@@ -275,8 +305,7 @@ class LocusToGeneFeatureMatrixStep:
             intervals=intervals,
             interactions=interactions,
             pathway_scores=pathway_scores,
-            expression_specificity=expression_specificity,
-            biosample_index=biosample_index,
+            enriched_biosamples=enriched_biosamples,
         )
 
         fm = study_loci_to_annotate.build_feature_matrix(
@@ -306,6 +335,8 @@ class LocusToGeneFeatureMatrixStep:
         finally:
             if pathway_scores is not None:
                 pathway_scores.unpersist()
+            if enriched_biosamples is not None:
+                enriched_biosamples.unpersist()
 
 
 class LocusToGeneTrainTestSplitStep:

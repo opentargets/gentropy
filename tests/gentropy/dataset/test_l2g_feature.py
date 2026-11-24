@@ -31,6 +31,7 @@ from gentropy.dataset.l2g_features.colocalisation import (
     EQtlColocH4MaximumEnrichedBiosampleFeature,
     EQtlColocH4MaximumEnrichedBiosampleNeighbourhoodFeature,
     EQtlColocH4MaximumNeighbourhoodFeature,
+    EnrichedStudyBiosamples,
     PQtlColocClppMaximumFeature,
     PQtlColocClppMaximumNeighbourhoodFeature,
     PQtlColocH4MaximumFeature,
@@ -43,7 +44,6 @@ from gentropy.dataset.l2g_features.colocalisation import (
     TransPQtlColocH4MaximumNeighbourhoodFeature,
     common_colocalisation_feature_logic,
     common_neighbourhood_colocalisation_feature_logic,
-    enriched_study_biosamples,
     extend_missing_colocalisation_to_neighbourhood_genes,
     extract_maximum_coloc_probability_per_region_and_gene,
 )
@@ -194,8 +194,15 @@ def test_feature_factory_return_type(
             ),
             gene_sets=empty_gene_sets,
         ),
-        expression_specificity=mock_expression_specificity,
-        biosample_index=mock_biosample_index,
+        enriched_biosamples=EnrichedStudyBiosamples.from_release(
+            mock_credible_set_locus,
+            expression_specificity=mock_expression_specificity,
+            biosample_index=mock_biosample_index,
+            study_index=mock_study_index,
+            study_locus=mock_credible_set_locus,
+            target_index=mock_target_index,
+            variant_index=mock_variant_index,
+        ),
     )
     feature_dataset = feature_class.compute(
         study_loci_to_annotate=mock_credible_set_locus,
@@ -2523,6 +2530,34 @@ def _biosample_release(spark: SparkSession, second_chromosome: str) -> dict[str,
     return datasets
 
 
+def _enrichment_inputs(datasets: dict[str, Any]) -> dict[str, Any]:
+    """Keyword arguments of `EnrichedStudyBiosamples.from_release` from the toy release."""
+    return {
+        "expression_specificity": datasets["expression_specificity"],
+        "biosample_index": datasets["biosample_index"],
+        "study_index": datasets["study_index"],
+        "study_locus": datasets["study_locus"],
+        "target_index": datasets["target_index"],
+        "variant_index": datasets["variant_index"],
+    }
+
+
+def _enriched_biosample_loader(
+    datasets: dict[str, Any], **thresholds: Any
+) -> L2GFeatureInputLoader:
+    """Feature input loader of the toy release, with the enrichment built once."""
+    return L2GFeatureInputLoader(
+        colocalisation=datasets["colocalisation"],
+        study_index=datasets["study_index"],
+        study_locus=datasets["study_locus"],
+        target_index=datasets["target_index"],
+        variant_index=datasets["variant_index"],
+        enriched_biosamples=EnrichedStudyBiosamples.from_release(
+            datasets["study_locus"], **_enrichment_inputs(datasets), **thresholds
+        ),
+    )
+
+
 class TestEQtlColocH4MaximumEnrichedBiosampleFeature:
     """Test the enriched biosample colocalisation features end to end.
 
@@ -2549,13 +2584,11 @@ class TestEQtlColocH4MaximumEnrichedBiosampleFeature:
 
     def test_enriched_study_biosamples(self, datasets: dict[str, Any]) -> None:
         """UBERON_A is enriched for disease1, and so for study1, with either chromosome left out; its descendant UBERON_A1 counts with it."""
-        biosamples = enriched_study_biosamples(
+        biosamples = EnrichedStudyBiosamples.from_release(
             datasets["study_locus"],
-            p_value_adjusted_threshold=0.05,
             min_disease_genes=4,
-            vep_score_threshold=0.66,
-            **{k: v for k, v in datasets.items() if k != "colocalisation"},
-        )
+            **_enrichment_inputs(datasets),
+        ).biosamples
         assert {tuple(row) for row in biosamples.collect()} == {
             ("study1", "1", "UBERON_A"),
             ("study1", "1", "UBERON_A1"),
@@ -2567,16 +2600,14 @@ class TestEQtlColocH4MaximumEnrichedBiosampleFeature:
         self, datasets: dict[str, Any]
     ) -> None:
         """Annotating sl0 alone returns study1 on chromosome 1 only."""
-        biosamples = enriched_study_biosamples(
+        biosamples = EnrichedStudyBiosamples.from_release(
             CredibleSetLocus(
                 _df=datasets["study_locus"].df.filter(f.col("credibleSetId") == "sl0"),
                 _schema=CredibleSetLocus.get_schema(),
             ),
-            p_value_adjusted_threshold=0.05,
             min_disease_genes=4,
-            vep_score_threshold=0.66,
-            **{k: v for k, v in datasets.items() if k != "colocalisation"},
-        )
+            **_enrichment_inputs(datasets),
+        ).biosamples
         assert {tuple(row) for row in biosamples.collect()} == {
             ("study1", "1", "UBERON_A"),
             ("study1", "1", "UBERON_A1"),
@@ -2585,25 +2616,18 @@ class TestEQtlColocH4MaximumEnrichedBiosampleFeature:
     def test_the_chromosome_of_the_locus_is_left_out(self, spark: SparkSession) -> None:
         """With every gene on chromosome 1, no gene is left to test once it is held out."""
         datasets = _biosample_release(spark, second_chromosome="1")
-        biosamples = enriched_study_biosamples(
+        biosamples = EnrichedStudyBiosamples.from_release(
             datasets["study_locus"],
-            p_value_adjusted_threshold=0.05,
             min_disease_genes=4,
-            vep_score_threshold=0.66,
-            **{k: v for k, v in datasets.items() if k != "colocalisation"},
-        )
+            **_enrichment_inputs(datasets),
+        ).biosamples
         assert biosamples.count() == 0
 
     def test_feature_ignores_colocalisation_in_other_biosamples(
-        self, datasets: dict[str, Any], monkeypatch: pytest.MonkeyPatch
+        self, datasets: dict[str, Any]
     ) -> None:
         """gene0 takes the H4 of the eQTL in UBERON_A1, a descendant of UBERON_A, not the higher one of UBERON_B."""
-        for feature_class in (
-            EQtlColocH4MaximumEnrichedBiosampleFeature,
-            EQtlColocH4MaximumEnrichedBiosampleNeighbourhoodFeature,
-        ):
-            monkeypatch.setattr(feature_class, "min_disease_genes", 4)
-        loader = L2GFeatureInputLoader(**datasets)
+        loader = _enriched_biosample_loader(datasets, min_disease_genes=4)
         values: dict[tuple[str, str], float] = {}
         for feature_class in (
             EQtlColocH4MaximumEnrichedBiosampleFeature,
@@ -2631,7 +2655,7 @@ class TestEQtlColocH4MaximumEnrichedBiosampleFeature:
         self, datasets: dict[str, Any]
     ) -> None:
         """With the default minimum of 25 disease genes no colocalisation is kept."""
-        loader = L2GFeatureInputLoader(**datasets)
+        loader = _enriched_biosample_loader(datasets)
         feature = EQtlColocH4MaximumEnrichedBiosampleFeature.compute(
             study_loci_to_annotate=datasets["study_locus"],
             feature_dependency=loader.get_dependency_by_type(

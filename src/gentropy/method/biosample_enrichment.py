@@ -11,7 +11,7 @@ import pyspark.sql.functions as f
 import scipy.sparse
 from scipy.stats import norm
 
-from gentropy.method.pathway_enrichment import benjamini_hochberg
+from gentropy.common.stats import benjamini_hochberg
 
 if TYPE_CHECKING:
     from pyspark.sql import Column, DataFrame

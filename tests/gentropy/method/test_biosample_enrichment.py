@@ -9,13 +9,13 @@ import pytest
 import scipy.sparse
 from scipy.stats import norm
 
+from gentropy.common.stats import benjamini_hochberg
 from gentropy.dataset.target_index import TargetIndex
 from gentropy.method import biosample_enrichment
 from gentropy.method.biosample_enrichment import (
     ExpressionSpecificity,
     SpecificityPanel,
 )
-from gentropy.method.pathway_enrichment import benjamini_hochberg
 
 if TYPE_CHECKING:
     from pyspark.sql import DataFrame, SparkSession

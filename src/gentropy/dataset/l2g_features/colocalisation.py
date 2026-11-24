@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from functools import reduce
 from typing import TYPE_CHECKING, Any
 
@@ -1183,151 +1184,146 @@ class TransPQtlColocH4MaximumNeighbourhoodFeature(L2GFeature):
         )
 
 
-# The raw and neighbourhood features are computed one after the other from the same inputs.
-# Keeping the last result lets the second feature reuse it instead of rerunning the
-# release-wide enrichment. The inputs are kept with it so their ids stay valid.
-_last_enriched_biosamples: dict[str, Any] = {}
+@dataclass
+class EnrichedStudyBiosamples:
+    """Biosamples enriched for the diseases of each GWAS study, shared by the enriched biosample features.
 
+    The enrichment is release-wide and the same for the raw and neighbourhood features, so the
+    feature matrix step builds it once with `from_release`, hands it to the features through
+    the feature input loader, and calls `unpersist` once the matrix is written.
 
-def enriched_study_biosamples(
-    study_loci_to_annotate: CredibleSetLocus | L2GGoldStandard,
-    *,
-    expression_specificity: ExpressionSpecificity,
-    biosample_index: BiosampleIndex,
-    study_index: StudyIndex,
-    study_locus: CredibleSetLocus,
-    target_index: TargetIndex,
-    variant_index: VariantIndex,
-    p_value_adjusted_threshold: float,
-    min_disease_genes: int,
-    vep_score_threshold: float,
-) -> DataFrame:
-    """Biosamples whose specifically expressed genes are enriched for the diseases of each study.
-
-    1. At every GWAS credible set the nearest gene and the genes hit by a coding variant are
-        prioritised, see `prioritised_disease_genes`, and pooled per disease, leaving one
-        chromosome out at a time.
-    2. Every biosample of the specificity panels is tested for the disease's genes being more
-        specifically expressed there, by a linear regression adjusted for gene length and TSS
-        density, see `ExpressionSpecificity.enrichment`. Diseases with fewer than
-        `min_disease_genes` genes in a panel are not tested in it. All biosamples of the
-        panels are tested, whether or not a QTL study uses them, so the adjusted p-values do
-        not depend on which QTL studies exist.
-    3. A biosample counts as enriched for a disease below the adjusted p-value threshold in
-        any panel, and for a study when it is enriched for any of the study's diseases. A cell
-        type within a tissue counts as its cell type, as the PTS step reports it. Its
-        descendants in the biosample index count as enriched with it, since a QTL study is
-        often of a finer tissue or cell type than the specificity data resolve.
-    4. This holds per held-out chromosome, and a credible set on that chromosome only uses
-        those biosamples, so that neither its own genes nor those of any other credible set
-        nearby select them.
-
-    Only the studies and chromosomes of the loci to annotate are returned, since no other pair
-    is ever looked up. The result is reused when called again with the same input objects and
-    thresholds.
-
-    Args:
-        study_loci_to_annotate (CredibleSetLocus | L2GGoldStandard): The dataset containing
-            study loci that will be used for annotation
-        expression_specificity (ExpressionSpecificity): Baseline expression of the release
-        biosample_index (BiosampleIndex): Biosample index, the source of the descendants of
-            each biosample
-        study_index (StudyIndex): Study index, used to resolve a study to its diseases
-        study_locus (CredibleSetLocus): Credible sets, the source of the disease gene lists
-        target_index (TargetIndex): Target index, used for gene annotations and positions
-        variant_index (VariantIndex): Variant index, used to prioritise genes at each credible set
-        p_value_adjusted_threshold (float): Largest adjusted p-value, exclusive, for a
-            biosample to count as enriched
-        min_disease_genes (int): Smallest number of genes of a panel a disease needs to be
-            tested there
-        vep_score_threshold (float): Smallest `vepMaximum` that prioritises a gene
-
-    Returns:
-        DataFrame: `studyId`, `chromosome` and `biosampleId`, one row per study, held-out
-            chromosome and enriched biosample or descendant of one
+    Attributes:
+        biosamples (DataFrame): `studyId`, `chromosome` and `biosampleId`, one row per study,
+            held-out chromosome and admitted QTL biosample
     """
-    inputs = (
-        study_loci_to_annotate,
-        expression_specificity,
-        biosample_index,
-        study_index,
-        study_locus,
-        target_index,
-        variant_index,
-    )
-    thresholds = (p_value_adjusted_threshold, min_disease_genes, vep_score_threshold)
-    if (
-        _last_enriched_biosamples
-        and all(a is b for a, b in zip(_last_enriched_biosamples["inputs"], inputs))
-        and _last_enriched_biosamples["thresholds"] == thresholds
-    ):
-        return _last_enriched_biosamples["biosamples"]
 
-    study_chromosomes = (
-        study_locus.df.select("credibleSetId", "studyId", "chromosome")
-        .join(
-            study_loci_to_annotate.df.select("credibleSetId").distinct(),
-            "credibleSetId",
-            "semi",
-        )
-        .select("studyId", "chromosome")
-        .distinct()
-    )
-    enriched_biosamples = (
-        expression_specificity.enrichment(
-            prioritised_disease_genes(
-                study_locus,
-                study_index,
-                variant_index,
-                target_index,
-                vep_score_threshold=vep_score_threshold,
-            ),
-            target_index,
-            p_value_adjusted_threshold=p_value_adjusted_threshold,
-            min_genes=min_disease_genes,
-            # Only the chromosomes of the loci to annotate are ever looked up.
-            held_out_chromosomes=sorted(
-                row["chromosome"]
-                for row in study_chromosomes.select("chromosome")
-                .dropna()
-                .distinct()
-                .collect()
-            ),
-        )
-        .select(
-            "diseaseId", f.col("heldOutChromosome").alias("chromosome"), "biosampleId"
-        )
-        .distinct()
-    )
-    biosample_descendants = biosample_index.df.select(
-        "biosampleId",
-        f.explode(
-            f.array_union(
-                f.array(f.col("biosampleId")),
-                f.coalesce(f.col("descendants"), f.array().cast("array<string>")),
+    biosamples: DataFrame
+
+    @classmethod
+    def from_release(
+        cls: type[EnrichedStudyBiosamples],
+        study_loci_to_annotate: CredibleSetLocus | L2GGoldStandard,
+        *,
+        expression_specificity: ExpressionSpecificity,
+        biosample_index: BiosampleIndex,
+        study_index: StudyIndex,
+        study_locus: CredibleSetLocus,
+        target_index: TargetIndex,
+        variant_index: VariantIndex,
+        p_value_adjusted_threshold: float = 0.05,
+        min_disease_genes: int = 25,
+        vep_score_threshold: float = 0.66,
+    ) -> EnrichedStudyBiosamples:
+        """Find the biosamples whose specifically expressed genes are enriched for the diseases of each study.
+
+        1. At every GWAS credible set the nearest gene and the genes hit by a coding variant are
+            prioritised, see `prioritised_disease_genes`, and pooled per disease, leaving one
+            chromosome out at a time.
+        2. Every biosample of the specificity panels is tested for the disease's genes being more
+            specifically expressed there, by a linear regression adjusted for gene length and TSS
+            density, see `ExpressionSpecificity.enrichment`. Diseases with fewer than
+            `min_disease_genes` genes in a panel are not tested in it. All biosamples of the
+            panels are tested, whether or not a QTL study uses them, so the adjusted p-values do
+            not depend on which QTL studies exist.
+        3. A biosample counts as enriched for a disease below the adjusted p-value threshold in
+            any panel, and for a study when it is enriched for any of the study's diseases. A cell
+            type within a tissue counts as its cell type, as the PTS step reports it. Its
+            descendants in the biosample index count as enriched with it, since a QTL study is
+            often of a finer tissue or cell type than the specificity data resolve.
+        4. This holds per held-out chromosome, and a credible set on that chromosome only uses
+            those biosamples, so that neither its own genes nor those of any other credible set
+            nearby select them.
+
+        Only the studies and chromosomes of the loci to annotate are kept, since no other pair
+        is ever looked up. The result is cached; call `unpersist` when done.
+
+        Args:
+            study_loci_to_annotate (CredibleSetLocus | L2GGoldStandard): The dataset containing
+                study loci that will be used for annotation
+            expression_specificity (ExpressionSpecificity): Baseline expression of the release
+            biosample_index (BiosampleIndex): Biosample index, the source of the descendants of
+                each biosample
+            study_index (StudyIndex): Study index, used to resolve a study to its diseases
+            study_locus (CredibleSetLocus): Credible sets, the source of the disease gene lists
+            target_index (TargetIndex): Target index, used for gene annotations and positions
+            variant_index (VariantIndex): Variant index, used to prioritise genes at each credible set
+            p_value_adjusted_threshold (float): Largest adjusted p-value, exclusive, for a
+                biosample to count as enriched
+            min_disease_genes (int): Smallest number of genes of a panel a disease needs to be
+                tested there
+            vep_score_threshold (float): Smallest `vepMaximum` that prioritises a gene
+
+        Returns:
+            EnrichedStudyBiosamples: Cached `studyId`, `chromosome` and `biosampleId`, one row per
+                study, held-out chromosome and enriched biosample or descendant of one
+        """
+        study_chromosomes = (
+            study_locus.df.select("credibleSetId", "studyId", "chromosome")
+            .join(
+                study_loci_to_annotate.df.select("credibleSetId").distinct(),
+                "credibleSetId",
+                "semi",
             )
-        ).alias("qtlBiosampleId"),
-    )
-    # Cached because sharing the DataFrame alone does not stop Spark running the plan twice.
-    biosamples = (
-        study_index.df.filter(f.col("studyType") == "gwas")
-        .select("studyId", f.explode("diseaseIds").alias("diseaseId"))
-        .join(study_chromosomes, "studyId", "inner")
-        .join(enriched_biosamples, ["diseaseId", "chromosome"], "inner")
-        .join(biosample_descendants, "biosampleId", "left")
-        # A biosample missing from the index still matches itself.
-        .select(
-            "studyId",
-            "chromosome",
-            f.coalesce("qtlBiosampleId", "biosampleId").alias("biosampleId"),
+            .select("studyId", "chromosome")
+            .distinct()
         )
-        .distinct()
-        .cache()
-    )
-    _last_enriched_biosamples.update(
-        inputs=inputs, thresholds=thresholds, biosamples=biosamples
-    )
-    return biosamples
+        enriched_biosamples = (
+            expression_specificity.enrichment(
+                prioritised_disease_genes(
+                    study_locus,
+                    study_index,
+                    variant_index,
+                    target_index,
+                    vep_score_threshold=vep_score_threshold,
+                ),
+                target_index,
+                p_value_adjusted_threshold=p_value_adjusted_threshold,
+                min_genes=min_disease_genes,
+                # Only the chromosomes of the loci to annotate are ever looked up.
+                held_out_chromosomes=sorted(
+                    row["chromosome"]
+                    for row in study_chromosomes.select("chromosome")
+                    .dropna()
+                    .distinct()
+                    .collect()
+                ),
+            )
+            .select(
+                "diseaseId",
+                f.col("heldOutChromosome").alias("chromosome"),
+                "biosampleId",
+            )
+            .distinct()
+        )
+        biosample_descendants = biosample_index.df.select(
+            "biosampleId",
+            f.explode(
+                f.array_union(
+                    f.array(f.col("biosampleId")),
+                    f.coalesce(f.col("descendants"), f.array().cast("array<string>")),
+                )
+            ).alias("qtlBiosampleId"),
+        )
+        biosamples = (
+            study_index.df.filter(f.col("studyType") == "gwas")
+            .select("studyId", f.explode("diseaseIds").alias("diseaseId"))
+            .join(study_chromosomes, "studyId", "inner")
+            .join(enriched_biosamples, ["diseaseId", "chromosome"], "inner")
+            .join(biosample_descendants, "biosampleId", "left")
+            # A biosample missing from the index still matches itself.
+            .select(
+                "studyId",
+                "chromosome",
+                f.coalesce("qtlBiosampleId", "biosampleId").alias("biosampleId"),
+            )
+            .distinct()
+            .cache()
+        )
+        return cls(biosamples=biosamples)
+
+    def unpersist(self: EnrichedStudyBiosamples) -> None:
+        """Release the cached DataFrame."""
+        self.biosamples.unpersist()
 
 
 def keep_colocalisation_in_enriched_biosamples(
@@ -1344,8 +1340,8 @@ def keep_colocalisation_in_enriched_biosamples(
         colocalisation (Colocalisation): Colocalisation results
         study_locus (CredibleSetLocus): Credible sets, linking each side of a colocalisation to its study
         study_index (StudyIndex): Study index, the source of the biosample of the QTL study
-        enriched_biosamples (DataFrame): `studyId`, `chromosome` and `biosampleId`, as
-            returned by `enriched_study_biosamples`
+        enriched_biosamples (DataFrame): `studyId`, `chromosome` and `biosampleId`, the
+            `biosamples` of `EnrichedStudyBiosamples`
 
     Returns:
         Colocalisation: The colocalisations whose right-side biosample is enriched for the
@@ -1380,18 +1376,14 @@ class EQtlColocH4MaximumEnrichedBiosampleFeature(L2GFeature):
     """Max H4 for each (study, locus, gene) over eQTLs from biosamples enriched for the study's diseases."""
 
     feature_dependency_type = [
-        BiosampleIndex,
         Colocalisation,
-        ExpressionSpecificity,
+        EnrichedStudyBiosamples,
         StudyIndex,
         CredibleSetLocus,
         TargetIndex,
         VariantIndex,
     ]
     feature_name = "eQtlColocH4MaximumEnrichedBiosample"
-    p_value_adjusted_threshold: float = 0.05
-    min_disease_genes: int = 25
-    vep_score_threshold: float = 0.66
 
     @classmethod
     def compute(
@@ -1403,18 +1395,11 @@ class EQtlColocH4MaximumEnrichedBiosampleFeature(L2GFeature):
 
         Args:
             study_loci_to_annotate (CredibleSetLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
-            feature_dependency (dict[str, Any]): Biosamples, colocalisations, expression specificity, studies, credible sets, genes and variants
+            feature_dependency (dict[str, Any]): Colocalisations, enriched biosamples, studies, credible sets, genes and variants
 
         Returns:
             EQtlColocH4MaximumEnrichedBiosampleFeature: Feature dataset
         """
-        enriched_biosamples = enriched_study_biosamples(
-            study_loci_to_annotate,
-            p_value_adjusted_threshold=cls.p_value_adjusted_threshold,
-            min_disease_genes=cls.min_disease_genes,
-            vep_score_threshold=cls.vep_score_threshold,
-            **{k: v for k, v in feature_dependency.items() if k != "colocalisation"},
-        )
         return cls(
             _df=convert_from_wide_to_long(
                 common_colocalisation_feature_logic(
@@ -1427,7 +1412,7 @@ class EQtlColocH4MaximumEnrichedBiosampleFeature(L2GFeature):
                         feature_dependency["colocalisation"],
                         feature_dependency["study_locus"],
                         feature_dependency["study_index"],
-                        enriched_biosamples,
+                        feature_dependency["enriched_biosamples"].biosamples,
                     ),
                     study_index=feature_dependency["study_index"],
                     study_locus=feature_dependency["study_locus"],
@@ -1444,18 +1429,14 @@ class EQtlColocH4MaximumEnrichedBiosampleNeighbourhoodFeature(L2GFeature):
     """Max H4 over eQTLs from enriched biosamples, relative to the best gene at the locus."""
 
     feature_dependency_type = [
-        BiosampleIndex,
         Colocalisation,
-        ExpressionSpecificity,
+        EnrichedStudyBiosamples,
         StudyIndex,
         CredibleSetLocus,
         TargetIndex,
         VariantIndex,
     ]
     feature_name = "eQtlColocH4MaximumEnrichedBiosampleNeighbourhood"
-    p_value_adjusted_threshold: float = 0.05
-    min_disease_genes: int = 25
-    vep_score_threshold: float = 0.66
 
     @classmethod
     def compute(
@@ -1467,18 +1448,11 @@ class EQtlColocH4MaximumEnrichedBiosampleNeighbourhoodFeature(L2GFeature):
 
         Args:
             study_loci_to_annotate (CredibleSetLocus | L2GGoldStandard): The dataset containing study loci that will be used for annotation
-            feature_dependency (dict[str, Any]): Biosamples, colocalisations, expression specificity, studies, credible sets, genes and variants
+            feature_dependency (dict[str, Any]): Colocalisations, enriched biosamples, studies, credible sets, genes and variants
 
         Returns:
             EQtlColocH4MaximumEnrichedBiosampleNeighbourhoodFeature: Feature dataset
         """
-        enriched_biosamples = enriched_study_biosamples(
-            study_loci_to_annotate,
-            p_value_adjusted_threshold=cls.p_value_adjusted_threshold,
-            min_disease_genes=cls.min_disease_genes,
-            vep_score_threshold=cls.vep_score_threshold,
-            **{k: v for k, v in feature_dependency.items() if k != "colocalisation"},
-        )
         return cls(
             _df=convert_from_wide_to_long(
                 common_neighbourhood_colocalisation_feature_logic(
@@ -1491,7 +1465,7 @@ class EQtlColocH4MaximumEnrichedBiosampleNeighbourhoodFeature(L2GFeature):
                         feature_dependency["colocalisation"],
                         feature_dependency["study_locus"],
                         feature_dependency["study_index"],
-                        enriched_biosamples,
+                        feature_dependency["enriched_biosamples"].biosamples,
                     ),
                     study_index=feature_dependency["study_index"],
                     target_index=feature_dependency["target_index"],
