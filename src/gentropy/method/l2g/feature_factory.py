@@ -10,6 +10,8 @@ from gentropy.dataset.l2g_features.colocalisation import (
     EQtlColocClppMaximumFeature,
     EQtlColocClppMaximumNeighbourhoodFeature,
     EQtlColocH4MaximumFeature,
+    EQtlColocH4MaximumEnrichedBiosampleFeature,
+    EQtlColocH4MaximumEnrichedBiosampleNeighbourhoodFeature,
     EQtlColocH4MaximumNeighbourhoodFeature,
     PQtlColocClppMaximumFeature,
     PQtlColocClppMaximumNeighbourhoodFeature,
@@ -56,6 +58,7 @@ from gentropy.dataset.l2g_features.intervals import (
     E2gMeanNeighbourhoodFeature,
 )
 from gentropy.dataset.l2g_features.pathway import (
+    PathwayCountFeature,
     PathwayEnrichmentFeature,
     PathwayEnrichmentNeighbourhoodFeature,
 )
@@ -138,6 +141,8 @@ class FeatureFactory:
         "sQtlColocClppMaximumNeighbourhood": SQtlColocClppMaximumNeighbourhoodFeature,
         "eQtlColocH4Maximum": EQtlColocH4MaximumFeature,
         "eQtlColocH4MaximumNeighbourhood": EQtlColocH4MaximumNeighbourhoodFeature,
+        "eQtlColocH4MaximumEnrichedBiosample": EQtlColocH4MaximumEnrichedBiosampleFeature,
+        "eQtlColocH4MaximumEnrichedBiosampleNeighbourhood": EQtlColocH4MaximumEnrichedBiosampleNeighbourhoodFeature,
         "pQtlColocH4Maximum": PQtlColocH4MaximumFeature,
         "pQtlColocH4MaximumNeighbourhood": PQtlColocH4MaximumNeighbourhoodFeature,
         "sQtlColocH4Maximum": SQtlColocH4MaximumFeature,
@@ -152,6 +157,7 @@ class FeatureFactory:
         "e2gMeanNeighbourhood": E2gMeanNeighbourhoodFeature,
         "pathwayEnrichment500kb": PathwayEnrichmentFeature,
         "pathwayEnrichment500kbNeighbourhood": PathwayEnrichmentNeighbourhoodFeature,
+        "pathwayCount": PathwayCountFeature,
         "predictedPleiotropyPrior": PredictedPleiotropyPriorFeature,
         "predictedPleiotropyPriorNeighbourhood": PredictedPleiotropyPriorNeighbourhoodFeature,
         "approxPops": ApproxPopsFeature,

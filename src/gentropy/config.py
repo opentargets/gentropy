@@ -279,6 +279,24 @@ class EqtlGenIngestionConfig(StepConfig):
 
 
 @dataclass
+class SleMapIngestionConfig(StepConfig):
+    """SLE-map single-cell eQTL ingestion step configuration."""
+
+    memberships_path: str = MISSING
+    components_path: str = MISSING
+    diagnostics_path: str = MISSING
+    donor_counts_path: str = MISSING
+    study_index_output_path: str = MISSING
+    credible_set_output_path: str = MISSING
+    credible_set_variant_output_path: str = MISSING
+    # As for the FinnGen multiome ingestion; None keeps every credible set:
+    purity_min_r2_threshold: float | None = 0.25
+    # As in the earlier SLE-map release; None keeps every credible set:
+    lead_pvalue_threshold: float | None = 1e-3
+    _target_: str = "gentropy.sle_map_ingestion.SleMapIngestionStep"
+
+
+@dataclass
 class LDIndexConfig(StepConfig):
     """LD index step configuration."""
 
@@ -466,10 +484,11 @@ class LocusToGeneFeatureMatrixConfig(StepConfig):
     target_index_path: str | None = None
     intervals_path: str | None = None
     gene_interactions_path: str | None = None
-    pathway_index_path: str | None = None
-    pathway_enrichment_path: str | None = None
-    mouse_phenotype_path: str | None = None
+    go_path: str | None = None
+    reactome_path: str | None = None
     baseline_expression_path: str | None = None
+    biosample_index_path: str | None = None
+    mouse_phenotype_path: str | None = None
     target_essentiality_path: str | None = None
     feature_matrix_path: str = MISSING
     features_list: list[str] = field(
@@ -519,6 +538,12 @@ class LocusToGeneFeatureMatrixConfig(StepConfig):
         ]
     )
     append_null_features: bool = False
+    pathway_p_value_adjusted_threshold: float = 0.05
+    pathway_min_pathway_size: int = 5
+    pathway_max_pathway_size: int = 4000
+    pathway_min_disease_genes: int = 25
+    biosample_p_value_adjusted_threshold: float = 0.01
+    biosample_min_disease_genes: int = 25
     _target_: str = "gentropy.l2g.LocusToGeneFeatureMatrixStep"
 
 
@@ -773,21 +798,6 @@ class MolecularComplexIngestionConfig(StepConfig):
 
 
 @dataclass
-class PathwayIngestionConfig(StepConfig):
-    """Pathway library and enrichment ingestion step configuration."""
-
-    pathway_library_path: str = MISSING
-    pathway_enrichment_source_path: str = MISSING
-    target_index_path: str = MISSING
-    pathway_index_path: str = MISSING
-    pathway_enrichment_path: str = MISSING
-    exclude_unmapped_pathways: bool = False
-    recompute_missing_adjusted_p_value: bool = True
-
-    _target_: str = "gentropy.pathway.PathwayIngestionStep"
-
-
-@dataclass
 class FineMappingPlanGeneratorConfig(StepConfig):
     """Fine-mapping plan generator step configuration."""
 
@@ -931,6 +941,7 @@ def register_config() -> None:
     )
 
     cs.store(group="step", name="eqtlgen_ingestion", node=EqtlGenIngestionConfig)
+    cs.store(group="step", name="sle_map_ingestion", node=SleMapIngestionConfig)
     cs.store(group="step", name="pics", node=PICSConfig)
     cs.store(group="step", name="gnomad_variants", node=GnomadVariantConfig)
     cs.store(group="step", name="ukb_ppp_eur_sumstat_preprocess", node=UkbPppEurConfig)
@@ -967,11 +978,6 @@ def register_config() -> None:
         group="step",
         name="molecular_complex_ingestion",
         node=MolecularComplexIngestionConfig,
-    )
-    cs.store(
-        group="step",
-        name="pathway_ingestion",
-        node=PathwayIngestionConfig,
     )
     cs.store(
         group="step",

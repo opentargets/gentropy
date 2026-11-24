@@ -15,16 +15,17 @@ from xgboost import XGBClassifier
 
 from gentropy.common.schemas import compare_struct_schemas
 from gentropy.common.session import Session
+from gentropy.dataset.biosample_index import BiosampleIndex
 from gentropy.dataset.colocalisation import Colocalisation
 from gentropy.dataset.credible_set import CredibleSet, CredibleSetVariant
 from gentropy.dataset.intervals import Intervals
 from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
+from gentropy.dataset.l2g_features.colocalisation import EnrichedStudyBiosamples
+from gentropy.dataset.l2g_features.pathway import PathwayEnrichmentScores
 from gentropy.dataset.l2g_features.pleiotropy_prior import PleiotropyPriorInputs
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
 from gentropy.dataset.l2g_prediction import L2GPrediction
 from gentropy.dataset.locus_overlap import LocusOverlap
-from gentropy.dataset.pathway_enrichment import PathwayEnrichment
-from gentropy.dataset.pathway_index import PathwayIndex
 from gentropy.dataset.study_index import StudyIndex
 from gentropy.dataset.target_index import TargetIndex
 from gentropy.dataset.variant_index import VariantIndex
@@ -33,9 +34,11 @@ from gentropy.external.hf_hub import (
     HuggingFaceModelRepoHandle,
 )
 from gentropy.external.wandb import WandbCredentials
+from gentropy.method.biosample_enrichment import ExpressionSpecificity
 from gentropy.method.l2g.feature_factory import L2GFeatureInputLoader
 from gentropy.method.l2g.model import LocusToGeneModel
 from gentropy.method.l2g.trainer import LocusToGeneTrainer
+from gentropy.method.pathway_enrichment import PathwayLibrary
 
 logger = logging.getLogger(__name__)
 
@@ -66,13 +69,20 @@ class LocusToGeneFeatureMatrixStep:
         target_index_path: str | None = None,
         intervals_path: str | None = None,
         gene_interactions_path: str | None = None,
-        pathway_index_path: str | None = None,
-        pathway_enrichment_path: str | None = None,
-        mouse_phenotype_path: str | None = None,
+        go_path: str | None = None,
+        reactome_path: str | None = None,
         baseline_expression_path: str | None = None,
+        biosample_index_path: str | None = None,
+        mouse_phenotype_path: str | None = None,
         target_essentiality_path: str | None = None,
         feature_matrix_path: str,
         append_null_features: bool = False,
+        pathway_p_value_adjusted_threshold: float = 0.05,
+        pathway_min_pathway_size: int = 5,
+        pathway_max_pathway_size: int = 4000,
+        pathway_min_disease_genes: int = 25,
+        biosample_p_value_adjusted_threshold: float = 0.01,
+        biosample_min_disease_genes: int = 25,
     ) -> None:
         """Initialise the step and run the logic based on mode.
 
@@ -87,18 +97,38 @@ class LocusToGeneFeatureMatrixStep:
             target_index_path (str | None): Path to the target index dataset
             intervals_path (str | None): Path to the interval dataset
             gene_interactions_path (str | None): Path to the protein-protein interaction (PPI) dataset
-            pathway_index_path (str | None): Path to the harmonised `PathwayIndex` dataset, as
-                written by the pathway ingestion step
-            pathway_enrichment_path (str | None): Path to the harmonised `PathwayEnrichment`
-                dataset, as written by the pathway ingestion step
+            go_path (str | None): Path to the `go` table of the platform release, used by the
+                pathway enrichment features
+            reactome_path (str | None): Path to the `reactome` table of the platform release,
+                used by the pathway enrichment features
+            baseline_expression_path (str | None): Path to the `baseline_expression` table of
+                the platform release, used by the enriched biosample colocalisation and the predicted pleiotropy prior
+                features
+            biosample_index_path (str | None): Path to the biosample index, used by the enriched
+                biosample colocalisation features to match the descendants of an enriched
+                biosample
             mouse_phenotype_path (str | None): Path to the Open Targets `mouse_phenotype`
                 dataset, used by the predicted pleiotropy prior
-            baseline_expression_path (str | None): Path to the Open Targets
-                `baseline_expression` dataset, used by the predicted pleiotropy prior
             target_essentiality_path (str | None): Path to the Open Targets
                 `target_essentiality` dataset, used by the predicted pleiotropy prior
             feature_matrix_path (str): Path to the L2G feature matrix output dataset
             append_null_features (bool): Whether to append null features to the feature matrix. Defaults to False.
+            pathway_p_value_adjusted_threshold (float): Largest adjusted p-value, exclusive, for a
+                pathway to count as enriched in the pathway features
+            pathway_min_pathway_size (int): Smallest number of protein-coding member genes a
+                pathway needs to enter the pathway features
+            pathway_max_pathway_size (int): Largest number of protein-coding member genes a
+                pathway may have to enter the pathway features
+            pathway_min_disease_genes (int): Smallest number of prioritised genes a disease needs,
+                over all chromosomes, to be tested for pathway enrichment
+            biosample_p_value_adjusted_threshold (float): Largest adjusted p-value, exclusive,
+                for a biosample to count as enriched in the enriched biosample colocalisation
+                features
+            biosample_min_disease_genes (int): Smallest number of prioritised genes a disease
+                needs in a specificity panel to be tested for biosample enrichment there
+
+        Raises:
+            ValueError: If a requested feature is missing one of its inputs
         """
         credible_set = CredibleSet.from_parquet(
             session, credible_set_path, recursiveFileLookup=True
@@ -147,15 +177,32 @@ class LocusToGeneFeatureMatrixStep:
             else None
         )
 
-        pathway_index = (
-            PathwayIndex.from_parquet(session, pathway_index_path)
-            if pathway_index_path
+        pathway_library = (
+            PathwayLibrary(
+                go=session.load_data(go_path, "parquet", recursiveFileLookup=True),
+                reactome=session.load_data(
+                    reactome_path, "parquet", recursiveFileLookup=True
+                ),
+            )
+            if go_path and reactome_path
             else None
         )
 
-        pathway_enrichment = (
-            PathwayEnrichment.from_parquet(session, pathway_enrichment_path)
-            if pathway_enrichment_path
+        expression_specificity = (
+            ExpressionSpecificity(
+                baseline_expression=session.load_data(
+                    baseline_expression_path, "parquet", recursiveFileLookup=True
+                )
+            )
+            if baseline_expression_path
+            else None
+        )
+
+        biosample_index = (
+            BiosampleIndex.from_parquet(
+                session, biosample_index_path, recursiveFileLookup=True
+            )
+            if biosample_index_path
             else None
         )
 
@@ -197,18 +244,19 @@ class LocusToGeneFeatureMatrixStep:
         pathway_features = {
             "pathwayEnrichment500kb",
             "pathwayEnrichment500kbNeighbourhood",
+            "pathwayCount",
         }
         if pathway_features.intersection(features_list) and (
-            pathway_index is None
-            or pathway_enrichment is None
+            pathway_library is None
             or target_index is None
             or studies is None
+            or variant_index is None
         ):
             raise ValueError(
-                "Pathway enrichment features need the pathway index, the enrichment "
-                "results, the target index and the study index. Provide "
-                "`pathway_index_path`, `pathway_enrichment_path`, `target_index_path` "
-                "and `study_index_path`."
+                "Pathway enrichment features need the GO and Reactome tables of the "
+                "release, the target index, the study index and the variant index. "
+                "Provide `go_path`, `reactome_path`, `target_index_path`, "
+                "`study_index_path` and `variant_index_path`."
             )
 
         pleiotropy_prior_features = {
@@ -232,6 +280,71 @@ class LocusToGeneFeatureMatrixStep:
                 "`target_index_path`."
             )
 
+        enriched_biosample_features = {
+            "eQtlColocH4MaximumEnrichedBiosample",
+            "eQtlColocH4MaximumEnrichedBiosampleNeighbourhood",
+        }
+        if enriched_biosample_features.intersection(features_list) and (
+            expression_specificity is None
+            or biosample_index is None
+            or coloc is None
+            or target_index is None
+            or studies is None
+            or variant_index is None
+        ):
+            raise ValueError(
+                "Enriched biosample colocalisation features need the baseline expression "
+                "table of the release, the biosample index, the colocalisations, the target "
+                "index, the study index and the variant index. Provide "
+                "`baseline_expression_path`, `biosample_index_path`, `colocalisation_path`, "
+                "`target_index_path`, `study_index_path` and `variant_index_path`."
+            )
+
+        study_loci_to_annotate = credible_set.filter(f.col("studyType") == "gwas")
+        # The enrichment is shared by every pathway feature, so it is computed once here.
+        pathway_scores = (
+            PathwayEnrichmentScores.from_release(
+                study_loci_to_annotate,
+                pathway_library=pathway_library,
+                study_index=studies,
+                study_locus=credible_set,
+                target_index=target_index,
+                variant_index=variant_index,
+                p_value_adjusted_threshold=pathway_p_value_adjusted_threshold,
+                min_pathway_size=pathway_min_pathway_size,
+                max_pathway_size=pathway_max_pathway_size,
+                min_disease_genes=pathway_min_disease_genes,
+            )
+            if pathway_features.intersection(features_list)
+            and pathway_library is not None
+            and studies is not None
+            and target_index is not None
+            and variant_index is not None
+            else None
+        )
+
+        # The enrichment is shared by both enriched biosample features, so it is computed once.
+        enriched_biosamples = (
+            EnrichedStudyBiosamples.from_release(
+                study_loci_to_annotate,
+                expression_specificity=expression_specificity,
+                biosample_index=biosample_index,
+                study_index=studies,
+                study_locus=credible_set,
+                target_index=target_index,
+                variant_index=variant_index,
+                p_value_adjusted_threshold=biosample_p_value_adjusted_threshold,
+                min_disease_genes=biosample_min_disease_genes,
+            )
+            if enriched_biosample_features.intersection(features_list)
+            and expression_specificity is not None
+            and biosample_index is not None
+            and studies is not None
+            and target_index is not None
+            and variant_index is not None
+            else None
+        )
+
         features_input_loader = L2GFeatureInputLoader(
             variant_index=variant_index,
             colocalisation=coloc,
@@ -240,12 +353,12 @@ class LocusToGeneFeatureMatrixStep:
             target_index=target_index,
             intervals=intervals,
             interactions=interactions,
-            pathway_index=pathway_index,
-            pathway_enrichment=pathway_enrichment,
+            pathway_scores=pathway_scores,
+            enriched_biosamples=enriched_biosamples,
             pleiotropy_prior_inputs=pleiotropy_prior_inputs,
         )
 
-        fm = credible_set.filter(f.col("studyType") == "gwas").build_feature_matrix(
+        fm = study_loci_to_annotate.build_feature_matrix(
             features_list,
             features_input_loader,
             append_null_features=append_null_features,
@@ -265,9 +378,15 @@ class LocusToGeneFeatureMatrixStep:
                 target_index_df, on="geneId", how="inner"
             )
 
-        fm._df.coalesce(session.output_partitions).write.mode(
-            session.write_mode
-        ).parquet(feature_matrix_path)
+        try:
+            fm._df.coalesce(session.output_partitions).write.mode(
+                session.write_mode
+            ).parquet(feature_matrix_path)
+        finally:
+            if pathway_scores is not None:
+                pathway_scores.unpersist()
+            if enriched_biosamples is not None:
+                enriched_biosamples.unpersist()
 
 
 class LocusToGeneTrainTestSplitStep:
@@ -354,14 +473,22 @@ class LocusToGeneTrainTestSplitStep:
             )
 
             # Apply label encoding in Spark (handles both string and already-encoded int values).
-            label_map = f.create_map(f.lit("negative"), f.lit(0), f.lit("positive"), f.lit(1))
+            label_map = f.create_map(
+                f.lit("negative"), f.lit(0), f.lit("positive"), f.lit(1)
+            )
             train_sdf = train_sdf.withColumn(
                 "goldStandardSet",
-                f.coalesce(label_map[f.col("goldStandardSet")], f.col("goldStandardSet").cast("int")),
+                f.coalesce(
+                    label_map[f.col("goldStandardSet")],
+                    f.col("goldStandardSet").cast("int"),
+                ),
             ).persist()
             test_sdf = test_sdf.withColumn(
                 "goldStandardSet",
-                f.coalesce(label_map[f.col("goldStandardSet")], f.col("goldStandardSet").cast("int")),
+                f.coalesce(
+                    label_map[f.col("goldStandardSet")],
+                    f.col("goldStandardSet").cast("int"),
+                ),
             ).persist()
             to_unpersist.extend([train_sdf, test_sdf])
 
@@ -444,7 +571,9 @@ class LocusToGeneTrainTestSplitStep:
             >>> sorted(r.credibleSetId for r in test.select("credibleSetId").distinct().collect())
             ['cs1']
         """
-        genes = test_genes.select("geneId").distinct().withColumn("isTestGene", f.lit(True))
+        genes = (
+            test_genes.select("geneId").distinct().withColumn("isTestGene", f.lit(True))
+        )
         loci = (
             annotated_df.join(f.broadcast(genes), on="geneId", how="left")
             .withColumn("isTestGene", f.coalesce(f.col("isTestGene"), f.lit(False)))
@@ -455,8 +584,12 @@ class LocusToGeneTrainTestSplitStep:
             .groupBy("credibleSetId")
             .agg(
                 f.max("isTestGene").alias("hasTestGene"),
-                f.max(f.col("isPositive") & f.col("isTestGene")).alias("hasTestPositive"),
-                f.max(f.col("isPositive") & ~f.col("isTestGene")).alias("hasTrainPositive"),
+                f.max(f.col("isPositive") & f.col("isTestGene")).alias(
+                    "hasTestPositive"
+                ),
+                f.max(f.col("isPositive") & ~f.col("isTestGene")).alias(
+                    "hasTrainPositive"
+                ),
             )
         )
         train_loci = loci.filter(~f.col("hasTestGene")).select("credibleSetId")
@@ -506,7 +639,9 @@ class LocusToGeneTrainTestSplitStep:
                     _df=gold_standard_raw,
                     _schema=L2GGoldStandard.get_schema(),
                 )
-            case {"unexpected_columns": extra_columns} if "missing_mandatory_columns" not in schema_issues:
+            case {"unexpected_columns": extra_columns} if (
+                "missing_mandatory_columns" not in schema_issues
+            ):
                 return L2GGoldStandard(
                     _df=gold_standard_raw.drop(*extra_columns),
                     _schema=L2GGoldStandard.get_schema(),
@@ -528,9 +663,13 @@ class LocusToGeneTrainTestSplitStep:
                 ],
             }:
                 if gene_interactions_path is None:
-                    raise ValueError("Interactions are required for parsing OTG curation.")
+                    raise ValueError(
+                        "Interactions are required for parsing OTG curation."
+                    )
                 if variant_index_path is None:
-                    raise ValueError("Variant Index is required for parsing OTG curation.")
+                    raise ValueError(
+                        "Variant Index is required for parsing OTG curation."
+                    )
                 if credible_set_variant_path is None:
                     raise ValueError(
                         "Credible set variants are required for parsing OTG curation."
@@ -602,7 +741,9 @@ class LocusToGeneTrainTestSplitStep:
         }
         if "traitFromSourceMappedId" in df.columns:
             stats["n_unique_positive_gene_disease_pairs"] = int(
-                positive[["geneId", "traitFromSourceMappedId"]].drop_duplicates().shape[0]
+                positive[["geneId", "traitFromSourceMappedId"]]
+                .drop_duplicates()
+                .shape[0]
             )
         return stats
 
@@ -621,7 +762,9 @@ class LocusToGeneTrainTestSplitStep:
         """
         from pathlib import Path
 
-        stats_path = split_stats_path or train_parquet_path.rstrip("/") + "_split_stats.json"
+        stats_path = (
+            split_stats_path or train_parquet_path.rstrip("/") + "_split_stats.json"
+        )
         if not stats_path.startswith("gs://"):
             Path(stats_path).parent.mkdir(parents=True, exist_ok=True)
         with pd.io.common.get_handle(stats_path, mode="wt") as ioargs:
@@ -843,7 +986,9 @@ class LocusToGeneStep:
         # Reconstruct L2GFeatureMatrix for model metadata (column order, HF Hub upload).
         # Labels are decoded back to strings because export_to_hugging_face_hub calls
         # generate_train_test_split, which expects string-encoded labels.
-        label_map = f.create_map(f.lit(0), f.lit("negative"), f.lit(1), f.lit("positive"))
+        label_map = f.create_map(
+            f.lit(0), f.lit("negative"), f.lit(1), f.lit("positive")
+        )
         feature_matrix = L2GFeatureMatrix(
             _df=train_sdf.union(test_sdf).withColumn(
                 "goldStandardSet",
@@ -969,9 +1114,7 @@ class LocusToGeneModelTuningStep:
             train_pd[effective_features].apply(pd.to_numeric).to_numpy()
         )
         y_train: np.ndarray = train_pd[label_col].apply(pd.to_numeric).to_numpy()
-        x_test: np.ndarray = (
-            test_pd[effective_features].apply(pd.to_numeric).to_numpy()
-        )
+        x_test: np.ndarray = test_pd[effective_features].apply(pd.to_numeric).to_numpy()
         y_test: np.ndarray = test_pd[label_col].apply(pd.to_numeric).to_numpy()
 
         trainer.train_df = train_pd
