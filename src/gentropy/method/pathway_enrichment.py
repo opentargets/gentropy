@@ -9,7 +9,6 @@ import numpy as np
 import pandas as pd
 import pyspark.sql.functions as f
 import scipy.sparse
-from pyspark.sql import Window
 from scipy.stats import norm
 
 if TYPE_CHECKING:
@@ -100,6 +99,11 @@ class PathwayLibrary:
     ) -> DataFrame:
         """Protein-coding members of every pathway whose size falls within the limits.
 
+        Pathways with exactly the same members are collapsed into one, keeping the lowest
+        `pathwayId`, across GO and Reactome alike. Propagation makes such copies common: a
+        parent term whose only annotated child is one term gets exactly that child's genes.
+        Kept, every copy would count again in a gene's score and be tested again.
+
         Args:
             target_index (TargetIndex): Target index, the source of the annotations
             min_size (int): Smallest number of member genes a pathway may have
@@ -111,6 +115,7 @@ class PathwayLibrary:
         genes = target_index.df.filter(f.col("biotype") == "protein_coding").select(
             f.col("id").alias("geneId"), "go", "pathways"
         )
+        # Deduplicated straight after each propagation: a gene's terms share most ancestors.
         go_sets = (
             genes.select("geneId", f.explode("go").alias("annotation"))
             .filter(
@@ -122,31 +127,40 @@ class PathwayLibrary:
             )
             .select("geneId", f.col("annotation.id").alias("termId"))
             .join(self.go_term_ancestors(), "termId", "inner")
-        )
-        reactome_sets = genes.select(
-            "geneId", f.explode("pathways.pathwayId").alias("termId")
-        ).join(
-            self.reactome.select(
-                f.col("id").alias("termId"),
-                f.explode(
-                    f.array_union(
-                        f.array(f.col("id")),
-                        f.coalesce(f.col("ancestors"), f.array().cast("array<string>")),
-                    )
-                ).alias("pathwayId"),
-            ),
-            "termId",
-            "inner",
-        )
-        pathway_size = f.count("geneId").over(Window.partitionBy("pathwayId"))
-        return (
-            go_sets.select("pathwayId", "geneId")
-            .unionByName(reactome_sets.select("pathwayId", "geneId"))
+            .select("pathwayId", "geneId")
             .distinct()
-            .withColumn("pathwaySize", pathway_size)
-            .filter(f.col("pathwaySize").between(min_size, max_size))
-            .drop("pathwaySize")
         )
+        reactome_sets = (
+            genes.select("geneId", f.explode("pathways.pathwayId").alias("termId"))
+            .join(
+                self.reactome.select(
+                    f.col("id").alias("termId"),
+                    f.explode(
+                        f.array_union(
+                            f.array(f.col("id")),
+                            f.coalesce(
+                                f.col("ancestors"), f.array().cast("array<string>")
+                            ),
+                        )
+                    ).alias("pathwayId"),
+                ),
+                "termId",
+                "inner",
+            )
+            .select("pathwayId", "geneId")
+            .distinct()
+        )
+        # GO and Reactome identifiers never coincide, so the union needs no deduplication.
+        members = go_sets.unionByName(reactome_sets)
+        kept_pathways = (
+            members.groupBy("pathwayId")
+            .agg(f.array_sort(f.collect_list("geneId")).alias("members"))
+            .filter(f.size("members").between(min_size, max_size))
+            .groupBy("members")
+            .agg(f.min("pathwayId").alias("pathwayId"))
+            .select("pathwayId")
+        )
+        return members.join(kept_pathways, "pathwayId", "semi")
 
     @staticmethod
     def regression(
@@ -182,8 +196,9 @@ class PathwayLibrary:
         Each disease is tested once per held-out chromosome, with the genes of that chromosome
         removed from the regression. A locus is then scored with the results that left its own
         chromosome out, so neither its genes nor those of any other credible set nearby take
-        part in the test. Diseases with fewer than `min_genes` listed genes among the remaining
-        genes are not tested.
+        part in the test. Diseases with fewer than `min_genes` listed genes, counted over all
+        chromosomes, are not tested, so a disease is tested on every held-out chromosome or on
+        none.
 
         The regressions run on the driver. Covariates are projected out once per held-out
         chromosome and reused for every disease and pathway (Frisch-Waugh-Lovell), and the
@@ -258,13 +273,15 @@ class PathwayLibrary:
             shape=(len(genes), len(disease_ids)),
         )
 
+        tested = np.asarray(outcomes.sum(axis=0)).ravel() >= min_genes
+        if not tested.any():
+            held_out_chromosomes = []
         results = []
         for chromosome in held_out_chromosomes:
             kept = (genes["chromosome"] != chromosome).to_numpy()
-            y = outcomes[kept]
-            tested = np.asarray(y.sum(axis=0)).ravel() >= min_genes
-            if not tested.any():
+            if not kept.any():
                 continue
+            y = outcomes[kept]
             beta, standard_error = _pathway_regression(
                 covariates[kept],
                 membership[kept],

@@ -534,6 +534,10 @@ class LocusToGeneFeatureMatrixConfig(StepConfig):
         ]
     )
     append_null_features: bool = False
+    pathway_p_value_adjusted_threshold: float = 0.05
+    pathway_min_pathway_size: int = 5
+    pathway_max_pathway_size: int = 4000
+    pathway_min_disease_genes: int = 25
     _target_: str = "gentropy.l2g.LocusToGeneFeatureMatrixStep"
 
 

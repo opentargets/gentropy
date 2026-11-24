@@ -52,6 +52,10 @@ class TestPathwayLibrary:
             _gene("g5", go=[("GO:0000009", "IDA", "C"), ("GO:0000005", "IDA", "P")]),
             _gene("g6", pathways=["R-HSA-2"]),
             _gene("g7", go=[("GO:0000001", "IDA", "P")], biotype="lncRNA"),
+            # Keep every pathway's members distinct, so none is collapsed
+            _gene("g8", go=[("GO:0000002", "IDA", "P")]),
+            _gene("g9", go=[("GO:0000001", "IDA", "P")]),
+            _gene("g10", pathways=["R-HSA-3"]),
         ]
         return TargetIndex(
             _df=spark.createDataFrame(rows, TargetIndex.get_schema()),
@@ -99,19 +103,59 @@ class TestPathwayLibrary:
             ("GO:0000004", "g3"),
             ("R-HSA-2", "g6"),
             ("R-HSA-1", "g6"),
+            ("GO:0000002", "g8"),
+            ("GO:0000001", "g8"),
+            ("GO:0000001", "g9"),
+            ("R-HSA-3", "g10"),
+            ("R-HSA-1", "g10"),
         }
 
     def test_gene_sets_outside_the_size_limits_are_dropped(
         self, mock_pathway_library: PathwayLibrary, target_index: TargetIndex
     ) -> None:
-        """Only the three GO terms shared by g1 and g2 have two members."""
+        """Only GO:0000003 (g1, g2) and R-HSA-1 (g6, g10) have two members."""
         pathways = {
             row["pathwayId"]
             for row in mock_pathway_library.gene_sets(
                 target_index, min_size=2, max_size=2
             ).collect()
         }
-        assert pathways == {"GO:0000001", "GO:0000002", "GO:0000003"}
+        assert pathways == {"GO:0000003", "R-HSA-1"}
+
+    def test_identical_gene_sets_collapse_to_the_lowest_id(
+        self, spark: SparkSession, mock_pathway_library: PathwayLibrary
+    ) -> None:
+        """Identical sets collapse across GO and Reactome; a near-duplicate stays.
+
+        gA and gB are in GO:0000003 and R-HSA-2, so GO:0000001-3 and R-HSA-2 all hold exactly
+        gA and gB and collapse to GO:0000001. gE is in R-HSA-3, so R-HSA-1 holds gA, gB and gE
+        and is kept.
+        """
+        target_index = TargetIndex(
+            _df=spark.createDataFrame(
+                [
+                    _gene("gA", go=[("GO:0000003", "IDA", "P")], pathways=["R-HSA-2"]),
+                    _gene("gB", go=[("GO:0000003", "IDA", "P")], pathways=["R-HSA-2"]),
+                    _gene("gE", pathways=["R-HSA-3"]),
+                ],
+                TargetIndex.get_schema(),
+            ),
+            _schema=TargetIndex.get_schema(),
+        )
+        gene_sets = {
+            (row["pathwayId"], row["geneId"])
+            for row in mock_pathway_library.gene_sets(
+                target_index, min_size=1, max_size=10
+            ).collect()
+        }
+        assert gene_sets == {
+            ("GO:0000001", "gA"),
+            ("GO:0000001", "gB"),
+            ("R-HSA-1", "gA"),
+            ("R-HSA-1", "gB"),
+            ("R-HSA-1", "gE"),
+            ("R-HSA-3", "gE"),
+        }
 
 
 def test_regression_matches_a_direct_fit(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -237,17 +281,16 @@ class TestRegression:
             assert row["betaError"] == pytest.approx(np.sqrt(0.54) / 4.8)
             assert row["pValueAdjusted"] == pytest.approx(min(2 * row["pValue"], 1.0))
 
-    def test_diseases_with_too_few_genes_left_are_not_tested(
+    def test_minimum_genes_counts_every_chromosome(
         self, inputs: tuple[DataFrame, DataFrame, TargetIndex]
     ) -> None:
-        """With a minimum of three genes, disease2 is tested only when chromosome 2 is held out."""
+        """disease1 lists six genes per held-out chromosome but twelve in all, so a minimum of seven still tests it on both; disease2, with three, is not tested."""
         rows = PathwayLibrary.regression(
-            *inputs, min_genes=3, p_value_adjusted_threshold=1.01
+            *inputs, min_genes=7, p_value_adjusted_threshold=1.01
         ).collect()
         assert {(r["diseaseId"], r["heldOutChromosome"]) for r in rows} == {
             ("disease1", "1"),
             ("disease1", "2"),
-            ("disease2", "2"),
         }
 
     def test_only_the_requested_chromosomes_are_held_out(
