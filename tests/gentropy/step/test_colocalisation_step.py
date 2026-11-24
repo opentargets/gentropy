@@ -1,14 +1,15 @@
 """Test colocalisation step."""
 
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 import pytest
 
 from gentropy.colocalisation import ColocalisationStep
 from gentropy.common.session import Session
 from gentropy.dataset.colocalisation import Colocalisation
-from gentropy.dataset.study_locus import StudyLocus
+from gentropy.dataset.credible_set import CredibleSet, CredibleSetVariant
+from gentropy.dataset.study_locus import StudyLocusQualityCheck
 from gentropy.method.colocalisation import (
     ColocalisationMethod,
     InvalidColocalisationMethodError,
@@ -24,189 +25,111 @@ class TestColocalisationStep:
 
     @pytest.fixture(autouse=True)
     def _setup(self, session: Session, tmp_path: Path) -> None:
-        """Setup StudyLocus for testing."""
-        credible_set_data = [
+        """Write credible sets and their variants for testing.
+
+        Four single-variant GWAS credible sets: two pairs that share their lead.
+        """
+        # (id, studyId, lead, locusStart, locusEnd, pValueMantissa, pValueExponent,
+        #  logBayesFactor, posteriorProbability, reportedBeta)
+        rows = [
             (
                 "-1299941111165481046",
-                "gwas",
-                "1_62634374_G_GA",
-                "1",
-                62634374,
-                "1:62116600-63176657",
                 "GCST90269661",
-                None,
-                -18.026562155233105,
-                8.294741,
-                -72,
-                None,
-                None,
-                None,
-                [
-                    "Variant not found in LD reference, Study locus finemapped without in-sample LD reference"
-                ],
-                "SuSiE-inf",
-                2,
-                128.08235878972883,
-                1.0,
-                1.0,
+                "1_62634374_G_GA",
                 62116600,
                 63176657,
-                None,
-                [("1_62634374_G_GA", 1.0)],
-                [
-                    (
-                        True,
-                        True,
-                        303.2017476882394,
-                        1.0,
-                        "1_62634374_G_GA",
-                        None,
-                        None,
-                        -0.07779708137213309,
-                        None,
-                        None,
-                    )
-                ],
-                "SuSiE fine-mapped credible set with out-of-sample LD",
-                None,
+                8.294741,
+                -72,
+                303.2017476882394,
+                1.0,
+                -0.07779708137213309,
             ),
             (
                 "-1245591334543437941",
-                "gwas",
-                "1_62725906_C_A",
-                "1",
-                62725906,
-                "1:62275115-62861709",
                 "GCST90024601",
-                None,
-                6.818181818181818,
-                1.0845997,
-                -12,
-                None,
-                None,
-                None,
-                [
-                    "Variant not found in LD reference, Study locus finemapped without in-sample LD reference"
-                ],
-                "SuSiE-inf",
-                3,
-                903.4374513916813,
-                1.0,
-                1.0,
+                "1_62725906_C_A",
                 62275115,
                 62861709,
-                None,
-                [("1_62725906_C_A", 1.0)],
-                [
-                    (
-                        True,
-                        True,
-                        2087.4457573345685,
-                        0.9999999999381545,
-                        "1_62725906_C_A",
-                        None,
-                        None,
-                        0.20241232721094407,
-                        None,
-                        None,
-                    )
-                ],
-                "SuSiE fine-mapped credible set with out-of-sample LD",
-                None,
+                1.0845997,
+                -12,
+                2087.4457573345685,
+                0.9999999999381545,
+                0.20241232721094407,
             ),
             (
                 "-0.20241232721094407",
-                "gwas",
-                "1_62725906_C_A",
-                "1",
-                62725906,
-                "1:62335572-62883302",
                 "GCST90025461",
-                None,
-                6.363636363636364,
-                5.0753098,
-                -10,
-                None,
-                None,
-                None,
-                [
-                    "Variant not found in LD reference, Study locus finemapped without in-sample LD reference"
-                ],
-                "SuSiE-inf",
-                2,
-                912.1598183692258,
-                1.0,
-                1.0,
+                "1_62725906_C_A",
                 62335572,
                 62883302,
-                None,
-                [("1_62725906_C_A", 1.0)],
-                [
-                    (
-                        True,
-                        True,
-                        2107.38950418228,
-                        0.9999999999454303,
-                        "1_62725906_C_A",
-                        None,
-                        None,
-                        0.20330391077149534,
-                        None,
-                        None,
-                    )
-                ],
-                "SuSiE fine-mapped credible set with out-of-sample LD",
-                None,
+                5.0753098,
+                -10,
+                2107.38950418228,
+                0.9999999999454303,
+                0.20330391077149534,
             ),
             (
                 "-2271857845883525223",
-                "gwas",
-                "1_62634374_G_GA",
-                "1",
-                62634374,
-                "1:62192511-63034021",
                 "GCST90269580",
-                None,
-                -15.43232373355239,
-                1.0077391,
-                -54,
-                None,
-                None,
-                None,
-                [
-                    "Variant not found in LD reference, Study locus finemapped without in-sample LD reference"
-                ],
-                "SuSiE-inf",
-                2,
-                104.77639852123883,
-                1.0,
-                1.0,
+                "1_62634374_G_GA",
                 62192511,
                 63034021,
-                None,
-                [("1_62634374_G_GA", 1.0)],
-                [
-                    (
-                        True,
-                        True,
-                        249.20354469210795,
-                        1.0,
-                        "1_62634374_G_GA",
-                        None,
-                        None,
-                        -0.07071263272378725,
-                        None,
-                        None,
-                    )
-                ],
-                "SuSiE fine-mapped credible set with out-of-sample LD",
-                None,
+                1.0077391,
+                -54,
+                249.20354469210795,
+                1.0,
+                -0.07071263272378725,
             ),
         ]
-        self.credible_set_path = str(tmp_path / "credible_set_datasets")
+        out_of_sample_ld = [StudyLocusQualityCheck.OUT_OF_SAMPLE_LD.value]
+        credible_sets = [
+            (
+                id,
+                "1",
+                start,
+                end,
+                study,
+                "gwas",
+                lead,
+                "SuSiE-inf",
+                None,
+                None,
+                1.0,
+                1.0,
+                out_of_sample_ld,
+            )
+            for id, study, lead, start, end, *_ in rows
+        ]
+        variants: list[tuple[Any, ...]] = [
+            (
+                id,
+                lead,
+                mantissa,
+                exponent,
+                None,
+                None,
+                beta,
+                None,
+                posterior,
+                log_bf,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                [],
+            )
+            for id, _, lead, _, _, mantissa, exponent, log_bf, posterior, beta in rows
+        ]
+        self.credible_set_path = str(tmp_path / "credible_set")
+        self.credible_set_variant_path = str(tmp_path / "credible_set_variant")
         session.spark.createDataFrame(
-            credible_set_data, schema=StudyLocus.get_schema()
+            credible_sets, schema=CredibleSet.get_schema()
         ).write.parquet(self.credible_set_path)
+        session.spark.createDataFrame(
+            variants, schema=CredibleSetVariant.get_schema()
+        ).write.parquet(self.credible_set_variant_path)
         self.coloc_path = str(tmp_path / "colocalisation")
 
     @pytest.mark.parametrize(
@@ -239,11 +162,11 @@ class TestColocalisationStep:
                 {
                     "clpp": [1.0, 1.0],
                     "colocalisationMethod": ["eCAVIAR", "eCAVIAR"],
-                    "leftStudyLocusId": [
+                    "leftLocusId": [
                         "-1245591334543437941",
                         "-2271857845883525223",
                     ],
-                    "rightStudyLocusId": [
+                    "rightLocusId": [
                         "-0.20241232721094407",
                         "-1299941111165481046",
                     ],
@@ -259,11 +182,11 @@ class TestColocalisationStep:
                     "h1": [0.0, 0.0],
                     "h0": [0.0, 0.0],
                     "colocalisationMethod": ["COLOC", "COLOC"],
-                    "leftStudyLocusId": [
+                    "leftLocusId": [
                         "-1245591334543437941",
                         "-2271857845883525223",
                     ],
-                    "rightStudyLocusId": [
+                    "rightLocusId": [
                         "-0.20241232721094407",
                         "-1299941111165481046",
                     ],
@@ -282,6 +205,7 @@ class TestColocalisationStep:
         ColocalisationStep(
             session=session,
             credible_set_path=self.credible_set_path,
+            credible_set_variant_path=self.credible_set_variant_path,
             coloc_path=self.coloc_path,
             colocalisation_method=coloc_method,
         )

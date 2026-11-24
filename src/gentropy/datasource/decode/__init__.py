@@ -7,7 +7,7 @@ metadata for the underlying publication.
 The deCODE proteomics dataset originates from the study:
     Eldjarn GH, Ferkingstad E et al.
     "Large-scale plasma proteomics comparisons through genetics and disease associations."
-    Nature, 2024. PubMed: 37794188
+    Nature, 2023. PubMed: 37794188
 
 Two sub-datasets are supported:
 
@@ -50,8 +50,8 @@ class deCODEPublicationMetadata(BaseModel):
     """Title of the deCODE proteomics publication."""
     PUB_FIRST_AUTHOR: str = "Eldjarn GH, Ferkingstad E"
     """First author(s) of the deCODE proteomics publication."""
-    PUB_DATE: str = "2023"
-    """Publication date of the deCODE proteomics study."""
+    PUB_DATE: str = "2023-10-04"
+    """Publication date of the deCODE proteomics study (PubMed electronic publication, YYYY-MM-DD)."""
     PUB_JOURNAL: str = "Nature"
     """Journal where the deCODE proteomics study was published."""
     SMP_SAMPLE_SIZE: int = 35_892

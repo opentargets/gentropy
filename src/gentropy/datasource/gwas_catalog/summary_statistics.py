@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 import pyspark.sql.functions as f
 import pyspark.sql.types as t
 
+from gentropy.common.processing import normalize_chromosome
 from gentropy.common.stats import (
     normalise_gwas_statistics,
     pvalue_from_neglogpval,
@@ -82,12 +83,12 @@ class GWASCatalogSummaryStatistics(SummaryStatistics):
             f.lit(filename_to_study_identifier(sumstats_file)),
         )
 
-        # Parsing variant id fields:
-        chromosome = (
+        # Parsing variant id fields, with numerically coded sex chromosomes (23, 24) as X and Y:
+        chromosome = normalize_chromosome(
             f.col("hm_chrom")
             if "hm_chrom" in sumstats_df.columns
             else f.col("chromosome")
-        ).cast(t.StringType())
+        )
         position = (
             f.col("hm_pos")
             if "hm_pos" in sumstats_df.columns

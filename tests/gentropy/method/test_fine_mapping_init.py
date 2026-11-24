@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pyspark.sql import Row, SparkSession
 
-from gentropy.dataset.study_index import StudyIndex, StudyType
+from gentropy.dataset.study_index import StudyIndex, StudyQualityCheck, StudyType
 from gentropy.method.fine_mapping import FineMappingConstraintRegistry
 
 STUDY_REQUIRED_SCHEMA = (
@@ -106,3 +106,31 @@ def test_multi_susie_relative_sample_size_threshold_is_strict(
     row = _study_row("s1", [("nfe", 0.9), ("afr", 0.1)])
     result = _resolve_eligibility(spark, row)
     assert _constraint_flag(result, "hasAllowedMajorAncestry") is False
+
+
+def test_registry_default_min_ess_rejects_sub_threshold_study(
+    spark: SparkSession,
+) -> None:
+    """A measurement study below the default minimum ESS fails hasSufficientESS for the registered MultiSuSiE constraint set."""
+    row = _study_row(
+        "s1",
+        [("nfe", 1.0)],
+        n_samples=500,
+        quality_controls=[StudyQualityCheck.MEASUREMENT_STUDY_DESIGN.value],
+    )
+    result = _resolve_eligibility(spark, row)
+    assert _constraint_flag(result, "hasSufficientESS") is False
+
+
+def test_registry_min_ess_is_configurable(spark: SparkSession) -> None:
+    """A study below the default minimum ESS passes hasSufficientESS when the registry is configured with a lower threshold."""
+    row = _study_row(
+        "s1",
+        [("nfe", 1.0)],
+        n_samples=500,
+        quality_controls=[StudyQualityCheck.MEASUREMENT_STUDY_DESIGN.value],
+    )
+    si = StudyIndex(_df=spark.createDataFrame([row], STUDY_REQUIRED_SCHEMA))
+    constraint_set = FineMappingConstraintRegistry(min_ess=100).registry["MultiSuSiE"]
+    result = constraint_set.resolve(si).df.collect()[0]
+    assert _constraint_flag(result, "hasSufficientESS") is True

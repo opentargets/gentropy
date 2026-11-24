@@ -5,10 +5,17 @@ from __future__ import annotations
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+import numpy as np
 import pandas as pd
 import pytest
 
 from gentropy.common.session import Session
+from gentropy.dataset.credible_set import (
+    CredibleSet,
+    CredibleSetVariant,
+    CredibleSetVariantQualityCheck,
+)
+from gentropy.dataset.study_locus import StudyLocusQualityCheck
 from gentropy.susie_finemapper import SusieFineMapperStep
 
 
@@ -149,7 +156,8 @@ class TestSusieFineMapperStep:
         manifest_data = pd.DataFrame(
             {
                 "study_locus_input": [str(tmp_path / "input")],
-                "study_locus_output": [str(tmp_path / "output")],
+                "credible_set_output": [str(tmp_path / "credible_set")],
+                "credible_set_variant_output": [str(tmp_path / "credible_set_variant")],
             }
         )
         manifest_path = str(tmp_path / "manifest.csv")
@@ -157,7 +165,7 @@ class TestSusieFineMapperStep:
 
         with (
             patch(
-                "gentropy.susie_finemapper.StudyLocus.from_parquet"
+                "gentropy.susie_finemapper.AnnotatedStudyLocus.from_parquet"
             ) as mock_study_locus,
             patch(
                 "gentropy.susie_finemapper.StudyIndex.from_parquet"
@@ -165,7 +173,7 @@ class TestSusieFineMapperStep:
         ):
             # Mock the study locus and index
             mock_sl = MagicMock()
-            mock_sl.df.withColumn.return_value.collect.return_value = [MagicMock()]
+            mock_sl.df.collect.return_value = [MagicMock()]
             mock_study_locus.return_value = mock_sl
 
             mock_study_index.return_value = MagicMock()
@@ -192,7 +200,8 @@ class TestSusieFineMapperStep:
         manifest_data = pd.DataFrame(
             {
                 "study_locus_input": [str(tmp_path / "input")],
-                "study_locus_output": [str(tmp_path / "output")],
+                "credible_set_output": [str(tmp_path / "credible_set")],
+                "credible_set_variant_output": [str(tmp_path / "credible_set_variant")],
             }
         )
         manifest_path = str(tmp_path / "manifest.csv")
@@ -226,7 +235,6 @@ class TestSusieFineMapperStep:
             "purity_mean_r2_threshold",
             "purity_min_r2_threshold",
             "cs_lbf_thr",
-            "sum_pips",
             "susie_est_tausq",
             "run_carma",
             "run_sumstat_imputation",
@@ -235,7 +243,6 @@ class TestSusieFineMapperStep:
             "imputed_r2_threshold",
             "ld_score_threshold",
             "ld_min_r2",
-            "ignore_qc",
         ]
 
         for param in expected_params:
@@ -253,7 +260,6 @@ class TestSusieFineMapperStep:
         assert sig.parameters["purity_mean_r2_threshold"].default == 0
         assert sig.parameters["purity_min_r2_threshold"].default == 0.25
         assert sig.parameters["cs_lbf_thr"].default == 2
-        assert sig.parameters["sum_pips"].default == 0.99
         assert sig.parameters["susie_est_tausq"].default is False
         assert sig.parameters["run_carma"].default is False
         assert sig.parameters["run_sumstat_imputation"].default is False
@@ -262,7 +268,6 @@ class TestSusieFineMapperStep:
         assert sig.parameters["imputed_r2_threshold"].default == 0.9
         assert sig.parameters["ld_score_threshold"].default == 5
         assert sig.parameters["ld_min_r2"].default == 0.8
-        assert sig.parameters["ignore_qc"].default is False
 
     @pytest.mark.parametrize(
         "region,study_id",
@@ -288,3 +293,145 @@ class TestSusieFineMapperStep:
         df = pd.read_csv(output_path, sep="\t")
         assert df.loc[0, "studyId"] == study_id
         assert df.loc[0, "region"] == region
+
+
+class TestSusieInfToCredibleSets:
+    """Test the conversion of SuSiE-inf output to credible sets and their variants.
+
+    Four variants and two effects. Effect 1 puts 0.9 on the first variant and effect 2 0.8 on the
+    last, so their 95% credible sets are the first two and the last two variants. The third
+    variant is not in the locus, as if it were imputed.
+    """
+
+    VARIANTS = pd.DataFrame(
+        {
+            "variantId": ["1_100_A_T", "1_200_C_G", "1_300_G_A", "1_400_T_C"],
+            "z": [10.0, 5.0, 4.0, -6.0],
+        }
+    )
+    SUSIE_OUTPUT = {
+        "PIP": np.array([[0.9, 0.01], [0.06, 0.02], [0.03, 0.17], [0.01, 0.8]]),
+        "lbf_variable": np.array([[5.0, 0.0], [2.0, 0.5], [1.0, 2.0], [0.0, 6.0]]),
+        "mu": np.array([[0.02, 0.0], [0.01, 0.0], [0.0, 0.005], [0.0, -0.03]]),
+        "omega": np.full((4, 2), 1e4),
+        "lbf": np.array([10.0, 8.0]),
+    }
+    LD = np.array(
+        [
+            [1.0, 0.8, 0.1, 0.1],
+            [0.8, 1.0, 0.1, 0.1],
+            [0.1, 0.1, 1.0, 0.7],
+            [0.1, 0.1, 0.7, 1.0],
+        ]
+    )
+    MARGINALS = [
+        ("1_100_A_T", 1.0, -10, 0.3, 5000, 0.2, 0.02),
+        ("1_200_C_G", 2.0, -6, None, 5000, 0.1, 0.02),
+        ("1_400_T_C", 3.0, -9, 0.4, 5000, -0.15, 0.025),
+    ]
+
+    def _credible_sets(
+        self,
+        session: Session,
+        lead_pval_threshold: float | None = None,
+        with_marginals: bool = True,
+    ) -> tuple[CredibleSet, CredibleSetVariant] | None:
+        """Convert the test SuSiE-inf output.
+
+        Args:
+            session (Session): Session object.
+            lead_pval_threshold (float | None): Lead p-value threshold.
+            with_marginals (bool): Whether to give the locus statistics.
+
+        Returns:
+            tuple[CredibleSet, CredibleSetVariant] | None: The credible sets and their variants.
+        """
+        marginals = session.spark.createDataFrame(
+            self.MARGINALS,
+            "variantId string, pValueMantissa float, pValueExponent int, "
+            "effectAlleleFrequencyFromSource float, sampleSize int, beta double, "
+            "standardError double",
+        )
+        return SusieFineMapperStep.susie_inf_to_credible_sets(
+            susie_output=self.SUSIE_OUTPUT,
+            session=session,
+            studyId="S1",
+            variants=self.VARIANTS,
+            ld_matrix=self.LD,
+            locusStart=1,
+            locusEnd=1000,
+            n=10_000,
+            marginals=marginals if with_marginals else None,
+            lead_pval_threshold=lead_pval_threshold,
+        )
+
+    def test_credible_sets(self, session: Session) -> None:
+        """Each effect gives a credible set led by its highest alpha, flagged out-of-sample LD."""
+        result = self._credible_sets(session)
+        assert result is not None
+        credible_sets = {row.leadVariantId: row for row in result[0].df.collect()}
+
+        assert set(credible_sets) == {"1_100_A_T", "1_400_T_C"}
+        first = credible_sets["1_100_A_T"]
+        assert (first.studyId, first.studyType, first.fineMappingMethod) == (
+            "S1",
+            "gwas",
+            "SuSiE-inf",
+        )
+        assert (first.chromosome, first.locusStart, first.locusEnd) == ("1", 1, 1000)
+        assert first.logBayesFactor == pytest.approx(10.0)
+        assert first.purityMeanR2 == pytest.approx(0.82)
+        assert first.purityMinR2 == pytest.approx(0.64)
+        assert first.confidence is None
+        assert first.qualityControls == [StudyLocusQualityCheck.OUT_OF_SAMPLE_LD.value]
+
+    def test_credible_set_variants(self, session: Session) -> None:
+        """Members carry the locus statistics and SuSiE-inf's unscaled conditional statistics."""
+        result = self._credible_sets(session)
+        assert result is not None
+        variants = {row.variantId: row for row in result[1].df.collect()}
+
+        # The 95% cut: two members per credible set.
+        assert set(variants) == {"1_100_A_T", "1_200_C_G", "1_300_G_A", "1_400_T_C"}
+        lead = variants["1_100_A_T"]
+        assert lead.posteriorProbability == pytest.approx(0.9)
+        assert lead.logBayesFactor == pytest.approx(5.0)
+        assert lead.r2Overall == pytest.approx(1.0)
+        assert variants["1_200_C_G"].r2Overall == pytest.approx(0.64)
+        assert (lead.pValueMantissa, lead.pValueExponent) == (1.0, -10)
+        assert (lead.reportedBeta, lead.reportedStandardError) == (0.2, 0.02)
+        assert lead.effectAlleleFrequency == pytest.approx(0.3)
+        assert lead.sampleSize == 5000
+        # mu and 1/sqrt(omega) of effect 1, unscaled:
+        assert lead.conditionalBeta == pytest.approx(0.02)
+        assert lead.conditionalStandardError == pytest.approx(0.01)
+        assert lead.qualityControls == [
+            CredibleSetVariantQualityCheck.EAF_FROM_SOURCE.value
+        ]
+
+        imputed = variants["1_300_G_A"]
+        assert imputed.r2Overall == pytest.approx(0.49)
+        assert imputed.pValueMantissa is None
+        assert imputed.reportedBeta is None
+        # SuSiE-inf's own statistics do not need the locus:
+        assert imputed.conditionalBeta == pytest.approx(0.005)
+        assert imputed.conditionalStandardError == pytest.approx(0.01)
+        assert imputed.rescaledAbsBeta is None
+        assert imputed.qualityControls == [
+            CredibleSetVariantQualityCheck.NOT_IN_LOCUS.value
+        ]
+        assert variants["1_200_C_G"].qualityControls == []
+
+    def test_lead_pvalue_threshold(self, session: Session) -> None:
+        """The threshold drops credible sets with a weaker or unreported lead p-value."""
+        result = self._credible_sets(session, lead_pval_threshold=1e-9)
+        assert result is not None
+        assert [row.leadVariantId for row in result[0].df.collect()] == ["1_100_A_T"]
+        assert {row.variantId for row in result[1].df.collect()} == {
+            "1_100_A_T",
+            "1_200_C_G",
+        }
+        assert (
+            self._credible_sets(session, lead_pval_threshold=1, with_marginals=False)
+            is None
+        )

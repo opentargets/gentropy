@@ -5,8 +5,8 @@ from __future__ import annotations
 import pyspark.sql.functions as f
 from pyspark.sql import DataFrame
 
+from gentropy.dataset.credible_set import CredibleSet
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
-from gentropy.dataset.study_locus import StudyLocus
 from gentropy.dataset.variant_index import VariantIndex
 
 
@@ -22,12 +22,20 @@ class OpenTargetsL2GGoldStandard:
 
     @classmethod
     def parse_positive_curation(
-        cls: type[OpenTargetsL2GGoldStandard], gold_standard_curation: DataFrame
+        cls: type[OpenTargetsL2GGoldStandard],
+        gold_standard_curation: DataFrame,
+        credible_set: CredibleSet,
     ) -> DataFrame:
         """Parse positive set from gold standard curation.
 
+        A curated association is keyed by the credible sets of its study led by its sentinel
+        variant, one row per credible set, so `credibleSetId` matches the credible set and overlap
+        identifiers. Associations whose sentinel leads no credible set are dropped, as they have no
+        features to train on.
+
         Args:
             gold_standard_curation (DataFrame): Gold standard curation dataframe
+            credible_set (CredibleSet): Credible sets to key the curated associations by
 
         Returns:
             DataFrame: Positive set
@@ -48,11 +56,16 @@ class OpenTargetsL2GGoldStandard:
                 ).alias("variantId"),
                 f.col("metadata.set_label").alias("source"),
             )
-            .withColumn(
-                "studyLocusId",
-                StudyLocus.assign_study_locus_id(["studyId", "variantId"]),
+            .join(
+                credible_set.df.select(
+                    f.col("id").alias("credibleSetId"),
+                    "studyId",
+                    f.col("leadVariantId").alias("variantId"),
+                ),
+                on=["studyId", "variantId"],
+                how="inner",
             )
-            .groupBy("studyLocusId", "studyId", "variantId", "geneId")
+            .groupBy("credibleSetId", "studyId", "variantId", "geneId")
             .agg(f.collect_set("source").alias("sources"))
         )
 
@@ -109,20 +122,22 @@ class OpenTargetsL2GGoldStandard:
     def as_l2g_gold_standard(
         cls: type[OpenTargetsL2GGoldStandard],
         gold_standard_curation: DataFrame,
+        credible_set: CredibleSet,
         variant_index: VariantIndex,
     ) -> L2GGoldStandard:
         """Initialise L2GGoldStandard from source dataset.
 
         Args:
             gold_standard_curation (DataFrame): Gold standard curation dataframe, extracted from https://github.com/opentargets/genetics-gold-standards
+            credible_set (CredibleSet): Credible sets to key the curated associations by
             variant_index (VariantIndex): Dataset to bring distance between a variant and a gene's footprint
 
         Returns:
             L2GGoldStandard: L2G Gold Standard dataset. False negatives have not yet been removed.
         """
         return L2GGoldStandard(
-            _df=cls.parse_positive_curation(gold_standard_curation).transform(
-                cls.expand_gold_standard_with_negatives, variant_index
-            ),
+            _df=cls.parse_positive_curation(
+                gold_standard_curation, credible_set
+            ).transform(cls.expand_gold_standard_with_negatives, variant_index),
             _schema=L2GGoldStandard.get_schema(),
         )

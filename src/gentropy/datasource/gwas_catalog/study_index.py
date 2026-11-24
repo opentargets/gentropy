@@ -606,9 +606,11 @@ class StudyIndexGWASCatalog(StudyIndex):
         sample_size_lut = (
             self.df.select(
                 "studyId",
-                f.explode_outer(f.split(f.col("initialSampleSize"), r",\s+")).alias(
-                    "samples"
-                ),
+                # Commas inside parentheses belong to the population label, e.g.
+                # "Greater Middle Eastern (Middle Eastern, North African or Persian)":
+                f.explode_outer(
+                    f.split(f.col("initialSampleSize"), r",\s+(?![^(]*\))")
+                ).alias("samples"),
             )
             # Extracting the sample size from the string:
             .withColumn(
@@ -637,22 +639,6 @@ class StudyIndexGWASCatalog(StudyIndex):
         )
         self.df = self.df.join(sample_size_lut, on="studyId", how="left")
         return self
-
-    def apply_inclusion_list(
-        self: StudyIndexGWASCatalog, inclusion_list: DataFrame
-    ) -> StudyIndexGWASCatalog:
-        """Restricting GWAS Catalog studies based on a list of accepted study identifiers.
-
-        Args:
-            inclusion_list (DataFrame): List of accepted GWAS Catalog study identifiers
-
-        Returns:
-            StudyIndexGWASCatalog: Filtered dataset.
-        """
-        return StudyIndexGWASCatalog(
-            _df=self.df.join(inclusion_list, on="studyId", how="inner"),
-            _schema=StudyIndexGWASCatalog.get_schema(),
-        )
 
     def add_no_sumstats_flag(self: StudyIndexGWASCatalog) -> StudyIndexGWASCatalog:
         """Add a flag to the study index if no summary statistics are available.

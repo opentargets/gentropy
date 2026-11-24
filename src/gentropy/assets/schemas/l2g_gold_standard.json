@@ -2,7 +2,7 @@
   "type": "struct",
   "fields": [
     {
-      "name": "studyLocusId",
+      "name": "credibleSetId",
       "type": "string",
       "nullable": false,
       "metadata": {}

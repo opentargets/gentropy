@@ -8,9 +8,8 @@ import pyspark.sql.functions as f
 from pyspark.sql.window import Window
 
 if TYPE_CHECKING:
-    from pyspark.sql import Column
+    from pyspark.sql import Column, DataFrame
 
-    from gentropy.datasource.gwas_catalog.associations import StudyLocusGWASCatalog
     from gentropy.datasource.gwas_catalog.study_index import StudyIndexGWASCatalog
 
 
@@ -83,8 +82,8 @@ class GWASCatalogStudySplitter:
     def split(
         cls: type[GWASCatalogStudySplitter],
         studies: StudyIndexGWASCatalog,
-        associations: StudyLocusGWASCatalog,
-    ) -> tuple[StudyIndexGWASCatalog, StudyLocusGWASCatalog]:
+        associations: DataFrame,
+    ) -> tuple[StudyIndexGWASCatalog, DataFrame]:
         """Splitting multi-trait GWAS Catalog studies.
 
         If assigned disease of the study and the association don't agree, we assume the study needs to be split.
@@ -92,14 +91,16 @@ class GWASCatalogStudySplitter:
 
         Args:
             studies (StudyIndexGWASCatalog): GWAS Catalog studies.
-            associations (StudyLocusGWASCatalog): GWAS Catalog associations.
+            associations (DataFrame): GWAS Catalog associations, from
+                `GWASCatalogCuratedAssociationsParser.from_source`.
 
         Returns:
-            tuple[StudyIndexGWASCatalog, StudyLocusGWASCatalog]: Split studies and associations.
+            tuple[StudyIndexGWASCatalog, DataFrame]: Split studies, and the associations with their
+                split `studyId` and without `subStudyDescription`.
         """
         # Composite of studies and associations to resolve scattered information
         st_ass = (
-            associations.df.join(f.broadcast(studies.df), on="studyId", how="inner")
+            associations.join(f.broadcast(studies.df), on="studyId", how="inner")
             .select(
                 "studyId",
                 "subStudyDescription",
@@ -128,11 +129,13 @@ class GWASCatalogStudySplitter:
                     "traitFromSourceMappedIds",
                 ).distinct()
             ),
-            associations.update_study_id(
+            associations.join(
                 st_ass.select(
                     "updatedStudyId", "studyId", "subStudyDescription"
-                ).distinct()
+                ).distinct(),
+                on=["studyId", "subStudyDescription"],
+                how="left",
             )
-            .qc_ambiguous_study()
-            .qc_flag_all_tophits(),
+            .withColumn("studyId", f.coalesce("updatedStudyId", "studyId"))
+            .drop("subStudyDescription", "updatedStudyId"),
         )
