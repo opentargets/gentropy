@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 from typing import Any
-from collections.abc import Iterator, Mapping
+from collections.abc import Iterator, Mapping, Sequence
 
 from gentropy.dataset.l2g_features.colocalisation import (
     EQtlColocClppMaximumFeature,
@@ -33,6 +33,12 @@ from gentropy.dataset.l2g_features.distance import (
     DistanceSentinelTssNeighbourhoodFeature,
     DistanceTssMeanFeature,
     DistanceTssMeanNeighbourhoodFeature,
+)
+from gentropy.dataset.l2g_features.pleiotropy_prior import (
+    ApproxPopsFeature,
+    ApproxPopsNeighbourhoodFeature,
+    PredictedPleiotropyPriorFeature,
+    PredictedPleiotropyPriorNeighbourhoodFeature,
 )
 from gentropy.dataset.l2g_features.l2g_feature import FeatureDependencyType, L2GFeature
 from gentropy.dataset.l2g_features.other import (
@@ -152,6 +158,10 @@ class FeatureFactory:
         "pathwayEnrichment500kb": PathwayEnrichmentFeature,
         "pathwayEnrichment500kbNeighbourhood": PathwayEnrichmentNeighbourhoodFeature,
         "pathwayCount": PathwayCountFeature,
+        "predictedPleiotropyPrior": PredictedPleiotropyPriorFeature,
+        "predictedPleiotropyPriorNeighbourhood": PredictedPleiotropyPriorNeighbourhoodFeature,
+        "approxPops": ApproxPopsFeature,
+        "approxPopsNeighbourhood": ApproxPopsNeighbourhoodFeature,
         "geneCount500kb": GeneCountFeature,
         "proteinGeneCount500kb": ProteinGeneCountFeature,
         "isProteinCoding": ProteinCodingFeature,
@@ -171,6 +181,28 @@ class FeatureFactory:
         """
         self.study_loci_to_annotate = study_loci_to_annotate
         self.features_list = features_list
+
+    @classmethod
+    def features_depending_on(
+        cls: type[FeatureFactory], dependency_type: type
+    ) -> set[str]:
+        """Names of the registered features that take a given dependency type.
+
+        Args:
+            dependency_type (type): Dependency type, e.g. a dataset class
+
+        Returns:
+            set[str]: Feature names
+        """
+        names = set()
+        for name, feature_cls in cls.feature_mapper.items():
+            declared = feature_cls.feature_dependency_type
+            types: list[Any] = (
+                list(declared) if isinstance(declared, Sequence) else [declared]
+            )
+            if dependency_type in types:
+                names.add(name)
+        return names
 
     def generate_features(
         self: FeatureFactory,

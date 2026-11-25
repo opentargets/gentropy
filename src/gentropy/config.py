@@ -378,6 +378,11 @@ _L2G_FEATURES_LIST: list[str] = [
     # trans-pQTL colocalisation via protein-protein interactions
     "transPQtlColocH4Maximum",
     "transPQtlColocH4MaximumNeighbourhood",
+    # predicted pleiotropy prior and approxPops from Open Targets gene data
+    "predictedPleiotropyPrior",
+    "predictedPleiotropyPriorNeighbourhood",
+    "approxPops",
+    "approxPopsNeighbourhood",
 ]
 
 _L2G_HYPERPARAMETERS: dict[str, Any] = {
@@ -488,6 +493,8 @@ class LocusToGeneFeatureMatrixConfig(StepConfig):
     reactome_path: str | None = None
     baseline_expression_path: str | None = None
     biosample_index_path: str | None = None
+    mouse_phenotype_path: str | None = None
+    target_essentiality_path: str | None = None
     feature_matrix_path: str = MISSING
     features_list: list[str] = field(
         default_factory=lambda: [
@@ -533,6 +540,11 @@ class LocusToGeneFeatureMatrixConfig(StepConfig):
             # trans-pQTL colocalisation via protein-protein interactions
             "transPQtlColocH4Maximum",
             "transPQtlColocH4MaximumNeighbourhood",
+            # predicted pleiotropy prior and approxPops from Open Targets gene data
+            "predictedPleiotropyPrior",
+            "predictedPleiotropyPriorNeighbourhood",
+            "approxPops",
+            "approxPopsNeighbourhood",
         ]
     )
     append_null_features: bool = False
@@ -542,6 +554,14 @@ class LocusToGeneFeatureMatrixConfig(StepConfig):
     pathway_min_disease_genes: int = 25
     biosample_p_value_adjusted_threshold: float = 0.01
     biosample_min_disease_genes: int = 25
+    pleiotropy_prior_lambda_grid: list[float] | None = None
+    pleiotropy_prior_min_term_size: int = 10
+    pleiotropy_prior_max_term_size: int = 2_000
+    pleiotropy_prior_string_min_score: float = 0.7
+    pleiotropy_prior_intact_min_score: float = 0.5
+    approx_pops_min_genes: int = 50
+    approx_pops_components: int = 100
+    approx_pops_group_expression_by_source: bool = False
     _target_: str = "gentropy.l2g.LocusToGeneFeatureMatrixStep"
 
 

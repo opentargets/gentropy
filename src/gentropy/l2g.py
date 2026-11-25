@@ -22,6 +22,10 @@ from gentropy.dataset.intervals import Intervals
 from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
 from gentropy.dataset.l2g_features.colocalisation import EnrichedStudyBiosamples
 from gentropy.dataset.l2g_features.pathway import PathwayEnrichmentScores
+from gentropy.dataset.l2g_features.pleiotropy_prior import (
+    PleiotropyPriorInputs,
+    PleiotropyPriorScores,
+)
 from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
 from gentropy.dataset.l2g_prediction import L2GPrediction
 from gentropy.dataset.locus_overlap import LocusOverlap
@@ -34,7 +38,7 @@ from gentropy.external.hf_hub import (
 )
 from gentropy.external.wandb import WandbCredentials
 from gentropy.method.biosample_enrichment import ExpressionSpecificity
-from gentropy.method.l2g.feature_factory import L2GFeatureInputLoader
+from gentropy.method.l2g.feature_factory import FeatureFactory, L2GFeatureInputLoader
 from gentropy.method.l2g.model import LocusToGeneModel
 from gentropy.method.l2g.trainer import LocusToGeneTrainer
 from gentropy.method.pathway_enrichment import PathwayLibrary
@@ -72,6 +76,8 @@ class LocusToGeneFeatureMatrixStep:
         reactome_path: str | None = None,
         baseline_expression_path: str | None = None,
         biosample_index_path: str | None = None,
+        mouse_phenotype_path: str | None = None,
+        target_essentiality_path: str | None = None,
         feature_matrix_path: str,
         append_null_features: bool = False,
         pathway_p_value_adjusted_threshold: float = 0.05,
@@ -80,6 +86,14 @@ class LocusToGeneFeatureMatrixStep:
         pathway_min_disease_genes: int = 25,
         biosample_p_value_adjusted_threshold: float = 0.01,
         biosample_min_disease_genes: int = 25,
+        pleiotropy_prior_lambda_grid: list[float] | None = None,
+        pleiotropy_prior_min_term_size: int = 10,
+        pleiotropy_prior_max_term_size: int = 2_000,
+        pleiotropy_prior_string_min_score: float = 0.7,
+        pleiotropy_prior_intact_min_score: float = 0.5,
+        approx_pops_min_genes: int = 50,
+        approx_pops_components: int = 100,
+        approx_pops_group_expression_by_source: bool = False,
     ) -> None:
         """Initialise the step and run the logic based on mode.
 
@@ -99,10 +113,15 @@ class LocusToGeneFeatureMatrixStep:
             reactome_path (str | None): Path to the `reactome` table of the platform release,
                 used by the pathway enrichment features
             baseline_expression_path (str | None): Path to the `baseline_expression` table of
-                the platform release, used by the enriched biosample colocalisation features
+                the platform release, used by the enriched biosample colocalisation and the predicted pleiotropy prior
+                features
             biosample_index_path (str | None): Path to the biosample index, used by the enriched
                 biosample colocalisation features to match the descendants of an enriched
                 biosample
+            mouse_phenotype_path (str | None): Path to the Open Targets `mouse_phenotype`
+                dataset, used by the predicted pleiotropy prior
+            target_essentiality_path (str | None): Path to the Open Targets
+                `target_essentiality` dataset, used by the predicted pleiotropy prior
             feature_matrix_path (str): Path to the L2G feature matrix output dataset
             append_null_features (bool): Whether to append null features to the feature matrix. Defaults to False.
             pathway_p_value_adjusted_threshold (float): Largest adjusted p-value, exclusive, for a
@@ -118,6 +137,22 @@ class LocusToGeneFeatureMatrixStep:
                 features
             biosample_min_disease_genes (int): Smallest number of prioritised genes a disease
                 needs in a specificity panel to be tested for biosample enrichment there
+            pleiotropy_prior_lambda_grid (list[float] | None): Ridge penalties searched by both
+                pleiotropy prior fits. Defaults to `10^-2` to `10^10` in steps of `10^0.5`.
+            pleiotropy_prior_min_term_size (int): Fewest protein-coding member genes a GO
+                term, Reactome pathway, mouse phenotype or interaction hub needs to become a
+                gene feature of the pleiotropy prior
+            pleiotropy_prior_max_term_size (int): Most protein-coding member genes it may have
+            pleiotropy_prior_string_min_score (float): Lowest STRING score of an interaction
+                in the pleiotropy prior's interaction features
+            pleiotropy_prior_intact_min_score (float): Lowest IntAct score of an interaction
+                in the pleiotropy prior's interaction features
+            approx_pops_min_genes (int): Fewest nearest genes a disease needs to get an
+                approxPops score
+            approx_pops_components (int): Number of principal components of the gene features
+                approxPops regresses on
+            approx_pops_group_expression_by_source (bool): Whether the expression level and
+                specificity of a source form one block of the approxPops weighting
 
         Raises:
             ValueError: If a requested feature is missing one of its inputs
@@ -198,6 +233,34 @@ class LocusToGeneFeatureMatrixStep:
             else None
         )
 
+        pleiotropy_prior_inputs = None
+        if (
+            interactions is not None
+            and mouse_phenotype_path
+            and baseline_expression_path
+            and target_essentiality_path
+        ):
+            pleiotropy_prior_inputs = PleiotropyPriorInputs(
+                interactions=interactions,
+                mouse_phenotype=session.load_data(
+                    mouse_phenotype_path, "parquet", recursiveFileLookup=True
+                ),
+                baseline_expression=session.load_data(
+                    baseline_expression_path, "parquet", recursiveFileLookup=True
+                ),
+                target_essentiality=session.load_data(
+                    target_essentiality_path, "parquet", recursiveFileLookup=True
+                ),
+                lambda_grid=pleiotropy_prior_lambda_grid,
+                min_term_size=pleiotropy_prior_min_term_size,
+                max_term_size=pleiotropy_prior_max_term_size,
+                string_min_score=pleiotropy_prior_string_min_score,
+                intact_min_score=pleiotropy_prior_intact_min_score,
+                approx_pops_min_genes=approx_pops_min_genes,
+                approx_pops_components=approx_pops_components,
+                approx_pops_group_expression_by_source=approx_pops_group_expression_by_source,
+            )
+
         trans_pqtl_features = {
             "transPQtlColocH4Maximum",
             "transPQtlColocH4MaximumNeighbourhood",
@@ -229,6 +292,24 @@ class LocusToGeneFeatureMatrixStep:
                 "release, the target index, the study index and the variant index. "
                 "Provide `go_path`, `reactome_path`, `target_index_path`, "
                 "`study_index_path` and `variant_index_path`."
+            )
+
+        pleiotropy_prior_features = FeatureFactory.features_depending_on(
+            PleiotropyPriorScores
+        )
+        if pleiotropy_prior_features.intersection(features_list) and (
+            pleiotropy_prior_inputs is None
+            or studies is None
+            or variant_index is None
+            or target_index is None
+        ):
+            raise ValueError(
+                "Predicted pleiotropy prior and approxPops features need the interaction, mouse phenotype, "
+                "baseline expression and target essentiality datasets, the study index, the "
+                "variant index and the target index. Provide `gene_interactions_path`, "
+                "`mouse_phenotype_path`, `baseline_expression_path`, "
+                "`target_essentiality_path`, `study_index_path`, `variant_index_path` and "
+                "`target_index_path`."
             )
 
         enriched_biosample_features = {
@@ -296,6 +377,24 @@ class LocusToGeneFeatureMatrixStep:
             else None
         )
 
+        # Both priors are fitted once here, and only those a requested feature needs.
+        pleiotropy_prior_scores = (
+            PleiotropyPriorScores.from_release(
+                pleiotropy_prior_inputs,
+                features_list,
+                study_locus=credible_set,
+                study_index=studies,
+                variant_index=variant_index,
+                target_index=target_index,
+            )
+            if pleiotropy_prior_features.intersection(features_list)
+            and pleiotropy_prior_inputs is not None
+            and studies is not None
+            and variant_index is not None
+            and target_index is not None
+            else None
+        )
+
         features_input_loader = L2GFeatureInputLoader(
             variant_index=variant_index,
             colocalisation=coloc,
@@ -306,6 +405,7 @@ class LocusToGeneFeatureMatrixStep:
             interactions=interactions,
             pathway_scores=pathway_scores,
             enriched_biosamples=enriched_biosamples,
+            pleiotropy_prior_scores=pleiotropy_prior_scores,
         )
 
         fm = study_loci_to_annotate.build_feature_matrix(
