@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
 from omegaconf import ListConfig
 from pyspark.sql import SparkSession
 
@@ -36,9 +35,11 @@ def test_write_replaces_only_the_populations_written(
 ) -> None:
     """Rebuilding a population replaces all of it and leaves the others as they were."""
     path = (tmp_path / "ld_index").as_posix()
-    LDIndexStep._write(_index(spark, [("nfe", "1", 0.1), ("nfe", "2", 0.1)]), path)
-    LDIndexStep._write(_index(spark, [("fin", "1", 0.2)]), path)
-    LDIndexStep._write(_index(spark, [("nfe", "1", 0.3)]), path)
+    LDIndexStep._write(
+        _index(spark, [("nfe", "1", 0.1), ("nfe", "2", 0.1)]), path, "nfe"
+    )
+    LDIndexStep._write(_index(spark, [("fin", "1", 0.2)]), path, "fin")
+    LDIndexStep._write(_index(spark, [("nfe", "1", 0.3)]), path, "nfe")
 
     rows = spark.read.schema(LDIndex.get_schema()).parquet(path).collect()
 
@@ -46,15 +47,6 @@ def test_write_replaces_only_the_populations_written(
         ("fin", "1", 0.2),
         ("nfe", "1", 0.3),
     ]
-
-
-def test_write_refuses_several_populations(spark: SparkSession, tmp_path: Path) -> None:
-    """One population per write, so a rebuild never replaces another population."""
-    with pytest.raises(ValueError, match="one population"):
-        LDIndexStep._write(
-            _index(spark, [("nfe", "1", 0.1), ("fin", "1", 0.1)]),
-            (tmp_path / "ld_index").as_posix(),
-        )
 
 
 def test_chromosomes_from_hydra_filter_rows(spark: SparkSession) -> None:

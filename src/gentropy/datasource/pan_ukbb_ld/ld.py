@@ -272,6 +272,7 @@ class PanUKBBLDMatrix:
         min_r2: float,
         band_blocks: int,
         restrict_to_variants: bool = False,
+        blocks_per_task: int = 16,
     ) -> LDIndex:
         """Build the LD index of one Pan-UKBB population.
 
@@ -284,12 +285,18 @@ class PanUKBBLDMatrix:
         variants' matrix indices are read as well, such as when the aligned variants
         are those of one chromosome. The indices are collected to the driver.
 
+        Each Spark task reads ``blocks_per_task`` blocks. With one block per task, the
+        driver dispatches tasks more slowly than the executors run them (about 3.5
+        tasks per second for EUR, each with a few seconds of work), so most of a large
+        cluster sits idle.
+
         Args:
             population (str): Pan-UKBB population, such as ``EUR``.
             aligned_variants (DataFrame): The population's matrix variants, as from ``align_variant_table``.
             min_r2 (float): Smallest r2 kept.
             band_blocks (int): Block-diagonals read on each side of the main diagonal.
             restrict_to_variants (bool): Read only the blocks of the aligned variants.
+            blocks_per_task (int): Blocks read by each Spark task.
 
         Returns:
             LDIndex: The population's pairs.
@@ -308,6 +315,9 @@ class PanUKBBLDMatrix:
                 [[start, stop, start, stop] for start, stop in runs]
             )
         entries = block_matrix.entries(keyed=False)
+        entries = entries.naive_coalesce(
+            max(1, -(-entries.n_partitions() // blocks_per_task))
+        )
         pairs = (
             entries.filter(hl.abs(entries.entry) >= min_r2**0.5)
             .to_spark()

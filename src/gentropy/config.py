@@ -332,6 +332,8 @@ class LDIndexConfig(StepConfig):
     # 10 blocks of 4096 variants: about 5 Mb in EUR, more in the populations with fewer variants.
     # On chr22, 4 blocks missed 369 EUR pairs at r2 >= 0.5, all 2.6-3.7 Mb apart.
     pan_ukbb_band_blocks: int = 10
+    # Blocks per Spark task: with one, the driver cannot dispatch tasks fast enough.
+    pan_ukbb_blocks_per_task: int = 16
     finngen_ld_matrix_path: str | None = (
         "gs://finngen-public-data-r12/ld_matrix/finngen_r12_chr*_ld.tsv.gz"
     )

@@ -6,13 +6,17 @@ from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
 import pyspark.sql.functions as f
+from pyspark import StorageLevel
 
 from gentropy.common.session import Session
 from gentropy.config import LDIndexConfig, PanUKBBLDAlignmentConfig
 from gentropy.dataset.ld_index import LDIndex
 from gentropy.dataset.variant_index import VariantIndex
-from gentropy.datasource.finngen.ld import FinnGenLDMatrix
-from gentropy.datasource.pan_ukbb_ld.ld import PanUKBBLDMatrix
+from gentropy.datasource.finngen.ld import FINNGEN_LD_POPULATION, FinnGenLDMatrix
+from gentropy.datasource.pan_ukbb_ld.ld import (
+    PAN_UKBB_LD_POPULATIONS,
+    PanUKBBLDMatrix,
+)
 
 if TYPE_CHECKING:
     from pyspark.sql import DataFrame
@@ -78,6 +82,7 @@ class LDIndexStep:
         pan_ukbb_populations: list[str] = LDIndexConfig().pan_ukbb_populations,
         pan_ukbb_bm_template: str = LDIndexConfig().pan_ukbb_bm_template,
         pan_ukbb_band_blocks: int = LDIndexConfig().pan_ukbb_band_blocks,
+        pan_ukbb_blocks_per_task: int = LDIndexConfig().pan_ukbb_blocks_per_task,
         finngen_ld_matrix_path: str | None = LDIndexConfig().finngen_ld_matrix_path,
         min_r2: float = LDIndexConfig().min_r2,
         chromosomes: list[str] | None = LDIndexConfig().chromosomes,
@@ -94,6 +99,7 @@ class LDIndexStep:
                 population, with a ``{POP}`` placeholder.
             pan_ukbb_band_blocks (int): Block-diagonals of the Pan-UKBB matrices read on
                 each side of the main diagonal.
+            pan_ukbb_blocks_per_task (int): Pan-UKBB matrix blocks read by each Spark task.
             finngen_ld_matrix_path (str | None): FinnGen LD files; None skips FinnGen.
             min_r2 (float): Smallest r2 kept.
             chromosomes (list[str] | None): Build only these chromosomes, such as ``["22"]``,
@@ -114,8 +120,10 @@ class LDIndexStep:
                     min_r2,
                     pan_ukbb_band_blocks,
                     restrict_to_variants=chromosomes is not None,
+                    blocks_per_task=pan_ukbb_blocks_per_task,
                 ),
                 ld_index_out,
+                PAN_UKBB_LD_POPULATIONS[population],
             )
             session.logger.info(f"LD index of Pan-UKBB {population} written.")
         if finngen_ld_matrix_path is not None:
@@ -127,7 +135,7 @@ class LDIndexStep:
                     _df=self._on_chromosomes(finngen.df, chromosomes),
                     _schema=LDIndex.get_schema(),
                 )
-            self._write(finngen, ld_index_out)
+            self._write(finngen, ld_index_out, FINNGEN_LD_POPULATION)
             session.logger.info("LD index of FinnGen written.")
 
     @staticmethod
@@ -147,31 +155,28 @@ class LDIndexStep:
         return df.where(f.col("chromosome").isin(list(chromosomes)))
 
     @staticmethod
-    def _write(ld_index: LDIndex, path: str) -> None:
+    def _write(ld_index: LDIndex, path: str, population: str) -> None:
         """Write one population, replacing whatever the index held for it.
 
         The population is written to its own ``population=<label>`` directory, which
-        Spark reads back as the ``population`` partition column.
+        Spark reads back as the ``population`` partition column. The pairs are cached
+        on disk first: the range partitioning samples them before the write reads them,
+        and the matrix is read once.
 
         Args:
             ld_index (LDIndex): The LD index of one population.
             path (str): Output LD index path.
-
-        Raises:
-            ValueError: If the index does not hold exactly one population.
+            population (str): The population's label, as in its rows.
         """
-        populations = [
-            row.population
-            for row in ld_index.df.select("population").distinct().collect()
-        ]
-        if len(populations) != 1:
-            raise ValueError(f"Expected one population, got {populations}.")
-        (
-            # Ranges of variants, so a large chromosome is split over several sorted files.
-            ld_index.df.drop("population")
-            .repartitionByRange("chromosome", "variantId")
-            .sortWithinPartitions("variantId", "tagVariantId")
-            .write.partitionBy("chromosome")
-            .mode("overwrite")
-            .parquet(f"{path.rstrip('/')}/population={populations[0]}")
-        )
+        pairs = ld_index.df.drop("population").persist(StorageLevel.DISK_ONLY)
+        try:
+            (
+                # Ranges of variants, so a large chromosome is split over several sorted files.
+                pairs.repartitionByRange("chromosome", "variantId")
+                .sortWithinPartitions("variantId", "tagVariantId")
+                .write.partitionBy("chromosome")
+                .mode("overwrite")
+                .parquet(f"{path.rstrip('/')}/population={population}")
+            )
+        finally:
+            pairs.unpersist()
