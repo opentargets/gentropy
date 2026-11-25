@@ -242,12 +242,36 @@ class PanUKBBLDMatrix:
         )
         return one_way.unionByName(other_way)
 
+    @staticmethod
+    def _index_runs(indices: list[int], max_gap: int) -> list[list[int]]:
+        """Group sorted matrix indices into runs, splitting where they jump by more than ``max_gap``.
+
+        Args:
+            indices (list[int]): Matrix indices.
+            max_gap (int): Largest step between consecutive indices of a run.
+
+        Returns:
+            list[list[int]]: ``[start, stop]`` of each run, ``stop`` excluded.
+
+        Examples:
+            >>> PanUKBBLDMatrix._index_runs([7, 1, 2, 3, 9, 40], max_gap=2)
+            [[1, 4], [7, 10], [40, 41]]
+        """
+        runs: list[list[int]] = []
+        for index in sorted(indices):
+            if runs and index - runs[-1][1] < max_gap:
+                runs[-1][1] = index + 1
+            else:
+                runs.append([index, index + 1])
+        return runs
+
     def as_ld_index(
         self: PanUKBBLDMatrix,
         population: str,
         aligned_variants: DataFrame,
         min_r2: float,
         band_blocks: int,
+        restrict_to_variants: bool = False,
     ) -> LDIndex:
         """Build the LD index of one Pan-UKBB population.
 
@@ -256,20 +280,34 @@ class PanUKBBLDMatrix:
         matrix. Entries with ``|r|`` of at least ``sqrt(min_r2)`` are kept, including
         each variant with itself.
 
+        With ``restrict_to_variants``, only the blocks covering runs of the aligned
+        variants' matrix indices are read as well, such as when the aligned variants
+        are those of one chromosome. The indices are collected to the driver.
+
         Args:
             population (str): Pan-UKBB population, such as ``EUR``.
             aligned_variants (DataFrame): The population's matrix variants, as from ``align_variant_table``.
             min_r2 (float): Smallest r2 kept.
             band_blocks (int): Block-diagonals read on each side of the main diagonal.
+            restrict_to_variants (bool): Read only the blocks of the aligned variants.
 
         Returns:
             LDIndex: The population's pairs.
         """
         block_matrix = BlockMatrix.read(self.pan_ukbb_bm_path.format(POP=population))
         width = band_blocks * block_matrix.block_size
-        entries = block_matrix.sparsify_band(
+        block_matrix = block_matrix.sparsify_band(
             lower=-width, upper=width, blocks_only=True
-        ).entries(keyed=False)
+        )
+        if restrict_to_variants:
+            runs = self._index_runs(
+                [row.idx for row in aligned_variants.select("idx").collect()],
+                max_gap=block_matrix.block_size,
+            )
+            block_matrix = block_matrix.sparsify_rectangles(
+                [[start, stop, start, stop] for start, stop in runs]
+            )
+        entries = block_matrix.entries(keyed=False)
         pairs = (
             entries.filter(hl.abs(entries.entry) >= min_r2**0.5)
             .to_spark()

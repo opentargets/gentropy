@@ -9,7 +9,7 @@ import hail as hl
 import numpy as np
 import pytest
 from hail.linalg import BlockMatrix
-from pyspark.sql import SparkSession
+from pyspark.sql import DataFrame, SparkSession
 
 from gentropy.common.session import Session
 from gentropy.datasource.pan_ukbb_ld.ld import PanUKBBLDMatrix
@@ -114,3 +114,63 @@ def test_as_ld_index_matches_a_hand_built_index(
     assert {
         (row.variantId, row.tagVariantId, round(row.r, 6)) for row in rows
     } == _expected(band_blocks)
+
+
+@pytest.mark.no_shared_spark
+@pytest.mark.parametrize(
+    ("aligned_indices", "band_blocks", "expected"),
+    [
+        # Variants of every block, one block-diagonal: the block two apart is not read.
+        (
+            range(6),
+            1,
+            {(0, 0), (1, 0), (1, 1), (2, 1), (2, 2), (3, 3), (4, 4), (5, 4), (5, 5)},
+        ),
+        # Variants of the first two blocks, two block-diagonals: the third block is not read.
+        (range(4), 2, {(0, 0), (1, 0), (1, 1), (2, 1), (2, 2), (3, 3)}),
+    ],
+    ids=["band", "band-and-variants"],
+)
+def test_as_ld_index_reads_only_the_band_and_the_variants_blocks(
+    hail_session: Session,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    aligned_indices: range,
+    band_blocks: int,
+    expected: set[tuple[int, int]],
+) -> None:
+    """The entries read are those of blocks both in the band and covering the variants."""
+    path = (tmp_path / "UKBB.EUR.ldadj.bm").as_posix()
+    BlockMatrix.from_numpy(np.tril(_matrix()), block_size=2).write(path)
+    aligned = hail_session.spark.createDataFrame(
+        [
+            (id_, chr_, order, idx)
+            for idx, (id_, chr_, order) in enumerate(VARIANTS)
+            if idx in aligned_indices
+        ],
+        "variantId string, chromosome string, alleleOrder int, idx long",
+    )
+    read: list[tuple[int, int]] = []
+
+    def capture(pairs: DataFrame, aligned: DataFrame, population: str) -> DataFrame:
+        """Record the entries read, and resolve them as usual.
+
+        Args:
+            pairs (DataFrame): Matrix entries.
+            aligned (DataFrame): Aligned variants.
+            population (str): LD population label.
+
+        Returns:
+            DataFrame: The resolved pairs.
+        """
+        read.extend((row.i, row.j) for row in pairs.collect())
+        return resolve(pairs, aligned, population)
+
+    resolve = PanUKBBLDMatrix._resolve_pairs
+    monkeypatch.setattr(PanUKBBLDMatrix, "_resolve_pairs", staticmethod(capture))
+
+    PanUKBBLDMatrix(pan_ukbb_bm_path=path.replace("EUR", "{POP}")).as_ld_index(
+        "EUR", aligned, min_r2=0.5, band_blocks=band_blocks, restrict_to_variants=True
+    )
+
+    assert set(read) == expected

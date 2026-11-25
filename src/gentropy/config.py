@@ -335,6 +335,8 @@ class LDIndexConfig(StepConfig):
         "gs://finngen-public-data-r12/ld_matrix/finngen_r12_chr*_ld.tsv.gz"
     )
     min_r2: float = 0.5
+    # None builds every chromosome; a list, such as ["22"], builds only those.
+    chromosomes: list[str] | None = None
     _target_: str = "gentropy.ld_index.LDIndexStep"
 
 

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import pyspark.sql.functions as f
+
 from gentropy.common.session import Session
 from gentropy.config import LDIndexConfig, PanUKBBLDAlignmentConfig
 from gentropy.dataset.ld_index import LDIndex
@@ -72,6 +74,7 @@ class LDIndexStep:
         pan_ukbb_band_blocks: int = LDIndexConfig().pan_ukbb_band_blocks,
         finngen_ld_matrix_path: str | None = LDIndexConfig().finngen_ld_matrix_path,
         min_r2: float = LDIndexConfig().min_r2,
+        chromosomes: list[str] | None = LDIndexConfig().chromosomes,
     ) -> None:
         """Run step.
 
@@ -87,24 +90,38 @@ class LDIndexStep:
                 each side of the main diagonal.
             finngen_ld_matrix_path (str | None): FinnGen LD files; None skips FinnGen.
             min_r2 (float): Smallest r2 kept.
+            chromosomes (list[str] | None): Build only these chromosomes, such as ``["22"]``,
+                reading only their blocks of the Pan-UKBB matrices; None builds all. The
+                written population then holds only these chromosomes.
         """
         pan_ukbb = PanUKBBLDMatrix(pan_ukbb_bm_path=pan_ukbb_bm_template)
         for population in pan_ukbb_populations:
             aligned = session.spark.read.parquet(
                 pan_ukbb_aligned_variant_table_template.format(POP=population)
             )
+            if chromosomes is not None:
+                aligned = aligned.where(f.col("chromosome").isin(chromosomes))
             self._write(
-                pan_ukbb.as_ld_index(population, aligned, min_r2, pan_ukbb_band_blocks),
+                pan_ukbb.as_ld_index(
+                    population,
+                    aligned,
+                    min_r2,
+                    pan_ukbb_band_blocks,
+                    restrict_to_variants=chromosomes is not None,
+                ),
                 ld_index_out,
             )
             session.logger.info(f"LD index of Pan-UKBB {population} written.")
         if finngen_ld_matrix_path is not None:
-            self._write(
-                FinnGenLDMatrix.as_ld_index(
-                    FinnGenLDMatrix.read(session, finngen_ld_matrix_path), min_r2
-                ),
-                ld_index_out,
+            finngen = FinnGenLDMatrix.as_ld_index(
+                FinnGenLDMatrix.read(session, finngen_ld_matrix_path), min_r2
             )
+            if chromosomes is not None:
+                finngen = LDIndex(
+                    _df=finngen.df.where(f.col("chromosome").isin(chromosomes)),
+                    _schema=LDIndex.get_schema(),
+                )
+            self._write(finngen, ld_index_out)
             session.logger.info("LD index of FinnGen written.")
 
     @staticmethod
