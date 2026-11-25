@@ -598,11 +598,13 @@ class StudyIndexGWASCatalog(StudyIndex):
     ) -> StudyIndexGWASCatalog:
         """Extract the sample size of the discovery stage of the study as annotated in the GWAS Catalog.
 
-        The initial sample size is a comma-separated list of sample groups, each led by its count,
-        e.g. "1,000 European, African or Asian cases, 2,000 European, African or Asian controls".
-        A comma separates two groups only when the text up to the next comma holds a count. Commas
-        inside parentheses, like "(see Iwaki et al, 2019)", never separate groups. A comma is a
-        thousands separator when it sits between digits with no whitespace after it.
+        The initial sample size is a list of sample groups, each led by its count,
+        e.g. "1,000 European, African or Asian cases and 2,000 European, African or Asian controls".
+        A comma or " and " separates two groups only when the next group starts with a count,
+        optionally after a qualifier ("up to", "at least", "approximately", "and", "~"). Numbers
+        inside a label, like "age 50" or "(see Thye 2010)", stay part of their group, and only the
+        first number of a group is its count. Commas inside parentheses never separate groups.
+        A comma is a thousands separator when it sits between digits with no whitespace after it.
 
         Groups labelled "case(s)" count towards nCases and groups labelled "control(s)" towards nControls.
         Family designs such as "case-parent trios" are neither.
@@ -620,7 +622,9 @@ class StudyIndexGWASCatalog(StudyIndex):
                 f.explode_outer(
                     f.split(
                         f.col("initialSampleSize"),
-                        r"(?:(?<!\d),\s*|,\s+)(?=[^,]*\d)(?![^(]*\))",
+                        r"(?:(?<!\d),\s*|,\s+|\s+and\s+)"
+                        r"(?=(?i:up(?:\s*to)?|at least|approximately|and|~)?\s*\d)"
+                        r"(?![^(]*\))",
                     )
                 ).alias("samples"),
             )

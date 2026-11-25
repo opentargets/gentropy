@@ -73,6 +73,33 @@ def test_annotate_discovery_sample_sizes(
             id="citation year is not a count",
         ),
         pytest.param(
+            "642 South African coloured cases, 91 South African coloured controls, "
+            "(see Thye 2010)",
+            (642, 91, 733),
+            id="citation year without comma is not a count",
+        ),
+        pytest.param(
+            "5,503 European, Black, and other ancestry cases age 50 and older, "
+            "1,894 European, Black, and other ancestry controls age 50 and older",
+            (5_503, 1_894, 7_397),
+            id="number inside the label is not a count",
+        ),
+        pytest.param(
+            "4,478 European ancestry cases and 13,213 European ancestry controls",
+            (4_478, 13_213, 17_691),
+            id="groups joined by and",
+        ),
+        pytest.param(
+            "up to 9,610 African American individuals, up to750 East Asian individuals",
+            (0, 0, 10_360),
+            id="qualifier without space",
+        ),
+        pytest.param(
+            "421 European ancestry cases, and 103 cases, ~50 controls",
+            (524, 50, 574),
+            id="and and tilde before the count",
+        ),
+        pytest.param(
             "284 European ancestry case-parent trios",
             (0, 0, 284),
             id="case-parent trios are not cases",
