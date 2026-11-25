@@ -55,7 +55,7 @@ class TestPleiotropyPrior:
             rtol=1e-4,
             atol=1e-5,
         )
-        assert fit.lambdas == {"1": penalty, "2": penalty, "3": penalty}
+        assert fit.penalty == penalty
         assert set(fit.held_out_correlation) == {"1", "2", "3"}
 
     @pytest.mark.parametrize("adjusted", [False, True])
@@ -96,15 +96,52 @@ class TestPleiotropyPrior:
             atol=1e-5,
         )
 
+    def test_one_penalty_chosen_over_the_fitted_genes(
+        self: TestPleiotropyPrior, toy_genes: dict[str, np.ndarray]
+    ) -> None:
+        """The penalty minimises GCV over the genes in the fit and serves every chromosome."""
+        kernel, y = toy_genes["kernel"], toy_genes["y"]
+        covariates = toy_genes["covariates"]
+        fit_mask = np.ones(50, dtype=bool)
+        fit_mask[30] = False
+        lambdas = np.logspace(-2, 4, 13)
+        fit = PleiotropyPrior.loco_kernel_ridge(
+            kernel,
+            y,
+            toy_genes["chromosomes"],
+            covariates=covariates,
+            fit_mask=fit_mask,
+            lambdas=lambdas,
+        )
+        target = PleiotropyPrior.residualise(y[fit_mask], covariates[fit_mask])
+        eigenvalues, eigenvectors = np.linalg.eigh(kernel[np.ix_(fit_mask, fit_mask)])
+        gcv = PleiotropyPrior.generalised_cross_validation(
+            eigenvalues, eigenvectors.T @ target, lambdas
+        )
+        assert fit.penalty == pytest.approx(lambdas[int(np.argmin(gcv))])
+        single = PleiotropyPrior.loco_kernel_ridge(
+            kernel,
+            y,
+            toy_genes["chromosomes"],
+            covariates=covariates,
+            fit_mask=fit_mask,
+            lambdas=[fit.penalty],
+        )
+        np.testing.assert_allclose(fit.scores, single.scores)
+
     def test_score_does_not_depend_on_own_target(
         self: TestPleiotropyPrior, toy_genes: dict[str, np.ndarray]
     ) -> None:
-        """Changing the target of a gene leaves the scores of its chromosome unchanged."""
+        """At a given penalty, a gene's target leaves the scores of its chromosome unchanged.
+
+        The penalty is chosen over every gene in the fit, so it is fixed here.
+        """
         before = PleiotropyPrior.loco_kernel_ridge(
             toy_genes["kernel"],
             toy_genes["y"],
             toy_genes["chromosomes"],
             covariates=toy_genes["covariates"],
+            lambdas=[3.0],
         )
         y = toy_genes["y"].copy()
         y[5] += 100.0
@@ -113,6 +150,7 @@ class TestPleiotropyPrior:
             y,
             toy_genes["chromosomes"],
             covariates=toy_genes["covariates"],
+            lambdas=[3.0],
         )
         same_chromosome = toy_genes["chromosomes"] == toy_genes["chromosomes"][5]
         np.testing.assert_allclose(

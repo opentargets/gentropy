@@ -375,7 +375,7 @@ class PleiotropyPriorInputs:
         max_term_size: int = 2_000,
         string_min_score: float = 0.7,
         intact_min_score: float = 0.5,
-        approx_pops_min_genes: int = 100,
+        approx_pops_min_genes: int = 50,
         approx_pops_components: int = 100,
         approx_pops_group_expression_by_source: bool = False,
     ) -> None:
@@ -820,12 +820,12 @@ class PleiotropyPriorInputs:
             int(data.out_of_fit.sum()),
             "/".join(UNFITTED_CHROMOSOMES),
         )
-        for held_out, penalty in fit.lambdas.items():
+        logger.info("Predicted pleiotropy prior: lambda %.3g", fit.penalty)
+        for held_out, correlation in fit.held_out_correlation.items():
             logger.info(
-                "Predicted pleiotropy prior: chromosome %s, lambda %.3g, held-out r %.3f",
+                "Predicted pleiotropy prior: chromosome %s, held-out r %.3f",
                 held_out,
-                penalty,
-                fit.held_out_correlation[held_out],
+                correlation,
             )
 
         with arrow_transfers(spark):

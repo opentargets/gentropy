@@ -60,15 +60,15 @@ class PleiotropyPriorFit:
     Attributes:
         scores (np.ndarray): Out-of-chromosome prediction for every gene, in the order of the
             input
-        lambdas (dict[str, float]): Ridge penalty chosen by generalised cross-validation for
-            each held-out chromosome
+        penalty (float): Ridge penalty chosen by generalised cross-validation, shared by
+            every held-out chromosome
         held_out_correlation (dict[str, float]): Pearson correlation of the scores with the
             target over the held-out genes allowed in the fit, for each chromosome; NaN when
             it cannot be computed
     """
 
     scores: np.ndarray
-    lambdas: dict[str, float]
+    penalty: float
     held_out_correlation: dict[str, float]
 
 
@@ -82,8 +82,7 @@ class PleiotropyPrior:
 
         r_T  = (I - C_T (C_T' C_T)^-1 C_T') y_T          covariates projected out within the fold
         K    = X X'                                     linear kernel over all genes
-        K_TT = U diag(s) U'                             eigendecomposition
-        a_k  = U diag(1 / (s + lambda_k)) U' r_T
+        a_k  = (K_TT + lambda I)^-1 r_T                 Cholesky solve
         score_g = K_gT a_k                              for every g in H
 
     This is the dual form of a ridge regression of `r_T` on `X_T` without intercept, so
@@ -100,11 +99,17 @@ class PleiotropyPrior:
     chromosome and the genes kept out of the fit included. That uses no target, so no label
     leaks, but the standardisation is transductive.
 
-    `lambda_k` minimises the generalised cross-validation criterion, computed from the same
-    eigendecomposition with `u = U' r_T` and `n_T = |T|`:
+    One penalty `lambda` serves every chromosome. It minimises the generalised cross-validation
+    criterion of the fit on all genes `F` allowed in the fit, from one eigendecomposition
+    `K_FF = U diag(s) U'` with `r_F` the target with the covariates projected out over `F`,
+    `u = U' r_F` and `n_F = |F|`:
 
-        GCV_k(lambda) = n_T * sum_i (lambda / (s_i + lambda))^2 u_i^2
-                        / (n_T - sum_i s_i / (s_i + lambda))^2
+        GCV(lambda) = n_F * sum_i (lambda / (s_i + lambda))^2 u_i^2
+                      / (n_F - sum_i s_i / (s_i + lambda))^2
+
+    The penalty is the only quantity the held-out chromosome contributes to; choosing it per
+    chromosome would take one eigendecomposition per fold, about 25 times the cost of the
+    Cholesky solves, and on the release data it picks the same penalty in almost every fold.
 
     The kernel form never holds the dense `n x p` feature matrix in memory: `K` is accumulated
     over column chunks, so the cost is set by the number of genes (about 20,000), not by the
@@ -338,6 +343,53 @@ class PleiotropyPrior:
         return n * rss / (n - degrees_of_freedom) ** 2
 
     @classmethod
+    def choose_penalty(
+        cls: type[PleiotropyPrior],
+        kernel: np.ndarray,
+        y: np.ndarray,
+        lambdas: Iterable[float],
+        covariates: np.ndarray | None = None,
+    ) -> float:
+        """Ridge penalty minimising generalised cross-validation over the given genes.
+
+        Args:
+            kernel (np.ndarray): `genes x genes` linear kernel of the genes in the fit; it is
+                used in single precision
+            y (np.ndarray): Target, one value per gene
+            lambdas (Iterable[float]): Ridge penalties searched
+            covariates (np.ndarray | None): `genes x covariates` matrix projected out of the
+                target, without intercept
+
+        Returns:
+            float: The penalty with the lowest criterion
+        """
+        grid = np.asarray(sorted(lambdas), dtype=np.float64)
+        if grid.size == 1:
+            return float(grid[0])
+        target = cls.residualise(y, covariates)
+        # Divide-and-conquer in single precision is about 2.5x faster than in double and
+        # about 12x faster than the MRRR driver; the criterion is evaluated in double.
+        eigenvalues, eigenvectors = scipy.linalg.eigh(
+            np.array(kernel, dtype=np.float32),
+            overwrite_a=True,
+            check_finite=False,
+            driver="evd",
+        )
+        projected = (eigenvectors.T @ target.astype(np.float32)).astype(np.float64)
+        del eigenvectors
+        gcv = cls.generalised_cross_validation(
+            eigenvalues.astype(np.float64), projected, grid
+        )
+        best = int(np.argmin(gcv))
+        if best in (0, grid.size - 1):
+            logger.warning(
+                "The ridge penalty chosen, %.3g, is at the edge of the grid; consider "
+                "widening it.",
+                grid[best],
+            )
+        return float(grid[best])
+
+    @classmethod
     def loco_kernel_ridge(
         cls: type[PleiotropyPrior],
         kernel: np.ndarray,
@@ -350,8 +402,9 @@ class PleiotropyPrior:
     ) -> PleiotropyPriorFit:
         """Score every gene with a ridge regression fitted without its chromosome.
 
-        The kernel is used in single precision, so a double-precision kernel is copied once;
-        pass it in single precision to avoid the copy.
+        The penalty is chosen once, over every gene in the fit, and each chromosome is then
+        fitted with a Cholesky solve. The kernel is kept in single precision, so a
+        double-precision kernel is copied once; pass it in single precision to avoid the copy.
 
         Args:
             kernel (np.ndarray): `genes x genes` linear kernel of the standardised features
@@ -364,7 +417,7 @@ class PleiotropyPrior:
             lambdas (Iterable[float]): Ridge penalties searched by generalised cross-validation
 
         Returns:
-            PleiotropyPriorFit: Scores and the penalty chosen for every chromosome
+            PleiotropyPriorFit: Scores, the penalty and the held-out correlation per chromosome
 
         Raises:
             ValueError: If the inputs disagree on the number of genes
@@ -375,11 +428,15 @@ class PleiotropyPrior:
         if covariates is not None and covariates.shape[0] != n:
             raise ValueError("covariates must have one row per gene.")
         fit_mask = np.ones(n, dtype=bool) if fit_mask is None else fit_mask
-        grid = np.asarray(sorted(lambdas), dtype=np.float64)
         kernel = np.asarray(kernel, dtype=np.float32)
+        penalty = cls.choose_penalty(
+            kernel[np.ix_(fit_mask, fit_mask)],
+            y[fit_mask],
+            lambdas,
+            None if covariates is None else covariates[fit_mask],
+        )
 
         scores = np.zeros(n)
-        chosen: dict[str, float] = {}
         correlation: dict[str, float] = {}
         for chromosome in sorted(set(chromosomes.tolist())):
             held_out = chromosomes == chromosome
@@ -389,32 +446,16 @@ class PleiotropyPrior:
             r_train = cls.residualise(
                 y[train], None if covariates is None else covariates[train]
             )
-            # Divide-and-conquer in single precision is about 2.5x faster than in double and
-            # about 12x faster than the MRRR driver. The eigenvectors stay in single precision,
-            # which halves the memory of each fold; the penalty search runs in double.
-            eigenvalues, eigenvectors = scipy.linalg.eigh(
-                kernel[np.ix_(train, train)],
-                overwrite_a=True,
-                check_finite=False,
-                driver="evd",
+            # The solve runs in double precision: a small penalty on a rank-deficient kernel
+            # leaves a system too ill-conditioned for single precision.
+            system = kernel[np.ix_(train, train)].astype(np.float64)
+            system[np.diag_indices_from(system)] += penalty
+            factor = scipy.linalg.cho_factor(
+                system, lower=True, overwrite_a=True, check_finite=False
             )
-            eigenvalues = eigenvalues.astype(np.float64)
-            projected = (eigenvectors.T @ r_train.astype(np.float32)).astype(np.float64)
-            gcv = cls.generalised_cross_validation(eigenvalues, projected, grid)
-            best = int(np.argmin(gcv))
-            if best in (0, grid.size - 1):
-                logger.warning(
-                    "Chromosome %s: the ridge penalty chosen, %.3g, is at the edge of the "
-                    "grid; consider widening it.",
-                    chromosome,
-                    grid[best],
-                )
-            weights = eigenvectors @ (
-                projected / (np.clip(eigenvalues, 0.0, None) + grid[best])
-            ).astype(np.float32)
-            del eigenvectors
+            weights = scipy.linalg.cho_solve(factor, r_train, check_finite=False)
+            del system, factor
             scores[held_out] = kernel[np.ix_(held_out, train)] @ weights
-            chosen[str(chromosome)] = float(grid[best])
             evaluated = held_out & fit_mask
             correlation[str(chromosome)] = (
                 float(np.corrcoef(scores[evaluated], y[evaluated])[0, 1])
@@ -424,7 +465,7 @@ class PleiotropyPrior:
                 else float("nan")
             )
         return PleiotropyPriorFit(
-            scores=scores, lambdas=chosen, held_out_correlation=correlation
+            scores=scores, penalty=penalty, held_out_correlation=correlation
         )
 
     @staticmethod
