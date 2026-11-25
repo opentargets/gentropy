@@ -329,8 +329,9 @@ class LDIndexConfig(StepConfig):
         default_factory=lambda: ["AFR", "AMR", "CSA", "EAS", "EUR", "MID"]
     )
     pan_ukbb_bm_template: str = "gs://panukbb-ld-matrixes/UKBB.{POP}.ldadj"
-    # 4 blocks of 4096 variants: about 2 Mb in EUR, more in the populations with fewer variants.
-    pan_ukbb_band_blocks: int = 4
+    # 10 blocks of 4096 variants: about 5 Mb in EUR, more in the populations with fewer variants.
+    # On chr22, 4 blocks missed 369 EUR pairs at r2 >= 0.5, all 2.6-3.7 Mb apart.
+    pan_ukbb_band_blocks: int = 10
     finngen_ld_matrix_path: str | None = (
         "gs://finngen-public-data-r12/ld_matrix/finngen_r12_chr*_ld.tsv.gz"
     )
