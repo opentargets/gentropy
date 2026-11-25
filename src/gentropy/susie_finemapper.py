@@ -769,11 +769,15 @@ class SusieFineMapperStep:
             *(f"locus.{column}" for column in MARGINAL_COLUMNS)
         )
         gwas_df = (
-            result_df.withColumn("z", f.col("beta") / f.col("standardError"))
+            result_df.withColumn(
+                "z", f.try_divide(f.col("beta"), f.col("standardError"))
+            )
             .withColumn(
                 "chromosome", f.split(f.col("variantId"), "_")[0].cast("string")
             )
-            .withColumn("position", f.split(f.col("variantId"), "_")[1].cast("int"))
+            .withColumn(
+                "position", f.get(f.split(f.col("variantId"), "_"), 1).try_cast("int")
+            )
             .filter(f.col("chromosome") == chromosome)
             .filter(f.col("position") >= int(locusStart))
             .filter(f.col("position") <= int(locusEnd))

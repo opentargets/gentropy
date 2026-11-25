@@ -49,7 +49,7 @@ class StudyIndexGWASCatalogOTCuration:
             )
             .otherwise(f.array())
             .alias("qualityControls"),
-            f.col("isCurated").cast(t.BooleanType()),
+            f.col("isCurated").try_cast(t.BooleanType()),
         )
 
     @classmethod

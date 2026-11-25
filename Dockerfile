@@ -50,9 +50,9 @@ RUN groupadd --gid 1000 app && \
 # # Set working directory in the runtime container
 COPY --from=uv_builder --chown=app:app /app /app
 # # Copy the virtual environment with all dependencies from the builder stage
-COPY --from=amazoncorretto:11.0.28-al2023-headless /usr/lib/jvm/java-11-amazon-corretto /usr/lib/jvm/java-11-amazon-corretto
+COPY --from=amazoncorretto:21.0.13-al2023-headless /usr/lib/jvm/java-21-amazon-corretto /usr/lib/jvm/java-21-amazon-corretto
 # Copy certificates from the Corretto image
-COPY --from=amazoncorretto:11.0.28-al2023-headless /etc/pki/ca-trust/extracted/java/cacerts /usr/lib/jvm/java-11-amazon-corretto/lib/security/cacerts
+COPY --from=amazoncorretto:21.0.13-al2023-headless /etc/pki/ca-trust/extracted/java/cacerts /usr/lib/jvm/java-21-amazon-corretto/lib/security/cacerts
 # Copy harmonisation script
 COPY --chmod=0755 utils/harmonise_sumstats.sh harmonise-sumstats.sh
 
@@ -68,7 +68,7 @@ RUN mkdir -p /opt/gcs-connector \
 ENV PATH="/app/.venv/bin:$PATH"
 
 # # Set environment variables for PySpark and Hail locations
-ENV JAVA_HOME=/usr/lib/jvm/java-11-amazon-corretto
+ENV JAVA_HOME=/usr/lib/jvm/java-21-amazon-corretto
 ENV SPARK_HOME=/app/.venv/lib/python3.12/site-packages/pyspark
 ENV HAIL_HOME=/app/.venv/lib/python3.12/site-packages/hail
 

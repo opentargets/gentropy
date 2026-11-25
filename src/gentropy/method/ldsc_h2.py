@@ -1285,7 +1285,7 @@ class Hsq(LD_Score_Regression):
                 )
 
         ld = ref_ld_tot[:, 0].reshape(w_ld.shape)
-        w = self.weights(ld, w_ld, N, M, float(hsq), intercept_eff, ii)
+        w = self.weights(ld, w_ld, N, M, np.asarray(hsq).item(), intercept_eff, ii)
 
         return w
 

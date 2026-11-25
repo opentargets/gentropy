@@ -91,7 +91,7 @@ class PathwayIndex(Dataset):
                 .filter(f.trim(f.col("value")) != "")
                 .select(
                     pathway.alias("pathwayFromSourceName"),
-                    f.nullif(f.trim(columns.getItem(1)), f.lit("")).alias(
+                    f.nullif(f.trim(f.get(columns, 1)), f.lit("")).alias(
                         "pathwayFromSourceId"
                     ),
                     f.lit(None).cast(StringType()).alias("pathwayId"),

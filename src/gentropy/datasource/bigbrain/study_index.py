@@ -130,15 +130,15 @@ class BigBrainStudyIndex:
         )
 
         single = features.filter(f.size("genes") <= 1).select(
-            "feature", f.col("genes")[0].alias("geneId"), "traitFromSource"
+            "feature", f.get(f.col("genes"), 0).alias("geneId"), "traitFromSource"
         )
         multi = features.filter(f.size("genes") > 1)
         coords = f.split(f.col("feature"), "_")
         containing = (
             multi.select(
                 "feature",
-                coords.getItem(1).cast("long").alias("junctionStart"),
-                coords.getItem(2).cast("long").alias("junctionEnd"),
+                f.get(coords, 1).try_cast("long").alias("junctionStart"),
+                f.get(coords, 2).try_cast("long").alias("junctionEnd"),
                 f.explode("genes").alias("geneId"),
             )
             .join(

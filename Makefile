@@ -73,7 +73,7 @@ create-dev-cluster: sync-cluster-init-script sync-gentropy-cli-script ## Spin up
 	@echo "Creating Dataproc Dev Cluster"
 	gcloud config set project ${PROJECT_ID}
 	gcloud dataproc clusters create "ot-genetics-dev-${CLEAN_PACKAGE_VERSION}-$(USER_SAFE)" \
-		--image-version 2.2 \
+		--image-version 3.0 \
 		--region ${REGION} \
 		--master-machine-type n1-standard-16 \
 		--metadata="GENTROPY_REF=${REF}" \

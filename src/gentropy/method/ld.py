@@ -26,7 +26,7 @@ class LDAnnotator:
         Returns:
             Column: major population
         """
-        major_population_size = ordered_populations["relativeSampleSize"][0]
+        major_population_size = f.get(ordered_populations["relativeSampleSize"], 0)
         major_populations = f.filter(
             ordered_populations,
             lambda x: x["relativeSampleSize"] == major_population_size,
@@ -35,4 +35,4 @@ class LDAnnotator:
         has_nfe = f.filter(major_populations, lambda x: x["ldPopulation"] == "nfe")
         return f.when(
             (f.size(major_populations) > 1) & (f.size(has_nfe) == 1), f.lit("nfe")
-        ).otherwise(ordered_populations["ldPopulation"][0])
+        ).otherwise(f.get(ordered_populations["ldPopulation"], 0))

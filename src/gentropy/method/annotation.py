@@ -43,7 +43,8 @@ _R2_TOLERANCE = 1e-6
 _Loci = TypeVar("_Loci", bound=AnnotatedStudyLocus)
 
 
-def keep_lead_entry(loci: _Loci) -> _Loci:
+# A TypeVar rather than a type parameter list, which pydocstyle cannot parse.
+def keep_lead_entry(loci: _Loci) -> _Loci:  # noqa: UP047
     """Reduce ``locus`` to the lead's own entry.
 
     The LD annotation, the LD clumping and the posteriors of PICS read the lead's

@@ -138,7 +138,7 @@ def gc_lambda_check(gwas_for_qc: DataFrame) -> DataFrame:
         +-------+---------+
         <BLANKLINE>
     """
-    z_score = f.col("beta") / f.col("standardError")
+    z_score = f.try_divide(f.col("beta"), f.col("standardError"))
     # NOTE! The statistic can be calculated using scipy.stats.chi2.isf(0.5, df=1)
     # as well, since both functions are equal at the 0.5 quantile.
     stat = chi2.ppf(0.5, df=1)
@@ -209,7 +209,9 @@ def p_z_test(gwas_for_qc: DataFrame) -> DataFrame:
         <BLANKLINE>
     """
     qc_c = (
-        gwas_for_qc.withColumn("Z2", (f.col("beta") / f.col("standardError")) ** 2)
+        gwas_for_qc.withColumn(
+            "Z2", f.try_divide(f.col("beta"), f.col("standardError")) ** 2
+        )
         .filter(f.col("Z2") <= 100)
         .withColumn("neglogpValFromZScore", neglogpval_from_z2(f.col("Z2")))
         .withColumn(
@@ -336,7 +338,7 @@ def sumstat_n_eff_check(
 
     window = Window.partitionBy("studyId").orderBy("studyId")
     pheno_median = f.percentile_approx(pheno_var, 0.5).over(window)
-    N_hat_ratio = (pheno_median - (beta**2 * varG)) / (se**2 * varG * n_total)
+    N_hat_ratio = f.try_divide(pheno_median - (beta**2 * varG), se**2 * varG * n_total)
 
     df_with_counts = gwas_for_qc.dropna(
         subset=["effectAlleleFrequencyFromSource"]

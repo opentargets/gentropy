@@ -12,7 +12,7 @@ concurrency:
   cancel-in-progress: false # prevent hickups with semantic-release
 
 env:
-  PYTHON_VERSION_DEFAULT: "3.11.11"
+  PYTHON_VERSION_DEFAULT: "3.12.11"
 
 jobs:
   release:

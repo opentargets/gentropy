@@ -898,11 +898,13 @@ def filter_array_struct(
         value_column = extract_column_name(value_column)
 
     return (
-        f.filter(
-            array_struct,
-            lambda x: x.getField(key_column) == key,
+        f.get(
+            f.filter(
+                array_struct,
+                lambda x: x.getField(key_column) == key,
+            ),
+            0,
         )
-        .getItem(0)
         .getField(value_column)
         .alias(value_column)
     )
