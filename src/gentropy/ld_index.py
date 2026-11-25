@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
+from typing import TYPE_CHECKING
+
 import pyspark.sql.functions as f
 
 from gentropy.common.session import Session
@@ -10,6 +13,9 @@ from gentropy.dataset.ld_index import LDIndex
 from gentropy.dataset.variant_index import VariantIndex
 from gentropy.datasource.finngen.ld import FinnGenLDMatrix
 from gentropy.datasource.pan_ukbb_ld.ld import PanUKBBLDMatrix
+
+if TYPE_CHECKING:
+    from pyspark.sql import DataFrame
 
 
 class PanUKBBLDAlignmentStep:
@@ -100,7 +106,7 @@ class LDIndexStep:
                 pan_ukbb_aligned_variant_table_template.format(POP=population)
             )
             if chromosomes is not None:
-                aligned = aligned.where(f.col("chromosome").isin(chromosomes))
+                aligned = self._on_chromosomes(aligned, chromosomes)
             self._write(
                 pan_ukbb.as_ld_index(
                     population,
@@ -118,11 +124,27 @@ class LDIndexStep:
             )
             if chromosomes is not None:
                 finngen = LDIndex(
-                    _df=finngen.df.where(f.col("chromosome").isin(chromosomes)),
+                    _df=self._on_chromosomes(finngen.df, chromosomes),
                     _schema=LDIndex.get_schema(),
                 )
             self._write(finngen, ld_index_out)
             session.logger.info("LD index of FinnGen written.")
+
+    @staticmethod
+    def _on_chromosomes(df: DataFrame, chromosomes: Sequence[str]) -> DataFrame:
+        """Keep the rows on the given chromosomes.
+
+        Hydra passes a list option as an OmegaConf ``ListConfig``, which ``isin`` would
+        take as a single literal, so it is converted to a list first.
+
+        Args:
+            df (DataFrame): Rows with a ``chromosome`` column.
+            chromosomes (Sequence[str]): Chromosomes to keep.
+
+        Returns:
+            DataFrame: The rows on those chromosomes.
+        """
+        return df.where(f.col("chromosome").isin(list(chromosomes)))
 
     @staticmethod
     def _write(ld_index: LDIndex, path: str) -> None:

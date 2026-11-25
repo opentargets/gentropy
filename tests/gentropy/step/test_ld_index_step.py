@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
+from omegaconf import ListConfig
 from pyspark.sql import SparkSession
 
 from gentropy.dataset.ld_index import LDIndex
@@ -54,3 +55,12 @@ def test_write_refuses_several_populations(spark: SparkSession, tmp_path: Path) 
             _index(spark, [("nfe", "1", 0.1), ("fin", "1", 0.1)]),
             (tmp_path / "ld_index").as_posix(),
         )
+
+
+def test_chromosomes_from_hydra_filter_rows(spark: SparkSession) -> None:
+    """A Hydra list option arrives as a ListConfig; it filters like a list."""
+    df = spark.createDataFrame([("1",), ("22",), ("X",)], "chromosome string")
+
+    kept = LDIndexStep._on_chromosomes(df, ListConfig(["22", "X"]))
+
+    assert sorted(row.chromosome for row in kept.collect()) == ["22", "X"]
