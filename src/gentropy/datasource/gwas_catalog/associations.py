@@ -583,6 +583,50 @@ class GWASCatalogCuratedAssociationsParser:
         )
 
     @staticmethod
+    def _is_risk_allele_resolved(
+        risk_allele: Column, reference_allele: Column, alternate_allele: Column
+    ) -> Column:
+        """A function to check if the risk allele is one of the variant alleles, on either strand.
+
+        Only then the effect direction is known: an unknown (`?`), missing or otherwise unmatched
+        risk allele leaves it unknown.
+
+        Args:
+            risk_allele (Column): Risk allele column
+            reference_allele (Column): Reference allele column
+            alternate_allele (Column): Alternate allele column
+
+        Returns:
+            Column: A boolean column indicating if the risk allele is resolved.
+
+        Examples:
+            >>> d = [('A', 'A', 'G'), ('G', 'A', 'G'), ('T', 'A', 'G'), ('?', 'A', 'G'), ('D', 'A', 'G'), (None, 'A', 'G'), ('A', None, None)]
+            >>> df = spark.createDataFrame(d, ['risk', 'reference', 'alternate'])
+            >>> df.withColumn("is_resolved", GWASCatalogCuratedAssociationsParser._is_risk_allele_resolved(f.col("risk"), f.col("reference"), f.col("alternate"))).show()
+            +----+---------+---------+-----------+
+            |risk|reference|alternate|is_resolved|
+            +----+---------+---------+-----------+
+            |   A|        A|        G|       true|
+            |   G|        A|        G|       true|
+            |   T|        A|        G|       true|
+            |   ?|        A|        G|      false|
+            |   D|        A|        G|      false|
+            |NULL|        A|        G|      false|
+            |   A|     NULL|     NULL|      false|
+            +----+---------+---------+-----------+
+            <BLANKLINE>
+
+        """
+        revcomp = GWASCatalogCuratedAssociationsParser._get_reverse_complement(
+            risk_allele
+        )
+        return f.coalesce(
+            risk_allele.isin(reference_allele, alternate_allele)
+            | revcomp.isin(reference_allele, alternate_allele),
+            f.lit(False),
+        )
+
+    @staticmethod
     def _harmonise_beta(
         effect_size: Column,
         confidence_interval: Column,
@@ -773,6 +817,9 @@ class GWASCatalogCuratedAssociationsParser:
         qc = GWASCatalogCuratedAssociationsParser._qc_palindromic_alleles(
             qc, reference_allele, alternate_allele
         )
+        qc = GWASCatalogCuratedAssociationsParser._qc_unresolved_risk_allele(
+            qc, strongest_snp_risk_allele, reference_allele, alternate_allele
+        )
         return qc
 
     @staticmethod
@@ -904,6 +951,51 @@ class GWASCatalogCuratedAssociationsParser:
         )
 
     @staticmethod
+    def _qc_unresolved_risk_allele(
+        qc: Column,
+        strongest_snp_risk_allele: Column,
+        reference_allele: Column,
+        alternate_allele: Column,
+    ) -> Column:
+        """Flag associations whose risk allele is neither of the variant alleles, so their effect can not be harmonised.
+
+        Args:
+            qc (Column): QC column
+            strongest_snp_risk_allele (Column): Strongest SNP risk allele column
+            reference_allele (Column): reference allele
+            alternate_allele (Column): alternate allele
+
+        Returns:
+            Column: Updated QC column with flag.
+
+        Example:
+            >>> import pyspark.sql.types as t
+            >>> schema = t.StructType([t.StructField('risk', t.StringType(), True), t.StructField('reference_allele', t.StringType(), True), t.StructField('alternate_allele', t.StringType(), True), t.StructField('qc', t.ArrayType(t.StringType()), True)])
+            >>> d = [('rs123-G', 'A', 'G', None), ('rs123-?', 'A', 'G', None)]
+            >>> df = spark.createDataFrame(data=d, schema=schema)
+            >>> df.withColumn("qc", GWASCatalogCuratedAssociationsParser._qc_unresolved_risk_allele(f.col("qc"), f.col("risk"), f.col("reference_allele"), f.col("alternate_allele"))).show(truncate=False)
+            +-------+----------------+----------------+-------------------------------------------+
+            |risk   |reference_allele|alternate_allele|qc                                         |
+            +-------+----------------+----------------+-------------------------------------------+
+            |rs123-G|A               |G               |[]                                         |
+            |rs123-?|A               |G               |[Unresolved risk allele - cannot harmonize]|
+            +-------+----------------+----------------+-------------------------------------------+
+            <BLANKLINE>
+
+        """
+        return StudyLocus.update_quality_flag(
+            qc,
+            ~GWASCatalogCuratedAssociationsParser._is_risk_allele_resolved(
+                GWASCatalogCuratedAssociationsParser._extract_risk_allele(
+                    strongest_snp_risk_allele
+                ),
+                reference_allele,
+                alternate_allele,
+            ),
+            StudyLocusQualityCheck.UNRESOLVED_RISK_ALLELE_FLAG,
+        )
+
+    @staticmethod
     def _get_effect_type(ci_text: Column) -> Column:
         """Extracts the effect type from the 95% CI text.
 
@@ -974,6 +1066,10 @@ class GWASCatalogCuratedAssociationsParser:
         ...    ('rs123-T', 'C', 'T', '0.1', '[0.08-0.12]', 21.96),
         ...    # odds ratio flipped:
         ...    ('rs123-C', 'G', 'T', '0.1', '[0.08-0.12]', 21.96),
+        ...    # Unknown risk allele, direction unknown:
+        ...    ('rs123-?', 'G', 'T', '0.1', '[0.08-0.12] unit decrease', 21.96),
+        ...    # Risk allele matching neither allele, direction unknown:
+        ...    ('rs123-D', 'G', 'T', '0.1', '[0.08-0.12]', 21.96),
         ... ]
         >>> schema = ["STRONGEST SNP-RISK ALLELE", "referenceAllele", "alternateAllele", "OR or BETA", "95% CI (TEXT)", "PVALUE_MLOG"]
         >>> df = spark.createDataFrame(data, schema)
@@ -986,6 +1082,8 @@ class GWASCatalogCuratedAssociationsParser:
         |                  rs123-T|              C|              T|       0.1|[0.08-0.12] unit ...|      21.96|                0.1|0.01020130187396028|
         |                  rs123-T|              C|              T|       0.1|         [0.08-0.12]|      21.96|-2.3025850929940455|0.23489365624113162|
         |                  rs123-C|              G|              T|       0.1|         [0.08-0.12]|      21.96|  2.302585092994046|0.23489365624113168|
+        |                  rs123-?|              G|              T|       0.1|[0.08-0.12] unit ...|      21.96|               NULL|               NULL|
+        |                  rs123-D|              G|              T|       0.1|         [0.08-0.12]|      21.96|               NULL|               NULL|
         +-------------------------+---------------+---------------+----------+--------------------+-----------+-------------------+-------------------+
         <BLANKLINE>
         """
@@ -1020,6 +1118,12 @@ class GWASCatalogCuratedAssociationsParser:
                     "isAllelePalindromic": GWASCatalogCuratedAssociationsParser._are_alleles_palindromic(
                         f.col("referenceAllele"), f.col("alternateAllele")
                     ),
+                    # Flag risk alleles, which leave the effect direction unknown:
+                    "isRiskAlleleResolved": GWASCatalogCuratedAssociationsParser._is_risk_allele_resolved(
+                        f.col("reportedRiskAllele"),
+                        f.col("referenceAllele"),
+                        f.col("alternateAllele"),
+                    ),
                     # Flag associations, where the effect direction needs to be flipped:
                     "needsFlipping": GWASCatalogCuratedAssociationsParser._effect_needs_harmonisation(
                         f.col("reportedRiskAllele"), f.col("referenceAllele")
@@ -1035,7 +1139,8 @@ class GWASCatalogCuratedAssociationsParser:
                 {  # Normalise beta value of the association:
                     "effect_beta": f.when(
                         (f.col("effectType") == "beta")
-                        & (~f.col("isAllelePalindromic")),
+                        & (~f.col("isAllelePalindromic"))
+                        & f.col("isRiskAlleleResolved"),
                         GWASCatalogCuratedAssociationsParser._harmonise_beta(
                             f.col("OR or BETA"),
                             f.col("95% CI (TEXT)"),
@@ -1045,7 +1150,8 @@ class GWASCatalogCuratedAssociationsParser:
                     # Normalise odds ratio of the association:
                     "effect_odds_ratio": f.when(
                         (f.col("effectType") == "odds_ratio")
-                        & (~f.col("isAllelePalindromic")),
+                        & (~f.col("isAllelePalindromic"))
+                        & f.col("isRiskAlleleResolved"),
                         GWASCatalogCuratedAssociationsParser._harmonise_odds_ratio(
                             f.col("OR or BETA"),
                             f.col("needsFlipping"),
