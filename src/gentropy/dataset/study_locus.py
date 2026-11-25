@@ -35,6 +35,7 @@ class StudyLocusQualityCheck(Enum):
         COMPOSITE_FLAG (str): Curated top hit of several variants, such as an interaction or a haplotype
         INCONSISTENCY_FLAG (str): Curated top hit whose location or variants disagree
         PALINDROMIC_ALLELE_FLAG (str): Curated top hit with palindromic alleles, whose effect cannot be harmonised
+        UNRESOLVED_RISK_ALLELE_FLAG (str): Curated top hit whose risk allele is neither of the variant alleles, such as an unknown `?`, so its effect cannot be harmonised
         TOP_HIT (str): Study locus from curated top hit
         TRANS_QTL (str): QTL credible set acting in trans on its measured gene
         REPLICATED (str): Lead variant is replicated in an independent study
@@ -49,6 +50,7 @@ class StudyLocusQualityCheck(Enum):
     COMPOSITE_FLAG = "Composite association"
     INCONSISTENCY_FLAG = "Variant inconsistency"
     PALINDROMIC_ALLELE_FLAG = "Palindrome alleles - cannot harmonize"
+    UNRESOLVED_RISK_ALLELE_FLAG = "Unresolved risk allele - cannot harmonize"
     TOP_HIT = "Study locus from curated top hit"
     TRANS_QTL = "Trans QTL"
     REPLICATED = "Lead variant is replicated in an independent study"
