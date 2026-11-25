@@ -600,10 +600,8 @@ def mock_ld_index(spark: SparkSession) -> LDIndex:
             "variantId",
             expr="cast(id as string)",
         )
-        .withColumnSpec(
-            "ldSet",
-            expr="array(named_struct('tagVariantId', cast(rand() as string), 'rValues', array(named_struct('population', cast(rand() as string), 'r', cast(rand() as double)))))",
-        )
+        .withColumnSpec("tagVariantId", expr="cast(rand() as string)")
+        .withColumnSpec("r", expr="rand()")
     )
 
     return LDIndex(_df=data_spec.build(), _schema=ld_schema)

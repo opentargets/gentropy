@@ -297,6 +297,24 @@ class SleMapIngestionConfig(StepConfig):
 
 
 @dataclass
+class PanUKBBLDAlignmentConfig(StepConfig):
+    """Pan-UKBB LD variant alignment step configuration."""
+
+    session: Any = field(
+        default_factory=lambda: {
+            "start_hail": True,
+        }
+    )
+    variant_index_path: str = MISSING
+    aligned_variant_table_template: str = MISSING
+    variant_table_template: str = "gs://panukbb-ld-matrixes/ukb-diverse-pops-public-build-38/UKBB.{POP}.ldadj.variant.b38"
+    populations: list[str] = field(
+        default_factory=lambda: ["AFR", "AMR", "CSA", "EAS", "EUR", "MID"]
+    )
+    _target_: str = "gentropy.ld_index.PanUKBBLDAlignmentStep"
+
+
+@dataclass
 class LDIndexConfig(StepConfig):
     """LD index step configuration."""
 
@@ -306,23 +324,18 @@ class LDIndexConfig(StepConfig):
         }
     )
     ld_index_out: str = MISSING
+    pan_ukbb_aligned_variant_table_template: str = MISSING
+    pan_ukbb_populations: list[str] = field(
+        default_factory=lambda: ["AFR", "AMR", "CSA", "EAS", "EUR", "MID"]
+    )
+    pan_ukbb_bm_template: str = "gs://panukbb-ld-matrixes/UKBB.{POP}.ldadj"
+    # 4 blocks of 4096 variants: about 2 Mb in EUR, more in the populations with fewer variants.
+    pan_ukbb_band_blocks: int = 4
+    finngen_ld_matrix_path: str | None = (
+        "gs://finngen-public-data-r12/ld_matrix/finngen_r12_chr*_ld.tsv.gz"
+    )
     min_r2: float = 0.5
-    ld_matrix_template: str = "gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.{POP}.common.adj.ld.bm"
-    ld_index_raw_template: str = "gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.{POP}.common.ld.variant_indices.ht"
-    liftover_ht_path: str = "gs://gcp-public-data--gnomad/release/2.1.1/liftover_grch38/ht/genomes/gnomad.genomes.r2.1.1.sites.liftover_grch38.ht"
-    grch37_to_grch38_chain_path: str = (
-        "gs://hail-common/references/grch37_to_grch38.over.chain.gz"
-    )
-    ld_populations: list[str] = field(
-        default_factory=lambda: [
-            "afr",  # African-American
-            "amr",  # American Admixed/Latino
-            "eas",  # East Asian
-            "fin",  # Finnish
-            "nfe",  # Non-Finnish European
-        ]
-    )
-    _target_: str = "gentropy.gnomad_ingestion.LDIndexStep"
+    _target_: str = "gentropy.ld_index.LDIndexStep"
 
 
 @dataclass
@@ -916,6 +929,7 @@ def register_config() -> None:
     )
     cs.store(group="step", name="ld_based_clumping", node=LDBasedClumpingConfig)
     cs.store(group="step", name="ld_index", node=LDIndexConfig)
+    cs.store(group="step", name="pan_ukbb_ld_alignment", node=PanUKBBLDAlignmentConfig)
     cs.store(group="step", name="locus_to_gene", node=LocusToGeneConfig)
     cs.store(
         group="step",

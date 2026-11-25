@@ -42,14 +42,11 @@ def random_ld_index(spark: SparkSession) -> LDIndex:
             spark, rows=400, partitions=4, randomSeedMethod="hash_fieldname"
         )
         .withSchema(LDIndex.get_schema())
-        .withColumnSpec("variantId", expr="cast(id as string)")
+        .withColumnSpec("population", expr="cast(rand() as string)")
         .withColumnSpec("chromosome", expr="'1'")
-        .withColumnSpec(
-            "ldSet",
-            expr="array(named_struct('tagVariantId', cast(rand() as string), "
-            "'rValues', array(named_struct('population', cast(rand() as string), "
-            "'r', cast(rand() as double)))))",
-        )
+        .withColumnSpec("variantId", expr="cast(id as string)")
+        .withColumnSpec("tagVariantId", expr="cast(rand() as string)")
+        .withColumnSpec("r", expr="rand()")
     )
     return LDIndex(_df=data_spec.build(), _schema=LDIndex.get_schema())
 

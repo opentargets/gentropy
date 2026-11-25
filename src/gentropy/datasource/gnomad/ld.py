@@ -1,35 +1,34 @@
-"""Step to import filtered version of a LD matrix (block matrix)."""
+"""Read the gnomAD v2.1.1 LD matrices, for fine-mapping."""
 
 from __future__ import annotations
 
-import sys
-from collections.abc import Sequence
-from functools import reduce
 from typing import TYPE_CHECKING
 
 import hail as hl
 import numpy as np
-import pyspark.sql.functions as f
 from hail.linalg import BlockMatrix
-
-from gentropy.common.types import LDPopulation
-from gentropy.config import LDIndexConfig
-from gentropy.dataset.ld_index import LDIndex
 
 if TYPE_CHECKING:
     from pyspark.sql import DataFrame, Row
 
+# gnomAD v2.1.1 LD matrix (hail block matrix, GRCh37), per population.
+GNOMAD_LD_MATRIX_TEMPLATE = "gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.{POP}.common.adj.ld.bm"
+
+# gnomAD v2.1.1 variant indices of the LD matrix (hail table, GRCh37), per population.
+GNOMAD_LD_INDEX_RAW_TEMPLATE = "gs://gcp-public-data--gnomad/release/2.1.1/ld/gnomad.genomes.r2.1.1.{POP}.common.ld.variant_indices.ht"
+
+# gnomAD v2.1.1 sites lifted over to GRCh38 (hail table).
+GNOMAD_LIFTOVER_HT_PATH = "gs://gcp-public-data--gnomad/release/2.1.1/liftover_grch38/ht/genomes/gnomad.genomes.r2.1.1.sites.liftover_grch38.ht"
+
 
 class GnomADLDMatrix:
-    """Toolset ot interact with GnomAD LD dataset (version: r2.1.1)."""
+    """Toolset to read the gnomAD LD matrices (version: r2.1.1) of a locus."""
 
     def __init__(
         self,
-        ld_matrix_template: str = LDIndexConfig().ld_matrix_template,
-        ld_index_raw_template: str = LDIndexConfig().ld_index_raw_template,
-        grch37_to_grch38_chain_path: str = LDIndexConfig().grch37_to_grch38_chain_path,
-        ld_populations: Sequence[LDPopulation | str] = LDIndexConfig().ld_populations,
-        liftover_ht_path: str = LDIndexConfig().liftover_ht_path,
+        ld_matrix_template: str = GNOMAD_LD_MATRIX_TEMPLATE,
+        ld_index_raw_template: str = GNOMAD_LD_INDEX_RAW_TEMPLATE,
+        liftover_ht_path: str = GNOMAD_LIFTOVER_HT_PATH,
     ):
         """Initialize.
 
@@ -38,274 +37,11 @@ class GnomADLDMatrix:
         Args:
             ld_matrix_template (str): Template for the LD matrix path.
             ld_index_raw_template (str): Template for the LD index path.
-            grch37_to_grch38_chain_path (str): Path to the chain file used to lift over the coordinates.
-            ld_populations (Sequence[LDPopulation | str]): List of populations to use to build the LDIndex.
             liftover_ht_path (str): Path to the liftover ht file.
-
-        Default values are set in LDIndexConfig.
         """
         self.ld_matrix_template = ld_matrix_template
         self.ld_index_raw_template = ld_index_raw_template
-        self.grch37_to_grch38_chain_path = grch37_to_grch38_chain_path
-        self.ld_populations = ld_populations
         self.liftover_ht_path = liftover_ht_path
-
-    @staticmethod
-    def _aggregate_ld_index_across_populations(
-        unaggregated_ld_index: DataFrame,
-    ) -> DataFrame:
-        """Aggregate LDIndex across populations.
-
-        Args:
-            unaggregated_ld_index (DataFrame): Unaggregate LDIndex index dataframe  each row is a variant pair in a population
-
-        Returns:
-            DataFrame: Aggregated LDIndex index dataframe  each row is a variant with the LD set across populations
-
-        Examples:
-            >>> data = [("1.0", "var1", "X", "var1", "pop1"), ("1.0", "X", "var2", "var2", "pop1"),
-            ...         ("0.5", "var1", "X", "var2", "pop1"), ("0.5", "var1", "X", "var2", "pop2"),
-            ...         ("0.5", "var2", "X", "var1", "pop1"), ("0.5", "X", "var2", "var1", "pop2")]
-            >>> df = spark.createDataFrame(data, ["r", "variantId", "chromosome", "tagvariantId", "population"])
-            >>> GnomADLDMatrix._aggregate_ld_index_across_populations(df).printSchema()
-            root
-             |-- variantId: string (nullable = true)
-             |-- chromosome: string (nullable = true)
-             |-- ldSet: array (nullable = false)
-             |    |-- element: struct (containsNull = false)
-             |    |    |-- tagVariantId: string (nullable = true)
-             |    |    |-- rValues: array (nullable = false)
-             |    |    |    |-- element: struct (containsNull = false)
-             |    |    |    |    |-- population: string (nullable = true)
-             |    |    |    |    |-- r: string (nullable = true)
-            <BLANKLINE>
-        """
-        return (
-            unaggregated_ld_index
-            # First level of aggregation: get r/population for each variant/tagVariant pair
-            .withColumn("r_pop_struct", f.struct("population", "r"))
-            .groupBy("chromosome", "variantId", "tagVariantId")
-            .agg(
-                f.collect_set("r_pop_struct").alias("rValues"),
-            )
-            # Second level of aggregation: get r/population for each variant
-            .withColumn("r_pop_tag_struct", f.struct("tagVariantId", "rValues"))
-            .groupBy("variantId", "chromosome")
-            .agg(
-                f.collect_set("r_pop_tag_struct").alias("ldSet"),
-            )
-        )
-
-    @staticmethod
-    def _convert_ld_matrix_to_table(
-        block_matrix: BlockMatrix, min_r2: float
-    ) -> DataFrame:
-        """Convert LD matrix to table.
-
-        Args:
-            block_matrix (BlockMatrix): LD matrix
-            min_r2 (float): Minimum r2 value to keep in the table
-
-        Returns:
-            DataFrame: LD matrix as a Spark DataFrame
-        """
-        table = block_matrix.entries(keyed=False)
-        return (
-            table.filter(hl.abs(table.entry) >= min_r2**0.5)
-            .to_spark()
-            .withColumnRenamed("entry", "r")
-        )
-
-    @staticmethod
-    def _create_ldindex_for_population(
-        population_id: str,
-        ld_matrix_path: str,
-        ld_index_raw_path: str,
-        liftover_ht_path: str,
-        min_r2: float,
-    ) -> DataFrame:
-        """Create LDIndex for a specific population.
-
-        Args:
-            population_id (str): Population ID
-            ld_matrix_path (str): Path to the LD matrix
-            ld_index_raw_path (str): Path to the LD index
-            liftover_ht_path (str): Path to gnomad hail table used to lift over the coordinates
-            min_r2 (float): Minimum r2 value to keep in the table
-
-        Returns:
-            DataFrame: LDIndex for a specific population
-        """
-        # Prepare LD Block matrix
-        ld_matrix = GnomADLDMatrix._convert_ld_matrix_to_table(
-            BlockMatrix.read(ld_matrix_path), min_r2
-        )
-
-        # Prepare table with variant indices
-        ld_index = GnomADLDMatrix._process_variant_indices(
-            hl.read_table(ld_index_raw_path),
-            liftover_ht_path,
-        )
-
-        return GnomADLDMatrix._resolve_variant_indices(ld_index, ld_matrix).select(
-            "*",
-            f.lit(population_id).alias("population"),
-        )
-
-    @staticmethod
-    def _process_variant_indices(
-        ld_index_raw: hl.Table,
-        liftover_ht_path: str,
-    ) -> DataFrame:
-        """Creates a look up table between variants and their coordinates in the LD Matrix.
-
-        !!! info "Gnomad's LD Matrix and Index are based on GRCh37 coordinates. This function will lift over the coordinates to GRCh38 to build the lookup table."
-
-        Args:
-            ld_index_raw (hl.Table): LD index table from GnomAD
-            liftover_ht_path (str): Path to gnomad hail table used to lift over the coordinates
-
-        Returns:
-            DataFrame: Look up table between variants in build hg38 and their coordinates in the LD Matrix
-        """
-        ht_37 = ld_index_raw
-        ht_lo = hl.read_table(liftover_ht_path).key_by(
-            "original_locus", "original_alleles"
-        )
-        ld_index_38 = ht_37.join(ht_lo, how="inner")
-
-        return (
-            ld_index_38.to_spark()
-            # Filter out variants where the liftover failed
-            .filter(f.col("`locus_1.position`").isNotNull())
-            .select(
-                f.regexp_replace("`locus_1.contig`", "chr", "").alias("chromosome"),
-                f.col("`locus_1.position`").alias("position"),
-                f.concat_ws(
-                    "_",
-                    f.regexp_replace("`locus_1.contig`", "chr", ""),
-                    f.col("`locus_1.position`"),
-                    f.col("`alleles_1`").getItem(0),
-                    f.col("`alleles_1`").getItem(1),
-                ).alias("variantId"),
-                f.col("idx"),
-            )
-            .filter(
-                f.col("chromosome").isin([str(i) for i in range(1, 23)] + ["X", "Y"])
-            )
-        )
-
-    @staticmethod
-    def _resolve_variant_indices(
-        ld_index: DataFrame, ld_matrix: DataFrame
-    ) -> DataFrame:
-        """Resolve the `i` and `j` indices of the block matrix to variant IDs (build 38).
-
-        Args:
-            ld_index (DataFrame): Dataframe with resolved variant indices
-            ld_matrix (DataFrame): Dataframe with the filtered LD matrix
-
-        Returns:
-            DataFrame: Dataframe with variant IDs instead of `i` and `j` indices
-        """
-        ld_index_i = ld_index.selectExpr(
-            "idx as i", "variantId as variantIdI", "chromosome"
-        )
-        ld_index_j = ld_index.selectExpr("idx as j", "variantId as variantIdJ")
-        return (
-            ld_matrix.join(ld_index_i, on="i", how="inner")
-            .join(ld_index_j, on="j", how="inner")
-            .drop("i", "j")
-        )
-
-    @staticmethod
-    def _transpose_ld_matrix(ld_matrix: DataFrame) -> DataFrame:
-        """Transpose LD matrix to a square matrix format.
-
-        Args:
-            ld_matrix (DataFrame): Triangular LD matrix converted to a Spark DataFrame
-
-        Returns:
-            DataFrame: Square LD matrix without diagonal duplicates
-
-        Examples:
-        >>> df = spark.createDataFrame(
-        ...     [
-        ...         (1, 1, 1.0, "1", "AFR"),
-        ...         (1, 2, 0.5, "1", "AFR"),
-        ...         (2, 2, 1.0, "1", "AFR"),
-        ...     ],
-        ...     ["variantIdI", "variantIdJ", "r", "chromosome", "population"],
-        ... )
-        >>> GnomADLDMatrix._transpose_ld_matrix(df).show()
-        +----------+----------+---+----------+----------+
-        |variantIdI|variantIdJ|  r|chromosome|population|
-        +----------+----------+---+----------+----------+
-        |         1|         2|0.5|         1|       AFR|
-        |         1|         1|1.0|         1|       AFR|
-        |         2|         1|0.5|         1|       AFR|
-        |         2|         2|1.0|         1|       AFR|
-        +----------+----------+---+----------+----------+
-        <BLANKLINE>
-        """
-        ld_matrix_transposed = ld_matrix.selectExpr(
-            "variantIdI as variantIdJ",
-            "variantIdJ as variantIdI",
-            "r",
-            "chromosome",
-            "population",
-        )
-        return ld_matrix.filter(f.col("variantIdI") != f.col("variantIdJ")).unionByName(
-            ld_matrix_transposed
-        )
-
-    def as_ld_index(
-        self: GnomADLDMatrix,
-        min_r2: float,
-    ) -> LDIndex:
-        """Create LDIndex dataset aggregating the LD information across a set of populations.
-
-        **The basic steps to generate the LDIndex are:**
-
-        1. Convert LD matrix to a Spark DataFrame.
-        2. Resolve the matrix indices to variant IDs by lifting over the coordinates to GRCh38.
-        3. Aggregate the LD information across populations.
-
-        Args:
-            min_r2 (float): Minimum r2 value to keep in the table
-
-        Returns:
-            LDIndex: LDIndex dataset
-        """
-        ld_indices_unaggregated = []
-        for raw_pop in self.ld_populations:
-            pop = raw_pop.value if isinstance(raw_pop, LDPopulation) else raw_pop
-            try:
-                ld_matrix_path = self.ld_matrix_template.format(POP=pop)
-                ld_index_raw_path = self.ld_index_raw_template.format(POP=pop)
-                pop_ld_index = self._create_ldindex_for_population(
-                    pop,
-                    ld_matrix_path,
-                    ld_index_raw_path.format(pop),
-                    self.liftover_ht_path,
-                    min_r2,
-                )
-                ld_indices_unaggregated.append(pop_ld_index)
-            except Exception as e:
-                print(f"Failed to create LDIndex for population {pop}: {e}")  # noqa: T201
-                sys.exit(1)
-
-        ld_index_unaggregated = (
-            GnomADLDMatrix._transpose_ld_matrix(
-                reduce(lambda df1, df2: df1.unionByName(df2), ld_indices_unaggregated)
-            )
-            .withColumnRenamed("variantIdI", "variantId")
-            .withColumnRenamed("variantIdJ", "tagVariantId")
-        )
-        return LDIndex(
-            _df=self._aggregate_ld_index_across_populations(ld_index_unaggregated),
-            _schema=LDIndex.get_schema(),
-        )
 
     def get_numpy_matrix(
         self: GnomADLDMatrix,
