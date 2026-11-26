@@ -84,6 +84,54 @@ def test_aggregate_and_map_ancestries__correctness(spark: SparkSession) -> None:
     )
 
 
+@pytest.mark.parametrize(
+    ("samples", "expected"),
+    [
+        pytest.param(
+            [("South Asian", 60), ("Central Asian", 40)],
+            [("csa", 1.0)],
+            id="south and central asian",
+        ),
+        pytest.param(
+            [("Greater Middle Eastern (Middle Eastern, North African or Persian)", 10)],
+            [("mid", 1.0)],
+            id="middle eastern",
+        ),
+        pytest.param(
+            [("European", 40), ("South Asian", 35), ("East Asian", 25)],
+            [("nfe", 0.4), ("csa", 0.35), ("eas", 0.25)],
+            id="asian samples no longer pooled",
+        ),
+    ],
+)
+def test_aggregate_and_map_ancestries__ld_panels(
+    spark: SparkSession,
+    samples: list[tuple[str, int]],
+    expected: list[tuple[str, float]],
+) -> None:
+    """South/Central Asian samples map to csa and Middle Eastern to mid, apart from East Asian."""
+    df = (
+        spark.createDataFrame(
+            [("s1", ancestry, size) for ancestry, size in samples],
+            "studyId string, ancestry string, sampleSize int",
+        )
+        .groupBy("studyId")
+        .agg(
+            f.collect_list(f.struct("ancestry", "sampleSize")).alias("discoverySamples")
+        )
+    )
+    row = df.select(
+        StudyIndex.aggregate_and_map_ancestries(f.col("discoverySamples")).alias(
+            "ldPopulationStructure"
+        )
+    ).first()
+    assert row is not None
+    assert sorted(
+        (p.ldPopulation, round(p.relativeSampleSize, 6))
+        for p in row.ldPopulationStructure
+    ) == sorted(expected)
+
+
 def test_aggregate_samples_by_ancestry__correctness(spark: SparkSession) -> None:
     """Test correctness of the ancestry aggregator function."""
     data = [

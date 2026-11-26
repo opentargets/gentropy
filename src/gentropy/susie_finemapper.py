@@ -735,8 +735,9 @@ class SusieFineMapperStep:
             return None
 
         major_population_name = study[0]["majorPopulation"]
-        # This is a temporary solution
-        if major_population_name == "eas":
+        # Pan-UKBB CSA is the largest Asian panel we hold (Pan-UKBB EAS and MID are not on GCS),
+        # so East Asian and Middle Eastern studies use it too.
+        if major_population_name in ("eas", "mid"):
             major_population_name = "csa"
 
         N_total = (

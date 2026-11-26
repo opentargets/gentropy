@@ -651,10 +651,13 @@ class HeritabilityEstimateStep:
                 "expected iterable of population structures."
             )
 
+        # There are no LD scores for csa or mid, so they use eas.
         pop_map = {
             "afr": "afr",
             "amr": "amr",
+            "csa": "eas",
             "eas": "eas",
+            "mid": "eas",
             "fin": "fin",
             "nfe": "nfe",
         }
