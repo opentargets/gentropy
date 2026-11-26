@@ -130,17 +130,34 @@ def test_as_ld_index_matches_a_hand_built_index(
         ),
         # Variants of the first two blocks: the third block is not read.
         (range(4), {(0, 0), (1, 0), (1, 1), (2, 1), (2, 2), (3, 3)}),
+        # Two variants two blocks apart: the blocks between them are read too, so
+        # their pair is kept.
+        (
+            [0, 4],
+            {
+                (0, 0),
+                (1, 0),
+                (1, 1),
+                (2, 1),
+                (2, 2),
+                (3, 3),
+                (4, 0),
+                (4, 4),
+                (5, 4),
+                (5, 5),
+            },
+        ),
     ],
-    ids=["all-variants", "variants-of-two-blocks"],
+    ids=["all-variants", "variants-of-two-blocks", "non-contiguous-variants"],
 )
 def test_as_ld_index_reads_only_the_variants_blocks(
     hail_session: Session,
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
-    aligned_indices: range,
+    aligned_indices: range | list[int],
     expected: set[tuple[int, int]],
 ) -> None:
-    """With restrict_to_variants, the entries read are those of blocks covering the variants."""
+    """With restrict_to_variants, the entries read are those of blocks covering each chromosome's variants."""
     path = (tmp_path / "UKBB.EUR.ldadj.bm").as_posix()
     BlockMatrix.from_numpy(np.tril(_matrix()), block_size=2).write(path)
     aligned = hail_session.spark.createDataFrame(
@@ -170,8 +187,12 @@ def test_as_ld_index_reads_only_the_variants_blocks(
     resolve = PanUKBBLDMatrix._resolve_pairs
     monkeypatch.setattr(PanUKBBLDMatrix, "_resolve_pairs", staticmethod(capture))
 
-    PanUKBBLDMatrix(pan_ukbb_bm_path=path.replace("EUR", "{POP}")).as_ld_index(
+    index = PanUKBBLDMatrix(pan_ukbb_bm_path=path.replace("EUR", "{POP}")).as_ld_index(
         "EUR", aligned, min_r2=0.5, restrict_to_variants=True
     )
 
     assert set(read) == expected
+    ids = [VARIANTS[i][0] for i in aligned_indices]
+    assert {
+        (row.variantId, row.tagVariantId, round(row.r, 6)) for row in index.df.collect()
+    } == {row for row in _expected() if row[0] in ids and row[1] in ids}

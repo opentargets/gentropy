@@ -242,29 +242,6 @@ class PanUKBBLDMatrix:
         )
         return one_way.unionByName(other_way)
 
-    @staticmethod
-    def _index_runs(indices: list[int], max_gap: int) -> list[list[int]]:
-        """Group sorted matrix indices into runs, splitting where they jump by more than ``max_gap``.
-
-        Args:
-            indices (list[int]): Matrix indices.
-            max_gap (int): Largest step between consecutive indices of a run.
-
-        Returns:
-            list[list[int]]: ``[start, stop]`` of each run, ``stop`` excluded.
-
-        Examples:
-            >>> PanUKBBLDMatrix._index_runs([7, 1, 2, 3, 9, 40], max_gap=2)
-            [[1, 4], [7, 10], [40, 41]]
-        """
-        runs: list[list[int]] = []
-        for index in sorted(indices):
-            if runs and index - runs[-1][1] < max_gap:
-                runs[-1][1] = index + 1
-            else:
-                runs.append([index, index + 1])
-        return runs
-
     def as_ld_index(
         self: PanUKBBLDMatrix,
         population: str,
@@ -278,8 +255,8 @@ class PanUKBBLDMatrix:
         Every stored block is read (Pan-UKBB stores pairs up to about 10 Mb apart), and
         entries with ``|r|`` of at least ``sqrt(min_r2)`` are kept, including each
         variant with itself. With ``restrict_to_variants``, only the blocks covering
-        runs of the aligned variants' matrix indices are read, such as for one
-        chromosome; the indices are collected to the driver.
+        each chromosome's span of aligned matrix indices are read, such as for one
+        chromosome.
 
         Each Spark task reads ``blocks_per_task`` blocks: with one block per task, the
         driver cannot dispatch tasks as fast as executors run them.
@@ -296,12 +273,13 @@ class PanUKBBLDMatrix:
         """
         block_matrix = BlockMatrix.read(self.pan_ukbb_bm_path.format(POP=population))
         if restrict_to_variants:
-            runs = self._index_runs(
-                [row.idx for row in aligned_variants.select("idx").collect()],
-                max_gap=block_matrix.block_size,
+            spans = (
+                aligned_variants.groupBy("chromosome")
+                .agg(f.min("idx").alias("start"), f.max("idx").alias("end"))
+                .collect()
             )
             block_matrix = block_matrix.sparsify_rectangles(
-                [[start, stop, start, stop] for start, stop in runs]
+                [[s.start, s.end + 1, s.start, s.end + 1] for s in spans]
             )
         entries = block_matrix.entries(keyed=False)
         entries = entries.naive_coalesce(
