@@ -329,9 +329,6 @@ class LDIndexConfig(StepConfig):
         default_factory=lambda: ["AFR", "AMR", "CSA", "EAS", "EUR", "MID"]
     )
     pan_ukbb_bm_template: str = "gs://panukbb-ld-matrixes/UKBB.{POP}.ldadj"
-    # None reads every stored block (pairs up to about 10 Mb apart). A band of 10 blocks of
-    # 4096 variants (about 5 Mb in EUR) missed EUR pairs at r2 >= 0.5 up to 9.7 Mb apart.
-    pan_ukbb_band_blocks: int | None = None
     # Blocks per Spark task: with one, the driver cannot dispatch tasks fast enough.
     pan_ukbb_blocks_per_task: int = 16
     finngen_ld_matrix_path: str | None = (

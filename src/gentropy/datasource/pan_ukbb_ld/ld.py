@@ -270,21 +270,18 @@ class PanUKBBLDMatrix:
         population: str,
         aligned_variants: DataFrame,
         min_r2: float,
-        band_blocks: int | None = None,
         restrict_to_variants: bool = False,
         blocks_per_task: int = 16,
     ) -> LDIndex:
         """Build the LD index of one Pan-UKBB population.
 
-        Every stored block is read by default: Pan-UKBB stores the pairs up to about
-        10 Mb apart, and entries with ``|r|`` of at least ``sqrt(min_r2)`` are kept,
-        including each variant with itself. With ``band_blocks``, only the blocks within
-        that many block-diagonals of the main diagonal are read, which is cheaper but
-        misses pairs further apart: in EUR, 10 blocks (about 5 Mb) missed pairs at r2
-        0.5 or more up to 9.7 Mb apart in the MHC and near the chr6 and chr8 centromeres.
+        Every stored block is read: Pan-UKBB stores the pairs up to about 10 Mb apart,
+        and pairs at r2 0.5 or more occur up to that distance (in EUR, in the MHC and
+        near the chr6 and chr8 centromeres). Entries with ``|r|`` of at least
+        ``sqrt(min_r2)`` are kept, including each variant with itself.
 
         With ``restrict_to_variants``, only the blocks covering runs of the aligned
-        variants' matrix indices are read as well, such as when the aligned variants
+        variants' matrix indices are read, such as when the aligned variants
         are those of one chromosome. The indices are collected to the driver.
 
         Each Spark task reads ``blocks_per_task`` blocks. With one block per task, the
@@ -296,8 +293,6 @@ class PanUKBBLDMatrix:
             population (str): Pan-UKBB population, such as ``EUR``.
             aligned_variants (DataFrame): The population's matrix variants, as from ``align_variant_table``.
             min_r2 (float): Smallest r2 kept.
-            band_blocks (int | None): Block-diagonals read on each side of the main
-                diagonal; None reads every stored block.
             restrict_to_variants (bool): Read only the blocks of the aligned variants.
             blocks_per_task (int): Blocks read by each Spark task.
 
@@ -305,11 +300,6 @@ class PanUKBBLDMatrix:
             LDIndex: The population's pairs.
         """
         block_matrix = BlockMatrix.read(self.pan_ukbb_bm_path.format(POP=population))
-        if band_blocks is not None:
-            width = band_blocks * block_matrix.block_size
-            block_matrix = block_matrix.sparsify_band(
-                lower=-width, upper=width, blocks_only=True
-            )
         if restrict_to_variants:
             runs = self._index_runs(
                 [row.idx for row in aligned_variants.select("idx").collect()],

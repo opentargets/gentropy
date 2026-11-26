@@ -81,7 +81,6 @@ class LDIndexStep:
         pan_ukbb_aligned_variant_table_template: str,
         pan_ukbb_populations: list[str] = LDIndexConfig().pan_ukbb_populations,
         pan_ukbb_bm_template: str = LDIndexConfig().pan_ukbb_bm_template,
-        pan_ukbb_band_blocks: int | None = LDIndexConfig().pan_ukbb_band_blocks,
         pan_ukbb_blocks_per_task: int = LDIndexConfig().pan_ukbb_blocks_per_task,
         finngen_ld_matrix_path: str | None = LDIndexConfig().finngen_ld_matrix_path,
         min_r2: float = LDIndexConfig().min_r2,
@@ -97,8 +96,6 @@ class LDIndexStep:
             pan_ukbb_populations (list[str]): Pan-UKBB populations to build, such as ``EUR``.
             pan_ukbb_bm_template (str): Pan-UKBB LD matrix (hail block matrix) of each
                 population, with a ``{POP}`` placeholder.
-            pan_ukbb_band_blocks (int | None): Block-diagonals of the Pan-UKBB matrices
-                read on each side of the main diagonal; None reads every stored block.
             pan_ukbb_blocks_per_task (int): Pan-UKBB matrix blocks read by each Spark task.
             finngen_ld_matrix_path (str | None): FinnGen LD files; None skips FinnGen.
             min_r2 (float): Smallest r2 kept.
@@ -118,7 +115,6 @@ class LDIndexStep:
                     population,
                     aligned,
                     min_r2,
-                    pan_ukbb_band_blocks,
                     restrict_to_variants=chromosomes is not None,
                     blocks_per_task=pan_ukbb_blocks_per_task,
                 ),

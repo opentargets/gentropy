@@ -44,12 +44,8 @@ def _matrix() -> np.ndarray:
     return r
 
 
-def _expected(band_blocks: int | None) -> set[tuple[str, str, float]]:
+def _expected() -> set[tuple[str, str, float]]:
     """The index built by hand: both orders, signed by the allele orders.
-
-    Args:
-        band_blocks (int | None): Block-diagonals read on each side of the diagonal;
-            None reads every block.
 
     Returns:
         set[tuple[str, str, float]]: (variantId, tagVariantId, r) rows.
@@ -58,11 +54,7 @@ def _expected(band_blocks: int | None) -> set[tuple[str, str, float]]:
     rows = set()
     for i, (id_i, chr_i, order_i) in enumerate(VARIANTS):
         for j, (id_j, chr_j, order_j) in enumerate(VARIANTS):
-            if (
-                chr_i == chr_j
-                and abs(r[i, j]) >= 0.5**0.5
-                and (band_blocks is None or abs(i // 2 - j // 2) <= band_blocks)
-            ):
+            if chr_i == chr_j and abs(r[i, j]) >= 0.5**0.5:
                 rows.add((id_i, id_j, round(r[i, j] * order_i * order_j, 6)))
     return rows
 
@@ -92,11 +84,10 @@ def hail_session() -> Generator[Session, None, None]:
 
 
 @pytest.mark.no_shared_spark
-@pytest.mark.parametrize("band_blocks", [1, 2, None])
 def test_as_ld_index_matches_a_hand_built_index(
-    hail_session: Session, tmp_path: Path, band_blocks: int | None
+    hail_session: Session, tmp_path: Path
 ) -> None:
-    """Pairs above the threshold within the band and chromosome, signed and in both orders."""
+    """Pairs above the threshold on one chromosome, however far apart, signed and in both orders."""
     path = (tmp_path / "UKBB.EUR.ldadj.bm").as_posix()
     # Pan-UKBB stores one triangle of the matrix.
     BlockMatrix.from_numpy(np.tril(_matrix()), block_size=2).write(path)
@@ -106,33 +97,24 @@ def test_as_ld_index_matches_a_hand_built_index(
     )
 
     index = PanUKBBLDMatrix(pan_ukbb_bm_path=path.replace("EUR", "{POP}")).as_ld_index(
-        "EUR", aligned, min_r2=0.5, band_blocks=band_blocks
+        "EUR", aligned, min_r2=0.5
     )
 
     rows = index.df.collect()
     assert {row.population for row in rows} == {"nfe"}
-    assert len(rows) == len(_expected(band_blocks))
+    assert len(rows) == len(_expected())
     assert {
         (row.variantId, row.tagVariantId, round(row.r, 6)) for row in rows
-    } == _expected(band_blocks)
+    } == _expected()
 
 
 @pytest.mark.no_shared_spark
 @pytest.mark.parametrize(
-    ("aligned_indices", "band_blocks", "expected"),
+    ("aligned_indices", "expected"),
     [
-        # Variants of every block, one block-diagonal: the block two apart is not read.
+        # Variants of every block: every stored block is read, including the one two apart.
         (
             range(6),
-            1,
-            {(0, 0), (1, 0), (1, 1), (2, 1), (2, 2), (3, 3), (4, 4), (5, 4), (5, 5)},
-        ),
-        # Variants of the first two blocks, two block-diagonals: the third block is not read.
-        (range(4), 2, {(0, 0), (1, 0), (1, 1), (2, 1), (2, 2), (3, 3)}),
-        # No band: every stored block is read, including the one two apart.
-        (
-            range(6),
-            None,
             {
                 (0, 0),
                 (1, 0),
@@ -146,18 +128,19 @@ def test_as_ld_index_matches_a_hand_built_index(
                 (5, 5),
             },
         ),
+        # Variants of the first two blocks: the third block is not read.
+        (range(4), {(0, 0), (1, 0), (1, 1), (2, 1), (2, 2), (3, 3)}),
     ],
-    ids=["band", "band-and-variants", "no-band"],
+    ids=["all-variants", "variants-of-two-blocks"],
 )
-def test_as_ld_index_reads_only_the_band_and_the_variants_blocks(
+def test_as_ld_index_reads_only_the_variants_blocks(
     hail_session: Session,
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
     aligned_indices: range,
-    band_blocks: int | None,
     expected: set[tuple[int, int]],
 ) -> None:
-    """The entries read are those of blocks both in the band and covering the variants."""
+    """With restrict_to_variants, the entries read are those of blocks covering the variants."""
     path = (tmp_path / "UKBB.EUR.ldadj.bm").as_posix()
     BlockMatrix.from_numpy(np.tril(_matrix()), block_size=2).write(path)
     aligned = hail_session.spark.createDataFrame(
@@ -188,7 +171,7 @@ def test_as_ld_index_reads_only_the_band_and_the_variants_blocks(
     monkeypatch.setattr(PanUKBBLDMatrix, "_resolve_pairs", staticmethod(capture))
 
     PanUKBBLDMatrix(pan_ukbb_bm_path=path.replace("EUR", "{POP}")).as_ld_index(
-        "EUR", aligned, min_r2=0.5, band_blocks=band_blocks, restrict_to_variants=True
+        "EUR", aligned, min_r2=0.5, restrict_to_variants=True
     )
 
     assert set(read) == expected
