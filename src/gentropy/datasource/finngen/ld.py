@@ -35,13 +35,9 @@ class FinnGenLDMatrix:
 
     !!! warning "The sign of ``r`` is for the minor alleles"
 
-        FinnGen's ``r`` is signed for the minor allele of each variant, not for
-        the alternate allele of its ID: a pair where exactly one variant has its
-        alternate allele as the major allele has the opposite sign. It is kept as
-        published, so only ``r`` squared is meaningful for FinnGen. To sign it for
-        the alternate alleles, multiply ``r`` by -1 for each variant of the pair
-        whose alternate allele frequency in FinnGen is 0.5 or more (``AF`` in the
-        R12 variant annotation file).
+        FinnGen's ``r`` is signed for the minor allele of each variant, not for the
+        alternate allele of its ID. It is kept as published, so only ``r`` squared
+        is meaningful for FinnGen.
     """
 
     @staticmethod

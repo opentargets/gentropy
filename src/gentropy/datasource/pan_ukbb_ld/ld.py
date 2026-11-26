@@ -275,19 +275,14 @@ class PanUKBBLDMatrix:
     ) -> LDIndex:
         """Build the LD index of one Pan-UKBB population.
 
-        Every stored block is read: Pan-UKBB stores the pairs up to about 10 Mb apart,
-        and pairs at r2 0.5 or more occur up to that distance (in EUR, in the MHC and
-        near the chr6 and chr8 centromeres). Entries with ``|r|`` of at least
-        ``sqrt(min_r2)`` are kept, including each variant with itself.
+        Every stored block is read (Pan-UKBB stores pairs up to about 10 Mb apart), and
+        entries with ``|r|`` of at least ``sqrt(min_r2)`` are kept, including each
+        variant with itself. With ``restrict_to_variants``, only the blocks covering
+        runs of the aligned variants' matrix indices are read, such as for one
+        chromosome; the indices are collected to the driver.
 
-        With ``restrict_to_variants``, only the blocks covering runs of the aligned
-        variants' matrix indices are read, such as when the aligned variants
-        are those of one chromosome. The indices are collected to the driver.
-
-        Each Spark task reads ``blocks_per_task`` blocks. With one block per task, the
-        driver dispatches tasks more slowly than the executors run them (about 3.5
-        tasks per second for EUR, each with a few seconds of work), so most of a large
-        cluster sits idle.
+        Each Spark task reads ``blocks_per_task`` blocks: with one block per task, the
+        driver cannot dispatch tasks as fast as executors run them.
 
         Args:
             population (str): Pan-UKBB population, such as ``EUR``.

@@ -27,6 +27,10 @@ class PanUKBBLDAlignmentStep:
 
     The aligned variant tables map a matrix index to a variant ID, with the allele
     order that signs its ``r``. Both the LD index and the fine-mapping read them.
+
+    The default inputs are Pan-UKBB's public S3 bucket, read anonymously with the Spark
+    properties ``spark.hadoop.fs.s3a.aws.credentials.provider=org.apache.hadoop.fs.s3a.AnonymousAWSCredentialsProvider``
+    and ``spark.hadoop.fs.s3a.endpoint.region=us-east-1``.
     """
 
     def __init__(
@@ -69,9 +73,13 @@ class LDIndexStep:
     ``ld_index_out`` and replaces only that directory, so one population can be
     rebuilt without the others.
 
+    The default matrices are Pan-UKBB's public S3 bucket, read anonymously as in
+    ``PanUKBBLDAlignmentStep``; ``gs://panukbb-ld-matrixes`` mirrors AFR, CSA and EUR.
+
     !!! warning "This step is resource intensive"
 
-        The Pan-UKBB matrices are several TiB each. Build one population per run.
+        The Pan-UKBB matrices are several TiB each. Build one population per run, on
+        a cluster that does not scale down during the run.
     """
 
     def __init__(

@@ -307,7 +307,10 @@ class PanUKBBLDAlignmentConfig(StepConfig):
     )
     variant_index_path: str = MISSING
     aligned_variant_table_template: str = MISSING
-    variant_table_template: str = "gs://panukbb-ld-matrixes/ukb-diverse-pops-public-build-38/UKBB.{POP}.ldadj.variant.b38"
+    # Pan-UKBB's public bucket, which holds all six populations (see PanUKBBLDAlignmentStep).
+    variant_table_template: str = (
+        "s3a://pan-ukb-us-east-1/ld_release/UKBB.{POP}.ldadj.variant.b38.ht"
+    )
     populations: list[str] = field(
         default_factory=lambda: ["AFR", "AMR", "CSA", "EAS", "EUR", "MID"]
     )
@@ -328,7 +331,8 @@ class LDIndexConfig(StepConfig):
     pan_ukbb_populations: list[str] = field(
         default_factory=lambda: ["AFR", "AMR", "CSA", "EAS", "EUR", "MID"]
     )
-    pan_ukbb_bm_template: str = "gs://panukbb-ld-matrixes/UKBB.{POP}.ldadj"
+    # Pan-UKBB's public bucket, which holds all six populations (see LDIndexStep).
+    pan_ukbb_bm_template: str = "s3a://pan-ukb-us-east-1/ld_release/UKBB.{POP}.ldadj.bm"
     # Blocks per Spark task: with one, the driver cannot dispatch tasks fast enough.
     pan_ukbb_blocks_per_task: int = 16
     finngen_ld_matrix_path: str | None = (
