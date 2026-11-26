@@ -44,11 +44,12 @@ def _matrix() -> np.ndarray:
     return r
 
 
-def _expected(band_blocks: int) -> set[tuple[str, str, float]]:
+def _expected(band_blocks: int | None) -> set[tuple[str, str, float]]:
     """The index built by hand: both orders, signed by the allele orders.
 
     Args:
-        band_blocks (int): Block-diagonals read on each side of the diagonal.
+        band_blocks (int | None): Block-diagonals read on each side of the diagonal;
+            None reads every block.
 
     Returns:
         set[tuple[str, str, float]]: (variantId, tagVariantId, r) rows.
@@ -60,7 +61,7 @@ def _expected(band_blocks: int) -> set[tuple[str, str, float]]:
             if (
                 chr_i == chr_j
                 and abs(r[i, j]) >= 0.5**0.5
-                and abs(i // 2 - j // 2) <= band_blocks
+                and (band_blocks is None or abs(i // 2 - j // 2) <= band_blocks)
             ):
                 rows.add((id_i, id_j, round(r[i, j] * order_i * order_j, 6)))
     return rows
@@ -91,9 +92,9 @@ def hail_session() -> Generator[Session, None, None]:
 
 
 @pytest.mark.no_shared_spark
-@pytest.mark.parametrize("band_blocks", [1, 2])
+@pytest.mark.parametrize("band_blocks", [1, 2, None])
 def test_as_ld_index_matches_a_hand_built_index(
-    hail_session: Session, tmp_path: Path, band_blocks: int
+    hail_session: Session, tmp_path: Path, band_blocks: int | None
 ) -> None:
     """Pairs above the threshold within the band and chromosome, signed and in both orders."""
     path = (tmp_path / "UKBB.EUR.ldadj.bm").as_posix()
@@ -128,15 +129,32 @@ def test_as_ld_index_matches_a_hand_built_index(
         ),
         # Variants of the first two blocks, two block-diagonals: the third block is not read.
         (range(4), 2, {(0, 0), (1, 0), (1, 1), (2, 1), (2, 2), (3, 3)}),
+        # No band: every stored block is read, including the one two apart.
+        (
+            range(6),
+            None,
+            {
+                (0, 0),
+                (1, 0),
+                (1, 1),
+                (2, 1),
+                (2, 2),
+                (3, 3),
+                (4, 0),
+                (4, 4),
+                (5, 4),
+                (5, 5),
+            },
+        ),
     ],
-    ids=["band", "band-and-variants"],
+    ids=["band", "band-and-variants", "no-band"],
 )
 def test_as_ld_index_reads_only_the_band_and_the_variants_blocks(
     hail_session: Session,
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
     aligned_indices: range,
-    band_blocks: int,
+    band_blocks: int | None,
     expected: set[tuple[int, int]],
 ) -> None:
     """The entries read are those of blocks both in the band and covering the variants."""
