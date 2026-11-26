@@ -30,8 +30,6 @@ from gentropy.dataset.study_locus import (
 )
 
 if TYPE_CHECKING:
-    from pyspark.sql import Column
-
     from gentropy.dataset.ld_index import LDIndex
     from gentropy.dataset.study_index import StudyIndex
     from gentropy.dataset.summary_statistics import SummaryStatistics
@@ -186,27 +184,21 @@ def annotate_ld(
 ) -> LDAnnotatedStudyLocus:
     """Fill ``ldSet`` with the variants correlated with each lead.
 
-    The lead is looked up in the LD index on its variant and chromosome. The
-    panel gives ``r`` for each of its populations, and the study decides
-    which one counts: the population with the largest share of its samples
-    (see ``major_population``). ``r2Overall`` is that population's ``r``
-    squared, or 0 when the panel has no ``r`` for it. An ``r2`` that rounding
-    lifts at most 1e-6 above 1 is read as 1. Tags with
-    ``r2Overall`` at or above ``r2_threshold`` are kept.
-
-    The index holds the pairs at r2 0.5 or more in at least one of its
-    populations, so a pair can be in the index with no ``r`` for the study's
-    population and an ``r2Overall`` of 0. The default threshold of 0.5 keeps
-    only tags in LD in the study's own population. Legacy annotated at 0.0,
-    which also kept those zero tags, so a lead in LD with a stronger lead only
-    in another population was clumped, and PICS received tags at r2 0.
+    The study decides which population of the LD index counts: the population
+    with the largest share of its samples (see ``major_population``). The lead
+    is looked up among that population's pairs on its variant and chromosome,
+    and ``r2Overall`` is the pair's ``r`` squared. An ``r2`` that rounding lifts
+    at most 1e-6 above 1 is read as 1. Tags with ``r2Overall`` at or above
+    ``r2_threshold`` are kept: the lead first, then the others by decreasing
+    ``r2Overall`` and by variant.
 
     Every lead ends up with an ``ldSet``. When nothing is kept, because the
-    lead is not in the panel, the study has no population, or no tag passes
-    the threshold, the row is flagged ``UNRESOLVED_LD`` and the lead is its
-    only tag. A study with no population is also flagged ``NO_POPULATION``.
-    The lead's own ``r2Overall`` is always 1. Loci that already carry an ``ldSet``,
-    such as an ``LDAnnotatedStudyLocus``, have it replaced, and ``locus`` is kept as it is.
+    lead is not in the panel of its study's population or the study has no
+    population, the row is flagged ``UNRESOLVED_LD`` and the lead is its only
+    tag. A study with no population is also flagged ``NO_POPULATION``. The
+    lead's own ``r2Overall`` is always 1. Loci that already carry an ``ldSet``,
+    such as an ``LDAnnotatedStudyLocus``, have it replaced, and ``locus`` is
+    kept as it is.
 
     Args:
         loci (AnnotatedStudyLocus): The annotated loci.
@@ -234,20 +226,19 @@ def annotate_ld(
         ...         "relativeSampleSize: double>>",
         ...     )
         ... )
-        >>> ld_set = [
-        ...     ("1_200_A_T", [("nfe", 1.0), ("afr", 1.0)]),
-        ...     ("1_210_C_G", [("nfe", 0.8), ("afr", 0.3)]),
-        ...     ("1_220_G_A", [("nfe", 0.6), ("afr", 0.9)]),
+        >>> pairs = [
+        ...     ("nfe", "1", "1_200_A_T", "1_200_A_T", 1.0),
+        ...     ("nfe", "1", "1_200_A_T", "1_210_C_G", -0.8),
+        ...     ("nfe", "1", "1_200_A_T", "1_220_G_A", 0.6),
+        ...     ("afr", "1", "1_200_A_T", "1_220_G_A", 0.9),
         ... ]
-        >>> ld_index = LDIndex(
-        ...     spark.createDataFrame([("1_200_A_T", "1", ld_set)], LDIndex.get_schema())
-        ... )
+        >>> ld_index = LDIndex(spark.createDataFrame(pairs, LDIndex.get_schema()))
         >>> annotated = annotate_ld(loci, study_index, ld_index)
         >>> type(annotated).__name__
         'LDAnnotatedStudyLocus'
 
         nfe is the major population, so the second tag is kept at 0.8² and
-        the third, at 0.6² = 0.36, falls below the default threshold:
+        the third, at 0.6² = 0.36 in nfe, falls below the default threshold:
 
         >>> row = annotated.df.select("ldSet", "qualityControls").first()
         >>> [(tag.tagVariantId, round(tag.r2Overall, 2)) for tag in row.ldSet]
@@ -257,67 +248,87 @@ def annotate_ld(
     """
     schema = LDAnnotatedStudyLocus.get_schema()
     lead = f.col("leadVariantId")
-    major = major_population(f.col("ldPopulationStructure"))
 
-    def r2_overall(tag: Column) -> Column:
-        """Return the r2 of a tag in the major population: 0 for a tag measured without it.
-
-        Args:
-            tag (Column): A tag of the LD set of the panel.
-
-        Returns:
-            Column: The r2 of the tag in the major population.
-        """
-        r = f.get(f.filter(tag["rValues"], lambda r: r["population"] == major), 0)
-        r2 = f.coalesce(f.pow(r["r"], 2), f.lit(0.0))
-        # A panel r a few ulps past ±1 squares above 1, which PICS cannot take.
-        return f.when(r2.between(1.0, 1.0 + _R2_TOLERANCE), f.lit(1.0)).otherwise(r2)
-
-    tags = f.transform(
-        f.col("panelLdSet"),
-        lambda tag: f.struct(
-            tag["tagVariantId"].alias("tagVariantId"),
-            r2_overall(tag).cast(t.FloatType()).alias("r2Overall"),
-        ),
-    )
-    kept = f.filter(
-        f.when(f.col("ldPopulationStructure").isNotNull(), tags),
-        lambda tag: tag["r2Overall"] >= r2_threshold,
-    )
-    # size(null) is -1, so a missing set stays null as well.
-    resolved = f.when(f.size(kept) > 0, kept)
-    lead_only = f.array(
-        f.struct(
-            lead.alias("tagVariantId"),
-            f.lit(1.0).cast(t.FloatType()).alias("r2Overall"),
-        )
-    )
-
-    # The LD sets of the leads only. The leads are broadcast, so the LD index is filtered
-    # where it is read: the left join below cannot broadcast the LD index, its preserved
-    # side being the loci, and would otherwise shuffle the whole LD index.
-    leads = (
-        loci.df.select("leadVariantId", "chromosome")
-        .where(f.col("leadVariantId").isNotNull())
-        .distinct()
-    )
-    lead_ld_sets = ld_index.df.select(
-        f.col("variantId").alias("leadVariantId"),
-        "chromosome",
-        f.col("ldSet").alias("panelLdSet"),
-    ).join(f.broadcast(leads), on=["leadVariantId", "chromosome"], how="left_semi")
-
-    annotated = (
-        # An LDAnnotatedStudyLocus is also an AnnotatedStudyLocus: replace its ldSet.
+    # An LDAnnotatedStudyLocus is also an AnnotatedStudyLocus: replace its ldSet.
+    loci_with_population = (
         loci.df.drop("ldSet")
         .join(
             study_index.df.select("studyId", "ldPopulationStructure"),
             on="studyId",
             how="left",
         )
-        .join(
+        .withColumn("majorPopulation", major_population(f.col("ldPopulationStructure")))
+    )
+
+    # The leads in their study's population. They are broadcast, so the LD index is
+    # filtered where it is read, and partitions of other populations are pruned.
+    leads = (
+        loci_with_population.select(
+            lead.alias("variantId"),
+            "chromosome",
+            f.col("majorPopulation").alias("population"),
+        )
+        .where(f.col("variantId").isNotNull() & f.col("population").isNotNull())
+        .distinct()
+    )
+    r2 = f.pow(f.col("r"), 2)
+    # A panel r a few ulps past ±1 squares above 1, which PICS cannot take. The threshold
+    # applies to the stored float, so r 0.7 is kept at a threshold of 0.49.
+    r2_overall = (
+        f.when(r2.between(1.0, 1.0 + _R2_TOLERANCE), f.lit(1.0))
+        .otherwise(r2)
+        .cast(t.FloatType())
+    )
+    lead_ld_sets = (
+        ld_index.df.join(
+            f.broadcast(leads),
+            on=["population", "chromosome", "variantId"],
+            how="left_semi",
+        )
+        .withColumn("r2Overall", r2_overall)
+        .where(f.col("r2Overall") >= r2_threshold)
+        .groupBy("population", "chromosome", "variantId")
+        .agg(
+            # Sorting on (is not the lead, -r2, tag) puts the lead first, then the
+            # strongest tags, and makes the order independent of the index's layout.
+            f.array_sort(
+                f.collect_list(
+                    f.struct(
+                        (f.col("tagVariantId") != f.col("variantId")).alias("notLead"),
+                        (-f.col("r2Overall")).alias("negativeR2"),
+                        "tagVariantId",
+                        "r2Overall",
+                    )
+                )
+            ).alias("tags")
+        )
+        .select(
+            f.col("population").alias("majorPopulation"),
+            "chromosome",
+            f.col("variantId").alias("leadVariantId"),
+            f.transform(
+                "tags",
+                lambda tag: f.struct(
+                    tag["tagVariantId"].alias("tagVariantId"),
+                    tag["r2Overall"].alias("r2Overall"),
+                ),
+            ).alias("panelLdSet"),
+        )
+    )
+
+    # Null when the lead is not in the panel or the study has no population; a lead in
+    # the panel always keeps itself, at r 1.
+    resolved = f.col("panelLdSet")
+    lead_only = f.array(
+        f.struct(
+            lead.alias("tagVariantId"),
+            f.lit(1.0).cast(t.FloatType()).alias("r2Overall"),
+        )
+    )
+    annotated = (
+        loci_with_population.join(
             lead_ld_sets,
-            on=["leadVariantId", "chromosome"],
+            on=["leadVariantId", "chromosome", "majorPopulation"],
             how="left",
         )
         .withColumn(

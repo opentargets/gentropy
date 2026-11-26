@@ -33,6 +33,8 @@ class LDPopulation(Enum):
     """Southern European population"""
     CSA = "csa"
     """Central/South Asian population"""
+    MID = "mid"
+    """Middle Eastern population"""
 
 
 class PValComponents(NamedTuple):

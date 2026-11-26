@@ -201,11 +201,17 @@ def _ld_index(
             tuple per panel variant.
 
     Returns:
-        LDIndex: The index.
+        LDIndex: The index, one row per (population, variant, tag).
     """
     return LDIndex(
         _df=spark.createDataFrame(
-            [(variant, "1", ld_set) for variant, ld_set in rows], LDIndex.get_schema()
+            [
+                (population, "1", variant, tag, r)
+                for variant, tags in rows
+                for tag, r_values in tags
+                for population, r in r_values
+            ],
+            LDIndex.get_schema(),
         ),
         _schema=LDIndex.get_schema(),
     )
@@ -356,21 +362,22 @@ def test_annotate_ld_keeps_the_locus(spark: SparkSession) -> None:
     ("r_values", "expected"),
     [
         ([("pop1", 0.5), ("pop2", 0.6)], 0.25),
-        ([("pop2", 0.6)], 0.0),
+        ([("pop2", 0.6)], None),
     ],
     ids=["r-of-major-population", "major-population-missing"],
 )
 def test_annotate_ld_r2_is_r_squared_in_the_major_population(
-    spark: SparkSession, r_values: list[tuple[str, float]], expected: float
+    spark: SparkSession, r_values: list[tuple[str, float]], expected: float | None
 ) -> None:
-    """r2Overall is r of the major population squared, and 0 when it has no r."""
+    """r2Overall is r of the major population squared; a tag it lacks is not kept."""
     panel = [(LEAD, [(LEAD, [("pop1", 1.0)]), ("tag1", r_values)])]
     loci = _annotated_loci(spark, [("L1", "study1", LEAD)])
     studies = _studies(spark, [("study1", [("pop1", 0.8), ("pop3", 0.2)])])
 
     annotated = annotate_ld(loci, studies, _ld_index(spark, panel), r2_threshold=0.0)
 
-    assert _ld_sets(annotated)["L1"][0] == [(LEAD, 1.0), ("tag1", expected)]
+    tags = [(LEAD, 1.0)] + ([("tag1", expected)] if expected is not None else [])
+    assert _ld_sets(annotated)["L1"][0] == tags
 
 
 def _mandatory(schema: t.StructType, *optional: str) -> t.StructType:
@@ -403,14 +410,11 @@ def random_ld_index(spark: SparkSession) -> LDIndex:
             spark, rows=400, partitions=4, randomSeedMethod="hash_fieldname"
         )
         .withSchema(LDIndex.get_schema())
-        .withColumnSpec("variantId", expr="cast(id as string)")
+        .withColumnSpec("population", expr="cast(rand() as string)")
         .withColumnSpec("chromosome", expr="'1'")
-        .withColumnSpec(
-            "ldSet",
-            expr="array(named_struct('tagVariantId', cast(rand() as string), "
-            "'rValues', array(named_struct('population', cast(rand() as string), "
-            "'r', cast(rand() as double)))))",
-        )
+        .withColumnSpec("variantId", expr="cast(id as string)")
+        .withColumnSpec("tagVariantId", expr="cast(rand() as string)")
+        .withColumnSpec("r", expr="rand()")
     )
     return LDIndex(_df=data_spec.build(), _schema=LDIndex.get_schema())
 

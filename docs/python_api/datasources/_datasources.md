@@ -32,7 +32,9 @@ This section contains information about the data source harmonisation tools avai
 
 ## Linkage disequilibrium
 
-1. [GnomAD](gnomad/_gnomad.md) v2.1.1 LD matrixes (7 ancestries)
+1. [Pan-UKBB](pan_ukbb/_pan_ukbb.md) LD matrices (6 ancestries), for the LD index and fine-mapping
+2. [FinnGen](finngen/_finngen.md) R12 LD matrix, for the LD index of the Finnish population
+3. [GnomAD](gnomad/_gnomad.md) v2.1.1 LD matrices, for fine-mapping
 
 ## Locus-to-gene gold standard
 

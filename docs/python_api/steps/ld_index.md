@@ -1,5 +1,7 @@
 ---
-title: GnomAD Linkage Disequilibrium Index generation
+title: Linkage Disequilibrium Index generation
 ---
 
-::: gentropy.gnomad_ingestion.LDIndexStep
+::: gentropy.ld_index.PanUKBBLDAlignmentStep
+
+::: gentropy.ld_index.LDIndexStep

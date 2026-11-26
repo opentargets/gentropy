@@ -16,4 +16,4 @@ title: GnomAD
 
 We use **GnomAD v4.0** as a source for variant annotation, offering detailed information about the prevalence and distribution of genetic variants across different populations. This version of GnomAD provides valuable insights into the genomic landscape, aiding in the interpretation of genetic variants and their potential functional implications.
 
-Additionally, [**GnomAD v2.1.1**](https://gnomad.broadinstitute.org/news/2018-10-gnomad-v2-1/) is utilized as a source for linkage disequilibrium (LD) information.
+Additionally, [**GnomAD v2.1.1**](https://gnomad.broadinstitute.org/news/2018-10-gnomad-v2-1/) is utilized as a source for linkage disequilibrium (LD) information in fine-mapping.
