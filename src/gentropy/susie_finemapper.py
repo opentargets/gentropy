@@ -735,8 +735,7 @@ class SusieFineMapperStep:
             return None
 
         major_population_name = study[0]["majorPopulation"]
-        # Pan-UKBB CSA is the largest Asian panel we hold (Pan-UKBB EAS and MID are not on GCS),
-        # so East Asian and Middle Eastern studies use it too.
+        # Pan-UKBB CSA is the largest Asian panel so East Asian and Middle Eastern studies use it too.
         if major_population_name in ("eas", "mid"):
             major_population_name = "csa"
 
