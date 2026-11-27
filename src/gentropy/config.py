@@ -827,6 +827,8 @@ class EffectorGeneListConfig(StepConfig):
     gold_standard_confidence: list[str] = field(
         default_factory=lambda: ["High", "Medium"]
     )
+    max_targets_per_drug: int | None = None
+    plausible_effector_gene_list_path: str | None = None
     _target_: str = "gentropy.effector_gene_list.EffectorGeneListStep"
 
 
@@ -847,6 +849,7 @@ class TrainingSetConfig(StepConfig):
     apply_distance_filter: bool = True
     protein_coding_only: bool = True
     apply_deduplication: bool = True
+    plausible_effector_gene_list_path: str | None = None
     _target_: str = "gentropy.training_set.TrainingSetStep"
 
 

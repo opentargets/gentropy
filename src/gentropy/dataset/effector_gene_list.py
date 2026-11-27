@@ -18,6 +18,9 @@ class EffectorGeneList(Dataset):
 
     Each row is a distinct ``(diseaseId, targetId)`` pair, built by ``EffectorGeneListStep``
     from rare-variant evidence, clinical precedence and the legacy OTG gold standard.
+
+    The same schema holds the Plausible Effector Gene List (PEGL): clinical pairs supported
+    only by drugs with many targets, kept out of both the positives and the negatives.
     """
 
     @classmethod
