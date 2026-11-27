@@ -241,7 +241,6 @@ class TrainingSetStep:
             )
             .select("credibleSetId", "geneId", f.lit(0).alias("GSP"))
             .distinct()
-            .persist()
         )
         session.logger.info(
             f"Negatives dropped as plausible effectors: {plausible_negatives.count()}"

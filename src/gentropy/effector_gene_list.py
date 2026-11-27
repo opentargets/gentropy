@@ -15,7 +15,9 @@ available, and every source-specific filter is exposed as a parameter.
 Some ChEMBL drugs are mapped to every subunit or family member of their target (e.g.
 metformin to the mitochondrial complex I genes). When ``max_targets_per_drug`` is set,
 clinical pairs that come only from drugs with more targets than the limit are written to a
-separate Plausible Effector Gene List (PEGL) instead of the EGL. The PEGL is never used as
+separate Plausible Effector Gene List (PEGL) instead of the EGL. The legacy gold standard
+holds drug-derived records too (set ``ot_platform``) without a drug identifier; those on a
+gene whose every drug is above the limit go to the PEGL as well. The PEGL is never used as
 positives and can be passed to ``TrainingSetStep`` to keep its pairs out of the negatives.
 """
 
@@ -35,6 +37,9 @@ APPROVED_CLINICAL_STAGES = ("PHASE_4", "APPROVAL", "PHASE_3", "PREAPPROVAL")
 
 # Confidence levels retained from the legacy OTG gold standard curation.
 GOLD_STANDARD_CONFIDENCE = ("High", "Medium")
+
+# Gold standard set of the drug-derived records, re-checked against max_targets_per_drug.
+GOLD_STANDARD_DRUG_SET_LABEL = "ot_platform"
 
 
 class EffectorGeneListStep:
@@ -75,8 +80,9 @@ class EffectorGeneListStep:
             max_targets_per_drug (int | None): Maximum number of distinct targets a drug may have
                 for its clinical pairs to enter the EGL. Targets are counted per ``drugId`` over all
                 clinical evidence rows, before the stage filter. Approved-stage pairs of drugs above
-                the limit go to the PEGL, minus any pair already in the EGL. Defaults to None (no
-                limit, no PEGL).
+                the limit go to the PEGL, and so do gold standard ``ot_platform`` records on a gene
+                whose every drug is above the limit; any pair already in the EGL is then removed
+                from the PEGL. Defaults to None (no limit, no PEGL).
             plausible_effector_gene_list_path (str | None): Output path for the Plausible Effector
                 Gene List parquet. Required when ``max_targets_per_drug`` is set. Defaults to None.
 
@@ -90,7 +96,7 @@ class EffectorGeneListStep:
             )
 
         sources: list[DataFrame] = []
-        plausible: DataFrame | None = None
+        plausible: list[DataFrame] = []
 
         if rare_variant_evidence_paths:
             session.logger.info("Including the rare-variant source")
@@ -101,35 +107,72 @@ class EffectorGeneListStep:
                 for path in rare_variant_evidence_paths
             ]
 
+        multi_target_only_targets: DataFrame | None = None
         if clinical_evidence_path:
             session.logger.info("Including the clinical precedence source")
             clinical = session.load_data(clinical_evidence_path, "parquet")
+            approved = clinical.filter(
+                f.col("clinicalStage").isin(list(approved_clinical_phases))
+            )
             if max_targets_per_drug is None:
-                sources.append(
-                    clinical.filter(
-                        f.col("clinicalStage").isin(list(approved_clinical_phases))
-                    ).select("diseaseId", "targetId")
-                )
+                sources.append(approved.select("diseaseId", "targetId"))
             else:
-                clinical, plausible = self._split_multi_target_drugs(
-                    session, clinical, approved_clinical_phases, max_targets_per_drug
+                multi_target_drugs, multi_target_only_targets = (
+                    self._multi_target_drugs(clinical, max_targets_per_drug)
                 )
-                sources.append(clinical)
+                session.logger.info(
+                    f"Drugs with more than {max_targets_per_drug} targets: "
+                    f"{multi_target_drugs.count()}"
+                )
+                sources.append(
+                    approved.join(multi_target_drugs, on="drugId", how="left_anti")
+                    .select("diseaseId", "targetId")
+                    .distinct()
+                )
+                plausible.append(
+                    approved.join(multi_target_drugs, on="drugId", how="left_semi")
+                    .select("diseaseId", "targetId")
+                    .distinct()
+                )
 
         if gold_standard_path:
             session.logger.info("Including the legacy gold standard source")
-            sources.append(
-                session.load_data(gold_standard_path, "json")
-                .filter(
-                    f.col("gold_standard_info.highest_confidence").isin(
-                        list(gold_standard_confidence)
-                    )
-                )
-                .select(
-                    f.explode("trait_info.ontology").alias("diseaseId"),
-                    f.col("gold_standard_info.gene_id").alias("targetId"),
+            gold_standard = session.load_data(gold_standard_path, "json").filter(
+                f.col("gold_standard_info.highest_confidence").isin(
+                    list(gold_standard_confidence)
                 )
             )
+            pairs = [
+                f.explode("trait_info.ontology").alias("diseaseId"),
+                f.col("gold_standard_info.gene_id").alias("targetId"),
+            ]
+            if multi_target_only_targets is None:
+                sources.append(gold_standard.select(*pairs))
+            else:
+                # Drug-derived records carry no drugId, so they are matched on the gene: a record
+                # is plausible when every drug of its gene is above the limit.
+                gold_standard = gold_standard.select(
+                    *pairs, f.col("metadata.set_label").alias("setLabel")
+                ).join(
+                    multi_target_only_targets.withColumn(
+                        "isMultiTargetOnly", f.lit(True)
+                    ),
+                    on="targetId",
+                    how="left",
+                )
+                is_plausible = (
+                    f.col("setLabel") == GOLD_STANDARD_DRUG_SET_LABEL
+                ) & f.col("isMultiTargetOnly").isNotNull()
+                sources.append(
+                    gold_standard.filter(~f.coalesce(is_plausible, f.lit(False)))
+                    .select("diseaseId", "targetId")
+                    .distinct()
+                )
+                plausible.append(
+                    gold_standard.filter(is_plausible)
+                    .select("diseaseId", "targetId")
+                    .distinct()
+                )
 
         if not sources:
             raise ValueError(
@@ -147,15 +190,16 @@ class EffectorGeneListStep:
         session.logger.info(f"EGL pairs: {effector_gene_list.df.count()}")
 
         if max_targets_per_drug is not None and plausible_effector_gene_list_path:
-            # Without a clinical source there are no multi-target drugs: write an empty PEGL so
-            # downstream steps can rely on the path.
-            if plausible is None:
-                plausible = session.spark.createDataFrame(
-                    [], EffectorGeneList.get_schema()
-                )
+            # Without a clinical source there are no multi-target drugs: the PEGL is written
+            # empty so downstream steps can rely on the path.
+            plausible_pairs = reduce(
+                DataFrame.unionByName,
+                plausible,
+                session.spark.createDataFrame([], EffectorGeneList.get_schema()),
+            ).distinct()
             # A pair with any other EGL support stays a positive: the two lists never overlap.
             plausible_effector_gene_list = EffectorGeneList(
-                _df=plausible.join(
+                _df=plausible_pairs.join(
                     effector_gene_list.df,
                     on=["diseaseId", "targetId"],
                     how="left_anti",
@@ -166,53 +210,42 @@ class EffectorGeneListStep:
                 session.output_partitions
             ).write.mode(session.write_mode).parquet(plausible_effector_gene_list_path)
             session.logger.info(
-                f"PEGL pairs: {plausible.count()} before and "
+                f"PEGL pairs: {plausible_pairs.count()} before and "
                 f"{plausible_effector_gene_list.df.count()} after removing EGL pairs"
             )
             plausible_effector_gene_list.unpersist()
         effector_gene_list.unpersist()
 
     @staticmethod
-    def _split_multi_target_drugs(
-        session: Session,
-        clinical: DataFrame,
-        approved_clinical_phases: Sequence[str],
-        max_targets_per_drug: int,
+    def _multi_target_drugs(
+        clinical: DataFrame, max_targets_per_drug: int
     ) -> tuple[DataFrame, DataFrame]:
-        """Split approved-stage clinical pairs by the number of targets of their drug.
+        """Find the drugs above the target limit and the targets reached only by such drugs.
 
         Targets are counted per ``drugId`` over every clinical evidence row (all stages and
         diseases), before the stage filter.
 
         Args:
-            session (Session): Session object, used for logging.
-            clinical (DataFrame): Clinical precedence evidence with ``drugId``, ``targetId``,
-                ``diseaseId`` and ``clinicalStage``.
-            approved_clinical_phases (Sequence[str]): Clinical stages retained.
+            clinical (DataFrame): Clinical precedence evidence with ``drugId`` and ``targetId``.
             max_targets_per_drug (int): Maximum number of distinct targets per drug.
 
         Returns:
-            tuple[DataFrame, DataFrame]: Distinct ``(diseaseId, targetId)`` pairs from drugs within
-                the limit, and those from drugs above it.
+            tuple[DataFrame, DataFrame]: The ``drugId`` of drugs with more than
+                ``max_targets_per_drug`` targets, and the ``targetId`` of targets whose every drug
+                has more than ``max_targets_per_drug`` targets.
         """
-        targets_per_drug = clinical.groupBy("drugId").agg(
-            f.countDistinct("targetId").alias("nTargets")
+        drug_targets = clinical.select("drugId", "targetId").distinct()
+        targets_per_drug = drug_targets.groupBy("drugId").agg(
+            f.count("targetId").alias("nTargets")
         )
         multi_target_drugs = targets_per_drug.filter(
             f.col("nTargets") > max_targets_per_drug
         ).select("drugId")
-        session.logger.info(
-            f"Drugs with more than {max_targets_per_drug} targets: "
-            f"{multi_target_drugs.count()}"
+        multi_target_only_targets = (
+            drug_targets.join(targets_per_drug, on="drugId")
+            .groupBy("targetId")
+            .agg(f.min("nTargets").alias("minTargetsPerDrug"))
+            .filter(f.col("minTargetsPerDrug") > max_targets_per_drug)
+            .select("targetId")
         )
-        approved = clinical.filter(
-            f.col("clinicalStage").isin(list(approved_clinical_phases))
-        )
-        return (
-            approved.join(multi_target_drugs, on="drugId", how="left_anti")
-            .select("diseaseId", "targetId")
-            .distinct(),
-            approved.join(multi_target_drugs, on="drugId", how="left_semi")
-            .select("diseaseId", "targetId")
-            .distinct(),
-        )
+        return multi_target_drugs, multi_target_only_targets
