@@ -8,6 +8,9 @@ of those credible sets is a negative. Credible sets without an EGL gene are left
 A series of optional, parametrised filters then clean the labels to reduce noise and
 leakage:
 
+* plausible effector filter — drop negatives that are a Plausible Effector Gene List
+  (PEGL) pair for a disease of the study; such genes are weak evidence, neither positive
+  nor negative;
 * replication filter — keep only the credible sets carrying the ``REPLICATED`` quality
   control flag;
 * maximum positives per locus — drop loci with more than ``max_gsp_per_locus`` positives;
@@ -67,6 +70,7 @@ class TrainingSetStep:
         apply_distance_filter: bool = True,
         protein_coding_only: bool = True,
         apply_deduplication: bool = True,
+        plausible_effector_gene_list_path: str | None = None,
     ) -> None:
         """Read the inputs, label and clean the feature matrix, and write the training set.
 
@@ -94,6 +98,9 @@ class TrainingSetStep:
             protein_coding_only (bool): Restrict the training set to protein-coding genes. Defaults to True.
             apply_deduplication (bool): Collapse credible sets sharing identical positive feature
                 profiles. Defaults to True.
+            plausible_effector_gene_list_path (str | None): Path to the Plausible Effector Gene List
+                parquet produced by ``EffectorGeneListStep``. When given, negatives that are a PEGL
+                pair for a disease of the study are dropped. Defaults to None (filter skipped).
         """
         credible_set = CredibleSet.from_parquet(session, credible_set_path).df
         if apply_replication_filter:
@@ -120,6 +127,14 @@ class TrainingSetStep:
         )
 
         labelled = self._label(feature_matrix, effector_gene_list)
+        if plausible_effector_gene_list_path:
+            labelled = self._drop_plausible_negatives(
+                session,
+                labelled,
+                EffectorGeneList.from_parquet(
+                    session, plausible_effector_gene_list_path
+                ),
+            )
         # Counted on the raw labels, before the filters below remove any positive.
         labelled = self._cap_positives_per_locus(labelled, max_gsp_per_locus)
 
@@ -191,6 +206,48 @@ class TrainingSetStep:
             feature_matrix.join(positives, on="credibleSetId", how="semi")
             .join(positives, on=["credibleSetId", "geneId"], how="left")
             .fillna(0, subset=["GSP"])
+        )
+
+    @staticmethod
+    def _drop_plausible_negatives(
+        session: Session,
+        labelled: DataFrame,
+        plausible_effector_gene_list: EffectorGeneList,
+    ) -> DataFrame:
+        """Drop negatives that are a plausible effector for a disease of the study.
+
+        A negative row is dropped when its ``geneId`` and any of its ``diseaseIds`` form a PEGL
+        pair, matched on the exact ``diseaseId`` as in ``_label``. Positives are never dropped.
+
+        Args:
+            session (Session): Session object, used for logging.
+            labelled (DataFrame): Labelled feature matrix with ``diseaseIds`` and ``GSP``.
+            plausible_effector_gene_list (EffectorGeneList): Plausible Effector Gene List.
+
+        Returns:
+            DataFrame: Labelled rows without the plausible-effector negatives.
+        """
+        plausible_negatives = (
+            labelled.filter(f.col("GSP") == 0)
+            .select(
+                "credibleSetId", "geneId", f.explode("diseaseIds").alias("diseaseId")
+            )
+            .join(
+                plausible_effector_gene_list.df.select(
+                    "diseaseId", f.col("targetId").alias("geneId")
+                ),
+                on=["diseaseId", "geneId"],
+                how="semi",
+            )
+            .select("credibleSetId", "geneId", f.lit(0).alias("GSP"))
+            .distinct()
+            .persist()
+        )
+        session.logger.info(
+            f"Negatives dropped as plausible effectors: {plausible_negatives.count()}"
+        )
+        return labelled.join(
+            plausible_negatives, on=["credibleSetId", "geneId", "GSP"], how="anti"
         )
 
     @staticmethod

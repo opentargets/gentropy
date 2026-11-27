@@ -146,3 +146,130 @@ class TestEffectorGeneListStep:
             EffectorGeneListStep(
                 session, effector_gene_list_path=str(tmp_path / "egl_empty")
             )
+
+
+class TestMultiTargetDrugs:
+    """Test the split of clinical pairs from multi-target drugs into the PEGL."""
+
+    @pytest.fixture()
+    def clinical_path(self, spark: SparkSession, tmp_path: Path) -> str:
+        """Clinical evidence with one drug above a limit of 5 targets and two within it."""
+        path = str(tmp_path / "evidence_clinical_multi")
+        rows = [
+            # CHEMBL_MULTI: 6 targets, 5 at an approved stage and 1 only in phase 1.
+            *[("CHEMBL_MULTI", "EFO_1", f"ENSG_{i}", "APPROVAL") for i in range(1, 6)],
+            ("CHEMBL_MULTI", "EFO_2", "ENSG_6", "PHASE_1"),
+            # CHEMBL_SINGLE: 1 target, also supports (EFO_1, ENSG_1).
+            ("CHEMBL_SINGLE", "EFO_1", "ENSG_1", "PHASE_4"),
+            # CHEMBL_FEW: 2 targets, both approved, one of them on another disease.
+            ("CHEMBL_FEW", "EFO_3", "ENSG_7", "PHASE_3"),
+            ("CHEMBL_FEW", "EFO_3", "ENSG_8", "PHASE_2"),
+        ]
+        spark.createDataFrame(
+            rows, ["drugId", "diseaseId", "targetId", "clinicalStage"]
+        ).write.parquet(path)
+        return path
+
+    @pytest.fixture()
+    def rare_path(self, spark: SparkSession, tmp_path: Path) -> str:
+        """Rare-variant evidence supporting one pair of the multi-target drug."""
+        path = str(tmp_path / "evidence_rare_multi")
+        spark.createDataFrame(
+            [("EFO_1", "ENSG_2", 0.9)], ["diseaseId", "targetId", "score"]
+        ).write.parquet(path)
+        return path
+
+    @staticmethod
+    def _pairs(spark: SparkSession, path: str) -> set[tuple[str, str]]:
+        return {
+            (row["diseaseId"], row["targetId"])
+            for row in spark.read.parquet(path).collect()
+        }
+
+    @pytest.mark.step_test
+    def test_split(
+        self,
+        session: Session,
+        spark: SparkSession,
+        tmp_path: Path,
+        clinical_path: str,
+        rare_path: str,
+    ) -> None:
+        """Pairs supported only by a drug above the limit go to the PEGL, never to both lists.
+
+        The phase 1 row counts towards the 6 targets of CHEMBL_MULTI but reaches neither list.
+        (EFO_1, ENSG_1) is also supported by a 1-target drug and (EFO_1, ENSG_2) by rare-variant
+        evidence, so both stay in the EGL.
+        """
+        egl, pegl = str(tmp_path / "egl"), str(tmp_path / "pegl")
+        EffectorGeneListStep(
+            session,
+            effector_gene_list_path=egl,
+            rare_variant_evidence_paths=[rare_path],
+            clinical_evidence_path=clinical_path,
+            max_targets_per_drug=5,
+            plausible_effector_gene_list_path=pegl,
+        )
+        assert self._pairs(spark, egl) == {
+            ("EFO_1", "ENSG_1"),  # also from CHEMBL_SINGLE
+            ("EFO_1", "ENSG_2"),  # also from rare-variant evidence
+            ("EFO_3", "ENSG_7"),  # CHEMBL_FEW, approved stage
+        }
+        assert self._pairs(spark, pegl) == {
+            ("EFO_1", "ENSG_3"),
+            ("EFO_1", "ENSG_4"),
+            ("EFO_1", "ENSG_5"),
+        }
+
+    @pytest.mark.step_test
+    def test_limit_counts_all_stages(
+        self,
+        session: Session,
+        spark: SparkSession,
+        tmp_path: Path,
+        clinical_path: str,
+    ) -> None:
+        """With a limit of 6, CHEMBL_MULTI is within the limit and the PEGL is empty."""
+        egl, pegl = str(tmp_path / "egl6"), str(tmp_path / "pegl6")
+        EffectorGeneListStep(
+            session,
+            effector_gene_list_path=egl,
+            clinical_evidence_path=clinical_path,
+            max_targets_per_drug=6,
+            plausible_effector_gene_list_path=pegl,
+        )
+        assert len(self._pairs(spark, egl)) == 6
+        assert self._pairs(spark, pegl) == set()
+
+    @pytest.mark.step_test
+    def test_no_limit_is_unchanged(
+        self,
+        session: Session,
+        spark: SparkSession,
+        tmp_path: Path,
+        clinical_path: str,
+    ) -> None:
+        """Without a limit every approved-stage pair is in the EGL, whatever the drug."""
+        egl = str(tmp_path / "egl_no_limit")
+        EffectorGeneListStep(
+            session,
+            effector_gene_list_path=egl,
+            clinical_evidence_path=clinical_path,
+        )
+        assert self._pairs(spark, egl) == {
+            *[("EFO_1", f"ENSG_{i}") for i in range(1, 6)],
+            ("EFO_3", "ENSG_7"),
+        }
+
+    @pytest.mark.step_test
+    def test_limit_without_pegl_path_raises(
+        self, session: Session, tmp_path: Path, clinical_path: str
+    ) -> None:
+        """The limit needs an output path for the PEGL."""
+        with pytest.raises(ValueError, match="plausible_effector_gene_list_path"):
+            EffectorGeneListStep(
+                session,
+                effector_gene_list_path=str(tmp_path / "egl_raise"),
+                clinical_evidence_path=clinical_path,
+                max_targets_per_drug=5,
+            )

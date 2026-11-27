@@ -62,6 +62,44 @@ class TestLabel:
         assert TrainingSetStep._label(feature_matrix, egl).count() == 0
 
 
+class TestDropPlausibleNegatives:
+    """Test removal of negatives that are plausible effectors for the study's disease."""
+
+    def test_filter(self, session: Session, spark: SparkSession) -> None:
+        """Only negatives matching a PEGL pair on one of the study's diseases are dropped."""
+        labelled = spark.createDataFrame(
+            [
+                ("sl1", "ENSG_A", ["EFO_1"], 1),
+                ("sl1", "ENSG_P", ["EFO_1"], 0),  # PEGL pair for EFO_1 -> dropped
+                ("sl1", "ENSG_N", ["EFO_1"], 0),  # not in the PEGL -> kept
+                ("sl2", "ENSG_B", ["EFO_2", "EFO_9"], 1),
+                ("sl2", "ENSG_P", ["EFO_2", "EFO_9"], 0),  # PEGL is for EFO_1 -> kept
+                ("sl3", "ENSG_P", ["EFO_3", "EFO_1"], 1),  # positive -> never dropped
+                ("sl3", "ENSG_Q", ["EFO_3", "EFO_1"], 0),  # PEGL on EFO_3 -> dropped
+            ],
+            ["credibleSetId", "geneId", "diseaseIds", "GSP"],
+        )
+        pegl = EffectorGeneList(
+            _df=spark.createDataFrame(
+                [("EFO_1", "ENSG_P"), ("EFO_3", "ENSG_Q")],
+                EffectorGeneList.get_schema(),
+            )
+        )
+        result = {
+            (r["credibleSetId"], r["geneId"], r["GSP"])
+            for r in TrainingSetStep._drop_plausible_negatives(
+                session, labelled, pegl
+            ).collect()
+        }
+        assert result == {
+            ("sl1", "ENSG_A", 1),
+            ("sl1", "ENSG_N", 0),
+            ("sl2", "ENSG_B", 1),
+            ("sl2", "ENSG_P", 0),
+            ("sl3", "ENSG_P", 1),
+        }
+
+
 class TestCapPositivesPerLocus:
     """Test the maximum-positives-per-locus filter."""
 
@@ -247,7 +285,8 @@ class TestTrainingSetStep:
         """Only replicated loci are labelled and the output is a valid L2GGoldStandard."""
         replicated = [StudyLocusQualityCheck.REPLICATED.value]
         paths = {
-            name: str(tmp_path / name) for name in ["fm", "cs", "si", "egl", "out"]
+            name: str(tmp_path / name)
+            for name in ["fm", "cs", "si", "egl", "pegl", "out", "out_pegl"]
         }
         spark.createDataFrame(
             [
@@ -281,6 +320,7 @@ class TestTrainingSetStep:
             [
                 ("sl1", "gA", 1000, 1),
                 ("sl1", "gB", 0, 1),
+                ("sl1", "gC", 500, 1),
                 ("sl2", "gA", 1000, 1),
             ],
             ["credibleSetId", "geneId", "distanceSentinelFootprint", "isProteinCoding"],
@@ -298,6 +338,30 @@ class TestTrainingSetStep:
             apply_deduplication=False,
         )
         gold_standard = L2GGoldStandard.from_parquet(session, paths["out"])
+        assert {
+            (r["credibleSetId"], r["geneId"], r["goldStandardSet"])
+            for r in gold_standard.df.collect()
+        } == {
+            ("sl1", "gA", "positive"),
+            ("sl1", "gB", "negative"),
+            ("sl1", "gC", "negative"),
+        }
+
+        # With the PEGL, the plausible effector gC is no longer a negative.
+        spark.createDataFrame(
+            [("EFO_1", "gC")], ["diseaseId", "targetId"]
+        ).write.parquet(paths["pegl"])
+        TrainingSetStep(
+            session,
+            feature_matrix_path=paths["fm"],
+            credible_set_path=paths["cs"],
+            study_index_path=paths["si"],
+            effector_gene_list_path=paths["egl"],
+            training_set_path=paths["out_pegl"],
+            apply_deduplication=False,
+            plausible_effector_gene_list_path=paths["pegl"],
+        )
+        gold_standard = L2GGoldStandard.from_parquet(session, paths["out_pegl"])
         assert {
             (r["credibleSetId"], r["geneId"], r["goldStandardSet"])
             for r in gold_standard.df.collect()
