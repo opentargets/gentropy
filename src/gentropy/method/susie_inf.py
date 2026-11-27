@@ -211,9 +211,8 @@ class SUSIE_inf:
         XtOmegar = XtOmegay - XtOmegaXb
         alpha = tausq * XtOmegar
 
-        priors = np.log(np.repeat(1 / p, p))
         lbf_cs = np.apply_along_axis(
-            lambda x: logsumexp(x + priors), axis=0, arr=lbf_variable
+            lambda x: logsumexp(x + logpi0), axis=0, arr=lbf_variable
         )
         return {
             "PIP": PIP,
