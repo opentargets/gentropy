@@ -41,6 +41,40 @@ class TestSUSIE_inf:
             "LBFs for maximum likelihood estimation are not equal"
         )
 
+    def test_SUSIE_inf_lbf_uses_pi0_prior(
+        self: TestSUSIE_inf, sample_data_for_susie_inf: list[np.ndarray]
+    ) -> None:
+        """Test that credible-set log Bayes factors use the provided pi0 prior."""
+        ld = sample_data_for_susie_inf[0]
+        z = sample_data_for_susie_inf[1]
+        p = len(z)
+        top_idx = int(np.argmax(np.abs(z)))
+        pi0 = np.zeros(p)
+        other_idx = [i for i in range(p) if i != top_idx]
+        pi0[other_idx] = 1.0 / len(other_idx)
+
+        susie_output = SUSIE_inf.susie_inf(
+            z=z, LD=ld, pi0=pi0, est_tausq=False, method="moments"
+        )
+        logpi0 = np.where(pi0 > 0, np.log(np.where(pi0 > 0, pi0, 1.0)), -np.inf)
+        expected_lbf = np.apply_along_axis(
+            lambda col: float(np.logaddexp.reduce(col + logpi0)),
+            axis=0,
+            arr=susie_output["lbf_variable"],
+        )
+        assert np.allclose(susie_output["lbf"], expected_lbf)
+        assert np.all(susie_output["PIP"][top_idx, :] == 0.0)
+
+        # A variant with zero prior weight must not inflate the credible-set logBF.
+        eye_ld = np.eye(4)
+        z_single = np.array([6.0, 0.0, 0.0, 0.0])
+        pi0_exclude = np.array([0.0, 1 / 3, 1 / 3, 1 / 3])
+        out_excluded = SUSIE_inf.susie_inf(
+            z=z_single, LD=eye_ld, L=1, pi0=pi0_exclude, est_tausq=False
+        )
+        assert out_excluded["PIP"][0, 0] == 0.0
+        assert out_excluded["lbf"][0] <= 0.0
+
     def test_SUSIE_inf_convert_to_credible_sets(
         self: TestSUSIE_inf,
         sample_data_for_susie_inf: list[np.ndarray],
