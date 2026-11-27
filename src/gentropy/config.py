@@ -396,34 +396,6 @@ _L2G_HYPERPARAMETERS: dict[str, Any] = {
 
 
 @dataclass
-class LocusToGeneConfig(StepConfig):
-    """Locus to gene step configuration."""
-
-    run_mode: str = MISSING
-    credible_set_path: str | None = None
-    feature_matrix_path: str | None = None
-    predictions_path: str | None = None
-    l2g_threshold: float = 0.05
-    model_path: str = "opentargets/locus_to_gene"
-    features_list: list[str] = field(default_factory=lambda: list(_L2G_FEATURES_LIST))
-    hyperparameters: dict[str, Any] = field(
-        default_factory=lambda: dict(_L2G_HYPERPARAMETERS)
-    )
-    wandb_run_name: str | None = None
-    hf_hub_repo_id: str = "locus_to_gene"
-    hf_model_commit_message: str = "chore: update model"
-    hf_model_version: str | None = None  # Latest commit is picked when provided None
-    download_from_hub: bool = True
-    train_on_full_dataset: bool = False
-    explain_predictions: bool = False
-    wandb_credentials_path: str | None = None
-    hf_credentials_path: str | None = None
-    train_parquet_path: str | None = None
-    test_parquet_path: str | None = None
-    _target_: str = "gentropy.l2g.LocusToGeneStep"
-
-
-@dataclass
 class LocusToGeneModelTuningConfig(StepConfig):
     """Configuration for the L2G cross-validation step."""
 
@@ -897,7 +869,6 @@ def register_config() -> None:
     )
     cs.store(group="step", name="ld_based_clumping", node=LDBasedClumpingConfig)
     cs.store(group="step", name="ld_index", node=LDIndexConfig)
-    cs.store(group="step", name="locus_to_gene", node=LocusToGeneConfig)
     cs.store(
         group="step",
         name="locus_to_gene_model_tuning",
