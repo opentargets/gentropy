@@ -18,7 +18,7 @@ leakage:
 * protein-coding filter — restrict the set to protein-coding genes;
 * deduplication — collapse credible sets that share identical positive feature profiles.
 
-The output is an ``L2GGoldStandard`` parquet, the input of ``LocusToGeneTrainTestSplitStep``.
+The output is an ``L2GGoldStandard`` parquet, the L2G training set.
 """
 
 from __future__ import annotations

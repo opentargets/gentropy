@@ -2,26 +2,21 @@
 
 from __future__ import annotations
 
-import json
 import logging
-from typing import Any, NotRequired, TypedDict
+from typing import Any
 
 import numpy as np
 import pandas as pd
 import pyspark.sql.functions as f
-from pyspark.sql import DataFrame
 from wandb.sdk.wandb_login import login as wandb_login
 from xgboost import XGBClassifier
 
-from gentropy.common.schemas import compare_struct_schemas
 from gentropy.common.session import Session
 from gentropy.dataset.colocalisation import Colocalisation
 from gentropy.dataset.credible_set import CredibleSet, CredibleSetVariant
 from gentropy.dataset.intervals import Intervals
 from gentropy.dataset.l2g_feature_matrix import L2GFeatureMatrix
-from gentropy.dataset.l2g_gold_standard import L2GGoldStandard
 from gentropy.dataset.l2g_prediction import L2GPrediction
-from gentropy.dataset.locus_overlap import LocusOverlap
 from gentropy.dataset.pathway_enrichment import PathwayEnrichment
 from gentropy.dataset.pathway_index import PathwayIndex
 from gentropy.dataset.study_index import StudyIndex
@@ -37,16 +32,6 @@ from gentropy.method.l2g.model import LocusToGeneModel
 from gentropy.method.l2g.trainer import LocusToGeneTrainer
 
 logger = logging.getLogger(__name__)
-
-
-class _SetStats(TypedDict):
-    """Per-split descriptive statistics returned by ``_compute_set_stats``."""
-
-    n_positive: int
-    n_negative: int
-    n_unique_loci: int
-    n_unique_positive_genes: int
-    n_unique_positive_gene_disease_pairs: NotRequired[int]
 
 
 class LocusToGeneFeatureMatrixStep:
@@ -218,365 +203,6 @@ class LocusToGeneFeatureMatrixStep:
         ).parquet(feature_matrix_path)
 
 
-class LocusToGeneTrainTestSplitStep:
-    """Split the annotated gold standard feature matrix into train/test partitions and write to parquet."""
-
-    def __init__(
-        self,
-        session: Session,
-        *,
-        credible_set_path: str,
-        feature_matrix_path: str,
-        gold_standard_curation_path: str,
-        train_parquet_path: str,
-        test_parquet_path: str,
-        features_list: list[str],
-        test_size: float = 0.15,
-        credible_set_variant_path: str | None = None,
-        variant_index_path: str | None = None,
-        gene_interactions_path: str | None = None,
-        predefined_test_parquet_path: str | None = None,
-        split_stats_path: str | None = None,
-    ) -> None:
-        """Initialise step: build annotated feature matrix, split, and persist.
-
-        Args:
-            session (Session): Session object that contains the Spark session
-            credible_set_path (str): Path to the credible set dataset
-            feature_matrix_path (str): Path to the L2G feature matrix input dataset
-            gold_standard_curation_path (str): Path to the gold standard curation file (parquet or JSON)
-            train_parquet_path (str): Output path for the training split parquet
-            test_parquet_path (str): Output path for the held-out test split parquet
-            features_list (list[str]): Features to select from the feature matrix
-            test_size (float): Proportion of study loci assigned to the test split. Defaults to 0.15.
-            credible_set_variant_path (str | None): Path to the variants of the credible sets (required for OTG gold standard)
-            variant_index_path (str | None): Path to the variant index (required for OTG gold standard)
-            gene_interactions_path (str | None): Path to the PPI dataset (required for OTG gold standard)
-            predefined_test_parquet_path (str | None): Path to an existing test-split parquet
-                produced before. Only its positive genes are used: the
-                current credible sets are split on them with ``_split_by_test_genes``, so the test
-                genes stay fixed across releases while credible sets and features are rebuilt.
-                ``test_size`` is ignored. Defaults to None (fresh hierarchical split).
-            split_stats_path (str | None): Explicit path for the split statistics JSON file. Defaults to ``<train_parquet_path>_split_stats.json``.
-        """
-        credible_set = CredibleSet.from_parquet(
-            session, credible_set_path, recursiveFileLookup=True
-        )
-        feature_matrix = L2GFeatureMatrix(
-            _df=session.load_data(feature_matrix_path, "parquet"),
-        )
-        gold_standard = self._parse_gold_standard(
-            session=session,
-            gold_standard_curation_path=gold_standard_curation_path,
-            credible_set=credible_set,
-            credible_set_variant_path=credible_set_variant_path,
-            variant_index_path=variant_index_path,
-            gene_interactions_path=gene_interactions_path,
-        )
-
-        # Build annotated feature matrix for gold standard loci
-        annotated_fm = (
-            gold_standard.build_feature_matrix(feature_matrix, credible_set)
-            .select_features(features_list)
-            .persist()
-        )
-
-        label_encoder = {"negative": 0, "positive": 1}
-        # SDFs that need to be unpersisted after writes; populated in the branches below.
-        to_unpersist = []
-
-        if predefined_test_parquet_path:
-            # Only the positive genes of the predefined test set are used: the test credible
-            # sets, their negatives and their features are rebuilt from the current data.
-            test_genes_sdf = (
-                session.spark.read.parquet(predefined_test_parquet_path)
-                .filter(f.col("goldStandardSet").cast("string").isin(["1", "positive"]))
-                .select("geneId")
-                .distinct()
-                .persist()
-            )
-            to_unpersist.append(test_genes_sdf)
-
-            train_sdf, test_sdf = self._split_by_test_genes(
-                annotated_fm._df, test_genes_sdf
-            )
-
-            # Apply label encoding in Spark (handles both string and already-encoded int values).
-            label_map = f.create_map(f.lit("negative"), f.lit(0), f.lit("positive"), f.lit(1))
-            train_sdf = train_sdf.withColumn(
-                "goldStandardSet",
-                f.coalesce(label_map[f.col("goldStandardSet")], f.col("goldStandardSet").cast("int")),
-            ).persist()
-            test_sdf = test_sdf.withColumn(
-                "goldStandardSet",
-                f.coalesce(label_map[f.col("goldStandardSet")], f.col("goldStandardSet").cast("int")),
-            ).persist()
-            to_unpersist.extend([train_sdf, test_sdf])
-
-            n_original_total: int = annotated_fm._df.count()
-            n_train: int = train_sdf.count()
-            n_test: int = test_sdf.count()
-            n_written_train, n_written_test = n_train, n_test
-            split_stats: dict[str, Any] = {
-                "n_original_total": n_original_total,
-                "n_predefined_test_genes": test_genes_sdf.count(),
-                "n_train": n_train,
-                "n_test": n_test,
-                "n_lost_total": n_original_total - n_train - n_test,
-                "train": self._compute_set_stats(train_sdf.toPandas()),
-                "test": self._compute_set_stats(test_sdf.toPandas()),
-            }
-        else:
-            train_df, test_df = annotated_fm.generate_train_test_split(
-                test_size=test_size,
-                verbose=True,
-                label_encoder=label_encoder,
-                label_col=annotated_fm.label_col,
-            )
-            n_written_train, n_written_test = len(train_df), len(test_df)
-            split_stats = {
-                "n_train": n_written_train,
-                "n_test": n_written_test,
-                "test_size": test_size,
-                "train": self._compute_set_stats(train_df),
-                "test": self._compute_set_stats(test_df),
-            }
-            train_sdf = session.spark.createDataFrame(train_df)
-            test_sdf = session.spark.createDataFrame(test_df)
-
-        self._write_split_stats(split_stats, train_parquet_path, split_stats_path)
-        logger.info("Split stats: %s", split_stats)
-        train_sdf.write.mode(session.write_mode).parquet(train_parquet_path)
-        test_sdf.write.mode(session.write_mode).parquet(test_parquet_path)
-        for sdf in to_unpersist:
-            sdf.unpersist()
-        annotated_fm._df.unpersist()
-        logger.info(
-            "Train/test split written: %d train rows, %d test rows.",
-            n_written_train,
-            n_written_test,
-        )
-
-    @staticmethod
-    def _split_by_test_genes(
-        annotated_df: DataFrame, test_genes: DataFrame
-    ) -> tuple[DataFrame, DataFrame]:
-        """Split credible sets into train and test on a fixed list of test genes.
-
-        A credible set goes to the test set when all its positives are test genes, and to the
-        training set when it contains no test gene at all, positive or negative. Credible sets
-        with positives on both sides are dropped, so no positive gene is shared between the sets.
-
-        Args:
-            annotated_df (DataFrame): Annotated feature matrix with ``credibleSetId``, ``geneId``
-                and ``goldStandardSet``.
-            test_genes (DataFrame): Test genes in a ``geneId`` column.
-
-        Returns:
-            tuple[DataFrame, DataFrame]: Training and test rows.
-
-        Examples:
-            >>> df = spark.createDataFrame(
-            ...     [
-            ...         ("cs1", "g1", "positive"), ("cs1", "g2", "negative"),
-            ...         ("cs2", "g2", "positive"), ("cs2", "g3", "negative"),
-            ...         ("cs3", "g3", "positive"), ("cs3", "g1", "negative"),
-            ...         ("cs4", "g1", "positive"), ("cs4", "g2", "positive"),
-            ...     ],
-            ...     "credibleSetId string, geneId string, goldStandardSet string",
-            ... )
-            >>> genes = spark.createDataFrame([("g1",)], "geneId string")
-            >>> train, test = LocusToGeneTrainTestSplitStep._split_by_test_genes(df, genes)
-            >>> sorted(r.credibleSetId for r in train.select("credibleSetId").distinct().collect())
-            ['cs2']
-            >>> sorted(r.credibleSetId for r in test.select("credibleSetId").distinct().collect())
-            ['cs1']
-        """
-        genes = test_genes.select("geneId").distinct().withColumn("isTestGene", f.lit(True))
-        loci = (
-            annotated_df.join(f.broadcast(genes), on="geneId", how="left")
-            .withColumn("isTestGene", f.coalesce(f.col("isTestGene"), f.lit(False)))
-            .withColumn(
-                "isPositive",
-                f.col("goldStandardSet").cast("string").isin(["1", "positive"]),
-            )
-            .groupBy("credibleSetId")
-            .agg(
-                f.max("isTestGene").alias("hasTestGene"),
-                f.max(f.col("isPositive") & f.col("isTestGene")).alias("hasTestPositive"),
-                f.max(f.col("isPositive") & ~f.col("isTestGene")).alias("hasTrainPositive"),
-            )
-        )
-        train_loci = loci.filter(~f.col("hasTestGene")).select("credibleSetId")
-        test_loci = loci.filter(
-            f.col("hasTestPositive") & ~f.col("hasTrainPositive")
-        ).select("credibleSetId")
-        return (
-            annotated_df.join(train_loci, on="credibleSetId", how="semi"),
-            annotated_df.join(test_loci, on="credibleSetId", how="semi"),
-        )
-
-    @staticmethod
-    def _parse_gold_standard(
-        session: Session,
-        gold_standard_curation_path: str,
-        credible_set: CredibleSet,
-        credible_set_variant_path: str | None,
-        variant_index_path: str | None,
-        gene_interactions_path: str | None,
-    ) -> L2GGoldStandard:
-        """Load and parse the gold standard curation file into an L2GGoldStandard.
-
-        Args:
-            session (Session): Active Spark session.
-            gold_standard_curation_path (str): Path to the gold standard curation file (parquet or JSON).
-            credible_set (CredibleSet): Credible set used for OTG curation parsing.
-            credible_set_variant_path (str | None): Path to the credible set variants (required for OTG format).
-            variant_index_path (str | None): Path to variant index (required for OTG format).
-            gene_interactions_path (str | None): Path to PPI dataset (required for OTG format).
-
-        Returns:
-            L2GGoldStandard: Parsed gold standard dataset.
-
-        Raises:
-            ValueError: If OTG format is detected but required paths are missing.
-            TypeError: If the gold standard schema is unrecognised.
-        """
-        ext = gold_standard_curation_path.rsplit(".", maxsplit=1)[-1]
-        ext = "parquet" if ext not in ["parquet", "json"] else ext
-        gold_standard_raw = session.load_data(gold_standard_curation_path, ext)
-        schema_issues = compare_struct_schemas(
-            gold_standard_raw.schema, L2GGoldStandard.get_schema()
-        )
-        match schema_issues:
-            case {**extra} if not extra:
-                return L2GGoldStandard(
-                    _df=gold_standard_raw,
-                    _schema=L2GGoldStandard.get_schema(),
-                )
-            case {"unexpected_columns": extra_columns} if "missing_mandatory_columns" not in schema_issues:
-                return L2GGoldStandard(
-                    _df=gold_standard_raw.drop(*extra_columns),
-                    _schema=L2GGoldStandard.get_schema(),
-                )
-            case {
-                "missing_mandatory_columns": [
-                    "credibleSetId",
-                    "variantId",
-                    "studyId",
-                    "geneId",
-                    "goldStandardSet",
-                ],
-                "unexpected_columns": [
-                    "association_info",
-                    "gold_standard_info",
-                    "metadata",
-                    "sentinel_variant",
-                    "trait_info",
-                ],
-            }:
-                if gene_interactions_path is None:
-                    raise ValueError("Interactions are required for parsing OTG curation.")
-                if variant_index_path is None:
-                    raise ValueError("Variant Index is required for parsing OTG curation.")
-                if credible_set_variant_path is None:
-                    raise ValueError(
-                        "Credible set variants are required for parsing OTG curation."
-                    )
-                interactions = session.load_data(
-                    gene_interactions_path, "parquet", recursiveFileLookup=True
-                )
-                variant_index = VariantIndex.from_parquet(session, variant_index_path)
-                # The credible sets led by a curated sentinel, and their variants.
-                curated_credible_sets = CredibleSet(
-                    _df=credible_set.df.join(
-                        gold_standard_raw.select(
-                            f.concat_ws(
-                                "_",
-                                f.col("sentinel_variant.locus_GRCh38.chromosome"),
-                                f.col("sentinel_variant.locus_GRCh38.position"),
-                                f.col("sentinel_variant.alleles.reference"),
-                                f.col("sentinel_variant.alleles.alternative"),
-                            ).alias("leadVariantId"),
-                            f.col("association_info.otg_id").alias("studyId"),
-                        ),
-                        on=["studyId", "leadVariantId"],
-                        how="semi",
-                    ),
-                    _schema=CredibleSet.get_schema(),
-                )
-                curated_credible_set_variants = CredibleSetVariant(
-                    _df=CredibleSetVariant.from_parquet(
-                        session, credible_set_variant_path, recursiveFileLookup=True
-                    ).df.join(
-                        curated_credible_sets.df.select(
-                            f.col("id").alias("credibleSetId")
-                        ),
-                        on="credibleSetId",
-                        how="semi",
-                    ),
-                    _schema=CredibleSetVariant.get_schema(),
-                )
-                return L2GGoldStandard.from_otg_curation(
-                    gold_standard_curation=gold_standard_raw,
-                    credible_set=curated_credible_sets,
-                    variant_index=variant_index,
-                    study_locus_overlap=LocusOverlap.from_credible_sets(
-                        curated_credible_sets, curated_credible_set_variants
-                    ),
-                    interactions=interactions,
-                )
-            case _:
-                raise TypeError("Incorrect gold standard dataset provided.")
-
-    @staticmethod
-    def _compute_set_stats(df: pd.DataFrame) -> _SetStats:
-        """Compute descriptive statistics for one train or test partition.
-
-        Args:
-            df (pd.DataFrame): A train or test partition — a row-based slice of the annotated
-                feature matrix with integer-encoded ``goldStandardSet`` (0 = negative, 1 = positive).
-
-        Returns:
-            _SetStats: Counts of positive/negative rows, unique loci, unique positive genes,
-                and (when available) unique positive gene–disease pairs.
-        """
-        positive = df[df["goldStandardSet"] == 1]
-        stats: _SetStats = {
-            "n_positive": int(positive.shape[0]),
-            "n_negative": int((df["goldStandardSet"] == 0).sum()),
-            "n_unique_loci": int(df["credibleSetId"].nunique()),
-            "n_unique_positive_genes": int(positive["geneId"].nunique()),
-        }
-        if "traitFromSourceMappedId" in df.columns:
-            stats["n_unique_positive_gene_disease_pairs"] = int(
-                positive[["geneId", "traitFromSourceMappedId"]].drop_duplicates().shape[0]
-            )
-        return stats
-
-    @staticmethod
-    def _write_split_stats(
-        stats: dict[str, Any],
-        train_parquet_path: str,
-        split_stats_path: str | None = None,
-    ) -> None:
-        """Write split statistics as a JSON file.
-
-        Args:
-            stats (dict[str, Any]): Stats dict to serialise.
-            train_parquet_path (str): Used to derive the default output path when ``split_stats_path`` is not provided.
-            split_stats_path (str | None): Explicit destination path. Defaults to ``<train_parquet_path>_split_stats.json``.
-        """
-        from pathlib import Path
-
-        stats_path = split_stats_path or train_parquet_path.rstrip("/") + "_split_stats.json"
-        if not stats_path.startswith("gs://"):
-            Path(stats_path).parent.mkdir(parents=True, exist_ok=True)
-        with pd.io.common.get_handle(stats_path, mode="wt") as ioargs:
-            json.dump(stats, ioargs.handle, indent=2)
-        logger.info("Split stats written to %s", stats_path)
-
-
 class LocusToGeneStep:
     """Locus to gene step."""
 
@@ -625,8 +251,8 @@ class LocusToGeneStep:
             explain_predictions (bool): Whether to extract SHAP importances for the L2G predictions. This is computationally expensive.
             hf_credentials_path (str | None): Optional path to the Hugging Face Hub credentials JSON file. If not provided, the HF_TOKEN environment variable will be used.
             wandb_credentials_path (str | None): Optional path to the Weights and Biases credentials JSON file. If not provided, the WANDB_API_KEY environment variable will be used.
-            train_parquet_path (str | None): Path to the training split parquet produced by ``LocusToGeneTrainTestSplitStep``. Required in train mode.
-            test_parquet_path (str | None): Path to the test split parquet produced by ``LocusToGeneTrainTestSplitStep``. Required in train mode.
+            train_parquet_path (str | None): Path to the training split parquet: feature matrix rows with ``goldStandardSet`` encoded as 0/1. Required in train mode.
+            test_parquet_path (str | None): Path to the test split parquet, in the same layout as ``train_parquet_path``. Required in train mode.
 
         Raises:
             ValueError: If run_mode is not 'train' or 'predict'
@@ -759,8 +385,7 @@ class LocusToGeneStep:
             raise ValueError("Features list is required for model training.")
         if not (self.train_parquet_path and self.test_parquet_path):
             raise ValueError(
-                "train_parquet_path and test_parquet_path are required for model training. "
-                "Run LocusToGeneTrainTestSplitStep first."
+                "train_parquet_path and test_parquet_path are required for model training."
             )
 
         # Initialize access to weights and biases
@@ -783,7 +408,7 @@ class LocusToGeneStep:
             features_list=self.features_list,
         )
 
-        # Load presplit data produced by LocusToGeneTrainTestSplitStep.
+        # Load the presplit train and test data.
         # Persist so toPandas() (for XGBoost) and the union (for HF Hub metadata) share the cache.
         train_sdf = self.session.spark.read.parquet(self.train_parquet_path).persist()
         test_sdf = self.session.spark.read.parquet(self.test_parquet_path).persist()
